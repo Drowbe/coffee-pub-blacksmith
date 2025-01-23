@@ -1,17 +1,17 @@
 # Coffee Pub Blacksmith
 
-A comprehensive combat enhancement module for FoundryVTT that provides detailed combat statistics, performance tracking, and timing tools to enrich your tabletop experience.
+A comprehensive combat enhancement module for FoundryVTT that provides detailed combat statistics, performance tracking, timing tools, and injury mechanics to enrich your tabletop experience.
 
 ## Features
 
 ### Combat Statistics
-- **Round-by-Round Tracking**: Detailed statistics for each combat round including:
+- **Round-by-Round Tracking**: 
   - Active combat time tracking (excluding paused time)
   - Planning phase duration tracking
   - Turn-by-turn timing statistics
   - Combat performance metrics
-- **Notable Moments**: Tracks critical hits, fumbles, and other significant events in real-time
-- **MVP System**: Identifies and highlights outstanding player performances with detailed scoring
+- **Notable Moments**: Tracks critical hits, fumbles, and other significant events
+- **MVP System**: Identifies outstanding player performances with detailed scoring
 - **Party Performance**: Comprehensive breakdown of party-wide combat effectiveness
 
 ### Player Statistics
@@ -49,10 +49,11 @@ A comprehensive combat enhancement module for FoundryVTT that provides detailed 
 
 ## Installation
 
-1. Inside Foundry VTT, select the Game Systems tab in the Configuration and Setup menu
-2. Click the Install Module button and enter the following URL: [Module URL]
-3. Click Install and wait for installation to complete
-4. Enable the module in your World's Module Settings
+1. Inside Foundry VTT, use the following manifest URL:
+   ```
+   https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json
+   ```
+2. Enable the module in your game world's module settings
 
 ## Configuration
 
@@ -64,7 +65,6 @@ A comprehensive combat enhancement module for FoundryVTT that provides detailed 
 
 ### Module Settings
 Access the module settings through the Module Settings menu in Foundry VTT. Key settings include:
-
 - Combat statistics tracking options
 - Timer durations and behavior
 - Notification preferences
@@ -93,16 +93,13 @@ Access the module settings through the Module Settings menu in Foundry VTT. Key 
 
 ## Support
 
-For issues, suggestions, or feature requests:
-- Create an issue on the [GitHub repository]
-- Join our Discord community [Discord Link]
+If you encounter any issues or have suggestions, please file them in the [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues) section of this repository.
 
 ## License
 
-[License Information]
+This work is licensed under the included LICENSE file.
 
 ## Credits
 
-Created by [Author]
 Part of the Coffee Pub module collection
 
