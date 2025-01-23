@@ -1,0 +1,50 @@
+
+
+
+<!-- PARTY TOKENS --> 
+<div class="workspace-section" id="workspace-section-tokens-{{id}}"> 
+    <h4>Party Worksheet<button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-tokens-content-{{id}}', this)"><i class="fas fa-chevron-down"></i></button></h4>
+    <div id="workspace-section-tokens-content-{{id}}" class="workspace-section-content collapsed">  
+        <div class="encounter-info-row">
+            <!-- PARTY LEVEL -->
+            <div class="info-badge-container">
+                <label for="worksheet-party-level-{{id}}">Party Level</label>
+                <div id="worksheet-party-level-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="worksheetPartyLevel-{{id}}">0</span>
+                </div>
+            </div>
+            <!-- MATH SYMBOL -->
+            <div class="info-badge-container">
+                    <span class="big-number normal-badge">+</span>
+            </div>
+            <!-- PARTY ADJUSTMENT -->
+            <div class="info-badge-container">
+                <label for="worksheet-party-adjustment-{{id}}">Class Bias</label>
+                <div id="worksheet-party-adjustment-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="worksheetPartyAdjustment-{{id}}">+0.0</span>
+                </div>
+            </div>
+            <!-- MATH SYMBOL -->
+            <div class="info-badge-container">
+                    <span class="big-number normal-badge">=</span>
+            </div>
+            <!-- PARTY CR -->
+            <div class="info-badge-container">
+                <label for="worksheet-party-partycr-{{id}}">Party CR</label>
+                <div id="worksheet-party-partycr-{{id}}" class="info-badge info-badge-total">
+                    <span class="big-number bold-badge" id="worksheetPartyCR-{{id}}">0.00</span>
+                </div>
+            </div>
+        </div>
+        <!-- CHARACTER TOKENS ON CANVAS -->
+        <div class="tokens-container">
+            <!-- Message -->
+            <div class="message-box" id="tokens-added-message-{{id}}" style="display: block;">
+                If you want to use player tokens already on the canvas, player tokens will appear here when added with the Player button.
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

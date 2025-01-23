@@ -1,0 +1,46 @@
+<h5>{{strSceneLocation}} • {{strSceneParent}} • {{strSceneArea}} ({{strSceneEnvironment}}) • {{strSceneTitle}}</h5>
+<h2>Preparation</h2>
+{{#if strPrepEncounter}}
+    <h4>Encounter Logistics</h4>
+    <h5>Monsters and NPCs</h5>
+    {{{strPrepEncounter}}}
+    <h5>Encounter Details</h5>
+    {{{strPrepEncounterDetails}}}
+{{/if}}
+{{#if strPrepRewards}}
+    <h4>Rewards and Treasure</h4>
+    {{{strPrepRewards}}}
+{{/if}}
+{{#if strPrepSetup}}
+    <h4>Summary and Setup</h4>
+    {{{strPrepSetup}}}
+{{/if}}
+<h2>{{strSceneTitle}}</h2>
+{{strContextIntro}}
+{{#if (or strCardDescriptionPrimary strCardImage)}}
+    <blockquote>
+        <h4>{{strCardTitle}}</h4>
+        <p>{{strCardDescriptionPrimary}}</p>
+        {{#if strCardImage}}
+            <h5>{{strCardImageTitle}}</h5>
+            <img src="{{{strCardImage}}}">
+            <hr>
+        {{/if}}
+        <p>{{strCardDescriptionSecondary}}</p>
+        {{~#if strCardDialogue~}}
+            {{{strCardDialogue}}}
+        {{~/if~}}
+    </blockquote>
+ {{/if}}
+{{#if strContextAdditionalNarration}}
+    <h4>Extended Narrative</h4>
+    {{{strContextAdditionalNarration}}}
+{{/if}}
+{{#if strContextAtmosphere}}
+    <h4>Atmosphere and Environments</h4>
+    {{{strContextAtmosphere}}}
+{{/if}}
+{{#if strContextGMNotes}}
+    <h4>Notes and Strategies</h4>
+    {{{strContextGMNotes}}}
+{{/if}}

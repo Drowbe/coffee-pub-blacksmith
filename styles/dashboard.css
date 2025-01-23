@@ -1,0 +1,465 @@
+
+
+
+/* ----- VARIABLES ----- */
+
+/* Window Variables */
+:root {
+    --container-padding: 8px;
+    --element-radius: 4px;
+	--container-opacity: 0.75;
+}
+
+/* Window Background */
+div#coffee-pub-blacksmith-dashboard .window-content {
+	opacity: var(--container-opacity);
+    padding: var(--container-padding);
+    background: #222222;
+	color: #ffffff;
+}
+
+
+
+
+/* Main container styles */
+#blacksmith-dashboard-container {
+    width: 100%; /* Full width */
+    display: flex; /* Flexbox layout */
+    gap: 5px; /* Space between items */
+	margin: 0px;
+	padding: 0px;
+}
+
+/* Fixed size for macros container */
+#blacksmith-dashboard-container-macros {
+    width: 150px;  /* Fixed width */
+    height: auto; /* Fixed height */
+    display: flex; /* Optional: if you want to align content inside */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+    border: 1px solid #8b0303; /* Optional: border for visibility */
+}
+
+/* Fixed size for character container */
+#blacksmith-dashboard-container-character {
+    width: 150px;  /* Fixed width */
+    height: auto; /* Fixed height */
+    border: 1px solid #8b0303; /* Optional: border for visibility */
+}
+
+/* Actions container takes up remaining space */
+#blacksmith-dashboard-container-actions {
+    flex-grow: 1; /* Allow this container to take up the remaining space */
+    display: flex; /* Optional: if you want to align content inside */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+    border: 1px solid #8b0303; /* Optional: border for visibility */
+}
+
+
+
+
+/* *** TRANSITION THESE ******************* */
+
+
+/* Wrapper */
+.blacksmith-dashboard-wrapper {
+    font-size: 1.0em;
+    font-style: normal;
+    border-radius: 5px 5px 5px 5px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-top: var(--intCardMarginTop);
+    margin-bottom: var(--intCardMarginBottom);
+    margin-left: var(--intCardMarginLeft);
+    margin-right: var(--intCardMarginRight);
+}
+/* Icon */
+#crier-cards-icon-cardsdark {
+	font-weight:550;
+    font-size: 1.0em;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 5px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+/* Title */
+#crier-cards-title-cardsdark {
+    border-radius: 4px 4px 4px 4px;
+	padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+/* Description / Player */
+#crier-cards-description-cardsdark {
+    border-radius: 4px 4px 4px 4px;
+	padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+/* Content */
+#blacksmith-dashboard-content {
+
+    border-radius: 5px 5px 5px 5px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+/* Image */
+.blacksmith-dashboard-wrapper img {
+    /* width: 100% !important; */
+    border-radius: 4px 4px 4px 4px !important;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0px;
+    margin-bottom: -4px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+/* Portrait Overlay */
+.image-stack {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    position: relative;
+}
+.image-stack__item--bottom {
+    grid-column: 1 / span 1;
+    grid-row: 1; /*  must be on the same row as the other image */
+    z-index: 1; /*  make this image render on top of the bottom */
+}
+.image-stack__item--top {
+grid-column: 1 / -1;
+grid-row: 1; /* make this image be on the same row */
+}
+
+/* Username Layout */
+.blacksmith-dashboard-cards-user-cardsgreen,
+.blacksmith-dashboard-cards-user-cardsblue,
+.blacksmith-dashboard-cards-user-cardsdark, 
+.blacksmith-dashboard-cards-user-cardsred {
+    font-weight:550;
+    font-size: 0.9em;
+    font-style: normal;
+    text-transform: uppercase;
+}
+/* HP Layout */
+.grid-container {
+	display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-gap: 10px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.grid-container .grid-child .left {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.grid-container .grid-child .right {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+#blacksmith-dashboard-hp-container {
+    border-radius: 4px 4px 4px 4px;
+	padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 3px;
+    padding-right:3px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+#blacksmith-dashboard-hp-container #hp-progress-healthy-cardsdark,
+#blacksmith-dashboard-hp-container #hp-progress-hurt-cardsdark,
+#blacksmith-dashboard-hp-container #hp-progress-dying-cardsdark,
+#blacksmith-dashboard-hp-container #hp-progress-critical-cardsdark,
+#blacksmith-dashboard-hp-container #hp-progress-dead-cardsdark  {
+	height:10px;
+    border-radius: 2px 2px 2px 2px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+#blacksmith-dashboard-hp-container #hp-progress-critical-cardsdark {
+    animation-name: hp-pulse-color;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;	
+}
+/* Abilities Layout */
+#ability-container-cardsdark {
+	display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-gap: 5px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+#ability-container-cardsdark #ability-child-cardsdark {
+    border-radius: 4px 4px 4px 4px;
+	padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+#ability-title-cardsdark {
+    font-weight:400;
+    font-size: 0.6em;
+    font-style: normal;
+    text-transform: uppercase;
+	text-align: center;
+	display: block; 
+    margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+#ability-content-cardsdark  {
+    font-weight:550;
+    font-size: 1.1em;
+    font-style: normal;
+    text-transform: uppercase;
+	text-align: center;
+	display: block; 
+    margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+/* Death Save Layout */
+.blacksmith-dashboard-deathsave-wrapper-cardsdark {
+	display: grid;
+	grid-template-columns: auto auto auto;
+    position: relative;
+	text-align: center;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;  
+}
+
+.blacksmith-dashboard-deathsave-wrapper-icon-cardsdark {
+	grid-column: auto;
+	font-size: 1.2em;
+    font-style: normal;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;	
+	display: flex;
+	align-items: center;
+    
+}
+.blacksmith-dashboard-deathsave-wrapper-icon-cardsdark {
+    justify-content: center;
+}
+.blacksmith-dashboard-deathsave-icon-cardsdark {
+	animation-name: death-save-pulse-color-cardsdark;
+    animation-duration: 3.0s;
+    animation-iteration-count: infinite;	
+}
+
+.blacksmith-dashboard-deathsave-wrapper-successes-cardsdark {
+    justify-content: right;
+}
+.blacksmith-dashboard-deathsave-wrapper-failures-cardsdark {
+    justify-content: left;
+}
+
+.blacksmith-dashboard-deathsuccessdot-off-cardsdark,
+.blacksmith-dashboard-deathsuccessdot-on-cardsdark,
+.blacksmith-dashboard-deathfailuredot-off-cardsdark,
+.blacksmith-dashboard-deathfailuredot-on-cardsdark {
+  	display: inline-block;
+	border-radius: 25%;
+	height: 13px;
+  	width: 13px;
+	padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: 6px;
+    margin-right: 6px;	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/******** DARK CARDS ********/
+.blacksmith-dashboard-wrapper {
+    color:#323030;
+    background: #222121;
+    border-left: 2px solid #504A4A;
+    border-right: 2px solid #504A4A;
+    border-top: 2px solid #504A4A;
+    border-bottom: 2px solid #504A4A;
+}
+#crier-cards-title-cardsdark {
+	background: #121212;
+}
+#crier-cards-description-cardsdark {
+	background: #121212;
+}
+.blacksmith-dashboard-wrapper img {
+    border-left: 4px solid #180505;
+    border-right: 4px solid #180505;
+    border-top: 4px solid #180505;
+    border-bottom: 4px solid #180505;
+}
+#blacksmith-dashboard-content {
+    background: #201F1F;
+}
+
+.blacksmith-dashboard-cards-user-cardsdark {
+	color: #BAAFAF;
+}
+#blacksmith-dashboard-hp-container {
+    background: #121212;
+}
+#hp-progress-healthy-cardsdark {
+    background: #629602;
+}
+#hp-progress-hurt-cardsdark {
+    background: #df8601;
+}
+#hp-progress-dying-cardsdark {
+    background: #772810;
+}
+#hp-progress-critical-cardsdark {
+    background: #771410;
+}
+#hp-progress-dead-cardsdark {
+    background: #424242;
+}
+#ability-container-cardsdark #ability-child-cardsdark {
+    background: #121212;
+}
+#ability-title-cardsdark {
+	color: #BAAFAF;
+    border-top: 0px;
+    border-bottom: 0px;
+}
+#ability-content-cardsdark  {
+	color: #BAAFAF;
+    border-top: 0px;
+    border-bottom: 0px;
+}
+/* cardsdark death save */
+@keyframes death-save-pulse-color-cardsdark {
+	0% {color: #7B7373;}
+	40% {color: #7B7373;}
+	45% {color: #504A4A;}
+	50% {color: #7B7373;}
+	55% {color: #504A4A;}
+	60% {color: #7B7373;}
+	100% {color: #7B7373;}
+}
+.blacksmith-dashboard-deathsave-wrapper-cardsdark {
+	border: 0px solid #ffffff;
+}
+.blacksmith-dashboard-deathsave-wrapper-icon-cardsdark {
+	border: 0px solid #ffffff;
+}
+.blacksmith-dashboard-deathsave-wrapper-successes-cardsdark {
+	border: 0px solid #ffffff;
+}
+.blacksmith-dashboard-deathsave-wrapper-failures-cardsdark {
+	border: 0px solid #ffffff;
+}
+.blacksmith-dashboard-deathsuccessdot-off-cardsdark {
+  	background-color: #121212;
+	border: 1px solid #504A4A;
+}
+.blacksmith-dashboard-deathsuccessdot-on-cardsdark {
+  	background-color: #7B7373;
+	border: 1px solid #7B7373;
+}
+.blacksmith-dashboard-deathfailuredot-off-cardsdark {
+  	background-color: #121212;
+	border: 1px solid #504A4A;
+}
+.blacksmith-dashboard-deathfailuredot-on-cardsdark {
+  	background-color: #7B7373;
+	border: 1px solid #7B7373;
+}

@@ -1,0 +1,492 @@
+/* ------------------------------------ */
+/* --- COMBAT Stats ----------------- */
+/* ------------------------------------ */
+
+.blacksmith-stats {
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-primary);
+}
+
+/* Section Headers - matching the beige style from screenshots */
+.section-header {
+    color: #461313;
+    font-size: 1em;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+/* Round Header - variant without bottom margin */
+.round-header {
+    color: #461313;
+    font-size: 1em;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+/* Round Summary Section */
+.round-summary {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 15px;
+}
+
+.round-summary .fas {
+    margin-right: 5px;
+    width: 16px;
+    text-align: center;
+}
+
+.round-duration {
+    color: #594a3c;
+    font-size: 0.9em;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.round-duration span {
+    color: #461313;
+    font-weight: bold;
+}
+
+/* Round MVP Section */
+.round-mvp {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 15px;
+}
+
+.round-mvp .section-header {
+    margin-bottom: 8px;
+}
+
+.mvp-details {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.mvp-details img {
+    width: 80px;
+    height: 80px;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+.mvp-info {
+    flex: 1;
+}
+
+.mvp-info .player-name {
+    color: #461313;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.mvp-description {
+    color: #461313;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.mvp-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.combat-stats {
+    color: #8b0000;
+}
+
+.damage-stats {
+    color: #d63737;
+}
+
+.healing-stats {
+    color: #2d8a45;
+}
+
+/* Turn Details Section */
+.turn-details {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 10px;
+}
+
+.turn-row {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 4px;
+    border-radius: 4px;
+    position: relative;
+}
+
+.turn-portrait {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d5ccc7;
+    border-radius: 5px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.turn-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.turn-name {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    font-size: 0.9em;
+    margin-bottom: 0.2em;
+    gap: 2px;
+}
+
+.turn-name .fa-fire {
+    color: #3498db;
+    margin-left: 4px;
+}
+
+.turn-name .fa-skull {
+    color: #ff0000;
+    margin-left: 4px;
+}
+
+.turn-timer {
+    width: 100%;
+    margin: 2px 0;
+}
+
+.timer-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.timer-fill {
+    height: 100%;
+    background: #4a8f52;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.turn-stats {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    font-size: 0.9em;
+    color: #594a3c;
+}
+
+.turn-stats .stat-value {
+    display: inline;
+    margin: 0;
+}
+
+.mvp-stat, .damage-stat, .hits-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mvp-stat {
+    color: #4a8f52;
+    font-weight: bold;
+}
+
+.damage-stat {
+    color: #8b0000;
+}
+
+.hits-stat {
+    color: #461313;
+}
+
+/* Status Indicators */
+.quick-turn {
+    color: #4a8f52;
+    font-weight: bold;
+}
+
+.expired-turn {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+/* Progress Bar */
+.progress-bar {
+    height: 4px;
+    background: #d5ccc7;
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #4a8f52;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Boolean Values */
+.true {
+    color: #4a8f52;
+}
+
+.false {
+    color: #8b0000;
+}
+
+.status-tag {
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+	white-space: nowrap;
+}
+
+.status-tag.success {
+    background-color: #4a8f52;
+    color: white;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-tag.danger {
+    background-color: #8f4a4a;
+    color: white;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-tag.rank {
+    background-color: #3498db;
+    color: white;
+    font-size: 0.8em;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 1;
+    font-weight: bold;
+}
+
+.turn-time {
+    margin-left: auto;
+    color: #666;
+    font-size: 0.9em;
+    font-weight: normal;
+	white-space: nowrap;
+}
+
+.no-mvp-message {
+    text-align: center;
+    color: #594a3c;
+    font-size: 0.8em;
+    padding: 6px;
+}
+
+/* Notable Moments Section */
+.notable-moments-section {
+    margin-top: 1em;
+    padding: 0.5em;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
+}
+
+/* Notable Moments Grid Layout */
+.notable-moments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.moment-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.moment-card h4 {
+    color: #461313;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.moment-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85em;
+}
+
+.moment-content .actor {
+    color: #4a8f52;
+    font-weight: bold;
+}
+
+.moment-content .target {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.moment-content .detail {
+    color: #594a3c;
+}
+
+.moment-content .amount {
+    font-weight: bold;
+    color: #461313;
+}
+
+.no-moments {
+    text-align: center;
+    color: #594a3c;
+    font-size: 0.8em;
+    padding: 6px;
+}
+
+/* Party Stats Section */
+.party-stats-section {
+    margin-top: 1em;
+    padding: 0.5em;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.party-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card h4 {
+    color: #461313;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
+}
+
+.stat-detail {
+    font-size: 0.8em;
+    color: #594a3c;
+}
+
+.mvp-stat-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+}
+
+.mvp-stat-card h4 {
+    color: #461313;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.mvp-stat-card .moment-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85em;
+}
+
+.mvp-stat-card .moment-content div {
+    display: flex;
+    gap: 4px;
+}
+
+.mvp-stat-card .moment-content .actor {
+    color: #4a8f52;
+    font-weight: bold;
+}
+
+.mvp-stat-card .moment-content .target {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.mvp-stat-card .moment-content .detail {
+    color: #594a3c;
+}
+
+.mvp-stat-card .moment-content .amount {
+    font-weight: bold;
+    color: #461313;
+}
+
+.round-announcement-section {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+}

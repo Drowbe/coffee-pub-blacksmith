@@ -1,0 +1,16 @@
+<div class="combat-timer-container {{#unless enabled}}hidden{{/unless}}">
+    <div class="combat-timer-progress">
+        <div class="combat-timer-bar"></div>
+        <div class="combat-timer-text">
+            {{#if isPaused}}
+                COMBAT TIMER PAUSED
+            {{else}}
+                {{#if remaining}}
+                    {{formatTime remaining}} REMAINING
+                {{else}}
+                    TIME'S UP!
+                {{/if}}
+            {{/if}}
+        </div>
+    </div>
+</div> 

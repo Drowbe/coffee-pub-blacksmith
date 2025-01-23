@@ -1,0 +1,16 @@
+<li class="combatant planning-phase">
+    <div class="planning-timer-progress">
+        <div class="planning-timer-bar"></div>
+        <div class="planning-timer-text">
+            {{#if isPaused}}
+                {{label}} TIMER PAUSED
+            {{else}}
+                {{#if remaining}}
+                    {{formatTime remaining}} {{label}}
+                {{else}}
+                    {{label}} HAS ENDED
+                {{/if}}
+            {{/if}}
+        </div>
+    </div>
+</li> 

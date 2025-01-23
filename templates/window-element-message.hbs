@@ -1,0 +1,48 @@
+{{#if blnProcessing}}
+    <div id="blacksmith-message-wrapper-processing" class="blacksmith-processing">
+        <div id="blacksmith-message-header-processing">
+            <i class="fas {{strSpeakerIcon}}"></i>
+            <span class="blacksmith-message-speaker">
+                {{strSpeakerName}}
+            </span>
+            {{strMessageIntro}}
+        </div>
+    </div>
+{{/if}}
+{{#unless blnProcessing}}
+    <div id="blacksmith-message-wrapper" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+        
+        <div id="blacksmith-message-header" class="{{strHeaderStlye}}">
+            <i class="fas {{strSpeakerIcon}}"></i>
+            <span class="blacksmith-message-speaker">
+                {{strSpeakerName}}
+            </span>
+            {{strMessageIntro}}
+        </div>
+
+        <div id="blacksmith-message-content" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+            {{{strMessageContent}}}
+        </div>
+
+    </div>
+
+    {{#if blnToolbar}}
+        <div id="blacksmith-message-toolbar" class="toolbar-right">
+
+                <button id="blacksmith-chat-button-json" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+                    <i class="fa-solid fa-message-arrow-down"></i>
+                </button>
+
+            <button id="blacksmith-chat-button-copy" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+                <i class="fa-solid fa-copy"></i>
+            </button>
+            <button id="blacksmith-chat-button-chat" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+                <i class="fas fa-comment"></i> 
+                <span>Send to Chat</span>
+            </button>
+        </div>
+        <div id="blacksmith-message-divider">{{strDateStamp}} — Hear ye! The Regent has spoken, it is so!</div>
+    {{/if}}
+
+{{/unless}}
+
