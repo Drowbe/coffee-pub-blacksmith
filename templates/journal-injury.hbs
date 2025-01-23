@@ -1,0 +1,77 @@
+<h5>Injuries • {{strCategory}} • {{strTitle}}</h5>
+<h2>Injury Card</h2>
+<blockquote>
+    <h4>{{strTitle}}</h4>
+    <p>{{strDescription}}</p>
+    {{#if blnImage}}
+        <h5>{{strImageTitle}}</h5>
+        <img src="{{strImage}}">
+        <hr>
+    {{/if}}
+    <h5>Treatment</h5>
+    <p>{{strTreatment}}</p>
+    <h5>Details</h5>
+    <ul>
+        <li>
+            <p><strong>Category</strong>: {{strCategory}}</p>
+        </li>
+        <li>
+            <p><strong>Severity</strong>: {{strSeverity}}</p>
+        </li>
+        <li>
+            <p><strong>Damage</strong>: {{strCardDamage}}</p>
+        </li>
+        <li>
+            <p><strong>Duration</strong>: {{strCardDuration}}</p>
+        </li>
+        <li>
+            <p><strong>Status Effect</strong>: {{strStatusEffect}}</p>
+        </li>
+    </ul>
+</blockquote>
+<h2>Metadata</h2>
+<p>The metadata is used to generate the Injury in the chat window. Poorly formatted metadata will result in broken or nonfunctional injuries.</p>
+<ul>
+    <li>
+        <p><strong>journaltype:</strong> {{strJournalType}}</p>
+    </li>
+    <li>
+        <p><strong>category:</strong> {{strCategory}}</p>
+    </li>
+    <li>
+        <p><strong>odds:</strong> {{intOdds}}</p>
+    </li>
+    <li>
+        <p><strong>foldername:</strong> {{strFolderName}}</p>
+    </li>
+    <li>
+        <p><strong>title:</strong> {{strTitle}}</p>
+    </li>
+    <li>
+        <p><strong>imagetitle:</strong> {{strImageTitle}}</p>
+    </li>
+    <li>
+        <p><strong>image:</strong> {{strImage}}</p>
+    </li>
+    <li>
+        <p><strong>description:</strong> {{strDescription}}</p>
+    </li>
+    <li>
+        <p><strong>treatment:</strong> {{strTreatment}}</p>
+    </li>
+    <li>
+        <p><strong>severity:</strong> {{strSeverity}}</p>
+    </li>
+    <li>
+        <p><strong>damage:</strong> {{intDamage}}</p>
+    </li>
+    <li>
+        <p><strong>duration:</strong> {{intDuration}}</p>
+    </li>
+    <li>
+        <p><strong>action:</strong> {{strAction}}</p>
+    </li>
+    <li>
+        <p><strong>statuseffect:</strong> {{strStatusEffect}}</p>
+    </li>
+</ul>

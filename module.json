@@ -1,0 +1,86 @@
+{
+  "id": "coffee-pub-blacksmith",
+  "title": "Coffee Pub Blacksmith",
+  "description": "Quality of life aesthetic improvements",
+  "version": "0.1",
+  "library": true,
+  "compatibility": {
+    "minimum": "11",
+    "verified": "12"
+  },
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json",
+      "flags": {}
+    }
+  ],
+  "authors": [
+    {
+      "name": "drowbe",
+      "discord": "drowbe"
+    },
+    {
+      "name": "CLIFFFF"
+    }
+  ],
+  "esmodules": [
+    "scripts/blacksmith.js",
+    "scripts/window-dashboard.js",
+    "scripts/toolbar.js"
+  ],
+  "styles": [
+    "styles/default.css"
+  ],
+  "manifest": "module.json",
+  "changelog": "CHANGELOG.md",
+  "license": "LICENSE",
+  "readme": "README.md",
+  "packs": [
+    {
+      "name": "user-manual",
+      "label": "Blacksmith: User Manual",
+      "path": "packs/user-manual",
+      "type": "JournalEntry",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    },
+    {
+      "name": "treatments",
+      "label": "Blacksmith: Treatments",
+      "path": "packs/treatments",
+      "type": "Item",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    },
+    {
+      "name": "blacksmith-tables",
+      "label": "Blacksmith: Tables",
+      "path": "packs/blacksmith-tables",
+      "type": "RollTable",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    },
+    {
+      "name": "blacksmith-injuries",
+      "label": "Blacksmith: Injuries",
+      "path": "packs/blacksmith-injuries",
+      "type": "JournalEntry",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    }
+  ]
+}

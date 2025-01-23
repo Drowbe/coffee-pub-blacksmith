@@ -1,0 +1,53 @@
+
+<!-- MONSTER TOKENS --> 
+<div class="workspace-section" id="workspace-section-npcs-{{id}}">
+    <h4>NPC Worksheet<button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-npcs-content-{{id}}', this)"><i class="fas fa-chevron-down"></i></button></h4>
+    <div id="workspace-section-npcs-content-{{id}}" class="workspace-section-content collapsed">
+        <!-- Monster Worksheet LEVEL BADGES -->    
+        <div class="encounter-info-row">
+            
+
+            <!-- PARTY CR -->
+            <div class="info-badge-container">
+                <label for="worksheet-npc-partycr-{{id}}">Party CR</label>
+                <div id="worksheet-npc-partycr-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="npcPartyCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+            <!-- MATH SYMBOL -->
+            <div class="info-badge-container">
+                <span class="big-number normal-badge">+</span>
+            </div>
+
+            <!-- NPC CR LEVEL -->
+            <div class="info-badge-container">
+                <label for="worksheet-npc-cr-{{id}}">NPC CR</label>
+                <div id="worksheet-npc-cr-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="npcNPCCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+            <!-- MATH SYMBOL -->
+            <div class="info-badge-container">
+                <span class="big-number normal-badge">=</span>
+            </div>
+
+            <!-- PARTY BENCHMARK -->
+            <div class="info-badge-container">
+                <label for="worksheet-npc-herocr-{{id}}">Hero CR</label>
+                <div id="worksheet-npc-herocr-{{id}}" class="info-badge info-badge-total">
+                    <span class="big-number bold-badge" id="npcHeroCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+        </div>
+        <!-- NPC TOKENS CONTAINER -->   
+        <div class="npc-container">
+            <!-- Message -->
+            <div class="message-box" id="tokens-added-message-{{id}}" style="display: block;">
+                NPC tokens will appear here when added with the Monster and NPC button.
+            </div>
+        </div>
+        <div class="workspace-section-nodivider"></div>
+    </div>
+
+
+</div>

@@ -1,0 +1,99 @@
+
+
+<div class="workspace-section" id="workspace-section-encounterbenchmark-{{id}}">
+    <h4>Encounter Configuration <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-encounterbenchmark-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-encounterbenchmark-content-{{id}}" class="workspace-section-content">
+
+
+        <!-- ADD ENCOUNTER -->
+        {{#if (eq id "narrative")}}
+            <br>
+            <label>
+                <input type="checkbox" id="blnAddEncounter-{{id}}" {{#if blnNarrativeDefaultIncludeEncounter}}checked{{/if}}>Add Encounter
+            </label>
+        {{/if}}
+
+        {{!-- Encounter Details --}}
+        <div class="form-label">Encounter Details <span class="helper">(Encounter context)</span></div>
+        <textarea id="inputNarrativeEncounterDetails-{{id}}" rows="4" placeholder="Enter encounter details">{{strNarrativeDefaultEncounterDetails}}</textarea>
+        <div class="form-label">Specific Monsters <span class="helper">(Use these monsters)</span></div>
+        <textarea id="inputNarrativeEncounterMonsters-{{id}}" rows="3" placeholder="Enter encounter details">{{strNarrativeDefaultEncounterMonsters}}</textarea>
+        <label>
+            <input type="checkbox" id="blnSpecificEncounterMonsters-{{id}}" {{#if blnSpecificEncounterMonsters}}checked{{/if}}>Only Include the monsters listed above
+        </label>
+        <!-- PARTY LEVEL BADGES -->    
+        <div class="encounter-info-row">
+            
+            <!-- PARTY BENCHMARK -->
+            <div class="info-badge-container">
+                <label for="badge-hero-cr-{{id}}">Hero CR</label>
+                <div id="badge-hero-cr-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="badgeHeroCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+
+            <!-- MONSTER -->
+            <div class="info-badge-container">
+                <label for="badge-monster-cr-{{id}}">Monster CR</label>
+                <div id="badge-monster-cr-{{id}}" class="info-badge">
+                    <span class="big-number normal-badge" id="badgeMonsterCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+            <!-- MONSTER CR GAP -->
+            <div class="info-badge-container">
+                <label for="badge-gap-cr-{{id}}">Monster Gap</label>
+                <div id="badge-gap-cr-{{id}}" class="info-badge gap-cr">
+                    <span class="big-number bold-badge" id="gapBadgeCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+
+            <!-- ENCOUNTER CR -->
+            <div class="info-badge-container">
+                <label for="badge-target-cr-{{id}}">Encounter CR</label>
+                <div id="badge-target-cr-{{id}}" class="info-badge info-badge-special">
+                    <span class="big-number bold-badge" id="targetCRValue-{{id}}">0.00</span>
+                </div>
+            </div>
+
+        </div>
+        <!-- ENCOUNTER RATING -->
+        <div class="form-options">
+            <div id="encounter-rating-{{id}}" class="encounter-rating-badge encounter-rating-none">
+                <i class="fa-solid fa-users-gear"></i> Set Difficulty
+            </div>
+        </div>
+
+        <!-- CHALLENGE RATING SLIDER-->
+        <div class="form-options">
+            <div class="slider-container" style="display: flex; align-items: center;">
+                <i class="fa-solid fa-rabbit" style="margin-right: 10px;"></i> <!-- Left icon -->
+                <input type="range" id="optionCR-{{id}}" name="optionCR-{{id}}" min="0" max="200" value="0" step="0.25" oninput="updateSlider('{{id}}')">
+                <i class="fa-solid fa-skull" style="margin-left: 10px;"></i> <!-- Right icon -->
+            </div>
+        </div>
+
+        <!-- IMPORT BUTTONS -->
+        <div class="form-options workspace-button-group">
+            <!-- ALL BUTTON -->
+            <button type="button" id="add-all-button-{{id}}" class="add-all-button" title="Add all tokens from the canvas">
+                <i class="fa-solid fa-user-group-crown" style="pointer-events: none;"></i>
+            </button>
+            <!-- MONSTER BUTTON -->
+            <button type="button" id="add-monsters-button-{{id}}" class="add-monsters-button" title="Add monsters from the canvas">
+                <i class="fa-solid fa-dragon" style="pointer-events: none;"></i>
+            </button>
+            <!-- PLAYER BUTTON -->
+            <button type="button" id="add-tokens-button-{{id}}" class="add-tokens-button" title="Add players from the canvas">
+                <i class="fa-solid fa-helmet-battle" style="pointer-events: none;"></i>
+            </button>
+            <!-- NPC BUTTON -->
+            <button type="button" id="add-npcs-button-{{id}}" class="add-npcs-button" title="Add NPCs from the canvas">
+                <i class="fa-solid fa-nesting-dolls" style="pointer-events: none;"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+

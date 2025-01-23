@@ -1,0 +1,43 @@
+<div class="workspace-section" id="workspace-section-skillcheckrolls-{{id}}">
+    <h4>Skill Check <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-skillcheckrolls-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-skillcheckrolls-content-{{id}}" class="workspace-section-content">
+
+        <label>
+            <input type="checkbox" id="blnSkillRoll-{{id}}"> Use <b>Skill Check</b> results to scale the narrative
+        </label>
+        <div class="form-options">
+            <select id="optionSkill-{{id}}">
+                <option value="">--</option>
+                <option value="Acrobatics">Acrobatics</option>
+                <option value="Animal Handling">Animal Handling</option>
+                <option value="Arcana">Arcana</option>
+                <option value="Athletics">Athletics</option>
+                <option value="Deception">Deception</option>
+                <option value="History">History</option>
+                <option value="Insight">Insight</option>
+                <option value="Intimidation">Intimidation</option>
+                <option value="Investigation">Investigation</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Nature">Nature</option>
+                <option value="Perception">Perception</option>
+                <option value="Performance">Performance</option>
+                <option value="Persuasion">Persuasion</option>
+                <option value="Religion">Religion</option>
+                <option value="Sleight of Hand">Sleight of Hand</option>
+                <option value="Stealth">Stealth</option>
+                <option value="Survival">Survival</option>
+            </select>
+            <select id="optionDiceType-{{id}}">
+                <option value="">--</option>
+                <option value="1d2">1d2</option>
+                <option value="1d4">1d4</option>
+                <option value="1d6">1d6</option>
+                <option value="1d8">1d8</option>
+                <option value="1d10">1d10</option>
+                <option value="1d20">1d20</option>
+                <option value="1d100">1d100</option>
+            </select>
+            <input type="number" id="inputDiceValue-{{id}}" size="4" min="1" max="999" value="">
+        </div>
+    </div>
+</div>
