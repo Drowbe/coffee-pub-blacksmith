@@ -1,49 +1,34 @@
 # Changelog
 
-## [1.0.0] - 2024-01-22
+## [1.0.0] - 2025-01-22 - Initial Release
 
 ### Added
-- Initial release of Coffee Pub Blacksmith
 - Combat Statistics System
-  - Round-by-round tracking
-  - Notable moments tracking
-  - MVP system
-  - Party performance metrics
-- Player Statistics
-  - Individual performance tracking
-  - Combat session stats
-  - Turn management
+  - Core combat statistics tracking
+  - Round-by-round tracking with summary display
+  - MVP system with card-based stat display
+  - Notable moments tracking with party focus
+  - Party breakdown with individual performance stats
+  - Combat session stats with accuracy tracking
+  - Combat statistics chat output
 - Combat Management
-  - Combat timer with pause/resume
-  - Planning timer
-  - Turn tracking system
+  - Combat timer with pause/resume functionality
+  - Planning timer with strategic phase support
+  - Turn tracking system with accurate timing
 - UI Enhancements
-  - Combat dashboard
-  - Timer integration
+  - Combat dashboard with real-time statistics
+  - Visual progress indicators and timers
   - Multiple visual themes
+  - Player portraits with rank overlays
+  - Icons for critical hits and fumbles
+  - Consistent header styling
 - Full documentation and README
-- FoundryVTT v12 compatibility 
+- FoundryVTT v12 compatibility
 
-## [0.1.1] - 2024-03-19
 ### Changed
-- Improved visual consistency across all section headers
-- Enhanced MVP section with card-based stat display
 - Updated Notable Moments section title to "Notable Party Moments"
-- Improved player portrait display with overlaid rank numbers
-- Replaced text indicators with icons for critical hits and fumbles
 - Ensured chat messages come from GM instead of selected token
 
 ### Fixed
-- Removed inconsistent header styling
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
-
-## [0.1.0] - Initial Release
-### Added
-- Core combat statistics tracking
-- Round summary display
-- MVP tracking and display
-- Notable moments tracking
-- Party breakdown with individual performance stats
-- Basic turn timer integration
-- Combat statistics chat output 
