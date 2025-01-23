@@ -24,4 +24,28 @@ All notable changes to the Combat Stats module will be documented in this file.
 - Notable moments tracking
 - Party breakdown with individual performance stats
 - Basic turn timer integration
-- Combat statistics chat output 
+- Combat statistics chat output
+
+## [1.0.0] - 2024-01-22
+
+### Added
+- Initial release of Coffee Pub Blacksmith
+- Combat Statistics System
+  - Round-by-round tracking
+  - Notable moments tracking
+  - MVP system
+  - Party performance metrics
+- Player Statistics
+  - Individual performance tracking
+  - Combat session stats
+  - Turn management
+- Combat Management
+  - Combat timer with pause/resume
+  - Planning timer
+  - Turn tracking system
+- UI Enhancements
+  - Combat dashboard
+  - Timer integration
+  - Multiple visual themes
+- Full documentation and README
+- FoundryVTT v12 compatibility 
