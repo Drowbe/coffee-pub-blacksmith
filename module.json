@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "library": true,
   "compatibility": {
-    "minimum": "11",
+    "minimum": "12",
     "verified": "12"
   },
   "languages": [
@@ -20,9 +20,6 @@
     {
       "name": "drowbe",
       "discord": "drowbe"
-    },
-    {
-      "name": "CLIFFFF"
     }
   ],
   "esmodules": [
