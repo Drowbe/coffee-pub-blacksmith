@@ -1,6 +1,6 @@
 // Import MODULE variables
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { getPortraitImage, isPlayerCharacter } from './global.js';
+import { getPortraitImage, isPlayerCharacter, playSound } from './global.js';
 import { CombatStatsDebug } from './debug.js';
 
 // Helper function to get actor portrait
@@ -179,7 +179,7 @@ class CombatStats {
             const soundId = game.settings.get(MODULE_ID, 'newRoundSound');
             if (soundId && soundId !== 'none') {
                 const volume = game.settings.get(MODULE_ID, 'timerSoundVolume');
-                AudioHelper.play({ src: soundId, volume: volume }, true);
+                playSound(soundId, volume);
             }
         } catch (error) {
             console.error('Blacksmith | Error announcing new round:', error);

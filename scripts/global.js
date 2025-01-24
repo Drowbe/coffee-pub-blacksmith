@@ -523,9 +523,12 @@ function clamp(value, min, max) {
  * Play a sound with specified path and volume.
  * @param {string} [sound='sound'] - The path to the sound file.
  * @param {number} [volume=0.7] - The volume of the sound (0 to 1).
+ * @param {boolean} [loop=false] - Whether the sound should loop.
+ * @param {boolean|object} [broadcast=true] - If true, plays for all clients. If false, plays only for the local client.
+ *                                           Can also be an object to configure specific recipients.
  * @returns {Promise<void>}
  */
-export async function playSound(sound = 'sound', volume = 0.7) {
+export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true) {
     if (sound === 'none') return;
 
     try {
@@ -533,8 +536,8 @@ export async function playSound(sound = 'sound', volume = 0.7) {
             src: sound,
             volume: clamp(volume, 0, 1),
             autoplay: true,
-            loop: false
-        }, true);
+            loop: loop
+        }, broadcast);
     } catch (error) {
         console.error(`Failed to play sound: ${sound}`, error);
     }

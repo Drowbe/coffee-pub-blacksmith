@@ -1314,6 +1314,49 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	
 
 
+	// *** ROUND ANNOUNCMENTS ***
+
+	// ---------- ROUND ANNOUNCMENTS HEADING ----------
+	game.settings.register(MODULE_ID, "headingH2RoundAnnouncments", {
+		name: 'ROUND ANNOUNCEMENTS',
+		hint: 'Add anouncements for rounds to the chat.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: "",
+		type: String,
+	});
+
+
+	// Announce New Rounds Setting
+	game.settings.register(MODULE_ID, 'announceNewRounds', {
+		name: 'Announce New Rounds',
+		hint: 'Post an announcement card to chat when a new round begins',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: Boolean,
+		default: true
+	});
+
+	// New Round Sound Setting
+	game.settings.register(MODULE_ID, 'newRoundSound', {
+		name: "New Round Sound",
+		hint: "Sound to play when a new round begins",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: dataSounds.sounds.reduce((obj, sound) => {
+			obj[sound.id] = sound.name;
+			return obj;
+		}, {}),
+		default: "none"
+	});
+	// -------------------------------------
+
+
+
 
 
 
@@ -1330,6 +1373,83 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 	// -------------------------------------
 	
+
+
+	// ---------- GLOBAL TIMER SETTINGS ----------
+	game.settings.register(MODULE_ID, "headingH3GlobalTimer", {
+		name: 'SHARED TIMER SETTINGS',
+		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+
+	// -- Timer Visibility --
+	game.settings.register(MODULE_ID, 'combatTimerGMOnly', {
+		name: 'GM-Only Timers',
+		hint: 'When enabled, the timers will only be visible to the GM in the combat tracker',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+
+	// Add shared notification setting under "SHARED TIMER SETTINGS"
+	game.settings.register(MODULE_ID, 'timerShowNotifications', {
+		name: 'Show Timer Notifications',
+		hint: 'Show notifications for timer events (expiration, warnings, etc.)',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Notification Override List --
+	game.settings.register(MODULE_ID, 'timerNotificationOverride', {
+		name: 'Notification Override List',
+		hint: 'Always show notifications to these actors (comma-separated names), even if notifications are disabled',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: ''
+	});
+
+	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
+	game.settings.register(MODULE_ID, 'timerPauseResumeSound', {
+		name: "Timer Pause/Resume Sound",
+		hint: "Sound to play when either timer is paused or resumed",
+		scope: "world",
+		config: true,
+		type: String,
+		choices: dataSounds.sounds.reduce((obj, sound) => {
+			obj[sound.id] = sound.name;
+			return obj;
+		}, {}),
+		default: "none"
+	});
+
+	// Add shared volume control for all timer sounds
+	game.settings.register(MODULE_ID, 'timerSoundVolume', {
+		name: 'Timer Sound Volume',
+		hint: 'Adjust the volume for all timer sounds (0 = silent, 1 = full volume)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.5,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.1
+		}
+	});
+
+
+
+
 
 
 	
@@ -1433,128 +1553,6 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		choices: BLACKSMITH.arrSoundChoices
 	});
 
-
-
-
-	// ---------- COMBAT TIMER ----------
-	game.settings.register(MODULE_ID, "headingH3GlobalTimer", {
-		name: 'SHARED TIMER SETTINGS',
-		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- Timer Visibility --
-	game.settings.register(MODULE_ID, 'combatTimerGMOnly', {
-		name: 'GM-Only Timers',
-		hint: 'When enabled, the timers will only be visible to the GM in the combat tracker',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-
-	// Add shared notification setting under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE_ID, 'timerShowNotifications', {
-		name: 'Show Timer Notifications',
-		hint: 'Show notifications for timer events (expiration, warnings, etc.)',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// -- Notification Override List --
-	game.settings.register(MODULE_ID, 'timerNotificationOverride', {
-		name: 'Notification Override List',
-		hint: 'Always show notifications to these actors (comma-separated names), even if notifications are disabled',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: ''
-	});
-
-	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE_ID, 'timerPauseResumeSound', {
-		name: "Timer Pause/Resume Sound",
-		hint: "Sound to play when either timer is paused or resumed",
-		scope: "world",
-		config: true,
-		type: String,
-		choices: dataSounds.sounds.reduce((obj, sound) => {
-			obj[sound.id] = sound.name;
-			return obj;
-		}, {}),
-		default: "none"
-	});
-
-	// Add shared volume control for all timer sounds
-	game.settings.register(MODULE_ID, 'timerSoundVolume', {
-		name: 'Timer Sound Volume',
-		hint: 'Adjust the volume for all timer sounds (0 = silent, 1 = full volume)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.5,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.1
-		}
-	});
-
-
-	// ---------- ROUND ANNOUNCMENTS ----------
-
-	// ---------- ROUND ANNOUNCMENTS HEADING ----------
-	game.settings.register(MODULE_ID, "headingH3RoundAnnouncments", {
-		name: 'ROUND ANNOUNCEMENTS',
-		hint: 'Add anouncements for rounds to the chat.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-	// Announce New Rounds Setting
-	game.settings.register(MODULE_ID, 'announceNewRounds', {
-		name: 'Announce New Rounds',
-		hint: 'Post an announcement card to chat when a new round begins',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// New Round Sound Setting
-	game.settings.register(MODULE_ID, 'newRoundSound', {
-		name: "New Round Sound",
-		hint: "Sound to play when a new round begins",
-		scope: "world",
-		config: true,
-		type: String,
-		choices: dataSounds.sounds.reduce((obj, sound) => {
-			obj[sound.id] = sound.name;
-			return obj;
-		}, {}),
-		default: "none"
-	});
-	// -------------------------------------
-
-
-
-
-
-
-
-
-
-	
 
 
 	// ---------- COMBAT TIMER ----------

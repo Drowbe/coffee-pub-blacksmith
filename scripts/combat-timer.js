@@ -88,7 +88,7 @@ class CombatTimer {
         
         if (autoStart) {
             this.resumeTimer();
-            const resumeSound = game.settings.get(MODULE_ID, 'combatTimerResumeSound');
+            const resumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
             if (resumeSound !== 'none') {
                 playSound(resumeSound, this.getTimerVolume());
             }
