@@ -432,6 +432,16 @@
     color: #461313;
 }
 
+.stat-value .expired {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.stat-value .skipped {
+    color: #666666;
+    font-weight: bold;
+}
+
 .stat-detail {
     font-size: 0.8em;
     color: #594a3c;

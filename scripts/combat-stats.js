@@ -2,6 +2,7 @@
 import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { getPortraitImage, isPlayerCharacter, playSound } from './global.js';
 import { CombatStatsDebug } from './debug.js';
+import { PlanningTimer } from './planning-timer.js';
 
 // Helper function to get actor portrait
 function getActorPortrait(combatant) {
@@ -419,8 +420,15 @@ class CombatStats {
 
         // Helper to format time in a readable way
         Handlebars.registerHelper('formatTime', function(ms) {
-            if (!ms) return '0s';
+            if (!ms) return '<span class="skipped">SKIPPED</span>';
             const seconds = Math.floor(ms / 1000);
+            
+            // Check if this is the max planning time
+            const planningDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+            if (seconds === planningDuration) {
+                return '<span class="expired">EXPIRED</span>';
+            }
+            
             if (seconds < 60) return `${seconds}s`;
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = seconds % 60;
@@ -1267,7 +1275,7 @@ class CombatStats {
             roundDuration,
             totalPartyTime,
             planningTime: this.currentStats.activePlanningTime,
-            turnTimes: validTurnTimes,
+            turnDurations: validTurnTimes,
             activeRoundTime: this.currentStats.activeRoundTime
         });
 
@@ -1692,21 +1700,16 @@ class CombatStats {
         const now = Date.now();
         this.currentStats.actualPlanningEndTime = now;
         
-        // Calculate total active planning time including any overtime
-        if (this.currentStats.lastUnpauseTime) {
-            // Add the final active period
-            this.currentStats.activePlanningTime = now - this.currentStats.actualPlanningStartTime;
-        }
-
-        // If the timer expired, ensure we include the full planning duration
-        if (this.currentStats.planningTime?.expired) {
-            const planningDuration = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000; // Convert to ms
-            this.currentStats.activePlanningTime = Math.max(this.currentStats.activePlanningTime, planningDuration);
-        }
+        // Calculate planning time based on progress bar position
+        const totalDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const remainingTime = PlanningTimer.state.remaining;
+        this.currentStats.activePlanningTime = (totalDuration - remainingTime) * 1000; // Convert to ms
 
         console.log('Blacksmith | Planning Timer End Stats:', {
             actualStart: this.currentStats.actualPlanningStartTime,
             actualEnd: this.currentStats.actualPlanningEndTime,
+            totalDuration,
+            remainingTime,
             activeDuration: this.currentStats.activePlanningTime,
             expired: this.currentStats.planningTime?.expired
         });

@@ -306,12 +306,14 @@ export class PlanningTimer {
 
         this.state.remaining = duration;
         this.state.isActive = true;
-        this.state.isPaused = false;
+        this.state.isPaused = !game.settings.get(MODULE_ID, 'planningTimerAutoStart');
         this.state.showingMessage = false;
         this.state.isExpired = false;
 
         if (this.timer) clearInterval(this.timer);
-        this.timer = setInterval(() => this.tick(), 1000);
+        if (!this.state.isPaused) {
+            this.timer = setInterval(() => this.tick(), 1000);
+        }
 
         this.updateUI();
         this.syncState();

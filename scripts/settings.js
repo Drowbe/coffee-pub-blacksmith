@@ -1474,6 +1474,15 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		default: true
 	});
 
+	game.settings.register(MODULE_ID, 'planningTimerAutoStart', {
+		name: 'Auto-Start Planning Timer',
+		hint: 'When enabled, the planning timer will start automatically instead of being paused by default',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
 	game.settings.register(MODULE_ID, 'planningTimerLabel', {
 		name: 'Planning Timer Label',
 		hint: 'Text label shown during planning phase',
