@@ -344,10 +344,10 @@ export class PlanningTimer {
             const timerText = $('.planning-timer-text');
             const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
 
-            if (this.state.isPaused) {
-                timerText.text(`${label} TIMER PAUSED`);
-            } else if (this.state.remaining <= 0) {
+            if (this.state.isExpired) {
                 timerText.text(game.settings.get(MODULE_ID, 'planningTimerExpiredMessage'));
+            } else if (this.state.isPaused) {
+                timerText.text(`${label} TIMER PAUSED`);
             } else {
                 const timeString = this.formatTime(this.state.remaining);
                 timerText.text(`${timeString} ${label}`);
@@ -406,27 +406,27 @@ export class PlanningTimer {
         this.state.isExpired = true;
         this.cleanupTimer();
             
-            // Play expiration sound if configured
-            const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
-            if (timeUpSound !== 'none') {
+        // Play expiration sound if configured
+        const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
+        if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
-            }
+        }
             
-            // Show notification if enabled
+        // Show notification if enabled
         if (this.shouldShowNotification()) {
             const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
-            }
+        }
             
         // Notify all clients
-                game.socket.emit(`module.${MODULE_ID}`, {
+        game.socket.emit(`module.${MODULE_ID}`, {
             type: 'planningTimer',
             action: 'cleanup',
-                    wasExpired: true
-                });
+            wasExpired: true
+        });
 
-        // Wait 3 seconds then remove the timer from view
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Wait 5 seconds then remove the timer from view
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Remove the timer from view
         $('.planning-phase').fadeOut(400, function() {
