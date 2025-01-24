@@ -3,6 +3,7 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { getPortraitImage, isPlayerCharacter, playSound } from './global.js';
 import { CombatStatsDebug } from './debug.js';
 import { PlanningTimer } from './planning-timer.js';
+import { CombatTimer } from './combat-timer.js';
 
 // Helper function to get actor portrait
 function getActorPortrait(combatant) {
@@ -299,58 +300,39 @@ class CombatStats {
         
         if (combatant) {
             const now = Date.now();
-            let startTime = this.currentStats.turnStartTimes.get(combatant.id);
             
-            // If no start time is recorded, use the last known start time or current round start time
-            if (!startTime) {
-                startTime = this.currentStats.turnStartTime || this.currentStats.roundStartTime;
-                this.currentStats.turnStartTimes.set(combatant.id, startTime);
-                console.log('Blacksmith | Timer Debug - Using fallback start time:', {
-                    combatant: combatant.name,
-                    id: combatant.id,
-                    fallbackStartTime: startTime,
-                    source: this.currentStats.turnStartTime ? 'turnStartTime' : 'roundStartTime'
-                });
-            }
+            // Calculate duration based on progress bar position
+            const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
+            const remainingTime = CombatTimer.state?.remaining ?? 0;
+            const timeUsed = totalAllowedTime - remainingTime;  // Calculate in seconds
+            const duration = timeUsed * 1000;  // Convert to ms after calculation
+            const isExpired = timeUsed === totalAllowedTime;  // Check if all time was used
             
             console.log('Blacksmith | Timer Debug - Recording Turn End:', {
                 combatant: combatant.name,
                 id: combatant.id,
                 time: now,
-                startTime: startTime,
-                timeSinceStart: startTime ? now - startTime : 0,
-                currentTurnStartTimes: Array.from(this.currentStats.turnStartTimes.entries()),
-                currentTurnEndTimes: Array.from(this.currentStats.turnEndTimes.entries())
+                totalAllowedTime,
+                remainingTime,
+                timeUsed,
+                duration,
+                isExpired
             });
             
             this.currentStats.turnEndTimes.set(combatant.id, now);
-            let duration = now - startTime;
             
-            // Validate duration
-            if (duration < 0) {
-                console.warn('Blacksmith | Invalid turn duration detected:', {
-                    combatant: combatant.name,
-                    duration,
-                    startTime,
-                    endTime: now
-                });
-                duration = 0;
-            }
-            
-            // If turn expired, ensure minimum duration is the full turn time
-            const turnDuration = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000; // Convert to ms
-            if (duration > turnDuration) {
-                console.log('Blacksmith | Turn expired, recording overtime:', {
-                    combatant: combatant.name,
-                    baseDuration: turnDuration,
-                    actualDuration: duration,
-                    overtime: duration - turnDuration
-                });
-            }
-
             // Update turn times for player characters
             if (this._isPlayerCharacter(combatant)) {
                 this.currentStats.partyStats.turnTimes.push(duration);
+                
+                // Store the expired state
+                if (!this.currentStats.turnStats) {
+                    this.currentStats.turnStats = {};
+                }
+                if (!this.currentStats.turnStats[combatant.id]) {
+                    this.currentStats.turnStats[combatant.id] = {};
+                }
+                this.currentStats.turnStats[combatant.id].expired = isExpired;
                 
                 // Calculate average only from this round's turns
                 this.currentStats.partyStats.averageTurnTime = 
@@ -360,6 +342,7 @@ class CombatStats {
                 console.log('Blacksmith | Timer Debug - Updated Turn Stats:', {
                     combatant: combatant.name,
                     duration,
+                    isExpired,
                     turnTimes: this.currentStats.partyStats.turnTimes,
                     averageTurnTime: this.currentStats.partyStats.averageTurnTime
                 });
@@ -419,16 +402,15 @@ class CombatStats {
         });
 
         // Helper to format time in a readable way
-        Handlebars.registerHelper('formatTime', function(ms) {
-            if (!ms) return '<span class="skipped">SKIPPED</span>';
-            const seconds = Math.floor(ms / 1000);
+        Handlebars.registerHelper('formatTime', function(ms, context) {
+            if (!ms) return 'SKIPPED';
             
-            // Check if this is the max planning time
-            const planningDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
-            if (seconds === planningDuration) {
-                return '<span class="expired">EXPIRED</span>';
+            // Check if this turn expired by looking up the combatant's stats
+            if (this.id && this.turnStats && this.turnStats[this.id] && this.turnStats[this.id].expired) {
+                return 'EXPIRED';
             }
             
+            const seconds = Math.floor(ms / 1000);
             if (seconds < 60) return `${seconds}s`;
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = seconds % 60;
