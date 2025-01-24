@@ -224,11 +224,22 @@ class CombatStats {
         }
 
         // Only include player character turns in the average
-        if (this._isPlayerCharacter(previousCombatant)) {
+        if (previousCombatant && this._isPlayerCharacter(previousCombatant)) {
             this.currentStats.partyStats.turnTimes.push(turnDuration);
+            // Calculate average only from player character turns
+            const playerTurnTimes = this.currentStats.partyStats.turnTimes.filter((_, index) => {
+                const turn = combat.turns[index];
+                return turn && this._isPlayerCharacter(turn);
+            });
             this.currentStats.partyStats.averageTurnTime = 
-                this.currentStats.partyStats.turnTimes.reduce((a, b) => a + b, 0) / 
-                this.currentStats.partyStats.turnTimes.length;
+                playerTurnTimes.reduce((a, b) => a + b, 0) / playerTurnTimes.length;
+
+            console.log('Blacksmith | Average Turn Time Update:', {
+                turnDuration,
+                allTurnTimes: this.currentStats.partyStats.turnTimes,
+                playerTurnTimes,
+                newAverage: this.currentStats.partyStats.averageTurnTime
+            });
         }
     }
 
@@ -287,33 +298,63 @@ class CombatStats {
         
         if (combatant) {
             const now = Date.now();
+            const startTime = this.currentStats.turnStartTimes.get(combatant.id);
+            
             console.log('Blacksmith | Timer Debug - Recording Turn End:', {
                 combatant: combatant.name,
                 id: combatant.id,
                 time: now,
-                startTime: this.currentStats.turnStartTimes.get(combatant.id)
+                startTime: startTime,
+                timeSinceStart: startTime ? now - startTime : 0,
+                currentTurnStartTimes: Array.from(this.currentStats.turnStartTimes.entries()),
+                currentTurnEndTimes: Array.from(this.currentStats.turnEndTimes.entries())
             });
             
-            this.currentStats.turnEndTimes.set(combatant.id, now);
+            if (!startTime) {
+                console.warn('Blacksmith | No start time recorded for combatant:', combatant.name);
+                return;
+            }
             
-            // Calculate actual turn duration
-            const startTime = this.currentStats.turnStartTimes.get(combatant.id);
-            if (startTime) {
-                const duration = now - startTime;
-                // Update turn times for player characters
-                if (this._isPlayerCharacter(combatant)) {
-                    this.currentStats.partyStats.turnTimes.push(duration);
-                    this.currentStats.partyStats.averageTurnTime = 
-                        this.currentStats.partyStats.turnTimes.reduce((a, b) => a + b, 0) / 
-                        this.currentStats.partyStats.turnTimes.length;
-                    
-                    console.log('Blacksmith | Timer Debug - Updated Turn Stats:', {
-                        combatant: combatant.name,
-                        duration,
-                        turnTimes: this.currentStats.partyStats.turnTimes,
-                        averageTurnTime: this.currentStats.partyStats.averageTurnTime
-                    });
-                }
+            this.currentStats.turnEndTimes.set(combatant.id, now);
+            let duration = now - startTime;
+            
+            // Validate duration
+            if (duration < 0) {
+                console.warn('Blacksmith | Invalid turn duration detected:', {
+                    combatant: combatant.name,
+                    duration,
+                    startTime,
+                    endTime: now
+                });
+                duration = 0;
+            }
+            
+            // If turn expired, ensure minimum duration is the full turn time
+            const turnDuration = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000; // Convert to ms
+            if (duration > turnDuration) {
+                console.log('Blacksmith | Turn expired, recording overtime:', {
+                    combatant: combatant.name,
+                    baseDuration: turnDuration,
+                    actualDuration: duration,
+                    overtime: duration - turnDuration
+                });
+            }
+
+            // Update turn times for player characters
+            if (this._isPlayerCharacter(combatant)) {
+                this.currentStats.partyStats.turnTimes.push(duration);
+                
+                // Calculate average only from this round's turns
+                this.currentStats.partyStats.averageTurnTime = 
+                    this.currentStats.partyStats.turnTimes.reduce((a, b) => a + b, 0) / 
+                    this.currentStats.partyStats.turnTimes.length;
+                
+                console.log('Blacksmith | Timer Debug - Updated Turn Stats:', {
+                    combatant: combatant.name,
+                    duration,
+                    turnTimes: this.currentStats.partyStats.turnTimes,
+                    averageTurnTime: this.currentStats.partyStats.averageTurnTime
+                });
             }
         }
     }
@@ -323,11 +364,33 @@ class CombatStats {
         if (!game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         
         if (isPlanning) {
+            // Ensure planning time object exists
+            if (!this.currentStats.planningTime) {
+                this.currentStats.planningTime = {
+                    expired: false,
+                    endTime: 0
+                };
+            }
             this.currentStats.planningTime.expired = true;
             this.currentStats.planningTime.endTime = Date.now();
+            
+            console.log('Blacksmith | Timer Debug - Planning Timer Expired:', {
+                planningTime: this.currentStats.planningTime,
+                currentStats: this.currentStats
+            });
         } else {
             const currentCombatant = game.combat?.combatant;
-            if (currentCombatant && this.currentStats.turnStats[currentCombatant.id]) {
+            if (currentCombatant) {
+                // Initialize turn stats if needed
+                if (!this.currentStats.turnStats) {
+                    this.currentStats.turnStats = {};
+                }
+                if (!this.currentStats.turnStats[currentCombatant.id]) {
+                    this.currentStats.turnStats[currentCombatant.id] = {
+                        expired: false,
+                        endTime: 0
+                    };
+                }
                 this.currentStats.turnStats[currentCombatant.id].expired = true;
                 // Don't set the end time here as the turn might continue
             }
@@ -1151,24 +1214,62 @@ class CombatStats {
             this.currentStats.activeRoundTime += now - this.currentStats.lastUnpauseTime;
         }
 
-        // Store the durations in currentStats using active time
-        this.currentStats.roundDuration = this.currentStats.activeRoundTime;
-        this.currentStats.planningDuration = this.currentStats.activePlanningTime;
+        // Calculate total round time including planning phase and all turns
+        let totalRoundTime = this.currentStats.activePlanningTime || 0;
+
+        // Add up all turn times from this round only
+        const turnTimes = Array.from(this.currentStats.turnEndTimes.entries())
+            .filter(([id, _]) => this.currentStats.turnStartTimes.has(id))
+            .map(([id, endTime]) => {
+                const startTime = this.currentStats.turnStartTimes.get(id);
+                const duration = startTime ? endTime - startTime : 0;
+                return {
+                    id,
+                    duration,
+                    isValid: duration >= 0
+                };
+            });
+
+        // Log turn times for debugging
+        console.log('Blacksmith | Round Time Calculation - Turn Times:', {
+            turnTimes,
+            planningTime: this.currentStats.activePlanningTime
+        });
+
+        // Sum only valid turn durations
+        const validTurnTimes = turnTimes.filter(t => t.isValid);
+        totalRoundTime += validTurnTimes.reduce((sum, t) => sum + t.duration, 0);
+
+        // Store the durations in currentStats
+        this.currentStats.roundDuration = totalRoundTime;
+        
+        console.log('Blacksmith | Round Time Calculation - Final:', {
+            planningTime: this.currentStats.activePlanningTime,
+            turnTimes: validTurnTimes,
+            totalRoundTime,
+            activeRoundTime: this.currentStats.activeRoundTime
+        });
 
         // Calculate round statistics
         const roundStats = {
             round: game.combat.round - 1,  // Use the previous round number
-            duration: this.currentStats.activeRoundTime,
+            duration: totalRoundTime, // Use calculated total round time
             planningDuration: this.currentStats.activePlanningTime,
             hits: this.currentStats.hits.length,
             expiredTurns: this.currentStats.expiredTurns.length,
             startTime: this.currentStats.roundStartTime,
-            endTime: now
+            endTime: now,
+            turnDurations: validTurnTimes // Store valid turn durations for template
         };
 
         try {
             // Prepare template data
             const templateData = await this._prepareTemplateData(this.currentStats.participantStats);
+
+            // Add timing data to template
+            templateData.roundDuration = roundStats.duration;
+            templateData.planningDuration = roundStats.planningDuration;
+            templateData.turnDurations = roundStats.turnDurations;
 
             // Store round stats if needed
             if (!this.combatStats.rounds) {
@@ -1182,7 +1283,12 @@ class CombatStats {
             console.log('Blacksmith | Round Number Debug:', {
                 roundStatsRound: roundStats.round,
                 templateRoundNumber: templateData.roundNumber,
-                currentRound: game.combat.round
+                currentRound: game.combat.round,
+                timingData: {
+                    roundDuration: templateData.roundDuration,
+                    planningDuration: templateData.planningDuration,
+                    turnDurations: templateData.turnDurations
+                }
             });
 
             // Render the template
@@ -1195,80 +1301,36 @@ class CombatStats {
                 whisper: isShared ? [] : [game.user.id],
                 speaker: { alias: "Game Master", user: game.user.id }
             });
+
+            // Only reset stats after template is rendered and posted
+            const previousTurnStartTimes = new Map(this.currentStats.turnStartTimes);
+            const previousTurnEndTimes = new Map(this.currentStats.turnEndTimes);
+            const previousPlanningTime = this.currentStats.activePlanningTime;
+            
+            // Reset current stats
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+            
+            // Ensure partyStats.turnTimes is initialized as an empty array
+            this.currentStats.partyStats.turnTimes = [];
+            
+            // Restore Maps and timing data
+            this.currentStats.turnStartTimes = previousTurnStartTimes;
+            this.currentStats.turnEndTimes = previousTurnEndTimes;
+            this.currentStats.activePlanningTime = previousPlanningTime;
+            this.currentStats.roundStartTime = Date.now();
+            
+            console.log('Blacksmith | Timer Debug - Round End Stats Reset:', {
+                preservedStats: {
+                    turnStartTimes: Array.from(this.currentStats.turnStartTimes.entries()),
+                    turnEndTimes: Array.from(this.currentStats.turnEndTimes.entries()),
+                    activePlanningTime: this.currentStats.activePlanningTime
+                },
+                newRoundStartTime: this.currentStats.roundStartTime
+            });
         } catch (error) {
             console.error('Blacksmith | Timer Debug - Error creating round report:', error);
             console.error(error);
         }
-
-        // Reset current stats for the next round, but preserve combat-wide stats
-        const combatParticipantStats = this.combatStats.participantStats;
-        const previousHits = [...this.currentStats.hits];
-        
-        // Reset current stats completely
-        this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-        this.currentStats.roundStartTime = Date.now();
-        this.currentStats.hits = previousHits;
-        
-        // Ensure Maps are properly initialized
-        this.currentStats.turnStartTimes = new Map();
-        this.currentStats.turnEndTimes = new Map();
-        
-        // Reset party stats
-        this.currentStats.partyStats = {
-            hits: 0,
-            misses: 0,
-            damageDealt: 0,
-            damageTaken: 0,
-            healingDone: 0,
-            averageTurnTime: 0,
-            turnTimes: []
-        };
-
-        // Reset notable moments
-        this.currentStats.notableMoments = {
-            biggestHit: { amount: 0, actor: null },
-            weakestHit: { amount: 0, actor: null },
-            mostHealing: { amount: 0, actor: null },
-            longestTurn: { duration: 0, actor: null },
-            quickestTurn: { duration: 0, actor: null }
-        };
-
-        // Restore combat-wide participant stats
-        this.combatStats.participantStats = combatParticipantStats;
-
-        // Initialize fresh round participant stats using same structure but zeroed values
-        this.currentStats.participantStats = {};
-        Object.keys(combatParticipantStats).forEach(actorId => {
-            this.currentStats.participantStats[actorId] = {
-                name: combatParticipantStats[actorId].name,
-                damage: { dealt: 0, taken: 0 },
-                healing: { given: 0, received: 0 },
-                combat: {
-                    attacks: {
-                        hits: 0,
-                        misses: 0,
-                        crits: 0,
-                        fumbles: 0,
-                        attempts: 0
-                    }
-                },
-                hits: [],
-                turns: [],
-                lastTurnDuration: 0,
-                lastTurnExpired: false,
-                score: 0
-            };
-        });
-
-        console.log('Blacksmith | Timer Debug - Round End Stats Reset:', {
-            preservedStats: {
-                participantStats: this.combatStats.participantStats,
-                hits: this.currentStats.hits
-            },
-            newRoundStartTime: this.currentStats.roundStartTime,
-            roundDuration: this.currentStats.roundDuration,
-            planningDuration: this.currentStats.planningDuration
-        });
     }
 
     static async _prepareTemplateData(participantStats) {
@@ -1289,7 +1351,7 @@ class CombatStats {
                 // Skip if no actor or not a player character
                 if (!turn?.actor || !this._isPlayerCharacter(turn.actor)) continue;
                 
-                const id = turn.actor.id;
+                const id = turn.id; // Use combatant ID instead of actor ID
                 if (!id) continue;
 
                 // Calculate turn duration from our Maps
@@ -1301,11 +1363,12 @@ class CombatStats {
                     turnStartTime,
                     turnEndTime,
                     turnDuration,
-                    id
+                    combatantId: id,
+                    actorId: turn.actor.id
                 });
 
                 // Safely get stats, defaulting to empty structure if not found
-                const stats = this.currentStats?.participantStats?.[id] || {
+                const stats = this.currentStats?.participantStats?.[turn.actor.id] || {
                     name: turn.actor.name,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
@@ -1321,7 +1384,8 @@ class CombatStats {
                     hits: [],
                     misses: [],
                     turnDuration: turnDuration,
-                    lastTurnExpired: turnDuration > (timerDuration * 1000)
+                    lastTurnExpired: turnDuration > (timerDuration * 1000),
+                    combatantId: id // Store the combatant ID
                 };
 
                 const existingStats = participantMap.get(stats.name) || {
@@ -1393,16 +1457,37 @@ class CombatStats {
                 return actor ? getPortraitImage(actor) : getActorPortrait(combatant);
             })();
 
+            // Get turn duration from the turnDurations map
+            const actorId = Array.from(stats.ids)[0];
+            const combatant = game.combat?.turns?.find(t => t.name === stats.name);
+            const combatantId = combatant?.id;
+            
+            // Find matching turn duration from our calculated durations
+            const turnDuration = this.currentStats.turnEndTimes.has(combatantId) && this.currentStats.turnStartTimes.has(combatantId)
+                ? this.currentStats.turnEndTimes.get(combatantId) - this.currentStats.turnStartTimes.get(combatantId)
+                : 0;
+
+            console.log('Blacksmith | Participant Turn Duration:', {
+                name: stats.name,
+                actorId,
+                combatantId,
+                turnDuration,
+                hasStartTime: this.currentStats.turnStartTimes.has(combatantId),
+                hasEndTime: this.currentStats.turnEndTimes.has(combatantId),
+                turnStartTime: this.currentStats.turnStartTimes.get(combatantId),
+                turnEndTime: this.currentStats.turnEndTimes.get(combatantId)
+            });
+
             return {
-                id: Array.from(stats.ids)[0], // Use first ID
+                id: actorId,
                 name: stats.name,
                 damage: stats.damage,
                 healing: stats.healing,
                 combat: stats.combat,
                 score,
                 tokenImg,
-                turnDuration: stats.turnDuration,
-                lastTurnExpired: stats.lastTurnExpired
+                turnDuration: turnDuration,
+                lastTurnExpired: turnDuration > (timerDuration * 1000)
             };
         }).sort((a, b) => b.score - a.score);
 
@@ -1569,6 +1654,11 @@ class CombatStats {
         if (!this.currentStats.actualRoundStartTime) {
             this.currentStats.actualRoundStartTime = now;
         }
+        
+        console.log('Blacksmith | Planning Timer Start:', {
+            startTime: now,
+            currentStats: this.currentStats
+        });
     }
 
     // Record when planning phase ends
@@ -1577,10 +1667,25 @@ class CombatStats {
         
         const now = Date.now();
         this.currentStats.actualPlanningEndTime = now;
-        // Add the active time since last unpause
+        
+        // Calculate total active planning time including any overtime
         if (this.currentStats.lastUnpauseTime) {
-            this.currentStats.activePlanningTime += now - this.currentStats.lastUnpauseTime;
+            // Add the final active period
+            this.currentStats.activePlanningTime = now - this.currentStats.actualPlanningStartTime;
         }
+
+        // If the timer expired, ensure we include the full planning duration
+        if (this.currentStats.planningTime?.expired) {
+            const planningDuration = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000; // Convert to ms
+            this.currentStats.activePlanningTime = Math.max(this.currentStats.activePlanningTime, planningDuration);
+        }
+
+        console.log('Blacksmith | Planning Timer End Stats:', {
+            actualStart: this.currentStats.actualPlanningStartTime,
+            actualEnd: this.currentStats.actualPlanningEndTime,
+            activeDuration: this.currentStats.activePlanningTime,
+            expired: this.currentStats.planningTime?.expired
+        });
     }
 
     // Record when first player's turn starts
@@ -1603,9 +1708,19 @@ class CombatStats {
             if (game.combat?.turn === 0) {
                 // Planning phase
                 this.currentStats.activePlanningTime += now - this.currentStats.lastUnpauseTime;
+                console.log('Blacksmith | Timer Pause - Planning Phase:', {
+                    activePlanningTime: this.currentStats.activePlanningTime,
+                    lastUnpauseTime: this.currentStats.lastUnpauseTime,
+                    pauseTime: now
+                });
             } else {
-                // Regular round
+                // Regular turn
                 this.currentStats.activeRoundTime += now - this.currentStats.lastUnpauseTime;
+                console.log('Blacksmith | Timer Pause - Turn Phase:', {
+                    activeRoundTime: this.currentStats.activeRoundTime,
+                    lastUnpauseTime: this.currentStats.lastUnpauseTime,
+                    pauseTime: now
+                });
             }
         }
         this.currentStats.lastUnpauseTime = 0; // Clear the unpause time while paused
@@ -1614,7 +1729,17 @@ class CombatStats {
     static recordTimerUnpause() {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        this.currentStats.lastUnpauseTime = Date.now(); // Start tracking active time again
+        const now = Date.now();
+        this.currentStats.lastUnpauseTime = now;
+        
+        console.log('Blacksmith | Timer Unpause:', {
+            phase: game.combat?.turn === 0 ? 'Planning' : 'Turn',
+            unPauseTime: now,
+            currentStats: {
+                activePlanningTime: this.currentStats.activePlanningTime,
+                activeRoundTime: this.currentStats.activeRoundTime
+            }
+        });
     }
 }
 

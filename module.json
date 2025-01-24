@@ -24,8 +24,16 @@
   ],
   "esmodules": [
     "scripts/blacksmith.js",
+    "scripts/toolbar.js",
     "scripts/window-dashboard.js",
-    "scripts/toolbar.js"
+    "scripts/combat-stats.js",
+    "scripts/combat-timer.js",
+    "scripts/planning-timer.js",
+    "scripts/window-query.js",
+    "scripts/window-browser.js",
+    "scripts/settings.js",
+    "scripts/player-stats.js",
+    "scripts/canvas-layer.js"
   ],
   "styles": [
     "styles/default.css"

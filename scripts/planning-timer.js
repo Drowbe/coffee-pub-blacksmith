@@ -298,20 +298,20 @@ export class PlanningTimer {
         return true;
     }
 
-    static startTimer(duration = null, startPaused = false) {
-        if (duration === null) {
-            duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
-        }
+    static startTimer(duration, isNewRound = false) {
+        if (!this.verifyTimerConditions()) return;
+
+        // Record planning start for stats
+        CombatStats.recordPlanningStart();
 
         this.state.remaining = duration;
-        this.state.isPaused = startPaused;
         this.state.isActive = true;
+        this.state.isPaused = false;
+        this.state.showingMessage = false;
+        this.state.isExpired = false;
 
         if (this.timer) clearInterval(this.timer);
-        
-        if (!startPaused) {
-            this.timer = setInterval(() => this.tick(), 1000);
-        }
+        this.timer = setInterval(() => this.tick(), 1000);
 
         this.updateUI();
         this.syncState();
@@ -443,7 +443,19 @@ export class PlanningTimer {
             clearInterval(this.timer);
             this.timer = null;
         }
+
+        // Record planning end for stats if we were active
+        if (this.state.isActive) {
+            CombatStats.recordPlanningEnd();
+        }
+
         this.state.isActive = false;
+        this.state.isPaused = true;
+        this.state.remaining = 0;
+        
+        // Don't clear showingMessage or isExpired as they may be needed for UI
+
+        this.updateUI();
         this.syncState();
     }
 

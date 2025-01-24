@@ -396,7 +396,7 @@ class CombatTimer {
         this.timer = setInterval(() => this.tick(), 1000);
 
         // Record the start time for stats
-        CombatStats.recordTurnStart();
+        CombatStats.recordTurnStart(game.combat?.combatant);
         // Record timer resume for stats
         CombatStats.recordTimerUnpause();
 

@@ -1,20 +1,34 @@
 # Node modules
 node_modules/
 
-# IDE files
-.idea/
+# Development files
+.git/
+.github/
 .vscode/
-*.sublime-workspace
-*.sublime-project
+.idea/
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
+
+# Foundry specific
+coffee-pub-blacksmith.lock
+packs/**/LOCK
+packs/**/LOG*
+packs/**/*.log
+*.zip
 
 # OS generated files
-.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db
 
 # Logs
 logs
