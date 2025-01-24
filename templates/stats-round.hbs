@@ -45,11 +45,6 @@
                 <div class="stat-detail">Restored</div>
             </div>
             <div class="stat-card">
-                <h4><i class="fas fa-hourglass-half"></i> Timing</h4>
-                <div class="stat-value">{{partyStats.averageTurnTime}}</div>
-                <div class="stat-detail">Avg Turn</div>
-            </div>
-            <div class="stat-card">
                 <h4><i class="fas fa-dice-d20"></i> Finesse</h4>
                 <div class="stat-value">{{partyStats.criticalHits}}/{{partyStats.fumbles}}</div>
                 <div class="stat-detail">Crits | Fumbles</div>
@@ -264,6 +259,16 @@
             </div>
         </div>
         {{/each}}
+        <div class="party-timing-stats">
+            <div class="timing-stat">
+                <span class="label">Total Party Time:</span>
+                <span class="value">{{formatTime totalPartyTime}}</span>
+            </div>
+            <div class="timing-stat">
+                <span class="label">Average Turn:</span>
+                <span class="value">{{partyStats.averageTurnTime}}</span>
+            </div>
+        </div>
     </div>
     {{/if}}
 </div> 
