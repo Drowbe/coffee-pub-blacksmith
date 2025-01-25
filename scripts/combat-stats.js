@@ -194,14 +194,18 @@ class CombatStats {
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        const turnDuration = Date.now() - this.currentStats.turnStartTime;
+        // Calculate duration based on progress bar position only
+        const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
+        const remainingTime = CombatTimer.state?.remaining ?? 0;
+        const timeUsed = totalAllowedTime - remainingTime;  // Calculate in seconds
+        const duration = timeUsed * 1000;  // Convert to ms after calculation
         
         // Record expired turn if it exceeded the time limit
-        if (previousCombatant && turnDuration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000) {
+        if (previousCombatant && duration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000) {
             this.currentStats.expiredTurns.push({
                 actor: previousCombatant.name,
                 round: combat.round,
-                duration: turnDuration
+                duration: duration
             });
         }
 
@@ -214,8 +218,8 @@ class CombatStats {
                 current: currentCombatant?.name,
                 previous: previousCombatant?.name,
                 round: combat.round,
-                duration: turnDuration,
-                expired: turnDuration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000
+                duration: duration,
+                expired: duration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000
             }
         });
 
@@ -224,7 +228,7 @@ class CombatStats {
             this._updateNotableMoments('turn', {
                 actorId: previousCombatant.actorId,
                 actorName: previousCombatant.name,
-                duration: turnDuration
+                duration: duration
             });
         }
 
@@ -236,7 +240,7 @@ class CombatStats {
             }
             
             // Store duration by combatant ID
-            this.currentStats.partyStats.turnTimes[previousCombatant.id] = turnDuration;
+            this.currentStats.partyStats.turnTimes[previousCombatant.id] = duration;
             
             // Calculate average from all player character turns
             const turnTimes = Object.values(this.currentStats.partyStats.turnTimes);
@@ -244,7 +248,7 @@ class CombatStats {
                 turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
 
             console.log('Blacksmith | Average Turn Time Update:', {
-                turnDuration,
+                turnDuration: duration,
                 allTurnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
             });
