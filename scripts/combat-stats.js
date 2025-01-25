@@ -138,6 +138,9 @@ class CombatStats {
             this.currentStats.roundStartTimestamp = Date.now();  // Set the wall-clock start time
             this.currentStats.planningStartTime = Date.now();
 
+            // Save the stats to combat flags
+            game.combat.setFlag(MODULE_ID, 'stats', this.currentStats);
+
             CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.ROUND, {
                 message: 'Round started',
                 round: {
