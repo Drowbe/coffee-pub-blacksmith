@@ -410,10 +410,11 @@ class CombatStats {
                 const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
                 if (ms >= maxPlanningTime) return 'EXPIRED';
             }
-            // Check if this turn expired by looking up the combatant's stats
-            // Only check for expiration if this is a turn duration (has an ID)
-            else if (this.id && this.turnStats?.[this.id]?.expired) {
-                return 'EXPIRED';
+            // Handle turn time
+            else if (this.id) {
+                if (ms === 0) return 'SKIPPED';
+                const maxTurnTime = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
+                if (ms >= maxTurnTime) return 'EXPIRED';
             }
             
             const seconds = Math.floor(ms / 1000);
