@@ -403,10 +403,16 @@ class CombatStats {
             
             // Handle invalid numbers
             if (isNaN(ms)) return 'SKIPPED';
-            
+
+            // Special handling for planning time
+            if (this.planningDuration !== undefined) {
+                if (ms === 0) return 'SKIPPED';
+                const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
+                if (ms >= maxPlanningTime) return 'EXPIRED';
+            }
             // Check if this turn expired by looking up the combatant's stats
             // Only check for expiration if this is a turn duration (has an ID)
-            if (this.id && this.turnStats?.[this.id]?.expired) {
+            else if (this.id && this.turnStats?.[this.id]?.expired) {
                 return 'EXPIRED';
             }
             
