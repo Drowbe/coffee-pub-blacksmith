@@ -29,6 +29,7 @@ import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './toolbar.js';
 import { CombatTimer } from './combat-timer.js';
 import { PlanningTimer } from './planning-timer.js';
+import { RoundTimer } from './round-timer.js';
 import { CombatStats } from './combat-stats.js';
 import { CPBPlayerStats } from './player-stats.js';
 
@@ -126,6 +127,9 @@ Hooks.once('init', () => {
     // PLANNING TIMER
     console.log("BLACKSMITH: In blacksmith.js and Initializing PlanningTimer...");
     PlanningTimer.initialize();
+    // ROUND TIMER
+    console.log("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...");
+    RoundTimer.initialize();
 
 });
 

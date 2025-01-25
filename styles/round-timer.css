@@ -1,0 +1,18 @@
+/* ------------------------------------ */
+/* --- ROUND TIMER ---------- */
+/* ------------------------------------ */
+
+.round-timer {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px;
+    margin-bottom: 3px;
+    border: 1px solid #000;
+}
+
+.round-timer-text {
+    color: white;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+} 
