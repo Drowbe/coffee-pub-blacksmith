@@ -487,6 +487,39 @@ class CombatStats {
         Handlebars.registerHelper('gt', function(a, b) {
             return a > b;
         });
+
+        // Add click handler for collapsible sections after template is rendered
+        Hooks.on('renderChatMessage', (message, html) => {
+            if (message.content.includes('blacksmith-stats')) {
+                const headers = html.find('.section-header.collapsible');
+                
+                // Set initial state for all sections
+                headers.each((i, header) => {
+                    const content = header.nextElementSibling;
+                    if (content) {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+
+                headers.on('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const header = event.currentTarget;
+                    const content = header.nextElementSibling;
+                    
+                    // Toggle collapsed state
+                    header.classList.toggle('collapsed');
+                    
+                    // Update maxHeight based on collapsed state
+                    if (header.classList.contains('collapsed')) {
+                        content.style.maxHeight = '0px';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            }
+        });
     }
 
     // Helper method to format time
