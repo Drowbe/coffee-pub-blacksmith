@@ -251,8 +251,8 @@
                     <span class="turn-time">{{formatTime this.turnDuration}}</span>
                 </div>
                 <div class="turn-timer">
-                    <div class="timer-bar">
-                        <div class="timer-fill" style="width: {{multiply (divide this.turnDuration ../timerDuration) 100}}%" data-debug="Turn: {{this.turnDuration}}, Max: {{../timerDuration}}, Calc: {{multiply (divide this.turnDuration ../timerDuration) 100}}%"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {{#if this.lastTurnExpired}}expired{{/if}}" style="width: {{multiply (divide this.turnDuration ../timerDuration) 100}}%" data-debug="Turn: {{this.turnDuration}}, Max: {{../timerDuration}}, Calc: {{multiply (divide this.turnDuration ../timerDuration) 100}}%"></div>
                     </div>
                 </div>
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>

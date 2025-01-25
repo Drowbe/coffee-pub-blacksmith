@@ -243,21 +243,6 @@ class CombatStats {
                 allTurnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
             });
-
-            // Convert timerDuration to milliseconds for comparison
-            const timerDurationMs = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
-            
-            return {
-                id: Array.from(stats.ids)[0],
-                name: stats.name,
-                damage: stats.damage,
-                healing: stats.healing,
-                combat: stats.combat,
-                score,
-                tokenImg,
-                turnDuration: stats.turnDuration,
-                lastTurnExpired: stats.turnDuration >= timerDurationMs
-            };
         }
     }
 
