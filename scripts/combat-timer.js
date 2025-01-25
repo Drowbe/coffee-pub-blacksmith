@@ -560,9 +560,6 @@ class CombatTimer {
 
         // Auto-advance turn if enabled
         if (game.settings.get(MODULE_ID, 'combatTimerEndTurn')) {
-            // Record the end time for stats before auto-advancing
-            CombatStats.recordTurnEnd();
-
             game.combat?.nextTurn();
             if (this.shouldShowNotification()) {
                 ui.notifications.info(

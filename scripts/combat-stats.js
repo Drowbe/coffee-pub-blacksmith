@@ -23,8 +23,6 @@ class CombatStats {
             actualPlanningStartTime: 0,
             actualPlanningEndTime: 0,
             firstPlayerStartTime: 0,
-            turnStartTimes: new Map(),
-            turnEndTimes: new Map(),
             activeRoundTime: 0,
             activePlanningTime: 0,
             lastUnpauseTime: 0,
@@ -227,19 +225,22 @@ class CombatStats {
 
         // Only include player character turns in the average
         if (previousCombatant && this._isPlayerCharacter(previousCombatant)) {
-            this.currentStats.partyStats.turnTimes.push(turnDuration);
-            // Calculate average only from player character turns
-            const playerTurnTimes = this.currentStats.partyStats.turnTimes.filter((_, index) => {
-                const turn = combat.turns[index];
-                return turn && this._isPlayerCharacter(turn);
-            });
+            // Initialize turnTimes as an object if it's still an array
+            if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
+                this.currentStats.partyStats.turnTimes = {};
+            }
+            
+            // Store duration by combatant ID
+            this.currentStats.partyStats.turnTimes[previousCombatant.id] = turnDuration;
+            
+            // Calculate average from all player character turns
+            const turnTimes = Object.values(this.currentStats.partyStats.turnTimes);
             this.currentStats.partyStats.averageTurnTime = 
-                playerTurnTimes.reduce((a, b) => a + b, 0) / playerTurnTimes.length;
+                turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
 
             console.log('Blacksmith | Average Turn Time Update:', {
                 turnDuration,
                 allTurnTimes: this.currentStats.partyStats.turnTimes,
-                playerTurnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
             });
         }
@@ -277,21 +278,11 @@ class CombatStats {
             return;
         }
         
-        const now = Date.now();
-        if (combatant) {
-            console.log('Blacksmith | Timer Debug - Recording Turn Start:', {
-                combatant: combatant.name,
-                id: combatant.id,
-                time: now
-            });
-            
-            this.currentStats.turnStartTimes.set(combatant.id, now);
-            
-            // If this is the first player and we have no round start time, set it
-            if (game.combat?.turn === 1 && !this.currentStats.actualRoundStartTime) {
-                this.currentStats.actualRoundStartTime = now;
-            }
-        }
+        // We no longer need to track start times since we only use progress bar position
+        console.log('Blacksmith | Timer Debug - Turn Start:', {
+            combatant: combat?.name,
+            id: combat?.id
+        });
     }
 
     // Method to record when a turn ends
@@ -299,9 +290,7 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         
         if (combatant) {
-            const now = Date.now();
-            
-            // Calculate duration based on progress bar position
+            // Calculate duration based on progress bar position only
             const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
             const remainingTime = CombatTimer.state?.remaining ?? 0;
             const timeUsed = totalAllowedTime - remainingTime;  // Calculate in seconds
@@ -311,7 +300,6 @@ class CombatStats {
             console.log('Blacksmith | Timer Debug - Recording Turn End:', {
                 combatant: combatant.name,
                 id: combatant.id,
-                time: now,
                 totalAllowedTime,
                 remainingTime,
                 timeUsed,
@@ -319,11 +307,15 @@ class CombatStats {
                 isExpired
             });
             
-            this.currentStats.turnEndTimes.set(combatant.id, now);
-            
             // Update turn times for player characters
             if (this._isPlayerCharacter(combatant)) {
-                this.currentStats.partyStats.turnTimes.push(duration);
+                // Initialize turnTimes as an object if it's still an array
+                if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
+                    this.currentStats.partyStats.turnTimes = {};
+                }
+                
+                // Store duration by combatant ID
+                this.currentStats.partyStats.turnTimes[combatant.id] = duration;
                 
                 // Store the expired state
                 if (!this.currentStats.turnStats) {
@@ -334,10 +326,10 @@ class CombatStats {
                 }
                 this.currentStats.turnStats[combatant.id].expired = isExpired;
                 
-                // Calculate average only from this round's turns
+                // Calculate average from all turn times
+                const turnTimes = Object.values(this.currentStats.partyStats.turnTimes);
                 this.currentStats.partyStats.averageTurnTime = 
-                    this.currentStats.partyStats.turnTimes.reduce((a, b) => a + b, 0) / 
-                    this.currentStats.partyStats.turnTimes.length;
+                    turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
                 
                 console.log('Blacksmith | Timer Debug - Updated Turn Stats:', {
                     combatant: combatant.name,
@@ -403,10 +395,18 @@ class CombatStats {
 
         // Helper to format time in a readable way
         Handlebars.registerHelper('formatTime', function(ms, context) {
-            if (!ms) return 'SKIPPED';
+            // If no duration provided
+            if (ms === undefined || ms === null) return 'SKIPPED';
+            
+            // Convert to number if it's a string
+            ms = Number(ms);
+            
+            // Handle invalid numbers
+            if (isNaN(ms)) return 'SKIPPED';
             
             // Check if this turn expired by looking up the combatant's stats
-            if (this.id && this.turnStats && this.turnStats[this.id] && this.turnStats[this.id].expired) {
+            // Only check for expiration if this is a turn duration (has an ID)
+            if (this.id && this.turnStats?.[this.id]?.expired) {
                 return 'EXPIRED';
             }
             
@@ -1201,9 +1201,7 @@ class CombatStats {
             console.log('Blacksmith | Recording last turn of round:', {
                 combatant: lastCombatant.name,
                 id: lastCombatant.id,
-                turn: lastTurn,
-                startTime: this.currentStats.turnStartTimes.get(lastCombatant.id),
-                currentTime: Date.now()
+                turn: lastTurn
             });
             this.recordTurnEnd(lastCombatant);
         }
@@ -1219,70 +1217,17 @@ class CombatStats {
             }
         });
 
-        // Calculate true round duration from start to end
-        const now = Date.now();
-        const roundDuration = now - this.currentStats.roundStartTime;
-
-        // Calculate total party time (planning + turns)
-        let totalPartyTime = this.currentStats.activePlanningTime || 0;
-
-        // Add up all turn times from this round only
-        const turnTimes = Array.from(this.currentStats.turnEndTimes.entries())
-            .filter(([id, _]) => this.currentStats.turnStartTimes.has(id))
-            .map(([id, endTime]) => {
-                const startTime = this.currentStats.turnStartTimes.get(id);
-                const duration = startTime ? endTime - startTime : 0;
-                return {
-                    id,
-                    duration,
-                    isValid: duration >= 0
-                };
-            });
-
-        // Log turn times for debugging
-        console.log('Blacksmith | Round Time Calculation - Turn Times:', {
-            turnTimes,
-            planningTime: this.currentStats.activePlanningTime
-        });
-
-        // Sum only valid turn durations
-        const validTurnTimes = turnTimes.filter(t => t.isValid);
-        totalPartyTime += validTurnTimes.reduce((sum, t) => sum + t.duration, 0);
-
-        // Store the durations in currentStats
-        this.currentStats.roundDuration = roundDuration;
-        this.currentStats.totalPartyTime = totalPartyTime;
-        
-        console.log('Blacksmith | Round Time Calculation - Final:', {
-            roundDuration,
-            totalPartyTime,
-            planningTime: this.currentStats.activePlanningTime,
-            turnDurations: validTurnTimes,
-            activeRoundTime: this.currentStats.activeRoundTime
-        });
-
         // Calculate round statistics
         const roundStats = {
             round: game.combat.round - 1,  // Use the previous round number
-            duration: roundDuration,
-            totalPartyTime: totalPartyTime,
-            planningDuration: this.currentStats.activePlanningTime,
             hits: this.currentStats.hits.length,
             expiredTurns: this.currentStats.expiredTurns.length,
-            startTime: this.currentStats.roundStartTime,
-            endTime: now,
-            turnDurations: validTurnTimes
+            turnTimes: this.currentStats.partyStats.turnTimes
         };
 
         try {
             // Prepare template data
             const templateData = await this._prepareTemplateData(this.currentStats.participantStats);
-
-            // Add timing data to template
-            templateData.roundDuration = roundStats.duration;
-            templateData.totalPartyTime = roundStats.totalPartyTime;
-            templateData.planningDuration = roundStats.planningDuration;
-            templateData.turnDurations = roundStats.turnDurations;
 
             // Store round stats if needed
             if (!this.combatStats.rounds) {
@@ -1298,10 +1243,7 @@ class CombatStats {
                 templateRoundNumber: templateData.roundNumber,
                 currentRound: game.combat.round,
                 timingData: {
-                    roundDuration: templateData.roundDuration,
-                    totalPartyTime: templateData.totalPartyTime,
-                    planningDuration: templateData.planningDuration,
-                    turnDurations: templateData.turnDurations
+                    turnTimes: templateData.turnTimes
                 }
             });
 
@@ -1316,30 +1258,17 @@ class CombatStats {
                 speaker: { alias: "Game Master", user: game.user.id }
             });
 
-            // Only reset stats after template is rendered and posted
-            const previousTurnStartTimes = new Map(this.currentStats.turnStartTimes);
-            const previousTurnEndTimes = new Map(this.currentStats.turnEndTimes);
-            const previousPlanningTime = this.currentStats.activePlanningTime;
-            
             // Reset current stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
             
-            // Ensure partyStats.turnTimes is initialized as an empty array
-            this.currentStats.partyStats.turnTimes = [];
+            // Ensure partyStats.turnTimes is initialized as an empty object (not array)
+            this.currentStats.partyStats.turnTimes = {};
             
-            // Restore Maps and timing data
-            this.currentStats.turnStartTimes = previousTurnStartTimes;
-            this.currentStats.turnEndTimes = previousTurnEndTimes;
-            this.currentStats.activePlanningTime = previousPlanningTime;
-            this.currentStats.roundStartTime = Date.now();
+            // Reset activePlanningTime to 0 explicitly
+            this.currentStats.activePlanningTime = 0;
             
             console.log('Blacksmith | Timer Debug - Round End Stats Reset:', {
-                preservedStats: {
-                    turnStartTimes: Array.from(this.currentStats.turnStartTimes.entries()),
-                    turnEndTimes: Array.from(this.currentStats.turnEndTimes.entries()),
-                    activePlanningTime: this.currentStats.activePlanningTime
-                },
-                newRoundStartTime: this.currentStats.roundStartTime
+                newStats: this.currentStats
             });
         } catch (error) {
             console.error('Blacksmith | Timer Debug - Error creating round report:', error);
@@ -1352,8 +1281,7 @@ class CombatStats {
             hasParticipantStats: !!this.currentStats.participantStats,
             participantCount: this.currentStats.participantStats ? Object.keys(this.currentStats.participantStats).length : 0,
             rawStats: this.currentStats.participantStats,
-            turnStartTimes: this.currentStats.turnStartTimes,
-            turnEndTimes: this.currentStats.turnEndTimes
+            turnTimes: this.currentStats.partyStats.turnTimes
         });
 
         const participantMap = new Map();
@@ -1368,17 +1296,14 @@ class CombatStats {
                 const id = turn.id; // Use combatant ID instead of actor ID
                 if (!id) continue;
 
-                // Calculate turn duration from our Maps
-                const turnStartTime = this.currentStats.turnStartTimes.get(id);
-                const turnEndTime = this.currentStats.turnEndTimes.get(id) || Date.now(); // Use current time if turn hasn't ended
-                const turnDuration = turnStartTime && turnEndTime ? turnEndTime - turnStartTime : 0;
+                // Get this combatant's specific turn duration
+                const turnDuration = this.currentStats.partyStats.turnTimes[id] || 0;
 
                 console.log(`Blacksmith | Turn Duration for ${turn.actor.name}:`, {
-                    turnStartTime,
-                    turnEndTime,
                     turnDuration,
                     combatantId: id,
-                    actorId: turn.actor.id
+                    actorId: turn.actor.id,
+                    turnTimes: this.currentStats.partyStats.turnTimes
                 });
 
                 // Safely get stats, defaulting to empty structure if not found
@@ -1398,7 +1323,7 @@ class CombatStats {
                     hits: [],
                     misses: [],
                     turnDuration: turnDuration,
-                    lastTurnExpired: turnDuration > (timerDuration * 1000),
+                    lastTurnExpired: turnDuration >= (timerDuration * 1000),
                     combatantId: id // Store the combatant ID
                 };
 
@@ -1419,7 +1344,7 @@ class CombatStats {
                     hits: [],
                     misses: [],
                     turnDuration: turnDuration,
-                    lastTurnExpired: turnDuration > (timerDuration * 1000),
+                    lastTurnExpired: turnDuration >= (timerDuration * 1000),
                     score: 0
                 };
 
@@ -1445,12 +1370,6 @@ class CombatStats {
                 if (Array.isArray(stats.hits)) existingStats.hits.push(...stats.hits);
                 if (Array.isArray(stats.misses)) existingStats.misses.push(...stats.misses);
 
-                // Update turn duration if this entry has one
-                if (typeof stats.lastTurnDuration === 'number') {
-                    existingStats.turnDuration = stats.lastTurnDuration;
-                    existingStats.lastTurnExpired = stats.lastTurnExpired || false;
-                }
-
                 participantMap.set(stats.name, existingStats);
             }
         }
@@ -1471,46 +1390,34 @@ class CombatStats {
                 return actor ? getPortraitImage(actor) : getActorPortrait(combatant);
             })();
 
-            // Get turn duration from the turnDurations map
-            const actorId = Array.from(stats.ids)[0];
-            const combatant = game.combat?.turns?.find(t => t.name === stats.name);
-            const combatantId = combatant?.id;
-            
-            // Find matching turn duration from our calculated durations
-            const turnDuration = this.currentStats.turnEndTimes.has(combatantId) && this.currentStats.turnStartTimes.has(combatantId)
-                ? this.currentStats.turnEndTimes.get(combatantId) - this.currentStats.turnStartTimes.get(combatantId)
-                : 0;
-
-            console.log('Blacksmith | Participant Turn Duration:', {
-                name: stats.name,
-                actorId,
-                combatantId,
-                turnDuration,
-                hasStartTime: this.currentStats.turnStartTimes.has(combatantId),
-                hasEndTime: this.currentStats.turnEndTimes.has(combatantId),
-                turnStartTime: this.currentStats.turnStartTimes.get(combatantId),
-                turnEndTime: this.currentStats.turnEndTimes.get(combatantId)
-            });
-
             return {
-                id: actorId,
+                id: Array.from(stats.ids)[0],
                 name: stats.name,
                 damage: stats.damage,
                 healing: stats.healing,
                 combat: stats.combat,
                 score,
                 tokenImg,
-                turnDuration: turnDuration,
-                lastTurnExpired: turnDuration > (timerDuration * 1000)
+                turnDuration: stats.turnDuration,
+                lastTurnExpired: stats.lastTurnExpired
             };
         }).sort((a, b) => b.score - a.score);
 
+        // Calculate total party time by summing all turn durations
+        const totalPartyTime = Object.values(this.currentStats.partyStats.turnTimes).reduce((sum, duration) => sum + duration, 0);
+
+        console.log('Blacksmith | Planning Time Debug:', {
+            activePlanningTime: this.currentStats.activePlanningTime,
+            formattedTime: this._formatTime(this.currentStats.activePlanningTime)
+        });
+
         const templateData = {
             roundDuration: this._formatTime(this.currentStats.roundDuration),
-            planningDuration: this._formatTime(this.currentStats.planningDuration),
+            planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],
             timerDuration,
+            totalPartyTime: totalPartyTime,  // Add total party time
             partyStats: {
                 hitMissRatio: this.currentStats.partyStats.hits / 
                     (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
