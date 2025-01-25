@@ -243,6 +243,21 @@ class CombatStats {
                 allTurnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
             });
+
+            // Convert timerDuration to milliseconds for comparison
+            const timerDurationMs = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
+            
+            return {
+                id: Array.from(stats.ids)[0],
+                name: stats.name,
+                damage: stats.damage,
+                healing: stats.healing,
+                combat: stats.combat,
+                score,
+                tokenImg,
+                turnDuration: stats.turnDuration,
+                lastTurnExpired: stats.turnDuration >= timerDurationMs
+            };
         }
     }
 
@@ -1397,6 +1412,9 @@ class CombatStats {
                 return actor ? getPortraitImage(actor) : getActorPortrait(combatant);
             })();
 
+            // Convert timerDuration to milliseconds for comparison
+            const timerDurationMs = timerDuration * 1000;
+            
             return {
                 id: Array.from(stats.ids)[0],
                 name: stats.name,
@@ -1406,7 +1424,7 @@ class CombatStats {
                 score,
                 tokenImg,
                 turnDuration: stats.turnDuration,
-                lastTurnExpired: stats.lastTurnExpired
+                lastTurnExpired: stats.turnDuration >= timerDurationMs
             };
         }).sort((a, b) => b.score - a.score);
 
@@ -1423,8 +1441,8 @@ class CombatStats {
             planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],
-            timerDuration,
-            totalPartyTime: totalPartyTime,  // Add total party time
+            timerDuration: timerDuration * 1000,  // Convert to milliseconds to match turnDuration
+            totalPartyTime: totalPartyTime,
             partyStats: {
                 hitMissRatio: this.currentStats.partyStats.hits / 
                     (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
