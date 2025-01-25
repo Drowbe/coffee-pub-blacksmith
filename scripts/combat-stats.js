@@ -17,6 +17,7 @@ class CombatStats {
     static DEFAULTS = {
         roundStats: {
             roundStartTime: Date.now(),
+            roundStartTimestamp: 0,  // New field to track actual wall-clock start time
             planningStartTime: Date.now(),
             turnStartTime: Date.now(),
             actualRoundStartTime: 0,
@@ -134,6 +135,7 @@ class CombatStats {
             this.currentStats.turnStartTimes = new Map();
             this.currentStats.turnEndTimes = new Map();
             this.currentStats.roundStartTime = Date.now();
+            this.currentStats.roundStartTimestamp = Date.now();  // Set the wall-clock start time
             this.currentStats.planningStartTime = Date.now();
 
             CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.ROUND, {
@@ -395,6 +397,14 @@ class CombatStats {
 
         // Helper to format time in a readable way
         Handlebars.registerHelper('formatTime', function(ms, context) {
+            console.log('Blacksmith | formatTime Helper Debug:', {
+                value: ms,
+                type: typeof ms,
+                context: this,
+                hasPlanning: this.planningDuration !== undefined,
+                hasId: this.id !== undefined
+            });
+
             // If no duration provided
             if (ms === undefined || ms === null) return 'SKIPPED';
             
@@ -404,24 +414,41 @@ class CombatStats {
             // Handle invalid numbers
             if (isNaN(ms)) return 'SKIPPED';
 
-            // Special handling for planning time
-            if (this.planningDuration !== undefined) {
+            // Only apply special handling if this is actually a planning time or turn time
+            // Planning times are passed with planningDuration property AND this is the planningDuration field
+            if (this.planningDuration !== undefined && this.planningDuration === ms) {
+                console.log('Blacksmith | formatTime - Planning Time Branch:', {
+                    ms,
+                    planningDuration: this.planningDuration,
+                    maxTime: game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000
+                });
                 if (ms === 0) return 'SKIPPED';
                 const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
                 if (ms >= maxPlanningTime) return 'EXPIRED';
             }
-            // Handle turn time
-            else if (this.id) {
+            // Turn times are passed with id property AND this is the turnDuration field
+            else if (this.id !== undefined && this.turnDuration === ms) {
+                console.log('Blacksmith | formatTime - Turn Time Branch:', {
+                    ms,
+                    id: this.id,
+                    maxTime: game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000
+                });
                 if (ms === 0) return 'SKIPPED';
                 const maxTurnTime = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
                 if (ms >= maxTurnTime) return 'EXPIRED';
             }
             
             const seconds = Math.floor(ms / 1000);
-            if (seconds < 60) return `${seconds}s`;
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}m ${remainingSeconds}s`;
+            const result = seconds < 60 ? `${seconds}s` : 
+                          `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+            
+            console.log('Blacksmith | formatTime - Final Result:', {
+                ms,
+                seconds,
+                result
+            });
+            
+            return result;
         });
 
         // Helper to multiply numbers
@@ -1213,6 +1240,17 @@ class CombatStats {
             this.recordTurnEnd(lastCombatant);
         }
 
+        // Calculate total round duration (real wall-clock time)
+        const roundEndTimestamp = Date.now();
+        const totalRoundDuration = roundEndTimestamp - this.currentStats.roundStartTimestamp;
+        this.currentStats.roundDuration = totalRoundDuration;
+        
+        console.log('Blacksmith | Round Duration Debug - Setting Duration:', {
+            startTimestamp: this.currentStats.roundStartTimestamp,
+            endTimestamp: roundEndTimestamp,
+            totalDuration: totalRoundDuration
+        });
+
         console.log('Blacksmith | Timer Debug - Round End Starting:', {
             currentStats: this.currentStats,
             combatStats: this.combatStats,
@@ -1422,7 +1460,7 @@ class CombatStats {
         });
 
         const templateData = {
-            roundDuration: this._formatTime(this.currentStats.roundDuration),
+            roundDuration: this.currentStats.roundDuration,
             planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],
@@ -1464,6 +1502,11 @@ class CombatStats {
         console.log('Blacksmith | Template Settings:', {
             settings: templateData.settings,
             showNotableMoments: game.settings.get(MODULE_ID, 'showNotableMoments')
+        });
+
+        console.log('Blacksmith | Round Duration Debug - Template Prep:', {
+            rawDuration: this.currentStats.roundDuration,
+            formattedDuration: this._formatTime(this.currentStats.roundDuration)
         });
 
         console.log(`Blacksmith | Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
