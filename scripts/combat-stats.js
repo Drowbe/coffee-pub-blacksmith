@@ -71,8 +71,11 @@ class CombatStats {
             }
         });
 
-        // Initialize stats objects
-        this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        // Check for existing stats in combat flags
+        const existingStats = game.combat?.getFlag(MODULE_ID, 'stats');
+        
+        // Initialize stats objects - use existing stats if available, otherwise use defaults
+        this.currentStats = existingStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
         this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
         
         // Ensure Maps are properly initialized
@@ -81,7 +84,8 @@ class CombatStats {
 
         console.log('Blacksmith | Initialize Stats:', {
             currentStats: this.currentStats,
-            notableMoments: this.currentStats.notableMoments
+            notableMoments: this.currentStats.notableMoments,
+            existingStats: existingStats
         });
 
         // Register Handlebars helpers
