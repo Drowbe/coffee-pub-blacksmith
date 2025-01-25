@@ -1459,11 +1459,16 @@ class CombatStats {
 
         console.log('Blacksmith | Planning Time Debug:', {
             activePlanningTime: this.currentStats.activePlanningTime,
+            totalPartyTime: totalPartyTime,
             formattedTime: this._formatTime(this.currentStats.activePlanningTime)
         });
 
+        // Calculate active duration by combining total party time and planning time
+        const activeRoundDuration = totalPartyTime + (this.currentStats.activePlanningTime || 0);
+
         const templateData = {
-            roundDuration: this.currentStats.roundDuration,
+            roundDurationActive: activeRoundDuration,  // Combined party time + planning
+            roundDurationActual: this.currentStats.roundDuration,  // Wall-clock time
             planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],

@@ -13,40 +13,46 @@
         <div class="section-header"><i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary</div>
         <div class="party-stats-grid">
             <div class="stat-card">
-                <h4><i class="fas fa-hourglass-half"></i> Duration</h4>
-                <div class="stat-value">{{formatTime roundDuration}}</div>
+                <h4><i class="fas fa-clock"></i> Elapsed</h4>
+                <div class="stat-value">{{formatTime roundDurationActual}}</div>
                 <div class="stat-detail">Total Time</div>
             </div>
             <div class="stat-card">
-                <h4><i class="fas fa-chess"></i> Planning</h4>
+                <h4><i class="fa-solid fa-hand-fist"></i> Active</h4>
+                <div class="stat-value">{{formatTime roundDurationActive}}</div>
+                <div class="stat-detail">Party Time</div>
+            </div>
+
+            <div class="stat-card">
+                <h4><i class="fa-solid fa-brain"></i> Strategy</h4>
                 <div class="stat-value">{{formatTime planningDuration}}</div>
-                <div class="stat-detail">Strategy Time</div>
+                <div class="stat-detail">Planning Time</div>
             </div>
             <div class="stat-card">
-                <h4><i class="fas fa-crosshairs"></i> Accuracy</h4>
+                <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
                 <div class="stat-value">{{round partyStats.hitMissRatio}}%</div>
                 <div class="stat-detail">
                     Hits: {{partyStats.totalHits}} | Misses: {{partyStats.totalMisses}}
                 </div>
             </div>
             <div class="stat-card">
-                <h4><i class="fas fa-sword"></i> Damage</h4>
-                <div class="stat-value">{{formatDamage partyStats.damageDealt}}</div>
+                <h4><i class="fa-solid fa-swords"></i> Damage</h4>
+                <div class="stat-value">{{formatDamage partyStats.damageDealt}} hp</div>
                 <div class="stat-detail">Dealt</div>
             </div>
             <div class="stat-card">
                 <h4><i class="fas fa-shield"></i> Defense</h4>
-                <div class="stat-value">{{formatDamage partyStats.damageTaken}}</div>
+                <div class="stat-value">{{formatDamage partyStats.damageTaken}} hp</div>
                 <div class="stat-detail">Taken</div>
             </div>
             <div class="stat-card">
                 <h4><i class="fas fa-heart"></i> Healing</h4>
-                <div class="stat-value">{{formatDamage partyStats.healingDone true}}</div>
+                <div class="stat-value">{{formatDamage partyStats.healingDone true}} hp</div>
                 <div class="stat-detail">Restored</div>
             </div>
             <div class="stat-card">
-                <h4><i class="fas fa-dice-d20"></i> Finesse</h4>
-                <div class="stat-value">{{partyStats.criticalHits}}/{{partyStats.fumbles}}</div>
+                <h4><i class="fa-solid fa-fire-flame"></i> Finesse</h4>
+                <div class="stat-value">{{partyStats.criticalHits}} | {{partyStats.fumbles}}</div>
                 <div class="stat-detail">Crits | Fumbles</div>
             </div>
         </div>
@@ -261,12 +267,7 @@
         {{/each}}
         <div class="party-timing-stats">
             <div class="timing-stat">
-                <span class="label">Total Party Time:</span>
-                <span class="value">{{formatTime totalPartyTime}}</span>
-            </div>
-            <div class="timing-stat">
-                <span class="label">Average Turn:</span>
-                <span class="value">{{partyStats.averageTurnTime}}</span>
+                <span class="label">Party Total: </span><span class="value">{{formatTime totalPartyTime}}</span>  •  <span class="label">Average Turn: </span><span class="value">{{partyStats.averageTurnTime}}</span>
             </div>
         </div>
     </div>
