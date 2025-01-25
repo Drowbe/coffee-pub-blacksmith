@@ -194,14 +194,15 @@ class CombatStats {
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        // Calculate duration based on progress bar position only
+        // Calculate duration based on progress bar position or expiration
         const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
-        const remainingTime = CombatTimer.state?.remaining ?? 0;
-        const timeUsed = totalAllowedTime - remainingTime;  // Calculate in seconds
-        const duration = timeUsed * 1000;  // Convert to ms after calculation
+        const isExpired = CombatTimer.state?.expired || CombatTimer.state?.remaining === 0;
+        const duration = isExpired 
+            ? totalAllowedTime * 1000  // Use full duration if expired
+            : ((totalAllowedTime - (CombatTimer.state?.remaining ?? 0)) * 1000);  // Otherwise calculate from remaining time
         
         // Record expired turn if it exceeded the time limit
-        if (previousCombatant && duration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000) {
+        if (previousCombatant && isExpired) {
             this.currentStats.expiredTurns.push({
                 actor: previousCombatant.name,
                 round: combat.round,
@@ -219,7 +220,7 @@ class CombatStats {
                 previous: previousCombatant?.name,
                 round: combat.round,
                 duration: duration,
-                expired: duration > game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000
+                expired: isExpired
             }
         });
 
