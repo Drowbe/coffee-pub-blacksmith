@@ -414,7 +414,7 @@ class CombatStats {
         // Helper to format damage numbers
         Handlebars.registerHelper('formatDamage', function(amount, isHealing = false) {
             if (typeof amount !== 'number') return '0';
-            return `${isHealing ? '+' : ''}${amount}`;
+            return `${amount}`;
         });
 
         // Helper to format time in a readable way
