@@ -503,3 +503,36 @@
     border-radius: 5px;
     padding: 0.5em;
 }
+
+
+
+.blacksmith-stats .section-header.collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+.blacksmith-stats .section-header.collapsible:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.blacksmith-stats .section-header .collapse-indicator {
+    float: right;
+    transition: transform 0.2s ease-in-out;
+}
+
+.blacksmith-stats .section-header.collapsed .collapse-indicator {
+    transform: rotate(-90deg);
+}
+
+.blacksmith-stats .section-content {
+    max-height: 1000px; /* Set an initial max-height that's larger than content */
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+}
+
+.blacksmith-stats .section-header.collapsed + .section-content {
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+    padding: 0;
+    margin: 0;
+}

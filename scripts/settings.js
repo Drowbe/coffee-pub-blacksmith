@@ -1796,6 +1796,15 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		default: false
 	});
 
+	game.settings.register(MODULE_ID, 'cookiesRememberCardStates', {
+		name: 'Remember Card States',
+		hint: 'If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
 
 
 	// ---------- ROUND STATS ----------

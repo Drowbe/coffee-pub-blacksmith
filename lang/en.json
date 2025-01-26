@@ -217,6 +217,9 @@
 		"narrativeUseCookies-Label": "Use Cookies for Data",
 		"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
 
+		"cookiesRememberCardStates-Label": "Remember Card States",
+		"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
+
 		"narrativeDefaultCardImage-Label": "Default Card Image",
 		"narrativeDefaultCardImage-Hint": "Select the default image option for new narrative cards.  (optional)",
 
