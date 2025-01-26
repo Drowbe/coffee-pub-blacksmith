@@ -518,6 +518,14 @@ class CombatTimer {
                 bar.addClass('high');
             }
 
+            // Handle expired state
+            if (this.state.remaining <= 0) {
+                $('.combat-timer-bar').addClass('expired');
+                $('.combat-timer-progress').addClass('expired');
+            } else {
+                $('.combat-timer-bar, .combat-timer-progress').removeClass('expired');
+            }
+
             // Don't update text if we're showing a message
             if (this.state.showingMessage) return;
             
@@ -562,6 +570,10 @@ class CombatTimer {
             this.timer = null;
         }
 
+        // Add expired classes
+        $('.combat-timer-bar').addClass('expired');
+        $('.combat-timer-progress').addClass('expired');
+
         // Play sound if configured
         const timeUpSound = game.settings.get(MODULE_ID, 'combatTimeisUpSound');
         if (timeUpSound !== 'none') {
@@ -580,8 +592,6 @@ class CombatTimer {
         const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
             .replace('{name}', game.combat?.combatant?.name || '');
         $('.combat-timer-text').text(message);
-        $('.combat-timer-progress').addClass('expired');
-        $('.combat-timer-bar').css('width', '0%');
 
         // Auto-advance turn if enabled
         if (game.settings.get(MODULE_ID, 'combatTimerEndTurn')) {
