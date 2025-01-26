@@ -8,6 +8,13 @@
     "minimum": "12",
     "verified": "12"
   },
+  "relationships": {
+    "requires": [{
+      "id": "socketlib",
+      "type": "module",
+      "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json"
+    }]
+  },
   "languages": [
     {
       "lang": "en",
