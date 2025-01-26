@@ -32,6 +32,7 @@ import { PlanningTimer } from './planning-timer.js';
 import { RoundTimer } from './round-timer.js';
 import { CombatStats } from './combat-stats.js';
 import { CPBPlayerStats } from './player-stats.js';
+import { ChatPanel } from './chat-panel.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -113,7 +114,12 @@ const hookCanvas = () => {
 };
 
 // Call the hookCanvas function during the initialization phase
-Hooks.once('init', () => {
+Hooks.once('init', async function() {
+    console.log('Blacksmith | Initializing coffee-pub-blacksmith');
+    
+    // Initialize modules
+    ChatPanel.initialize();
+
     console.log("BLACKSMITH: Initializing module");
     hookCanvas(); // Call the function to inject the layer
     console.log("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers);

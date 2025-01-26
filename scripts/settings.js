@@ -448,6 +448,40 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
+		// *** CHAT PANEL SETTINS ***
+		// ---------- SUBHEADING - CHAT PANEL ----------
+		game.settings.register(MODULE_ID, "headingH3chatPanel", {
+			name: 'BLACKSMITH CHAT PANEL',
+			hint: 'Settings for the panel that appears in the chat log.',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+
+		game.settings.register(MODULE_ID, 'enableChatPanel', {
+			name: 'Show Blacksmith Panel',
+			hint: 'Show the Blacksmith panel in the chat log.',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+		});
+
+		// -- Party Leader -- 
+		game.settings.register(MODULE_ID, 'partyLeader', {
+			name: 'Party Leader',
+			hint: 'The currently selected party leader',
+			scope: 'world',
+			config: false,
+			type: String,
+			default: ''
+		});
+
+
+
+
 		// *** CHAT SETTINS ***
 		// ---------- SUBHEADING - CARD ADJUSTMENTS ----------
 		game.settings.register(MODULE_ID, "headingH3simpleCardAdjustments", {
@@ -2017,6 +2051,16 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 			'simple': 'Simply Delightful: Colorful Text and Variables',
 			'plain': 'Boring and Lame: Default console styles',
 		}
+	});
+
+	// Add this with your other settings registrations:
+	game.settings.register(MODULE_ID, 'partyLeader', {
+		name: "Party Leader",
+		hint: "The currently selected party leader",
+		scope: "world",
+		config: false,
+		type: String,
+		default: ""
 	});
 
 

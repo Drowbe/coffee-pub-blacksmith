@@ -1,0 +1,44 @@
+/* ------------------------------------ */
+/* --- CHAT PANEL ---------- */
+/* ------------------------------------ */
+
+
+.blacksmith-chat-panel {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #666;
+    padding: 2px 6px;
+    width: 100%;
+    min-height: 24px;
+    max-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.panel-section {
+    display: flex;
+    align-items: center;
+}
+
+.leader-section {
+    justify-content: flex-start;
+}
+
+.blacksmith-chat-panel .leader-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+.blacksmith-chat-panel .leader-icon {
+    color: #f0f0e0;
+    font-size: 0.9em;
+}
+
+.blacksmith-chat-panel .party-leader {
+    color: #eeeeed;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
