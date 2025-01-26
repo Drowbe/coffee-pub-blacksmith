@@ -1355,7 +1355,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 	// -------------------------------------
 
-	// *** TIMER SETTINGS ***
+	// *** COMBAT TRACKER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
 	game.settings.register(MODULE_ID, "headingH2CombatTracker", {
@@ -1368,7 +1368,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 	// -------------------------------------
 
-	// -- Timer Visibility --
+	// -- Open Combat Tracker --
 	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
 		hint: 'When enabled, the combat tracker will be open by default when a combat starts',
