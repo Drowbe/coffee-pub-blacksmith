@@ -520,9 +520,6 @@
     transition: transform 0.2s ease-in-out;
 }
 
-.blacksmith-stats .section-header.collapsed .collapse-indicator {
-    transform: rotate(-90deg);
-}
 
 .blacksmith-stats .section-content {
     max-height: 1000px; /* Set an initial max-height that's larger than content */

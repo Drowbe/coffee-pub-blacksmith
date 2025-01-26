@@ -1846,13 +1846,13 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	}); 
 
 	game.settings.register(MODULE_ID, 'showPartyBreakdown', {
-		name: 'Show Party Breakdown',
-		hint: 'Show the detailed breakdown of each party member\'s performance.',
+		name: game.i18n.localize('showPartyBreakdown-Label'),
+		hint: game.i18n.localize('showPartyBreakdown-Hint'),
 		scope: 'world',
 		config: true,
 		type: Boolean,
 		default: true
-	}); 
+	});
 
 
 

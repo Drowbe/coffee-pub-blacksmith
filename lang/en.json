@@ -287,7 +287,10 @@
 
 
 		"showCombatNotableMoments-Label": "Show Notable Moments",
-		"showCombatNotableMoments-Hint": "Show the notable moments section in combat statistics."
+		"showCombatNotableMoments-Hint": "Show the notable moments section in combat statistics.",
+
+		"showPartyBreakdown-Label": "Show Party Breakdown",
+		"showPartyBreakdown-Hint": "Show the detailed breakdown of each party member's performance."
 		
 	}
 }

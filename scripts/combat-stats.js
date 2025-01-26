@@ -60,6 +60,16 @@ class CombatStats {
         }
     };
 
+    // Store section states
+    static sectionStates = {
+        roundSummary: 'expanded',
+        roundMVP: 'expanded',
+        notableMoments: 'expanded',
+        partyBreakdown: 'expanded',
+        roundTimingStats: 'expanded',
+        roundTurnTimes: 'expanded'
+    };
+
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
@@ -493,20 +503,14 @@ class CombatStats {
             if (message.content.includes('blacksmith-stats')) {
                 const headers = html.find('.section-header.collapsible');
                 
-                // Set initial state for all sections
-                headers.each((i, header) => {
-                    const content = header.nextElementSibling;
-                    if (content) {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                    }
-                });
-
                 headers.on('click', (event) => {
                     event.preventDefault();
                     event.stopPropagation();
                     
                     const header = event.currentTarget;
                     const content = header.nextElementSibling;
+                    const sectionType = header.dataset.section;
+                    const icon = header.querySelector('.collapse-indicator');
                     
                     // Toggle collapsed state
                     header.classList.toggle('collapsed');
@@ -514,8 +518,22 @@ class CombatStats {
                     // Update maxHeight based on collapsed state
                     if (header.classList.contains('collapsed')) {
                         content.style.maxHeight = '0px';
+                        // Update chevron
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-right');
+                        // Store state for next time
+                        if (sectionType) {
+                            this.sectionStates[sectionType] = 'collapsed';
+                        }
                     } else {
                         content.style.maxHeight = content.scrollHeight + "px";
+                        // Update chevron
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-down');
+                        // Store state for next time
+                        if (sectionType) {
+                            this.sectionStates[sectionType] = 'expanded';
+                        }
                     }
                 });
             }
@@ -1338,11 +1356,11 @@ class CombatStats {
             });
 
             // Render the template
-            const content = await renderTemplate('modules/' + MODULE_ID + '/templates/stats-round.hbs', templateData);
+            const content = await this.generateRoundSummary(templateData);
 
             // Post to chat
             const isShared = game.settings.get(MODULE_ID, 'shareCombatStats');
-            await ChatMessage.create({
+            const chatMessage = await ChatMessage.create({
                 content: content,
                 whisper: isShared ? [] : [game.user.id],
                 speaker: { alias: "Game Master", user: game.user.id }
@@ -1526,16 +1544,15 @@ class CombatStats {
                 healingDone: this.currentStats.partyStats.healingDone,
                 averageTurnTime: this._formatTime(this.currentStats.partyStats.averageTurnTime),
                 criticalHits: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.crits || 0), 0),
-                fumbles: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.fumbles || 0), 0)
+                fumbles: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.fumbles || 0), 0),
             },
             settings: {
                 showRoundSummary: game.settings.get(MODULE_ID, 'showRoundSummary'),
                 showRoundMVP: game.settings.get(MODULE_ID, 'showRoundMVP'),
                 showNotableMoments: game.settings.get(MODULE_ID, 'showNotableMoments'),
-                showPartyBreakdown: game.settings.get(MODULE_ID, 'showPartyBreakdown'),
-                showRoundTimingStats: game.settings.get(MODULE_ID, 'showRoundTimingStats'),
-                showRoundTurnTimes: game.settings.get(MODULE_ID, 'showRoundTurnTimes')
+                showPartyBreakdown: game.settings.get(MODULE_ID, 'showPartyBreakdown')
             },
+            sectionStates: this.sectionStates,
             notableMoments: this.currentStats.notableMoments,
             hasNotableMoments: Object.values(this.currentStats.notableMoments)
                 .some(moment => moment.amount > 0 || moment.duration > 0)
@@ -1570,6 +1587,11 @@ class CombatStats {
         });
 
         return templateData;
+    }
+
+    static async generateRoundSummary(templateData) {
+        const content = await renderTemplate('modules/' + MODULE_ID + '/templates/stats-round.hbs', templateData);
+        return content;
     }
 
     // Add new method to track notable moments
