@@ -11,27 +11,30 @@ export class RoundTimer {
     static initialize() {
         console.log(`${MODULE_TITLE} | Round Timer | Initializing`);
         
-        // Register hooks
-        Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
-        Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
-        
-        // Clean up old interval if it exists
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-        }
-        
-        // Start update interval
-        this.updateInterval = setInterval(() => {
-            if (game.combat?.started) {
-                const duration = this._getCurrentRoundDuration();
-                const formattedTime = this._formatTime(duration);
-                // Update all instances of the timer (both sidebar and popout)
-                document.querySelectorAll('.round-timer-text').forEach(element => {
-                    element.innerText = `Round Duration: ${formattedTime}`;
-                });
+        // Wait for ready to ensure settings are registered
+        Hooks.once('ready', () => {
+            // Register hooks
+            Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
+            Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+            
+            // Clean up old interval if it exists
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+                this.updateInterval = null;
             }
-        }, 1000); // Update every second
+            
+            // Start update interval
+            this.updateInterval = setInterval(() => {
+                if (game.combat?.started) {
+                    const duration = this._getCurrentRoundDuration();
+                    const formattedTime = this._formatTime(duration);
+                    // Update all instances of the timer (both sidebar and popout)
+                    document.querySelectorAll('.round-timer-text').forEach(element => {
+                        element.innerText = `Round Duration: ${formattedTime}`;
+                    });
+                }
+            }, 1000); // Update every second
+        });
     }
 
     static async _onRenderCombatTracker(app, html, data) {
@@ -43,7 +46,8 @@ export class RoundTimer {
         const timerHtml = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/round-timer.hbs',
             {
-                roundDurationActual: formattedTime
+                roundDurationActual: formattedTime,
+                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer')
             }
         );
         

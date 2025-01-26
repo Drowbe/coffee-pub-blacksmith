@@ -1550,7 +1550,10 @@ class CombatStats {
                 showRoundSummary: game.settings.get(MODULE_ID, 'showRoundSummary'),
                 showRoundMVP: game.settings.get(MODULE_ID, 'showRoundMVP'),
                 showNotableMoments: game.settings.get(MODULE_ID, 'showNotableMoments'),
-                showPartyBreakdown: game.settings.get(MODULE_ID, 'showPartyBreakdown')
+                showPartyBreakdown: game.settings.get(MODULE_ID, 'showPartyBreakdown'),
+                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer'),
+                planningTimerEnabled: game.settings.get(MODULE_ID, 'planningTimerEnabled'),
+                combatTimerEnabled: game.settings.get(MODULE_ID, 'combatTimerEnabled')
             },
             sectionStates: this.sectionStates,
             notableMoments: this.currentStats.notableMoments,

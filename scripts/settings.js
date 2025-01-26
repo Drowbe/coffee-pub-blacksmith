@@ -1449,8 +1449,30 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 
 
 
+	// ---------- ROUND TIMER ----------
+	game.settings.register(MODULE_ID, "headingH3RoundTimer", {
+		name: 'ROUND TIMER',
+		hint: 'This timer keeps track of the actual real-world round time.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+	game.settings.register(MODULE_ID, 'showRoundTimer', {
+		name: 'Show Round Timer',
+		hint: 'When enabled, the round timer will be displayed during combat.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
 
 
+
+
+	
 
 	
 	// ---------- PLANNING TIMER ----------

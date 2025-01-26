@@ -16,22 +16,28 @@
         </div>
         <div class="section-content {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
             <div class="party-stats-grid">
+                {{#if settings.showRoundTimer}}
                 <div class="stat-card">
                     <h4><i class="fa-solid fa-clock"></i> Elapsed</h4>
                     <div class="stat-value">{{formatTime roundDurationActual}}</div>
                     <div class="stat-detail">Total Time</div>
                 </div>
+                {{/if}}
+                {{#if (and settings.planningTimerEnabled settings.combatTimerEnabled)}}
                 <div class="stat-card">
                     <h4><i class="fa-solid fa-hand-fist"></i> Active</h4>
                     <div class="stat-value">{{formatTime roundDurationActive}}</div>
                     <div class="stat-detail">Party Time</div>
                 </div>
+                {{/if}}
 
+                {{#if settings.planningTimerEnabled}}
                 <div class="stat-card">
                     <h4><i class="fa-solid fa-brain"></i> Strategy</h4>
                     <div class="stat-value">{{formatTime planningDuration}}</div>
                     <div class="stat-detail">Planning Time</div>
                 </div>
+                {{/if}}
                 <div class="stat-card">
                     <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
                     <div class="stat-value">{{round partyStats.hitMissRatio}}%</div>
@@ -234,7 +240,7 @@
                 </div>
                 {{/if}}
 
-                {{#if notableMoments.longestTurn.duration}}
+                {{#if (and notableMoments.longestTurn.duration settings.combatTimerEnabled)}}
                 <div class="moment-card">
                     <h4><i class="fas fa-hourglass-end"></i> Longest Turn</h4>
                     <div class="moment-content">
@@ -273,22 +279,28 @@
                         {{this.name}}
                         {{#if (gt this.combat.attacks.crits 0)}}<i class="fa-solid fa-fire"></i>{{/if}}
                         {{#if (gt this.combat.attacks.fumbles 0)}}<i class="fa-solid fa-skull"></i>{{/if}}
+                        {{#if ../settings.combatTimerEnabled}}
                         <span class="turn-time">{{formatTime this.turnDuration}}</span>
+                        {{/if}}
                     </div>
+                    {{#if ../settings.combatTimerEnabled}}
                     <div class="turn-timer">
                         <div class="progress-bar">
                             <div class="progress-fill {{#if this.lastTurnExpired}}expired{{/if}}" style="width: {{multiply (divide this.turnDuration ../timerDuration) 100}}%" data-debug="Turn: {{this.turnDuration}}, Max: {{../timerDuration}}, Calc: {{multiply (divide this.turnDuration ../timerDuration) 100}}%"></div>
                         </div>
                     </div>
+                    {{/if}}
                     <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
                 </div>
             </div>
             {{/each}}
+            {{#if settings.combatTimerEnabled}}
             <div class="party-timing-stats">
                 <div class="timing-stat">
                     <span class="label">Party Total: </span><span class="value">{{formatTime totalPartyTime}}</span>  •  <span class="label">Average Turn: </span><span class="value">{{partyStats.averageTurnTime}}</span>
                 </div>
             </div>
+            {{/if}}
         </div>
     </div>
     {{/if}}
