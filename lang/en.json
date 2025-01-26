@@ -269,28 +269,8 @@
 		"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 
 		"globalConsoleDebugStyle-Label": "Debug Style",
-		"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
+		"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants."
 
-		"showRoundTimingStats-Label": "Show Timing Stats",
-		"showRoundTimingStats-Hint": "Show the timing statistics section in round summaries.",
-
-		"showRoundTurnTimes-Label": "Show Turn Times",
-		"showRoundTurnTimes-Hint": "Show the turn times section in round summaries.",
-
-		"showRoundNotableMoments-Label": "Show Notable Moments",
-		"showRoundNotableMoments-Hint": "Show the notable moments section in round summaries.",
-
-
-
-		"showCombatTimerStats-Label": "Show Timer Stats",
-		"showCombatTimerStats-Hint": "Show the timer statistics section in combat statistics.",
-
-
-		"showCombatNotableMoments-Label": "Show Notable Moments",
-		"showCombatNotableMoments-Hint": "Show the notable moments section in combat statistics.",
-
-		"showPartyBreakdown-Label": "Show Party Breakdown",
-		"showPartyBreakdown-Hint": "Show the detailed breakdown of each party member's performance."
 		
 	}
 }

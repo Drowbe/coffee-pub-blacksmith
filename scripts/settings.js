@@ -1846,8 +1846,8 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	}); 
 
 	game.settings.register(MODULE_ID, 'showPartyBreakdown', {
-		name: game.i18n.localize('showPartyBreakdown-Label'),
-		hint: game.i18n.localize('showPartyBreakdown-Hint'),
+		name: 'Show Party Breakdown',
+		hint: 'Show the detailed breakdown of each party member performance.',
 		scope: 'world',
 		config: true,
 		type: Boolean,
@@ -1881,37 +1881,6 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 
 
 
-
-	game.settings.register(MODULE_ID, 'showCombatTimerStats', {
-		name: game.i18n.localize(`${MODULE_ID}.showCombatTimerStats-Label`),
-		hint: game.i18n.localize(`${MODULE_ID}.showCombatTimerStats-Hint`),
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-	// Round Statistics Section Settings
-	game.settings.register(MODULE_ID, 'showRoundTimingStats', {
-		name: 'Show Combat Timer Stats',
-		hint: 'Show timing statistics in combat summary',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	
-	game.settings.register(MODULE_ID, 'showRoundTurnTimes', {
-		name: 'Show Round Turn Times',
-		hint: 'Show individual turn times in round summary',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
 
 
 	// *** DEBUG SETTINGS ***
