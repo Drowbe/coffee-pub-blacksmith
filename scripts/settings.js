@@ -1355,9 +1355,28 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 	// -------------------------------------
 
+	// *** TIMER SETTINGS ***
 
+	// ---------- SUBHEADING ----------
+	game.settings.register(MODULE_ID, "headingH2CombatTracker", {
+		name: 'COMBAT TRACKER',
+		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
+		scope: "client",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
 
-
+	// -- Timer Visibility --
+	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
+		name: 'Open Combat Tracker',
+		hint: 'When enabled, the combat tracker will be open by default when a combat starts',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
 
 
 	// *** TIMER SETTINGS ***
@@ -1416,6 +1435,20 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		config: true,
 		type: String,
 		default: ''
+	});
+
+	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
+	game.settings.register(MODULE_ID, 'hurryUpSound', {
+		name: "Hurry Up Message Sound",
+		hint: "Sound to play when a player sends a hurry up message",
+		scope: "world",
+		config: true,
+		type: String,
+		choices: dataSounds.sounds.reduce((obj, sound) => {
+			obj[sound.id] = sound.name;
+			return obj;
+		}, {}),
+		default: "none"
 	});
 
 	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"

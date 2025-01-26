@@ -88,3 +88,85 @@
     background-color: #4a0707;  /* Darker red for expired state */
 }
 
+/* Player Turn Hover State */
+.combat-timer-progress.player-turn:hover {
+    background-color: #1e3f8f;  /* Blue background */
+    cursor: pointer;
+}
+
+.combat-timer-progress.player-turn:hover .combat-timer-text {
+    font-weight: bold;
+}
+
+/* End Turn Overlay */
+.combat-timer-end-turn-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #3c6685;  /* Blue background */
+    z-index: 10;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.combat-timer-end-turn-overlay .overlay-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+.combat-timer-end-turn-overlay .overlay-text i {
+    margin-left: 5px;
+}
+
+.combat-timer-progress.player-turn:hover .combat-timer-end-turn-overlay {
+    display: block;
+}
+
+/* Hurry Up Overlay */
+.combat-timer-hurry-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #aa6000;  /* Orange background */
+    z-index: 10;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.combat-timer-hurry-overlay .overlay-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+.combat-timer-hurry-overlay .overlay-text i {
+    margin-right: 5px;
+}
+
+.combat-timer-progress.other-player-turn:hover .combat-timer-hurry-overlay {
+    display: block;
+}
+

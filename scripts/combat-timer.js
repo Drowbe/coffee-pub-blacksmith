@@ -136,7 +136,7 @@ class CombatTimer {
     }
 
     static bindTimerEvents(html) {
-        // Left click for pause/unpause
+        // Left click for pause/unpause (GM only)
         html.find('.combat-timer-progress').click((event) => {
             if (!game.user.isGM) return;
             if (event.button === 0) {
@@ -152,6 +152,76 @@ class CombatTimer {
                 event.preventDefault();
                 this.handleRightClick(event);
             });
+        } else {
+            // Player turn handling
+            const progress = html.find('.combat-timer-progress');
+            const combat = game.combat;
+            const currentToken = combat?.combatant?.token;
+            
+            if (currentToken?.isOwner) {
+                // Active player - Add class to progress bar
+                progress.addClass('player-turn');
+                
+                // Create and add overlay
+                const overlay = $(`
+                    <div class="combat-timer-end-turn-overlay">
+                        <div class="overlay-text">END TURN <i class="fa-solid fa-right"></i></div>
+                    </div>
+                `);
+                
+                // Add click handler to overlay
+                overlay.click(() => {
+                    if (currentToken?.isOwner) {
+                        combat?.nextTurn();
+                    }
+                });
+                
+                progress.append(overlay);
+            } else if (!game.user.isGM) {
+                // Non-active player - Add hurry up overlay
+                const currentPlayerName = combat?.combatant?.name || 'Unknown';
+                
+                // Array of hurry up messages
+                const hurryMessages = [
+                    "If you don't make a move soon, {name}, I'm rolling to adopt your turn as my new pet. I'll call it Procrastination Jr.",
+                    "{name}, your character isn't actually frozen in time—just your decision-making skills.",
+                    "By the time you pick, {name}, our torches will burn out, and we'll have to roleplay in the dark. No pressure.",
+                    "Hurry up, {name}, or I'm rolling a persuasion check to convince the DM to skip you!",
+                    "We're waiting, {name}, not writing a novel. Unless you are… in which case, finish Chapter 1 already!",
+                    "{name}, we're all aging in real-time here. Even the elf is starting to grow gray hairs.",
+                    "If you don't decide soon, {name}, I'm calling a bard to write a song about how long this turn took.",
+                    "{name}, at this rate, the dice are going to roll themselves out of sheer boredom.",
+                    "C'mon, {name}! Even a gelatinous cube moves faster than this.",
+                    "{name}, if this turn were a quest, we'd already have failed the time limit."
+                ];
+                
+                const overlay = $(`
+                    <div class="combat-timer-hurry-overlay">
+                        <div class="overlay-text"><i class="fa-solid fa-rabbit-running"></i> TELL ${currentPlayerName} TO HURRY UP!</div>
+                    </div>
+                `);
+                
+                // Add click handler to overlay
+                overlay.click(() => {
+                    // Get random message and replace {name} with player name when clicked
+                    const randomMessage = hurryMessages[Math.floor(Math.random() * hurryMessages.length)]
+                        .replace(/{name}/g, currentPlayerName);
+                        
+                    ChatMessage.create({
+                        content: randomMessage,
+                        speaker: ChatMessage.getSpeaker()
+                    });
+
+                    // Play hurry up sound if configured
+                    const hurryUpSound = game.settings.get(MODULE_ID, 'hurryUpSound');
+                    if (hurryUpSound !== 'none') {
+                        playSound(hurryUpSound, CombatTimer.getTimerVolume());
+                    }
+                });
+                
+                progress.append(overlay);
+                progress.addClass('other-player-turn');
+            }
         }
     }
 
