@@ -7,6 +7,15 @@ import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
 
+let socket;
+
+// Set up socketlib
+Hooks.once('socketlib.ready', () => {
+    console.log("Blacksmith | Setting up Combat Timer socketlib");
+    socket = socketlib.registerModule(MODULE_ID);
+    socket.register("syncTimerState", CombatTimer.receiveTimerSync);
+});
+
 class CombatTimer {
     static ID = 'combat-timer';
     
@@ -35,13 +44,6 @@ class CombatTimer {
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
                 this.state.remaining = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? 60;
                 
-                // Set up socket handling for client-server sync
-                game.socket.on(`module.${MODULE_ID}`, (data) => {
-                    if (data.type === 'combatTimer') {
-                        this.handleSocketMessage(data);
-                    }
-                });
-                
                 // Hook into combat turns with debounce for performance
                 const debouncedUpdate = foundry.utils.debounce(this._onUpdateCombat.bind(this), 100);
                 Hooks.on('updateCombat', (combat, changed, options, userId) => {
@@ -60,20 +62,20 @@ class CombatTimer {
         });
     }
 
-    static handleSocketMessage(data) {
+    // Function that will be called on non-GM clients
+    static receiveTimerSync(state) {
+        console.log("Blacksmith | Combat Timer: Received timer sync from GM", state);
         if (!game.user.isGM) {
-            switch (data.action) {
-                case 'sync':
-                    this.state = foundry.utils.deepClone(data.state);
-                    if (!this.state.isPaused && !this.timer) {
-                        this.timer = setInterval(() => this.tick(), 1000);
-                    }
-                    this.updateUI();
-                    break;
-                case 'timerAdjusted':
-                    ui.notifications.info(`Timer set to ${data.time}`);
-                    break;
-            }
+            CombatTimer.state = foundry.utils.deepClone(state);
+            CombatTimer.updateUI();
+        }
+    }
+
+    static async syncState() {
+        if (game.user.isGM) {
+            console.log("Blacksmith | Combat Timer: GM syncing state to players");
+            await socket.executeForOthers("syncTimerState", this.state);
+            this.updateUI();
         }
     }
 
@@ -98,35 +100,39 @@ class CombatTimer {
     }
 
     static async _onRenderCombatTracker(app, html, data) {
-        if (!game.combat?.started || game.combat.round === 0) return;
+        try {
+            if (!game.combat?.started || game.combat.round === 0) return;
 
-        const isEnabled = game.settings.get(MODULE_ID, 'combatTimerEnabled');
-        const isGMOnly = game.settings.get(MODULE_ID, 'combatTimerGMOnly');
+            const isEnabled = game.settings.get(MODULE_ID, 'combatTimerEnabled');
+            const isGMOnly = game.settings.get(MODULE_ID, 'combatTimerGMOnly');
 
-        if (isGMOnly && !game.user.isGM) return;
-        
-        const timerHtml = await renderTemplate(
-            'modules/coffee-pub-blacksmith/templates/combat-timer.hbs',
-            {
-                enabled: isEnabled,
-                isPaused: this.state.isPaused,
-                remaining: this.state.remaining,
-                timeLimit: this.DEFAULTS.timeLimit
+            if (isGMOnly && !game.user.isGM) return;
+            
+            const timerHtml = await renderTemplate(
+                'modules/coffee-pub-blacksmith/templates/combat-timer.hbs',
+                {
+                    enabled: isEnabled,
+                    isPaused: this.state.isPaused,
+                    remaining: this.state.remaining,
+                    timeLimit: this.DEFAULTS.timeLimit
+                }
+            );
+            
+            const activeCombatant = html.find('.combatant.active');
+            if (activeCombatant.length) {
+                activeCombatant.after(timerHtml);
+            } else {
+                html.find('#combat-tracker').append(timerHtml);
             }
-        );
-        
-        const activeCombatant = html.find('.combatant.active');
-        if (activeCombatant.length) {
-            activeCombatant.after(timerHtml);
-        } else {
-            html.find('#combat-tracker').append(timerHtml);
-        }
-        
-        if (isEnabled) {
-            this.bindTimerEvents(html);
-        }
+            
+            if (isEnabled) {
+                this.bindTimerEvents(html);
+            }
 
-        this.updateUI();
+            this.updateUI();
+        } catch (error) {
+            console.error("Blacksmith | Combat Timer: Error rendering combat tracker:", error);
+        }
     }
 
     static bindTimerEvents(html) {
@@ -389,11 +395,20 @@ class CombatTimer {
             this._endingPlanningTimer = false;
         }
 
+        // Update state first
         this.state.isPaused = false;
         this.state.showingMessage = false;
+        this.state.isActive = true;  // Add this to ensure timer is marked as active
         
+        // Clear any existing timer
         if (this.timer) clearInterval(this.timer);
-        this.timer = setInterval(() => this.tick(), 1000);
+        
+        // Only GM sets up the interval
+        if (game.user.isGM) {
+            this.timer = setInterval(() => this.tick(), 1000);
+            // Sync state immediately after state changes
+            this.syncState();
+        }
 
         // Record the start time for stats
         CombatStats.recordTurnStart(game.combat?.combatant);
@@ -406,8 +421,8 @@ class CombatTimer {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
         
+        // Update UI after all state changes
         this.updateUI();
-        this.syncState();
         
         // Emit state change hook
         Hooks.callAll('combatTimerStateChange', {
@@ -431,6 +446,14 @@ class CombatTimer {
         if (this.state.isPaused) return;
         
         this.state.remaining--;
+        
+        // Sync state to players on every tick if GM
+        if (game.user.isGM) {
+            console.log("Blacksmith | Combat Timer: Ticking, syncing state to players");
+            this.syncState();
+        }
+        
+        // Update UI after state changes and sync
         this.updateUI();
 
         // Calculate percentage of time remaining
@@ -478,6 +501,7 @@ class CombatTimer {
 
     static updateUI() {
         try {
+            console.log("Blacksmith | Combat Timer: Updating UI with state", this.state);
             // Update progress bar
             const timeLimit = game.settings.get(MODULE_ID, 'combatTimerDuration');
             const percentage = (this.state.remaining / timeLimit) * 100;
@@ -499,6 +523,7 @@ class CombatTimer {
             
             // Update timer text
             const timerText = $('.combat-timer-text');
+            console.log("Blacksmith | Combat Timer: Setting timer text, isPaused:", this.state.isPaused);
             if (this.state.isPaused) {
                 timerText.text('COMBAT TIMER PAUSED');
             } else if (this.state.remaining <= 0) {
@@ -618,16 +643,6 @@ class CombatTimer {
         this.startTimer();
     }
 
-    static syncState() {
-        if (game.user.isGM) {
-            game.socket.emit(`module.${MODULE_ID}`, {
-                type: 'combatTimer',
-                action: 'sync',
-                state: foundry.utils.deepClone(this.state)
-            });
-        }
-    }
-
     endTurn() {
         // Record the end time for stats before ending the turn
         CombatStats.recordTurnEnd();
@@ -643,18 +658,15 @@ class CombatTimer {
         // Advance to next round
         await game.combat?.nextRound();
     }
+
+    // Add logState method for debugging
+    static logState(context = "") {
+        console.log(`Blacksmith | Combat Timer: State [${context}]`, {
+            state: foundry.utils.deepClone(this.state),
+            isGM: game.user.isGM,
+            hasTimer: !!this.timer
+        });
+    }
 }
-
-// Add this to your module initialization
-Hooks.once('init', () => {
-    // ... other init code ...
-
-    // Set up socket listener
-    game.socket.on(`module.${MODULE_ID}`, (data) => {
-        if (data.type === 'timerAdjusted') {
-            ui.notifications.info(`GM set timer to ${data.time}`);
-        }
-    });
-});
 
 export { CombatTimer };

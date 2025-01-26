@@ -59,6 +59,7 @@
   "changelog": "CHANGELOG.md",
   "license": "LICENSE",
   "readme": "README.md",
+  "socket": true,
   "packs": [
     {
       "name": "user-manual",
