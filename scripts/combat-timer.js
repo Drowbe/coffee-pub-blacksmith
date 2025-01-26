@@ -527,7 +527,15 @@ class CombatTimer {
             }
 
             // Don't update text if we're showing a message
-            if (this.state.showingMessage) return;
+            if (this.state.showingMessage) {
+                // Show expired message if timer is at 0
+                if (this.state.remaining <= 0) {
+                    const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
+                        .replace('{name}', game.combat?.combatant?.name || '');
+                    $('.combat-timer-text').text(message);
+                }
+                return;
+            }
             
             // Update timer text
             const timerText = $('.combat-timer-text');
@@ -570,10 +578,6 @@ class CombatTimer {
             this.timer = null;
         }
 
-        // Add expired classes
-        $('.combat-timer-bar').addClass('expired');
-        $('.combat-timer-progress').addClass('expired');
-
         // Play sound if configured
         const timeUpSound = game.settings.get(MODULE_ID, 'combatTimeisUpSound');
         if (timeUpSound !== 'none') {
@@ -587,11 +591,6 @@ class CombatTimer {
                     .replace('{name}', game.combat?.combatant?.name || '')
             );
         }
-
-        // Set the expired message in the UI
-        const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
-            .replace('{name}', game.combat?.combatant?.name || '');
-        $('.combat-timer-text').text(message);
 
         // Auto-advance turn if enabled
         if (game.settings.get(MODULE_ID, 'combatTimerEndTurn')) {
