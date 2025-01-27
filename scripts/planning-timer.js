@@ -533,13 +533,35 @@ export class PlanningTimer {
 
     static async timerCleanup(data) {
         if (!game.user.isGM) {
-            this.state.isExpired = data.wasExpired;
-            this.cleanupTimer();
-            if (data.shouldFadeOut) {
-                $('.planning-phase').fadeOut(400, function() {
-                    $(this).remove();
-                });
+            // Players only update UI based on received data
+            if (data?.wasExpired) {
+                // Handle UI updates without modifying state
+                if (data.shouldFadeOut) {
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }
             }
+        } else {
+            // Existing GM cleanup code
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+
+            // Record planning end for stats if we were active
+            if (this.state.isActive) {
+                CombatStats.recordPlanningEnd();
+            }
+
+            this.state.isActive = false;
+            this.state.isPaused = true;
+            this.state.remaining = 0;
+            
+            // Don't clear showingMessage or isExpired as they may be needed for UI
+
+            this.updateUI();
+            this.syncState();
         }
     }
 
