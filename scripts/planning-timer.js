@@ -64,15 +64,7 @@ export class PlanningTimer {
     static receiveTimerSync(state) {
         console.log(`${MODULE_TITLE} | Planning Timer: Received timer sync from GM`, state);
         if (!game.user.isGM) {
-            // If we're showing an expired message, don't override showingMessage and isExpired
-            if (PlanningTimer.state.showingMessage && PlanningTimer.state.isExpired) {
-                const newState = foundry.utils.deepClone(state);
-                newState.showingMessage = true;
-                newState.isExpired = true;
-                PlanningTimer.state = newState;
-            } else {
-                PlanningTimer.state = foundry.utils.deepClone(state);
-            }
+            PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();
         }
     }
@@ -266,7 +258,8 @@ export class PlanningTimer {
                 this.syncState();
 
                 // Calculate percentage of time remaining
-                const percentRemaining = (this.state.remaining / this.state.timeLimit) * 100;
+                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
@@ -319,7 +312,8 @@ export class PlanningTimer {
                 this.syncState();
 
                 // Calculate percentage of time remaining
-                const percentRemaining = (this.state.remaining / this.state.timeLimit) * 100;
+                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
@@ -501,32 +495,29 @@ export class PlanningTimer {
     }
 
     static async timeExpired() {
-        // Set expired state
-        this.state.isActive = false;
-        this.state.showingMessage = true;
-        this.state.isExpired = true;
-        this.state.remaining = 0;
-        this.syncState();  // Sync expired state to players
-
+        // Record expiration in stats
+        CombatStats.recordTimerExpired(true);
+            
         // Play expiration sound if configured
         const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
-
+            
         // Show notification if enabled
         if (this.shouldShowNotification()) {
             const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
         }
 
-        // Wait full 3 seconds before cleanup
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        // Now do cleanup and notify players
-        socket.executeForOthers("timerCleanup", { wasExpired: true });
+        // Set state to show we're displaying the expired message
+        this.state.showingMessage = true;
         this.cleanupTimer();
-        this.syncState();  // Sync cleaned state after cleanup
+
+        // Notify all clients
+        if (game.user.isGM) {
+            await socket.executeForOthers("timerCleanup", { wasExpired: true });
+        }
 
         // Trigger planning timer expired hook
         Hooks.callAll('planningTimerExpired', {
@@ -543,6 +534,7 @@ export class PlanningTimer {
 
     static async timerCleanup(data) {
         if (!game.user.isGM) {
+            this.state.showingMessage = true;
             this.cleanupTimer();
         }
     }
@@ -558,14 +550,14 @@ export class PlanningTimer {
             CombatStats.recordPlanningEnd();
         }
 
-        // Reset all state flags
         this.state.isActive = false;
         this.state.isPaused = true;
         this.state.remaining = 0;
-        this.state.showingMessage = false;
-        this.state.isExpired = false;
         
+        // Don't clear showingMessage or isExpired as they may be needed for UI
+
         this.updateUI();
+        this.syncState();
     }
 
     static async syncState() {
@@ -576,16 +568,39 @@ export class PlanningTimer {
         }
     }
 
-    static async forceEnd() {
-        this.state.isActive = false;
+    static forceEnd() {
+        console.log(`${MODULE_TITLE} | Planning Timer | Force ending timer`);
+        // Make sure we're unpaused and active
+        this.state.isPaused = false;
+        this.state.isActive = true;
         this.state.showingMessage = true;
-        this.state.isExpired = true;
         this.state.remaining = 0;
-        this.syncState();
         
-        // Notify clients of cleanup
-        socket.executeForOthers("timerCleanup", { wasExpired: true });
+        // Play expiration sound if configured
+        const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
+        if (timeUpSound !== 'none') {
+            playSound(timeUpSound, this.getTimerVolume());
+        }
+        
+        // Show notification if enabled
+        if (this.shouldShowNotification()) {
+            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            ui.notifications.info(`${label} Has Ended`);
+        }
+        
+        // Clean up the timer
         this.cleanupTimer();
+        
+        // Notify all clients
+        if (game.user.isGM) {
+            socket.executeForOthers("timerCleanup", { wasExpired: true });
+        }
+        
+        // Trigger planning timer expired hook
+        Hooks.callAll('planningTimerExpired', {
+            expired: true,
+            combat: game.combat
+        });
     }
 }
 
