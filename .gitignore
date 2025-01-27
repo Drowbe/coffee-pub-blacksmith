@@ -18,20 +18,18 @@ Thumbs.db
 
 # Foundry specific
 coffee-pub-blacksmith.lock
-packs/**/LOCK
-packs/**/LOG*
-packs/**/*.log
 *.zip
 
-# Compendium DB files
-packs/**/*.db
+# Foundry Database Files (always ignore)
+packs/**/*.ldb
+packs/**/LOCK
+packs/**/CURRENT
+packs/**/LOG*
+packs/**/*.log
 packs/**/*.old
-packs/**/LOG
+packs/**/*-journal
 packs/**/MANIFEST*
 packs/**/*MANIFEST*
-packs/**/CURRENT
-packs/**/*.ldb
-packs/**/*-journal
 
 # OS generated files
 .DS_Store?
