@@ -1,0 +1,27 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+{{#if isPublic}}
+    {{#if isTimerWarning}}
+        <div class="chat-message timer-warning">
+            <p>{{warningMessage}}</p>
+        </div>
+    {{else if isTimerExpired}}
+        <div class="chat-message timer-expired">
+            <p>{{expiredMessage}}</p>
+        </div>
+    {{else}}
+        <div class="chat-message leader-announcement">
+            <p><strong>{{leaderName}}</strong> has been chosen as the party leader for this session.</p>
+            <p>They will help guide the party through decisions and keep things moving.</p>
+        </div>
+    {{/if}}
+{{else}}
+    <div class="chat-message leader-private">
+        <p>You have been chosen as the party leader for this session.</p>
+        <p>Your tools:</p>
+        <ul>
+            <li>Help guide the party through decisions</li>
+            <li>Keep things moving when discussion stalls</li>
+            <li>Ensure everyone gets a chance to contribute</li>
+        </ul>
+    </div>
+{{/if}} 

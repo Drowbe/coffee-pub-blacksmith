@@ -12,6 +12,7 @@
     max-height: 32px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
 }
 
 .panel-section {
@@ -21,6 +22,7 @@
 
 .leader-section {
     justify-content: flex-start;
+    cursor: pointer;
 }
 
 .blacksmith-chat-panel .leader-info {
@@ -42,3 +44,90 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+
+/* Timer Styles */
+.timer-section {
+    justify-content: flex-end;
+    cursor: pointer;
+}
+
+@keyframes borderPulse {
+    0% { border-color: #64675d; }
+    50% { border-color: hsl(27, 99%, 38%); }
+    100% { border-color: #64675d; }
+}
+
+.timer-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    border-radius: 5px;
+    padding: 2px 6px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.1);
+    border: 2px solid #64675d;
+    background-clip: padding-box;
+}
+
+
+.timer-info i {
+    font-size: .8em;
+    padding-top: 1px;
+    margin-right: 2px;
+}
+
+.timer-info.warning {
+    animation: borderPulse 2s ease-in-out infinite;
+}
+
+.timer-info::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    bottom: -1px;
+    left: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        var(--progress-color, #c1bfb5) var(--progress),
+        var(--background-color, #74736d) var(--progress)
+    );
+}
+
+.timer-info.expired {
+    border-color: hsl(27, 93%, 32%);
+}
+
+.timer-info.expired::before {
+    background: hsl(27, 93%, 32%);
+}
+
+
+
+
+.session-timer {
+    color: #eeeeed;
+    white-space: nowrap;
+}
+
+.leader-section:hover .leader-icon,
+.leader-section:hover .party-leader,
+.timer-section:hover .session-timer {
+    color: hsl(27, 99%, 38%);
+}
+
+.timer-info:hover {
+    border: 2px solid hsl(27, 99%, 38%);
+}
+
+
+
+/* ------------------------------------ */
+
+
+
+

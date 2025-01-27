@@ -448,7 +448,7 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
-		// *** CHAT PANEL SETTINS ***
+		// *** CHAT PANEL SETTINGS ***
 		// ---------- SUBHEADING - CHAT PANEL ----------
 		game.settings.register(MODULE_ID, "headingH3chatPanel", {
 			name: 'BLACKSMITH CHAT PANEL',
@@ -480,9 +480,105 @@ export const registerSettings = async () => {
 		});
 
 
+		// Add this with your other settings registrations:
+		game.settings.register(MODULE_ID, 'partyLeader', {
+			name: "Party Leader",
+			hint: "The currently selected party leader",
+			scope: "world",
+			config: false,
+			type: String,
+			default: ""
+		});
+
+		// Session Timer Settings
+		game.settings.register(MODULE_ID, 'sessionEndTime', {
+			name: 'Session End Time',
+			hint: 'When the current session timer will end (in milliseconds)',
+			scope: 'world',
+			config: false,
+			type: Number,
+			default: 0
+		});
+
+		game.settings.register(MODULE_ID, 'sessionStartTime', {
+			name: 'Session Start Time',
+			hint: 'When the current session timer was started (in milliseconds)',
+			scope: 'world',
+			config: false,
+			type: Number,
+			default: 0
+		});
+
+		// Chat Panel Settings
+		game.settings.register(MODULE_ID, 'sessionTimerWarningThreshold', {
+			name: 'Session Timer Warning Time',
+			hint: 'How many minutes before the end to show the warning (1-60 minutes)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 15,
+			range: {
+				min: 1,
+				max: 60,
+				step: 1
+			}
+		});
+
+		game.settings.register(MODULE_ID, 'sessionTimerWarningSound', {
+			name: 'Session Timer Warning Sound',
+			hint: 'Sound to play when time is running out',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'none',
+			choices: dataSounds.sounds.reduce((obj, sound) => {
+				obj[sound.id] = sound.name;
+				return obj;
+			}, {})
+		});
+
+		game.settings.register(MODULE_ID, 'sessionTimerWarningMessage', {
+			name: 'Session Timer Warning Message',
+			hint: 'Message to display when time is running out. Use {time} for remaining time.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'Time is running out in the session. We have about {time} remaining in our session.'
+		});
+
+		game.settings.register(MODULE_ID, 'sessionTimerExpiredSound', {
+			name: 'Session Timer Expired Sound',
+			hint: 'Sound to play when time has run out',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'none',
+			choices: dataSounds.sounds.reduce((obj, sound) => {
+				obj[sound.id] = sound.name;
+				return obj;
+			}, {})
+		});
+
+		game.settings.register(MODULE_ID, 'sessionTimerExpiredMessage', {
+			name: 'Session Timer Expired Message',
+			hint: 'Message to display when time has run out',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'Time has run out in this session. It\'s a bummer, but let\'s get to a good stopping point. We can pick up here next time.'
+		});
 
 
-		// *** CHAT SETTINS ***
+
+
+
+
+
+
+
+
+
+		// *** CHAT SETTINGS ***
 		// ---------- SUBHEADING - CARD ADJUSTMENTS ----------
 		game.settings.register(MODULE_ID, "headingH3simpleCardAdjustments", {
 			name: MODULE_ID + '.headingH3CardAdjustments-Label',
@@ -2053,25 +2149,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		}
 	});
 
-	// Add this with your other settings registrations:
-	game.settings.register(MODULE_ID, 'partyLeader', {
-		name: "Party Leader",
-		hint: "The currently selected party leader",
-		scope: "world",
-		config: false,
-		type: String,
-		default: ""
-	});
-
-
-
-
-
-
-
-
-
-
+	
 
 	// --------------------------------------------------------
 	}); // END OF "Hooks.once('ready', async()"
