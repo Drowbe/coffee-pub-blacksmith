@@ -7,17 +7,6 @@ import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
 
-let socket;
-
-// Set up socketlib
-Hooks.once('socketlib.ready', () => {
-    console.log("Blacksmith | Setting up Planning Timer socketlib");
-    socket = socketlib.registerModule(MODULE_ID);
-    socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
-    socket.register("timerAdjusted", PlanningTimer.timerAdjusted);
-    socket.register("timerCleanup", PlanningTimer.timerCleanup);
-});
-
 export class PlanningTimer {
     static DEFAULTS = {
         timeLimit: 60,
@@ -42,6 +31,13 @@ export class PlanningTimer {
 
         // Register hooks
         Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
+        
+        // Set up socket handling for client-server sync
+        game.socket.on(`module.${MODULE_ID}`, (data) => {
+            if (data.type === 'planningTimer') {
+                this.handleSocketMessage(data);
+            }
+        });
 
         // Wait for game to be ready before checking initial state
         Hooks.once('ready', () => {
@@ -60,18 +56,13 @@ export class PlanningTimer {
         Hooks.on('updateCombat', this.handleCombatUpdate.bind(this));
     }
 
-    // Function that will be called on non-GM clients
-    static receiveTimerSync(state) {
-        console.log(`${MODULE_TITLE} | Planning Timer: Received timer sync from GM`, state);
-        if (!game.user.isGM) {
-            PlanningTimer.state = foundry.utils.deepClone(state);
-            PlanningTimer.updateUI();
-        }
-    }
-
     static handleSocketMessage(data) {
         if (!game.user.isGM) {
             switch (data.action) {
+                case 'sync':
+                    this.state = data.state;
+                        this.updateUI();
+                    break;
                 case 'timerAdjusted':
                     ui.notifications.info(`Planning timer set to ${data.time}`);
                     break;
@@ -248,53 +239,20 @@ export class PlanningTimer {
         this.state.isPaused = false;
         this.state.showingMessage = false;
 
-        // Only GM should handle the interval
-        if (game.user.isGM) {
-            if (this.timer) clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                if (this.state.isPaused) return;
-                
-                this.state.remaining--;
-                this.syncState();
+        if (this.timer) clearInterval(this.timer);
+        this.timer = setInterval(() => this.tick(), 1000);
 
-                // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
-                const percentRemaining = (this.state.remaining / timeLimit) * 100;
-
-                // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
-                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound
-                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
-                    if (endingSoonSound !== 'none') {
-                        playSound(endingSoonSound, this.getTimerVolume());
-                    }
-                    
-                    // Show ending soon notification
-                    if (this.shouldShowNotification()) {
-                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
-                    }
-                }
-
-                if (this.state.remaining <= 0) {
-                    this.timeExpired();
-                }
-            }, 1000);
-
-            // Record resume for stats
-            CombatStats.recordTimerUnpause();
-            
-            // Play pause/resume sound if configured
-            const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
-            if (pauseResumeSound !== 'none') {
-                playSound(pauseResumeSound, this.getTimerVolume());
-            }
-
-            this.syncState();
+        // Record resume for stats
+        CombatStats.recordTimerUnpause();
+        
+        // Play pause/resume sound if configured
+        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+        if (pauseResumeSound !== 'none') {
+            playSound(pauseResumeSound, this.getTimerVolume());
         }
 
         this.updateUI();
+        this.syncState();
     }
 
     static setTime(newTime) {
@@ -303,47 +261,20 @@ export class PlanningTimer {
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
         
-        if (!this.state.isPaused && game.user.isGM) {
+        if (!this.state.isPaused) {
             if (this.timer) clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                if (this.state.isPaused) return;
-                
-                this.state.remaining--;
-                this.syncState();
-
-                // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
-                const percentRemaining = (this.state.remaining / timeLimit) * 100;
-
-                // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
-                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound
-                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
-                    if (endingSoonSound !== 'none') {
-                        playSound(endingSoonSound, this.getTimerVolume());
-                    }
-                    
-                    // Show ending soon notification
-                    if (this.shouldShowNotification()) {
-                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
-                    }
-                }
-
-                if (this.state.remaining <= 0) {
-                    this.timeExpired();
-                }
-            }, 1000);
+            this.timer = setInterval(() => this.tick(), 1000);
         }
         
         this.updateUI();
-        if (game.user.isGM) {
-            this.syncState();
+        this.syncState();
 
-            // Notify all clients
-            socket.executeForOthers("timerAdjusted", this.formatTime(newTime));
-        }
+        // Notify all clients
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'planningTimer',
+            action: 'timerAdjusted',
+            time: this.formatTime(newTime)
+        });
     }
 
     static getTimerVolume() {
@@ -372,11 +303,15 @@ export class PlanningTimer {
         if (!this.verifyTimerConditions()) return;
 
         // Record planning start for stats
+<<<<<<< HEAD
         if (game.user.isGM) {
             CombatStats.recordPlanningStart();
             // Store timeLimit in state when GM starts timer
             this.state.timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
         }
+=======
+        CombatStats.recordPlanningStart();
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
 
         this.state.remaining = duration;
         this.state.isActive = true;
@@ -384,6 +319,7 @@ export class PlanningTimer {
         this.state.showingMessage = false;
         this.state.isExpired = false;
 
+<<<<<<< HEAD
         // Only GM should handle the interval
         if (game.user.isGM) {
             if (this.timer) clearInterval(this.timer);
@@ -418,12 +354,15 @@ export class PlanningTimer {
                     }
                 }, 1000);
             }
+=======
+        if (this.timer) clearInterval(this.timer);
+        if (!this.state.isPaused) {
+            this.timer = setInterval(() => this.tick(), 1000);
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
         }
 
         this.updateUI();
-        if (game.user.isGM) {
-            this.syncState();
-        }
+        this.syncState();
     }
 
     static updateUI() {
@@ -433,8 +372,6 @@ export class PlanningTimer {
             
             // Update progress bar width and color classes
             const bar = $('.planning-timer-bar');
-            if (!bar.length) return;
-            
             bar.css('width', `${percentage}%`);
             
             // Update color classes based on percentage
@@ -466,11 +403,9 @@ export class PlanningTimer {
             }
 
             const timerText = $('.planning-timer-text');
-            if (!timerText.length) return;
-            
             const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
 
-            if (this.state.remaining <= 0) {
+            if (this.state.isExpired) {
                 timerText.text(game.settings.get(MODULE_ID, 'planningTimerExpiredMessage'));
             } else if (this.state.isPaused) {
                 timerText.text(`${label} TIMER PAUSED`);
@@ -487,6 +422,37 @@ export class PlanningTimer {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    static tick() {
+        if (this.state.isPaused) return;
+
+        this.state.remaining--;
+        this.updateUI();
+
+        // Calculate percentage of time remaining
+        const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const percentRemaining = (this.state.remaining / timeLimit) * 100;
+
+        // Check ending soon threshold
+        const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
+        if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
+            // Play ending soon sound
+            const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
+            if (endingSoonSound !== 'none') {
+                playSound(endingSoonSound, this.getTimerVolume());
+            }
+            
+            // Show ending soon notification
+            if (this.shouldShowNotification()) {
+                const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
+                ui.notifications.warn(message);
+            }
+        }
+
+        if (this.state.remaining <= 0) {
+            this.timeExpired();
+        }
     }
 
     static shouldShowNotification() {
@@ -515,10 +481,23 @@ export class PlanningTimer {
         this.cleanupTimer();
 
         // Notify all clients
-        if (game.user.isGM) {
-            await socket.executeForOthers("timerCleanup", { wasExpired: true });
-        }
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'planningTimer',
+            action: 'cleanup',
+            wasExpired: true
+        });
 
+<<<<<<< HEAD
+=======
+        // Wait 5 seconds then remove the timer from view
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Remove the timer from view
+        $('.planning-phase').fadeOut(400, function() {
+            $(this).remove();
+        });
+
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
         // Trigger planning timer expired hook
         Hooks.callAll('planningTimerExpired', {
             expired: true,
@@ -526,6 +505,7 @@ export class PlanningTimer {
         });
     }
 
+<<<<<<< HEAD
     static async timerAdjusted(timeString) {
         if (!game.user.isGM) {
             ui.notifications.info(`Planning timer set to ${timeString}`);
@@ -539,6 +519,8 @@ export class PlanningTimer {
         }
     }
 
+=======
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
     static cleanupTimer() {
         if (this.timer) {
             clearInterval(this.timer);
@@ -560,11 +542,13 @@ export class PlanningTimer {
         this.syncState();
     }
 
-    static async syncState() {
+    static syncState() {
         if (game.user.isGM) {
-            console.log(`${MODULE_TITLE} | Planning Timer: GM syncing state to players`);
-            await socket.executeForOthers("syncPlanningTimerState", this.state);
-            this.updateUI();
+            game.socket.emit(`module.${MODULE_ID}`, {
+                type: 'planningTimer',
+                action: 'sync',
+                state: this.state
+            });
         }
     }
 
@@ -573,8 +557,23 @@ export class PlanningTimer {
         // Make sure we're unpaused and active
         this.state.isPaused = false;
         this.state.isActive = true;
+<<<<<<< HEAD
         this.state.showingMessage = true;
         this.state.remaining = 0;
+=======
+        this.state.showingMessage = false;
+        
+        // Get the label from settings
+        const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+        
+        // Update UI to show ending state
+        const bar = $('.planning-timer-bar');
+        bar.css('width', '0%');
+        bar.removeClass('high medium low').addClass('expired');
+        
+        // Show ending message
+        $('.planning-timer-text').text(`${label} Has Ended`);
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
         
         // Play expiration sound if configured
         const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
@@ -584,17 +583,31 @@ export class PlanningTimer {
         
         // Show notification if enabled
         if (this.shouldShowNotification()) {
-            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
         }
+        
+        // Wait 3 seconds then fade out
+        setTimeout(() => {
+            $('.planning-phase').fadeOut(400, function() {
+                $(this).remove();
+            });
+        }, 3000);
         
         // Clean up the timer
         this.cleanupTimer();
         
         // Notify all clients
+<<<<<<< HEAD
         if (game.user.isGM) {
             socket.executeForOthers("timerCleanup", { wasExpired: true });
         }
+=======
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'planningTimer',
+            action: 'cleanup',
+            wasExpired: true
+        });
+>>>>>>> parent of 4bb5f29 (working on planning sockets)
         
         // Trigger planning timer expired hook
         Hooks.callAll('planningTimerExpired', {
