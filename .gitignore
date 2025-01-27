@@ -27,7 +27,8 @@ packs/**/*.log
 packs/**/*.db
 packs/**/*.old
 packs/**/LOG
-packs/**/MANIFEST
+packs/**/MANIFEST*
+packs/**/*MANIFEST*
 packs/**/CURRENT
 packs/**/*.ldb
 packs/**/*-journal
