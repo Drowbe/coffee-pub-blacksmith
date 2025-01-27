@@ -23,6 +23,15 @@ packs/**/LOG*
 packs/**/*.log
 *.zip
 
+# Compendium DB files
+packs/**/*.db
+packs/**/*.old
+packs/**/LOG
+packs/**/MANIFEST
+packs/**/CURRENT
+packs/**/*.ldb
+packs/**/*-journal
+
 # OS generated files
 .DS_Store?
 ._*
