@@ -303,15 +303,11 @@ export class PlanningTimer {
         if (!this.verifyTimerConditions()) return;
 
         // Record planning start for stats
-<<<<<<< HEAD
         if (game.user.isGM) {
             CombatStats.recordPlanningStart();
             // Store timeLimit in state when GM starts timer
             this.state.timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
         }
-=======
-        CombatStats.recordPlanningStart();
->>>>>>> parent of 4bb5f29 (working on planning sockets)
 
         this.state.remaining = duration;
         this.state.isActive = true;
@@ -319,7 +315,6 @@ export class PlanningTimer {
         this.state.showingMessage = false;
         this.state.isExpired = false;
 
-<<<<<<< HEAD
         // Only GM should handle the interval
         if (game.user.isGM) {
             if (this.timer) clearInterval(this.timer);
@@ -354,11 +349,6 @@ export class PlanningTimer {
                     }
                 }, 1000);
             }
-=======
-        if (this.timer) clearInterval(this.timer);
-        if (!this.state.isPaused) {
-            this.timer = setInterval(() => this.tick(), 1000);
->>>>>>> parent of 4bb5f29 (working on planning sockets)
         }
 
         this.updateUI();
@@ -487,17 +477,6 @@ export class PlanningTimer {
             wasExpired: true
         });
 
-<<<<<<< HEAD
-=======
-        // Wait 5 seconds then remove the timer from view
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        // Remove the timer from view
-        $('.planning-phase').fadeOut(400, function() {
-            $(this).remove();
-        });
-
->>>>>>> parent of 4bb5f29 (working on planning sockets)
         // Trigger planning timer expired hook
         Hooks.callAll('planningTimerExpired', {
             expired: true,
@@ -505,7 +484,6 @@ export class PlanningTimer {
         });
     }
 
-<<<<<<< HEAD
     static async timerAdjusted(timeString) {
         if (!game.user.isGM) {
             ui.notifications.info(`Planning timer set to ${timeString}`);
@@ -519,8 +497,6 @@ export class PlanningTimer {
         }
     }
 
-=======
->>>>>>> parent of 4bb5f29 (working on planning sockets)
     static cleanupTimer() {
         if (this.timer) {
             clearInterval(this.timer);
@@ -557,23 +533,8 @@ export class PlanningTimer {
         // Make sure we're unpaused and active
         this.state.isPaused = false;
         this.state.isActive = true;
-<<<<<<< HEAD
         this.state.showingMessage = true;
         this.state.remaining = 0;
-=======
-        this.state.showingMessage = false;
-        
-        // Get the label from settings
-        const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
-        
-        // Update UI to show ending state
-        const bar = $('.planning-timer-bar');
-        bar.css('width', '0%');
-        bar.removeClass('high medium low').addClass('expired');
-        
-        // Show ending message
-        $('.planning-timer-text').text(`${label} Has Ended`);
->>>>>>> parent of 4bb5f29 (working on planning sockets)
         
         // Play expiration sound if configured
         const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
@@ -583,6 +544,7 @@ export class PlanningTimer {
         
         // Show notification if enabled
         if (this.shouldShowNotification()) {
+            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
         }
         
@@ -597,17 +559,9 @@ export class PlanningTimer {
         this.cleanupTimer();
         
         // Notify all clients
-<<<<<<< HEAD
         if (game.user.isGM) {
             socket.executeForOthers("timerCleanup", { wasExpired: true });
         }
-=======
-        game.socket.emit(`module.${MODULE_ID}`, {
-            type: 'planningTimer',
-            action: 'cleanup',
-            wasExpired: true
-        });
->>>>>>> parent of 4bb5f29 (working on planning sockets)
         
         // Trigger planning timer expired hook
         Hooks.callAll('planningTimerExpired', {
