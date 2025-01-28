@@ -28,7 +28,7 @@
             </div>
         </div>
     {{else if isRoundAnnouncement}}
-        <div class="blacksmith-card">
+        <div class="blacksmith-card theme-default">
             <div class="section-header">
                 <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Has Started
             </div>
@@ -36,35 +36,33 @@
             </div>
         </div>
     {{else}}
-        <div class="blacksmith-card">
+        <div class="blacksmith-card theme-default">
             <div class="section-header">
                 <i class="fa-solid fa-crown"></i> New Leader Elected
             </div>
             <div class="section-content">
-                <p><strong>{{leaderName}}</strong> has been chosen as the party leader for this session. They will:</p>
+                <p>Hooray! <strong>{{leaderName}}</strong> has been elected party leader for this session.</p>
                 <ul>
-                    <li>Keep things moving when discussion stalls</li>
-                    <li>Help guide the party through decisions</li>
-                    <li>Ensure everyone gets a chance to contribute</li>
-                    <li>Help the party make the best decisions</li>
+                    <li>They facilitate communication and decision-making.</li>
+                    <li>They coordinate party strategy and tactics.</li>
+                    <li>They make the final call.</li>
                 </ul>
-                <p>They will help guide the party through decisions and keep things moving.</p>
             </div>
         </div>
     {{/if}}
 {{else}}
-    <div class="blacksmith-card">
+    <div class="blacksmith-card theme-default">
         <div class="section-header">
-            <i class="fa-solid fa-crown"></i> Party Leader
+            <i class="fa-solid fa-crown"></i> Congratulations, Party Leader!
         </div>
         <div class="section-content">
-            <p>You have been chosen as the party leader for this session.</p>
-            <p>Your tools:</p>
+            <p>The party has chosen you to be their leader. Be honored and humbled by this trust.</p>
             <ul>
-                <li>Help guide the party through decisions</li>
+                <li>Help guide them through decisions.</li>
                 <li>Keep things moving when discussion stalls</li>
-                <li>Ensure everyone gets a chance to contribute</li>
+                <li>Ensure everyone gets a chance to contribute, but make the final call.</li>
             </ul>
+            <p>Now is the time to decide just what kind of leader you want to be.</p>
         </div>
     </div>
 {{/if}} 
