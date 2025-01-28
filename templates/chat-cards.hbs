@@ -1,0 +1,59 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+{{#if isPublic}}
+    {{#if isTimerWarning}}
+        <div class="blacksmith-card">
+            <div class="timer-warning">
+                <div class="section-content">
+                    <p>{{warningMessage}}</p>
+                </div>
+            </div>
+        </div>
+    {{else if isTimerExpired}}
+        <div class="blacksmith-card">
+            <div class="timer-expired">
+                <div class="section-content">
+                    <p>{{expiredMessage}}</p>
+                </div>
+            </div>
+        </div>
+    {{else if isTimerSet}}
+        <div class="blacksmith-card">
+            <div class="timer-set">
+                <div class="section-content">
+                    <p><i class="fas fa-clock"></i> {{timerSetMessage}}</p>
+                </div>
+            </div>
+        </div>
+    {{else}}
+        <div class="blacksmith-card">
+            <div class="section-header">
+                <i class="fa-solid fa-crown"></i> New Leader Elected
+            </div>
+            <div class="section-content">
+                <p><strong>{{leaderName}}</strong> has been chosen as the party leader for this session. They will:</p>
+                <ul>
+                    <li>Keep things moving when discussion stalls</li>
+                    <li>Help guide the party through decisions</li>
+                    <li>Ensure everyone gets a chance to contribute</li>
+                    <li>Help the party make the best decisions</li>
+                </ul>
+                <p>They will help guide the party through decisions and keep things moving.</p>
+            </div>
+        </div>
+    {{/if}}
+{{else}}
+    <div class="blacksmith-card">
+        <div class="section-header">
+            <i class="fa-solid fa-crown"></i> Party Leader
+        </div>
+        <div class="section-content">
+            <p>You have been chosen as the party leader for this session.</p>
+            <p>Your tools:</p>
+            <ul>
+                <li>Help guide the party through decisions</li>
+                <li>Keep things moving when discussion stalls</li>
+                <li>Ensure everyone gets a chance to contribute</li>
+            </ul>
+        </div>
+    </div>
+{{/if}} 

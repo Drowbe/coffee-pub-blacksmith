@@ -500,7 +500,7 @@ class CombatStats {
 
         // Add click handler for collapsible sections after template is rendered
         Hooks.on('renderChatMessage', (message, html) => {
-            if (message.content.includes('blacksmith-stats')) {
+            if (message.content.includes('blacksmith-card')) {
                 const headers = html.find('.section-header.collapsible');
                 
                 headers.on('click', (event) => {

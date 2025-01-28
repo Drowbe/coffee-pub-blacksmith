@@ -1,13 +1,31 @@
 /* ------------------------------------ */
-/* --- CHAT CARDS ----------------- */
+/* --- CHAT CARDS - COMMON ------------ */
 /* ------------------------------------ */
 
-/* Base Card Styles */
-.round-summary {
+/* Base Container */
+.blacksmith-card {
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-primary);
     background: rgba(0, 0, 0, 0.05);
     border-radius: 5px;
     padding: 0.5em;
     margin-bottom: 15px;
+}
+
+/* Base Card Styles */
+.round-summary, .round-mvp, .turn-details, .party-stats-section {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 15px;
+}
+
+/* Common Icon Styles */
+.blacksmith-card .fas {
+    margin-right: 5px;
+    width: 16px;
+    text-align: center;
 }
 
 /* Section Headers */
@@ -16,7 +34,18 @@
     font-size: 1em;
     text-transform: uppercase;
     font-weight: bold;
-    margin: 0 0 8px 0;
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+/* Round Header - variant without bottom margin */
+.round-header {
+    color: #461313;
+    font-size: 1em;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin: 0;
     padding: 4px 8px;
     border-radius: 2px;
 }
@@ -26,6 +55,13 @@
     max-height: 1000px;
     transition: max-height 0.3s ease-out;
     overflow: hidden;
+    padding-top: 8px;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    transition: max-height 0.3s ease-out, padding-top 0.3s ease-out;
 }
 
 .section-content p {
@@ -43,26 +79,278 @@
     margin-bottom: 4px;
 }
 
-/* Timer Messages */
-.chat-message.timer-warning,
-.chat-message.timer-expired {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 5px;
+/* Collapsible Sections */
+.blacksmith-card .section-header.collapsible {
+    cursor: pointer;
+    user-select: none;
 }
 
-.chat-message.timer-warning {
+.blacksmith-card .section-header.collapsible:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.blacksmith-card .section-header .collapse-indicator {
+    float: right;
+}
+
+/* ------------------------------------ */
+/* --- TIMER MESSAGES ----------------- */
+/* ------------------------------------ */
+
+/* Timer Specific Styles */
+.timer-warning {
     background: rgba(255, 165, 0, 0.1);
     border: 1px solid orange;
+    border-radius: 5px;
+    padding: 0.5em;
 }
 
-.chat-message.timer-expired {
+.timer-expired {
     background: rgba(255, 0, 0, 0.1);
     border: 1px solid red;
+    border-radius: 5px;
+    padding: 0.5em;
 }
 
-.chat-message.timer-warning p,
-.chat-message.timer-expired p {
+.timer-warning p,
+.timer-expired p {
     margin: 0;
     color: #461313;
+}
+
+/* Timer Set Message */
+.timer-set {
+    background: rgba(51, 122, 183, 0.1);
+    border: 1px solid #337ab7;
+    border-radius: 5px;
+    padding: 0.5em;
+}
+
+.timer-set p {
+    margin: 0;
+    color: #337ab7;
+    font-weight: bold;
+}
+
+.timer-set i {
+    margin-right: 5px;
+}
+
+/* ------------------------------------ */
+/* --- STATS CARDS ------------------- */
+/* ------------------------------------ */
+
+/* Round Duration */
+.round-duration {
+    color: #594a3c;
+    font-size: 0.9em;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.round-duration span {
+    color: #461313;
+    font-weight: bold;
+}
+
+/* MVP Details */
+.mvp-details {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.mvp-details img {
+    width: 80px;
+    height: 80px;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+.mvp-info {
+    flex: 1;
+}
+
+.mvp-info .player-name {
+    color: #461313;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.mvp-description {
+    color: #461313;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.mvp-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+/* Stats Colors */
+.combat-stats { color: #8b0000; }
+.damage-stats { color: #d63737; }
+.healing-stats { color: #2d8a45; }
+
+/* Turn Details */
+.turn-row {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 4px;
+    border-radius: 4px;
+    position: relative;
+}
+
+.turn-portrait {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d5ccc7;
+    border-radius: 5px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.turn-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.turn-name {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    font-size: 0.9em;
+    margin-bottom: 0.2em;
+    gap: 2px;
+}
+
+.turn-name .fa-fire {
+    color: #3498db;
+    margin-left: 4px;
+}
+
+.turn-name .fa-skull {
+    color: #ff0000;
+    margin-left: 4px;
+}
+
+.turn-stats {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    font-size: 0.9em;
+    color: #594a3c;
+}
+
+.turn-stats .stat-value {
+    display: inline;
+    margin: 0;
+}
+
+/* Status Indicators */
+.quick-turn { color: #4a8f52; font-weight: bold; }
+.expired-turn { color: #8b0000; font-weight: bold; }
+
+/* Progress Bars */
+.progress-bar {
+    height: 4px;
+    background: #d5ccc7;
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #4a8f52;
+    border-radius: 2px;
+}
+
+/* Notable Moments */
+.moment-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+}
+
+.moment-card h4 {
+    color: #461313;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.moment-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85em;
+}
+
+.moment-content .actor { color: #4a8f52; font-weight: bold; }
+.moment-content .target { color: #8b0000; font-weight: bold; }
+.moment-content .detail { color: #594a3c; }
+.moment-content .amount { font-weight: bold; color: #461313; }
+
+.no-moments {
+    text-align: center;
+    color: #594a3c;
+    font-size: 0.8em;
+    padding: 6px;
+}
+
+/* Party Stats Grid */
+.party-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card h4 {
+    color: #461313;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
+}
+
+.stat-value .expired { color: #8b0000; font-weight: bold; }
+.stat-value .skipped { color: #666666; font-weight: bold; }
+
+.stat-detail {
+    font-size: 0.8em;
+    color: #594a3c;
 } 

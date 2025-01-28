@@ -17,7 +17,7 @@ class ChatPanel {
         // Load the templates
         loadTemplates([
             'modules/coffee-pub-blacksmith/templates/chat-panel.hbs',
-            'modules/coffee-pub-blacksmith/templates/chat-panel-messages.hbs'
+            'modules/coffee-pub-blacksmith/templates/chat-cards.hbs'
         ]);
 
         // Set up socket listener for leader updates
@@ -107,7 +107,7 @@ class ChatPanel {
         if (!gmUser) return;
 
         // Render public message
-        const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel-messages.hbs', {
+        const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
             isPublic: true,
             leaderName: leaderName
         });
@@ -120,7 +120,7 @@ class ChatPanel {
         });
 
         // Render private message
-        const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel-messages.hbs', {
+        const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
             isPublic: false,
             leaderName: leaderName
         });
@@ -339,7 +339,7 @@ class ChatPanel {
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;
 
-        const warningHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel-messages.hbs', {
+        const warningHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
             isPublic: true,
             isTimerWarning: true,
             warningMessage: message
@@ -365,7 +365,7 @@ class ChatPanel {
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;
 
-        const expiredHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel-messages.hbs', {
+        const expiredHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
             isPublic: true,
             isTimerExpired: true,
             expiredMessage: message
@@ -388,8 +388,6 @@ class ChatPanel {
             if (remaining > 0) {
                 currentHours = Math.floor(remaining / (1000 * 60 * 60));
                 currentMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                // Round to nearest 5 minutes
-                currentMinutes = Math.round(currentMinutes / 5) * 5;
             }
         }
 
@@ -404,10 +402,9 @@ class ChatPanel {
                             ).join('')}
                         </select>
                         <select name="minutes" id="minutes-select">
-                            ${Array.from({length: 12}, (_, i) => {
-                                const mins = i * 5;
-                                return `<option value="${mins}" ${mins === currentMinutes ? 'selected' : ''}>${mins.toString().padStart(2, '0')} minutes</option>`;
-                            }).join('')}
+                            ${Array.from({length: 60}, (_, i) => 
+                                `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
+                            ).join('')}
                         </select>
                     </div>
                 </div>
@@ -439,6 +436,24 @@ class ChatPanel {
                             endTime: this.sessionEndTime,
                             startTime: this.sessionStartTime
                         });
+                        
+                        // Send timer set message
+                        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                        const gmUser = game.users.find(u => u.isGM);
+                        if (gmUser) {
+                            const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+                                isPublic: true,
+                                isTimerSet: true,
+                                timerSetMessage: `Session timer set for ${timeString}`
+                            });
+
+                            await ChatMessage.create({
+                                content: messageHtml,
+                                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                                user: gmUser.id,
+                                speaker: { alias: gmUser.name }
+                            });
+                        }
                         
                         this.updateTimerDisplay();
                     }
