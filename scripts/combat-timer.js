@@ -305,76 +305,50 @@ class CombatTimer {
 
             // Check if this is turn 0 (planning phase)
             if (combat.turn === 0) {
-                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
-                this.resetTimer();
+                console.log("Blacksmith | Combat Timer: Planning phase detected - pausing combat timer"); // Debug log
+                // Just pause the combat timer without affecting planning timer
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
                 this.state.isPaused = true;
-                this.pauseTimer();
+                this.state.isActive = false;
+                this.updateUI();
                 return;
             }
             
             // For all other turns
             console.log("Blacksmith | Combat Timer: Regular turn change detected"); // Debug log
             
-            // Check auto-start setting
-            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-            console.log("Blacksmith | Combat Timer: Auto-start setting:", autoStart); // Debug log
-            
             // Reset timer first
             this.resetTimer();
             
-            // Set initial state based on auto-start setting
-            this.state.isPaused = !autoStart;
-            
-            // Start or pause based on setting
-            if (autoStart) {
-                console.log("Blacksmith | Combat Timer: Auto-starting timer for new turn"); // Debug log
-                this.resumeTimer();
-                
-                // Play start sound if configured
-                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
-                if (startSound !== 'none') {
-                    playSound(startSound, this.getTimerVolume());
-                }
-            } else {
-                console.log("Blacksmith | Combat Timer: Keeping timer paused for new turn"); // Debug log
-                this.pauseTimer();
-            }
-        }
-
-        // Handle round changes first
-        if ("round" in changed) {
-            // Record the end of the last turn of the previous round
-            if (combat.combatant) {
-                console.log("Blacksmith | Combat Timer: Recording end of last turn for round change:", combat.combatant.name);
-                CombatStats.recordTurnEnd(combat.combatant);
-            }
-
-            console.log("Blacksmith | Combat Timer: Round change detected"); // Debug log
-            // Reset timer and set initial state based on auto-start setting
-            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-            
-            // Always reset to full time on round change
-            this.resetTimer();
-            this.state.isPaused = !autoStart;
-            
-            if (combat.turn === 0) {
-                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
+            // First player after planning phase should always start paused
+            if (previousTurn === 0) {
+                console.log("Blacksmith | Combat Timer: First player turn - forcing pause");
                 this.state.isPaused = true;
                 this.pauseTimer();
-            } else if (autoStart) {
-                console.log("Blacksmith | Combat Timer: Auto-starting timer for new round"); // Debug log
-                this.resumeTimer();
-                
-                // Play start sound if configured
-                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
-                if (startSound !== 'none') {
-                    playSound(startSound, this.getTimerVolume());
-                }
             } else {
-                console.log("Blacksmith | Combat Timer: Keeping timer paused for new round"); // Debug log
-                this.pauseTimer();
+                // For other turns, use auto-start setting
+                const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+                console.log("Blacksmith | Combat Timer: Auto-start setting:", autoStart);
+                
+                this.state.isPaused = !autoStart;
+                
+                if (autoStart) {
+                    console.log("Blacksmith | Combat Timer: Auto-starting timer for new turn");
+                    this.resumeTimer();
+                    
+                    // Play start sound if configured
+                    const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                    if (startSound !== 'none') {
+                        playSound(startSound, this.getTimerVolume());
+                    }
+                } else {
+                    console.log("Blacksmith | Combat Timer: Keeping timer paused for new turn");
+                    this.pauseTimer();
+                }
             }
-            return;  // Don't process other changes on round change
         }
     }
 
@@ -454,8 +428,8 @@ class CombatTimer {
     static resumeTimer() {
         console.log("Blacksmith | Combat Timer: Resuming timer");
         
-        // If we're in planning phase (turn 0), end the planning timer gracefully
-        if (game.combat?.turn === 0 && !this._endingPlanningTimer) {
+        // If we're in planning phase (turn 0), only end the planning timer if we're actually starting combat
+        if (game.combat?.turn === 0 && !this._endingPlanningTimer && this.state.isActive) {
             console.log("Blacksmith | Combat Timer: Ending planning timer gracefully as combat timer is being resumed");
             // Set flag to prevent recursion
             this._endingPlanningTimer = true;
@@ -739,8 +713,11 @@ class CombatTimer {
         // Clear visual states
         $('.combat-timer-progress').removeClass('expired');
         
-        // Start fresh timer
-        this.startTimer();
+        // Get fresh duration from settings
+        const duration = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
+        
+        // Start fresh timer with new duration
+        this.startTimer(duration);
     }
 
     endTurn() {
