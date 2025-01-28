@@ -24,8 +24,7 @@
 
 /* Common Icon Styles */
 .blacksmith-card .fas {
-    margin-right: 5px;
-    width: 16px;
+    width: 14px;
     text-align: center;
 }
 
@@ -35,6 +34,9 @@
     font-size: 1.2em;
     font-weight: bold;
     color: #594a3c;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* Only add margin when section is not collapsed */
@@ -132,7 +134,7 @@
 }
 
 .timer-set i {
-    margin-right: 5px;
+    margin-right: 0;
 }
 
 /* ------------------------------------ */
@@ -210,6 +212,14 @@
     margin: 0 0 4px 0;
     padding-bottom: 2px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mvp-stat-card h4 i,
+.mvp-stat-card h4 .fas {
+    margin-right: 0 !important;
 }
 
 /* Stats Colors */
@@ -448,16 +458,10 @@
     padding: 0;
 }
 
-.blacksmith-card.theme-blue i {
-    color: #ffffff;
-    margin-right: 5px;
-}
-
+.blacksmith-card.theme-blue i,
 .blacksmith-card i {
-    margin-right: 5px;
+    margin-right: 0;
 }
-
-
 
 /* THEME DEFAULT */
 

@@ -4,6 +4,7 @@ import { getPortraitImage, isPlayerCharacter, playSound } from './global.js';
 import { CombatStatsDebug } from './debug.js';
 import { PlanningTimer } from './planning-timer.js';
 import { CombatTimer } from './combat-timer.js';
+import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 
 // Helper function to get actor portrait
 function getActorPortrait(combatant) {
@@ -297,20 +298,7 @@ class CombatStats {
 
     // Method to record when a turn starts
     static recordTurnStart(combatant) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) {
-            console.log('Blacksmith | Timer Debug - Turn Start Skipped:', {
-                reason: !game.user.isGM ? 'Not GM' : 'Stats Disabled',
-                isGM: game.user.isGM,
-                statsEnabled: game.settings.get(MODULE_ID, 'trackCombatStats')
-            });
-            return;
-        }
-        
-        // We no longer need to track start times since we only use progress bar position
-        console.log('Blacksmith | Timer Debug - Turn Start:', {
-            combatant: combat?.name,
-            id: combat?.id
-        });
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
     }
 
     // Method to record when a turn ends
@@ -318,34 +306,20 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         
         if (combatant) {
-            // Calculate duration based on progress bar position only
             const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
             const remainingTime = CombatTimer.state?.remaining ?? 0;
-            const timeUsed = totalAllowedTime - remainingTime;  // Calculate in seconds
-            const duration = timeUsed * 1000;  // Convert to ms after calculation
-            const isExpired = timeUsed === totalAllowedTime;  // Check if all time was used
-            
-            console.log('Blacksmith | Timer Debug - Recording Turn End:', {
-                combatant: combatant.name,
-                id: combatant.id,
-                totalAllowedTime,
-                remainingTime,
-                timeUsed,
-                duration,
-                isExpired
-            });
+            const timeUsed = totalAllowedTime - remainingTime;
+            const duration = timeUsed * 1000;
+            const isExpired = timeUsed === totalAllowedTime;
             
             // Update turn times for player characters
             if (this._isPlayerCharacter(combatant)) {
-                // Initialize turnTimes as an object if it's still an array
                 if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
                     this.currentStats.partyStats.turnTimes = {};
                 }
                 
-                // Store duration by combatant ID
                 this.currentStats.partyStats.turnTimes[combatant.id] = duration;
                 
-                // Store the expired state
                 if (!this.currentStats.turnStats) {
                     this.currentStats.turnStats = {};
                 }
@@ -354,58 +328,73 @@ class CombatStats {
                 }
                 this.currentStats.turnStats[combatant.id].expired = isExpired;
                 
-                // Calculate average from all turn times
                 const turnTimes = Object.values(this.currentStats.partyStats.turnTimes);
                 this.currentStats.partyStats.averageTurnTime = 
                     turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
-                
-                console.log('Blacksmith | Timer Debug - Updated Turn Stats:', {
-                    combatant: combatant.name,
-                    duration,
-                    isExpired,
-                    turnTimes: this.currentStats.partyStats.turnTimes,
-                    averageTurnTime: this.currentStats.partyStats.averageTurnTime
-                });
             }
         }
     }
 
-    // Method to record timer expiration
-    static recordTimerExpired(isPlanning = false) {
-        if (!game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+    // Helper to format time in a readable way
+    static formatTime(ms, context) {
+        if (ms === undefined || ms === null) return 'SKIPPED';
+        ms = Number(ms);
+        if (isNaN(ms)) return 'SKIPPED';
+
+        if (this.planningDuration !== undefined && this.planningDuration === ms) {
+            if (ms === 0) return 'SKIPPED';
+            const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
+            if (ms >= maxPlanningTime) return 'EXPIRED';
+        }
+        else if (this.id !== undefined && this.turnDuration === ms) {
+            if (ms === 0) return 'SKIPPED';
+            const maxTurnTime = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
+            if (ms >= maxTurnTime) return 'EXPIRED';
+        }
         
-        if (isPlanning) {
-            // Ensure planning time object exists
-            if (!this.currentStats.planningTime) {
-                this.currentStats.planningTime = {
-                    expired: false,
-                    endTime: 0
-                };
-            }
-            this.currentStats.planningTime.expired = true;
-            this.currentStats.planningTime.endTime = Date.now();
-            
-            console.log('Blacksmith | Timer Debug - Planning Timer Expired:', {
-                planningTime: this.currentStats.planningTime,
-                currentStats: this.currentStats
-            });
-        } else {
-            const currentCombatant = game.combat?.combatant;
-            if (currentCombatant) {
-                // Initialize turn stats if needed
-                if (!this.currentStats.turnStats) {
-                    this.currentStats.turnStats = {};
-                }
-                if (!this.currentStats.turnStats[currentCombatant.id]) {
-                    this.currentStats.turnStats[currentCombatant.id] = {
-                        expired: false,
-                        endTime: 0
-                    };
-                }
-                this.currentStats.turnStats[currentCombatant.id].expired = true;
-                // Don't set the end time here as the turn might continue
+        const seconds = Math.floor(ms / 1000);
+        return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    }
+
+    static recordPlanningStart() {
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        
+        const now = Date.now();
+        this.currentStats.actualPlanningStartTime = now;
+        this.currentStats.lastUnpauseTime = now;
+        if (!this.currentStats.actualRoundStartTime) {
+            this.currentStats.actualRoundStartTime = now;
+        }
+    }
+
+    static recordPlanningEnd() {
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        
+        const now = Date.now();
+        this.currentStats.actualPlanningEndTime = now;
+        
+        const totalDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const remainingTime = PlanningTimer.state.remaining;
+        this.currentStats.activePlanningTime = (totalDuration - remainingTime) * 1000;
+    }
+
+    static recordTimerPause() {
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+
+        const now = Date.now();
+        if (this.currentStats.lastUnpauseTime) {
+            if (game.combat?.turn === 0) {
+                this.currentStats.activePlanningTime += now - this.currentStats.lastUnpauseTime;
+            } else {
+                this.currentStats.activeRoundTime += now - this.currentStats.lastUnpauseTime;
             }
         }
+        this.currentStats.lastUnpauseTime = 0;
+    }
+
+    static recordTimerUnpause() {
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        this.currentStats.lastUnpauseTime = Date.now();
     }
 
     // Register Handlebars helpers
@@ -422,60 +411,7 @@ class CombatStats {
         });
 
         // Helper to format time in a readable way
-        Handlebars.registerHelper('formatTime', function(ms, context) {
-            console.log('Blacksmith | formatTime Helper Debug:', {
-                value: ms,
-                type: typeof ms,
-                context: this,
-                hasPlanning: this.planningDuration !== undefined,
-                hasId: this.id !== undefined
-            });
-
-            // If no duration provided
-            if (ms === undefined || ms === null) return 'SKIPPED';
-            
-            // Convert to number if it's a string
-            ms = Number(ms);
-            
-            // Handle invalid numbers
-            if (isNaN(ms)) return 'SKIPPED';
-
-            // Only apply special handling if this is actually a planning time or turn time
-            // Planning times are passed with planningDuration property AND this is the planningDuration field
-            if (this.planningDuration !== undefined && this.planningDuration === ms) {
-                console.log('Blacksmith | formatTime - Planning Time Branch:', {
-                    ms,
-                    planningDuration: this.planningDuration,
-                    maxTime: game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000
-                });
-                if (ms === 0) return 'SKIPPED';
-                const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
-                if (ms >= maxPlanningTime) return 'EXPIRED';
-            }
-            // Turn times are passed with id property AND this is the turnDuration field
-            else if (this.id !== undefined && this.turnDuration === ms) {
-                console.log('Blacksmith | formatTime - Turn Time Branch:', {
-                    ms,
-                    id: this.id,
-                    maxTime: game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000
-                });
-                if (ms === 0) return 'SKIPPED';
-                const maxTurnTime = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
-                if (ms >= maxTurnTime) return 'EXPIRED';
-            }
-            
-            const seconds = Math.floor(ms / 1000);
-            const result = seconds < 60 ? `${seconds}s` : 
-                          `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-            
-            console.log('Blacksmith | formatTime - Final Result:', {
-                ms,
-                seconds,
-                result
-            });
-            
-            return result;
-        });
+        Handlebars.registerHelper('formatTime', CombatStats.formatTime);
 
         // Helper to multiply numbers
         Handlebars.registerHelper('multiply', function(a, b) {
@@ -615,11 +551,11 @@ class CombatStats {
     // Helper method to calculate MVP
     static async _calculateMVP(playerCharacters) {
         if (!playerCharacters?.length) {
-            this._debugLog('MVP Calculation - No Players', { message: 'No player characters for MVP calculation' });
+            console.log('Blacksmith | MVP - No Players:', { message: 'No player characters for MVP calculation' });
             return null;
         }
 
-        this._debugLog('MVP Calculation - Starting', { playerCharacters });
+        console.log('Blacksmith | MVP - Starting Calculation:', { playerCharacters });
 
         // Process each character asynchronously
         const mvpCandidates = await Promise.all(playerCharacters.map(async (detail) => {
@@ -629,54 +565,33 @@ class CombatStats {
 
             // Get actor from UUID for portrait
             const actor = await this._getActorFromUuid(detail.uuid);
-            const portraitImg = actor ? getPortraitImage(actor) : detail.img || "icons/svg/mystery-man.svg";
+            if (!actor) return null;
 
-            // Format stats to match template structure
-            const formattedStats = {
-                damage: detail.damage,
-                healing: detail.healing,
-                combat: {
-                    attacks: {
-                        ...detail.combat.attacks,
-                        criticals: detail.combat.attacks.crits  // Rename crits to criticals
-                    },
-                    rolls: detail.combat.rolls
-                },
-                efficiency: detail.efficiency
-            };
-
-            this._debugLog('MVP Candidate Processing', {
-                name: detail.name,
+            console.log('Blacksmith | MVP - Processing Character:', {
+                name: actor.name,
                 score,
-                uuid: detail.uuid,
-                portraitImg,
-                stats: formattedStats
+                stats: {
+                    combat: detail.combat,
+                    damage: detail.damage,
+                    healing: detail.healing
+                }
             });
 
-            // Generate MVP description with all stats
-            const descriptions = [];
-            
-            // Combat Performance
-            if (detail.combat?.attacks) {
-                const { attempts, hits } = detail.combat.attacks;
-                if (attempts > 0) {
-                    const accuracy = ((hits / attempts) * 100).toFixed(1);
-                    descriptions.push(`${hits}/${attempts} hits (${accuracy}% accuracy)`);
-                }
-            }
+            // Generate MVP description
+            const description = MVPDescriptionGenerator.generateDescription(detail);
 
-            // Damage
-            if (detail.damage?.dealt > 0) {
-                descriptions.push(`damage, highest roll: ${detail.combat.rolls.highest}`);
-            }
+            console.log('Blacksmith | MVP - Generated Description:', {
+                name: actor.name,
+                description,
+                score
+            });
 
             return {
-                name: detail.name,
+                ...detail,
                 score,
-                uuid: detail.uuid,
-                img: portraitImg,
-                description: descriptions.join(', '),
-                stats: formattedStats  // Nest all stats under 'stats' property
+                description,
+                name: actor.name,
+                tokenImg: actor.img
             };
         }));
 
@@ -685,7 +600,17 @@ class CombatStats {
         const mvp = validCandidates.reduce((max, current) => 
             (!max || current.score > max.score) ? current : max, null);
 
-        this._debugLog('MVP Calculation - Result', { mvp });
+        console.log('Blacksmith | MVP - Final Selection:', {
+            selectedMVP: mvp?.name,
+            score: mvp?.score,
+            description: mvp?.description,
+            allCandidates: validCandidates.map(c => ({
+                name: c.name,
+                score: c.score,
+                description: c.description
+            }))
+        });
+
         return mvp;
     }
 
@@ -1295,6 +1220,8 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
+        console.log('Blacksmith | Round End - Starting MVP calculation');
+
         // Record the last turn's duration using the last combatant in the turns array
         const lastTurn = game.combat.turns?.length - 1;
         const lastCombatant = game.combat.turns?.[lastTurn];
@@ -1307,27 +1234,33 @@ class CombatStats {
             this.recordTurnEnd(lastCombatant);
         }
 
+        // Initialize participantStats if it doesn't exist
+        if (!this.currentStats.participantStats) {
+            this.currentStats.participantStats = {};
+        }
+
+        // Get all player characters' stats for MVP calculation
+        const playerStats = Object.entries(this.currentStats.participantStats || {})
+            .filter(([id, stats]) => {
+                const actor = game.actors.get(id);
+                return actor && (actor.hasPlayerOwner || actor.type === 'character');
+            })
+            .map(([id, stats]) => ({
+                ...stats,
+                uuid: `Actor.${id}`  // Create UUID for the actor
+            }));
+
+        console.log('Blacksmith | Round End - Player Stats for MVP:', playerStats);
+
+        // Calculate MVP only if there are player stats
+        const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : null;
+
+        console.log('Blacksmith | Round End - MVP Calculated:', mvp);
+
         // Calculate total round duration (real wall-clock time)
         const roundEndTimestamp = Date.now();
         const totalRoundDuration = roundEndTimestamp - this.currentStats.roundStartTimestamp;
         this.currentStats.roundDuration = totalRoundDuration;
-        
-        console.log('Blacksmith | Round Duration Debug - Setting Duration:', {
-            startTimestamp: this.currentStats.roundStartTimestamp,
-            endTimestamp: roundEndTimestamp,
-            totalDuration: totalRoundDuration
-        });
-
-        console.log('Blacksmith | Timer Debug - Round End Starting:', {
-            currentStats: this.currentStats,
-            combatStats: this.combatStats,
-            combat: {
-                round: game.combat.round,
-                turn: game.combat.turn,
-                current: game.combat?.current,
-                combatant: game.combat?.combatant
-            }
-        });
 
         // Calculate round statistics
         const roundStats = {
@@ -1349,15 +1282,11 @@ class CombatStats {
 
             // Set the round number for the template
             templateData.roundNumber = roundStats.round;
-            
-            console.log('Blacksmith | Round Number Debug:', {
-                roundStatsRound: roundStats.round,
-                templateRoundNumber: templateData.roundNumber,
-                currentRound: game.combat.round,
-                timingData: {
-                    turnTimes: templateData.turnTimes
-                }
-            });
+
+            // Add MVP data to template
+            if (mvp) {
+                templateData.roundMVP = mvp;
+            }
 
             // Render the template
             const content = await this.generateRoundSummary(templateData);
@@ -1372,19 +1301,11 @@ class CombatStats {
 
             // Reset current stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-            
-            // Ensure partyStats.turnTimes is initialized as an empty object (not array)
             this.currentStats.partyStats.turnTimes = {};
-            
-            // Reset activePlanningTime to 0 explicitly
             this.currentStats.activePlanningTime = 0;
-            
-            console.log('Blacksmith | Timer Debug - Round End Stats Reset:', {
-                newStats: this.currentStats
-            });
+
         } catch (error) {
-            console.error('Blacksmith | Timer Debug - Error creating round report:', error);
-            console.error(error);
+            console.error('Blacksmith | Round End - Error:', error);
         }
     }
 
@@ -1697,45 +1618,6 @@ class CombatStats {
         }
     }
 
-    // Record when planning phase starts
-    static recordPlanningStart() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
-        
-        const now = Date.now();
-        this.currentStats.actualPlanningStartTime = now;
-        this.currentStats.lastUnpauseTime = now; // Track when we start for active time
-        if (!this.currentStats.actualRoundStartTime) {
-            this.currentStats.actualRoundStartTime = now;
-        }
-        
-        console.log('Blacksmith | Planning Timer Start:', {
-            startTime: now,
-            currentStats: this.currentStats
-        });
-    }
-
-    // Record when planning phase ends
-    static recordPlanningEnd() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
-        
-        const now = Date.now();
-        this.currentStats.actualPlanningEndTime = now;
-        
-        // Calculate planning time based on progress bar position
-        const totalDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
-        const remainingTime = PlanningTimer.state.remaining;
-        this.currentStats.activePlanningTime = (totalDuration - remainingTime) * 1000; // Convert to ms
-
-        console.log('Blacksmith | Planning Timer End Stats:', {
-            actualStart: this.currentStats.actualPlanningStartTime,
-            actualEnd: this.currentStats.actualPlanningEndTime,
-            totalDuration,
-            remainingTime,
-            activeDuration: this.currentStats.activePlanningTime,
-            expired: this.currentStats.planningTime?.expired
-        });
-    }
-
     // Record when first player's turn starts
     static recordFirstPlayerStart() {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
@@ -1745,49 +1627,6 @@ class CombatStats {
         if (!this.currentStats.actualRoundStartTime) {
             this.currentStats.actualRoundStartTime = now;
         }
-    }
-
-    static recordTimerPause() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
-
-        const now = Date.now();
-        // Add the active time since last unpause
-        if (this.currentStats.lastUnpauseTime) {
-            if (game.combat?.turn === 0) {
-                // Planning phase
-                this.currentStats.activePlanningTime += now - this.currentStats.lastUnpauseTime;
-                console.log('Blacksmith | Timer Pause - Planning Phase:', {
-                    activePlanningTime: this.currentStats.activePlanningTime,
-                    lastUnpauseTime: this.currentStats.lastUnpauseTime,
-                    pauseTime: now
-                });
-            } else {
-                // Regular turn
-                this.currentStats.activeRoundTime += now - this.currentStats.lastUnpauseTime;
-                console.log('Blacksmith | Timer Pause - Turn Phase:', {
-                    activeRoundTime: this.currentStats.activeRoundTime,
-                    lastUnpauseTime: this.currentStats.lastUnpauseTime,
-                    pauseTime: now
-                });
-            }
-        }
-        this.currentStats.lastUnpauseTime = 0; // Clear the unpause time while paused
-    }
-
-    static recordTimerUnpause() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
-
-        const now = Date.now();
-        this.currentStats.lastUnpauseTime = now;
-        
-        console.log('Blacksmith | Timer Unpause:', {
-            phase: game.combat?.turn === 0 ? 'Planning' : 'Turn',
-            unPauseTime: now,
-            currentStats: {
-                activePlanningTime: this.currentStats.activePlanningTime,
-                activeRoundTime: this.currentStats.activeRoundTime
-            }
-        });
     }
 }
 

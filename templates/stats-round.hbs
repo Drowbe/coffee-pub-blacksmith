@@ -83,7 +83,7 @@
             <img src="{{tokenImg}}" alt="{{name}}" />
             <div class="mvp-info">
                 <div class="player-name">{{name}}</div>
-                <p class="mvp-description">{{#if combat.attacks.hits}}Dealt {{damage.dealt}} damage with {{combat.attacks.hits}} successful hits.{{else}}Contributed to the battle with various actions.{{/if}}</p>
+                <p class="mvp-description">{{description}}</p>
             </div>
         </div>
         <div class="mvp-stats">
@@ -133,7 +133,7 @@
         </div>
         {{/with}}
         {{else}}
-        <div class="no-mvp-message">Sorry noble warriors, no player was deemed worthy of the glorious mvp crown this round.</div>
+        <div class="no-mvp-message">{{description}}</div>
         {{/if}}
     </div>
 </div>
