@@ -305,50 +305,76 @@ class CombatTimer {
 
             // Check if this is turn 0 (planning phase)
             if (combat.turn === 0) {
-                console.log("Blacksmith | Combat Timer: Planning phase detected - pausing combat timer"); // Debug log
-                // Just pause the combat timer without affecting planning timer
-                if (this.timer) {
-                    clearInterval(this.timer);
-                    this.timer = null;
-                }
+                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
+                this.resetTimer();
                 this.state.isPaused = true;
-                this.state.isActive = false;
-                this.updateUI();
+                this.pauseTimer();
                 return;
             }
             
             // For all other turns
             console.log("Blacksmith | Combat Timer: Regular turn change detected"); // Debug log
             
+            // Check auto-start setting
+            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+            console.log("Blacksmith | Combat Timer: Auto-start setting:", autoStart); // Debug log
+            
             // Reset timer first
             this.resetTimer();
             
-            // First player after planning phase should always start paused
-            if (previousTurn === 0) {
-                console.log("Blacksmith | Combat Timer: First player turn - forcing pause");
+            // Set initial state based on auto-start setting
+            this.state.isPaused = !autoStart;
+            
+            // Start or pause based on setting
+            if (autoStart) {
+                console.log("Blacksmith | Combat Timer: Auto-starting timer for new turn"); // Debug log
+                this.resumeTimer();
+                
+                // Play start sound if configured
+                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                if (startSound !== 'none') {
+                    playSound(startSound, this.getTimerVolume());
+                }
+            } else {
+                console.log("Blacksmith | Combat Timer: Keeping timer paused for new turn"); // Debug log
+                this.pauseTimer();
+            }
+        }
+
+        // Handle round changes first
+        if ("round" in changed) {
+            // Record the end of the last turn of the previous round
+            if (combat.combatant) {
+                console.log("Blacksmith | Combat Timer: Recording end of last turn for round change:", combat.combatant.name);
+                CombatStats.recordTurnEnd(combat.combatant);
+            }
+
+            console.log("Blacksmith | Combat Timer: Round change detected"); // Debug log
+            // Reset timer and set initial state based on auto-start setting
+            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+            
+            // Always reset to full time on round change
+            this.resetTimer();
+            this.state.isPaused = !autoStart;
+            
+            if (combat.turn === 0) {
+                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
                 this.state.isPaused = true;
                 this.pauseTimer();
-            } else {
-                // For other turns, use auto-start setting
-                const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-                console.log("Blacksmith | Combat Timer: Auto-start setting:", autoStart);
+            } else if (autoStart) {
+                console.log("Blacksmith | Combat Timer: Auto-starting timer for new round"); // Debug log
+                this.resumeTimer();
                 
-                this.state.isPaused = !autoStart;
-                
-                if (autoStart) {
-                    console.log("Blacksmith | Combat Timer: Auto-starting timer for new turn");
-                    this.resumeTimer();
-                    
-                    // Play start sound if configured
-                    const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
-                    if (startSound !== 'none') {
-                        playSound(startSound, this.getTimerVolume());
-                    }
-                } else {
-                    console.log("Blacksmith | Combat Timer: Keeping timer paused for new turn");
-                    this.pauseTimer();
+                // Play start sound if configured
+                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                if (startSound !== 'none') {
+                    playSound(startSound, this.getTimerVolume());
                 }
+            } else {
+                console.log("Blacksmith | Combat Timer: Keeping timer paused for new round"); // Debug log
+                this.pauseTimer();
             }
+            return;  // Don't process other changes on round change
         }
     }
 
@@ -428,8 +454,8 @@ class CombatTimer {
     static resumeTimer() {
         console.log("Blacksmith | Combat Timer: Resuming timer");
         
-        // If we're in planning phase (turn 0), only end the planning timer if we're actually starting combat
-        if (game.combat?.turn === 0 && !this._endingPlanningTimer && this.state.isActive) {
+        // If we're in planning phase (turn 0), end the planning timer gracefully
+        if (game.combat?.turn === 0 && !this._endingPlanningTimer) {
             console.log("Blacksmith | Combat Timer: Ending planning timer gracefully as combat timer is being resumed");
             // Set flag to prevent recursion
             this._endingPlanningTimer = true;
@@ -440,19 +466,14 @@ class CombatTimer {
                 console.log("Blacksmith | Combat Timer: Found Planning Timer, ending it");
                 const planningTimer = module.api.PlanningTimer;
                 
-                // Send initial cleanup to players
-                socket.executeForOthers("timerCleanup", { wasExpired: true });
+                // Directly clean up the planning timer
+                planningTimer.cleanupTimer();
+                planningTimer.state.isExpired = true;
                 
-                // Wait briefly then trigger fade-out
-                setTimeout(async () => {
-                    await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
-                    });
-                    // Cleanup after fade-out is triggered
-                    planningTimer.cleanupTimer();
-                    planningTimer.state.isExpired = true;
-                }, 3000);
+                // Remove the planning timer from view
+                $('.planning-phase').fadeOut(400, function() {
+                    $(this).remove();
+                });
             } else {
                 console.warn("Blacksmith | Combat Timer: Could not find Planning Timer API");
             }
@@ -713,11 +734,8 @@ class CombatTimer {
         // Clear visual states
         $('.combat-timer-progress').removeClass('expired');
         
-        // Get fresh duration from settings
-        const duration = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
-        
-        // Start fresh timer with new duration
-        this.startTimer(duration);
+        // Start fresh timer
+        this.startTimer();
     }
 
     endTurn() {
