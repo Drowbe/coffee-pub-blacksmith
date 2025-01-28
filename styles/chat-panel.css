@@ -2,7 +2,6 @@
 /* --- CHAT PANEL ---------- */
 /* ------------------------------------ */
 
-
 .blacksmith-chat-panel {
     background-color: rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid #666;
@@ -45,6 +44,29 @@
     text-overflow: ellipsis;
 }
 
+/* Timer warning and expired messages */
+.chat-message.timer-warning,
+.chat-message.timer-expired {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+}
+
+.chat-message.timer-warning {
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid orange;
+}
+
+.chat-message.timer-expired {
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid red;
+}
+
+.chat-message.timer-warning p,
+.chat-message.timer-expired p {
+    margin: 0;
+    color: #461313;
+}
 
 /* Timer Styles */
 .timer-section {
@@ -70,7 +92,6 @@
     border: 2px solid #64675d;
     background-clip: padding-box;
 }
-
 
 .timer-info i {
     font-size: .8em;
@@ -106,9 +127,6 @@
     background: hsl(27, 93%, 32%);
 }
 
-
-
-
 .session-timer {
     color: #eeeeed;
     white-space: nowrap;
@@ -123,8 +141,6 @@
 .timer-info:hover {
     border: 2px solid hsl(27, 99%, 38%);
 }
-
-
 
 /* ------------------------------------ */
 

@@ -19,6 +19,7 @@
 /* --- Cards ---------------------- */
 @import "cards-layout.css";
 @import "cards-themes.css";
+@import "chat-cards.css";
 
 /* --- Links ---------------------- */
 @import "links-themes.css";
