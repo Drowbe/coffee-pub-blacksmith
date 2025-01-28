@@ -186,7 +186,11 @@ class CombatStats {
             };
 
             // Render the template
-            const content = await renderTemplate('modules/' + MODULE_ID + '/templates/round-announcement.hbs', templateData);
+            const content = await renderTemplate('modules/' + MODULE_ID + '/templates/chat-cards.hbs', {
+                ...templateData,
+                isPublic: true,
+                isRoundAnnouncement: true
+            });
 
             // Create chat message
             await ChatMessage.create({

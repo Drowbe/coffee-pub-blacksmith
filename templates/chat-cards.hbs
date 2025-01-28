@@ -1,27 +1,38 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 {{#if isPublic}}
     {{#if isTimerWarning}}
-        <div class="blacksmith-card">
-            <div class="timer-warning">
-                <div class="section-content">
-                    <p>{{warningMessage}}</p>
-                </div>
+        <div class="blacksmith-card theme-orange">
+            <div class="section-header">
+                <i class="fas fa-exclamation-triangle"></i> Timer Warning
+            </div>
+            <div class="section-content">
+                <p>{{warningMessage}}</p>
             </div>
         </div>
     {{else if isTimerExpired}}
-        <div class="blacksmith-card">
-            <div class="timer-expired">
-                <div class="section-content">
-                    <p>{{expiredMessage}}</p>
-                </div>
+        <div class="blacksmith-card theme-red">
+            <div class="section-header">
+                <i class="fas fa-stopwatch"></i> Timer Expired
+            </div>
+            <div class="section-content">
+                <p>{{expiredMessage}}</p>
             </div>
         </div>
     {{else if isTimerSet}}
+        <div class="blacksmith-card theme-blue">
+            <div class="section-header">
+                <i class="fas fa-clock"></i> Timer Set
+            </div>
+            <div class="section-content">
+                <p>{{timerSetMessage}}</p>
+            </div>
+        </div>
+    {{else if isRoundAnnouncement}}
         <div class="blacksmith-card">
-            <div class="timer-set">
-                <div class="section-content">
-                    <p><i class="fas fa-clock"></i> {{timerSetMessage}}</p>
-                </div>
+            <div class="section-header">
+                <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Has Started
+            </div>
+            <div class="section-content">
             </div>
         </div>
     {{else}}
