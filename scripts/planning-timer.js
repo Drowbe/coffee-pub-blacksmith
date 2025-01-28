@@ -28,7 +28,8 @@ export class PlanningTimer {
             remaining: 0,
             showingMessage: false,
             isExpired: false,
-            duration: 60
+            duration: 60,
+            isFading: false  // Add flag to track fade-out state
         }
     };
 
@@ -76,8 +77,16 @@ export class PlanningTimer {
                     ui.notifications.info(`Planning timer set to ${data.time}`);
                     break;
                 case 'cleanup':
-                    this.state.isExpired = data.wasExpired;
-                    this.cleanupTimer();
+                    // Only clean up state if we're not about to fade
+                    if (!data.shouldFadeOut) {
+                        this.state.isExpired = data.wasExpired;
+                    }
+                    // Handle fade-out if requested
+                    if (data.shouldFadeOut) {
+                        $('.planning-phase').fadeOut(400, function() {
+                            $(this).remove();
+                        });
+                    }
                     break;
             }
         }
@@ -156,15 +165,24 @@ export class PlanningTimer {
 
             setTimeout(() => ui.combat.render(true), 100);
         } else if (combat.turn > 0) {
-            this.cleanupTimer();
-            
             // Add fade-out sequence for player turn transition
             if (game.user.isGM) {
+                // Set fading flag before cleanup
+                this.state.isFading = true;
+                
+                // First notify clients of cleanup
+                socket.executeForOthers("timerCleanup", { wasExpired: true });
+                
+                // Wait 3 seconds then trigger fade-out
                 setTimeout(async () => {
-                    await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
+                    await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
                     $('.planning-phase').fadeOut(400, function() {
                         $(this).remove();
                     });
+                    // Do cleanup after fade-out is triggered
+                    this.cleanupTimer();
+                    // Reset fading flag after cleanup
+                    this.state.isFading = false;
                 }, 3000);
             }
         }
@@ -613,7 +631,7 @@ export class PlanningTimer {
     }
 
     static async syncState() {
-        if (game.user.isGM) {
+        if (game.user.isGM && !this.state.isFading) {
             console.log(`${MODULE_TITLE} | Planning Timer: GM syncing state to players`);
             await socket.executeForOthers("syncPlanningTimerState", this.state);
             this.updateUI();

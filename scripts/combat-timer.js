@@ -466,14 +466,19 @@ class CombatTimer {
                 console.log("Blacksmith | Combat Timer: Found Planning Timer, ending it");
                 const planningTimer = module.api.PlanningTimer;
                 
-                // Directly clean up the planning timer
-                planningTimer.cleanupTimer();
-                planningTimer.state.isExpired = true;
+                // Send initial cleanup to players
+                socket.executeForOthers("timerCleanup", { wasExpired: true });
                 
-                // Remove the planning timer from view
-                $('.planning-phase').fadeOut(400, function() {
-                    $(this).remove();
-                });
+                // Wait briefly then trigger fade-out
+                setTimeout(async () => {
+                    await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                    // Cleanup after fade-out is triggered
+                    planningTimer.cleanupTimer();
+                    planningTimer.state.isExpired = true;
+                }, 3000);
             } else {
                 console.warn("Blacksmith | Combat Timer: Could not find Planning Timer API");
             }
