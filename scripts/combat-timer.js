@@ -26,7 +26,8 @@ class CombatTimer {
             isActive: false,
             isPaused: true,
             remaining: 0,
-            showingMessage: false
+            showingMessage: false,
+            duration: 60
         }
     };
 
@@ -76,6 +77,9 @@ class CombatTimer {
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
+        // Check for game initialization
+        if (!game?.user) return;  // Exit if game or user not ready
+        
         console.log("Blacksmith | Combat Timer: Received timer sync from GM", state);
         if (!game.user.isGM) {
             CombatTimer.state = foundry.utils.deepClone(state);
@@ -387,6 +391,7 @@ class CombatTimer {
             }
             
             this.state.remaining = duration;
+            this.state.duration = duration;  // Store duration in state
             
             if (this.timer) clearInterval(this.timer);
             
@@ -584,9 +589,8 @@ class CombatTimer {
     static updateUI() {
         try {
             console.log("Blacksmith | Combat Timer: Updating UI with state", this.state);
-            // Update progress bar
-            const timeLimit = game.settings.get(MODULE_ID, 'combatTimerDuration');
-            const percentage = (this.state.remaining / timeLimit) * 100;
+            // Update progress bar using state duration
+            const percentage = (this.state.remaining / this.state.duration) * 100;
             const bar = $('.combat-timer-bar');
             bar.css('width', `${percentage}%`);
             

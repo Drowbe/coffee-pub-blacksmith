@@ -27,7 +27,8 @@ export class PlanningTimer {
             isPaused: true,
             remaining: 0,
             showingMessage: false,
-            isExpired: false
+            isExpired: false,
+            duration: 60
         }
     };
 
@@ -156,6 +157,16 @@ export class PlanningTimer {
             setTimeout(() => ui.combat.render(true), 100);
         } else if (combat.turn > 0) {
             this.cleanupTimer();
+            
+            // Add fade-out sequence for player turn transition
+            if (game.user.isGM) {
+                setTimeout(async () => {
+                    await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }, 3000);
+            }
         }
     }
 
@@ -367,7 +378,7 @@ export class PlanningTimer {
         return true;
     }
 
-    static startTimer(duration, isNewRound = false) {
+    static startTimer(duration = null) {
         if (!this.verifyTimerConditions()) return;
 
         // Record planning start for stats
@@ -375,7 +386,13 @@ export class PlanningTimer {
             CombatStats.recordPlanningStart();
         }
 
+        // If no duration provided, get from settings
+        if (duration === null) {
+            duration = game.settings.get(MODULE_ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
+        }
+
         this.state.remaining = duration;
+        this.state.duration = duration;  // Store duration in state
         this.state.isActive = true;
         this.state.isPaused = !game.settings.get(MODULE_ID, 'planningTimerAutoStart');
         this.state.showingMessage = false;
@@ -392,8 +409,7 @@ export class PlanningTimer {
                     this.syncState();
 
                     // Calculate percentage of time remaining
-                    const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
-                    const percentRemaining = (this.state.remaining / timeLimit) * 100;
+                    const percentRemaining = (this.state.remaining / this.state.duration) * 100;
 
                     // Check ending soon threshold
                     const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
@@ -426,8 +442,8 @@ export class PlanningTimer {
 
     static updateUI() {
         try {
-            // Get the time limit from settings for proper percentage calculation
-            const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+            // Use duration from state instead of settings
+            const timeLimit = this.state.duration;
             const percentage = (this.state.remaining / timeLimit) * 100;
             
             // Update progress bar width and color classes
@@ -534,7 +550,7 @@ export class PlanningTimer {
     static async timerCleanup(data) {
         if (!game.user.isGM) {
             // Players only update UI based on received data
-            if (data?.wasExpired) {
+            if (data?.wasExpired || data?.shouldFadeOut) {
                 // Handle UI updates without modifying state
                 if (data.shouldFadeOut) {
                     $('.planning-phase').fadeOut(400, function() {
@@ -562,6 +578,16 @@ export class PlanningTimer {
 
             this.updateUI();
             this.syncState();
+
+            // Add fade-out sequence for normal turn changes
+            if (!data?.wasExpired) {
+                setTimeout(async () => {
+                    await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }, 3000);
+            }
         }
     }
 
