@@ -1,5 +1,19 @@
 # Coffee Pub Blacksmith
 
+![Foundry v12](https://img.shields.io/badge/foundry-v12-green)
+![Latest Release](https://img.shields.io/github/v/release/Drowbe/coffee-pub-blacksmith)
+![MIT License](https://img.shields.io/badge/license-MIT-blue)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Drowbe/coffee-pub-blacksmith/release.yml)
+![GitHub all releases](https://img.shields.io/github/downloads/Drowbe/coffee-pub-blacksmith/total)
+
+## Disclaimer
+
+This is a personal project created for my FoundryVTT games to introduce various quality-of-life features and functions. 
+
+If you stumble upon this repository and find it useful, feel free to try it out! However, please note that this project is developed for personal use, and I make no guarantees regarding stability, compatibility, or ongoing support.
+
+**Use at your own risk.** I am not responsible for any issues, data loss, or unexpected behavior resulting from using this project.
+
 A comprehensive combat enhancement module for FoundryVTT that provides detailed combat statistics, performance tracking, timing tools, and injury mechanics to enrich your tabletop experience.
 
 ## Features
@@ -46,6 +60,61 @@ A comprehensive combat enhancement module for FoundryVTT that provides detailed 
   - Time remaining indicators
   - Status notifications
 - **Theme Support**: Multiple visual themes for UI elements
+
+### Query Window System
+- **AI-Powered Content Generation**: 
+  - Contextual rule lookups and interpretations
+  - Dynamic narrative and scene generation
+  - Intelligent encounter building suggestions
+  - NPC personality and behavior generation
+  - Automated story hooks and plot development
+- **Multi-Workspace Interface**: 
+  - Lookup: AI-assisted rules interpretation and contextual references
+  - Character: Smart character development and backstory generation
+  - Assistant: Advanced AI tools for real-time game assistance
+  - Narrative: AI-driven story creation and scene development
+  - Encounter: Intelligent encounter design and balancing
+- **Dynamic Form System**:
+  - Context-aware skill check suggestions
+  - Smart dice roll recommendations
+  - Adaptive form persistence
+- **Journal Integration**:
+  - AI-enhanced journal entry creation
+  - Smart image and scene suggestions
+  - Contextual geography and location development
+  - Dynamic narrative rewards calculation
+- **Encounter Building**:
+  - Intelligent monster selection and balancing
+  - Smart party composition analysis
+  - Context-aware NPC integration
+  - Dynamic CR calculations
+  - AI-assisted encounter worksheet system
+
+### Quality of Life Improvements
+- **Journal Enhancements**: 
+  - Double-click to edit journal entries
+  - Customizable journal behaviors
+  - Smart folder organization
+- **Scene Management**:
+  - Enhanced scene navigation
+  - Custom mouse behaviors (Left-click: View, Double-click: Activate)
+  - Configurable scene indicators
+  - Flexible title formatting and layout
+- **Chat Improvements**:
+  - Customizable chat spacing and margins
+  - Enhanced card layouts
+  - Configurable message styling
+  - Roll table icon customization
+- **Token Management**:
+  - Smart token renaming
+  - Customizable nameplate styling
+  - Token ignore lists
+  - Fuzzy matching for token names
+- **Theme System**:
+  - Multiple visual themes
+  - Customizable UI elements
+  - Dynamic theme switching
+  - Persistent theme settings
 
 ## Installation
 
