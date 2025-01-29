@@ -59,31 +59,44 @@ A comprehensive combat enhancement module for FoundryVTT that provides detailed 
   - Visual progress bars for turn tracking
   - Time remaining indicators
   - Status notifications
-- **Theme Support**: Multiple visual themes for UI elements
+- **Theme Support**:
+  - Multiple visual themes for UI elements
+  - Drives theme selectiosn for all other Coffee Pub modules
 
-### Query Window System
-- **AI-Powered Content Generation**: 
-  - Contextual rule lookups and interpretations
-  - Dynamic narrative and scene generation
-  - Intelligent encounter building suggestions
-  - NPC personality and behavior generation
-  - Automated story hooks and plot development
+### AI-Powered Content and Rules System
 - **Multi-Workspace Interface**: 
+  - Regent: AI chatbot for quick rule lookups and clarifications
   - Lookup: AI-assisted rules interpretation and contextual references
   - Character: Smart character development and backstory generation
   - Assistant: Advanced AI tools for real-time game assistance
   - Narrative: AI-driven story creation and scene development
   - Encounter: Intelligent encounter design and balancing
-- **Dynamic Form System**:
+
+- **The Regent AI Assistant**:
+  - Real-time rule clarifications and interpretations
+  - Player-accessible AI chat interface
+  - GM oversight of all player queries
+  - Contextual understanding of game state
+  - Integration with game system rules
+  - Customizable AI behavior and responses
+  - Quick access through toolbar button
+  - Optional macro trigger support
+
+- **Content Generation**: 
+  - Contextual rule lookups and interpretations
+  - Dynamic narrative and scene generation
+  - Intelligent encounter building suggestions
+  - NPC personality and behavior generation
+  - Automated story hooks and plot development
+- **Dynamic Contextual Roll Lookup System**:
   - Context-aware skill check suggestions
   - Smart dice roll recommendations
-  - Adaptive form persistence
-- **Journal Integration**:
+- **Smart Journal Integration**:
   - AI-enhanced journal entry creation
   - Smart image and scene suggestions
   - Contextual geography and location development
   - Dynamic narrative rewards calculation
-- **Encounter Building**:
+- **AI-Powered Encounter Building**:
   - Intelligent monster selection and balancing
   - Smart party composition analysis
   - Context-aware NPC integration
@@ -127,10 +140,17 @@ A comprehensive combat enhancement module for FoundryVTT that provides detailed 
 ## Configuration
 
 ### Required Modules
-- None
+- [socketlib](https://github.com/manuelVo/foundryvtt-socketlib): Required for client synchronization and communication
 
-### Optional Modules
-- Other Coffee Pub modules for enhanced functionality
+### Recommended Coffee Pub Modules
+Each module in the Coffee Pub collection enhances different aspects of your game:
+
+- [Coffee Pub Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph): Library and reference management
+- [Coffee Pub Crier](https://github.com/Drowbe/coffee-pub-crier): Enhanced announcements and notifications
+- [Coffee Pub Scribe](https://github.com/Drowbe/coffee-pub-scribe): Advanced journaling and note-taking
+- Other modules coming soon!
+
+The Blacksmith module serves as the foundation for all Coffee Pub modules, providing shared services and functionality that other modules build upon.
 
 ### Module Settings
 Access the module settings through the Module Settings menu in Foundry VTT. Key settings include:
