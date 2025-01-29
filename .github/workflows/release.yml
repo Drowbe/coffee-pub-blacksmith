@@ -3,11 +3,11 @@ name: Release Creation
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 permissions:
   contents: write
-  discussions: write
+  packages: write
 
 jobs:
   build:
@@ -15,29 +15,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Get the tag name
+      # Get version from tag
       - name: Get Version
         id: get-version
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
-      # Create a zip file
-      - name: Create ZIP
+      # Create zip file
+      - name: Create Zip File
         run: |
-          # List of files to include
-          FILES_TO_INCLUDE="module.json README.md LICENSE"
-          DIRS_TO_INCLUDE="scripts styles templates lang images packs sounds"
-          
-          # Create zip with all files
-          zip -r ./module.zip $FILES_TO_INCLUDE $DIRS_TO_INCLUDE -x '*.git*' -x '*.github*' -x '*.vscode*'
+          # Ensure the zip excludes unnecessary files
+          zip -r coffee-pub-blacksmith.zip \
+            module.json \
+            LICENSE \
+            README.md \
+            scripts/ \
+            styles/ \
+            templates/ \
+            lang/ \
+            images/ \
+            sounds/ \
+            packs/ \
+            -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*"
 
-      # Create the release
+      # Create release
       - name: Create Release
         id: create_release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          artifacts: './module.zip,module.json'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: Release ${{ steps.get-version.outputs.version }}
+          files: |
+            coffee-pub-blacksmith.zip
+            module.json
           draft: false
           prerelease: false
-          generateReleaseNotes: true 
+          name: Release ${{ steps.get-version.outputs.version }}
+          body: |
+            Release version ${{ steps.get-version.outputs.version }}
+            
+            ## What's Changed
+            * Automated release from tag v${{ steps.get-version.outputs.version }}
+            
+            For full changes, see the [changelog](CHANGELOG.md). 
