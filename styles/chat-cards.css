@@ -107,8 +107,7 @@
 }
 
 .timer-expired {
-    background: rgba(255, 0, 0, 0.1);
-    border: 1px solid red;
+    background: rgba(255, 235, 235, 1);
     border-radius: 5px;
     padding: 0.5em;
 }
@@ -116,7 +115,7 @@
 .timer-warning p,
 .timer-expired p {
     margin: 0;
-    color: #461313;
+    color: #594a3c;
 }
 
 /* Timer Set Message */
@@ -443,22 +442,22 @@
 }
 
 .blacksmith-card.theme-orange {
-    background-color: #ffa500;
-    border: 1px solid #cc8400;
+    background-color: rgba(247, 140, 1, 0.1);
+    border: none;
     border-radius: 5px;
     padding: 10px;
 }
 
 .blacksmith-card.theme-red {
-    background-color: #ff6b6b;
-    border: 1px solid #ff3333;
+    background-color: rgba(118, 31, 19, 0.1);
+    border: none;
     border-radius: 5px;
     padding: 10px;
 }
 
 .blacksmith-card.theme-blue {
-    background-color: #4a9eff;
-    border: 1px solid #0066cc;
+    background-color: rgba(0, 120, 212, 0.1);
+    border: none;
     border-radius: 5px;
     padding: 10px;
 }
@@ -466,8 +465,8 @@
 .blacksmith-card.theme-orange p,
 .blacksmith-card.theme-red p,
 .blacksmith-card.theme-blue p {
-    color: #ffffff;
-    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    color: #594a3c;
+    text-shadow: none;
     margin: 0;
     padding: 0;
 }
