@@ -52,15 +52,15 @@ export const MVPTemplates = {
     ],
 
     noMVPTemplates: [
-        "The party fought valiantly, but no clear MVP emerged this round. Push harder!",
-        "A challenging round with room for improvement. Focus on accuracy and tactical choices.",
-        "No standout performance this round. Remember, every hit counts!",
-        "The battle continues, but no MVP was crowned. Coordinate and strike true!",
-        "A learning opportunity: {hits} hits landed, but greater glory awaits!",
-        "Keep pushing! {damage} damage dealt shows promise for future rounds.",
-        "Room for improvement: {accuracy}% accuracy suggests untapped potential.",
-        "No MVP this time, but {healing} healing shows good support instincts.",
-        "Practice makes perfect: use this round's experience to shine in the next!",
-        "The road to MVP status is paved with determination. Keep striving!"
+        "No MVP: Everyone's playing it a bit too safe this round. Time to channel your inner hero!",
+        "No MVP: The enemies seem to be winning the game of hide and seek. Maybe try seeking harder?",
+        "No MVP: Looks like everyone's practicing their defensive stances. Remember, the best defense is a good offense!",
+        "No MVP: No MVP this round - but hey, at least no one rolled a natural 1... right?",
+        "No MVP: The weapons are feeling a bit shy today. Give them some encouragement!",
+        "No MVP: Someone forgot to bring their lucky dice. There's always next round!",
+        "No MVP: The party seems to be having a peaceful tea party instead of combat. Time to spice things up!",
+        "No MVP: Today's combat sponsored by: The 'Maybe Next Time' Foundation for Aspiring Heroes",
+        "No MVP: The enemies are starting to think this is too easy. Show them why they're wrong!",
+        "No MVP: Saving all your good rolls for later? That's a bold strategy!"
     ]
 }; 

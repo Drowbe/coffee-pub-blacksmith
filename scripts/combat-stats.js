@@ -1253,7 +1253,14 @@ class CombatStats {
         console.log('Blacksmith | Round End - Player Stats for MVP:', playerStats);
 
         // Calculate MVP only if there are player stats
-        const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : null;
+        const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : {
+            score: 0,
+            description: MVPDescriptionGenerator.generateDescription({
+                combat: { attacks: { hits: 0, attempts: 0 } },
+                damage: { dealt: 0 },
+                healing: { given: 0 }
+            })
+        };
 
         console.log('Blacksmith | Round End - MVP Calculated:', mvp);
 
