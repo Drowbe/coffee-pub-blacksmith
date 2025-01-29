@@ -25,7 +25,7 @@ jobs:
         run: |
           # List of files to include
           FILES_TO_INCLUDE="module.json README.md LICENSE"
-          DIRS_TO_INCLUDE="scripts styles templates lang"
+          DIRS_TO_INCLUDE="scripts styles templates lang images packs sounds"
           
           # Create zip with all files
           zip -r ./module.zip $FILES_TO_INCLUDE $DIRS_TO_INCLUDE -x '*.git*' -x '*.github*' -x '*.vscode*'
