@@ -34,16 +34,13 @@ jobs:
           
           # Create zip with all files
           zip -r ./module.zip $FILES_TO_INCLUDE $DIRS_TO_INCLUDE -x '*.git*' -x '*.github*' -x '*.vscode*'
-          
-          # Copy module.json to release
-          cp module.json ./module.json
 
       # Create the release
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: './module.zip,./module.json'
+          artifacts: './module.zip,module.json'
           token: ${{ secrets.GITHUB_TOKEN }}
           name: Release ${{ steps.get-version.outputs.version }}
           draft: false
