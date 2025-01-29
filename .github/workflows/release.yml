@@ -23,16 +23,17 @@ jobs:
       # Create a zip file
       - name: Create ZIP
         run: |
-          # Ensure the zip excludes unnecessary files
-          zip -r ./module.zip \
-            module.json \
-            README.md \
-            LICENSE \
-            scripts/ \
-            styles/ \
-            templates/ \
-            languages/ \
-            -x '*.git*' -x '*.github*' -x '*.vscode*'
+          # List of files to include
+          FILES_TO_INCLUDE="module.json README.md LICENSE"
+          DIRS_TO_INCLUDE="scripts styles templates"
+          
+          # Add lang directory if it exists
+          if [ -d "languages" ]; then
+            DIRS_TO_INCLUDE="$DIRS_TO_INCLUDE languages"
+          fi
+          
+          # Create zip with all files
+          zip -r ./module.zip $FILES_TO_INCLUDE $DIRS_TO_INCLUDE -x '*.git*' -x '*.github*' -x '*.vscode*'
           
           # Copy module.json to release
           cp module.json ./module.json
