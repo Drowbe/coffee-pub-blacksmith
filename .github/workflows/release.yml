@@ -24,7 +24,7 @@ jobs:
       - name: Create Zip File
         run: |
           # Ensure the zip excludes unnecessary files
-          zip -r coffee-pub-blacksmith.zip \
+          zip -r module.zip \
             module.json \
             LICENSE \
             README.md \
@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            coffee-pub-blacksmith.zip
+            module.zip
             module.json
           draft: false
           prerelease: false
