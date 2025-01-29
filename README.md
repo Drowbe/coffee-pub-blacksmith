@@ -153,12 +153,60 @@ Each module in the Coffee Pub collection enhances different aspects of your game
 The Blacksmith module serves as the foundation for all Coffee Pub modules, providing shared services and functionality that other modules build upon.
 
 ### Module Settings
-Access the module settings through the Module Settings menu in Foundry VTT. Key settings include:
-- Combat statistics tracking options
-- Timer durations and behavior
-- Notification preferences
-- UI customization options
-- Theme selection
+Access the module settings through the Module Settings menu in Foundry VTT:
+
+#### General Settings
+- Dashboard visibility on game load
+- Toolbar configuration options
+- Module integration preferences
+
+#### Theme Configuration
+- Multiple visual theme selection
+- Theme defaults for all Coffee Pub modules
+- Custom theme enabling/disabling
+- Background image customization
+
+#### Chat Settings
+- Chat message spacing and gap adjustments (-20px to 60px)
+- Card margin customization (top, bottom, left, right)
+- Roll table icon visibility
+- Object link styling preferences
+
+#### Journal Settings
+- Double-click to edit functionality
+- Journal behavior customization
+- Default folder configurations
+
+#### Scene Settings
+- Scene navigation behaviors
+- Title alignment and formatting
+- Font size adjustments
+- Custom padding configurations
+- Scene indicator visibility
+
+#### Token Settings
+- Token naming format options
+- Random name table integration
+- Token ignore list management
+- Nameplate customization:
+  - Font size (5px to 70px)
+  - Font family selection
+  - Color customization
+  - Outline size and color
+
+#### Window Settings
+- Titlebar text size (0px to 25px)
+- Icon size adjustments
+- Element spacing configuration
+- Window layout preferences
+
+#### AI Assistant Settings
+- OpenAI API configuration
+- Model selection and temperature
+- Context length customization
+- Game system optimization
+- Custom prompt configuration
+- Default macro triggers
 
 ## Usage
 
