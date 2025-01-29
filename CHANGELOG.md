@@ -2,6 +2,12 @@
 
 ## [1.0.1] - It's All About Timers
 
+### Added
+- Automated release workflow using GitHub Actions
+  - Automatic ZIP file creation for releases
+  - Automated release creation on new version tags
+  - Release notes generation
+
 ### Fixed
 - Fixed timer expiration messages being sent repeatedly
 - Fixed "time is running out" warning messages being sent multiple times
