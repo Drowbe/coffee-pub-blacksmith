@@ -25,12 +25,7 @@ jobs:
         run: |
           # List of files to include
           FILES_TO_INCLUDE="module.json README.md LICENSE"
-          DIRS_TO_INCLUDE="scripts styles templates"
-          
-          # Add lang directory if it exists
-          if [ -d "languages" ]; then
-            DIRS_TO_INCLUDE="$DIRS_TO_INCLUDE languages"
-          fi
+          DIRS_TO_INCLUDE="scripts styles templates lang"
           
           # Create zip with all files
           zip -r ./module.zip $FILES_TO_INCLUDE $DIRS_TO_INCLUDE -x '*.git*' -x '*.github*' -x '*.vscode*'
