@@ -397,6 +397,23 @@ class CombatStats {
         this.currentStats.lastUnpauseTime = Date.now();
     }
 
+    static recordTimerExpired(isPlanningPhase = false) {
+        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+
+        const now = Date.now();
+        if (isPlanningPhase) {
+            this.currentStats.actualPlanningEndTime = now;
+            if (this.currentStats.lastUnpauseTime) {
+                this.currentStats.activePlanningTime += now - this.currentStats.lastUnpauseTime;
+            }
+        } else {
+            if (this.currentStats.lastUnpauseTime) {
+                this.currentStats.activeRoundTime += now - this.currentStats.lastUnpauseTime;
+            }
+        }
+        this.currentStats.lastUnpauseTime = 0;
+    }
+
     // Register Handlebars helpers
     static registerHelpers() {
         // Helper to round numbers
