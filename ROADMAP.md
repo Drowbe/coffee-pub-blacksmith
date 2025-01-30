@@ -25,7 +25,6 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
@@ -42,10 +41,13 @@ P4 - Low Priority/Low Impact
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
+- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
+- Add Visual Progress Indicators [Priority: P0] [Label: blacksmith, ui]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
+- Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
-- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
+- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
@@ -66,7 +68,6 @@ P4 - Low Priority/Low Impact
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
-- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
 - Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
