@@ -25,8 +25,6 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
-- Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
@@ -43,8 +41,9 @@ P4 - Low Priority/Low Impact
 - Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Handle Edge Cases in Damage Calculation [Priority: P0] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P0] [Label: blacksmith, bug, data]
-- Fix Timing Calculations [Priority: P0] [Label: blacksmith, bug, timer]
+- Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
+- Add Real-time Notable Moments [Priority: P2] [Label: blacksmith, ui, feature]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
@@ -64,6 +63,7 @@ P4 - Low Priority/Low Impact
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
+- Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
