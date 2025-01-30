@@ -1,0 +1,181 @@
+name: ISSUES to ROADMAP (Trigger or Manual)
+
+on:
+  issues:
+    types: [opened, edited, deleted, transferred, closed, reopened]
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  issues: read
+  repository-projects: read
+
+jobs:
+  sync-to-roadmap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.PAT_TOKEN }}
+          
+      - name: Update ROADMAP.md from Issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            try {
+              // Get all issues with their project data
+              const issuesQuery = `
+                query($owner: String!, $repo: String!) {
+                  repository(owner: $owner, name: $repo) {
+                    issues(first: 100, states: [OPEN, CLOSED]) {
+                      nodes {
+                        id
+                        title
+                        state
+                        number
+                        labels(first: 10) {
+                          nodes {
+                            name
+                          }
+                        }
+                        projectItems(first: 1) {
+                          nodes {
+                            fieldValues(first: 10) {
+                              nodes {
+                                ... on ProjectV2ItemFieldSingleSelectValue {
+                                  name
+                                  field {
+                                    ... on ProjectV2SingleSelectField {
+                                      name
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              
+              const issuesResult = await github.graphql(issuesQuery, {
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              
+              // Organize issues by status
+              const sections = {
+                'BACKLOG': new Map(),
+                'IN PROGRESS': new Map(),
+                'TESTING': new Map(),
+                'CLOSED': new Map()
+              };
+              
+              for (const issue of issuesResult.repository.issues.nodes) {
+                // Get priority and status from project fields
+                let priority = 'P0';
+                let status = issue.state === 'CLOSED' ? 'CLOSED' : 'BACKLOG';
+                
+                if (issue.projectItems.nodes.length > 0) {
+                  const fields = issue.projectItems.nodes[0].fieldValues.nodes;
+                  for (const field of fields) {
+                    if (field.field?.name === 'Priority') {
+                      priority = field.name;
+                    }
+                    if (field.field?.name === 'Status') {
+                      status = field.name;
+                    }
+                  }
+                }
+                
+                // Get labels
+                const labels = issue.labels.nodes.map(label => label.name);
+                // Remove 'blacksmith' from the list since we'll add it back first
+                const otherLabels = labels.filter(label => label !== 'blacksmith');
+                const labelString = ['blacksmith', ...otherLabels].join(', ');
+                
+                // Create the issue line
+                const issueLine = `- ${issue.title} [Priority: ${priority}] [Label: ${labelString}]`;
+                
+                // Use Map to ensure uniqueness by title
+                sections[status].set(issue.title, {
+                  line: issueLine,
+                  priority,
+                  number: issue.number
+                });
+              }
+              
+              // Create the new ROADMAP.md content
+              let content = '# Coffee Pub Blacksmith - ROADMAP\n\n';
+              
+              // Add header comment
+              content += [
+                '<!--',
+                'USAGE:',
+                '1. To add new items: Add them here in the appropriate section using the format:',
+                '   - Your new task title [Priority: P0-P4] [Label: blacksmith, label1, label2]',
+                '   They will be automatically created as GitHub Issues.',
+                '',
+                '2. To modify existing items: Edit them in GitHub Issues instead of here.',
+                '   This file will be automatically updated to reflect those changes.',
+                '',
+                'EXAMPLE:',
+                '- Do that thing [Priority: P2] [Label: blacksmith, enhancement, automation]',
+                '',
+                '',
+                'This dual workflow allows for easy planning while maintaining GitHub Issues as the source of truth.',
+                '',
+                'PRIORITIES:',
+                'P0 - Critical/Blocker',
+                'P1 - High Priority',
+                'P2 - Medium Priority',
+                'P3 - Low Priority',
+                'P4 - Low Priority/Low Impact',
+                '-->'
+              ].join('\n') + '\n\n';
+              
+              // Add each section with sorted issues
+              for (const [section, issuesMap] of Object.entries(sections)) {
+                content += `## ${section}\n\n`;
+                // Convert Map to array and sort by priority then issue number
+                const sortedIssues = Array.from(issuesMap.values())
+                  .sort((a, b) => {
+                    // First sort by priority
+                    const priorityCompare = a.priority.localeCompare(b.priority);
+                    if (priorityCompare !== 0) return priorityCompare;
+                    // Then by issue number for stable ordering
+                    return a.number - b.number;
+                  })
+                  .map(issue => issue.line);
+                
+                content += sortedIssues.join('\n') + '\n\n';
+              }
+              
+              // Write the new content to ROADMAP.md
+              fs.writeFileSync('ROADMAP.md', content);
+              
+              // Commit and push the changes
+              const gitStatus = await exec.getExecOutput('git status --porcelain');
+              if (gitStatus.stdout) {
+                await exec.exec('git', ['config', '--global', 'user.email', 'github-actions[bot]@users.noreply.github.com']);
+                await exec.exec('git', ['config', '--global', 'user.name', 'github-actions[bot]']);
+                await exec.exec('git', ['add', 'ROADMAP.md']);
+                await exec.exec('git', ['commit', '-m', 'docs: update ROADMAP.md from issues']);
+                await exec.exec('git', ['push']);
+              }
+              
+              console.log('Successfully synced issues to ROADMAP.md');
+              
+            } catch (error) {
+              console.error('Error syncing issues to ROADMAP.md:', error);
+              console.error('Full error:', JSON.stringify(error, null, 2));
+              process.exit(1);
+            } 

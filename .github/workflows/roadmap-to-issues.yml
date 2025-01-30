@@ -1,0 +1,276 @@
+name: ROADMAP to ISSUES (Auto or Manual)
+
+on:
+  push:
+    paths:
+      - 'ROADMAP.md'
+    branches:
+      - master
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+  issues: write
+  repository-projects: write
+
+jobs:
+  sync-to-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Update Issues from ROADMAP.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            // Add delay function to prevent rate limiting
+            const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+            
+            try {
+              // Get project data first
+              const projectQuery = `
+                query($owner: String!) {
+                  user(login: $owner) {
+                    projectV2(number: 3) {
+                      id
+                      fields(first: 20) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            name
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              
+              const projectResult = await github.graphql(projectQuery, {
+                owner: context.repo.owner
+              });
+              
+              // Add delay after project query
+              await delay(1000);
+              
+              const project = projectResult.user.projectV2;
+              const statusField = project.fields.nodes.find(field => field.name === 'Status');
+              const priorityField = project.fields.nodes.find(field => field.name === 'Priority');
+              
+              // Read and parse ROADMAP.md
+              const content = fs.readFileSync('ROADMAP.md', 'utf8');
+              const sections = {};
+              let currentSection = null;
+              
+              // Parse the markdown content
+              for (const line of content.split('\n')) {
+                if (line.startsWith('## ')) {
+                  currentSection = line.substring(3).trim();
+                  sections[currentSection] = [];
+                } else if (line.startsWith('- ') && currentSection) {
+                  // Parse the line for title, priority, and labels
+                  let title = line.substring(2);
+                  let priority = 'P0';
+                  let labels = ['blacksmith'];
+                  
+                  // Extract priority if present
+                  const priorityMatch = title.match(/\[Priority: (P\d+)\]/);
+                  if (priorityMatch) {
+                    priority = priorityMatch[1];
+                    title = title.replace(/\[Priority: P\d+\]/, '').trim();
+                  }
+                  
+                  // Extract labels if present
+                  const labelMatch = title.match(/\[Label: ([^\]]+)\]/);
+                  if (labelMatch) {
+                    const customLabels = labelMatch[1].split(',').map(l => l.trim());
+                    labels = [...labels, ...customLabels];
+                    title = title.replace(/\[Label: [^\]]+\]/, '').trim();
+                  }
+                  
+                  sections[currentSection].push({
+                    title,
+                    priority,
+                    labels,
+                    state: currentSection === 'CLOSED' ? 'closed' : 'open',
+                    status: currentSection
+                  });
+                }
+              }
+              
+              // Get existing issues
+              const { data: existingIssues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'all'
+              });
+              
+              // Add delay after getting issues
+              await delay(1000);
+              
+              // Process each section
+              for (const [sectionName, items] of Object.entries(sections)) {
+                for (const item of items) {
+                  let issueNumber;
+                  
+                  // Check if issue already exists
+                  const existingIssue = existingIssues.find(issue => 
+                    issue.title === item.title
+                  );
+                  
+                  if (existingIssue) {
+                    // Update existing issue
+                    await github.rest.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: existingIssue.number,
+                      state: item.state,
+                      labels: item.labels
+                    });
+                    
+                    issueNumber = existingIssue.number;
+                    console.log(`Updated issue: ${item.title}`);
+                  } else {
+                    // Create new issue
+                    const { data: newIssue } = await github.rest.issues.create({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      title: item.title,
+                      body: `Priority: ${item.priority}\nCreated from ROADMAP.md`,
+                      labels: item.labels,
+                      state: item.state
+                    });
+                    
+                    issueNumber = newIssue.number;
+                    console.log(`Created new issue: ${item.title}`);
+                  }
+                  
+                  // Add delay after issue operation
+                  await delay(2000);
+                  
+                  // Add to project and set status
+                  const addToProjectMutation = `
+                    mutation($projectId: ID!, $contentId: ID!) {
+                      addProjectV2ItemById(input: {
+                        projectId: $projectId
+                        contentId: $contentId
+                      }) {
+                        item {
+                          id
+                        }
+                      }
+                    }
+                  `;
+                  
+                  // Get issue node ID
+                  const issueQuery = `
+                    query($owner: String!, $repo: String!, $number: Int!) {
+                      repository(owner: $owner, name: $repo) {
+                        issue(number: $number) {
+                          id
+                        }
+                      }
+                    }
+                  `;
+                  
+                  const issueResult = await github.graphql(issueQuery, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    number: issueNumber
+                  });
+                  
+                  // Add delay after getting issue ID
+                  await delay(1000);
+                  
+                  const projectResult = await github.graphql(addToProjectMutation, {
+                    projectId: project.id,
+                    contentId: issueResult.repository.issue.id
+                  });
+                  
+                  // Add delay after adding to project
+                  await delay(1000);
+                  
+                  const itemId = projectResult.addProjectV2ItemById.item.id;
+                  
+                  // Set status
+                  const statusOption = statusField.options.find(opt => opt.name === item.status);
+                  if (statusOption) {
+                    await github.graphql(`
+                      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                        updateProjectV2ItemFieldValue(
+                          input: {
+                            projectId: $projectId
+                            itemId: $itemId
+                            fieldId: $fieldId
+                            value: { 
+                              singleSelectOptionId: $optionId
+                            }
+                          }
+                        ) {
+                          projectV2Item {
+                            id
+                          }
+                        }
+                      }
+                    `, {
+                      projectId: project.id,
+                      itemId: itemId,
+                      fieldId: statusField.id,
+                      optionId: statusOption.id
+                    });
+                    
+                    // Add delay after setting status
+                    await delay(1000);
+                  }
+                  
+                  // Set priority
+                  const priorityOption = priorityField.options.find(opt => opt.name === item.priority);
+                  if (priorityOption) {
+                    await github.graphql(`
+                      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                        updateProjectV2ItemFieldValue(
+                          input: {
+                            projectId: $projectId
+                            itemId: $itemId
+                            fieldId: $fieldId
+                            value: { 
+                              singleSelectOptionId: $optionId
+                            }
+                          }
+                        ) {
+                          projectV2Item {
+                            id
+                          }
+                        }
+                      }
+                    `, {
+                      projectId: project.id,
+                      itemId: itemId,
+                      fieldId: priorityField.id,
+                      optionId: priorityOption.id
+                    });
+                    
+                    // Add delay after setting priority
+                    await delay(1000);
+                  }
+                }
+              }
+              
+              console.log('Successfully synced ROADMAP.md to issues');
+              
+            } catch (error) {
+              console.error('Error syncing ROADMAP.md to issues:', error);
+              console.error('Full error:', JSON.stringify(error, null, 2));
+              process.exit(1);
+            } 
