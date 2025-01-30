@@ -25,7 +25,6 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
@@ -39,8 +38,9 @@ P4 - Low Priority/Low Impact
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
-- Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
+- Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
+- Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
