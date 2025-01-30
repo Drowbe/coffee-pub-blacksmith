@@ -59,6 +59,7 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
+- Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
