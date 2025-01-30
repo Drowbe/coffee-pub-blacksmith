@@ -26,8 +26,8 @@ P4 - Low Priority/Low Impact
 ## BACKLOG
 
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
+- Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
-- Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
@@ -37,15 +37,16 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
+- Handle Edge Cases in Damage Calculation [Priority: P0] [Label: blacksmith, bug, combat]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
-- Add Real-time Notable Moments [Priority: P2] [Label: blacksmith, ui, feature]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
+- Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
 
 ## IN PROGRESS
 
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
+- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 
 ## TESTING
 
