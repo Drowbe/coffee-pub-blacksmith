@@ -41,8 +41,8 @@ P4 - Low Priority/Low Impact
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
-- Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
+- Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
