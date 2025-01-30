@@ -29,7 +29,6 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 - Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P0] [Label: blacksmith, documentation]
 - Make Round Summary Title Match Style [Priority: P0] [Label: blacksmith, ui]
@@ -42,7 +41,6 @@ P4 - Low Priority/Low Impact
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
-- Enhance Notable Moments Presentation [Priority: P0] [Label: blacksmith, ui]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
@@ -61,7 +59,7 @@ P4 - Low Priority/Low Impact
 
 ## TESTING
 
-
+- Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 
 ## CLOSED
 
@@ -81,4 +79,5 @@ P4 - Low Priority/Low Impact
 - Add Party Performance Metrics [Priority: P2] [Label: blacksmith, feature]
 - Improve Round Summary Display [Priority: P2] [Label: blacksmith, ui]
 - Add Visual Progress Indicators [Priority: P2] [Label: blacksmith, ui]
+- Enhance Notable Moments Presentation [Priority: P2] [Label: blacksmith, ui]
 
