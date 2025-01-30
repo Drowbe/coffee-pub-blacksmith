@@ -30,7 +30,6 @@ P4 - Low Priority/Low Impact
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
-- Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
@@ -63,6 +62,7 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
+- Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
