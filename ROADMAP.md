@@ -59,7 +59,7 @@ P4 - Low Priority/Low Impact
 
 ## TESTING
 
-- Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
+- Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
 
 ## CLOSED
 
