@@ -29,7 +29,6 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P0] [Label: blacksmith, documentation]
 - Make Round Summary Title Match Style [Priority: P0] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
@@ -60,6 +59,7 @@ P4 - Low Priority/Low Impact
 ## TESTING
 
 - Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
+- Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
 
 ## CLOSED
 
