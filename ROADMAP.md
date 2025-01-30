@@ -38,9 +38,9 @@ P4 - Low Priority/Low Impact
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
-- Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
+- Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
@@ -60,16 +60,16 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
-- Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
-- Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
+- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
 - Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
 - Fix Round Duration Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
+- Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
 - Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
 - Add Active Time Tracking [Priority: P2] [Label: blacksmith, timer, feature]
 - Add Planning Timer [Priority: P2] [Label: blacksmith, timer, feature]
