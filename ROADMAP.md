@@ -25,7 +25,8 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
+- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
+- Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
@@ -42,17 +43,18 @@ P4 - Low Priority/Low Impact
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
+- Fix Round Duration Calculations [Priority: P0] [Label: blacksmith, bug, timer]
+- Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
-- Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
-- Implement Data Caching System [Priority: P2] [Label: blacksmith, enhancement, performance]
-- Add Module Compatibility Checks [Priority: P2] [Label: blacksmith, enhancement, integration]
+- Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
+- Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 
 ## IN PROGRESS
 
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
 - Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
-- Handle Edge Cases in Damage Calculation [Priority: P0] [Label: blacksmith, bug, combat]
+- Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 
 ## TESTING
 
@@ -63,15 +65,14 @@ P4 - Low Priority/Low Impact
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
-- Track Planning Phase Duration [Priority: P0] [Label: blacksmith, timer, feature]
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
 - Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
-- Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
 - Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
 - Add Active Time Tracking [Priority: P2] [Label: blacksmith, timer, feature]
 - Add Planning Timer [Priority: P2] [Label: blacksmith, timer, feature]
+- Track Planning Phase Duration [Priority: P2] [Label: blacksmith, timer, feature]
 
