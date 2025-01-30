@@ -29,7 +29,7 @@ P4 - Low Priority/Low Impact
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
-- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
+- Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
@@ -38,10 +38,10 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
+- Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
-- Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
+- Implement Data Caching System [Priority: P2] [Label: blacksmith, enhancement, performance]
 
 ## IN PROGRESS
 
@@ -61,4 +61,5 @@ P4 - Low Priority/Low Impact
 ## CLOSED
 
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
+- Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 
