@@ -40,6 +40,7 @@ P4 - Low Priority/Low Impact
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
+- Improve Error Handling for Missing Actor Data [Priority: P0] [Label: blacksmith, bug, data]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
