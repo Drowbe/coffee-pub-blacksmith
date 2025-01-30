@@ -28,6 +28,7 @@ P4 - Low Priority/Low Impact
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
+- Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
@@ -37,10 +38,9 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
+- Add Troubleshooting Guide [Priority: P0] [Label: blacksmith, documentation]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
-- Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
 
 ## IN PROGRESS
@@ -55,6 +55,7 @@ P4 - Low Priority/Low Impact
 ## TESTING
 
 - Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
+- Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
 
 ## CLOSED
 
