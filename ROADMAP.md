@@ -38,7 +38,7 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Make Round Summary Title Match Style [Priority: P0] [Label: blacksmith, ui]
+- Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
@@ -60,5 +60,5 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
-
+- Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 
