@@ -62,7 +62,6 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
-- Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
@@ -70,6 +69,7 @@ P4 - Low Priority/Low Impact
 - Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
 - Fix Round Duration Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
+- Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
 - Add Active Time Tracking [Priority: P2] [Label: blacksmith, timer, feature]
 - Add Planning Timer [Priority: P2] [Label: blacksmith, timer, feature]
