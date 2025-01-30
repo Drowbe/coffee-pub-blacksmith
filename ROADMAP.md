@@ -25,9 +25,10 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
+- Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Combat Leader System [Priority: P2] [Label: blacksmith, combat, feature]
+- Add Real-time Notable Moments [Priority: P2] [Label: blacksmith, ui, feature]
 
 ## IN PROGRESS
 
