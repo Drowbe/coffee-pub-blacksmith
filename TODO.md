@@ -1,161 +1,90 @@
-# Combat Stats Module TODOs
+# Coffee Pub Crier - ROADMAP
 
-## Current Tasks
-- [x] Make Round Summary title match Notable Moments style
-- [x] Move rank number to overlay player portrait
-- [x] Replace CRITICAL/FUMBLE text with icons
-- [x] Fix GM attribution for chat messages
-- [x] Remove underline from MVP player name
-- [x] Adjust MVP stats card styling to match Notable Moments
-- [x] Rename "Notable Moments" to "Notable Party Moments"
-- [x] Make fumble icon brighter red
+<!--
+USAGE:
+1. To add new items: Add them here in the appropriate section using the format:
+   - Your new task title [Priority: P0-P4] [Label: crier, label1, label2]
+   They will be automatically created as GitHub Issues.
 
-## Timer Enhancements
-- [ ] Verify timer tracking accuracy and consistency
-- [ ] Add automatic timer start on token movement
-- [ ] Add automatic timer start on attack initiation
-- [ ] Add planning stage notes functionality
-- [ ] Improve round start notifications and messaging
+2. To modify existing items: Edit them in GitHub Issues instead of here.
+   This file will be automatically updated to reflect those changes.
 
-## Combat Leadership Features
-- [ ] Implement combat leader designation system
-- [ ] Add voting functionality for leader selection
-- [ ] Create leader-specific UI elements and indicators
-- [ ] Add leader-specific permissions or capabilities
+EXAMPLE:
+- Do that thing [Priority: P2] [Label: blacksmith, enhancement, automation]
 
-## Real-Time Features
-- [ ] Implement real-time Notable Moments notifications
-- [ ] Add dynamic achievement announcements
-- [ ] Create round start/end announcements
-- [ ] Improve combat event messaging
 
-## Documentation & Integration
-- [ ] Expose and document Blacksmith API for Coffee Pub modules
-- [ ] Add user guide
-- [ ] Add configuration documentation
-- [ ] Add developer documentation
-- [ ] Add example screenshots
+This dual workflow allows for easy planning while maintaining GitHub Issues as the source of truth.
 
-## Combat Journal & Statistics
-- [ ] Implement combat session journal system
-- [ ] Add combat statistics journal export
-- [ ] Create comprehensive combat log functionality
-- [ ] Add session summary generation
-- [ ] Implement combat history browsing
+PRIORITIES:
+P0 - Critical/Blocker
+P1 - High Priority
+P2 - Medium Priority
+P3 - Low Priority
+P4 - Low Priority/Low Impact
+-->
 
-## Future Improvements
-- [ ] Add option to customize icon choices
-- [ ] Add option to customize color scheme
-- [ ] Add option to customize which stats are displayed
-- [ ] Add option to customize card layouts
-- [ ] Add combat session summaries
-- [ ] Add player-specific stat tracking over multiple combats
-- [ ] Add achievement system for notable performances
-- [ ] Add comparison stats between rounds
-- [ ] Add visual graphs/charts for damage/healing trends
+## BACKLOG
 
-## Bug Fixes Needed
-- [ ] Ensure stats are only processed by GM
-- [ ] Fix potential race conditions in stat tracking
-- [ ] Handle edge cases in damage calculation
-- [ ] Improve error handling for missing actor data
+- Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, timer, bug]
+- Implement Combat Leader System [Priority: P2] [Label: blacksmith, feature, combat]
+- Add Real-time Notable Moments [Priority: P2] [Label: blacksmith, feature, ui]
+- Implement Combat Session Journal [Priority: P2] [Label: blacksmith, feature, documentation]
+- Add Combat Statistics Export [Priority: P2] [Label: blacksmith, feature, data]
+- Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, feature, planning]
+- Add Combat History Browser [Priority: P2] [Label: blacksmith, feature, ui]
+- Implement Data Caching System [Priority: P2] [Label: blacksmith, performance, enhancement]
+- Add Module Compatibility Checks [Priority: P2] [Label: blacksmith, integration, enhancement]
+- Create Integration Guides [Priority: P3] [Label: blacksmith, documentation, integration]
+- Add User Preferences Panel [Priority: P3] [Label: blacksmith, feature, ui]
+- Implement Achievement System [Priority: P3] [Label: blacksmith, feature, gamification]
+- Add Combat Replay System [Priority: P3] [Label: blacksmith, feature, enhancement]
+- Create Video Tutorials [Priority: P3] [Label: blacksmith, documentation]
+- Implement AI-powered Insights [Priority: P4] [Label: blacksmith, feature, ai]
+- Add Cross-session Statistics [Priority: P4] [Label: blacksmith, feature, data]
 
-# TODO List
+## IN PROGRESS
 
-## High Priority
+- Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
+- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
+- Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
+- Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
+- Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
+- Fix Data Persistence Issues [Priority: P1] [Label: blacksmith, bug, data]
 
-### Combat Timer Improvements
-- ✅ Fix timing calculations for round duration
-- ✅ Implement pause/resume functionality
-- ✅ Add active time tracking
-- ✅ Integrate with combat stats system
-- Add option to customize timer appearance
-- Add sound customization for timer events
+## TESTING
 
-### Planning Phase
-- ✅ Add dedicated planning timer
-- ✅ Implement pause/resume for planning phase
-- ✅ Track planning phase duration accurately
-- Add planning phase notes system
-- Add planning phase strategy templates
+- Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
+- Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
+- Add Troubleshooting Guide [Priority: P2] [Label: blacksmith, documentation]
 
-### Combat Stats
-- ✅ Fix round duration calculations
-- ✅ Implement accurate turn timing
-- ✅ Add notable moments tracking
-- ✅ Improve MVP calculation
-- ✅ Add party performance metrics
-- Add export functionality for combat stats
-- Add combat history browser
+## CLOSED
 
-## Medium Priority
-
-### UI Enhancements
-- ✅ Improve round summary display
-- ✅ Add visual progress indicators
-- ✅ Enhance notable moments presentation
-- Add customizable themes
-- Add icon customization options
-- Add layout configuration options
-
-### Performance Optimizations
-- ✅ Optimize timing calculations
-- ✅ Improve data structure efficiency
-- ✅ Enhance error handling
-- Add data caching system
-- Implement batch processing for stats
-- Unify debug logging system across all modules
-
-### Integration Features
-- ✅ Add API endpoints for module communication
-- ✅ Implement reliable data exchange
-- Add integration guides
-- Create example implementations
-- Add module compatibility checks
-
-## Low Priority
-
-### Quality of Life
-- Add combat session export
-- Add statistics backup system
-- Add user preferences panel
-- Add keybind customization
-- Add macro support
-
-### Documentation
-- ✅ Update README with new features
-- ✅ Document API endpoints
-- ✅ Add configuration guide
-- Add troubleshooting guide
-- Add example screenshots
-- Create video tutorials
-
-### Future Features
-- Multi-combat analysis tools
-- Cross-session statistics
-- Achievement system
-- Combat replay system
-- AI-powered insights
-
-## Bugs to Fix
-
-### Timer Issues
-- ✅ Fix pause/resume timing accuracy
-- ✅ Fix round duration calculations
-- ✅ Fix planning phase timing
-- ✅ Fix turn duration tracking
-- Investigate rare timer desync issues
-
-### Stats Issues
-- ✅ Fix MVP calculation edge cases
-- ✅ Fix party stats aggregation
-- ✅ Fix notable moments tracking
-- Investigate data persistence issues
-- Fix rare stat reset issues
-
-### UI Issues
-- ✅ Fix progress bar rendering
-- ✅ Fix notification timing
-- ✅ Fix template rendering issues
-- Fix theme switching bugs
-- Fix layout responsiveness issues
+- Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
+- Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
+- Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
+- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
+- Remove MVP Name Underline [Priority: P3] [Label: blacksmith, ui]
+- Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
+- Rename Notable Moments [Priority: P3] [Label: blacksmith, ui]
+- Make Fumble Icon Brighter [Priority: P3] [Label: blacksmith, ui]
+- Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
+- Implement Pause/Resume [Priority: P1] [Label: blacksmith, feature, timer]
+- Add Active Time Tracking [Priority: P2] [Label: blacksmith, feature, timer]
+- Integrate with Combat Stats [Priority: P1] [Label: blacksmith, feature, integration]
+- Add Planning Timer [Priority: P2] [Label: blacksmith, feature, timer]
+- Track Planning Phase Duration [Priority: P2] [Label: blacksmith, feature, timer]
+- Fix Round Duration Calculations [Priority: P1] [Label: blacksmith, bug, timer]
+- Add Notable Moments Tracking [Priority: P2] [Label: blacksmith, feature]
+- Improve MVP Calculation [Priority: P2] [Label: blacksmith, feature]
+- Add Party Performance Metrics [Priority: P2] [Label: blacksmith, feature]
+- Improve Round Summary Display [Priority: P2] [Label: blacksmith, ui]
+- Add Visual Progress Indicators [Priority: P2] [Label: blacksmith, ui]
+- Enhance Notable Moments Presentation [Priority: P2] [Label: blacksmith, ui]
+- Optimize Timing Calculations [Priority: P2] [Label: blacksmith, performance]
+- Improve Data Structure Efficiency [Priority: P2] [Label: blacksmith, performance]
+- Enhance Error Handling [Priority: P1] [Label: blacksmith, bug]
+- Add API Endpoints [Priority: P1] [Label: blacksmith, api]
+- Implement Reliable Data Exchange [Priority: P1] [Label: blacksmith, api]
+- Update README [Priority: P2] [Label: blacksmith, documentation]
+- Document API Endpoints [Priority: P1] [Label: blacksmith, documentation, api]
+- Add Configuration Guide [Priority: P2] [Label: blacksmith, documentation]
