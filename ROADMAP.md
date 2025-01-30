@@ -30,7 +30,6 @@ P4 - Low Priority/Low Impact
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
-- Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
@@ -42,6 +41,7 @@ P4 - Low Priority/Low Impact
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Implement Data Caching System [Priority: P2] [Label: blacksmith, enhancement, performance]
+- Add Module Compatibility Checks [Priority: P2] [Label: blacksmith, enhancement, integration]
 
 ## IN PROGRESS
 
