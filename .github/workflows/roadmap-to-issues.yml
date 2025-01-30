@@ -21,6 +21,59 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
 
+      - name: Create Labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const labels = [
+              { name: 'blacksmith', color: '1d76db', description: 'Coffee Pub Blacksmith Module' },
+              { name: 'bug', color: 'd73a4a', description: 'Something isn\'t working' },
+              { name: 'enhancement', color: 'a2eeef', description: 'New feature or request' },
+              { name: 'documentation', color: '0075ca', description: 'Documentation improvements' },
+              { name: 'timer', color: 'fbca04', description: 'Timer related features' },
+              { name: 'ui', color: 'bfdadc', description: 'User interface improvements' },
+              { name: 'performance', color: '0e8a16', description: 'Performance improvements' },
+              { name: 'api', color: '1d76db', description: 'API related changes' },
+              { name: 'combat', color: 'd93f0b', description: 'Combat related features' },
+              { name: 'data', color: 'c5def5', description: 'Data management features' },
+              { name: 'planning', color: 'c2e0c6', description: 'Planning phase features' },
+              { name: 'integration', color: 'fef2c0', description: 'Integration features' },
+              { name: 'security', color: 'd93f0b', description: 'Security improvements' },
+              { name: 'feature', color: '0052cc', description: 'New features' }
+            ];
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+                console.log(`Created label: ${label.name}`);
+              } catch (error) {
+                if (error.status === 422) {
+                  // Label already exists, update it
+                  try {
+                    await github.rest.issues.updateLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      name: label.name,
+                      color: label.color,
+                      description: label.description
+                    });
+                    console.log(`Updated label: ${label.name}`);
+                  } catch (updateError) {
+                    console.log(`Error updating label ${label.name}:`, updateError);
+                  }
+                } else {
+                  console.log(`Error creating label ${label.name}:`, error);
+                }
+              }
+            }
+
       - name: Update Issues from ROADMAP.md
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -95,7 +148,10 @@ jobs:
                   const labelMatch = title.match(/\[Label: ([^\]]+)\]/);
                   if (labelMatch) {
                     const customLabels = labelMatch[1].split(',').map(l => l.trim());
-                    labels = [...labels, ...customLabels];
+                    // Remove duplicates and ensure blacksmith is first
+                    const uniqueLabels = new Set(customLabels);
+                    uniqueLabels.delete('blacksmith'); // Remove if exists
+                    labels = ['blacksmith', ...Array.from(uniqueLabels)];
                     title = title.replace(/\[Label: [^\]]+\]/, '').trim();
                   }
                   
