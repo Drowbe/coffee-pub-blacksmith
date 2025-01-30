@@ -37,7 +37,7 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
+- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Real-time Notable Moments [Priority: P2] [Label: blacksmith, ui, feature]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
@@ -45,7 +45,7 @@ P4 - Low Priority/Low Impact
 
 ## IN PROGRESS
 
-
+- Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
 
 ## TESTING
 
