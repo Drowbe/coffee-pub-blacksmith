@@ -25,30 +25,29 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Data Persistence Issues [Priority: P0] [Label: blacksmith, bug, data]
 - Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 - Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P0] [Label: blacksmith, documentation]
 - Make Round Summary Title Match Style [Priority: P0] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
+- Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
-- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
-- Add Visual Progress Indicators [Priority: P0] [Label: blacksmith, ui]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
-- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
-- Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
+- Verify Timer Tracking Accuracy [Priority: P0] [Label: blacksmith, bug, timer]
+- Enhance Notable Moments Presentation [Priority: P0] [Label: blacksmith, ui]
+- Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
+- Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
@@ -58,6 +57,7 @@ P4 - Low Priority/Low Impact
 - Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
 - Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
+- Fix Data Persistence Issues [Priority: P1] [Label: blacksmith, bug, data]
 
 ## TESTING
 
@@ -80,4 +80,5 @@ P4 - Low Priority/Low Impact
 - Improve MVP Calculation [Priority: P2] [Label: blacksmith, feature]
 - Add Party Performance Metrics [Priority: P2] [Label: blacksmith, feature]
 - Improve Round Summary Display [Priority: P2] [Label: blacksmith, ui]
+- Add Visual Progress Indicators [Priority: P2] [Label: blacksmith, ui]
 
