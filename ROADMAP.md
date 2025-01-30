@@ -34,6 +34,7 @@ P4 - Low Priority/Low Impact
 - Move Rank Number to Player Portrait [Priority: P0] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
+- Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
@@ -64,7 +65,6 @@ P4 - Low Priority/Low Impact
 ## CLOSED
 
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
-- Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
