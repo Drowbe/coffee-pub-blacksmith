@@ -37,7 +37,7 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
+- Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
@@ -54,7 +54,7 @@ P4 - Low Priority/Low Impact
 
 ## TESTING
 
-
+- Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
 
 ## CLOSED
 
