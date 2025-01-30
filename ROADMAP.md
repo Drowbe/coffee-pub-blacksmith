@@ -25,14 +25,12 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Investigate Timer Desync Issues [Priority: P0] [Label: blacksmith, bug, timer]
 - Fix Data Persistence Issues [Priority: P0] [Label: blacksmith, bug, data]
 - Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 - Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
@@ -45,7 +43,7 @@ P4 - Low Priority/Low Impact
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
-- Add Party Performance Metrics [Priority: P0] [Label: blacksmith, feature]
+- Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
@@ -57,6 +55,7 @@ P4 - Low Priority/Low Impact
 - Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
+- Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
 
 ## TESTING
 
@@ -78,4 +77,6 @@ P4 - Low Priority/Low Impact
 - Track Planning Phase Duration [Priority: P2] [Label: blacksmith, timer, feature]
 - Add Notable Moments Tracking [Priority: P2] [Label: blacksmith, feature]
 - Improve MVP Calculation [Priority: P2] [Label: blacksmith, feature]
+- Add Party Performance Metrics [Priority: P2] [Label: blacksmith, feature]
+- Improve Round Summary Display [Priority: P2] [Label: blacksmith, ui]
 
