@@ -28,8 +28,8 @@ P4 - Low Priority/Low Impact
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
-- Add Combat History Browser [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
+- Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Add User Preferences Panel [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Achievement System [Priority: P0] [Label: blacksmith, feature, gamification]
@@ -37,11 +37,11 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix Data Persistence Issues [Priority: P0] [Label: blacksmith, bug, data]
+- Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
-- Add Module Compatibility Checks [Priority: P2] [Label: blacksmith, enhancement, integration]
+- Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
 
 ## IN PROGRESS
 
@@ -50,6 +50,7 @@ P4 - Low Priority/Low Impact
 - Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
 - Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
+- Fix Data Persistence Issues [Priority: P1] [Label: blacksmith, bug, data]
 
 ## TESTING
 
