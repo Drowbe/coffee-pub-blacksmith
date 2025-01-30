@@ -41,14 +41,14 @@ P4 - Low Priority/Low Impact
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
 - Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
-- Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
+- Handle Edge Cases in Damage Calculation [Priority: P0] [Label: blacksmith, bug, combat]
+- Improve Error Handling for Missing Actor Data [Priority: P0] [Label: blacksmith, bug, data]
+- Fix Timing Calculations [Priority: P0] [Label: blacksmith, bug, timer]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
 
-- Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
-- Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
 - Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
 - Fix Data Persistence Issues [Priority: P1] [Label: blacksmith, bug, data]
 
@@ -61,6 +61,8 @@ P4 - Low Priority/Low Impact
 ## CLOSED
 
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
+- Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
+- Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
