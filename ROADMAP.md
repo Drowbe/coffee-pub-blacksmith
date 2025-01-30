@@ -40,13 +40,13 @@ P4 - Low Priority/Low Impact
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
+- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
 
-- Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
 - Investigate Timer Desync Issues [Priority: P1] [Label: blacksmith, bug, timer]
