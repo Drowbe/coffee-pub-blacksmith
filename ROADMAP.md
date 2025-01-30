@@ -25,6 +25,7 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
+- Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Implement Data Caching System [Priority: P0] [Label: blacksmith, enhancement, performance]
 - Add Module Compatibility Checks [Priority: P0] [Label: blacksmith, enhancement, integration]
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
@@ -40,13 +41,13 @@ P4 - Low Priority/Low Impact
 - Investigate Timer Desync Issues [Priority: P0] [Label: blacksmith, bug, timer]
 - Fix Data Persistence Issues [Priority: P0] [Label: blacksmith, bug, data]
 - Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
+- Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
-- Integrate with Combat Stats [Priority: P0] [Label: blacksmith, integration, feature]
+- Add Planning Timer [Priority: P0] [Label: blacksmith, timer, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
-- Add Planning Phase Notes System [Priority: P2] [Label: blacksmith, planning, feature]
 - Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
 
 ## IN PROGRESS
@@ -55,7 +56,6 @@ P4 - Low Priority/Low Impact
 
 ## TESTING
 
-- Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P2] [Label: blacksmith, documentation]
 
 ## CLOSED
@@ -66,6 +66,7 @@ P4 - Low Priority/Low Impact
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
+- Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
