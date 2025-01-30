@@ -39,7 +39,6 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
@@ -60,6 +59,7 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
+- Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
