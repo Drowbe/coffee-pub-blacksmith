@@ -40,15 +40,14 @@ P4 - Low Priority/Low Impact
 - Fix Theme Switching Bugs [Priority: P0] [Label: blacksmith, bug, ui]
 - Fix Layout Responsiveness Issues [Priority: P0] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P0] [Label: blacksmith, documentation]
+- Make Round Summary Title Match Style [Priority: P0] [Label: blacksmith, ui]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
 - Implement Combat Session Journal [Priority: P0] [Label: blacksmith, documentation, feature]
-- Fix Round Duration Calculations [Priority: P0] [Label: blacksmith, bug, timer]
 - Add Planning Phase Notes System [Priority: P0] [Label: blacksmith, planning, feature]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 - Add Combat History Browser [Priority: P2] [Label: blacksmith, ui, feature]
-- Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 
 ## IN PROGRESS
 
@@ -69,6 +68,7 @@ P4 - Low Priority/Low Impact
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Implement Pause/Resume [Priority: P1] [Label: blacksmith, timer, feature]
 - Integrate with Combat Stats [Priority: P1] [Label: blacksmith, integration, feature]
+- Fix Round Duration Calculations [Priority: P1] [Label: blacksmith, bug, timer]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
 - Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
