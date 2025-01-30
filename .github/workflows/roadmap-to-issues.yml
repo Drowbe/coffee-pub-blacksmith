@@ -86,6 +86,26 @@ jobs:
             // Add delay function to prevent rate limiting
             const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
             
+            // Add retry function for rate limited operations
+            async function retryWithBackoff(operation, maxRetries = 3) {
+              let lastError;
+              for (let i = 0; i < maxRetries; i++) {
+                try {
+                  return await operation();
+                } catch (error) {
+                  lastError = error;
+                  if (error.status === 403 && error.response?.data?.message?.includes('rate limit')) {
+                    const waitTime = Math.pow(2, i) * 10000; // Exponential backoff: 10s, 20s, 40s
+                    console.log(`Rate limited. Waiting ${waitTime/1000} seconds before retry ${i + 1}/${maxRetries}`);
+                    await delay(waitTime);
+                    continue;
+                  }
+                  throw error;
+                }
+              }
+              throw lastError;
+            }
+            
             try {
               // Get project data first
               const projectQuery = `
@@ -148,10 +168,7 @@ jobs:
                   const labelMatch = title.match(/\[Label: ([^\]]+)\]/);
                   if (labelMatch) {
                     const customLabels = labelMatch[1].split(',').map(l => l.trim());
-                    // Remove duplicates and ensure blacksmith is first
-                    const uniqueLabels = new Set(customLabels);
-                    uniqueLabels.delete('blacksmith'); // Remove if exists
-                    labels = ['blacksmith', ...Array.from(uniqueLabels)];
+                    labels = [...customLabels]; // Revert to original simple label handling
                     title = title.replace(/\[Label: [^\]]+\]/, '').trim();
                   }
                   
@@ -212,9 +229,9 @@ jobs:
                     console.log(`Created new issue: ${item.title}`);
                   }
                   
-                  // Add delay after issue operation
                   await delay(2000);
                   
+                  /* Comment out project automation for now
                   // Add to project and set status
                   const addToProjectMutation = `
                     mutation($projectId: ID!, $contentId: ID!) {
@@ -246,16 +263,10 @@ jobs:
                     number: issueNumber
                   });
                   
-                  // Add delay after getting issue ID
-                  await delay(1000);
-                  
                   const projectResult = await github.graphql(addToProjectMutation, {
                     projectId: project.id,
                     contentId: issueResult.repository.issue.id
                   });
-                  
-                  // Add delay after adding to project
-                  await delay(1000);
                   
                   const itemId = projectResult.addProjectV2ItemById.item.id;
                   
@@ -285,9 +296,6 @@ jobs:
                       fieldId: statusField.id,
                       optionId: statusOption.id
                     });
-                    
-                    // Add delay after setting status
-                    await delay(1000);
                   }
                   
                   // Set priority
@@ -316,10 +324,8 @@ jobs:
                       fieldId: priorityField.id,
                       optionId: priorityOption.id
                     });
-                    
-                    // Add delay after setting priority
-                    await delay(1000);
                   }
+                  */
                 }
               }
               
