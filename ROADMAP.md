@@ -25,11 +25,8 @@ P4 - Low Priority/Low Impact
 
 ## BACKLOG
 
-- Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
-- Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
-- Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Implement Combat Leader System [Priority: P0] [Label: blacksmith, combat, feature]
 - Add Real-time Notable Moments [Priority: P0] [Label: blacksmith, ui, feature]
@@ -43,6 +40,7 @@ P4 - Low Priority/Low Impact
 - Create Integration Guides [Priority: P0] [Label: blacksmith, documentation, integration]
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Add Combat Replay System [Priority: P0] [Label: blacksmith, enhancement, feature]
+- Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
@@ -62,6 +60,8 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
+- Replace Critical/Fumble Text with Icons [Priority: P0] [Label: blacksmith, ui]
+- Fix GM Attribution for Chat Messages [Priority: P0] [Label: blacksmith, bug]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix Timing Calculations [Priority: P1] [Label: blacksmith, bug, timer]
