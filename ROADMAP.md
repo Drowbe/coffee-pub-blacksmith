@@ -39,12 +39,13 @@ P4 - Low Priority/Low Impact
 - Create Video Tutorials [Priority: P0] [Label: blacksmith, documentation]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
+- Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
+- Rename Notable Moments [Priority: P0] [Label: blacksmith, ui]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
 
-- Ensure Stats GM-only Processing [Priority: P0] [Label: blacksmith, bug, security]
 - Fix Race Conditions in Stat Tracking [Priority: P0] [Label: blacksmith, bug, performance]
 - Handle Edge Cases in Damage Calculation [Priority: P1] [Label: blacksmith, bug, combat]
 - Improve Error Handling for Missing Actor Data [Priority: P1] [Label: blacksmith, bug, data]
@@ -64,4 +65,5 @@ P4 - Low Priority/Low Impact
 - Make Round Summary Title Match Style [Priority: P2] [Label: blacksmith, ui]
 - Move Rank Number to Player Portrait [Priority: P2] [Label: blacksmith, ui]
 - Replace Critical/Fumble Text with Icons [Priority: P2] [Label: blacksmith, ui]
+- Adjust MVP Stats Card Styling [Priority: P2] [Label: blacksmith, ui]
 
