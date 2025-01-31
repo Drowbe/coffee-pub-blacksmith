@@ -1,12 +1,12 @@
 name: ROADMAP to ISSUES (Auto or Manual)
 
 on:
-  push:
-    paths:
-      - 'ROADMAP.md'
-    branches:
-      - master
-  workflow_dispatch:  # Allow manual trigger
+  # push:
+  #   paths:
+  #     - 'ROADMAP.md'
+  #   branches:
+  #     - master
+  workflow_dispatch:  # Allow manual trigger only
 
 permissions:
   contents: read

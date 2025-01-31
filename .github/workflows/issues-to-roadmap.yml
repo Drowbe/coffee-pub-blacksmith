@@ -1,9 +1,9 @@
 name: ISSUES to ROADMAP (Trigger or Manual)
 
 on:
-  issues:
-    types: [opened, edited, deleted, transferred, closed, reopened]
-  workflow_dispatch:  # Allow manual trigger
+  # issues:
+  #   types: [opened, edited, deleted, transferred, closed, reopened]
+  workflow_dispatch:  # Allow manual trigger only
 
 permissions:
   contents: write
