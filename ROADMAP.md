@@ -5,16 +5,10 @@ USAGE:
 1. To add new items: Add them here in the appropriate section using the format:
    - Your new task title [Priority: P0-P4] [Label: blacksmith, label1, label2]
    They will be automatically created as GitHub Issues.
-
 2. To modify existing items: Edit them in GitHub Issues instead of here.
    This file will be automatically updated to reflect those changes.
-
 EXAMPLE:
 - Do that thing [Priority: P2] [Label: blacksmith, enhancement, automation]
-
-
-This dual workflow allows for easy planning while maintaining GitHub Issues as the source of truth.
-
 PRIORITIES:
 P0 - Critical/Blocker
 P1 - High Priority
