@@ -26,6 +26,62 @@ jobs:
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
+            // Rate limiting helper functions
+            const rateLimiter = {
+              requestsThisMinute: 0,
+              requestsThisHour: 0,
+              lastMinuteReset: Date.now(),
+              lastHourReset: Date.now(),
+              
+              async checkRateLimits() {
+                const now = Date.now();
+                
+                // Reset minute counter if needed
+                if (now - this.lastMinuteReset >= 60000) {
+                  this.requestsThisMinute = 0;
+                  this.lastMinuteReset = now;
+                }
+                
+                // Reset hour counter if needed
+                if (now - this.lastHourReset >= 3600000) {
+                  this.requestsThisHour = 0;
+                  this.lastHourReset = now;
+                }
+                
+                // Check if we're approaching limits
+                if (this.requestsThisMinute >= 70) { // Buffer of 10 under the 80 limit
+                  console.log('Approaching minute limit, waiting for reset...');
+                  await new Promise(resolve => setTimeout(resolve, 60000));
+                  this.requestsThisMinute = 0;
+                  this.lastMinuteReset = Date.now();
+                }
+                
+                if (this.requestsThisHour >= 450) { // Buffer of 50 under the 500 limit
+                  console.log('Approaching hour limit, waiting for reset...');
+                  await new Promise(resolve => setTimeout(resolve, 300000)); // Wait 5 minutes
+                }
+              },
+              
+              async trackRequest() {
+                await this.checkRateLimits();
+                this.requestsThisMinute++;
+                this.requestsThisHour++;
+                // Add base delay between requests
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              },
+              
+              async handleRateLimit(error, retryCount = 0) {
+                if (retryCount >= 3) {
+                  throw new Error('Max retries exceeded');
+                }
+                
+                const waitTime = Math.pow(2, retryCount) * 30000; // Exponential backoff: 30s, 60s, 120s
+                console.log(`Rate limited. Waiting ${waitTime/1000} seconds before retry ${retryCount + 1}/3`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                return retryCount + 1;
+              }
+            };
+
             const labels = [
               { name: 'blacksmith', color: '1d76db', description: 'Coffee Pub Blacksmith Module' },
               { name: 'bug', color: 'd73a4a', description: 'Something isn\'t working' },
@@ -45,6 +101,7 @@ jobs:
             
             for (const label of labels) {
               try {
+                await rateLimiter.trackRequest();
                 await github.rest.issues.createLabel({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -55,8 +112,8 @@ jobs:
                 console.log(`Created label: ${label.name}`);
               } catch (error) {
                 if (error.status === 422) {
-                  // Label already exists, update it
                   try {
+                    await rateLimiter.trackRequest();
                     await github.rest.issues.updateLabel({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
@@ -83,27 +140,26 @@ jobs:
           script: |
             const fs = require('fs');
             
-            // Add delay function to prevent rate limiting
-            const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+            // Reuse rateLimiter object definition from above
+            const rateLimiter = {
+              // ... copy the entire rateLimiter object from above ...
+            };
             
-            // Add retry function for rate limited operations
-            async function retryWithBackoff(operation, maxRetries = 3) {
-              let lastError;
-              for (let i = 0; i < maxRetries; i++) {
+            // Add retry wrapper function
+            async function withRetry(operation, maxRetries = 3) {
+              let retryCount = 0;
+              while (true) {
                 try {
+                  await rateLimiter.trackRequest();
                   return await operation();
                 } catch (error) {
-                  lastError = error;
-                  if (error.status === 403 && error.response?.data?.message?.includes('rate limit')) {
-                    const waitTime = Math.pow(2, i) * 10000; // Exponential backoff: 10s, 20s, 40s
-                    console.log(`Rate limited. Waiting ${waitTime/1000} seconds before retry ${i + 1}/${maxRetries}`);
-                    await delay(waitTime);
+                  if (error.status === 403 && error.message?.includes('secondary rate limit')) {
+                    retryCount = await rateLimiter.handleRateLimit(error, retryCount);
                     continue;
                   }
                   throw error;
                 }
               }
-              throw lastError;
             }
             
             try {
@@ -130,16 +186,11 @@ jobs:
                 }
               `;
               
-              const projectResult = await github.graphql(projectQuery, {
-                owner: context.repo.owner
+              const projectResult = await withRetry(async () => {
+                return github.graphql(projectQuery, {
+                  owner: context.repo.owner
+                });
               });
-              
-              // Add delay after project query
-              await delay(1000);
-              
-              const project = projectResult.user.projectV2;
-              const statusField = project.fields.nodes.find(field => field.name === 'Status');
-              const priorityField = project.fields.nodes.find(field => field.name === 'Priority');
               
               // Read and parse ROADMAP.md
               const content = fs.readFileSync('ROADMAP.md', 'utf8');
@@ -182,151 +233,54 @@ jobs:
                 }
               }
               
-              // Get existing issues
-              const { data: existingIssues } = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'all'
+              // Get existing issues with rate limiting
+              const existingIssues = await withRetry(async () => {
+                const { data } = await github.rest.issues.listForRepo({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'all'
+                });
+                return data;
               });
               
-              // Add delay after getting issues
-              await delay(1000);
-              
-              // Process each section
+              // Process each section with rate limiting
               for (const [sectionName, items] of Object.entries(sections)) {
+                console.log(`Processing section: ${sectionName}`);
                 for (const item of items) {
-                  let issueNumber;
-                  
-                  // Check if issue already exists
                   const existingIssue = existingIssues.find(issue => 
                     issue.title === item.title
                   );
                   
                   if (existingIssue) {
-                    // Update existing issue
-                    await github.rest.issues.update({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      issue_number: existingIssue.number,
-                      state: item.state,
-                      labels: item.labels
+                    await withRetry(async () => {
+                      await github.rest.issues.update({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: existingIssue.number,
+                        state: item.state,
+                        labels: item.labels
+                      });
+                      console.log(`Updated issue: ${item.title}`);
                     });
-                    
-                    issueNumber = existingIssue.number;
-                    console.log(`Updated issue: ${item.title}`);
                   } else {
-                    // Create new issue
-                    const { data: newIssue } = await github.rest.issues.create({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      title: item.title,
-                      body: `Priority: ${item.priority}\nCreated from ROADMAP.md`,
-                      labels: item.labels,
-                      state: item.state
-                    });
-                    
-                    issueNumber = newIssue.number;
-                    console.log(`Created new issue: ${item.title}`);
-                  }
-                  
-                  await delay(2000);
-                  
-                  /* Comment out project automation for now
-                  // Add to project and set status
-                  const addToProjectMutation = `
-                    mutation($projectId: ID!, $contentId: ID!) {
-                      addProjectV2ItemById(input: {
-                        projectId: $projectId
-                        contentId: $contentId
-                      }) {
-                        item {
-                          id
-                        }
-                      }
-                    }
-                  `;
-                  
-                  // Get issue node ID
-                  const issueQuery = `
-                    query($owner: String!, $repo: String!, $number: Int!) {
-                      repository(owner: $owner, name: $repo) {
-                        issue(number: $number) {
-                          id
-                        }
-                      }
-                    }
-                  `;
-                  
-                  const issueResult = await github.graphql(issueQuery, {
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    number: issueNumber
-                  });
-                  
-                  const projectResult = await github.graphql(addToProjectMutation, {
-                    projectId: project.id,
-                    contentId: issueResult.repository.issue.id
-                  });
-                  
-                  const itemId = projectResult.addProjectV2ItemById.item.id;
-                  
-                  // Set status
-                  const statusOption = statusField.options.find(opt => opt.name === item.status);
-                  if (statusOption) {
-                    await github.graphql(`
-                      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-                        updateProjectV2ItemFieldValue(
-                          input: {
-                            projectId: $projectId
-                            itemId: $itemId
-                            fieldId: $fieldId
-                            value: { 
-                              singleSelectOptionId: $optionId
-                            }
-                          }
-                        ) {
-                          projectV2Item {
-                            id
-                          }
-                        }
-                      }
-                    `, {
-                      projectId: project.id,
-                      itemId: itemId,
-                      fieldId: statusField.id,
-                      optionId: statusOption.id
+                    await withRetry(async () => {
+                      const { data: newIssue } = await github.rest.issues.create({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        title: item.title,
+                        body: `Priority: ${item.priority}\nCreated from ROADMAP.md`,
+                        labels: item.labels,
+                        state: item.state
+                      });
+                      console.log(`Created new issue: ${item.title}`);
+                      return newIssue;
                     });
                   }
-                  
-                  // Set priority
-                  const priorityOption = priorityField.options.find(opt => opt.name === item.priority);
-                  if (priorityOption) {
-                    await github.graphql(`
-                      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-                        updateProjectV2ItemFieldValue(
-                          input: {
-                            projectId: $projectId
-                            itemId: $itemId
-                            fieldId: $fieldId
-                            value: { 
-                              singleSelectOptionId: $optionId
-                            }
-                          }
-                        ) {
-                          projectV2Item {
-                            id
-                          }
-                        }
-                      }
-                    `, {
-                      projectId: project.id,
-                      itemId: itemId,
-                      fieldId: priorityField.id,
-                      optionId: priorityOption.id
-                    });
-                  }
-                  */
                 }
+                
+                // Add extra delay between sections
+                console.log(`Completed section ${sectionName}. Waiting before next section...`);
+                await new Promise(resolve => setTimeout(resolve, 10000));
               }
               
               console.log('Successfully synced ROADMAP.md to issues');
