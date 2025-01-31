@@ -243,6 +243,35 @@ jobs:
                 });
               });
               
+              // Define project mutations
+              const addToProjectMutation = `
+                mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {
+                    projectId: $projectId
+                    contentId: $contentId
+                  }) {
+                    item {
+                      id
+                    }
+                  }
+                }
+              `;
+              
+              const issueQuery = `
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      id
+                    }
+                  }
+                }
+              `;
+              
+              // Get project fields
+              const project = projectResult.user.projectV2;
+              const statusField = project.fields.nodes.find(field => field.name === 'Status');
+              const priorityField = project.fields.nodes.find(field => field.name === 'Priority');
+              
               // Read and parse ROADMAP.md
               const content = fs.readFileSync('ROADMAP.md', 'utf8');
               const sections = {};
@@ -313,9 +342,87 @@ jobs:
                       });
                       console.log(`Updated issue: ${item.title}`);
                     });
+                    
+                    // Add to project for existing issue
+                    const issueResult = await withRetry(async () => {
+                      return github.graphql(issueQuery, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        number: existingIssue.number
+                      });
+                    });
+                    
+                    const projectResult = await withRetry(async () => {
+                      return github.graphql(addToProjectMutation, {
+                        projectId: project.id,
+                        contentId: issueResult.repository.issue.id
+                      });
+                    });
+                    
+                    const itemId = projectResult.addProjectV2ItemById.item.id;
+                    
+                    // Set status
+                    const statusOption = statusField.options.find(opt => opt.name === item.status);
+                    if (statusOption) {
+                      await withRetry(async () => {
+                        return github.graphql(`
+                          mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                            updateProjectV2ItemFieldValue(
+                              input: {
+                                projectId: $projectId
+                                itemId: $itemId
+                                fieldId: $fieldId
+                                value: { 
+                                  singleSelectOptionId: $optionId
+                                }
+                              }
+                            ) {
+                              projectV2Item {
+                                id
+                              }
+                            }
+                          }
+                        `, {
+                          projectId: project.id,
+                          itemId: itemId,
+                          fieldId: statusField.id,
+                          optionId: statusOption.id
+                        });
+                      });
+                    }
+                    
+                    // Set priority
+                    const priorityOption = priorityField.options.find(opt => opt.name === item.priority);
+                    if (priorityOption) {
+                      await withRetry(async () => {
+                        return github.graphql(`
+                          mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                            updateProjectV2ItemFieldValue(
+                              input: {
+                                projectId: $projectId
+                                itemId: $itemId
+                                fieldId: $fieldId
+                                value: { 
+                                  singleSelectOptionId: $optionId
+                                }
+                              }
+                            ) {
+                              projectV2Item {
+                                id
+                              }
+                            }
+                          }
+                        `, {
+                          projectId: project.id,
+                          itemId: itemId,
+                          fieldId: priorityField.id,
+                          optionId: priorityOption.id
+                        });
+                      });
+                    }
                   } else {
-                    await withRetry(async () => {
-                      const { data: newIssue } = await github.rest.issues.create({
+                    const newIssue = await withRetry(async () => {
+                      const { data: issue } = await github.rest.issues.create({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
                         title: item.title,
@@ -324,8 +431,86 @@ jobs:
                         state: item.state
                       });
                       console.log(`Created new issue: ${item.title}`);
-                      return newIssue;
+                      return issue;
                     });
+                    
+                    // Add to project for new issue
+                    const issueResult = await withRetry(async () => {
+                      return github.graphql(issueQuery, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        number: newIssue.number
+                      });
+                    });
+                    
+                    const projectResult = await withRetry(async () => {
+                      return github.graphql(addToProjectMutation, {
+                        projectId: project.id,
+                        contentId: issueResult.repository.issue.id
+                      });
+                    });
+                    
+                    const itemId = projectResult.addProjectV2ItemById.item.id;
+                    
+                    // Set status
+                    const statusOption = statusField.options.find(opt => opt.name === item.status);
+                    if (statusOption) {
+                      await withRetry(async () => {
+                        return github.graphql(`
+                          mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                            updateProjectV2ItemFieldValue(
+                              input: {
+                                projectId: $projectId
+                                itemId: $itemId
+                                fieldId: $fieldId
+                                value: { 
+                                  singleSelectOptionId: $optionId
+                                }
+                              }
+                            ) {
+                              projectV2Item {
+                                id
+                              }
+                            }
+                          }
+                        `, {
+                          projectId: project.id,
+                          itemId: itemId,
+                          fieldId: statusField.id,
+                          optionId: statusOption.id
+                        });
+                      });
+                    }
+                    
+                    // Set priority
+                    const priorityOption = priorityField.options.find(opt => opt.name === item.priority);
+                    if (priorityOption) {
+                      await withRetry(async () => {
+                        return github.graphql(`
+                          mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                            updateProjectV2ItemFieldValue(
+                              input: {
+                                projectId: $projectId
+                                itemId: $itemId
+                                fieldId: $fieldId
+                                value: { 
+                                  singleSelectOptionId: $optionId
+                                }
+                              }
+                            ) {
+                              projectV2Item {
+                                id
+                              }
+                            }
+                          }
+                        `, {
+                          projectId: project.id,
+                          itemId: itemId,
+                          fieldId: priorityField.id,
+                          optionId: priorityOption.id
+                        });
+                      });
+                    }
                   }
                 }
                 
