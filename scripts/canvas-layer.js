@@ -1,21 +1,23 @@
+import { postConsoleAndNotification } from './global.js';
+
 export class BlacksmithLayer extends CanvasLayer {
     constructor() {
         super();
-        console.log("BlacksmithLayer: Initialized");
+        postConsoleAndNotification("BlacksmithLayer: Initialized", "", false, true, false);
     }
 
     async _draw() {
-        console.log("BlacksmithLayer: Drawing layer");
+        postConsoleAndNotification("BlacksmithLayer: Drawing layer", "", false, true, false);
         // Add your drawing logic here
     }
 
     activate() {
-        console.log("BlacksmithLayer: Activated");
+        postConsoleAndNotification("BlacksmithLayer: Activated", "", false, true, false);
         // Add any custom activation logic here
     }
 
     deactivate() {
-        console.log("BlacksmithLayer: Deactivated");
+        postConsoleAndNotification("BlacksmithLayer: Deactivated", "", false, true, false);
         // Add any custom deactivation logic here
     }
 }
