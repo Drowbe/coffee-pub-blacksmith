@@ -11,7 +11,7 @@ let socket;
 
 // Set up socketlib
 Hooks.once('socketlib.ready', () => {
-    console.log("Blacksmith | Setting up Planning Timer socketlib");
+    postConsoleAndNotification("Setting up Planning Timer socketlib", "", false, true, false);
     socket = socketlib.registerModule(MODULE_ID);
     socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
     socket.register("timerAdjusted", PlanningTimer.timerAdjusted);
@@ -33,7 +33,7 @@ export class PlanningTimer {
     };
 
     static initialize() {
-        console.log(`${MODULE_TITLE} | Planning Timer | Initializing`);
+        postConsoleAndNotification("Planning Timer | Initializing", "", false, true, false);
         
         // Initialize state
         this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -49,7 +49,7 @@ export class PlanningTimer {
             
             // Check if we're loading into an active combat with planning phase
             if (game.combat?.started && game.combat.turn === 0) {
-                console.log(`${MODULE_TITLE} | Planning Timer | Initial load during planning phase`);
+                postConsoleAndNotification("Planning Timer | Initial load during planning phase", "", false, true, false);
                 const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
                 this.startTimer(duration, true);
                 ui.combat.render(true);
@@ -228,7 +228,7 @@ export class PlanningTimer {
     }
 
     static pauseTimer() {
-        console.log(`${MODULE_TITLE} | Planning Timer | Pausing timer`);
+        postConsoleAndNotification("Planning Timer | Pausing timer", "", false, true, false);
         this.state.isPaused = true;
         this.state.showingMessage = false;
 
@@ -251,7 +251,7 @@ export class PlanningTimer {
     }
 
     static resumeTimer() {
-        console.log(`${MODULE_TITLE} | Planning Timer | Resuming timer`);
+        postConsoleAndNotification("Planning Timer | Resuming timer", "", false, true, false);
         this.state.isPaused = false;
         this.state.showingMessage = false;
 
@@ -614,7 +614,7 @@ export class PlanningTimer {
     }
 
     static forceEnd() {
-        console.log(`${MODULE_TITLE} | Planning Timer | Force ending timer`);
+        postConsoleAndNotification("Planning Timer | Force ending timer", "", false, true, false);
         // Make sure we're unpaused and active
         this.state.isPaused = false;
         this.state.isActive = true;
@@ -656,7 +656,7 @@ export class PlanningTimer {
 }
 
 Hooks.once('init', () => {
-    console.log(`${MODULE_TITLE} | Exposing Planning Timer API`);
+    postConsoleAndNotification("Exposing Planning Timer API", "", false, true, false);
     // Initialize the API object if it doesn't exist
     const module = game.modules.get(MODULE_ID);
     module.api = module.api || {};
