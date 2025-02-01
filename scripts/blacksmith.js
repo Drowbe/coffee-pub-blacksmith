@@ -18,7 +18,6 @@ import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, g
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 
-
 // -- Import special page variables --
 // Register settings so they can be loaded below.
 import { registerSettings } from './settings.js';
@@ -59,16 +58,9 @@ registerBlacksmithUpdatedHook();
 postConsoleAndNotification("Registering settings...", "", false, false, false);    
 await registerSettings();
 
-
-
 // ================================================================== 
 // ===== REGISTER HOOKS =============================================
 // ================================================================== 
-
-
-// LOAD THE DASHBOARD
-// dashboard.setGridDimensions('left', 4, 8); // Changes left grid to 4 rows and 8 columns
-// dashboard.setGridDimensions('right', 5, 6); // Changes right grid to 5 rows and 6 columns
 
 Hooks.once('ready', () => {
     postConsoleAndNotification("Readying the Dashboard.", "", false, false, false); 
@@ -85,14 +77,9 @@ Hooks.once('ready', () => {
     CPBPlayerStats.initialize();
 });
 
-
-
-
 // ***************************************************
 // ** INIT
 // ***************************************************
-
-
 
 // Function to inject BlacksmithLayer into the canvas layers list
 const hookCanvas = () => {
@@ -171,18 +158,7 @@ Hooks.on('updateToken', updateNameplates);
 // Set the variable to track token count
 let tokenCount = new Map();
 
-
 Hooks.once('ready', function() {
-
-
-    // if (!game.modules[MODULE_ID]) {
-    //     console.error(`Module with ID ${MODULE_ID} is not loaded.`);
-    // } else {
-        // REMOVING OLD TOOLBAR
-    //    buildBlacksmithToolbar(); // Call the function to create the toolbar and add initial buttons
-    // }
-
-
 
     // RICH CONSOLE
     const blnFancyConsole = game.settings.get(MODULE_ID, 'globalFancyConsole');
@@ -361,8 +337,6 @@ Hooks.on("ready", () => {
     // Set defaults
     let strDefaultCardTheme = game.settings.get(MODULE_ID, 'defaultCardTheme');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
-
-
     // *** CHECK FOR MACRO BUTTONS ***
     // OPEN AI WINDOW
     var strOpenAIMacro = game.settings.get(MODULE_ID, 'openAIMacro');
@@ -397,11 +371,9 @@ Hooks.on("ready", () => {
 
 });
 
-
 // ***************************************************
 // ** HOOKS ON: CREATE NOTE
 // ***************************************************
-
 
 // Flag to track if Ctrl key was active during renderNoteConfig
 let ctrlKeyActiveDuringRender = false;
@@ -484,23 +456,8 @@ Hooks.on('preCreateNote', async (note, options, userId) => {
 
     if (ctrlKeyActiveDuringRender) {
         postConsoleAndNotification("Ctrl key was active during renderNoteConfig. Doing nothing with this right now.", "", false, true, false);
-
-        // // Set the default icon
-        // note.updateSource({ "texture.src": strIconUrl });
-        // console.log("Note icon set to default:", strIconUrl);
-
-        // // Prevent the configuration window from opening
-        // options.renderSheet = false;
-
-        // // Optional: Notify the user
-        // postConsoleAndNotification("CTRL Note created with default icon.", "", false, false, false);
-
-        // // Reset the flag
-        // ctrlKeyActiveDuringRender = false;
     }
 });
-
-
 
 // Browser Button
 export function buildButtonEventBrowser() {
@@ -515,7 +472,6 @@ export function buildButtonEventBrowser() {
     playSound(COFFEEPUB.SOUNDBUTTON06,COFFEEPUB.SOUNDVOLUMESOFT);
     browserWindow.render(true); 
 }
-
 
 export function buildButtonEventRegent(worksheet = 'default') {
     postConsoleAndNotification(`BLACKSMITH: Opening Regent with worksheet: ${worksheet}`, "", false, true, false);
@@ -592,7 +548,6 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
     }
 });
 
-
 // ***************************************************
 // ** UTILITY Run Macro
 // ***************************************************
@@ -611,7 +566,6 @@ async function runMacro(macroName) {
     }
 }
 
-
 // ***************************************************
 // ** UTILITY Scene Clicks
 // ***************************************************
@@ -619,9 +573,7 @@ async function runMacro(macroName) {
 Hooks.on("ready", function () {
     let blnShowIcons = game.settings.get(MODULE_ID, 'enableSceneInteractions');
     let blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
-    
     let timeout;
-
     function updateSceneIcons(sceneId) {
         setTimeout(() => {
             const scene = game.scenes.get(sceneId);
@@ -637,7 +589,6 @@ Hooks.on("ready", function () {
             }
         }, 0)
     }
-
     function updateIcons() {
         // if they enables icons, process them
         if (blnShowIcons){
@@ -689,11 +640,9 @@ Hooks.on("ready", function () {
     updateIcons(); // Call updateIcons when Foundry first loads
 });
 
-
 // ***************************************************
 // ** RENDER CHAT MESSAGE
 // ***************************************************
-
 // Looks for a specific span code and hides the header of that card
 // <span style="visibility: visible">coffeepub-hide-header</span>
 
@@ -709,7 +658,6 @@ Hooks.on('renderChatMessage', (message, html, data) => {
       hideHeaderFlag.css("display", "none");
     }
   });
-
 
 // ***************************************************
 // ** RENDER Import Journal Entries
@@ -773,19 +721,10 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
     $(html).find(".header-actions.action-buttons").prepend(button);
 });
 
-
-
-
-
-
-
-
-
-
-
 // ***************************************************
 // ** UTILITY Build Injury Journal
 // ***************************************************
+
 async function buildInjuryJournalEntry(journalData) {
     var blnImage = true;
     var compiledHtml = "";
@@ -889,9 +828,6 @@ async function buildInjuryJournalEntry(journalData) {
     return;
 }
 
-
-
-
 // ***************************************************
 // ** UTILITY Build Query Card
 // ***************************************************
@@ -971,8 +907,6 @@ function scrollToBottom() {
     var element = document.querySelector('#coffee-pub-blacksmith-output');
     element.scrollTop = element.scrollHeight;
 }
-
-
 
 // ***************************************************
 // ** UTILITY Update Token Nameplates
@@ -1108,7 +1042,6 @@ function updateObjectLinkStyles() {
     postConsoleAndNotification("Link style updates complete.", "", false, false, false);
 }
 
-
 // ***************************************************
 // ** UTILITY Update Window Styles
 // ***************************************************
@@ -1205,375 +1138,3 @@ function updateMargins() {
     root.style.setProperty('--intOffsetMarginTop', cardTopOffset +'px');
     postConsoleAndNotification("Update Margins complete.", "", false, false, false);
 }
-
-
-
-
-
-// ***************************************************
-// ** CLASS Floating Toolbar
-// ***************************************************
-// REMOVING OLD TOOLBAR
-// class CoffeePubToolbar {
-//     constructor() {
-
-//         let intBlacksmithToolbarLeft = localStorage.getItem('toolbarLeft') || "200px";
-//         let intBlacksmithToolbarTop = localStorage.getItem('toolbarTop') || "200px";
-//         postConsoleAndNotification("Getting the toolbar location.", "Left: "+ intBlacksmithToolbarLeft + " Top: " + intBlacksmithToolbarTop, false, false, false);
-//         this.tools = [];
-//         this.toolbar = document.createElement("div");
-//         this.toolbar.id = "blacksmith-toolbar-wrapper";
-//         this.toolbar.setAttribute("style", "left: " + intBlacksmithToolbarLeft + "; top: " + intBlacksmithToolbarTop + ";");
-//         document.body.appendChild(this.toolbar);
-//         const gripDiv = document.createElement("div");
-//         gripDiv.id = "blacksmith-toolbar-grip";
-
-//         this.grip = document.createElement("i");
-//         this.grip.className = "fa-solid fa-square blacksmith-toolbar-grip-icon";
-//         gripDiv.appendChild(this.grip);
-//         this.toolbar.appendChild(gripDiv);
-
-//         this.buttonWrapper = document.createElement("div");
-//         this.buttonWrapper.id = "blacksmith-button-wrapper-bar";
-//         this.toolbar.appendChild(this.buttonWrapper);
-//         this.pos1 = 0;
-//         this.pos2 = 0;
-//         this.pos3 = 0;
-//         this.pos4 = 0;
-//         this.grip.onmousedown = this.dragMouseDown.bind(this);
-
-//         gripDiv.addEventListener('contextmenu', (e) => {
-//             e.preventDefault();
-//             updateRotateToolbar();
-//             return false;
-//         }, false);
-//     }
-
-
-//     dragMouseDown(e) {
-//         e = e || window.event;
-//         e.preventDefault();
-//         this.pos3 = e.clientX;
-//         this.pos4 = e.clientY;
-//         document.onmouseup = this.closeDragElement.bind(this);
-//         document.onmousemove = this.elementDrag.bind(this);
-//         playSound(COFFEEPUB.SOUNDBUTTON03,COFFEEPUB.SOUNDVOLUMESOFT);
-//     }
-
-//     elementDrag(e) {
-//         e = e || window.event;
-//         e.preventDefault();
-//         this.pos1 = this.pos3 - e.clientX;
-//         this.pos2 = this.pos4 - e.clientY;
-//         this.pos3 = e.clientX;
-//         this.pos4 = e.clientY;
-//         this.toolbar.style.left = (this.toolbar.offsetLeft - this.pos1) + "px";
-//         this.toolbar.style.top = (this.toolbar.offsetTop - this.pos2) + "px";
-//     }
-
-//     closeDragElement() {
-//         postConsoleAndNotification("Saving the new toolbar location.", "Left: "+ this.toolbar.style.left + " Top: " + this.toolbar.style.top, false, false, false);
-//         localStorage.setItem('toolbarLeft', this.toolbar.style.left);
-//         localStorage.setItem('toolbarTop', this.toolbar.style.top);
-//         document.onmouseup = null;
-//         document.onmousemove = null;
-//         playSound(COFFEEPUB.SOUNDBUTTON09,COFFEEPUB.SOUNDVOLUMESOFT);
-//     }
-
-//     addButton(id, layout, type, title, icon, action) {
-//         const button = document.createElement("button");
-//         const div = document.createElement('div');
-//         button.id = id;
-//         button.className = this.getClassForType(type);
-//         this.modifyWrapperForLayout(layout);
-    
-//         // -- Process Spacers --
-//         if (type === "spacer") {
-//             if (icon === "spacer" || icon === "") {
-//                 // if the icon is "spacer" or empty
-//                 div.className = "blacksmith-spacer";
-                
-//             } else if(icon.includes("fas")) {
-//                 // if icon contains "fas"
-//                 div.className = "blacksmith-spacer";
-//                 div.innerHTML = `<i class="${icon}"></i>`;
-//                 div.dataset.tooltip = "";
-                
-//             } else {
-//                 // if the icon is something unexpected
-//                 div.className = "blacksmith-spacer";
-//             }
-            
-//             //appending the spacer div to wrapper if type is "spacer"
-//             this.buttonWrapper.appendChild(div);
-//             return; // exit early for spacer
-          
-//         } 
-    
-//         // -- Process Buttons --
-//         let buttonIcon;
-        
-//         if (icon.includes('.')) {
-//             buttonIcon = document.createElement("img");
-//             buttonIcon.src = icon;
-//             buttonIcon.className = "blacksmith-button-image"; // apply class to img
-//         } else {
-//             buttonIcon = document.createElement("i");
-//             buttonIcon.className = icon;
-//         }
-        
-//         button.appendChild(buttonIcon);
-//         button.onclick = action;
-//         button.setAttribute('data-tooltip', title);
-//         this.buttonWrapper.appendChild(button);
-//         this.tools.push(button);
-//     }
-
-//     modifyWrapperForLayout(layout) {
-//         if(layout === "block") {
-//             this.buttonWrapper.id = "blacksmith-button-wrapper-block";
-//         } else {
-//             this.buttonWrapper.id = "blacksmith-button-wrapper-bar";
-//         }
-//     }
-
-//     getClassForType(type) {
-//         let className;
-//         switch(type) {
-//             case "spacer":
-//                 className = "blacksmith-spacer";
-//                 break;
-//             case "button-1x1":
-//                 className = "blacksmith-button-1x1";
-//                 break;
-//             case "button-2x2":
-//                 className = "blacksmith-button-2x2";
-//                 break;
-//             case "button-4x4":
-//                 className = "blacksmith-button-4x4";
-//                 break;
-//             case "panel-1x1":
-//                 className = "blacksmith-panel-1x1";
-//                 break;
-//             case "panel-2x2":
-//                 className = "blacksmith-panel-2x2";
-//                 break;
-//             case "panel-4x4":
-//                 className = "blacksmith-panel-4x4";
-//                 break;
-//             case "panel-1x2":
-//                 className = "blacksmith-panel-1x2";
-//                 break;
-//             case "panel-2x4":
-//                 className = "blacksmith-panel-2x4";
-//                 break;
-//             case "panel-4x8":
-//                 className = "blacksmith-panel-4x8";
-//                 break;
-//             default:
-//                 className = "blacksmith-button-1x1";
-//         }
-
-//         return className;
-//     }
-
-//     addCustomButton(id, layout, type, title, icon, action) {
-//         this.addButton(id, layout, type, title, icon, action);
-//     }
-// }
-
-// ***************************************************
-// ** UTILITY Rotate toolbar and buttons
-// ***************************************************
-// REMOVING OLD TOOLBAR
-// function updateRotateToolbar() {
-//     //postConsoleAndNotification("RIGHT CLICK", "", false, false, true);
-//     // Toggle these
-//     let toolbarWrapperFlexDirection = document.getElementById('blacksmith-toolbar-wrapper');
-//     let strOrientationToolbar;
-//     if (toolbarWrapperFlexDirection) {
-//         let style = window.getComputedStyle(toolbarWrapperFlexDirection);
-//         strOrientationToolbar = style.getPropertyValue('flex-direction');
-//     } else {
-//         postConsoleAndNotification("No element with id blacksmith-toolbar-wrapper found", "", false, true, false);
-//     }
-//     // #blacksmith-toolbar-wrapper
-//     // flex-direction: column; /* row | column */
-//     // // #blacksmith-toolbar-grip
-//     // // transform: translate( -8%, 0%);/* row: -60%, 60% | column: -8%, 0% */
-//     let toolbarGripTranslate = document.getElementById('blacksmith-toolbar-grip');
-
-//     // // #blacksmith-toolbar-grip .blacksmith-toolbar-grip-icon
-//     // // transform: rotate(90deg);/* 0deg | 90deg */
-//     let toolbarGripRotate = document.getElementsByClassName('blacksmith-toolbar-grip-icon');
-
-
-//     let toolbarSpacerRotate = document.getElementsByClassName('blacksmith-spacer');
-
-//     // // #blacksmith-button-wrapper
-//     // // flex-direction: column; /* row | column */
-//     let toolbarButtonWrapperFlex = document.getElementById('blacksmith-button-wrapper-bar');
-    
-//     if (toolbarWrapperFlexDirection && toolbarGripTranslate && toolbarGripRotate &&  toolbarSpacerRotate && toolbarButtonWrapperFlex) {
-//         //postConsoleAndNotification("ROTATE current toolbarWrapperFlexDirection", toolbarWrapperFlexDirection, false, true, false);
-//         if (strOrientationToolbar == "row") {
-//             // Make it a COLUMN
-//             //postConsoleAndNotification("ROTATE IT", toolbarWrapperFlexDirection, false, false, true);
-//             toolbarWrapperFlexDirection.style.flexDirection = "column";
-//             toolbarGripTranslate.style.transform = "translate(-8%, 0%)";
-//             toolbarButtonWrapperFlex.style.flexDirection = "column";
-//             for (let i = 0; i < toolbarGripRotate.length; i++) {
-//                 toolbarGripRotate[i].style.transform = "rotate(90deg)";
-//             }
-//             for (let i = 0; i < toolbarSpacerRotate.length; i++) {
-//                 toolbarSpacerRotate[i].style.transform = "rotate(90deg)";
-//             }
-
-//         } else {
-//             // Make it a ROW
-//             //postConsoleAndNotification("ROTATE IT", toolbarWrapperFlexDirection, false, false, true);
-//             toolbarWrapperFlexDirection.style.flexDirection = "row";
-//             toolbarGripTranslate.style.transform = "translate( -60%, 60%)";
-//             toolbarButtonWrapperFlex.style.flexDirection = "row";
-//             for (let i = 0; i < toolbarGripRotate.length; i++) {
-//                 toolbarGripRotate[i].style.transform = "rotate(0deg)";
-//             }
-//             for (let i = 0; i < toolbarSpacerRotate.length; i++) {
-//                 toolbarSpacerRotate[i].style.transform = "rotate(0deg)";
-//             }
-//         }
-//         playSound(COFFEEPUB.SOUNDNOTIFICATION05,COFFEEPUB.SOUNDVOLUMESOFT);
-//     } else {
-//         postConsoleAndNotification("One or more elements not found.", "updateRotateToolbar", false, true, true);
-//         if (!toolbarWrapperFlexDirection) {
-//             postConsoleAndNotification("toolbarWrapperFlexDirection", toolbarWrapperFlexDirection, false, true, true);
-//         }
-//         if (!toolbarGripTranslate) {
-//             postConsoleAndNotification("toolbarGripTranslate", toolbarGripTranslate, false, true, true);
-//         }
-//         if (!toolbarGripRotate) {
-//             postConsoleAndNotification("toolbarGripRotate", toolbarGripRotate, false, true, true);
-//         }
-//         if (!toolbarSpacerRotate) {
-//             postConsoleAndNotification("toolbarSpacerRotate", toolbarSpacerRotate, false, true, true);
-//         }
-//         if (!toolbarButtonWrapperFlex) {
-//             postConsoleAndNotification("toolbarButtonWrapperFlex", toolbarButtonWrapperFlex, false, true, true);
-//         }
-//     }
-// }
-
-// ***************************************************
-// ** UTILITY Add toolbar and buttons
-// ***************************************************
-// REMOVING OLD TOOLBAR
-// function buildBlacksmithToolbar() {
-//     // Add the buttons
-//     //let toolbar = game.modules[MODULE_ID].toolbar || new CoffeePubToolbar(); // Create a new instance only if it doesn't exist
-    
-//     if (game.user.isGM) {
-//         postConsoleAndNotification("Building toolbar for GM", game.user.isGM, false, false, false);
-//         let toolbarUtilities = new CoffeePubToolbar(); // Create a new instance only if it doesn't exist
-//         //let toolbarEncounters = new CoffeePubToolbar(); // Create a new instance only if it doesn't exist
-//         //let toolbarSoundboard = new CoffeePubToolbar(); // Create a new instance only if it doesn't exist
-//         // id, layout, type, title, icon, action
-//         //var strSpacer = "fa-solid fa-pipe";
-//         var strSpacer = "fas fa-circle-small";
-//         // Tools
-//         toolbarUtilities.addButton("btnRegent", "bar", "button-1x1", "Consult the Regent", "icons/sundries/scrolls/scroll-runed-brown-blue.webp", () => { buildButtonEventRegent(); });
-//         toolbarUtilities.addButton("btnBrowser", "bar", "button-1x1",  "GM Notes", "icons/sundries/books/book-tooled-eye-gold-red.webp", () => { buildButtonEventBrowser(); });
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Injuries
-//         toolbarUtilities.addButton("btnInjury", "bar", "button-1x1",  "Apply Injury", "icons/commodities/bones/bone-broken-grey-red.webp", () => { runMacro("Injuries"); });
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Encounters
-//         toolbarUtilities.addButton("btnEncDungeon", "bar", "button-1x1",  "Encounter: Dungeon", "icons/environment/wilderness/tomb-entrance.webp", () => { runMacro("Encounter: Dungeon"); });
-//         toolbarUtilities.addButton("btnEncDesert", "bar", "button-1x1",  "Encounter: Desert", "icons/environment/wilderness/terrain-rocks-brown.webp", () => { runMacro("Encounter: Desert"); });
-//         toolbarUtilities.addButton("btnEncForest", "bar", "button-1x1",  "Encounter: Forest", "icons/environment/wilderness/tree-ash.webp", () => { runMacro("Encounter: Forest"); });
-//         toolbarUtilities.addButton("btnEncMountain", "bar", "button-1x1",  "Encounter: Mountain", "icons/environment/wilderness/carved-standing-stone.webp", () => { runMacro("Encounter: Mountain"); });
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Chat
-//         toolbarUtilities.addButton("btnPartyMessage", "bar", "button-1x1",  "Party Message", "icons/creatures/abilities/mouth-teeth-human.webp", () => { runMacro("Party Message"); });
-//         toolbarUtilities.addButton("btnPrivateMessage", "bar", "button-1x1",  "Private Message", "icons/tools/scribal/ink-quill-pink.webp", () => { runMacro("Private Message"); });
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Item Piles
-//         toolbarUtilities.addButton("btnItemPileToToken", "bar", "button-1x1",  "Item Pile to Token", "icons/commodities/treasure/figurine-idol.webp", () => { runMacro("Item Pile to Token"); });
-//         toolbarUtilities.addButton("btnTokenToItemPile", "bar", "button-1x1",  "Token to Item Pile", "icons/commodities/currency/coins-plain-pouch-gold.webp", () => { runMacro("Token to Item Pile"); });
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Soundboard
-//         toolbarUtilities.addButton("btnSoundTrumpetBoing", "bar", "button-1x1",  "Sound: Trumpet Boing", "icons/tools/instruments/horn-red-grey.webp", () => { runMacro("Sound: Trumpet Boing"); });
-//         toolbarUtilities.addButton("btnSoundBongoFeet", "bar", "button-1x1",  "Sound: Bongo Feet", "icons/tools/instruments/drum-brown-red.webp", () => { runMacro("Sound: Bongo Feet"); });
-//         toolbarUtilities.addButton("btnSoundKabong", "bar", "button-1x1",  "Sound: Kabong", "icons/tools/instruments/lute-gold-brown.webp", () => { runMacro("Sound: Kabong"); });
-//     } else {
-//         postConsoleAndNotification("Building toolbar for Player", game.user.isGM, false, false, false);
-//         let toolbarUtilities = new CoffeePubToolbar(); // Create a new instance only if it doesn't exist
-//         // Tools
-//         toolbarUtilities.addButton("btnRegent", "bar", "button-1x1",  "Consult the Regent", "icons/sundries/scrolls/scroll-runed-brown-blue.webp", () => { buildButtonEventRegent(); });
-//         toolbarUtilities.addButton("btnBrowser", "bar", "button-1x1",  "Player Handbook", "icons/sundries/books/book-tooled-eye-gold-red.webp", "icons/sundries/books/book-tooled-eye-gold-red.webp", () => { buildButtonEventBrowser(); });  
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Chat
-//         toolbarUtilities.addButton("btnPartyMessage", "bar", "button-1x1",  "Party Message", "icons/creatures/abilities/mouth-teeth-human.webp", () => { runMacro("Party Message"); });
-//         toolbarUtilities.addButton("btnPrivateMessage", "bar", "button-1x1",  "Private Message", "icons/tools/scribal/ink-quill-pink.webp", () => { runMacro("Private Message"); });
-
-//         toolbarUtilities.addButton("btnSpacer", "bar", "spacer",  "", strSpacer, () => { });
-//         // Soundboard
-//         toolbarUtilities.addButton("btnSoundTrumpetBoing", "bar", "button-1x1",  "Sound: Trumpet Boing", "icons/tools/instruments/horn-red-grey.webp", () => { runMacro("Sound: Trumpet Boing"); });
-//         toolbarUtilities.addButton("btnSoundBongoFeet", "bar", "button-1x1",  "Sound: Bongo Feet", "icons/tools/instruments/drum-brown-red.webp", () => { runMacro("Sound: Bongo Feet"); });
-//         toolbarUtilities.addButton("btnSoundKabong", "bar", "button-1x1",  "Sound: Kabong", "icons/tools/instruments/lute-gold-brown.webp", () => { runMacro("Sound: Kabong"); });
-//     }
-
-
-//     // Expose the toolbarUtilities instance
-//     // TURNING OFF UNTIL EVERYTHIN ESLE WORKS
-//     //postConsoleAndNotification("BEFORE Gloabl toolbarUtilities Create...", game.modules, false, true, false);
-//     //game.modules[MODULE_ID].toolbarUtilities = toolbarUtilities;
-//     //postConsoleAndNotification("AFTER Gloabl toolbarUtilities Create...", game.modules, false, true, false);
-//     //postConsoleAndNotification("AFTER game.modules[MODULE_ID].toolbarUtilities...", game.modules[MODULE_ID].toolbarUtilities, false, true, false);
-
-// }
-
-// REMOVING OLD TOOLBAR   
-// Process the button array
-// Hooks.on('getSceneControlButtons', (controls) => {
-
-//     // Define your buttons
-//     const buttonToolbarHideShow = {
-//         icon: "fa-solid fa-coffee-pot",
-//         name: "btnToolbarHideShow",
-//         title: "Toggle the Coffee Pub Toolbar",
-//         visible: true,
-//         onClick: () => { updateHideShowToolbar(); }
-//     };
-
-//     // Add them into an array
-//     const buttons = [ buttonToolbarHideShow ];
-
-//     const tokenControls = controls.find(c => c.name === "token");
-//     buttons.forEach(button => {
-//         if (!tokenControls.tools.find(c => c.name === button.name)) {
-//             tokenControls.tools.push(button);
-//         }
-//     });
-// });
-
-// ***************************************************
-// ** UTILITY Toolbar Button Functions
-// ***************************************************
-// REMOVING OLD TOOLBAR
-// Hide or Show the Coffee Pub toolbar
-// function updateHideShowToolbar() {
-//     postConsoleAndNotification("Clicked Button", "Toggle the Coffee Pub Toolbar", false, false, false);
-//     let toolbar = document.getElementById('blacksmith-toolbar-wrapper');
-//     postConsoleAndNotification("TOOLBAR", toolbar, false, true, false);
-//     if (toolbar) {
-//         if (toolbar.style.display === "none") {
-//             postConsoleAndNotification("Showing the toolbar.", toolbar, false, false, false);
-//             toolbar.style.display = "flex";
-//         } else {
-//             postConsoleAndNotification("Hiding the toolbar.", toolbar, false, false, false);
-//             toolbar.style.display = "none";
-//         }
-//     } else {
-//         postConsoleAndNotification("No toolbar found.", "", false, false, false);
-//     }
-// }
