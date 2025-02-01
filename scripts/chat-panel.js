@@ -24,7 +24,7 @@ class ChatPanel {
         // Set up socket listener for leader updates
         game.socket.on(`module.${MODULE_ID}`, (data) => {
             if (data.type === 'updateLeader') {
-                console.log("Blacksmith | Chat Panel: Received leader update:", data.leader);
+                postConsoleAndNotification("Chat Panel: Received leader update:", data.leader, false, true, false);
                 this.currentLeader = data.leader;
                 this.updateLeaderDisplay();
             }
@@ -195,23 +195,23 @@ class ChatPanel {
     static async loadLeader() {
         try {
             const leaderId = await game.settings.get(MODULE_ID, 'partyLeader');
-            console.log("Blacksmith | Chat Panel: Loading leader, found ID:", leaderId);
+            postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
             
             if (leaderId) {
                 const leader = game.users.get(leaderId);
                 if (leader) {
                     this.currentLeader = leader.name;
-                    console.log("Blacksmith | Chat Panel: Set current leader to:", this.currentLeader);
+                    postConsoleAndNotification("Chat Panel: Set current leader to:", this.currentLeader, false, true, false);
                     // Only send messages if user is GM
                     if (game.user.isGM) {
                         await this.sendLeaderMessages(leader.name, leaderId);
                     }
                 } else {
-                    console.log("Blacksmith | Chat Panel: Could not find user with ID:", leaderId);
+                    postConsoleAndNotification("Chat Panel: Could not find user with ID:", leaderId, false, true, false);
                     this.currentLeader = null;
                 }
             } else {
-                console.log("Blacksmith | Chat Panel: No leader ID found in settings");
+                postConsoleAndNotification("Chat Panel: No leader ID found in settings", "", false, true, false);
                 this.currentLeader = null;
             }
         } catch (error) {
@@ -224,7 +224,7 @@ class ChatPanel {
         try {
             const endTime = await game.settings.get(MODULE_ID, 'sessionEndTime');
             const startTime = await game.settings.get(MODULE_ID, 'sessionStartTime');
-            console.log("Blacksmith | Chat Panel: Loading timer, found end time:", endTime);
+            postConsoleAndNotification("Chat Panel: Loading timer, found end time:", endTime, false, true, false);
             this.sessionEndTime = endTime;
             this.sessionStartTime = startTime;
         } catch (error) {
@@ -237,7 +237,7 @@ class ChatPanel {
     static startTimerUpdates() {
         // For non-GM users, only start updates if we have a valid session end time
         if (!game.user.isGM && !this.sessionEndTime) {
-            console.debug("Blacksmith | Chat Panel: No session end time set, skipping timer updates for player");
+            postConsoleAndNotification("Chat Panel: No session end time set, skipping timer updates for player", "", false, true, false);
             return;
         }
 
@@ -366,7 +366,7 @@ class ChatPanel {
                 speaker: { alias: gmUser.name }
             });
         } catch (error) {
-            console.debug("Blacksmith | Chat Panel: Settings not yet registered, skipping warning notification");
+            postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping warning notification", "", false, true, false);
         }
     }
 
@@ -396,7 +396,7 @@ class ChatPanel {
                 speaker: { alias: gmUser.name }
             });
         } catch (error) {
-            console.debug("Blacksmith | Chat Panel: Settings not yet registered, skipping expiration notification");
+            postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping expiration notification", "", false, true, false);
         }
     }
 
