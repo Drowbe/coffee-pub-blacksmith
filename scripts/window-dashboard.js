@@ -5,13 +5,9 @@
 import { BLACKSMITH, MODULE_ID, MODULE_TITLE } from './const.js'
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 
-
-
-
 // ================================================================== 
 // ===== REGISTER TEMPLATE PARTIALS =================================
 // ================================================================== 
-
 
 document.addEventListener('DOMContentLoaded', () => {
     // Register partials and render templates
@@ -21,14 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dashboardCharacterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-dashboard-character.hbs').then(response => response.text());
             Handlebars.registerPartial('window-dashboard-character', dashboardCharacterTemplate);  
 
-            // MAIN TEMPLATE
-            // const mainTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-dashboard.hbs').then(response => response.text());
-            // const template = Handlebars.compile(mainTemplate);
-            // console.log("BLACKSMITH template", template); // Log function call
-           
-
-            
-
         } catch (error) {
             console.error('Error loading partial templates:', error);
         }
@@ -36,9 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call the function to register partials and render templates
     registerPartialsAndRender();
-    console.log("Called registerPartialsAndRender"); // Log function call
+    postConsoleAndNotification("Called registerPartialsAndRender", "", false, true, false);
 });
-
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================
@@ -145,12 +132,9 @@ Hooks.on('canvasReady', () => {
 
 });
 
-
 // ================================================================== 
 // ===== FUNCTIONS ==================================================
 // ================================================================== 
-
-
 
 async function buildCharacterCard() {
     postConsoleAndNotification("BLACKSMITH buildCharacterCard Building character card", "", false, true, false);
@@ -234,8 +218,6 @@ async function buildCharacterCard() {
     //postConsoleAndNotification("CARDDATA.content" , CARDDATA.content, false, true, true);
     // Return the template
     compiledHtml = template(CARDDATA);
-    console.log("BLACKSMITH buildCharacterCard compiledHtml", compiledHtml);
+    postConsoleAndNotification("buildCharacterCard compiledHtml", compiledHtml, false, true, false);
     document.getElementById('blacksmith-dashboard-container').innerHTML = compiledHtml;
-
-
 }
