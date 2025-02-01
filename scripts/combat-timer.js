@@ -11,7 +11,7 @@ let socket;
 
 // Set up socketlib
 Hooks.once('socketlib.ready', () => {
-    console.log("Blacksmith | Setting up Combat Timer socketlib");
+    postConsoleAndNotification("Setting up Combat Timer socketlib", "", false, true, false);
     socket = socketlib.registerModule(MODULE_ID);
     socket.register("syncTimerState", CombatTimer.receiveTimerSync);
 });
@@ -35,11 +35,11 @@ class CombatTimer {
         Hooks.once('ready', () => {
             try {
                 if (!game.settings.get(MODULE_ID, 'combatTimerEnabled')) {
-                    console.log(`Blacksmith | Combat Timer is disabled`);
+                    postConsoleAndNotification("Combat Timer is disabled", "", false, true, false);
                     return;
                 }
 
-                console.log(`Blacksmith | Initializing Combat Timer`);
+                postConsoleAndNotification("Initializing Combat Timer", "", false, true, false);
                 
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -62,7 +62,7 @@ class CombatTimer {
                     if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
                         const combat = game.combat;
                         if (combat?.started && combat.combatants.find(c => c.isOwner)) {
-                            console.log(`Blacksmith | Auto-opening combat tracker for player in active combat`);
+                            postConsoleAndNotification("Auto-opening combat tracker for player in active combat", "", false, true, false);
                             const tabApp = ui["combat"];
                             tabApp.renderPopout(tabApp);
                         }
@@ -80,7 +80,7 @@ class CombatTimer {
         // Check for game initialization
         if (!game?.user) return;  // Exit if game or user not ready
         
-        console.log("Blacksmith | Combat Timer: Received timer sync from GM", state);
+        postConsoleAndNotification("Combat Timer: Received timer sync from GM", "", false, true, false);
         if (!game.user.isGM) {
             CombatTimer.state = foundry.utils.deepClone(state);
             CombatTimer.updateUI();
@@ -89,7 +89,7 @@ class CombatTimer {
 
     static async syncState() {
         if (game.user.isGM) {
-            console.log("Blacksmith | Combat Timer: GM syncing state to players");
+            postConsoleAndNotification("Combat Timer: GM syncing state to players", "", false, true, false);
             await socket.executeForOthers("syncTimerState", this.state);
             this.updateUI();
         }
@@ -285,11 +285,11 @@ class CombatTimer {
     static async _onUpdateCombat(combat, changed, options, userId) {
         if (!game.user.isGM) return;
         
-        console.log("Blacksmith | Combat Timer: Update Combat", { combat, changed }); // Debug log
+        postConsoleAndNotification("Combat Timer: Update Combat", { combat, changed }, false, true, false);
         
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
-            console.log("Blacksmith | Combat Timer: Skipping update while ending planning timer");
+            postConsoleAndNotification("Combat Timer: Skipping update while ending planning timer", "", false, true, false);
             return;
         }
 
@@ -299,13 +299,13 @@ class CombatTimer {
             const previousTurn = combat.turn - 1;
             const previousCombatant = combat.turns?.[previousTurn];
             if (previousCombatant && previousTurn >= 0) {
-                console.log("Blacksmith | Combat Timer: Recording end of previous turn for:", previousCombatant.name);
+                postConsoleAndNotification("Combat Timer: Recording end of previous turn for:", previousCombatant.name, false, true, false);
                 CombatStats.recordTurnEnd(previousCombatant);
             }
 
             // Check if this is turn 0 (planning phase)
             if (combat.turn === 0) {
-                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
+                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
                 this.resetTimer();
                 this.state.isPaused = true;
                 this.pauseTimer();
@@ -313,11 +313,11 @@ class CombatTimer {
             }
             
             // For all other turns
-            console.log("Blacksmith | Combat Timer: Regular turn change detected"); // Debug log
+            postConsoleAndNotification("Combat Timer: Regular turn change detected", "", false, true, false);
             
             // Check auto-start setting
             const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-            console.log("Blacksmith | Combat Timer: Auto-start setting:", autoStart); // Debug log
+            postConsoleAndNotification("Combat Timer: Auto-start setting:", autoStart, false, true, false);
             
             // Reset timer first
             this.resetTimer();
@@ -327,7 +327,7 @@ class CombatTimer {
             
             // Start or pause based on setting
             if (autoStart) {
-                console.log("Blacksmith | Combat Timer: Auto-starting timer for new turn"); // Debug log
+                postConsoleAndNotification("Combat Timer: Auto-starting timer for new turn", "", false, true, false);
                 this.resumeTimer();
                 
                 // Play start sound if configured
@@ -336,7 +336,7 @@ class CombatTimer {
                     playSound(startSound, this.getTimerVolume());
                 }
             } else {
-                console.log("Blacksmith | Combat Timer: Keeping timer paused for new turn"); // Debug log
+                postConsoleAndNotification("Combat Timer: Keeping timer paused for new turn", "", false, true, false);
                 this.pauseTimer();
             }
         }
@@ -345,11 +345,11 @@ class CombatTimer {
         if ("round" in changed) {
             // Record the end of the last turn of the previous round
             if (combat.combatant) {
-                console.log("Blacksmith | Combat Timer: Recording end of last turn for round change:", combat.combatant.name);
+                postConsoleAndNotification("Combat Timer: Recording end of last turn for round change:", combat.combatant.name, false, true, false);
                 CombatStats.recordTurnEnd(combat.combatant);
             }
 
-            console.log("Blacksmith | Combat Timer: Round change detected"); // Debug log
+            postConsoleAndNotification("Combat Timer: Round change detected", "", false, true, false);
             // Reset timer and set initial state based on auto-start setting
             const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
             
@@ -358,11 +358,11 @@ class CombatTimer {
             this.state.isPaused = !autoStart;
             
             if (combat.turn === 0) {
-                console.log("Blacksmith | Combat Timer: Planning phase - forcing pause"); // Debug log
+                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
                 this.state.isPaused = true;
                 this.pauseTimer();
             } else if (autoStart) {
-                console.log("Blacksmith | Combat Timer: Auto-starting timer for new round"); // Debug log
+                postConsoleAndNotification("Combat Timer: Auto-starting timer for new round", "", false, true, false);
                 this.resumeTimer();
                 
                 // Play start sound if configured
@@ -371,7 +371,7 @@ class CombatTimer {
                     playSound(startSound, this.getTimerVolume());
                 }
             } else {
-                console.log("Blacksmith | Combat Timer: Keeping timer paused for new round"); // Debug log
+                postConsoleAndNotification("Combat Timer: Keeping timer paused for new round", "", false, true, false);
                 this.pauseTimer();
             }
             return;  // Don't process other changes on round change
@@ -417,12 +417,12 @@ class CombatTimer {
                 });
             }
         } catch (error) {
-            console.error("Combat Timer: Error in startTimer:", error);
+            console.error("Blacksmith | Combat Timer: Error in startTimer:", error);
         }
     }
 
     static pauseTimer() {
-        console.log("Blacksmith | Combat Timer: Pausing timer");
+        postConsoleAndNotification("Combat Timer: Pausing timer", "", false, true, false);
         this.state.isPaused = true;
         this.state.showingMessage = false;
         
@@ -452,18 +452,18 @@ class CombatTimer {
     }
 
     static resumeTimer() {
-        console.log("Blacksmith | Combat Timer: Resuming timer");
+        postConsoleAndNotification("Combat Timer: Resuming timer", "", false, true, false);
         
         // If we're in planning phase (turn 0), end the planning timer gracefully
         if (game.combat?.turn === 0 && !this._endingPlanningTimer) {
-            console.log("Blacksmith | Combat Timer: Ending planning timer gracefully as combat timer is being resumed");
+            postConsoleAndNotification("Combat Timer: Ending planning timer gracefully as combat timer is being resumed", "", false, true, false);
             // Set flag to prevent recursion
             this._endingPlanningTimer = true;
             
             // Get the planning timer instance and ensure it ends properly
             const module = game.modules.get(MODULE_ID);
             if (module?.api?.PlanningTimer) {
-                console.log("Blacksmith | Combat Timer: Found Planning Timer, ending it");
+                postConsoleAndNotification("Combat Timer: Found Planning Timer, ending it", "", false, true, false);
                 const planningTimer = module.api.PlanningTimer;
                 
                 // Directly clean up the planning timer
@@ -536,7 +536,7 @@ class CombatTimer {
         
         // Sync state to players on every tick if GM
         if (game.user.isGM) {
-            console.log("Blacksmith | Combat Timer: Ticking, syncing state to players");
+            postConsoleAndNotification("Combat Timer: Ticking, syncing state to players", "", false, true, false);
             this.syncState();
         }
         
@@ -588,7 +588,7 @@ class CombatTimer {
 
     static updateUI() {
         try {
-            console.log("Blacksmith | Combat Timer: Updating UI with state", this.state);
+            postConsoleAndNotification("Combat Timer: Updating UI with state", this.state, false, true, false);
             // Update progress bar using state duration
             const percentage = (this.state.remaining / this.state.duration) * 100;
             const bar = $('.combat-timer-bar');
@@ -625,7 +625,7 @@ class CombatTimer {
             
             // Update timer text
             const timerText = $('.combat-timer-text');
-            console.log("Blacksmith | Combat Timer: Setting timer text, isPaused:", this.state.isPaused);
+            postConsoleAndNotification("Combat Timer: Setting timer text, isPaused:", this.state.isPaused, false, true, false);
             if (this.state.isPaused) {
                 timerText.text('COMBAT TIMER PAUSED');
             } else if (this.state.remaining <= 0) {
@@ -756,11 +756,7 @@ class CombatTimer {
 
     // Add logState method for debugging
     static logState(context = "") {
-        console.log(`Blacksmith | Combat Timer: State [${context}]`, {
-            state: foundry.utils.deepClone(this.state),
-            isGM: game.user.isGM,
-            hasTimer: !!this.timer
-        });
+        postConsoleAndNotification(`Combat Timer: State [${context}]`, this.state, false, true, false);
     }
 }
 
