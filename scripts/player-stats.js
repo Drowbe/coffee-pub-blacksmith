@@ -105,14 +105,10 @@ class CPBPlayerStats {
 
     static async getPlayerStats(actorId) {
         const actor = game.actors.get(actorId);
-        if (!actor) {
-            console.log(`${MODULE_ID} | No actor found with ID:`, actorId);
-            return null;
-        }
+        if (!actor) return null;
 
         const stats = await actor.getFlag(MODULE_ID, 'playerStats');
         if (!stats) {
-            console.log(`${MODULE_ID} | No stats found for actor:`, actor.name, '. Initializing...');
             await this.initializeActorStats(actorId);
             return await actor.getFlag(MODULE_ID, 'playerStats');
         }
@@ -150,26 +146,11 @@ class CPBPlayerStats {
     static async _onCombatUpdate(combat, changed, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
 
-        console.log(`${MODULE_ID} | Combat Update:`, {
-            changed,
-            currentTurn: combat.turn,
-            previousTurn: combat.previous?.turn,
-            round: combat.round,
-            active: combat.active
-        });
-
         // Only process if turn changed or combat ended
         if (!changed.turn && !changed.round && !changed.active) return;
 
         const currentTurn = combat.turns[combat.turn];
         const previousTurn = combat.turns[combat.previous?.turn];
-
-        console.log(`${MODULE_ID} | Processing Turns:`, {
-            currentTurn: currentTurn?.name,
-            previousTurn: previousTurn?.name,
-            isCurrentPC: currentTurn ? this._isPlayerCharacter(currentTurn) : false,
-            isPreviousPC: previousTurn ? this._isPlayerCharacter(previousTurn) : false
-        });
 
         // Process previous turn if it exists and was a player character
         if (previousTurn && this._isPlayerCharacter(previousTurn)) {
@@ -185,13 +166,6 @@ class CPBPlayerStats {
     // Turn processing methods
     static async _processTurnStart(combat, combatant) {
         const actorId = combatant.actorId;
-        console.log(`${MODULE_ID} | Turn Start:`, {
-            actor: combatant.name,
-            actorId,
-            round: combat.round,
-            turn: combat.turn
-        });
-
         const sessionStats = this._getSessionStats(actorId);
         
         if (!sessionStats.currentCombat) {
@@ -209,43 +183,22 @@ class CPBPlayerStats {
         };
         
         sessionStats.currentCombat.turns.push(turnData);
-        console.log(`${MODULE_ID} | Recorded Turn Start:`, turnData);
-
         this._updateSessionStats(actorId, { currentCombat: sessionStats.currentCombat });
     }
 
     static async _processTurnEnd(combat, combatant) {
         const actorId = combatant.actorId;
-        console.log(`${MODULE_ID} | Turn End:`, {
-            actor: combatant.name,
-            actorId,
-            round: combat.round,
-            turn: combat.turn
-        });
-
         const sessionStats = this._getSessionStats(actorId);
         
-        if (!sessionStats.currentCombat?.turns.length) {
-            console.log(`${MODULE_ID} | No current combat data found for actor:`, actorId);
-            return;
-        }
+        if (!sessionStats.currentCombat?.turns.length) return;
 
         // Get the last turn for this combatant
         const currentTurn = sessionStats.currentCombat.turns[sessionStats.currentCombat.turns.length - 1];
-        if (!currentTurn.startTime) {
-            console.log(`${MODULE_ID} | No start time found for current turn:`, currentTurn);
-            return;
-        }
+        if (!currentTurn.startTime) return;
 
         // Calculate turn duration
         const endTime = Date.now();
         const duration = (endTime - currentTurn.startTime) / 1000; // Convert to seconds
-
-        console.log(`${MODULE_ID} | Turn Duration:`, {
-            startTime: new Date(currentTurn.startTime).toISOString(),
-            endTime: new Date(endTime).toISOString(),
-            duration: `${duration} seconds`
-        });
 
         // Update session stats
         currentTurn.endTime = endTime;
@@ -277,11 +230,6 @@ class CPBPlayerStats {
                 date: new Date().toISOString()
             };
         }
-
-        console.log(`${MODULE_ID} | Updated Turn Stats:`, {
-            actor: combatant.name,
-            turnStats
-        });
 
         await this.updatePlayerStats(actorId, { lifetime: { turnStats } });
     }
@@ -316,13 +264,6 @@ class CPBPlayerStats {
         const actor = item.actor;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
 
-        console.log(`${MODULE_ID} | Attack Roll:`, {
-            actor: actor.name,
-            item: item.name,
-            roll: roll,
-            ammo: ammo
-        });
-
         try {
             // Get the d20 result
             const d20Result = roll.dice.find(d => d.faces === 20)?.results?.[0]?.result;
@@ -355,11 +296,9 @@ class CPBPlayerStats {
 
             if (isCritical) {
                 updates.lifetime.attacks.criticals = (stats.lifetime.attacks.criticals || 0) + 1;
-                console.log(`${MODULE_ID} | Recording critical hit, new total:`, updates.lifetime.attacks.criticals);
             }
             if (isFumble) {
                 updates.lifetime.attacks.fumbles = (stats.lifetime.attacks.fumbles || 0) + 1;
-                console.log(`${MODULE_ID} | Recording fumble, new total:`, updates.lifetime.attacks.fumbles);
             }
 
             if (Object.keys(updates.lifetime.attacks).length > 0) {
@@ -377,13 +316,6 @@ class CPBPlayerStats {
 
         const actor = item.actor;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
-
-        console.log(`${MODULE_ID} | Damage Roll:`, {
-            actor: actor.name,
-            actorId: actor.id,
-            item: item.name,
-            roll: roll
-        });
 
         try {
             const rollTotal = roll.total;
@@ -517,18 +449,12 @@ class CPBPlayerStats {
                 }
 
                 // Save combat stats
-                console.log(`${MODULE_ID} | Updating combat stats:`, combatStats);
                 await combat.setFlag(MODULE_ID, 'combatStats', combatStats);
             }
 
             if (isHealing) {
                 updates.lifetime.healing = updates.lifetime.healing || {};
                 updates.lifetime.healing.total = (stats.lifetime.healing.total || 0) + rollTotal;
-
-                console.log(`${MODULE_ID} | Healing Analysis:`, {
-                    healingAmount: rollTotal,
-                    totalHealing: updates.lifetime.healing.total
-                });
             } else {
                 // Find the matching attack roll
                 let attackInfo = null;
@@ -579,12 +505,6 @@ class CPBPlayerStats {
                 const hitLog = [...(stats.lifetime.attacks.hitLog || [])];
                 hitLog.unshift(hitDetails);
                 updates.lifetime.attacks.hitLog = hitLog.slice(0, 20); // Keep last 20 hits
-
-                console.log(`${MODULE_ID} | Damage Analysis:`, {
-                    rollTotal,
-                    hitDetails,
-                    attackInfo
-                });
             }
 
             await this.updatePlayerStats(actor.id, updates);
@@ -615,8 +535,6 @@ class CPBPlayerStats {
             healing: [],
             participants: {}
         });
-
-        console.log(`${MODULE_ID} | Combat started, initialized stats:`, await combat.getFlag(MODULE_ID, 'combatStats'));
     }
 
     static async _onCombatEnd(combat, options, userId) {
@@ -650,8 +568,6 @@ class CPBPlayerStats {
                 (hit.amount > (max?.amount || 0)) ? hit : max, null),
             criticals: combatStats.hits.filter(h => h.isCritical).length
         };
-
-        console.log(`${MODULE_ID} | Combat ended, final stats:`, stats);
 
         // Store these stats somewhere if needed
         // Could be added to a combat log journal, sent to chat, etc.

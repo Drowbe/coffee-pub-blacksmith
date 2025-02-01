@@ -62,7 +62,6 @@ export class PlanningTimer {
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
-        console.log(`${MODULE_TITLE} | Planning Timer: Received timer sync from GM`, state);
         if (!game.user.isGM) {
             PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();
@@ -91,7 +90,6 @@ export class PlanningTimer {
         try {
             if (!game.settings.get(MODULE_ID, 'planningTimerEnabled')) return;
         } catch (error) {
-            console.debug(`${MODULE_TITLE} | Planning Timer | Settings not yet registered`);
             return;
         }
 
@@ -119,9 +117,8 @@ export class PlanningTimer {
 
     static handleCombatStart(combat) {
         if (!this.isInitialized) {
-            console.log(`${MODULE_TITLE} | Planning Timer | Waiting for initialization...`);
-                return;
-            }
+            return;
+        }
             
         this.state.isExpired = false;
         this.cleanupTimer();
@@ -308,8 +305,6 @@ export class PlanningTimer {
     }
 
     static setTime(newTime) {
-        console.log(`${MODULE_TITLE} | Planning Timer | Setting new time: ${newTime}s`);
-        
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
         
@@ -364,7 +359,6 @@ export class PlanningTimer {
         try {
             if (!game.settings.get(MODULE_ID, 'planningTimerEnabled')) return false;
         } catch (error) {
-            console.debug(`${MODULE_TITLE} | Planning Timer | Settings not yet registered`);
             return false;
         }
 
@@ -614,7 +608,6 @@ export class PlanningTimer {
 
     static async syncState() {
         if (game.user.isGM) {
-            console.log(`${MODULE_TITLE} | Planning Timer: GM syncing state to players`);
             await socket.executeForOthers("syncPlanningTimerState", this.state);
             this.updateUI();
         }

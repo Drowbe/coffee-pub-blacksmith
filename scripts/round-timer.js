@@ -65,7 +65,6 @@ export class RoundTimer {
     static _onUpdateCombat(combat, changed, options, userId) {
         // If round changes, we need to reset our timer
         if (changed.round && changed.round !== combat.previous.round) {
-            console.log(`${MODULE_TITLE} | Round Timer: New round started`);
             // Force a full re-render when the round changes
             ui.combat.render();
         }
