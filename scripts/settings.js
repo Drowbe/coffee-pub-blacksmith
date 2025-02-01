@@ -1082,7 +1082,7 @@ export const registerSettings = async () => {
 	game.settings.register(MODULE_ID, "headingH2OpenAI", {
 		name: MODULE_ID + '.headingH2OpenAI-Label',
 		hint: MODULE_ID + '.headingH2OpenAI-Hint',
-		scope: "client",
+		scope: "world",
 		config: true,
 		default: "",
 		type: String,
@@ -1411,7 +1411,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	game.settings.register(MODULE_ID, "headingH2Browser", {
 		name: MODULE_ID + '.headingH2Browser-Label',
 		hint: MODULE_ID + '.headingH2Browser-Hint',
-		scope: "client",
+		scope: "world",
 		config: true,
 		default: "",
 		type: String,
@@ -1433,7 +1433,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	game.settings.register(MODULE_ID, 'browserURL', {
 		name: MODULE_ID + '.browserURL-Label',
 		hint: MODULE_ID + '.browserURL-Hint',
-		scope: "client",
+		scope: "world",
 		config: true,
 		requiresReload: false,
 		type: String,
@@ -1515,7 +1515,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	game.settings.register(MODULE_ID, "headingH2Timers", {
 		name: 'TIMERS',
 		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
-		scope: "client",
+		scope: "world",
 		config: true,
 		default: "",
 		type: String,
@@ -1932,7 +1932,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	game.settings.register(MODULE_ID, "headingH2Statistics", {
 		name: 'Combat Statistics',
 		hint: 'These settings will allow you to track and share combat statistics.',
-		scope: "client",
+		scope: "world",
 		config: true,
 		default: "",
 		type: String,
@@ -2074,7 +2074,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	game.settings.register(MODULE_ID, "headingH2Debug", {
 		name: MODULE_ID + '.headingH2Debug-Label',
 		hint: MODULE_ID + '.headingH2Debug-Hint',
-		scope: "client",
+		scope: "world",
 		config: true,
 		default: "",
 		type: String,
@@ -2099,7 +2099,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'world',
 		default: true,
 	});
 	// ---------- DEBUG SETTINGS ----------
@@ -2119,7 +2119,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'world',
 		default: false,
 	});
 
@@ -2140,7 +2140,7 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		type: String,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'world',
 		default: "fancy",
 		choices: {
 			'fancy': 'Fancy Pants: Large Font and Boxes',
