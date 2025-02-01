@@ -539,7 +539,7 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
             loop: loop
         }, broadcast);
     } catch (error) {
-        console.error(`Failed to play sound: ${sound}`, error);
+        console.error(`Blacksmith | Global.js | Failed to play sound: ${sound}`, error);
     }
 }
 
@@ -1018,19 +1018,19 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
  * @returns {boolean} - True if the entity is a player character
  */
 export function isPlayerCharacter(entity) {
-    console.log('Blacksmith | isPlayerCharacter - Checking entity:', entity);
+    postConsoleAndNotification('isPlayerCharacter - Checking entity:', entity, false, true, false);
 
     // If we're passed a combatant, check its actor
     if (entity?.actor) {
         const result = entity.actor.hasPlayerOwner || 
                       entity.actor.type === 'character' ||
                       game.users.find(u => u.character?.name === entity.name);
-        console.log('Blacksmith | isPlayerCharacter - Combatant check result:', {
+        postConsoleAndNotification('isPlayerCharacter - Combatant check result:', {
             name: entity.name,
             hasPlayerOwner: entity.actor.hasPlayerOwner,
             type: entity.actor.type,
             isPC: result
-        });
+        }, false, true, false);
         return result;
     }
     
@@ -1039,12 +1039,12 @@ export function isPlayerCharacter(entity) {
         const result = entity.hasPlayerOwner || 
                       entity.type === 'character' ||
                       game.users.find(u => u.character?.id === entity.id);
-        console.log('Blacksmith | isPlayerCharacter - Actor check result:', {
+        postConsoleAndNotification('isPlayerCharacter - Actor check result:', {
             name: entity.name,
             hasPlayerOwner: entity.hasPlayerOwner,
             type: entity.type,
             isPC: result
-        });
+        }, false, true, false);
         return result;
     }
     
@@ -1059,16 +1059,16 @@ export function isPlayerCharacter(entity) {
         // If no player character found, check if any user has this character name
         const isUserCharacter = game.users.some(u => u.character?.name === entity);
         
-        console.log('Blacksmith | isPlayerCharacter - Name check result:', {
+        postConsoleAndNotification('isPlayerCharacter - Name check result:', {
             name: entity,
             foundPlayerActor: !!playerActor,
             isUserCharacter,
             isPC: !!playerActor || isUserCharacter
-        });
+        }, false, true, false);
         
         return !!playerActor || isUserCharacter;
     }
     
-    console.log('Blacksmith | isPlayerCharacter - No valid entity type found');
+    postConsoleAndNotification('isPlayerCharacter - No valid entity type found', "", false, true, false);
     return false;
 }
