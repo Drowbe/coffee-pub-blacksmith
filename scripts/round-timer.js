@@ -10,7 +10,7 @@ export class RoundTimer {
     static updateInterval = null;
 
     static initialize() {
-        console.log(`${MODULE_TITLE} | Round Timer | Initializing`);
+        postConsoleAndNotification(`Round Timer | Initializing`);
         
         // Wait for ready to ensure settings are registered
         Hooks.once('ready', () => {
