@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_ID } from './const.js';
-import { playSound } from './global.js';
+import { postConsoleAndNotification, playSound } from './global.js';
 
 class ChatPanel {
     static ID = 'chat-panel';

@@ -1,6 +1,9 @@
 import { MODULE_ID } from './const.js';
 import { BlacksmithWindowDashboard } from './window-dashboard.js';
+import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 import { buildButtonEventRegent, buildButtonEventBrowser } from './blacksmith.js';
+// -- Global utilities --
+import { rollCoffeePubDice, playSound } from './global.js';
 
 export function addToolbarButton() {
     console.log("BLACKSMITH: Adding toolbar button");

@@ -1,6 +1,6 @@
 // Import MODULE variables
 import { MODULE_ID } from './const.js';
-import { isPlayerCharacter } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './global.js';
 
 // Default stats structure
 const CPB_STATS_DEFAULTS = {
