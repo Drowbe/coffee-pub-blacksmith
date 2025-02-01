@@ -65,7 +65,7 @@ class CPBPlayerStats {
     static initialize() {
         if (!game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
         
-        console.log(`${MODULE_ID} | Player Stats - Initializing player statistics tracking`);
+        postConsoleAndNotification(`Player Stats - Initializing player statistics tracking`);
         
         // Initialize stats for all player characters
         game.actors.forEach(actor => {
@@ -98,7 +98,7 @@ class CPBPlayerStats {
 
         const existingStats = await actor.getFlag(MODULE_ID, 'playerStats');
         if (!existingStats) {
-            console.log(`${MODULE_ID} | Initializing stats for actor:`, actor.name);
+            postConsoleAndNotification(`Initializing stats for actor:`, actor.name);
             await actor.setFlag(MODULE_ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
         }
     }
