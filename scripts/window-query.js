@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to add event listeners
     const addEventListeners = () => {
-        console.log("Adding event listeners..."); // Log when adding event listeners
+        postConsoleAndNotification("Adding event listeners...", "", false, true, false);
         const workspaces = ['lookup', 'narrative', 'encounter', 'assistant', 'character'];
 
         workspaces.forEach(workspace => {
@@ -29,18 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (skill && dice && roll) {
                 skill.addEventListener('change', () => {
-                    console.log(`Skill changed in ${workspace}:`, skill.value);
+                    postConsoleAndNotification(`Skill changed in ${workspace}:`, skill.value, false, true, false);
                 });
 
                 dice.addEventListener('change', () => {
-                    console.log(`Dice changed in ${workspace}:`, dice.value);
+                    postConsoleAndNotification(`Dice changed in ${workspace}:`, dice.value, false, true, false);
                 });
 
                 roll.addEventListener('change', () => {
-                    console.log(`Roll changed in ${workspace}:`, roll.value);
+                    postConsoleAndNotification(`Roll changed in ${workspace}:`, roll.value, false, true, false);
                 });
             } else {
-                console.error(`Elements not found for workspace: ${workspace}`);
+                console.error(`Blacksmith | Elements not found for workspace: ${workspace}`);
             }
         });
 
@@ -173,17 +173,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add event listeners after rendering
                     addEventListeners();
                 } else {
-                    console.error('Element with ID "blacksmith-workspace-wrapper" not found.');
+                    console.error('Blacksmith | Element with ID "blacksmith-workspace-wrapper" not found.');
                 }
             });
         } catch (error) {
-            console.error('Error loading partial templates:', error);
+            console.error('Blacksmith | Error loading partial templates:', error);
         }
     };
 
     // Call the function to register partials and render templates
     registerPartialsAndRender();
-    console.log("Called registerPartialsAndRender"); // Log function call
+    postConsoleAndNotification("Called registerPartialsAndRender", "", false, true, false);
 });
 
 
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Function to toggle the visibility of workspace sections
 window.toggleSection = function(sectionId, button) {
-    console.log("Toggling section with ID:", sectionId); // Debugging log
+    postConsoleAndNotification("Toggling section with ID:", sectionId, false, true, false);
     const sectionContent = document.getElementById(sectionId);
     if (sectionContent) {
         sectionContent.classList.toggle('collapsed');
@@ -209,9 +209,9 @@ window.toggleSection = function(sectionId, button) {
             icon.classList.remove('fa-chevron-down');
             icon.classList.add('fa-chevron-up');
         }
-        console.log("Collapsed class toggled. Current classes:", sectionContent.className); // Debugging log
+        postConsoleAndNotification("Collapsed class toggled. Current classes:", sectionContent.className, false, true, false);
     } else {
-        console.error("Section content not found for ID:", sectionId); // Debugging log
+        console.error("Section content not found for ID:", sectionId);
     }
 };
 
@@ -330,36 +330,36 @@ export class BlacksmithWindowQuery extends FormApplication {
     constructor(options = {}, mode = 'default') {
         super(options);
         this.messages = [];
-        console.log("Setting the selected workspace mode...");
+        postConsoleAndNotification("Setting the selected workspace mode...", "", false, true, false);
         // Set workspaceId based on mode
         // put events and actions for the workspace in "initialize"
         if (mode === 'encounter') {
             this.workspaceId = 'encounter';
             this.showWorkspace = true; 
-            console.log("Setting up for Encounter mode");
+            postConsoleAndNotification("Setting up for Encounter mode", "", false, true, false);
         } else if (mode === 'assistant') {
             this.workspaceId = 'assistant';
             this.showWorkspace = true; 
-            console.log("Setting up for Assistant mode");
+            postConsoleAndNotification("Setting up for Assistant mode", "", false, true, false);
         } else if (mode === 'narrative') {
             this.workspaceId = 'narrative';
             this.showWorkspace = true; 
-            console.log("Setting up for Narration mode");
+            postConsoleAndNotification("Setting up for Narration mode", "", false, true, false);
         } else if (mode === 'character') {
             this.workspaceId = 'character';
             this.showWorkspace = true; 
-            console.log("Setting up for Character mode");
+            postConsoleAndNotification("Setting up for Character mode", "", false, true, false);
         } else if (mode === 'lookup') {
             this.workspaceId = 'lookup';
             this.showWorkspace = true; 
-            console.log("Setting up for Lookup mode");
+            postConsoleAndNotification("Setting up for Lookup mode", "", false, true, false);
         } else {
             this.workspaceId = 'lookup'; // Default to 'lookup' for any other mode
             this.showWorkspace = false;
-            console.log("Setting up for Default mode (Lookup)");
+            postConsoleAndNotification("Setting up for Default mode (Lookup)", "", false, true, false);
         }
     
-        console.log(`BlacksmithWindowQuery initialized with mode: ${mode} andworkspaceId: ${this.workspaceId}`);
+        postConsoleAndNotification(`BlacksmithWindowQuery initialized with mode: ${mode} andworkspaceId: ${this.workspaceId}`, "", false, true, false);
     }
 
     // ************************************
@@ -401,8 +401,8 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async initialize(html) {
-        console.log(`BlacksmithWindowQuery initialized.`);
-        console.log(`this.workspaceId: ${this.workspaceId}`);
+        postConsoleAndNotification(`BlacksmithWindowQuery initialized.`, "", false, true, false);
+        postConsoleAndNotification(`this.workspaceId: ${this.workspaceId}`, "", false, true, false);
     
         // Check if we're starting in encounter mode and have selected tokens
         if (this.workspaceId === 'encounter' && canvas.tokens.controlled.length > 0) {
@@ -422,7 +422,6 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     activateListeners(html) {
         super.activateListeners(html);
-        console.log("BlacksmithWindowQuery: Activating listeners...");
 
         // don't let these buttons submit the main form
         html.on('click', '.blacksmith-send-button-normal', (event) => {
@@ -503,9 +502,9 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-tokens-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                console.log("Player Button clicked:", event.target); // Log button click
+                postConsoleAndNotification("Player Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                console.log("Extracted ID:", id); // Log extracted ID
+                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the tokens to the container
                 await this.addTokensToContainer(id, 'player');
                 // update the counts
@@ -522,9 +521,9 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-monsters-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                console.log("Monster Button clicked:", event.target); // Log button click
+                postConsoleAndNotification("Monster Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                console.log("Extracted ID:", id); // Log extracted ID
+                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the monsters to the container
                 await this.addTokensToContainer(id, 'monster');
                 // update the counts
@@ -540,9 +539,9 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-npcs-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                console.log("NPC Button clicked:", event.target); // Log button click
+                postConsoleAndNotification("NPC Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                console.log("Extracted ID:", id); // Log extracted ID
+                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the monsters to the container
                 await this.addTokensToContainer(id, 'npc');
                 // update the counts
@@ -605,7 +604,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     
         // Update workspaceId
         this.workspaceId = workspaceId.replace('blacksmith-query-workspace-', '');
-        console.log('Updated active workspace ID:', this.workspaceId);
+        postConsoleAndNotification('Updated active workspace ID:', this.workspaceId, false, true, false);
     
         // Toggle the active class for the clicked button
         const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
@@ -660,7 +659,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async addAllTokensToContainer(id) {
-        console.log("ADD ALL Button clicked for ID:", id); // Log button click
+        postConsoleAndNotification("ADD ALL Button clicked for ID:", id, false, true, false);
 
         // Add the monsters and players to the container
         await this.addTokensToContainer(id, 'monster');
@@ -677,7 +676,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             const partyHeroCRElement = partyHeroCRContainer.querySelector('.big-number.bold-badge');
             if (partyHeroCRElement) {
                 heroCR = partyHeroCRElement.innerText.trim();
-                console.log(`Party Benchmark for id ${id}:`, heroCR);
+                postConsoleAndNotification(`Party Benchmark for id ${id}:`, heroCR, false, true, false);
             } else {
                 console.error(`Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`);
             }
@@ -692,7 +691,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             const npcHeroCrElement = npcHeroCrContainer.querySelector('.big-number.bold-badge');
             if (npcHeroCrElement) {
                 heroCR = npcHeroCrElement.innerText.trim();
-                console.log(`NPC Hero CR for id ${id}:`, heroCR);
+                postConsoleAndNotification(`NPC Hero CR for id ${id}:`, heroCR, false, true, false);
             } else {
                 console.error(`Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`);
             }
@@ -704,9 +703,9 @@ export class BlacksmithWindowQuery extends FormApplication {
         let monsterCRValue = 0;
         if (monsterCRValueElement) {
             monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
-            console.log(`Monster CR Value for id ${id}:`, monsterCRValue);
+            postConsoleAndNotification(`Monster CR Value for id ${id}:`, monsterCRValue, false, true, false);
         } else {
-            console.error(`Element with id monsterCRValue-${id} not found.`);
+            console.error(`Blacksmith | Element with id monsterCRValue-${id} not found.`);
             monsterCRValue = 0;
         }
 
@@ -730,7 +729,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     }
 
     async addTokensToContainer(id, type = 'player') {
-        console.log(`Adding ${type} tokens to container for ID:`, id);
+        postConsoleAndNotification(`Adding ${type} tokens to container for ID:`, id, false, true, false);
         const intHPThreshold = 50;
         
         // Get the appropriate container based on type
@@ -744,7 +743,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (!tokensContainer) {
-            console.error(`Container not found for type ${type} and ID ${id}`);
+            console.error(`Blacksmith | Container not found for type ${type} and ID ${id}`);
             return;
         }
     
@@ -781,7 +780,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                        !isItemPile;
             }
         });
-        console.log(`Filtered ${type} tokens:`, tokens); // Log filtered tokens
+        postConsoleAndNotification(`Filtered ${type} tokens:`, tokens, false, true, false);
     
         if (tokens.length === 0) {
             tokensContainer.innerHTML = `<p>No ${type} tokens found on the canvas.</p>`;
@@ -791,7 +790,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         // Generate HTML for each token
         tokens.forEach(token => {
             const actorData = token.actor.system;
-            console.log("Actor Data:", actorData); // Log the actor data to inspect its structure
+            postConsoleAndNotification("Actor Data:", actorData, false, true, false);
             const name = token.name;
             const strName = trimString(name, 16);
     
@@ -901,12 +900,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                 const strFormattedUUID = `@UUID[Actor."${uuid}"]{${strName}}`;
 
                 // For debugging
-                console.log("Monster CR Data:", {
+                postConsoleAndNotification("Monster CR Data:", {
                     name: strName,
                     rawCR: actorData.details?.cr,
                     formattedCR: cr,
                     type: monsterType
-                });
+                }, false, true, false);
 
                 type = 'Monster';
 
@@ -990,8 +989,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                     postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
             }
         } catch (error) {
-            console.error("Error processing JSON:", error);
-            postConsoleAndNotification("Error processing JSON", error.message, false, false, true);
+            console.error("Blacksmith | Error processing JSON:", error);
+
         }
     }
 
@@ -1014,7 +1013,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 speaker: ChatMessage.getSpeaker()
             });
         } else {
-            console.error("No content found to send to chat.");
+            console.error("Blacksmith | No content found to send to chat.");
             ui.notifications.error("No content found to send to chat.");
         }
     }
@@ -1044,12 +1043,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                 await navigator.clipboard.writeText(content);
                 ui.notifications.info("Content copied to clipboard.");
             } catch (err) {
-                console.error("Failed to copy content: ", err);
-                ui.notifications.error("Failed to copy content to clipboard.");
+                console.error("Blacksmith | Failed to copy content: ", err);
+                ui.notifications.error("Blacksmith | Failed to copy content to clipboard.");
             }
         } else {
-            console.error("No content found to copy.");
-            ui.notifications.error("No content found to copy.");
+            console.error("Blacksmith | No content found to copy.");
+            ui.notifications.error("Blacksmith | No content found to copy.");
         }
     }
 
@@ -1083,7 +1082,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // INPUT MESSAGE - NORMAL QUESTION
         const inputMessage = form.querySelector('textarea[name="blacksmith-input-message"]').value.trim();
-        console.log('Form submitted with message:', inputMessage); // Debugging log
+        postConsoleAndNotification('Form submitted with message:', inputMessage, false, true, false);
 
 
         //  LOOKUPS
@@ -1115,7 +1114,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         let targetRating = ""; // Initialize the variable
         if (targetRatingElement) {
             targetRating = targetRatingElement.textContent; // Set targetRating to the text content
-            console.log(targetRating); // Optional: log the value to verify
+            postConsoleAndNotification(targetRating, "", false, true, false);
         }
         const inputNarrativeEncounterDetails = form.querySelector('#inputNarrativeEncounterDetails-' + id)?.value ?? null;
 
