@@ -1,4 +1,5 @@
 import { MVPTemplates } from './mvp-templates.js';
+import { postConsoleAndNotification } from './global.js';
 
 export class MVPDescriptionGenerator {
     static THRESHOLDS = {
@@ -86,10 +87,10 @@ export class MVPDescriptionGenerator {
         // Calculate derived stats
         const stats = this.calculateStats(rawStats);
         
-        console.log('Blacksmith | MVP Description - Processing:', {
+        postConsoleAndNotification("MVP Description - Processing:", {
             rawStats,
             calculatedStats: stats
-        });
+        }, false, true, false);
         
         // Determine which pattern to use
         const pattern = this.determinePattern(stats);
@@ -100,10 +101,10 @@ export class MVPDescriptionGenerator {
         // Format the description with actual values
         const description = this.formatDescription(template, stats);
         
-        console.log('Blacksmith | MVP Description - Result:', {
+        postConsoleAndNotification("MVP Description - Result:", {
             pattern,
             description
-        });
+        }, false, true, false);
         
         return description;
     }
