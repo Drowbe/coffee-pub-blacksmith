@@ -93,11 +93,11 @@ class CombatStats {
         this.currentStats.turnStartTimes = new Map();
         this.currentStats.turnEndTimes = new Map();
 
-        console.log('Blacksmith | Initialize Stats:', {
+        postConsoleAndNotification('Combat Stats:', {
             currentStats: this.currentStats,
             notableMoments: this.currentStats.notableMoments,
             existingStats: existingStats
-        });
+        }, false, true, false);
 
         // Register Handlebars helpers
         this.registerHelpers();
@@ -111,22 +111,22 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        console.log('Blacksmith | Combat Stats - Combat Update:', {
+        postConsoleAndNotification('Combat Stats - Combat Update:', {
             changed,
             currentStats: this.currentStats,
             combatStats: this.combatStats
-        });
+        }, false, true, false);
 
         const currentCombatant = combat.combatant;
         const previousCombatant = combat.turns[combat.previous?.turn] || null;
 
         // Track round changes - only trigger at the end of a round
         if (changed.round && changed.round > combat.previous.round) {
-            console.log('Blacksmith | Combat Stats - Round Change Detected:', {
+            postConsoleAndNotification('Combat Stats - Round Change Detected:', {
                 from: combat.previous.round,
                 to: changed.round,
                 currentStats: this.currentStats
-            });
+            }, false, true, false);
             
             // Only call _onRoundEnd when we're actually ending a round (not starting a new one)
             if (combat.previous.round > 0) {
@@ -267,11 +267,10 @@ class CombatStats {
             this.currentStats.partyStats.averageTurnTime = 
                 turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
 
-            console.log('Blacksmith | Average Turn Time Update:', {
-                turnDuration: duration,
-                allTurnTimes: this.currentStats.partyStats.turnTimes,
+            postConsoleAndNotification('Average Turn Time Update:', {
+                turnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
-            });
+            }, false, true, false);
         }
     }
 
@@ -568,11 +567,11 @@ class CombatStats {
     // Helper method to calculate MVP
     static async _calculateMVP(playerCharacters) {
         if (!playerCharacters?.length) {
-            console.log('Blacksmith | MVP - No Players:', { message: 'No player characters for MVP calculation' });
+            postConsoleAndNotification('MVP - No Players:', { message: 'No player characters for MVP calculation' }, false, true, false);
             return null;
         }
 
-        console.log('Blacksmith | MVP - Starting Calculation:', { playerCharacters });
+        postConsoleAndNotification('MVP - Starting Calculation:', { playerCharacters }, false, true, false);
 
         // Process each character asynchronously
         const mvpCandidates = await Promise.all(playerCharacters.map(async (detail) => {
@@ -584,7 +583,7 @@ class CombatStats {
             const actor = await this._getActorFromUuid(detail.uuid);
             if (!actor) return null;
 
-            console.log('Blacksmith | MVP - Processing Character:', {
+            postConsoleAndNotification('MVP - Processing Character:', {
                 name: actor.name,
                 score,
                 stats: {
@@ -592,16 +591,16 @@ class CombatStats {
                     damage: detail.damage,
                     healing: detail.healing
                 }
-            });
+            }, false, true, false);
 
             // Generate MVP description
             const description = MVPDescriptionGenerator.generateDescription(detail);
 
-            console.log('Blacksmith | MVP - Generated Description:', {
+            postConsoleAndNotification('MVP - Generated Description:', {
                 name: actor.name,
                 description,
                 score
-            });
+            }, false, true, false);
 
             return {
                 ...detail,
@@ -617,7 +616,7 @@ class CombatStats {
         const mvp = validCandidates.reduce((max, current) => 
             (!max || current.score > max.score) ? current : max, null);
 
-        console.log('Blacksmith | MVP - Final Selection:', {
+        postConsoleAndNotification('MVP - Final Selection:', {
             selectedMVP: mvp?.name,
             score: mvp?.score,
             description: mvp?.description,
@@ -626,7 +625,7 @@ class CombatStats {
                 score: c.score,
                 description: c.description
             }))
-        });
+        }, false, true, false);
 
         return mvp;
     }
@@ -677,28 +676,28 @@ class CombatStats {
         // Only process damage rolls if this is the GM
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) {
-            console.log('Blacksmith | Combat Stats - Skipping damage roll (combat not started)');
+            postConsoleAndNotification('Combat Stats - Skipping damage roll (combat not started)', "", false, true, false);
             return;
         }
 
-        console.log('Blacksmith | Combat Stats - Processing Damage Roll (FULL):', {
+        postConsoleAndNotification('Combat Stats - Processing Damage Roll (FULL):', {
             roll,
             rollJSON: roll[0]?.toJSON(),
             terms: roll[0]?.terms,
             total: roll[0]?.total,
             result: roll[0]?.result,
-                formula: roll[0]?.formula,
+            formula: roll[0]?.formula,
             item: {
                 name: item.name,
                 type: item.type,
                 actionType: item.system.actionType,
                 damage: item.system.damage
             }
-        });
+        }, false, true, false);
 
         const actor = item.actor;
         if (!actor) {
-            console.log('Blacksmith | Combat Stats - Skipping damage roll (no actor)');
+            postConsoleAndNotification('Combat Stats - Skipping damage roll (no actor)', "", false, true, false);
             return;
         }
         
@@ -763,13 +762,13 @@ class CombatStats {
         // Get the amount - roll is an array of rolls, get the first one's total
         const amount = roll[0]?.total || 0;
 
-        console.log('Blacksmith | Combat Stats - Damage Roll Details:', {
+        postConsoleAndNotification('Combat Stats - Damage Roll Details:', {
             actor: actor.name,
             isHealing,
             amount,
             currentDamageDealt: attackerStats.damage.dealt,
             statsBeforeUpdate: { ...attackerStats }
-        });
+        }, false, true, false);
 
         // Update the appropriate stats
         if (isHealing) {
@@ -836,12 +835,12 @@ class CombatStats {
             attackerStats.damage.dealt += amount;
             attackerCombatStats.damage.dealt += amount;
 
-            console.log('Blacksmith | Combat Stats - Updated Damage Stats:', {
+            postConsoleAndNotification('Combat Stats - Updated Damage Stats:', {
                 actor: actor.name,
                 newDamageDealt: attackerStats.damage.dealt,
                 amount,
                 statsAfterUpdate: { ...attackerStats }
-            });
+            }, false, true, false);
 
             // Get targets safely
             const targets = game.user.targets;
@@ -909,7 +908,7 @@ class CombatStats {
 
         if (config.critical) {
             this._lastRollWasCritical = true;
-            console.log('Blacksmith | Combat Stats - Critical hit detected');
+            postConsoleAndNotification('Combat Stats - Critical hit detected', "", false, true, false);
         }
     }
 
@@ -1044,8 +1043,7 @@ class CombatStats {
         // Store the critical hit state for damage roll
         this._lastRollWasCritical = isCritical;
 
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.ATTACK, {
-            message: 'Attack roll processed',
+        postConsoleAndNotification('Combat Stats - Attack Roll processed', {
             actor: actor.name,
             roll: {
                 total: attackRoll,
@@ -1054,7 +1052,7 @@ class CombatStats {
                 isHit
             },
             attackerStats
-        });
+        }, false, true, false);
 
         if (this._isPlayerCharacter(actor)) {
             if (isHit) {
@@ -1073,55 +1071,55 @@ class CombatStats {
         Hooks.on('endCombat', this._onCombatEnd.bind(this));
 
         // Register damage tracking hooks
-        console.log('Blacksmith | Combat Stats - Registering attack and damage hooks');
+        postConsoleAndNotification('Combat Stats - Registering attack and damage hooks', "", false, true, false);
         
         // Attack roll hooks
         Hooks.on('dnd5e.preRollAttack', (item, config) => {
-            console.log('Blacksmith | Combat Stats - Pre-Attack Roll detected:', { item, config });
+            postConsoleAndNotification('Combat Stats - Pre-Attack Roll detected:', { item, config }, false, true, false);
         });
         
         Hooks.on('dnd5e.rollAttack', (item, roll) => {
-            console.log('Blacksmith | Combat Stats - Attack Roll detected:', { item, roll });
+            postConsoleAndNotification('Combat Stats - Attack Roll detected:', { item, roll }, false, true, false);
             this._onAttackRoll(item, roll);
         });
 
         // Damage roll hooks
         Hooks.on('dnd5e.preRollDamage', (item, config) => {
-            console.log('Blacksmith | Combat Stats - Pre-Damage Roll detected:', { item, config });
+            postConsoleAndNotification('Combat Stats - Pre-Damage Roll detected:', { item, config }, false, true, false);
             this._onPreDamageRoll(item, config);
         });
         
         Hooks.on('dnd5e.rollDamage', (item, roll) => {
-            console.log('Blacksmith | Combat Stats - Damage Roll detected:', { item, roll });
+            postConsoleAndNotification('Combat Stats - Damage Roll detected:', { item, roll }, false, true, false);
             this._onDamageRoll(item, roll);
         });
 
         // Additional debug hooks
         Hooks.on('createChatMessage', (message) => {
             if (message.isRoll) {
-                console.log('Blacksmith | Combat Stats - Roll Chat Message:', {
+                postConsoleAndNotification('Combat Stats - Roll Chat Message:', {
                     flavor: message.flavor,
                     type: message.type,
                     roll: message.roll
-                });
+                }, false, true, false);
             }
         });
 
-        console.log('Blacksmith | Combat Stats - Hooks registered');
+        postConsoleAndNotification('Combat Stats - Hooks registered', "", false, true, false);
     }
 
 
     static recordHit(hitData) {
         if (!game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        console.log('Blacksmith | Combat Stats - Recording hit:', {
+        postConsoleAndNotification('Combat Stats - Recording hit:', {
             hitData,
             currentStats: this.currentStats,
             combatStats: this.combatStats,
             currentRound: game.combat?.round,
             currentTurn: game.combat?.turn,
             currentCombatant: game.combat?.combatant?.name
-        });
+        }, false, true, false);
 
         // Initialize stats objects if they don't exist
         if (!this.currentStats) {
@@ -1148,11 +1146,11 @@ class CombatStats {
             timestamp: Date.now()
         };
 
-        console.log('Blacksmith | Combat Stats - Processed hit data:', {
+        postConsoleAndNotification('Combat Stats - Processed hit data:', {
             original: hitData,
             processed: processedHitData,
             currentHits: this.currentStats.hits.length
-        });
+        }, false, true, false);
 
         // Add hit to current round stats
         this.currentStats.hits.push(processedHitData);
@@ -1178,7 +1176,7 @@ class CombatStats {
             this.combatStats.participantStats[hitData.targetId].damage.taken += processedHitData.amount;
         }
 
-        console.log('Blacksmith | Combat Stats - Stats after hit:', {
+        postConsoleAndNotification('Combat Stats - Stats after hit:', {
             currentStats: {
                 hits: this.currentStats.hits.length,
                 lastHit: this.currentStats.hits[this.currentStats.hits.length - 1]
@@ -1195,7 +1193,7 @@ class CombatStats {
                     ])
                 )
             }
-        });
+        }, false, true, false);
     }
 
     // Helper method for debug logging
@@ -1237,17 +1235,17 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        console.log('Blacksmith | Round End - Starting MVP calculation');
+        postConsoleAndNotification('Round End - Starting MVP calculation', "", false, true, false);
 
         // Record the last turn's duration using the last combatant in the turns array
         const lastTurn = game.combat.turns?.length - 1;
         const lastCombatant = game.combat.turns?.[lastTurn];
         if (lastCombatant) {
-            console.log('Blacksmith | Recording last turn of round:', {
+            postConsoleAndNotification('Recording last turn of round:', {
                 combatant: lastCombatant.name,
                 id: lastCombatant.id,
                 turn: lastTurn
-            });
+            }, false, true, false);
             this.recordTurnEnd(lastCombatant);
         }
 
@@ -1267,7 +1265,7 @@ class CombatStats {
                 uuid: `Actor.${id}`  // Create UUID for the actor
             }));
 
-        console.log('Blacksmith | Round End - Player Stats for MVP:', playerStats);
+        postConsoleAndNotification('Round End - Player Stats for MVP:', playerStats, false, true, false);
 
         // Calculate MVP only if there are player stats
         const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : {
@@ -1279,7 +1277,7 @@ class CombatStats {
             })
         };
 
-        console.log('Blacksmith | Round End - MVP Calculated:', mvp);
+        postConsoleAndNotification('Round End - MVP Calculated:', mvp, false, true, false);
 
         // Calculate total round duration (real wall-clock time)
         const roundEndTimestamp = Date.now();
@@ -1334,12 +1332,12 @@ class CombatStats {
     }
 
     static async _prepareTemplateData(participantStats) {
-        console.log(`Blacksmith | Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
+        postConsoleAndNotification(`Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
             hasParticipantStats: !!this.currentStats.participantStats,
             participantCount: this.currentStats.participantStats ? Object.keys(this.currentStats.participantStats).length : 0,
             rawStats: this.currentStats.participantStats,
             turnTimes: this.currentStats.partyStats.turnTimes
-        });
+        }, false, true, false);
 
         const participantMap = new Map();
         const timerDuration = game.settings.get(MODULE_ID, 'combatTimerDuration');
@@ -1356,12 +1354,12 @@ class CombatStats {
                 // Get this combatant's specific turn duration
                 const turnDuration = this.currentStats.partyStats.turnTimes[id] || 0;
 
-                console.log(`Blacksmith | Turn Duration for ${turn.actor.name}:`, {
+                postConsoleAndNotification(`Turn Duration for ${turn.actor.name}:`, {
                     turnDuration,
                     combatantId: id,
                     actorId: turn.actor.id,
                     turnTimes: this.currentStats.partyStats.turnTimes
-                });
+                }, false, true, false);
 
                 // Safely get stats, defaulting to empty structure if not found
                 const stats = this.currentStats?.participantStats?.[turn.actor.id] || {
@@ -1466,11 +1464,11 @@ class CombatStats {
         // Calculate total party time by summing all turn durations
         const totalPartyTime = Object.values(this.currentStats.partyStats.turnTimes).reduce((sum, duration) => sum + duration, 0);
 
-        console.log('Blacksmith | Planning Time Debug:', {
+        postConsoleAndNotification('Planning Time Debug:', {
             activePlanningTime: this.currentStats.activePlanningTime,
             totalPartyTime: totalPartyTime,
             formattedTime: this._formatTime(this.currentStats.activePlanningTime)
-        });
+        }, false, true, false);
 
         // Calculate active duration by combining total party time and planning time
         const activeRoundDuration = totalPartyTime + (this.currentStats.activePlanningTime || 0);
@@ -1510,33 +1508,23 @@ class CombatStats {
                 .some(moment => moment.amount > 0 || moment.duration > 0)
         };
 
-        // Add debug log
-        console.log('Blacksmith | Notable Moments Debug:', {
-            notableMoments: this.currentStats.notableMoments,
-            hasNotableMoments: templateData.hasNotableMoments,
-            currentStats: this.currentStats
-        });
+        postConsoleAndNotification('Notable Moments Debug:', {
+            notableMoments: this.currentStats.notableMoments
+        }, false, true, false);
 
-        // Add debug log for settings
-        console.log('Blacksmith | Template Settings:', {
-            settings: templateData.settings,
-            showNotableMoments: game.settings.get(MODULE_ID, 'showNotableMoments')
-        });
+        postConsoleAndNotification('Template Settings:', {
+            settings: templateData.settings
+        }, false, true, false);
 
-        console.log('Blacksmith | Round Duration Debug - Template Prep:', {
-            rawDuration: this.currentStats.roundDuration,
-            formattedDuration: this._formatTime(this.currentStats.roundDuration)
-        });
+        postConsoleAndNotification('Round Duration Debug - Template Prep:', {
+            roundStartTime: this.currentStats.roundStartTime,
+            roundEndTime: Date.now(),
+            duration: this.currentStats.roundDuration
+        }, false, true, false);
 
-        console.log(`Blacksmith | Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
-            participants: sortedParticipants.map(p => ({
-                name: p.name,
-                turnDuration: p.turnDuration,
-                barWidth: `${(p.turnDuration / timerDuration) * 100}%`
-            })),
-            timerDuration,
+        postConsoleAndNotification(`Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
             templateData
-        });
+        }, false, true, false);
 
         return templateData;
     }
@@ -1548,12 +1536,11 @@ class CombatStats {
 
     // Add new method to track notable moments
     static _updateNotableMoments(type, data) {
-        console.log('Blacksmith | Update Notable Moments:', {
+        postConsoleAndNotification('Update Notable Moments:', {
             type,
             data,
-            currentStats: this.currentStats,
-            notableMoments: this.currentStats?.notableMoments
-        });
+            currentMoments: this.currentStats.notableMoments
+        }, false, true, false);
 
         if (!this.currentStats?.notableMoments) {
             console.warn('Blacksmith | Notable Moments structure not initialized');
