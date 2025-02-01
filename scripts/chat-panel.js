@@ -3,6 +3,7 @@
 // ================================================================== 
 
 import { MODULE_ID } from './const.js';
+import { playSound } from './global.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -28,7 +29,6 @@ class ChatPanel {
                 this.updateLeaderDisplay();
             }
             if (data.type === 'updateTimer') {
-                console.log("Blacksmith | Chat Panel: Received timer update:", data.endTime);
                 this.sessionEndTime = data.endTime;
                 this.sessionStartTime = data.startTime;
                 this.updateTimerDisplay();
@@ -46,14 +46,16 @@ class ChatPanel {
             await this.loadTimer();
             this.isLoading = false;
             this.updateLeaderDisplay();
-            this.startTimerUpdates();
+            
+            // Wait a brief moment to ensure settings are fully registered
+            setTimeout(() => {
+                this.startTimerUpdates();
+            }, 1000);
         });
     }
 
     static async _onRenderChatLog(app, html, data) {
         try {
-            console.log("Blacksmith | Chat Panel: Rendering chat panel");
-            
             // Find the chat log element
             const chatLog = html.find('#chat-log');
             if (!chatLog.length) return;
@@ -114,7 +116,7 @@ class ChatPanel {
         
         await ChatMessage.create({
             content: publicHtml,
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
             user: gmUser.id,
             speaker: { alias: gmUser.name }
         });
@@ -127,7 +129,6 @@ class ChatPanel {
 
         await ChatMessage.create({
             content: privateHtml,
-            type: CONST.CHAT_MESSAGE_TYPES.WHISPER,
             user: gmUser.id,
             speaker: { alias: gmUser.name },
             whisper: [leaderId]
@@ -234,6 +235,12 @@ class ChatPanel {
     }
 
     static startTimerUpdates() {
+        // For non-GM users, only start updates if we have a valid session end time
+        if (!game.user.isGM && !this.sessionEndTime) {
+            console.debug("Blacksmith | Chat Panel: No session end time set, skipping timer updates for player");
+            return;
+        }
+
         // Update timer display every second locally
         setInterval(() => this.updateTimerDisplay(), 1000);
         
@@ -303,20 +310,26 @@ class ChatPanel {
             return;
         }
 
-        // Check if we're in warning state
-        const warningThreshold = game.settings.get(MODULE_ID, 'sessionTimerWarningThreshold');
-        if (remainingMinutes <= warningThreshold) {
-            timerInfo.classList.add('warning');
-            timerInfo.style.setProperty('--progress-color', 'hsl(9, 94%, 20%)');
-            if (game.user.isGM && !this.hasHandledWarning) {
-                this.hasHandledWarning = true;
-                this.handleTimerWarning();
+        try {
+            // Check if we're in warning state
+            const warningThreshold = game.settings.get(MODULE_ID, 'sessionTimerWarningThreshold');
+            if (remainingMinutes <= warningThreshold) {
+                timerInfo.classList.add('warning');
+                timerInfo.style.setProperty('--progress-color', 'hsl(9, 94%, 20%)');
+                if (game.user.isGM && !this.hasHandledWarning) {
+                    this.hasHandledWarning = true;
+                    this.handleTimerWarning();
+                }
+            } else {
+                timerInfo.classList.remove('warning', 'expired');
+                timerInfo.style.setProperty('--progress-color', '#c1bfb5');
+                // Reset warning flag when we're no longer in warning state
+                this.hasHandledWarning = false;
             }
-        } else {
+        } catch (error) {
+            // If settings aren't registered yet, just use default styling
             timerInfo.classList.remove('warning', 'expired');
             timerInfo.style.setProperty('--progress-color', '#c1bfb5');
-            // Reset warning flag when we're no longer in warning state
-            this.hasHandledWarning = false;
         }
 
         // Reset expiration flag if timer is not expired
@@ -326,57 +339,65 @@ class ChatPanel {
     }
 
     static async handleTimerWarning() {
-        // Play warning sound if configured
-        const warningSound = game.settings.get(MODULE_ID, 'sessionTimerWarningSound');
-        if (warningSound !== 'none') {
-            AudioHelper.play({src: warningSound, volume: 0.8, autoplay: true, loop: false});
+        try {
+            // Play warning sound if configured
+            const warningSound = game.settings.get(MODULE_ID, 'sessionTimerWarningSound');
+            if (warningSound !== 'none') {
+                playSound(warningSound, 0.8);
+            }
+
+            // Send warning message
+            const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
+                .replace('{time}', this.getTimerText());
+
+            const gmUser = game.users.find(u => u.isGM);
+            if (!gmUser) return;
+
+            const warningHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+                isPublic: true,
+                isTimerWarning: true,
+                warningMessage: message
+            });
+
+            await ChatMessage.create({
+                content: warningHtml,
+                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                user: gmUser.id,
+                speaker: { alias: gmUser.name }
+            });
+        } catch (error) {
+            console.debug("Blacksmith | Chat Panel: Settings not yet registered, skipping warning notification");
         }
-
-        // Send warning message
-        const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
-            .replace('{time}', this.getTimerText());
-
-        const gmUser = game.users.find(u => u.isGM);
-        if (!gmUser) return;
-
-        const warningHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
-            isPublic: true,
-            isTimerWarning: true,
-            warningMessage: message
-        });
-
-        await ChatMessage.create({
-            content: warningHtml,
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name }
-        });
     }
 
     static async handleTimerExpired() {
-        // Play expired sound if configured
-        const expiredSound = game.settings.get(MODULE_ID, 'sessionTimerExpiredSound');
-        if (expiredSound !== 'none') {
-            AudioHelper.play({src: expiredSound, volume: 0.8, autoplay: true, loop: false});
+        try {
+            // Play expired sound if configured
+            const expiredSound = game.settings.get(MODULE_ID, 'sessionTimerExpiredSound');
+            if (expiredSound !== 'none') {
+                playSound(expiredSound, 0.8);
+            }
+
+            // Send expired message
+            const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
+            const gmUser = game.users.find(u => u.isGM);
+            if (!gmUser) return;
+
+            const expiredHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+                isPublic: true,
+                isTimerExpired: true,
+                expiredMessage: message
+            });
+
+            await ChatMessage.create({
+                content: expiredHtml,
+                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                user: gmUser.id,
+                speaker: { alias: gmUser.name }
+            });
+        } catch (error) {
+            console.debug("Blacksmith | Chat Panel: Settings not yet registered, skipping expiration notification");
         }
-
-        // Send expired message
-        const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
-        const gmUser = game.users.find(u => u.isGM);
-        if (!gmUser) return;
-
-        const expiredHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
-            isPublic: true,
-            isTimerExpired: true,
-            expiredMessage: message
-        });
-
-        await ChatMessage.create({
-            content: expiredHtml,
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name }
-        });
     }
 
     static async showTimerDialog() {
@@ -449,7 +470,7 @@ class ChatPanel {
 
                             await ChatMessage.create({
                                 content: messageHtml,
-                                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
                                 user: gmUser.id,
                                 speaker: { alias: gmUser.name }
                             });
