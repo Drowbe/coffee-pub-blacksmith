@@ -1,15 +1,15 @@
 import { MODULE_ID } from './const.js';
 import { BlacksmithWindowDashboard } from './window-dashboard.js';
-import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
+import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
 import { buildButtonEventRegent, buildButtonEventBrowser } from './blacksmith.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './global.js';
 
 export function addToolbarButton() {
-    console.log("BLACKSMITH: Adding toolbar button");
+    postConsoleAndNotification("Adding toolbar button", "", false, true, false);
 
     Hooks.on('getSceneControlButtons', (controls) => {
-        console.log("BLACKSMITH: getSceneControlButtons hook triggered");
+        postConsoleAndNotification("getSceneControlButtons hook triggered", "", false, true, false);
 
         const dashboardTool = {
             icon: "fa-solid fa-shield-heart",
@@ -18,10 +18,10 @@ export function addToolbarButton() {
             button: true,
             visible: true,
             onClick: () => {
-                console.log("Dashboard button clicked");
+                postConsoleAndNotification("Dashboard button clicked", "", false, true, false);
                 const dashboard = BlacksmithWindowDashboard.getInstance();
                 dashboard.toggleVisibility();
-                console.log("Dashboard visibility toggled");
+                postConsoleAndNotification("Dashboard visibility toggled", "", false, true, false);
             }
         };
 
@@ -96,14 +96,14 @@ export function addToolbarButton() {
             //tools: [dashboardTool, browserTool, regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
             tools: [dashboardTool, regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
         });
-        console.log("BLACKSMITH: Toolbar buttons added to controls");
+        postConsoleAndNotification("Toolbar buttons added to controls", "", false, true, false);
     });
 
     Hooks.on('renderSceneControls', () => {
         const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
         if (button) {
             button.addEventListener('click', () => {
-                console.log("BLACKSMITH: Toolbar button clicked");
+                postConsoleAndNotification("Toolbar button clicked", "", false, true, false);
                 toggleToolbarVisibility();
                 //activateBlacksmithLayer(); // Ensure this function is called
             });
@@ -112,12 +112,12 @@ export function addToolbarButton() {
         }
     });
 
-    console.log("BLACKSMITH: Toolbar button registration complete");
+    postConsoleAndNotification("Toolbar button registration complete", "", false, true, false);
 }
 
 // Function to toggle the "active" class
 function toggleToolbarVisibility() {
-    console.log("BLACKSMITH: Toggling toolbar visibility");
+    postConsoleAndNotification("Toggling toolbar visibility", "", false, true, false);
 
     // Hide all toolbars first
     const allToolbars = document.querySelectorAll('.sub-controls.app.control-tools');
@@ -129,7 +129,7 @@ function toggleToolbarVisibility() {
     const toolbar = document.querySelector('#tools-panel-blacksmith-utilities'); // Use the actual ID
     if (toolbar) {
         toolbar.classList.toggle('active');
-        console.log("Toolbar visibility toggled");
+        postConsoleAndNotification("Toolbar visibility toggled", "", false, true, false);
     } else {
         console.error("Toolbar element not found");
     }
@@ -143,7 +143,7 @@ function toggleToolbarVisibility() {
     const blacksmithButton = document.querySelector(`[data-control="blacksmith-utilities"]`);
     if (blacksmithButton) {
         blacksmithButton.classList.add('active');
-        console.log("Blacksmith button set to active");
+        postConsoleAndNotification("Blacksmith button set to active", "", false, true, false);
     } else {
         console.error("Blacksmith button not found");
     }
@@ -151,7 +151,7 @@ function toggleToolbarVisibility() {
 
 // Function to activate the Blacksmith layer
 function activateBlacksmithLayer() {
-    console.log("Activating Blacksmith Layer");
+    postConsoleAndNotification("Activating Blacksmith Layer", "", false, true, false);
     const layer = canvas['blacksmith-utilities-layer'];
     if (layer) {
         layer.activate();

@@ -115,41 +115,40 @@ const hookCanvas = () => {
 
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
-    console.log('Blacksmith | Initializing coffee-pub-blacksmith');
+    postConsoleAndNotification("Blacksmith | Initializing coffee-pub-blacksmith", "", false, true, false);
     
     // Initialize modules
     ChatPanel.initialize();
 
-    console.log("BLACKSMITH: Initializing module");
     hookCanvas(); // Call the function to inject the layer
-    console.log("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers);
+    postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
     addToolbarButton();
     postConsoleAndNotification("Dashboard and Toolbar ready.", "", false, false, false); 
 
     // COMBAT TIMER
-    console.log("BLACKSMITH: In blacksmith.js and Initializing CombatTimer...");
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CombatTimer...", "", false, true, false);
     CombatTimer.initialize();
     // PLANNING TIMER
-    console.log("BLACKSMITH: In blacksmith.js and Initializing PlanningTimer...");
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing PlanningTimer...", "", false, true, false);
     PlanningTimer.initialize();
     // ROUND TIMER
-    console.log("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...");
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...", "", false, true, false);
     RoundTimer.initialize();
 
 });
 
 // Keep the canvasInit hook to initialize the toolbar
 Hooks.once('canvasInit', () => {
-    console.log("Initializing custom canvas layers");
-    console.log("Current Canvas Layers:", CONFIG.Canvas.layers);
+    postConsoleAndNotification("Initializing custom canvas layers", "", false, true, false);
+    postConsoleAndNotification("Current Canvas Layers:", CONFIG.Canvas.layers, false, true, false);
 
 });
 
 // Keep the canvasReady hook to check for the layer
 Hooks.on('canvasReady', (canvas) => {
     postConsoleAndNotification("Canvas is ready.", "", false, false, false); 
-    console.log("Current Canvas CONFIG:", CONFIG.Canvas.layers);
+    postConsoleAndNotification("Current Canvas CONFIG:", CONFIG.Canvas.layers, false, true, false);
     const blacksmithLayer = canvas['blacksmith-utilities-layer'];
     if (blacksmithLayer) {
         postConsoleAndNotification("Blacksmith Layer is available:", blacksmithLayer, false, true, false); 
@@ -421,11 +420,11 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
     
     // Check if the Ctrl key is held down
     ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
-    console.log("Ctrl key active during render:", ctrlKeyActiveDuringRender);
+    postConsoleAndNotification("Ctrl key active during render", ctrlKeyActiveDuringRender, false, true, false);
     shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
-    console.log("Shift key active during render:", shiftKeyActiveDuringRender);
+    postConsoleAndNotification("Shift key active during render", shiftKeyActiveDuringRender, false, true, false);
     altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT);
-    console.log("Alt key active during render:", altKeyActiveDuringRender); 
+    postConsoleAndNotification("Alt key active during render", altKeyActiveDuringRender, false, true, false); 
 
     if (ctrlKeyActiveDuringRender) {
         strIconUrl = strIconUrlCrtl;
@@ -459,11 +458,12 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
                 customIcons.reverse().forEach(icon => {
                     entryIconField.prepend(new Option(icon.label, icon.value));
                 });
-                console.log("Custom icons added to the dropdown");
+                postConsoleAndNotification("Custom icons added to the dropdown", "", false, true, false);
 
                 // Set the default icon
                 entryIconField.val(strIconUrl);
-                console.log("Default icon set to:", strIconUrl);
+
+                postConsoleAndNotification("Default icon set to", strIconUrl, false, true, false);
             } else {
                 console.error("Entry Icon field not found");
             }
@@ -480,10 +480,10 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
 
 // Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
 Hooks.on('preCreateNote', async (note, options, userId) => {
-    console.log("Pre-create Note");
+    postConsoleAndNotification("Pre-create Note", "", false, true, false);
 
     if (ctrlKeyActiveDuringRender) {
-        console.log("Ctrl key was active during renderNoteConfig. Doing nothing with this right now.");
+        postConsoleAndNotification("Ctrl key was active during renderNoteConfig. Doing nothing with this right now.", "", false, true, false);
 
         // // Set the default icon
         // note.updateSource({ "texture.src": strIconUrl });
@@ -518,25 +518,25 @@ export function buildButtonEventBrowser() {
 
 
 export function buildButtonEventRegent(worksheet = 'default') {
-    console.log(`BLACKSMITH: Opening Regent with worksheet: ${worksheet}`);
+    postConsoleAndNotification(`BLACKSMITH: Opening Regent with worksheet: ${worksheet}`, "", false, true, false);
     // Logic to open the regent with the specified worksheet
     if (worksheet === 'encounter') {
-        console.log("Opening Encounter Worksheet");
+        postConsoleAndNotification("Opening Encounter Worksheet", "", false, true, false);
         // Add your logic to open the encounter worksheet here
     } else if (worksheet === 'assistant') {
-        console.log("Opening Assistant Worksheet");
+        postConsoleAndNotification("Opening Assistant Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'lookup') {
-        console.log("Opening Lookup Worksheet");
+        postConsoleAndNotification("Opening Lookup Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'narrative') {
-        console.log("Opening Narrative Worksheet");
+        postConsoleAndNotification("Opening Narrative Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'character') {
-        console.log("Opening Character Worksheet");
+        postConsoleAndNotification("Opening Character Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else {
-        console.log("Opening Default Worksheet");
+        postConsoleAndNotification("Opening Default Worksheet", "", false, true, false);
         // Add your logic to open the default worksheet here
     }
 
@@ -561,7 +561,7 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
     let blnJournalDoubleClick = game.settings.get(MODULE_ID, 'enableJournalDoubleClick');
     // See if they want to enable double-click
     if (blnJournalDoubleClick) {
-        console.log("Double-click enabled for journal entries.");
+        postConsoleAndNotification("Double-click enabled for journal entries.", "", false, true, false);
         // Enable the double-click
         const ENTITY_PERMISSIONS = { 
             "NONE": 0,
@@ -571,14 +571,14 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
         };
         const currentUser = game.user;
         html.on('dblclick', '.journal-entry-page', event => {
-            console.log("Journal entry page double-clicked.");
+            postConsoleAndNotification("Journal entry page double-clicked.", "", false, true, false);
             event.preventDefault();
             const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
-            console.log("User has edit permission:", hasEditPermission);
+            postConsoleAndNotification("User has edit permission:", hasEditPermission, false, true, false);
             if (hasEditPermission) {
                 // Try to find the edit button more generally
                 const editButton = html.find('.edit-container .editor-edit');
-                console.log("Edit button found:", editButton.length > 0);
+                postConsoleAndNotification("Edit button found:", editButton.length > 0, false, true, false);
                 if (editButton.length > 0) {
                     postConsoleAndNotification("Opening the journal into edit mode.", "", false, true, false);
                     editButton[0].click();
