@@ -1,3 +1,4 @@
+import { MVPTemplates } from './mvp-templates.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class MVPDescriptionGenerator {
@@ -107,4 +108,5 @@ export class MVPDescriptionGenerator {
         
         return description;
     }
+
 } 
