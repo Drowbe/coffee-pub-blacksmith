@@ -6,17 +6,7 @@
 import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
-
-let socket;
-
-// Set up socketlib
-Hooks.once('socketlib.ready', () => {
-    postConsoleAndNotification("Setting up Planning Timer socketlib", "", false, true, false);
-    socket = socketlib.registerModule(MODULE_ID);
-    socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
-    socket.register("timerAdjusted", PlanningTimer.timerAdjusted);
-    socket.register("timerCleanup", PlanningTimer.timerCleanup);
-});
+import { ThirdPartyManager } from './third-party.js';
 
 export class PlanningTimer {
     static DEFAULTS = {
@@ -56,35 +46,70 @@ export class PlanningTimer {
             }
         });
 
+        // Add socket ready check
+        Hooks.once('blacksmith.socketReady', () => {
+            postConsoleAndNotification("Planning Timer | Socket is ready", "", false, true, false);
+        });
+
         // Handle combat updates
         Hooks.on('updateCombat', this.handleCombatUpdate.bind(this));
     }
 
-    // Function that will be called on non-GM clients
-    static receiveTimerSync(state) {
-        // Check for game initialization
-        if (!game?.user?.isGM && !game?.user) {
-            postConsoleAndNotification("Planning Timer: Game or user not ready, skipping sync", "", false, true, false);
-            return;
-        }
-        
-        postConsoleAndNotification("Planning Timer: Received timer sync from GM", "", false, true, false);
-        if (!game.user.isGM) {
-            PlanningTimer.state = foundry.utils.deepClone(state);
-            PlanningTimer.updateUI();
+    static async syncState() {
+        if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
+            await socket.executeForOthers("syncPlanningTimerState", this.state);
+            this.updateUI();
         }
     }
 
-    static handleSocketMessage(data) {
+    static async timerAdjusted(timeString) {
         if (!game.user.isGM) {
-            switch (data.action) {
-                case 'timerAdjusted':
-                    ui.notifications.info(`Planning timer set to ${data.time}`);
-                    break;
-                case 'cleanup':
-                    this.state.isExpired = data.wasExpired;
-                    this.cleanupTimer();
-                    break;
+            ui.notifications.info(`Planning timer set to ${timeString}`);
+        }
+    }
+
+    static async timerCleanup(data) {
+        if (!game.user.isGM) {
+            // Players only update UI based on received data
+            if (data?.wasExpired || data?.shouldFadeOut) {
+                // Handle UI updates without modifying state
+                if (data.shouldFadeOut) {
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }
+            }
+        } else {
+            // Existing GM cleanup code
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+
+            // Record planning end for stats if we were active
+            if (this.state.isActive) {
+                CombatStats.recordPlanningEnd();
+            }
+
+            this.state.isActive = false;
+            this.state.isPaused = true;
+            this.state.remaining = 0;
+            
+            // Don't clear showingMessage or isExpired as they may be needed for UI
+
+            this.updateUI();
+            this.syncState();
+
+            // Add fade-out sequence for normal turn changes
+            if (!data?.wasExpired) {
+                setTimeout(async () => {
+                    const socket = ThirdPartyManager.getSocket();
+                    await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
+                    $('.planning-phase').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }, 3000);
             }
         }
     }
@@ -165,6 +190,7 @@ export class PlanningTimer {
             // Add fade-out sequence for player turn transition
             if (game.user.isGM) {
                 setTimeout(async () => {
+                    const socket = ThirdPartyManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
                     $('.planning-phase').fadeOut(400, function() {
                         $(this).remove();
@@ -353,7 +379,8 @@ export class PlanningTimer {
         if (game.user.isGM) {
             this.syncState();
 
-            // Notify all clients
+            // Notify all clients using ThirdPartyManager
+            const socket = ThirdPartyManager.getSocket();
             socket.executeForOthers("timerAdjusted", this.formatTime(newTime));
         }
     }
@@ -521,6 +548,7 @@ export class PlanningTimer {
             
         // Notify all clients
         if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true });
         }
 
@@ -529,6 +557,7 @@ export class PlanningTimer {
         
         // Remove the timer from view on all clients
         if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
         }
         $('.planning-phase').fadeOut(400, function() {
@@ -540,56 +569,6 @@ export class PlanningTimer {
             expired: true,
             combat: game.combat
         });
-    }
-
-    static async timerAdjusted(timeString) {
-        if (!game.user.isGM) {
-            ui.notifications.info(`Planning timer set to ${timeString}`);
-        }
-    }
-
-    static async timerCleanup(data) {
-        if (!game.user.isGM) {
-            // Players only update UI based on received data
-            if (data?.wasExpired || data?.shouldFadeOut) {
-                // Handle UI updates without modifying state
-                if (data.shouldFadeOut) {
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
-                    });
-                }
-            }
-        } else {
-            // Existing GM cleanup code
-            if (this.timer) {
-                clearInterval(this.timer);
-                this.timer = null;
-            }
-
-            // Record planning end for stats if we were active
-            if (this.state.isActive) {
-                CombatStats.recordPlanningEnd();
-            }
-
-            this.state.isActive = false;
-            this.state.isPaused = true;
-            this.state.remaining = 0;
-            
-            // Don't clear showingMessage or isExpired as they may be needed for UI
-
-            this.updateUI();
-            this.syncState();
-
-            // Add fade-out sequence for normal turn changes
-            if (!data?.wasExpired) {
-                setTimeout(async () => {
-                    await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
-                    });
-                }, 3000);
-            }
-        }
     }
 
     static cleanupTimer() {
@@ -613,10 +592,18 @@ export class PlanningTimer {
         this.syncState();
     }
 
-    static async syncState() {
-        if (game.user.isGM) {
-            await socket.executeForOthers("syncPlanningTimerState", this.state);
-            this.updateUI();
+    // Function that will be called on non-GM clients
+    static receiveTimerSync(state) {
+        // Check for game initialization
+        if (!game?.user?.isGM && !game?.user) {
+            postConsoleAndNotification("Planning Timer: Game or user not ready, skipping sync", "", false, true, false);
+            return;
+        }
+        
+        postConsoleAndNotification("Planning Timer: Received timer sync from GM", "", false, true, false);
+        if (!game.user.isGM) {
+            PlanningTimer.state = foundry.utils.deepClone(state);
+            PlanningTimer.updateUI();
         }
     }
 
@@ -645,6 +632,7 @@ export class PlanningTimer {
         
         // Notify all clients and wait 3 seconds
         if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
             socket.executeForOthers("timerCleanup", { wasExpired: true });
             setTimeout(async () => {
                 await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
