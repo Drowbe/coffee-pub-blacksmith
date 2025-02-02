@@ -32,10 +32,11 @@ class ThirdPartyManager {
         
         // Combat Timer
         this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
+        this.socket.register("combatTimerAdjusted", CombatTimer.timerAdjusted);
         
         // Planning Timer
         this.socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
-        this.socket.register("timerAdjusted", PlanningTimer.timerAdjusted);
+        this.socket.register("planningTimerAdjusted", PlanningTimer.timerAdjusted);
         this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
         
         // Chat Panel

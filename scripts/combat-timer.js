@@ -253,11 +253,10 @@ class CombatTimer {
         this.updateUI();
         
         const timeString = this.formatTime(newTime);
-        game.socket.emit(`module.${MODULE_ID}`, {
-            type: 'combatTimer',
-            action: 'timerAdjusted',
-            time: timeString
-        });
+        if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
+            socket.executeForOthers("combatTimerAdjusted", timeString);
+        }
         
         ui.notifications.info(`Timer set to ${timeString}`);
     }
@@ -747,13 +746,18 @@ class CombatTimer {
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
-        // Check for game initialization
-        if (!game?.user) return;  // Exit if game or user not ready
+        if (!game?.user) return;
         
-        postConsoleAndNotification("Combat Timer: Received timer sync from GM", "", false, true, false);
+        postConsoleAndNotification("Combat Timer: Received timer sync:", state, false, true, false);
         if (!game.user.isGM) {
             CombatTimer.state = foundry.utils.deepClone(state);
             CombatTimer.updateUI();
+        }
+    }
+
+    static timerAdjusted(timeString) {
+        if (!game.user.isGM) {
+            ui.notifications.info(`Combat timer set to ${timeString}`);
         }
     }
 }

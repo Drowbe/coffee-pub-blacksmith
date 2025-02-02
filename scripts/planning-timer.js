@@ -381,7 +381,7 @@ export class PlanningTimer {
 
             // Notify all clients using ThirdPartyManager
             const socket = ThirdPartyManager.getSocket();
-            socket.executeForOthers("timerAdjusted", this.formatTime(newTime));
+            socket.executeForOthers("planningTimerAdjusted", this.formatTime(newTime));
         }
     }
 
