@@ -4,6 +4,7 @@
 
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound } from './global.js';
+import { ThirdPartyManager } from './third-party.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -21,23 +22,14 @@ class ChatPanel {
             'modules/coffee-pub-blacksmith/templates/chat-cards.hbs'
         ]);
 
-        // Set up socket listener for leader updates
-        game.socket.on(`module.${MODULE_ID}`, (data) => {
-            if (data.type === 'updateLeader') {
-                postConsoleAndNotification("Chat Panel: Received leader update:", data.leader, false, true, false);
-                this.currentLeader = data.leader;
-                this.updateLeaderDisplay();
-            }
-            if (data.type === 'updateTimer') {
-                this.sessionEndTime = data.endTime;
-                this.sessionStartTime = data.startTime;
-                this.updateTimerDisplay();
-            }
-        });
-
         // Set up the render hook for the panel
         Hooks.on('renderChatLog', (app, html, data) => {
             this._onRenderChatLog(app, html, data);
+        });
+
+        // Wait for socket to be ready
+        Hooks.once('blacksmith.socketReady', () => {
+            postConsoleAndNotification("Chat Panel | Socket is ready", "", false, true, false);
         });
 
         // Load the leader and timer after Foundry is ready
@@ -169,14 +161,8 @@ class ChatPanel {
                         await game.settings.set(MODULE_ID, 'partyLeader', selectedId);
                         
                         // Update all clients
-                        game.socket.emit(`module.${MODULE_ID}`, {
-                            type: 'updateLeader',
-                            leader: this.currentLeader
-                        });
+                        await this.updateLeader(this.currentLeader);
                         
-                        // Update the display without full re-render
-                        this.updateLeaderDisplay();
-
                         // Send messages if a leader was selected
                         if (selectedId) {
                             await this.sendLeaderMessages(selectedUser.name, selectedId);
@@ -248,11 +234,7 @@ class ChatPanel {
         if (game.user.isGM) {
             setInterval(() => {
                 if (this.sessionEndTime) {
-                    game.socket.emit(`module.${MODULE_ID}`, {
-                        type: 'updateTimer',
-                        endTime: this.sessionEndTime,
-                        startTime: this.sessionStartTime
-                    });
+                    this.updateTimer(this.sessionEndTime, this.sessionStartTime);
                 }
             }, 30000); // 30 second intervals
         }
@@ -457,11 +439,7 @@ class ChatPanel {
                         await game.settings.set(MODULE_ID, 'sessionStartTime', this.sessionStartTime);
                         
                         // Update all clients
-                        game.socket.emit(`module.${MODULE_ID}`, {
-                            type: 'updateTimer',
-                            endTime: this.sessionEndTime,
-                            startTime: this.sessionStartTime
-                        });
+                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime);
                         
                         // Send timer set message
                         const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
@@ -491,6 +469,40 @@ class ChatPanel {
             },
             default: "set"
         }).render(true);
+    }
+
+    // Socket receiver functions
+    static receiveLeaderUpdate(data) {
+        if (!game?.user) return;
+        
+        postConsoleAndNotification("Chat Panel: Received leader update:", data.leader, false, true, false);
+        ChatPanel.currentLeader = data.leader;
+        ChatPanel.updateLeaderDisplay();
+    }
+
+    static receiveTimerUpdate(data) {
+        if (!game?.user) return;
+        
+        ChatPanel.sessionEndTime = data.endTime;
+        ChatPanel.sessionStartTime = data.startTime;
+        ChatPanel.updateTimerDisplay();
+    }
+
+    // Update existing socket emits to use ThirdPartyManager
+    static async updateLeader(leader) {
+        if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
+            await socket.executeForOthers("updateLeader", { leader });
+            this.updateLeaderDisplay();
+        }
+    }
+
+    static async updateTimer(endTime, startTime) {
+        if (game.user.isGM) {
+            const socket = ThirdPartyManager.getSocket();
+            await socket.executeForOthers("updateTimer", { endTime, startTime });
+            this.updateTimerDisplay();
+        }
     }
 }
 
