@@ -312,7 +312,12 @@ class ChatPanel {
 
         try {
             // Check if we're in warning state
-            const warningThreshold = game.settings.get(MODULE_ID, 'sessionTimerWarningThreshold');
+            let warningThreshold = 15; // Default value
+            try {
+                warningThreshold = game.settings.get(MODULE_ID, 'sessionTimerWarningThreshold');
+            } catch (error) {
+                postConsoleAndNotification("Chat Panel: Warning threshold setting not registered yet, using default", "", false, true, false);
+            }
             if (remainingMinutes <= warningThreshold) {
                 timerInfo.classList.add('warning');
                 timerInfo.style.setProperty('--progress-color', 'hsl(9, 94%, 20%)');
