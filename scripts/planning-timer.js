@@ -279,6 +279,14 @@ export class PlanningTimer {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
 
+        // Send chat message if GM
+        if (game.user.isGM) {
+            this.sendChatMessage({
+                isTimerPaused: true,
+                timeRemaining: this.formatTime(this.state.remaining)
+            });
+        }
+
         this.updateUI();
         this.syncState();
     }
@@ -314,6 +322,11 @@ export class PlanningTimer {
                     if (this.shouldShowNotification()) {
                         const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
                         ui.notifications.warn(message);
+                        // Send warning chat message
+                        this.sendChatMessage({
+                            isTimerWarning: true,
+                            warningMessage: message
+                        });
                     }
                 }
 
@@ -331,6 +344,14 @@ export class PlanningTimer {
                 playSound(pauseResumeSound, this.getTimerVolume());
             }
 
+            // Send chat message for resume
+            if (game.user.isGM) {
+                this.sendChatMessage({
+                    isTimerResumed: true,
+                    timeRemaining: this.formatTime(this.state.remaining)
+                });
+            }
+
             this.syncState();
         }
 
@@ -341,6 +362,14 @@ export class PlanningTimer {
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
         
+        // Send chat message for timer update if GM
+        if (game.user.isGM) {
+            this.sendChatMessage({
+                isTimerSet: true,
+                timeString: this.formatTime(newTime)
+            });
+        }
+
         if (!this.state.isPaused && game.user.isGM) {
             if (this.timer) clearInterval(this.timer);
             this.timer = setInterval(() => {
@@ -426,6 +455,14 @@ export class PlanningTimer {
         this.state.showingMessage = false;
         this.state.isExpired = false;
 
+        // Send chat message for planning start if GM and timer is at full duration
+        if (game.user.isGM && duration === game.settings.get(MODULE_ID, 'planningTimerDuration')) {
+            this.sendChatMessage({
+                isTimerStart: true,
+                duration: Math.floor(duration / 60)
+            });
+        }
+
         // Only GM should handle the interval
         if (game.user.isGM) {
             if (this.timer) clearInterval(this.timer);
@@ -448,10 +485,17 @@ export class PlanningTimer {
                             playSound(endingSoonSound, this.getTimerVolume());
                         }
                         
-                        // Show ending soon notification
+                        // Show ending soon notification and send chat message
                         if (this.shouldShowNotification()) {
                             const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
                             ui.notifications.warn(message);
+                            // Send warning chat message if GM
+                            if (game.user.isGM) {
+                                this.sendChatMessage({
+                                    isTimerWarning: true,
+                                    warningMessage: message
+                                });
+                            }
                         }
                     }
 
@@ -544,6 +588,15 @@ export class PlanningTimer {
         if (this.shouldShowNotification()) {
             const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
+        }
+
+        // Send chat message for timer expiration if GM
+        if (game.user.isGM) {
+            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            await this.sendChatMessage({
+                isTimerExpired: true,
+                expiredMessage: `${label} Has Ended`
+            });
         }
             
         // Notify all clients
@@ -646,6 +699,36 @@ export class PlanningTimer {
         Hooks.callAll('planningTimerExpired', {
             expired: true,
             combat: game.combat
+        });
+    }
+
+    // Helper method for sending chat messages
+    static async sendChatMessage(data) {
+        // Get the GM user to send messages from
+        const gmUser = game.users.find(u => u.isGM);
+        if (!gmUser) return;
+
+        // Get the timer label from settings
+        const timerLabel = game.settings.get(MODULE_ID, 'planningTimerLabel');
+
+        // Prepare the message data with timer info
+        const messageData = {
+            isPublic: true,
+            isTimer: true,
+            timerLabel,
+            theme: data.isTimerWarning ? 'orange' : 
+                   data.isTimerExpired ? 'red' : 
+                   (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
+            ...data
+        };
+
+        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+
+        await ChatMessage.create({
+            content: messageHtml,
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+            user: gmUser.id,
+            speaker: { alias: gmUser.name }
         });
     }
 }

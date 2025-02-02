@@ -1,30 +1,71 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 {{#if isPublic}}
-    {{#if isTimerWarning}}
-        <div class="blacksmith-card theme-orange">
-            <div class="section-header">
-                <i class="fas fa-exclamation-triangle"></i> Timer Warning
-            </div>
-            <div class="section-content">
-                <p>{{warningMessage}}</p>
-            </div>
-        </div>
-    {{else if isTimerExpired}}
-        <div class="blacksmith-card theme-red">
-            <div class="section-header">
-                <i class="fas fa-stopwatch"></i> Timer Expired
-            </div>
-            <div class="section-content">
-                <p>{{expiredMessage}}</p>
-            </div>
-        </div>
-    {{else if isTimerSet}}
+    {{#if isPlanningStart}}
         <div class="blacksmith-card theme-blue">
             <div class="section-header">
-                <i class="fas fa-clock"></i> Timer Set
+                <i class="fas fa-hourglass-start"></i> Planning Phase Started
             </div>
             <div class="section-content">
-                <p>{{timerSetMessage}}</p>
+                <p>The planning phase has begun! You have {{duration}} minutes to strategize.</p>
+            </div>
+        </div>
+    {{else if isPlanningPaused}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                <i class="fas fa-pause"></i> Planning Phase Paused
+            </div>
+            <div class="section-content">
+                <p>The planning timer has been paused with {{timeRemaining}} remaining.</p>
+            </div>
+        </div>
+    {{else if isPlanningResumed}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                <i class="fas fa-play"></i> Planning Phase Resumed
+            </div>
+            <div class="section-content">
+                <p>The planning timer has resumed with {{timeRemaining}} remaining.</p>
+            </div>
+        </div>
+    {{else if isTimer}}
+        <div class="blacksmith-card {{#if theme}}theme-{{theme}}{{else}}theme-default{{/if}}">
+            <div class="section-header">
+                {{#if isTimerSet}}
+                    <i class="fas fa-clock"></i> {{timerLabel}} Timer Updated
+                {{else if isTimerStart}}
+                    <i class="fas fa-hourglass-start"></i> {{timerLabel}} Started
+                {{else if isTimerPaused}}
+                    <i class="fas fa-pause"></i> {{timerLabel}} Paused
+                {{else if isTimerResumed}}
+                    <i class="fas fa-play"></i> {{timerLabel}} Resumed
+                {{else if isTimerWarning}}
+                    <i class="fas fa-exclamation-triangle"></i> {{timerLabel}} Warning
+                {{else if isTimerExpiringSoon}}
+                    <i class="fas fa-exclamation-circle"></i> {{timerLabel}} Ending Soon
+                {{else if isTimerExpired}}
+                    <i class="fas fa-stopwatch"></i> {{timerLabel}} Ended
+                {{/if}}
+            </div>
+            <div class="section-content">
+                {{#if isTimerSet}}
+                    <p>{{timerLabel}} timer has been set to {{timeString}}.</p>
+                {{else if isTimerStart}}
+                    {{#if duration}}
+                        <p>The {{timerLabel}} phase has begun! You have {{duration}} minutes.</p>
+                    {{else}}
+                        <p>The {{timerLabel}} phase has begun!</p>
+                    {{/if}}
+                {{else if isTimerPaused}}
+                    <p>The {{timerLabel}} timer has been paused with {{timeRemaining}} remaining.</p>
+                {{else if isTimerResumed}}
+                    <p>The {{timerLabel}} timer has resumed with {{timeRemaining}} remaining.</p>
+                {{else if isTimerWarning}}
+                    <p>{{warningMessage}}</p>
+                {{else if isTimerExpiringSoon}}
+                    <p>{{expiringSoonMessage}}</p>
+                {{else if isTimerExpired}}
+                    <p>{{expiredMessage}}</p>
+                {{/if}}
             </div>
         </div>
     {{else if isRoundAnnouncement}}
