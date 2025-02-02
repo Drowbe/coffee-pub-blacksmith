@@ -1,4 +1,4 @@
-import { MVPTemplates } from './mvp-templates.js';
+import { MVPTemplates } from './data-collections.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class MVPDescriptionGenerator {
