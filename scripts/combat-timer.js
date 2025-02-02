@@ -6,15 +6,7 @@
 import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
-
-let socket;
-
-// Set up socketlib
-Hooks.once('socketlib.ready', () => {
-    postConsoleAndNotification("Setting up Combat Timer socketlib", "", false, true, false);
-    socket = socketlib.registerModule(MODULE_ID);
-    socket.register("syncTimerState", CombatTimer.receiveTimerSync);
-});
+import { ThirdPartyManager } from './third-party.js';
 
 class CombatTimer {
     static ID = 'combat-timer';
@@ -73,23 +65,17 @@ class CombatTimer {
                 console.error(`Blacksmith | Could not initialize Combat Timer:`, error);
             }
         });
-    }
 
-    // Function that will be called on non-GM clients
-    static receiveTimerSync(state) {
-        // Check for game initialization
-        if (!game?.user) return;  // Exit if game or user not ready
-        
-        postConsoleAndNotification("Combat Timer: Received timer sync from GM", "", false, true, false);
-        if (!game.user.isGM) {
-            CombatTimer.state = foundry.utils.deepClone(state);
-            CombatTimer.updateUI();
-        }
+        // Add socket ready check
+        Hooks.once('blacksmith.socketReady', () => {
+            postConsoleAndNotification("Combat Timer | Socket is ready", "", false, true, false);
+        });
     }
 
     static async syncState() {
         if (game.user.isGM) {
             postConsoleAndNotification("Combat Timer: GM syncing state to players", "", false, true, false);
+            const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("syncTimerState", this.state);
             this.updateUI();
         }
@@ -757,6 +743,18 @@ class CombatTimer {
     // Add logState method for debugging
     static logState(context = "") {
         postConsoleAndNotification(`Combat Timer: State [${context}]`, this.state, false, true, false);
+    }
+
+    // Function that will be called on non-GM clients
+    static receiveTimerSync(state) {
+        // Check for game initialization
+        if (!game?.user) return;  // Exit if game or user not ready
+        
+        postConsoleAndNotification("Combat Timer: Received timer sync from GM", "", false, true, false);
+        if (!game.user.isGM) {
+            CombatTimer.state = foundry.utils.deepClone(state);
+            CombatTimer.updateUI();
+        }
     }
 }
 
