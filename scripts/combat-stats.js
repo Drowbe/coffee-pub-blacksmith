@@ -1,7 +1,6 @@
 // Import MODULE variables
 import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound } from './global.js';
-import { CombatStatsDebug } from './debug.js';
 import { PlanningTimer } from './planning-timer.js';
 import { CombatTimer } from './combat-timer.js';
 import { MVPDescriptionGenerator } from './mvp-description-generator.js';
@@ -74,13 +73,9 @@ class CombatStats {
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+1
 
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.START, {
-            message: 'Initializing Combat Stats',
-            settings: {
-                trackCombatStats: game.settings.get(MODULE_ID, 'trackCombatStats')
-            }
-        });
+        postConsoleAndNotification("Initializing Combat Stats | trackCombatStats:", game.settings.get(MODULE_ID, 'trackCombatStats'), false, true, false);
 
         // Check for existing stats in combat flags
         const existingStats = game.combat?.getFlag(MODULE_ID, 'stats');
@@ -156,8 +151,7 @@ class CombatStats {
             // Save the stats to combat flags
             game.combat.setFlag(MODULE_ID, 'stats', this.currentStats);
 
-            CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.ROUND, {
-                message: 'Round started',
+            postConsoleAndNotification("Round Started | Combat:", {
                 round: {
                     number: combat.round,
                     startTime: this.currentStats.roundStartTime,
@@ -166,7 +160,7 @@ class CombatStats {
                         initiative: t.initiative
                     }))
                 }
-            });
+            }, false, true, false);
         }
 
         // Handle round announcement if enabled (independent of stats tracking)
@@ -232,8 +226,7 @@ class CombatStats {
         // Update timing stats
         this.currentStats.turnStartTime = Date.now();
 
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.STATS.TURNS, {
-            message: 'Turn changed',
+        postConsoleAndNotification("Turn Changed | Stats:", {
             turn: {
                 current: currentCombatant?.name,
                 previous: previousCombatant?.name,
@@ -241,7 +234,7 @@ class CombatStats {
                 duration: duration,
                 expired: isExpired
             }
-        });
+        }, false, true, false);
 
         // Add notable moment tracking for turn duration
         if (previousCombatant) {
@@ -279,16 +272,15 @@ class CombatStats {
 
         const combatDuration = Date.now() - this.combatStats.startTime;
         
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.END, {
-            message: 'Combat ended',
-                combat: {
+        postConsoleAndNotification("Combat Ended | Stats:", {
+            combat: {
                 duration: combatDuration,
                 rounds: combat.round,
                 totalHits: this.combatStats.hits.length,
                 expiredTurns: this.currentStats.expiredTurns.length,
                 participantStats: this.combatStats.participantStats
             }
-        });
+        }, false, true, false);
 
         // Reset stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -890,15 +882,14 @@ class CombatStats {
             }
         }
 
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.DAMAGE, {
-            message: isHealing ? 'Healing roll processed' : 'Damage roll processed',
+        postConsoleAndNotification(isHealing ? "Healing Roll Processed | Combat:" : "Damage Roll Processed | Combat:", {
             actor: actor.name,
             roll: {
                 total: amount,
                 isHealing
             },
             attackerStats
-        });
+        }, false, true, false);
     }
 
     // Add new method to track pre-damage rolls
@@ -1198,18 +1189,14 @@ class CombatStats {
 
     // Helper method for debug logging
     static _debugLog(title, data) {
-        CombatStatsDebug.debugLog('STATS.DEBUG', {
-            title,
-            data
-        });
+        postConsoleAndNotification(`${title} | Stats Debug:`, data, false, true, false);
     }
 
     // Combat flow tracking methods
     static _onCombatStart(combat) {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        CombatStatsDebug.debugLog(CombatStatsDebug.DEBUG_CATEGORIES.COMBAT.START, {
-            message: 'Combat started',
+        postConsoleAndNotification("Combat Started | Stats:", {
             combat: {
                 id: combat.id,
                 round: combat.round,
@@ -1220,7 +1207,7 @@ class CombatStats {
                     initiative: c.initiative
                 }))
             }
-        });
+        }, false, true, false);
 
         // Initialize combat stats
         this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
