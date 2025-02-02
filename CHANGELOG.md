@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.2] - Cleanup and Refactor
+
+### Added
+- Added a new class for generating MVP descriptions based on combat stats.
+- Added a new class for generating combat history.
+
+### Changed
+- Moved MVPTemplates from mvp-templates.js into data-collections.js
+- Moved MVPDescriptionGenerator class from mvp-description-generator.js into combat-stats.js
+- Consolidated combat-related functionality into fewer files for better maintainability
+
+### Removed
+- Removed unused debug.js file
+- Removed mvp-templates.js after moving its contents
+- Removed mvp-description-generator.js after moving its contents
+
 ## [1.0.1] - It's All About Timers
 
 ### Added
