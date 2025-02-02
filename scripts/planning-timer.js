@@ -62,6 +62,13 @@ export class PlanningTimer {
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
+        // Check for game initialization
+        if (!game?.user?.isGM && !game?.user) {
+            postConsoleAndNotification("Planning Timer: Game or user not ready, skipping sync", "", false, true, false);
+            return;
+        }
+        
+        postConsoleAndNotification("Planning Timer: Received timer sync from GM", "", false, true, false);
         if (!game.user.isGM) {
             PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();
