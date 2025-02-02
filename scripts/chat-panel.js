@@ -337,20 +337,9 @@ class ChatPanel {
             const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
                 .replace('{time}', this.getTimerText());
 
-            const gmUser = game.users.find(u => u.isGM);
-            if (!gmUser) return;
-
-            const warningHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
-                isPublic: true,
+            await this.sendTimerMessage({
                 isTimerWarning: true,
                 warningMessage: message
-            });
-
-            await ChatMessage.create({
-                content: warningHtml,
-                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                user: gmUser.id,
-                speaker: { alias: gmUser.name }
             });
         } catch (error) {
             postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping warning notification", "", false, true, false);
@@ -367,20 +356,9 @@ class ChatPanel {
 
             // Send expired message
             const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
-            const gmUser = game.users.find(u => u.isGM);
-            if (!gmUser) return;
-
-            const expiredHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
-                isPublic: true,
+            await this.sendTimerMessage({
                 isTimerExpired: true,
                 expiredMessage: message
-            });
-
-            await ChatMessage.create({
-                content: expiredHtml,
-                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                user: gmUser.id,
-                speaker: { alias: gmUser.name }
             });
         } catch (error) {
             postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping expiration notification", "", false, true, false);
@@ -443,21 +421,10 @@ class ChatPanel {
                         
                         // Send timer set message
                         const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                        const gmUser = game.users.find(u => u.isGM);
-                        if (gmUser) {
-                            const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
-                                isPublic: true,
-                                isTimerSet: true,
-                                timerSetMessage: `Session timer set for ${timeString}`
-                            });
-
-                            await ChatMessage.create({
-                                content: messageHtml,
-                                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                                user: gmUser.id,
-                                speaker: { alias: gmUser.name }
-                            });
-                        }
+                        await this.sendTimerMessage({
+                            isTimerSet: true,
+                            timeString: timeString
+                        });
                         
                         this.updateTimerDisplay();
                     }
@@ -469,6 +436,33 @@ class ChatPanel {
             },
             default: "set"
         }).render(true);
+    }
+
+    // Helper method for sending chat messages
+    static async sendTimerMessage(data) {
+        // Get the GM user to send messages from
+        const gmUser = game.users.find(u => u.isGM);
+        if (!gmUser) return;
+
+        // Prepare the message data with timer info
+        const messageData = {
+            isPublic: true,
+            isTimer: true,
+            timerLabel: 'Session',
+            theme: data.isTimerWarning ? 'orange' : 
+                   data.isTimerExpired ? 'red' : 
+                   (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
+            ...data
+        };
+
+        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+
+        await ChatMessage.create({
+            content: messageHtml,
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+            user: gmUser.id,
+            speaker: { alias: gmUser.name }
+        });
     }
 
     // Socket receiver functions
