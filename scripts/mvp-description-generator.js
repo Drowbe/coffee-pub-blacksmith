@@ -108,17 +108,4 @@ export class MVPDescriptionGenerator {
         
         return description;
     }
-
-    // Helper method for debugging
-    static validateStats(stats) {
-        const required = ['combat', 'damage', 'healing'];
-        const missing = required.filter(key => !stats[key]);
-        
-        if (missing.length) {
-            console.warn(`Missing required stat categories: ${missing.join(', ')}`);
-            return false;
-        }
-        
-        return true;
-    }
 } 
