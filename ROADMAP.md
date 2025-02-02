@@ -52,6 +52,7 @@ P4 - Low Priority/Low Impact
 - Fix Theme Switching Bugs [Priority: P2] [Label: blacksmith, bug, ui]
 - Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P2] [Label: blacksmith, documentation]
+- Unify DEBUG code [Priority: P0] [Label: blacksmith, debug, refactor, optimization]
 
 ## CLOSED
 
