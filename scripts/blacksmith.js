@@ -12,7 +12,7 @@ import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './global.js';
 // -- Global utilities --
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToString} from './global.js';
+import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';
 // *** END: GLOBAL IMPORTS ***
 
 // -- COMMON Imports --
@@ -745,7 +745,7 @@ async function buildInjuryJournalEntry(journalData) {
     var intDamage = journalData.damage;
     var strCardDamage = intDamage + " Hit Points"
     var intDuration = journalData.duration;
-    var strCardDuration = convertSecondsToString(journalData.duration);
+    var strCardDuration = convertSecondsToRounds(journalData.duration);
     var strAction = journalData.action;
     var strStatusEffect = journalData.statuseffect;
     postConsoleAndNotification("strJournalType", strJournalType, false, true, false);

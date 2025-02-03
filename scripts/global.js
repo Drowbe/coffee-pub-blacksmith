@@ -272,7 +272,7 @@ export function formatTime(ms, format = "colon") {
 // ************************************
 // ** UTILITY Convert Seconds
 // ************************************
-export function convertSecondsToString(numSeconds) {
+export function convertSecondsToRounds(numSeconds) {
     if (numSeconds === "0" || isNaN(numSeconds)) {
       return "Permanent";
     }
