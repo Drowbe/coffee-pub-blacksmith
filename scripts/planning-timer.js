@@ -23,7 +23,7 @@ export class PlanningTimer {
     };
 
     static initialize() {
-        postConsoleAndNotification("Planning Timer | Initializing", "", false, true, false);
+        postConsoleAndNotification("Planning Timer | Initializing", "", false, false, false);
         
         // Initialize state
         this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -651,7 +651,7 @@ export class PlanningTimer {
     static receiveTimerSync(state) {
         if (!game?.user) return;
         
-        postConsoleAndNotification("Planning Timer: Received timer sync:", state, false, true, false);
+        // postConsoleAndNotification("Planning Timer: Received timer sync:", state, false, true, false);
         if (!game.user.isGM) {
             PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();

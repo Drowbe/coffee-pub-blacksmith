@@ -31,7 +31,7 @@ class CombatTimer {
                     return;
                 }
 
-                postConsoleAndNotification("Initializing Combat Timer", "", false, true, false);
+                postConsoleAndNotification("Initializing Combat Timer", "", false, false, false);
                 
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -74,7 +74,7 @@ class CombatTimer {
 
     static async syncState() {
         if (game.user.isGM) {
-            postConsoleAndNotification("Combat Timer: GM syncing state to players", "", false, true, false);
+            // postConsoleAndNotification("Combat Timer: GM syncing state to players", "", false, true, false);
             const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("syncTimerState", this.state);
             this.updateUI();
@@ -544,7 +544,7 @@ class CombatTimer {
         
         // Sync state to players on every tick if GM
         if (game.user.isGM) {
-            postConsoleAndNotification("Combat Timer: Ticking, syncing state to players", "", false, true, false);
+            //postConsoleAndNotification("Combat Timer: Ticking, syncing state to players", "", false, true, false);
             this.syncState();
         }
         
@@ -612,7 +612,7 @@ class CombatTimer {
 
     static updateUI() {
         try {
-            postConsoleAndNotification("Combat Timer: Updating UI with state", this.state, false, true, false);
+            // postConsoleAndNotification("Combat Timer: Updating UI with state", this.state, false, true, false);
             // Update progress bar using state duration
             const percentage = (this.state.remaining / this.state.duration) * 100;
             const bar = $('.combat-timer-bar');
@@ -649,7 +649,7 @@ class CombatTimer {
             
             // Update timer text
             const timerText = $('.combat-timer-text');
-            postConsoleAndNotification("Combat Timer: Setting timer text, isPaused:", this.state.isPaused, false, true, false);
+            // postConsoleAndNotification("Combat Timer: Setting timer text, isPaused:", this.state.isPaused, false, true, false);
             if (this.state.isPaused) {
                 timerText.text('COMBAT TIMER PAUSED');
             } else if (this.state.remaining <= 0) {
@@ -798,7 +798,7 @@ class CombatTimer {
     static receiveTimerSync(state) {
         if (!game?.user) return;
         
-        postConsoleAndNotification("Combat Timer: Received timer sync:", state, false, true, false);
+        // postConsoleAndNotification("Combat Timer: Received timer sync:", state, false, true, false);
         if (!game.user.isGM) {
             CombatTimer.state = foundry.utils.deepClone(state);
             CombatTimer.updateUI();

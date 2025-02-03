@@ -2123,16 +2123,6 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		default: false,
 	});
 
-	// -- ENABLE DEBUG LOGS --
-	game.settings.register(MODULE_ID, 'enableDebugLogs', {
-		name: 'Enable Debug Logging',
-		hint: 'Enables detailed logging for combat statistics tracking',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
 	// -- LOG DEBUG STYLE--
 	game.settings.register(MODULE_ID, 'globalConsoleDebugStyle', {
 		name: MODULE_ID + '.globalConsoleDebugStyle-Label',
