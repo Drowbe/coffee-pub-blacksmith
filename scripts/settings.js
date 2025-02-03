@@ -490,6 +490,8 @@ export const registerSettings = async () => {
 			default: ""
 		});
 
+
+
 		// Session Timer Settings
 		game.settings.register(MODULE_ID, 'sessionEndTime', {
 			name: 'Session End Time',
@@ -507,6 +509,30 @@ export const registerSettings = async () => {
 			config: false,
 			type: Number,
 			default: 0
+		});
+
+		game.settings.register(MODULE_ID, 'sessionTimerDate', {
+			name: 'Session Timer Date',
+			hint: 'The date when the session timer was last set',
+			scope: 'world',
+			config: false,
+			type: String,
+			default: ''
+		});
+
+		// Chat Panel Settings
+		game.settings.register(MODULE_ID, 'sessionTimerDefault', {
+			name: 'Default Session Time',
+			hint: 'The default duration of the session. (Up to 10 hours)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 60,
+			range: {
+				min: 15,
+				max: 600,
+				step: 1
+			}
 		});
 
 		// Chat Panel Settings
@@ -2040,23 +2066,12 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 
 
-
-
-
-
-
-
-
-
-
-
-
-	// HESE ARE OLD SETTINGS FOR COMBAT STATS THAT WE HAVEN"T USED YET. THEY ARE IN THE COMBAT_STATS.JS FILE, BUT WE WILL REUILB IT.
+	// THESE ARE OLD SETTINGS FOR COMBAT STATS THAT WE HAVEN"T USED YET. THEY ARE IN THE COMBAT_STATS.JS FILE, BUT WE WILL REUILB IT.
 
 	// ---------- COMBAT STATS ----------
 	game.settings.register(MODULE_ID, "headingH3CombatStats", {
 		name: 'Combat Stats',
-		hint: 'These settings apply to Combat Stats that can be shared at the end of each combat session.',
+		hint: '(COMIN SOON) These settings apply to Combat Stats that can be shared at the end of each combat session.',
 		scope: "world",
 		config: true,
 		default: "",

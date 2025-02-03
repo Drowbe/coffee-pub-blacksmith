@@ -128,8 +128,8 @@ class ChatPanel {
     }
 
     static async showLeaderDialog() {
-        // Get all connected players (excluding GM)
-        const players = game.users.filter(user => !user.isGM);
+        // Get all connected players (excluding GM) who are online
+        const players = game.users.filter(user => !user.isGM && user.active);
         
         // Create the dialog content
         const content = `
@@ -210,9 +210,19 @@ class ChatPanel {
         try {
             const endTime = await game.settings.get(MODULE_ID, 'sessionEndTime');
             const startTime = await game.settings.get(MODULE_ID, 'sessionStartTime');
-            postConsoleAndNotification("Chat Panel: Loading timer, found end time:", endTime, false, true, false);
-            this.sessionEndTime = endTime;
-            this.sessionStartTime = startTime;
+            const timerDate = await game.settings.get(MODULE_ID, 'sessionTimerDate');
+            const today = new Date().toDateString();
+
+            if (timerDate === today && endTime > Date.now()) {
+                // Use existing timer if it's from today and hasn't expired
+                this.sessionEndTime = endTime;
+                this.sessionStartTime = startTime;
+            } else {
+                // Use default time if timer is from a different day or expired
+                this.sessionEndTime = null;
+                this.sessionStartTime = null;
+            }
+            postConsoleAndNotification("Chat Panel: Loading timer, found end time:", this.sessionEndTime, false, true, false);
         } catch (error) {
             console.error("Blacksmith | Chat Panel: Error loading timer:", error);
             this.sessionEndTime = null;
@@ -367,15 +377,21 @@ class ChatPanel {
     }
 
     static async showTimerDialog() {
-        // Calculate current values if timer exists
+        // Calculate current values if timer exists, otherwise use default
         let currentHours = 0;
         let currentMinutes = 0;
+        
         if (this.sessionEndTime) {
             const remaining = this.sessionEndTime - Date.now();
             if (remaining > 0) {
                 currentHours = Math.floor(remaining / (1000 * 60 * 60));
                 currentMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
             }
+        } else {
+            // Use default session time from settings
+            const defaultMinutes = game.settings.get(MODULE_ID, 'sessionTimerDefault');
+            currentHours = Math.floor(defaultMinutes / 60);
+            currentMinutes = defaultMinutes % 60;
         }
 
         const content = `
@@ -395,6 +411,12 @@ class ChatPanel {
                         </select>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="set-default" name="set-default">
+                        Set as new default time
+                    </label>
+                </div>
             </form>
         `;
 
@@ -408,6 +430,7 @@ class ChatPanel {
                     callback: async (html) => {
                         const hours = parseInt(html.find('#hours-select').val());
                         const minutes = parseInt(html.find('#minutes-select').val());
+                        const setAsDefault = html.find('#set-default').prop('checked');
                         const duration = (hours * 60 + minutes) * 60 * 1000; // Convert to milliseconds
                         
                         this.sessionStartTime = Date.now();
@@ -416,6 +439,12 @@ class ChatPanel {
                         // Store both start and end time in settings
                         await game.settings.set(MODULE_ID, 'sessionEndTime', this.sessionEndTime);
                         await game.settings.set(MODULE_ID, 'sessionStartTime', this.sessionStartTime);
+                        await game.settings.set(MODULE_ID, 'sessionTimerDate', new Date().toDateString());
+
+                        // If checkbox was checked, save as new default
+                        if (setAsDefault) {
+                            await game.settings.set(MODULE_ID, 'sessionTimerDefault', hours * 60 + minutes);
+                        }
                         
                         // Update all clients
                         await this.updateTimer(this.sessionEndTime, this.sessionStartTime);
