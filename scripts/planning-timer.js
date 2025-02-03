@@ -410,7 +410,9 @@ export class PlanningTimer {
 
             // Notify all clients using ThirdPartyManager
             const socket = ThirdPartyManager.getSocket();
-            socket.executeForOthers("planningTimerAdjusted", this.formatTime(newTime));
+            if (socket) {
+                socket.executeForOthers("planningTimerAdjusted", this.formatTime(newTime));
+            }
         }
     }
 
@@ -647,13 +649,9 @@ export class PlanningTimer {
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
-        // Check for game initialization
-        if (!game?.user?.isGM && !game?.user) {
-            postConsoleAndNotification("Planning Timer: Game or user not ready, skipping sync", "", false, true, false);
-            return;
-        }
+        if (!game?.user) return;
         
-        postConsoleAndNotification("Planning Timer: Received timer sync from GM", "", false, true, false);
+        postConsoleAndNotification("Planning Timer: Received timer sync:", state, false, true, false);
         if (!game.user.isGM) {
             PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();

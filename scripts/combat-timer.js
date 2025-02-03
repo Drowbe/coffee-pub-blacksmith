@@ -245,20 +245,32 @@ class CombatTimer {
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
         
+        // Send chat message for timer update if GM
+        if (game.user.isGM) {
+            const minutes = Math.floor(newTime / 60);
+            const seconds = newTime % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            this.sendChatMessage({
+                isTimerSet: true,
+                timeString: timeString
+            });
+        }
+        
         if (!this.state.isPaused) {
             if (this.timer) clearInterval(this.timer);
             this.timer = setInterval(() => this.tick(), 1000);
         }
         
         this.updateUI();
-        
-        const timeString = this.formatTime(newTime);
         if (game.user.isGM) {
+            this.syncState();
+
+            // Notify all clients using ThirdPartyManager
             const socket = ThirdPartyManager.getSocket();
-            socket.executeForOthers("combatTimerAdjusted", timeString);
+            if (socket) {
+                socket.executeForOthers("combatTimerAdjusted", this.formatTime(newTime));
+            }
         }
-        
-        ui.notifications.info(`Timer set to ${timeString}`);
     }
 
     static formatTime(seconds) {
@@ -407,24 +419,32 @@ class CombatTimer {
     }
 
     static pauseTimer() {
-        postConsoleAndNotification("Combat Timer: Pausing timer", "", false, true, false);
+        postConsoleAndNotification("Combat Timer | Pausing timer", "", false, true, false);
         this.state.isPaused = true;
         this.state.showingMessage = false;
-        
+
         if (this.timer) {
             clearInterval(this.timer);
             this.timer = null;
         }
-        
+
         // Record pause for stats
         CombatStats.recordTimerPause();
-        
+
         // Play pause/resume sound if configured
         const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
-        
+
+        // Send chat message if GM
+        if (game.user.isGM) {
+            this.sendChatMessage({
+                isTimerPaused: true,
+                timeRemaining: this.formatTime(this.state.remaining)
+            });
+        }
+
         this.updateUI();
         this.syncState();
         
@@ -437,7 +457,7 @@ class CombatTimer {
     }
 
     static resumeTimer() {
-        postConsoleAndNotification("Combat Timer: Resuming timer", "", false, true, false);
+        postConsoleAndNotification("Combat Timer | Resuming timer", "", false, true, false);
         
         // If we're in planning phase (turn 0), end the planning timer gracefully
         if (game.combat?.turn === 0 && !this._endingPlanningTimer) {
@@ -471,29 +491,32 @@ class CombatTimer {
         this.state.isPaused = false;
         this.state.showingMessage = false;
         this.state.isActive = true;  // Add this to ensure timer is marked as active
-        
-        // Clear any existing timer
-        if (this.timer) clearInterval(this.timer);
-        
-        // Only GM sets up the interval
+
+        // Only GM should handle the interval
         if (game.user.isGM) {
+            if (this.timer) clearInterval(this.timer);
             this.timer = setInterval(() => this.tick(), 1000);
-            // Sync state immediately after state changes
+
+            // Record the start time for stats
+            CombatStats.recordTurnStart(game.combat?.combatant);
+            // Record timer resume for stats
+            CombatStats.recordTimerUnpause();
+            
+            // Play pause/resume sound if configured
+            const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+            if (pauseResumeSound !== 'none') {
+                playSound(pauseResumeSound, this.getTimerVolume());
+            }
+
+            // Send chat message for resume
+            this.sendChatMessage({
+                isTimerResumed: true,
+                timeRemaining: this.formatTime(this.state.remaining)
+            });
+
             this.syncState();
         }
 
-        // Record the start time for stats
-        CombatStats.recordTurnStart(game.combat?.combatant);
-        // Record timer resume for stats
-        CombatStats.recordTimerUnpause();
-
-        // Play pause/resume sound if configured
-        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
-        if (pauseResumeSound !== 'none') {
-            playSound(pauseResumeSound, this.getTimerVolume());
-        }
-        
-        // Update UI after all state changes
         this.updateUI();
         
         // Emit state change hook
@@ -546,6 +569,14 @@ class CombatTimer {
                 const message = game.settings.get(MODULE_ID, 'combatTimerWarningMessage');
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
+
+                // Send warning chat message if GM
+                if (game.user.isGM) {
+                    this.sendChatMessage({
+                        isTimerWarning: true,
+                        warningMessage: message
+                    });
+                }
             }
         }
 
@@ -563,6 +594,14 @@ class CombatTimer {
                 const message = game.settings.get(MODULE_ID, 'combatTimerCriticalMessage');
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
+
+                // Send critical warning chat message if GM
+                if (game.user.isGM) {
+                    this.sendChatMessage({
+                        isTimerExpiringSoon: true,
+                        expiringSoonMessage: message
+                    });
+                }
             }
         }
         
@@ -655,22 +694,24 @@ class CombatTimer {
             playSound(timeUpSound, this.getTimerVolume());
         }
 
-        // Show notification if enabled
-        if (this.shouldShowNotification()) {
-            ui.notifications.warn(
-                game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
-                    .replace('{name}', game.combat?.combatant?.name || '')
-            );
+        // Show notification and send chat message if enabled
+        if (this.shouldShowNotification() && game.user.isGM) {
+            const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage');
+            ui.notifications.warn(message.replace('{name}', game.combat?.combatant?.name || ''));
+
+            // Send expired chat message
+            this.sendChatMessage({
+                isTimerExpired: true,
+                expiredMessage: message
+            });
         }
 
         // Auto-advance turn if enabled
         if (game.settings.get(MODULE_ID, 'combatTimerEndTurn')) {
             game.combat?.nextTurn();
             if (this.shouldShowNotification()) {
-                ui.notifications.info(
-                    game.settings.get(MODULE_ID, 'combatTimerAutoAdvanceMessage')
-                        .replace('{name}', game.combat?.combatant?.name || '')
-                );
+                const message = game.settings.get(MODULE_ID, 'combatTimerAutoAdvanceMessage');
+                ui.notifications.info(message.replace('{name}', game.combat?.combatant?.name || ''));
             }
         }
 
@@ -719,6 +760,15 @@ class CombatTimer {
         // Clear visual states
         $('.combat-timer-progress').removeClass('expired');
         
+        // Start fresh timer with chat message
+        if (game.user.isGM) {
+            const duration = Math.floor(game.settings.get(MODULE_ID, 'combatTimerDuration') / 60);
+            this.sendChatMessage({
+                isTimerStart: true,
+                duration: duration
+            });
+        }
+        
         // Start fresh timer
         this.startTimer();
     }
@@ -759,6 +809,44 @@ class CombatTimer {
         if (!game.user.isGM) {
             ui.notifications.info(`Combat timer set to ${timeString}`);
         }
+    }
+
+    // Helper method for sending chat messages
+    static async sendChatMessage(data) {
+        // Get the GM user to send messages from
+        const gmUser = game.users.find(u => u.isGM);
+        if (!gmUser) return;
+
+        // Get the current combatant name if available
+        const name = game.combat?.combatant?.name || 'Unknown';
+
+        // Prepare the message data with timer info
+        const messageData = {
+            isPublic: true,
+            isTimer: true,
+            timerLabel: 'Combat',
+            theme: data.isTimerWarning ? 'orange' : 
+                   data.isTimerExpired ? 'red' : 
+                   (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
+            ...data
+        };
+
+        // Format any messages that need the combatant name
+        if (data.warningMessage) {
+            messageData.warningMessage = data.warningMessage.replace('{name}', name);
+        }
+        if (data.expiredMessage) {
+            messageData.expiredMessage = data.expiredMessage.replace('{name}', name);
+        }
+
+        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+
+        await ChatMessage.create({
+            content: messageHtml,
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+            user: gmUser.id,
+            speaker: { alias: gmUser.name }
+        });
     }
 }
 

@@ -10,6 +10,7 @@ import { ChatPanel } from './chat-panel.js';
 class ThirdPartyManager {
     static socket = null;
     static isInitialized = false;
+    static isSocketReady = false;
 
     static initialize() {
         postConsoleAndNotification("Third Party Manager | Initializing", "", false, true, false);
@@ -20,6 +21,7 @@ class ThirdPartyManager {
             this.socket = socketlib.registerModule(MODULE_ID);
             this.registerSocketFunctions();
             this.isInitialized = true;
+            this.isSocketReady = true;
             
             // Emit our own ready event for other modules to use
             Hooks.callAll('blacksmith.socketReady');
@@ -45,10 +47,21 @@ class ThirdPartyManager {
     }
 
     static getSocket() {
-        if (!this.isInitialized) {
-            postConsoleAndNotification("Third Party Manager | Warning: Attempting to get socket before initialization", "", false, true, false);
+        if (!this.isSocketReady) {
+            postConsoleAndNotification("Third Party Manager | Error: Socket not ready", "", true, true, false);
+            return null;
         }
         return this.socket;
+    }
+
+    static async waitForReady() {
+        if (this.isSocketReady) return true;
+        
+        return new Promise((resolve) => {
+            Hooks.once('blacksmith.socketReady', () => {
+                resolve(true);
+            });
+        });
     }
 }
 
