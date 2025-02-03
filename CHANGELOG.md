@@ -5,11 +5,16 @@
 ### Added
 - Added a new class for generating MVP descriptions based on combat stats.
 - Added a new class for generating combat history.
+- Added session timer date tracking to persist timer state between sessions
+- Added ability to set current timer duration as the new default
+- Added seconds display to session timer
 
 ### Changed
 - Moved MVPTemplates from mvp-templates.js into data-collections.js
 - Moved MVPDescriptionGenerator class from mvp-description-generator.js into combat-stats.js
 - Consolidated combat-related functionality into fewer files for better maintainability
+- Modified session timer to use the default time when loading on a new day
+- Updated timer dialog to include option for saving current duration as default
 
 ### Removed
 - Removed unused debug.js file
