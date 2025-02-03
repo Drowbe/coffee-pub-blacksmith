@@ -820,6 +820,13 @@ class CombatTimer {
         // Get the current combatant name if available
         const name = game.combat?.combatant?.name || 'Unknown';
 
+        // Format duration to include minutes and seconds if it exists
+        if (data.duration) {
+            const minutes = Math.floor(data.duration);
+            const seconds = Math.round((data.duration - minutes) * 60);
+            data.duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
         // Prepare the message data with timer info
         const messageData = {
             isPublic: true,

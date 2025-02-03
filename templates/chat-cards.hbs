@@ -6,7 +6,7 @@
                 <i class="fas fa-hourglass-start"></i> Planning Phase Started
             </div>
             <div class="section-content">
-                <p>The planning phase has begun! You have {{duration}} minutes to strategize, make plans, and decide what you'll do.</p>
+                <p>The planning phase has begun! You have {{duration}} to strategize, make plans, and decide what you'll do.</p>
             </div>
         </div>
     {{else if isPlanningPaused}}
@@ -51,7 +51,7 @@
                     <p>{{timerLabel}} timer has been set to {{timeString}}.</p>
                 {{else if isTimerStart}}
                     {{#if duration}}
-                        <p>The {{timerLabel}} phase has begun! You have {{duration}} minutes to make your moves and take your actions.</p>
+                        <p>The {{timerLabel}} phase has begun! You have {{duration}} to make your moves and take your actions.</p>
                     {{else}}
                         <p>The {{timerLabel}} phase has begun!</p>
                     {{/if}}
