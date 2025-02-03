@@ -4,7 +4,7 @@
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { CombatStats } from './combat-stats.js';
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, formatTime } from './global.js';
 
 export class RoundTimer {
     static updateInterval = null;
@@ -28,10 +28,11 @@ export class RoundTimer {
             this.updateInterval = setInterval(() => {
                 if (game.combat?.started) {
                     const duration = this._getCurrentRoundDuration();
-                    const formattedTime = this._formatTime(duration);
+                    const formattedTime = formatTime(duration || 0, "verbose");
                     // Update all instances of the timer (both sidebar and popout)
-                    document.querySelectorAll('.round-timer-text').forEach(element => {
-                        element.innerText = `Round Duration: ${formattedTime}`;
+                    const elements = document.querySelectorAll('.round-timer .round-duration-time');
+                    elements.forEach(element => {
+                        element.textContent = formattedTime;
                     });
                 }
             }, 1000); // Update every second
@@ -42,13 +43,17 @@ export class RoundTimer {
         if (!game.combat?.started) return;
 
         const duration = this._getCurrentRoundDuration();
-        const formattedTime = this._formatTime(duration);
+        const formattedTime = formatTime(duration || 0, "verbose");
         
         const timerHtml = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/round-timer.hbs',
             {
                 roundDurationActual: formattedTime,
-                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer')
+                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer'),
+                partyStats: {
+                    ...CombatStats.currentStats?.partyStats || {},
+                    averageTurnTime: formatTime(CombatStats.currentStats?.partyStats?.averageTurnTime || 0, "verbose")
+                }
             }
         );
         
@@ -84,17 +89,5 @@ export class RoundTimer {
         }
         
         return now - stats.roundStartTimestamp;
-    }
-
-    static _formatTime(ms) {
-        // Ensure we're working with a positive number
-        ms = Math.max(0, ms);
-        
-        const totalSeconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        
-        // Format as MM:SS
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 } 

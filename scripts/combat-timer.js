@@ -61,6 +61,8 @@ class CombatTimer {
                     // Check if this is the current combatant's token and it actually moved
                     if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
                         postConsoleAndNotification("Combat Timer: Token movement detected, resuming timer", "", false, true, false);
+                        CombatTimer.state.showingMessage = false;
+                        $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
                     }
                 });
@@ -76,6 +78,8 @@ class CombatTimer {
                     // Check if this is the current combatant's action
                     if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
                         postConsoleAndNotification("Combat Timer: Attack roll detected, resuming timer", "", false, true, false);
+                        CombatTimer.state.showingMessage = false;
+                        $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
                     }
                 });
@@ -91,6 +95,8 @@ class CombatTimer {
                     // Check if this is the current combatant's action
                     if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
                         postConsoleAndNotification("Combat Timer: Damage roll detected, resuming timer", "", false, true, false);
+                        CombatTimer.state.showingMessage = false;
+                        $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
                     }
                 });

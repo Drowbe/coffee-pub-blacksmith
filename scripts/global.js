@@ -247,6 +247,28 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 // ===== GLOBAL FUNCTIONS ===========================================
 // ================================================================== 
 
+/**
+ * Format milliseconds into a time string
+ * @param {number} ms - milliseconds to format
+ * @param {string} format - "colon" for "0:00" or "verbose" for "0m 0s" (default: "colon")
+ * @returns {string} formatted time string
+ */
+export function formatTime(ms, format = "colon") {
+    // Ensure we're working with a positive number
+    ms = Math.max(0, ms);
+    
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (format === "verbose") {
+        return `${minutes}m ${seconds}s`;
+    }
+    
+    // Default to colon format
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 // ************************************
 // ** UTILITY Convert Seconds
 // ************************************
