@@ -250,7 +250,7 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 /**
  * Format milliseconds into a time string
  * @param {number} ms - milliseconds to format
- * @param {string} format - "colon" for "0:00" or "verbose" for "0m 0s" (default: "colon")
+ * @param {string} format - "colon", "verbose", "extended", "rounds", or any format+rounds (e.g. "verbose+rounds") (default: "colon")
  * @returns {string} formatted time string
  */
 export function formatTime(ms, format = "colon") {
@@ -261,12 +261,59 @@ export function formatTime(ms, format = "colon") {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     
-    if (format === "verbose") {
-        return `${minutes}m ${seconds}s`;
+    // Check if we need to append rounds
+    const includeRounds = format.includes("+rounds");
+    const baseFormat = format.replace("+rounds", "");
+    
+    let timeString = "";
+    
+    if (baseFormat === "verbose") {
+        timeString = `${minutes}m ${seconds}s`;
+    }
+    else if (baseFormat === "extended") {
+        let remainingSeconds = totalSeconds;
+        let years, months, weeks, days, hours, mins;
+        
+        mins = Math.floor(remainingSeconds / 60);
+        remainingSeconds %= 60;
+        hours = Math.floor(mins / 60);
+        mins %= 60;
+        days = Math.floor(hours / 24);
+        hours %= 24;
+        weeks = Math.floor(days / 7);
+        days %= 7;
+        months = Math.floor(weeks / 4.34524);
+        weeks %= 4.34524;
+        years = Math.floor(months / 12);
+        months %= 12;
+
+        timeString = '';
+        if (years > 0) timeString += `${years} YR `;
+        if (months > 0) timeString += `${months} MO `;
+        if (weeks > 0) timeString += `${Math.floor(weeks)} WK `;
+        if (days > 0) timeString += `${days} DAY `;
+        if (hours > 0) timeString += `${hours} HR `;
+        if (mins > 0) timeString += `${mins} MIN `;
+        if (remainingSeconds > 0) timeString += `${remainingSeconds} SEC`;
+        
+        timeString = timeString.trim() || '0 SEC';
+    }
+    else if (baseFormat === "rounds") {
+        const rounds = Math.floor(totalSeconds / 6);
+        return `${rounds} ROUNDS`;
+    }
+    else {
+        // Default to colon format
+        timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
     
-    // Default to colon format
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    // Append rounds if requested
+    if (includeRounds) {
+        const rounds = Math.floor(totalSeconds / 6);
+        timeString += ` (${rounds} ROUNDS)`;
+    }
+    
+    return timeString;
 }
 
 // ************************************
@@ -1007,7 +1054,7 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
                     console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT, strResult );
                 } else {
                     // PLAIN STYLE
-                    strConsoleMessage =  "%c" + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " %c" + MODULE_TITLE + " DEBUG: %c" + strMessage;
+                    strConsoleMessage =  "%c" + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + MODULE_TITLE + " DEBUG: %c" + strMessage;
                     console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE, strResult);
                 }
             } else {
