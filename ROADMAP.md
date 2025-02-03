@@ -36,7 +36,6 @@ P4 - Low Priority/Low Impact
 - Improve Error Handling for Missing Actor Data [Priority: P0] [Label: blacksmith, bug, data]
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
-- Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
 
 ## IN PROGRESS
@@ -53,9 +52,13 @@ P4 - Low Priority/Low Impact
 - Fix Layout Responsiveness Issues [Priority: P2] [Label: blacksmith, bug, ui]
 - Add Troubleshooting Guide [Priority: P2] [Label: blacksmith, documentation]
 - Unify DEBUG code [Priority: P0] [Label: blacksmith, debug, refactor, optimization]
+- Test Session Timer Date Persistence [Priority: P1] [Label: blacksmith, timer, feature]
+- Verify Default Timer Settings [Priority: P1] [Label: blacksmith, timer, feature]
+- Test Timer Seconds Display [Priority: P2] [Label: blacksmith, timer, ui]
 
 ## CLOSED
 
+- Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
 - Fix GM Attribution for Chat Messages [Priority: P1] [Label: blacksmith, bug]
