@@ -1808,6 +1808,15 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 		default: false
 	});
 
+	// -- Activity Starts Timer --
+	game.settings.register(MODULE_ID, 'combatTimerActivityStart', {
+		name: 'Activity Starts Timer',
+		hint: 'Automatically start the timer when the active combatant moves their token or takes any action (attack, heal, or roll)',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
 
 	game.settings.register(MODULE_ID, 'combatTimerDuration', {
 		name: 'Combat Timer Duration',

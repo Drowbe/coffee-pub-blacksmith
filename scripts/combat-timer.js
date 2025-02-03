@@ -49,6 +49,52 @@ class CombatTimer {
                 // Handle planning timer expiration
                 Hooks.on('planningTimerExpired', this.handlePlanningTimerExpired.bind(this));
 
+                // Add hooks for token movement and actions
+                Hooks.on('updateToken', (token, changes, options, userId) => {
+                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.combat?.started) return;
+                    
+                    // Check if token belongs to current combatant
+                    const currentToken = game.combat.combatant?.token;
+                    if (!currentToken) return;
+                    
+                    // Check if this is the current combatant's token and it actually moved
+                    if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
+                        postConsoleAndNotification("Combat Timer: Token movement detected, resuming timer", "", false, true, false);
+                        CombatTimer.resumeTimer();
+                    }
+                });
+
+                // Monitor attack rolls
+                Hooks.on('dnd5e.rollAttack', (item, roll) => {
+                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.combat?.started) return;
+                    
+                    const currentActor = game.combat.combatant?.actor;
+                    if (!currentActor || !item.actor) return;
+                    
+                    // Check if this is the current combatant's action
+                    if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+                        postConsoleAndNotification("Combat Timer: Attack roll detected, resuming timer", "", false, true, false);
+                        CombatTimer.resumeTimer();
+                    }
+                });
+
+                // Monitor damage rolls
+                Hooks.on('dnd5e.rollDamage', (item, roll) => {
+                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.combat?.started) return;
+                    
+                    const currentActor = game.combat.combatant?.actor;
+                    if (!currentActor || !item.actor) return;
+                    
+                    // Check if this is the current combatant's action
+                    if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+                        postConsoleAndNotification("Combat Timer: Damage roll detected, resuming timer", "", false, true, false);
+                        CombatTimer.resumeTimer();
+                    }
+                });
+
                 // Set up auto-open after combat tracker is ready
                 Hooks.once('renderCombatTracker', () => {
                     if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
