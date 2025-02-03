@@ -308,14 +308,14 @@
     font-style: italic;
 }
 
-.turn-name .fa-fire {
-    color: #e23b3e;
-    margin-left: 1px;
+.turn-name .crit {
+    color: #629602;
+    margin-right: 4px;
 }
 
-.turn-name .fa-skull {
-    color: #3498db;
-    margin-left: 1px;
+.turn-name .fumble {
+    color: #952023;
+    margin-right: 4px;
 }
 
 .turn-stats {

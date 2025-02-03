@@ -287,8 +287,8 @@
             <div class="turn-info">
                 <div class="turn-name">
                     <span class="status-tag rank">{{add @index 1}}</span>
-                    {{#if (gt this.combat.attacks.crits 0)}}<i class="fa-solid fa-fire"></i>{{/if}}
-                    {{#if (gt this.combat.attacks.fumbles 0)}}<i class="fa-solid fa-skull"></i>{{/if}}
+                    {{#if (gt this.combat.attacks.crits 0)}}<i class="fa-solid fa-swords crit"></i>{{/if}}
+                    {{#if (gt this.combat.attacks.fumbles 0)}}<i class="fa-solid fa-skull-crossbones fumble"></i>{{/if}}
                     <strong>{{this.name}}</strong>
                     {{#if ../settings.combatTimerEnabled}}
                     <span class="turn-time">{{formatTime this.turnDuration}}</span>
