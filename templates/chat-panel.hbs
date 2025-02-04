@@ -1,13 +1,22 @@
 <div class="blacksmith-chat-panel">
-    <div class="panel-section leader-section">
+    <div class="leader-section">
         <div class="leader-info">
-            <i class="fa-solid fa-crown leader-icon" style="cursor: {{#if isGM}}pointer{{else}}default{{/if}}"></i>
-            <span class="party-leader">{{leaderText}}</span>
+            <i class="fa-solid fa-crown leader-icon"></i>
+            <span class="party-leader">{{leader}}</span>
         </div>
     </div>
-    <div class="panel-section timer-section">
-        <div class="timer-info">
-            <i class="fa-solid fa-chess-rook"></i><span class="session-timer">{{timerText}}</span>
+
+    <div class="toolbar-section">
+        <div class="toolbar-icons">
+            <i class="fa-solid fa-check-to-slot vote-icon" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Start a Vote{{else}}Only the GM can start votes{{/if}}"></i>
+            {{!-- More tools will be added here --}}
+        </div>
+    </div>
+
+    <div class="timer-section">
+        <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{progress}}%">
+            <i class="fa-solid fa-hourglass-half"></i>
+            <span class="session-timer">{{timer}}</span>
         </div>
     </div>
 </div> 

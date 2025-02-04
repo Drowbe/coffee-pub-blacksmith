@@ -32,6 +32,7 @@ import { RoundTimer } from './round-timer.js';
 import { CombatStats } from './combat-stats.js';
 import { CPBPlayerStats } from './player-stats.js';
 import { ChatPanel } from './chat-panel.js';
+import { VoteManager } from './vote-manager.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -122,6 +123,10 @@ Hooks.once('init', async function() {
     // ROUND TIMER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...", "", false, true, false);
     RoundTimer.initialize();
+
+    // VOTE MANAGER
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing VoteManager...", "", false, true, false);
+    VoteManager.initialize();
 
 });
 

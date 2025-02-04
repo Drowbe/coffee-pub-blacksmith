@@ -6,6 +6,7 @@ import { postConsoleAndNotification } from './global.js';
 import { CombatTimer } from './combat-timer.js';
 import { PlanningTimer } from './planning-timer.js';
 import { ChatPanel } from './chat-panel.js';
+import { VoteManager } from './vote-manager.js';
 
 class ThirdPartyManager {
     static socket = null;
@@ -44,6 +45,11 @@ class ThirdPartyManager {
         // Chat Panel
         this.socket.register("updateLeader", ChatPanel.receiveLeaderUpdate);
         this.socket.register("updateTimer", ChatPanel.receiveTimerUpdate);
+
+        // Vote Manager
+        this.socket.register("receiveVoteStart", VoteManager.receiveVoteStart.bind(VoteManager));
+        this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
+        this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
     }
 
     static getSocket() {

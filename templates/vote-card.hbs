@@ -1,0 +1,59 @@
+<div class="vote-card">
+    <div class="vote-header">
+        <h3>
+            {{#if (eq vote.type "leader")}}
+                Leader Vote
+            {{/if}}
+        </h3>
+        {{#if vote.isActive}}
+            <div class="vote-status active">In Progress</div>
+        {{else}}
+            <div class="vote-status complete">Complete</div>
+        {{/if}}
+    </div>
+
+    <div class="vote-content">
+        {{#if vote.isActive}}
+            {{#if (eq vote.type "leader")}}
+                <div class="vote-options">
+                    {{#each vote.options}}
+                        <div class="vote-option">
+                            <button class="vote-button" data-option-id="{{this.id}}" {{#if (eq ../vote.votes.[../userId] this.id)}}disabled{{/if}}>
+                                {{this.name}}
+                                {{#if (eq ../vote.votes.[../userId] this.id)}}
+                                    <i class="fas fa-check"></i>
+                                {{/if}}
+                            </button>
+                        </div>
+                    {{/each}}
+                </div>
+            {{/if}}
+
+            {{#if isGM}}
+                <div class="vote-controls">
+                    <button class="close-vote">Close Vote</button>
+                </div>
+            {{/if}}
+        {{else}}
+            {{#if vote.results}}
+                <div class="vote-results">
+                    <h4>Results:</h4>
+                    {{#each vote.results.tally as |count optionId|}}
+                        <div class="result-row">
+                            {{#with (lookup ../vote.options optionId) as |option|}}
+                                <span class="option-name">{{option.name}}</span>
+                            {{/with}}
+                            <span class="vote-count">{{count}} votes</span>
+                            {{#if (eq optionId ../vote.results.winner)}}
+                                <i class="fas fa-crown winner-icon"></i>
+                            {{/if}}
+                        </div>
+                    {{/each}}
+                    <div class="total-votes">
+                        Total Votes: {{vote.results.totalVotes}}
+                    </div>
+                </div>
+            {{/if}}
+        {{/if}}
+    </div>
+</div> 

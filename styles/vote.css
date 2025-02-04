@@ -1,0 +1,203 @@
+/* ------------------------------------ */
+/* --- VOTE CARDS --------------------- */
+/* ------------------------------------ */
+
+.vote-card {
+    padding: 0.5em;
+    margin-bottom: 0.5em;
+    font-family: var(--dnd5e-font-roboto);
+    background-color: #ffffff;
+    border: 1px solid #594a3c;
+    border-radius: 5px;
+}
+
+.vote-header {
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #594a3c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(89, 74, 60, 0.2);
+    padding-bottom: 5px;
+}
+
+.vote-header h3 {
+    margin: 0;
+    color: #594a3c;
+}
+
+.vote-status {
+    font-size: 0.9em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--dnd5e-font-roboto);
+}
+
+.vote-status.active {
+    background: rgba(51, 122, 183, 0.1);
+    border: 1px solid #337ab7;
+    color: #337ab7;
+}
+
+.vote-status.complete {
+    background: rgba(45, 138, 69, 0.1);
+    border: 1px solid #2d8a45;
+    color: #2d8a45;
+}
+
+.vote-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0.5em;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+}
+
+.vote-option button {
+    width: 100%;
+    text-align: left;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    color: #594a3c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--dnd5e-font-roboto);
+    transition: all 0.2s ease;
+}
+
+.vote-option button:hover:not(:disabled) {
+    color: #c15701;
+    border-color: #c15701;
+}
+
+.vote-option button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.vote-controls {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.close-vote {
+    background: rgba(193, 87, 1, 0.1);
+    color: #c15701;
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid #c15701;
+    font-family: var(--dnd5e-font-roboto);
+    transition: all 0.2s ease;
+}
+
+.close-vote:hover {
+    background: rgba(193, 87, 1, 0.2);
+}
+
+.vote-results {
+    padding: 0.5em;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+}
+
+.vote-results h4 {
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #594a3c;
+    margin: 0 0 10px 0;
+}
+
+.result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.result-row:last-child {
+    margin-bottom: 0;
+}
+
+.option-name {
+    flex: 1;
+    color: #594a3c;
+    font-family: var(--dnd5e-font-roboto);
+}
+
+.vote-count {
+    margin: 0 10px;
+    color: #461313;
+    font-weight: bold;
+}
+
+.winner-icon {
+    color: #c15701;
+}
+
+.total-votes {
+    margin-top: 10px;
+    text-align: right;
+    font-style: italic;
+    color: #594a3c;
+    font-size: 0.9em;
+}
+
+/* Vote Config Dialog */
+.vote-config-content {
+    padding: 0.5em;
+    font-family: var(--dnd5e-font-roboto);
+}
+
+.vote-types {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vote-type {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vote-type:hover {
+    border-color: #c15701;
+}
+
+.vote-type-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.vote-type-header i {
+    color: #594a3c;
+    font-size: 1.2em;
+}
+
+.vote-type-name {
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-weight: bold;
+    color: #594a3c;
+}
+
+.vote-type-description {
+    color: #594a3c;
+    font-size: 0.9em;
+} 

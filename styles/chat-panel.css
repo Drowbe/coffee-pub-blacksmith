@@ -14,29 +14,65 @@
     justify-content: space-between;
 }
 
-.panel-section {
+.leader-section, .timer-section, .toolbar-section {
     display: flex;
     align-items: center;
+    padding: 2px 4px;
 }
 
 .leader-section {
-    justify-content: flex-start;
+    flex: 0 1 auto;
     cursor: pointer;
 }
 
-.blacksmith-chat-panel .leader-info {
+.timer-section {
+    flex: 0 1 auto;
+    cursor: pointer;
+}
+
+.toolbar-section {
+    flex: 1;
+    justify-content: center;
+    gap: 8px;
+}
+
+.leader-info, .timer-info {
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 0.9em;
 }
 
-.blacksmith-chat-panel .leader-icon {
+.toolbar-icons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.toolbar-icons i {
+    color: #f0f0e0;
+    font-size: 0.9em;
+    opacity: var(--icon-opacity, 1);
+}
+
+.toolbar-icons i[style*="not-allowed"] {
+    --icon-opacity: 0.5;
+}
+
+.toolbar-icons i:hover {
+    color: hsl(27, 99%, 38%);
+}
+
+.toolbar-icons i[style*="not-allowed"]:hover {
+    color: #f0f0e0;
+}
+
+.leader-icon {
     color: #f0f0e0;
     font-size: 0.9em;
 }
 
-.blacksmith-chat-panel .party-leader {
+.party-leader {
     color: #eeeeed;
     font-size: 0.9em;
     white-space: nowrap;
@@ -69,17 +105,6 @@
 }
 
 /* Timer Styles */
-.timer-section {
-    justify-content: flex-end;
-    cursor: pointer;
-}
-
-@keyframes borderPulse {
-    0% { border-color: #64675d; }
-    50% { border-color: hsl(27, 99%, 38%); }
-    100% { border-color: #64675d; }
-}
-
 .timer-info {
     display: flex;
     align-items: center;
@@ -140,6 +165,59 @@
 
 .timer-info:hover {
     border: 2px solid hsl(27, 99%, 38%);
+}
+
+/* Vote Config Styles */
+.vote-config .vote-config-content {
+    padding: 10px;
+}
+
+.vote-config h2 {
+    color: #eeeeed;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #666;
+    padding-bottom: 5px;
+}
+
+.vote-config .vote-types {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vote-config .vote-type {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vote-config .vote-type:hover {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: hsl(27, 99%, 38%);
+}
+
+.vote-config .vote-type i {
+    font-size: 1.5em;
+    color: #eeeeed;
+}
+
+.vote-config .vote-info h3 {
+    color: #eeeeed;
+    font-size: 1.1em;
+    margin: 0 0 5px 0;
+}
+
+.vote-config .vote-info p {
+    color: #c1c1c1;
+    font-size: 0.9em;
+    margin: 0;
 }
 
 /* ------------------------------------ */

@@ -2,9 +2,10 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE_ID } from './const.js';
+import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
+import { VoteConfig } from './vote-config.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -19,7 +20,9 @@ class ChatPanel {
         // Load the templates
         loadTemplates([
             'modules/coffee-pub-blacksmith/templates/chat-panel.hbs',
-            'modules/coffee-pub-blacksmith/templates/chat-cards.hbs'
+            'modules/coffee-pub-blacksmith/templates/chat-cards.hbs',
+            'modules/coffee-pub-blacksmith/templates/vote-config.hbs',
+            'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
 
         // Set up the render hook for the panel
@@ -77,6 +80,20 @@ class ChatPanel {
                 const timerSection = html.find('.timer-section');
                 timerSection.on('click', () => this.showTimerDialog());
             }
+
+            // Add vote icon click handler
+            html.find('.vote-icon').click(async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (!game.user.isGM) {
+                    ui.notifications.warn("Only the GM can start votes.");
+                    return;
+                }
+                
+                postConsoleAndNotification("Chat Panel | Opening vote config", "", false, true, false);
+                new VoteConfig().render(true);
+            });
 
         } catch (error) {
             console.error("Blacksmith | Chat Panel: Error rendering panel:", error);
