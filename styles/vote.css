@@ -25,9 +25,16 @@
 }
 
 .vote-header h3 {
-    margin: 0;
+    font-family: var(--dnd5e-font-roboto-slab); 
+    font-size: 1.2em;
+    font-weight: bold;
     color: #594a3c;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 0px solid rgb(245, 245, 245);
 }
+
 
 .vote-status {
     font-size: 0.9em;
