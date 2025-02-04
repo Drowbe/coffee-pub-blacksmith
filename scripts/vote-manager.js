@@ -45,6 +45,32 @@ export class VoteManager {
                         await this.closeVote();
                     });
                 }
+
+                // Add visual indicators for votes
+                if (this.activeVote?.votes) {
+                    const userVote = this.activeVote.votes[game.user.id];
+                    html.find('.vote-button').each((i, button) => {
+                        const $button = $(button);
+                        const optionId = $button.data('optionId');
+                        
+                        if (userVote === optionId) {
+                            // Add check mark to voted option
+                            const $icon = $('<i class="fas fa-check" style="margin-left: 10px; color: #2d8a45;"></i>');
+                            $button.append($icon);
+                            $button.css({
+                                'background': 'rgba(45, 138, 69, 0.1)',
+                                'border-color': '#2d8a45',
+                                'color': '#2d8a45'
+                            });
+                        } else if (userVote) {
+                            // Style non-selected options when user has voted
+                            $button.css({
+                                'opacity': '0.6',
+                                'cursor': 'not-allowed'
+                            });
+                        }
+                    });
+                }
             }
         });
     }
