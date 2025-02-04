@@ -81,9 +81,10 @@ export class VoteManager {
     /**
      * Start a new vote
      * @param {string} type - The type of vote (e.g., 'leader')
+     * @param {Object} [customData] - Custom vote data for custom votes
      * @returns {Promise<void>}
      */
-    static async startVote(type) {
+    static async startVote(type, customData = null) {
         postConsoleAndNotification("Vote Manager | Starting vote", `Type: ${type}, Current activeVote: ${JSON.stringify(this.activeVote)}`, false, true, false);
         
         // Only GM can start votes for now
@@ -106,7 +107,7 @@ export class VoteManager {
             initiator: game.user.id
         };
 
-        // For leader vote, get all online players as options
+        // Set options based on vote type
         if (type === 'leader') {
             this.activeVote.options = game.users
                 .filter(u => u.active && !u.isGM)
@@ -114,6 +115,29 @@ export class VoteManager {
                     id: u.id,
                     name: u.name
                 }));
+        } else if (type === 'yesno') {
+            this.activeVote.options = [
+                { id: 'yes', name: 'Yes' },
+                { id: 'no', name: 'No' }
+            ];
+        } else if (type === 'endtime') {
+            this.activeVote.options = [
+                { id: 'now', name: 'Stop now' },
+                { id: 'endround', name: 'End of this round' },
+                { id: 'endcombat', name: 'End of combat' },
+                { id: '30min', name: '30 more minutes' },
+                { id: 'passout', name: 'Only if I pass out' }
+            ];
+        } else if (type === 'engagement') {
+            this.activeVote.options = [
+                { id: 'combat', name: 'I want to hit stuff' },
+                { id: 'talk', name: 'Let\'s talk to them' },
+                { id: 'avoid', name: 'I prefer to avoid this' },
+                { id: 'flexible', name: 'I can roll with whatever' }
+            ];
+        } else if (type === 'custom' && customData) {
+            this.activeVote.options = customData.options;
+            this.activeVote.title = customData.title;
         }
 
         // Create the chat message first

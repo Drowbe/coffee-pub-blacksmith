@@ -4,6 +4,14 @@
         <h3>
             {{#if (eq vote.type "leader")}}
                 Leader Vote
+            {{else if (eq vote.type "yesno")}}
+                Yes/No Vote
+            {{else if (eq vote.type "endtime")}}
+                End Time Vote
+            {{else if (eq vote.type "engagement")}}
+                Engagement Vote
+            {{else if (eq vote.type "custom")}}
+                {{vote.title}}
             {{/if}}
         </h3>
         {{#if vote.isActive}}
@@ -19,23 +27,21 @@
 
     <div class="vote-content">
         {{#if vote.isActive}}
-            {{#if (eq vote.type "leader")}}
-                <div class="vote-options">
-                    {{#each vote.options}}
-                        <div class="vote-option">
-                            {{#if (eq ../vote.votes.[../userId] this.id)}}
-                                <div class="vote-status-message">
-                                    <i class="fas fa-check"></i> Voted
-                                </div>
-                            {{else}}
-                                <button class="vote-button" data-option-id="{{this.id}}">
-                                    {{this.name}}
-                                </button>
-                            {{/if}}
-                        </div>
-                    {{/each}}
-                </div>
-            {{/if}}
+            <div class="vote-options">
+                {{#each vote.options}}
+                    <div class="vote-option">
+                        {{#if (eq ../vote.votes.[../userId] this.id)}}
+                            <div class="vote-status-message">
+                                <i class="fas fa-check"></i> Voted
+                            </div>
+                        {{else}}
+                            <button class="vote-button" data-option-id="{{this.id}}">
+                                {{this.name}}
+                            </button>
+                        {{/if}}
+                    </div>
+                {{/each}}
+            </div>
 
             <div class="vote-controls">
                 <button class="close-vote">Close Vote</button>
