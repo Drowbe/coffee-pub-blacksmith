@@ -179,25 +179,35 @@
     border-color: #c15701;
 }
 
-.vote-type-header {
+.vote-type-layout {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 5px;
+    gap: 12px;
+    align-items: flex-start;
 }
 
-.vote-type-header i {
+.vote-type-icon {
+    flex: 0 0 auto;
+    font-size: 1.4em;
     color: #594a3c;
-    font-size: 1.2em;
+    padding-top: 2px;
+}
+
+.vote-type-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .vote-type-name {
     font-family: var(--dnd5e-font-roboto-slab);
     font-weight: bold;
     color: #594a3c;
+    font-size: 1.1em;
 }
 
 .vote-type-description {
     color: #594a3c;
     font-size: 0.9em;
+    line-height: 1.4;
 } 

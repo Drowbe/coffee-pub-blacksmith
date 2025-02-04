@@ -44,6 +44,12 @@ export class VoteManager {
     static async startVote(type) {
         postConsoleAndNotification("Vote Manager | Starting vote", `Type: ${type}, Current activeVote: ${JSON.stringify(this.activeVote)}`, false, true, false);
         
+        // Only GM can start votes for now
+        if (!game.user.isGM) {
+            ui.notifications.warn("Only the GM can start votes at this time.");
+            return;
+        }
+
         if (this.activeVote) {
             ui.notifications.warn("There is already an active vote in progress.");
             return;
@@ -68,12 +74,32 @@ export class VoteManager {
                 }));
         }
 
-        // Send vote to chat
-        await this._createVoteMessage();
+        // Only GM creates the chat message
+        if (game.user.isGM) {
+            await this._createVoteMessage();
+        }
 
         // Notify other clients
         const socket = ThirdPartyManager.getSocket();
-        await socket.executeForOthers("receiveVoteStart", this.activeVote);
+        await socket.executeForOthers("receiveVoteStart", {
+            voteData: this.activeVote,
+            messageId: this.activeVote.messageId
+        });
+    }
+
+    /**
+     * Check if all eligible players have voted
+     * @returns {boolean} True if all eligible players have voted
+     */
+    static _haveAllPlayersVoted() {
+        // Get all active non-GM players
+        const eligibleVoters = game.users.filter(u => u.active && !u.isGM);
+        const totalVoters = eligibleVoters.length;
+        
+        // Count actual votes
+        const actualVotes = Object.keys(this.activeVote.votes).length;
+        
+        return actualVotes >= totalVoters;
     }
 
     /**
@@ -98,6 +124,11 @@ export class VoteManager {
         await socket.executeForOthers("receiveVoteUpdate", {
             votes: this.activeVote.votes
         });
+
+        // Check if everyone has voted and close automatically if they have
+        if (this._haveAllPlayersVoted()) {
+            await this.closeVote();
+        }
     }
 
     /**
@@ -164,6 +195,9 @@ export class VoteManager {
      * Create the initial vote message in chat
      */
     static async _createVoteMessage() {
+        // Only GM should create messages
+        if (!game.user.isGM) return;
+
         const messageData = {
             vote: this.activeVote,
             isGM: game.user.isGM,
@@ -175,14 +209,19 @@ export class VoteManager {
             messageData
         );
 
-        // Store the message for later updates
+        // Get the GM user for the speaker
+        const gmUser = game.users.find(u => u.isGM);
+        
+        // Create a single message from the GM
         const message = await ChatMessage.create({
             content: content,
             type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-            speaker: ChatMessage.getSpeaker(),
+            speaker: ChatMessage.getSpeaker({ user: gmUser }),
+            whisper: [], // Empty array means visible to all
             flags: {
                 'coffee-pub-blacksmith': {
-                    isVoteCard: true
+                    isVoteCard: true,
+                    voteId: this.activeVote.id
                 }
             }
         });
@@ -215,14 +254,12 @@ export class VoteManager {
 
     /**
      * Handle receiving a new vote start from another client
-     * @param {Object} voteData - The vote data
+     * @param {Object} data - The vote data and message ID
      */
-    static async receiveVoteStart(voteData) {
+    static async receiveVoteStart(data) {
         // Update our local vote state
-        this.activeVote = voteData;
-        
-        // Create the vote message in chat
-        await this._createVoteMessage();
+        this.activeVote = data.voteData;
+        this.activeVote.messageId = data.messageId;
     }
 
     /**
