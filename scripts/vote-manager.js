@@ -240,6 +240,8 @@ export class VoteManager {
         const tally = {};
         let maxVotes = 0;
         let winner = null;
+        let tiedWinners = [];
+        const totalVotes = Object.keys(votes).length;
 
         // First, create a map of option IDs to names
         const optionNames = {};
@@ -259,14 +261,66 @@ export class VoteManager {
             if (tally[vote].count > maxVotes) {
                 maxVotes = tally[vote].count;
                 winner = vote;
+                tiedWinners = [vote];
+            } else if (tally[vote].count === maxVotes) {
+                tiedWinners.push(vote);
+                // Only clear winner for non-leader votes
+                if (this.activeVote.type !== 'leader') {
+                    winner = null;
+                }
             }
         });
+
+        // For leader votes, if there's a tie, prompt GM to choose
+        if (this.activeVote.type === 'leader' && tiedWinners.length > 1) {
+            this._promptGMForTieBreaker(tiedWinners.map(id => ({
+                id,
+                name: optionNames[id]
+            })));
+            winner = null; // Clear winner until GM chooses
+        }
 
         return {
             tally: tally,
             winner: winner,
-            totalVotes: Object.keys(votes).length
+            totalVotes: totalVotes,
+            tiedWinners: tiedWinners.length > 1 ? tiedWinners : null
         };
+    }
+
+    /**
+     * Prompt the GM to choose between tied leaders
+     * @param {Array} tiedCandidates - Array of tied candidates with their IDs and names
+     * @private
+     */
+    static async _promptGMForTieBreaker(tiedCandidates) {
+        if (!game.user.isGM) return;
+
+        const dialog = new Dialog({
+            title: "Leader Vote Tie",
+            content: `
+                <h3>There was a tie for leader. Please select the winner:</h3>
+                <div class="form-group">
+                    <select id="tie-breaker-select">
+                        ${tiedCandidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                    </select>
+                </div>
+            `,
+            buttons: {
+                choose: {
+                    icon: '<i class="fas fa-crown"></i>',
+                    label: "Choose Leader",
+                    callback: async (html) => {
+                        const selectedId = html.find('#tie-breaker-select').val();
+                        await ChatPanel.setNewLeader(selectedId);
+                        this.activeVote.results.winner = selectedId;
+                        await this._updateVoteMessage();
+                    }
+                }
+            },
+            default: "choose"
+        });
+        dialog.render(true);
     }
 
     /**

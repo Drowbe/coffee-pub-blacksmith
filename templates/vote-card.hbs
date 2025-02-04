@@ -55,7 +55,11 @@
                             <span class="option-name">{{result.name}}</span>
                             <span class="vote-count">{{result.count}} {{#if (eq result.count 1)}}vote{{else}}votes{{/if}}</span>
                             {{#if (eq optionId ../vote.results.winner)}}
-                                <i class="fas fa-crown winner-icon"></i>
+                                {{#if (eq ../vote.type "leader")}}
+                                    <i class="fas fa-crown winner-icon"></i>
+                                {{else}}
+                                    <i class="fas fa-star winner-icon"></i>
+                                {{/if}}
                             {{/if}}
                         </div>
                     {{/each}}
