@@ -15,6 +15,16 @@ export class VoteManager {
         // Initialize activeVote
         this.activeVote = null;
 
+        // Register Handlebars helper for checking current user's GM status
+        Handlebars.registerHelper('isCurrentUserGM', function() {
+            const isGM = game.user.isGM;
+            postConsoleAndNotification("Vote Manager | Checking GM Status", 
+                `Current User: ${game.user.name}\nIs GM: ${isGM}`, 
+                false, true, false
+            );
+            return isGM;
+        });
+
         // Register click handlers for vote cards
         Hooks.on('renderChatMessage', (message, html) => {
             if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
@@ -25,9 +35,12 @@ export class VoteManager {
                     await this.castVote(game.user.id, optionId);
                 });
 
-                // Close vote button click handler (GM only)
-                if (game.user.isGM) {
-                    html.find('.close-vote').click(async (event) => {
+                // Handle close button visibility and click event
+                const closeButton = html.find('.vote-controls');
+                if (!game.user.isGM) {
+                    closeButton.hide();
+                } else {
+                    closeButton.find('.close-vote').click(async (event) => {
                         event.preventDefault();
                         await this.closeVote();
                     });
@@ -114,9 +127,14 @@ export class VoteManager {
         // Record the vote
         this.activeVote.votes[voterId] = choiceId;
 
-        // Only GM updates the message
-        if (game.user.isGM) {
+        // If this is the GM who created the vote, update the message
+        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
             await this._updateVoteMessage();
+            
+            // Check if everyone has voted and close automatically if they have
+            if (this._haveAllPlayersVoted()) {
+                await this.closeVote();
+            }
         }
 
         // Notify other clients
@@ -124,11 +142,6 @@ export class VoteManager {
         await socket.executeForOthers("receiveVoteUpdate", {
             votes: this.activeVote.votes
         });
-
-        // Check if everyone has voted and close automatically if they have
-        if (this._haveAllPlayersVoted() && game.user.isGM) {
-            await this.closeVote();
-        }
     }
 
     /**
@@ -204,6 +217,18 @@ export class VoteManager {
     }
 
     /**
+     * Get the current voting progress
+     * @returns {Object} Object containing current and total voter counts
+     */
+    static _getVotingProgress() {
+        const eligibleVoters = game.users.filter(u => u.active && !u.isGM);
+        return {
+            current: Object.keys(this.activeVote.votes).length,
+            total: eligibleVoters.length
+        };
+    }
+
+    /**
      * Create the initial vote message in chat
      */
     static async _createVoteMessage() {
@@ -212,9 +237,21 @@ export class VoteManager {
 
         const messageData = {
             vote: this.activeVote,
-            isGM: game.user.isGM,
-            userId: game.user.id
+            userId: game.user.id,
+            progress: this._getVotingProgress(),
+            currentUserIsGM: game.user.isGM
         };
+
+        postConsoleAndNotification("Vote Manager | Template Data", 
+            `Template Variables:\n` +
+            `-------------------\n` +
+            `userId: ${messageData.userId}\n` +
+            `currentUserIsGM: ${messageData.currentUserIsGM}\n` +
+            `vote.type: ${messageData.vote.type}\n` +
+            `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
+            `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
+            false, true, false
+        );
 
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
@@ -252,9 +289,21 @@ export class VoteManager {
 
         const messageData = {
             vote: this.activeVote,
-            isGM: game.user.isGM,
-            userId: game.user.id
+            userId: game.user.id,
+            progress: this._getVotingProgress(),
+            currentUserIsGM: game.user.isGM
         };
+
+        postConsoleAndNotification("Vote Manager | Template Data", 
+            `Template Variables:\n` +
+            `-------------------\n` +
+            `userId: ${messageData.userId}\n` +
+            `currentUserIsGM: ${messageData.currentUserIsGM}\n` +
+            `vote.type: ${messageData.vote.type}\n` +
+            `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
+            `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
+            false, true, false
+        );
 
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
@@ -287,14 +336,14 @@ export class VoteManager {
         // Update our local vote state
         this.activeVote.votes = data.votes;
         
-        // Only GM updates the message
-        if (game.user.isGM) {
+        // Only the GM who created the vote updates the message
+        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
             await this._updateVoteMessage();
-        }
-
-        // If all players have voted and we're the GM, close the vote
-        if (this._haveAllPlayersVoted() && game.user.isGM) {
-            await this.closeVote();
+            
+            // Check if everyone has voted and close automatically if they have
+            if (this._haveAllPlayersVoted()) {
+                await this.closeVote();
+            }
         }
     }
 
@@ -309,12 +358,14 @@ export class VoteManager {
         this.activeVote.endTime = Date.now();
         this.activeVote.results = data.results;
 
-        // Update the vote message to show results
-        await this._updateVoteMessage();
+        // Only the GM who created the vote updates the message
+        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
+            await this._updateVoteMessage();
 
-        // If this was a leader vote and we have a winner, update the leader
-        if (this.activeVote.type === 'leader' && data.results.winner) {
-            // TODO: Update party leader through ChatPanel
+            // If this was a leader vote and we have a winner, update the leader
+            if (this.activeVote.type === 'leader' && data.results.winner) {
+                // TODO: Update party leader through ChatPanel
+            }
         }
 
         // Clear the active vote

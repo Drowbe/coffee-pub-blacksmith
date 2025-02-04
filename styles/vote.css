@@ -48,6 +48,21 @@
     color: #2d8a45;
 }
 
+.vote-status-message {
+    width: 100%;
+    text-align: center;
+    padding: 8px;
+    background: rgba(45, 138, 69, 0.1);
+    border: 1px solid #2d8a45;
+    border-radius: 4px;
+    color: #2d8a45;
+    font-family: var(--dnd5e-font-roboto);
+}
+
+.vote-status-message i {
+    margin-right: 5px;
+}
+
 .vote-options {
     display: flex;
     flex-direction: column;
