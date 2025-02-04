@@ -74,12 +74,10 @@ export class VoteManager {
                 }));
         }
 
-        // Only GM creates the chat message
-        if (game.user.isGM) {
-            await this._createVoteMessage();
-        }
+        // Create the chat message first
+        await this._createVoteMessage();
 
-        // Notify other clients
+        // Then notify other clients with the complete vote data
         const socket = ThirdPartyManager.getSocket();
         await socket.executeForOthers("receiveVoteStart", {
             voteData: this.activeVote,
@@ -108,7 +106,7 @@ export class VoteManager {
      * @param {string} choiceId - The ID of the chosen option
      */
     static async castVote(voterId, choiceId) {
-        if (!this.activeVote || !this.activeVote.isActive) {
+        if (!this.activeVote?.isActive) {
             ui.notifications.warn("No active vote to participate in.");
             return;
         }
@@ -116,8 +114,10 @@ export class VoteManager {
         // Record the vote
         this.activeVote.votes[voterId] = choiceId;
 
-        // Update the vote message in chat
-        await this._updateVoteMessage();
+        // Only GM updates the message
+        if (game.user.isGM) {
+            await this._updateVoteMessage();
+        }
 
         // Notify other clients
         const socket = ThirdPartyManager.getSocket();
@@ -126,7 +126,7 @@ export class VoteManager {
         });
 
         // Check if everyone has voted and close automatically if they have
-        if (this._haveAllPlayersVoted()) {
+        if (this._haveAllPlayersVoted() && game.user.isGM) {
             await this.closeVote();
         }
     }
@@ -175,11 +175,23 @@ export class VoteManager {
         let maxVotes = 0;
         let winner = null;
 
-        // Count votes
+        // First, create a map of option IDs to names
+        const optionNames = {};
+        this.activeVote.options.forEach(option => {
+            optionNames[option.id] = option.name;
+        });
+
+        // Count votes and include names
         Object.values(votes).forEach(vote => {
-            tally[vote] = (tally[vote] || 0) + 1;
-            if (tally[vote] > maxVotes) {
-                maxVotes = tally[vote];
+            if (!tally[vote]) {
+                tally[vote] = {
+                    count: 0,
+                    name: optionNames[vote]
+                };
+            }
+            tally[vote].count += 1;
+            if (tally[vote].count > maxVotes) {
+                maxVotes = tally[vote].count;
                 winner = vote;
             }
         });
@@ -257,9 +269,12 @@ export class VoteManager {
      * @param {Object} data - The vote data and message ID
      */
     static async receiveVoteStart(data) {
-        // Update our local vote state
+        postConsoleAndNotification("Vote Manager | Receiving vote start", data, false, true, false);
+        
+        // Update our local vote state with the complete data
         this.activeVote = data.voteData;
-        this.activeVote.messageId = data.messageId;
+        
+        // No need to create or update messages - just use the GM's message
     }
 
     /**
@@ -272,8 +287,15 @@ export class VoteManager {
         // Update our local vote state
         this.activeVote.votes = data.votes;
         
-        // Update the vote message in chat
-        await this._updateVoteMessage();
+        // Only GM updates the message
+        if (game.user.isGM) {
+            await this._updateVoteMessage();
+        }
+
+        // If all players have voted and we're the GM, close the vote
+        if (this._haveAllPlayersVoted() && game.user.isGM) {
+            await this.closeVote();
+        }
     }
 
     /**
