@@ -194,33 +194,7 @@ export class VoteManager {
 
         // If this was a leader vote and we have a winner, update the leader
         if (this.activeVote.type === 'leader' && results.winner) {
-            const winningUser = game.users.get(results.winner);
-            if (winningUser) {
-                postConsoleAndNotification("Vote Manager | Setting new leader", 
-                    `Winner: ${winningUser.name} (${winningUser.id})`, 
-                    false, true, false
-                );
-
-                // Store the selection in settings
-                await game.settings.set(MODULE_ID, 'partyLeader', winningUser.id);
-                
-                // Update all clients through ChatPanel
-                if (ChatPanel.instance) {
-                    postConsoleAndNotification("Vote Manager | Updating ChatPanel", 
-                        `Current leader: ${ChatPanel.instance.currentLeader}`, 
-                        false, true, false
-                    );
-
-                    ChatPanel.instance.currentLeader = winningUser.name;
-                    await ChatPanel.instance.updateLeader(winningUser.name);
-                    await ChatPanel.instance.sendLeaderMessages(winningUser.name, winningUser.id);
-                } else {
-                    postConsoleAndNotification("Vote Manager | Error", 
-                        "ChatPanel instance not found", 
-                        false, true, false
-                    );
-                }
-            }
+            await ChatPanel.setNewLeader(results.winner);
         }
 
         // Notify other clients

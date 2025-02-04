@@ -171,18 +171,13 @@ class ChatPanel {
                     label: "Set Leader",
                     callback: async (html) => {
                         const selectedId = html.find('#leader-select').val();
-                        const selectedUser = game.users.get(selectedId);
-                        this.currentLeader = selectedId ? selectedUser.name : null;
-                        
-                        // Store the selection in settings
-                        await game.settings.set(MODULE_ID, 'partyLeader', selectedId);
-                        
-                        // Update all clients
-                        await this.updateLeader(this.currentLeader);
-                        
-                        // Send messages if a leader was selected
                         if (selectedId) {
-                            await this.sendLeaderMessages(selectedUser.name, selectedId);
+                            await ChatPanel.setNewLeader(selectedId);
+                        } else {
+                            // Handle clearing the leader if none selected
+                            await game.settings.set(MODULE_ID, 'partyLeader', null);
+                            this.currentLeader = null;
+                            await this.updateLeader(null);
                         }
                     }
                 },
@@ -196,30 +191,14 @@ class ChatPanel {
     }
 
     static async loadLeader() {
-        try {
-            const leaderId = await game.settings.get(MODULE_ID, 'partyLeader');
-            postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
-            
-            if (leaderId) {
-                const leader = game.users.get(leaderId);
-                if (leader) {
-                    this.currentLeader = leader.name;
-                    postConsoleAndNotification("Chat Panel: Set current leader to:", this.currentLeader, false, true, false);
-                    // Only send messages if user is GM
-                    if (game.user.isGM) {
-                        await this.sendLeaderMessages(leader.name, leaderId);
-                    }
-                } else {
-                    postConsoleAndNotification("Chat Panel: Could not find user with ID:", leaderId, false, true, false);
-                    this.currentLeader = null;
-                }
-            } else {
-                postConsoleAndNotification("Chat Panel: No leader ID found in settings", "", false, true, false);
-                this.currentLeader = null;
-            }
-        } catch (error) {
-            console.error("Blacksmith | Chat Panel: Error loading leader:", error);
-            this.currentLeader = null;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
+        
+        if (leaderId) {
+            await ChatPanel.setNewLeader(leaderId);
+        } else {
+            ChatPanel.currentLeader = null;
+            await ChatPanel.updateLeader(null);
         }
     }
 
@@ -543,6 +522,58 @@ class ChatPanel {
             const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("updateTimer", { endTime, startTime });
             this.updateTimerDisplay();
+        }
+    }
+
+    /**
+     * Set a new party leader and handle all related updates
+     * @param {string} userId - The user ID of the new leader
+     * @returns {Promise<boolean>} - True if successful, false if failed
+     */
+    static async setNewLeader(userId) {
+        try {
+            // Get the user
+            const user = game.users.get(userId);
+            if (!user) {
+                postConsoleAndNotification("Chat Panel | Error", 
+                    `Failed to set leader: User ${userId} not found`, 
+                    false, true, false
+                );
+                return false;
+            }
+
+            // Store in settings
+            await game.settings.set(MODULE_ID, 'partyLeader', userId);
+
+            // Update the static currentLeader and display
+            ChatPanel.currentLeader = user.name;
+            await ChatPanel.updateLeader(user.name);
+
+            // Send the leader messages
+            const gmUser = game.users.find(u => u.isGM);
+            if (gmUser) {
+                const messageData = {
+                    isPublic: true,
+                    isLeader: true,
+                    leaderName: user.name,
+                    leaderId: userId
+                };
+
+                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+                await ChatMessage.create({
+                    content: messageHtml,
+                    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                    speaker: ChatMessage.getSpeaker({ user: gmUser })
+                });
+            }
+
+            return true;
+        } catch (error) {
+            postConsoleAndNotification("Chat Panel | Error", 
+                `Failed to set leader: ${error.message}`, 
+                false, true, false
+            );
+            return false;
         }
     }
 }
