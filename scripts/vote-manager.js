@@ -85,11 +85,30 @@ export class VoteManager {
      * @returns {Promise<void>}
      */
     static async startVote(type, customData = null) {
-        postConsoleAndNotification("Vote Manager | Starting vote", `Type: ${type}, Current activeVote: ${JSON.stringify(this.activeVote)}`, false, true, false);
-        
-        // Only GM can start votes for now
-        if (!game.user.isGM) {
-            ui.notifications.warn("Only the GM can start votes at this time.");
+        // Check if user is GM or current leader
+        const isGM = game.user.isGM;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const isLeader = game.user.id === leaderId;
+        const canStartVote = isGM || isLeader;
+
+        console.log('Vote Manager | Starting Vote:', {
+            type,
+            userId: game.user.id,
+            isGM,
+            leaderId,
+            isLeader,
+            canStartVote,
+            activeVote: this.activeVote
+        });
+
+        if (!canStartVote) {
+            ui.notifications.warn("Only the GM or party leader can start votes.");
+            return;
+        }
+
+        // Only GM can start leader votes
+        if (type === 'leader' && !isGM) {
+            ui.notifications.warn("Only the GM can start leader votes.");
             return;
         }
 
@@ -104,7 +123,8 @@ export class VoteManager {
             startTime: Date.now(),
             votes: {},
             isActive: true,
-            initiator: game.user.id
+            initiator: game.user.id,
+            initiatedByLeader: isLeader && !isGM
         };
 
         // Set options based on vote type
@@ -180,8 +200,13 @@ export class VoteManager {
         // Record the vote
         this.activeVote.votes[voterId] = choiceId;
 
-        // If this is the GM who created the vote, update the message
-        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
+        // Allow both GM and leader who initiated the vote to update the message
+        const isInitiator = game.user.id === this.activeVote.initiator;
+        const isGM = game.user.isGM;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const isLeader = game.user.id === leaderId;
+
+        if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
             
             // Check if everyone has voted and close automatically if they have
@@ -339,8 +364,9 @@ export class VoteManager {
      * Create the initial vote message in chat
      */
     static async _createVoteMessage() {
-        // Only GM should create messages
-        if (!game.user.isGM) return;
+        // Get the GM user for the speaker (messages always appear from GM)
+        const gmUser = game.users.find(u => u.isGM);
+        if (!gmUser) return;
 
         const messageData = {
             vote: this.activeVote,
@@ -364,9 +390,6 @@ export class VoteManager {
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
             messageData
         );
-
-        // Get the GM user for the speaker
-        const gmUser = game.users.find(u => u.isGM);
         
         // Create a single message from the GM
         const message = await ChatMessage.create({
@@ -443,8 +466,13 @@ export class VoteManager {
         // Update our local vote state
         this.activeVote.votes = data.votes;
         
-        // Only the GM who created the vote updates the message
-        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
+        // Allow both GM and leader who initiated the vote to update the message
+        const isInitiator = game.user.id === this.activeVote.initiator;
+        const isGM = game.user.isGM;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const isLeader = game.user.id === leaderId;
+        
+        if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
             
             // Check if everyone has voted and close automatically if they have
@@ -465,13 +493,18 @@ export class VoteManager {
         this.activeVote.endTime = Date.now();
         this.activeVote.results = data.results;
 
-        // Only the GM who created the vote updates the message
-        if (game.user.isGM && game.user.id === this.activeVote.initiator) {
+        // Allow both GM and leader who initiated the vote to update the message
+        const isInitiator = game.user.id === this.activeVote.initiator;
+        const isGM = game.user.isGM;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const isLeader = game.user.id === leaderId;
+
+        if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
 
             // If this was a leader vote and we have a winner, update the leader
             if (this.activeVote.type === 'leader' && data.results.winner) {
-                // TODO: Update party leader through ChatPanel
+                await ChatPanel.setNewLeader(data.results.winner);
             }
         }
 

@@ -5,6 +5,7 @@
 import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { VoteManager } from "./vote-manager.js";
+import { ChatPanel } from "./chat-panel.js";
 
 export class VoteConfig extends Application {
     static get defaultOptions() {
@@ -19,13 +20,34 @@ export class VoteConfig extends Application {
     }
 
     getData() {
+        // Check if user is GM or current leader
+        const isGM = game.user.isGM;
+        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const isLeader = game.user.id === leaderId;
+        const canStartVote = isGM || isLeader;
+
+        console.log('Vote Config | User Status:', {
+            userId: game.user.id,
+            isGM,
+            leaderId,
+            isLeader,
+            canStartVote
+        });
+
+        if (!canStartVote) {
+            ui.notifications.warn("Only the GM or party leader can start votes.");
+            this.close();
+            return {};
+        }
+
         return {
             fixedVoteTypes: [
                 {
                     id: 'leader',
                     name: 'Select a Leader',
                     description: 'Vote for a party leader from among the active players.',
-                    icon: 'fa-crown'
+                    icon: 'fa-crown',
+                    gmOnly: true // Only GM can start leader votes
                 },
                 {
                     id: 'yesno',
@@ -41,7 +63,7 @@ export class VoteConfig extends Application {
                 },
                 {
                     id: 'engagement',
-                    name: 'Engagement',
+                    name: 'Party Plan',
                     description: 'Vote on how to approach the current situation.',
                     icon: 'fa-people-arrows'
                 },
@@ -51,8 +73,7 @@ export class VoteConfig extends Application {
                     description: 'Create your own vote with custom options.',
                     icon: 'fa-plus-circle'
                 }
-                // Add more vote types here as needed
-            ]
+            ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
         };
     }
 
@@ -63,11 +84,28 @@ export class VoteConfig extends Application {
             event.preventDefault();
             const type = event.currentTarget.dataset.type;
             
+            console.log('Vote Config | Click Handler:', {
+                type,
+                isGM: game.user.isGM,
+                currentLeader: ChatPanel.currentLeader,
+                isLeader: game.user.id === ChatPanel.currentLeader
+            });
+
+            if (type === 'leader' && !game.user.isGM) {
+                ui.notifications.warn("Only the GM can start leader votes.");
+                return;
+            }
+            
             if (type === 'custom') {
                 this.createCustomVote();
             } else {
-                await VoteManager.startVote(type);
-                this.close();
+                try {
+                    await VoteManager.startVote(type);
+                    this.close();
+                } catch (error) {
+                    console.error('Vote Config | Error starting vote:', error);
+                    ui.notifications.error("Error starting vote. Check the console for details.");
+                }
             }
         });
     }

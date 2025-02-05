@@ -9,13 +9,13 @@
         <h3>
             <i class="fas fa-check-to-slot"></i>
             {{#if (eq vote.type "leader")}}
-                Leader Vote
+                Leader Election
             {{else if (eq vote.type "yesno")}}
-                Yes/No Vote
+                Yes or No
             {{else if (eq vote.type "endtime")}}
-                End Time Vote
+                End Time
             {{else if (eq vote.type "engagement")}}
-                Engagement Vote
+                Party Plan
             {{else if (eq vote.type "custom")}}
                 {{vote.title}}
             {{/if}}
@@ -29,7 +29,9 @@
                 {{/if}}
             </div>
         {{else}}
-            <div class="vote-status complete">Complete</div>
+            <div class="vote-status complete">
+                <i class="fas fa-check-circle"></i>
+            </div>
         {{/if}}
     </div>
 

@@ -86,8 +86,13 @@ class ChatPanel {
                 event.preventDefault();
                 event.stopPropagation();
                 
-                if (!game.user.isGM) {
-                    ui.notifications.warn("Only the GM can start votes.");
+                const isGM = game.user.isGM;
+                const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+                const isLeader = game.user.id === leaderId;
+                const canStartVote = isGM || isLeader;
+
+                if (!canStartVote) {
+                    ui.notifications.warn("Only the GM or party leader can start votes.");
                     return;
                 }
                 
@@ -106,9 +111,35 @@ class ChatPanel {
     }
 
     static updateLeaderDisplay() {
-        const leaderSpan = document.querySelector('.party-leader');
-        if (leaderSpan) {
-            leaderSpan.textContent = this.getLeaderDisplayText();
+        const panel = document.querySelector('.blacksmith-chat-panel');
+        if (!panel) return;
+
+        const leaderText = this.getLeaderDisplayText();
+        panel.querySelector('.party-leader').textContent = leaderText;
+        
+        // Update vote icon state
+        this.updateVoteIconState();
+    }
+
+    /**
+     * Update the vote icon state based on user permissions
+     */
+    static updateVoteIconState() {
+        const voteIcon = document.querySelector('.vote-icon');
+        if (!voteIcon) return;
+
+        const isGM = game.user.isGM;
+        const isLeader = game.user.id === game.settings.get(MODULE_ID, 'partyLeader');
+        const canVote = isGM || isLeader;
+
+        if (canVote) {
+            voteIcon.style.cursor = 'pointer';
+            voteIcon.style.opacity = '1';
+            voteIcon.classList.remove('disabled');
+        } else {
+            voteIcon.style.cursor = 'not-allowed';
+            voteIcon.style.opacity = '0.5';
+            voteIcon.classList.add('disabled');
         }
     }
 
@@ -548,6 +579,9 @@ class ChatPanel {
             // Update the static currentLeader and display
             ChatPanel.currentLeader = user.name;
             await ChatPanel.updateLeader(user.name);
+
+            // Update vote icon permissions
+            this.updateVoteIconState();
 
             // Send the leader messages
             const gmUser = game.users.find(u => u.isGM);
