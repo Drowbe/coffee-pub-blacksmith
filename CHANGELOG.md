@@ -8,6 +8,8 @@
 - Added session timer date tracking to persist timer state between sessions
 - Added ability to set current timer duration as the new default
 - Added seconds display to session timer
+- Added proper permission checks for vote initiation by party leader
+- Added visual feedback for completed votes with checkmark icon
 
 ### Changed
 - Moved MVPTemplates from mvp-templates.js into data-collections.js
@@ -15,6 +17,8 @@
 - Consolidated combat-related functionality into fewer files for better maintainability
 - Modified session timer to use the default time when loading on a new day
 - Updated timer dialog to include option for saving current duration as default
+- Updated vote system to properly handle leader permissions
+- Improved vote UI with better status indicators and button states
 
 ### Removed
 - Removed unused debug.js file

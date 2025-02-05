@@ -21,6 +21,9 @@
 @import "cards-themes.css";
 @import "chat-cards.css";
 
+/* --- Chat Panel ---------------------- */
+@import "chat-panel.css";
+
 /* --- Links ---------------------- */
 @import "links-themes.css";
 
@@ -38,5 +41,3 @@
 
 /* --- Voting ---------------------- */
 @import "vote.css";   
-
-
