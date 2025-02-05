@@ -103,6 +103,9 @@
 		"sceneTitlePadding-Label": "Title Padding",
 		"sceneTitlePadding-Hint": "Sets the padding (space) to the left and right of the titles in the scene selector. Defualt: 10px.",
 
+		"scenePanelHeight-Label": "Panel Height",
+		"scenePanelHeight-Hint": "Sets the height of the scene panel. Default: 100px.",
+
 		"headingH2Windows-Label": "Windows",
 		"headingH2Windows-Hint": "Style windows the way you want them.",
 

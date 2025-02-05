@@ -1080,12 +1080,14 @@ function updateSceneStyles() {
     const sceneFontSize = game.settings.get(MODULE_ID, 'sceneFontSize') + "em";
     const sceneTitlePaddingLeft = game.settings.get(MODULE_ID, 'sceneTitlePadding') + "px";
     const sceneTitlePaddingRight = game.settings.get(MODULE_ID, 'sceneTitlePadding') + "px";
+    const scenePanelHeight = game.settings.get(MODULE_ID, 'scenePanelHeight') + "px";
     // Update the stylesheet variables
 	var root = document.querySelector(':root');
     root.style.setProperty('--strSceneTextAlign', sceneTextAlign);
     root.style.setProperty('--strSceneFontSize', sceneFontSize);
     root.style.setProperty('--strScenePaddingLeft', sceneTitlePaddingLeft);
     root.style.setProperty('--strScenePaddingRight', sceneTitlePaddingRight);
+    root.style.setProperty('--intScenePanelHeight', scenePanelHeight);
     postConsoleAndNotification("Scene style updates complete.", "", false, false, false);
 }
 

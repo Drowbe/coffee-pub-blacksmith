@@ -877,6 +877,22 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 
+		// -- Scene Panel Height --
+		game.settings.register(MODULE_ID, 'scenePanelHeight', {
+			name: MODULE_ID + '.scenePanelHeight-Label',
+			hint: MODULE_ID + '.scenePanelHeight-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+				min: 30,
+				max: 300,
+				step: 5,
+			},
+			default: 100,
+		});
+
 		// *** TITLEBAR ***
 
 		// ---------- HEADING - WINDOWS  ----------

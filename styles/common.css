@@ -14,6 +14,8 @@
 --strScenePaddingTop: inherit;
 --strScenePaddingBottom: inherit;
 --strSceneFontSize: 1.0em;
+--intScenePanelHeight: 300px;
+--sidebar-scene-height: var(--intScenePanelHeight);
 }
 
 
@@ -36,6 +38,15 @@ li.table-result img.result-image  {
 /* ------------------------------------ */
 /* --- Scene Cleanup ------------------ */
 /* ------------------------------------ */
+
+/* Scene Directory Height */
+#sidebar #scenes {
+    --sidebar-scene-height: var(--intScenePanelHeight);
+}
+
+.scenes-sidebar {
+    --sidebar-scene-height: var(--intScenePanelHeight) !important;
+}
 
 .subdirectory h3 {
     text-align: var(--strSceneTextAlign) !important;
