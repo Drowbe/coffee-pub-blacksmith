@@ -33,6 +33,7 @@ import { CombatStats } from './combat-stats.js';
 import { CPBPlayerStats } from './player-stats.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
+import { WrapperManager } from './wrapper-manager.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -107,7 +108,7 @@ Hooks.once('init', async function() {
     
     // Initialize modules
     ChatPanel.initialize();
-
+    
     hookCanvas(); // Call the function to inject the layer
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
@@ -127,25 +128,66 @@ Hooks.once('init', async function() {
     // VOTE MANAGER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing VoteManager...", "", false, true, false);
     VoteManager.initialize();
-
 });
 
-// Keep the canvasInit hook to initialize the toolbar
-Hooks.once('canvasInit', () => {
-    postConsoleAndNotification("Initializing custom canvas layers", "", false, true, false);
-    postConsoleAndNotification("Current Canvas Layers:", CONFIG.Canvas.layers, false, true, false);
+// Initialize WrapperManager after libWrapper is ready
+Hooks.once('ready', async function() {
+    postConsoleAndNotification("Blacksmith | Initializing WrapperManager", "", false, true, false);
+    WrapperManager.initialize();
+    
+    postConsoleAndNotification("Readying the Dashboard.", "", false, false, false); 
+    const dashboard = BlacksmithWindowDashboard.getInstance();
+    let blnShowDashboard = game.settings.get(MODULE_ID, 'showDashboard');
+    if (blnShowDashboard) {
+        dashboard.render(true);
+    }
+    
+    // Initialize combat stats tracking
+    CombatStats.initialize();
 
+    // Initialize player stats tracking
+    CPBPlayerStats.initialize();
 });
 
-// Keep the canvasReady hook to check for the layer
-Hooks.on('canvasReady', (canvas) => {
-    postConsoleAndNotification("Canvas is ready.", "", false, false, false); 
-    postConsoleAndNotification("Current Canvas CONFIG:", CONFIG.Canvas.layers, false, true, false);
-    const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-    if (blacksmithLayer) {
-        postConsoleAndNotification("Blacksmith Layer is available:", blacksmithLayer, false, true, false); 
-    } else {
-        postConsoleAndNotification("Blacksmith Layer is not available on the canvas.", "", false, true, false); 
+// ***************************************************
+// ** UTILITY Scene Clicks
+// ***************************************************
+
+Hooks.on("ready", function () {
+    let blnShowIcons = game.settings.get(MODULE_ID, 'enableSceneInteractions');
+    let blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
+    
+    // Initial icon update if enabled
+    if (blnShowIcons) {
+        WrapperManager._updateSceneIcons();
+    }
+
+    // Register for scene updates
+    if (blnShowIcons || blnCustomClicks) {
+        // Register canvas hooks
+        if (blnCustomClicks) {
+            // Keep the canvasInit hook to initialize the toolbar
+            Hooks.once('canvasInit', () => {
+                postConsoleAndNotification("Initializing custom canvas layers", "", false, true, false);
+                postConsoleAndNotification("Current Canvas Layers:", CONFIG.Canvas.layers, false, true, false);
+            });
+
+            // Keep the canvasReady hook to check for the layer
+            Hooks.on('canvasReady', (canvas) => {
+                postConsoleAndNotification("Canvas is ready.", "", false, false, false); 
+                postConsoleAndNotification("Current Canvas CONFIG:", CONFIG.Canvas.layers, false, true, false);
+                const blacksmithLayer = canvas['blacksmith-utilities-layer'];
+                if (blacksmithLayer) {
+                    postConsoleAndNotification("Blacksmith Layer is available:", blacksmithLayer, false, true, false); 
+                } else {
+                    postConsoleAndNotification("Blacksmith Layer is not available on the canvas.", "", false, true, false); 
+                }
+            });
+        }
+
+        // Register scene update hooks
+        Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
+        Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
     }
 });
 
@@ -570,80 +612,6 @@ async function runMacro(macroName) {
       throw error;
     }
 }
-
-// ***************************************************
-// ** UTILITY Scene Clicks
-// ***************************************************
-
-Hooks.on("ready", function () {
-    let blnShowIcons = game.settings.get(MODULE_ID, 'enableSceneInteractions');
-    let blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
-    let timeout;
-    function updateSceneIcons(sceneId) {
-        setTimeout(() => {
-            const scene = game.scenes.get(sceneId);
-            const sceneElement = $(`.directory-list .scene[data-entry-id=${sceneId}]`);
-            const sceneNameElement = $(sceneElement).find("a");
-            const strIconActive = "<i class='fa-solid fa-bow-arrow'></i> ";
-            const strIconViewing = "<i class='fa-solid fa-eye'></i> ";
-            $(sceneNameElement).find('.fa-solid').remove();
-            if (scene._id === game.scenes.active._id) {
-                $(sceneNameElement).prepend(strIconActive);
-            } else if (scene._id === game.scenes.current._id) {
-                $(sceneNameElement).prepend(strIconViewing);
-            }
-        }, 0)
-    }
-    function updateIcons() {
-        // if they enables icons, process them
-        if (blnShowIcons){
-            for (let scene of game.scenes.values()) {
-                updateSceneIcons(scene._id);
-            }
-        }
-    }
-    if (blnCustomClicks){
-        SceneDirectory.prototype._onClickEntryName = function (event) {
-            // if they enable mouse-clicks
-            
-                event.preventDefault();
-                const sceneId = event.currentTarget.closest(".directory-item").dataset.entryId;
-                const activateScene = () => {
-                    const scene = game.scenes.get(sceneId);
-                    scene.activate().then(() => {
-                        updateIcons();
-                    });
-                };
-                const viewScene = () => {
-                    const scene = game.scenes.get(sceneId);
-                    scene.view().then(() => {
-                        updateIcons();
-                    });
-                };
-                const viewAndConfigureScene = () => {
-                    const scene = game.scenes.get(sceneId);
-                    scene.view().then(() => {
-                        scene.sheet.render(true);
-                        updateIcons();
-                    });
-                };
-                if (timeout) clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    timeout = null;
-                    if (event.shiftKey) {
-                        viewAndConfigureScene();
-                    } else if (event.detail === 2) {
-                        activateScene();
-                    } else {
-                        viewScene();
-                    }
-                }, 300);
-            
-        };
-    }
-    Hooks.on('canvasReady', updateIcons);
-    updateIcons(); // Call updateIcons when Foundry first loads
-});
 
 // ***************************************************
 // ** RENDER CHAT MESSAGE
