@@ -6,6 +6,7 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
+import { ModuleManager } from './module-manager.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -15,6 +16,7 @@ class ChatPanel {
     static sessionStartTime = null;
     static hasHandledExpiration = false;
     static hasHandledWarning = false;
+    static toolbarIcons = new Map();
 
     static initialize() {
         // Load the templates
@@ -46,6 +48,19 @@ class ChatPanel {
             setTimeout(() => {
                 this.startTimerUpdates();
             }, 1000);
+        });
+
+        // Register for module features
+        this._registerModuleFeatures();
+    }
+
+    static _registerModuleFeatures() {
+        // Get all toolbar icons from registered modules
+        const toolbarFeatures = ModuleManager.getFeaturesByType('chatPanelIcon');
+        
+        toolbarFeatures.forEach(feature => {
+            this.toolbarIcons.set(feature.moduleId, feature.data);
+            postConsoleAndNotification(`Coffee Pub Blacksmith | Registered chat panel icon for ${feature.moduleId}`, "", false, true, false);
         });
     }
 
@@ -98,6 +113,23 @@ class ChatPanel {
                 
                 postConsoleAndNotification("Chat Panel | Opening vote config", "", false, true, false);
                 new VoteConfig().render(true);
+            });
+
+            // Add module toolbar icons
+            const toolbarSection = html.find('.toolbar-icons');
+            this.toolbarIcons.forEach((iconData, moduleId) => {
+                const icon = $(`<i class="${iconData.icon}" title="${iconData.tooltip}"></i>`);
+                icon.css('cursor', 'pointer');
+                
+                // Add click handler
+                icon.click(async (event) => {
+                    event.preventDefault();
+                    if (iconData.onClick) {
+                        await iconData.onClick(event);
+                    }
+                });
+
+                toolbarSection.append(icon);
             });
 
         } catch (error) {

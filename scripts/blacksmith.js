@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE_TITLE, MODULE_ID, BLACKSMITH, API_VERSION } from './const.js';
 
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
@@ -34,6 +34,8 @@ import { CPBPlayerStats } from './player-stats.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './wrapper-manager.js';
+import { ModuleManager } from './module-manager.js';
+import { UtilsManager } from './utils-manager.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -106,13 +108,30 @@ const hookCanvas = () => {
 Hooks.once('init', async function() {
     postConsoleAndNotification("Blacksmith | Initializing coffee-pub-blacksmith", "", false, true, false);
     
-    // Initialize modules
-    ChatPanel.initialize();
+    // Initialize ModuleManager first
+    ModuleManager.initialize();
     
-    hookCanvas(); // Call the function to inject the layer
+    // Initialize UtilsManager
+    UtilsManager.initialize();
+    
+    // Expose our API on the module
+    const module = game.modules.get(MODULE_ID);
+    module.api = {
+        ModuleManager,
+        registerModule: ModuleManager.registerModule.bind(ModuleManager),
+        isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
+        getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
+        utils: UtilsManager.getUtils(),
+        version: API_VERSION
+    };
+    
+    // Initialize other systems
+    ChatPanel.initialize();
+    hookCanvas();
+    addToolbarButton();
+    
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
-    addToolbarButton();
     postConsoleAndNotification("Dashboard and Toolbar ready.", "", false, false, false); 
 
     // COMBAT TIMER
