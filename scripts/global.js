@@ -809,59 +809,56 @@ export async function getOpenAIReplyAsHtml(query) {
 // postConsoleAndNotification("This is the message.", Variable Goes Here, Divider (true/false), Debug (true/false), Notification (true/false))
 // Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
 
-export function postConsoleAndNotification(message, result, blnDivider, blnDebug, blnNotification) {
+export function postConsoleAndNotification(message, result = "", blnDivider = false, blnDebug = true, blnNotification = false, strModuleTitle = "BLACKSMITH") {
 
-    var strTitleColor = "color: #FF7340";
-    var strFancyCaptionBorder = "border: 1px dotted #A4C76A";
-    var strFancyCaptionBackground = "background: #2D3F11";
-    var strFancyCaptionFontColor = "color: #A4C76A";
-    var strModuleTitle = MODULE_TITLE;
+    // Set default styles based on module
+    let moduleStyles = {
+        BLACKSMITH: {
+            titleColor: 'color: #FF7340',
+            captionBorder: "border: 1px dotted #A4C76A",
+            captionBackground: "background: #2D3F11",
+            captionFontColor: "color: #A4C76A"
+        },
+        CRIER: {
+            titleColor: 'color: #9999ff',
+            captionBorder: "border: 1px dotted #7B7BBF",
+            captionBackground: "background: #2B2B94",
+            captionFontColor: "color: #9999ff"
+        },
+        BIBLIOSOPH: {
+            titleColor: 'color: #cccc00',
+            captionBorder: "border: 1px dotted #E9E936",
+            captionBackground: "background: #64640A",
+            captionFontColor: "color: #cccc00"
+        },
+        SCRIBE: {
+            titleColor: 'color: #33cccc',
+            captionBorder: "border: 1px dotted #2C9090",
+            captionBackground: "background: #104545",
+            captionFontColor: "color: #33cccc"
+        },
+        SQUIRE: {
+            titleColor: 'color: #A333CC',
+            captionBorder: "border: 1px dotted #732D88",
+            captionBackground: "background: #670B83",
+            captionFontColor: "color: #CAA5DA"
+        },
+        BUBO: {
+            titleColor: 'color: #ff3377',
+            captionBorder: "border: 1px dotted #ED6B96",
+            captionBackground: "background: #550922",
+            captionFontColor: "color: #ff3377"
+        }
+    };
 
-// === COMMON/ADAPTED STYLES ===
+    // Get styles for the current module, defaulting to BLACKSMITH if not found
+    const currentStyles = moduleStyles[strModuleTitle] || moduleStyles.BLACKSMITH;
 
-    if (strModuleTitle == "BLACKSMITH") {
-        // Normal
-        strTitleColor = 'color: #FF7340';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #A4C76A";
-        strFancyCaptionBackground = "background: #2D3F11";
-        strFancyCaptionFontColor = "color: #A4C76A";
-    } else if (strModuleTitle == "CRIER") {
-        // Normal
-        strTitleColor = 'color: #9999ff';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #7B7BBF";
-        strFancyCaptionBackground = "background: #2B2B94";
-        strFancyCaptionFontColor = "color: #9999ff";
-    } else if (strModuleTitle == "BIBLIOSOPH") {
-        // Normal
-        strTitleColor = 'color: #cccc00';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #E9E936";
-        strFancyCaptionBackground = "background: #64640A";
-        strFancyCaptionFontColor = "color: #cccc00";
-    } else if (strModuleTitle == "SCRIBE") {
-        // Normal
-        strTitleColor = 'color: #33cccc';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #2C9090";
-        strFancyCaptionBackground = "background: #104545";
-        strFancyCaptionFontColor = "color: #33cccc";
-    } else if (strModuleTitle == "BUBO") {
-        // Normal
-        strTitleColor = 'color: #ff3377';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #ED6B96";
-        strFancyCaptionBackground = "background: #550922";
-        strFancyCaptionFontColor = "color: #ff3377";
-    } else {
-        // Normal
-        strTitleColor = 'color: #FF7340';
-        // Fancy
-        strFancyCaptionBorder = "border: 1px dotted #A4C76A";
-        strFancyCaptionBackground = "background: #2D3F11";
-        strFancyCaptionFontColor = "color: #A4C76A";
-    }
+    var strTitleColor = currentStyles.titleColor;
+    var strFancyCaptionBorder = currentStyles.captionBorder;
+    var strFancyCaptionBackground = currentStyles.captionBackground;
+    var strFancyCaptionFontColor = currentStyles.captionFontColor;
+
     // === COMMON ICONS ===
     const MODULE_CONSOLE_COMMON_ICON_FLAME = String.fromCodePoint(0x1F525);
     const MODULE_CONSOLE_COMMON_ICON_MARTINI = String.fromCodePoint(0x1F378);
@@ -881,7 +878,7 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     // === NORMAL CONSOLE STYLES ===
 
     var MODULE_CONSOLE_NORMAL_STYLE_AUTHOR = [
-        'color: #A4C76A',
+        strFancyCaptionFontColor,
         'font-weight:900',
         'margin-right: 0px',
     ].join(';');
@@ -895,10 +892,10 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     ].join(';');
     var MODULE_CONSOLE_COMMON_DIVIDER = '%c=';
     var MODULE_CONSOLE_COMMON_STYLE_DIVIDER = [
-        'color: #A4C76A',
-        'background: #A4C76A',
+        strFancyCaptionFontColor,
+        'background: ' + strFancyCaptionFontColor,
         'font-size: 1px',
-        'border: 1px solid #A4C76A',
+        'border: 1px solid ' + strFancyCaptionFontColor,
         'border-radius: 1px',
         'padding-top: 0px',
         'padding-bottom: 0px',
@@ -949,7 +946,7 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     // --- SIMPLE DEBUG ---
 
     var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR = [
-        'color: #A4C76A',
+        strFancyCaptionFontColor,
         'font-weight:900',
         'margin-right: 0px',
     ].join(';');
@@ -960,7 +957,7 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     ].join(';');
 
     var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE = [
-        'color: #FF7340',
+        strTitleColor,
         'font-weight:900',
         'margin-right: 3px',
     ].join(';');
@@ -996,25 +993,19 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     var strNotificationMessage = "";
     var strResultFlag = "";
     var strMessageFlag = "";
-    if (!blnDebug){
-        blnDebug = false;
+    
+    // Check for mandatory message
+    if (!message) {
+        throw new Error("Message parameter is mandatory for postConsoleAndNotification");
     }
-    if (!blnNotification){
-        blnNotification = false;
-    }
-    if (!blnDivider){
-        blnDivider = false;
-    }
+    
     var strMessage = message;
-    if (!strMessage){
-        //They are not passing a message
-    }
     var strResult = result;
     if (!strResult){
         //They are not passing a variable or array
     } 
     // Build the Debug
-    strNotificationMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + MODULE_TITLE + ": " + strMessage + " | " + strResult;
+    strNotificationMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleTitle + ": " + strMessage + " | " + strResult;
     if (blnDivider) {
         console.info(MODULE_CONSOLE_COMMON_DIVIDER, MODULE_CONSOLE_COMMON_STYLE_DIVIDER);
     }
@@ -1043,23 +1034,23 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
                 if (COFFEEPUB.strConsoleDebugStyle == "fancy") {
                     // FANCY STYLE
                     // BUILD Content
-                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE  + " " + MODULE_TITLE + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
+                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE  + " " + strModuleTitle + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
                     // PUBLISH with Styles
                     console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_FANCY_CAPTION, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT, strResult);
                 } else if (COFFEEPUB.strConsoleDebugStyle == "simple") {
                     // SIMPLE STYLE
                     // BUILD Content
-                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE_AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + MODULE_TITLE  + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
+                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE_AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleTitle  + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
                     // PUBLISH with Styles
                     console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT, strResult );
                 } else {
                     // PLAIN STYLE
-                    strConsoleMessage =  "%c" + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + MODULE_TITLE + " DEBUG: %c" + strMessage;
+                    strConsoleMessage =  "%c" + MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleTitle + " DEBUG: %c" + strMessage;
                     console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE, strResult);
                 }
             } else {
                 // UNSTYLED NOT-FANCY CONSOLE
-                strConsoleMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + MODULE_TITLE + " DEBUG: " + strMessage;
+                strConsoleMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleTitle + " DEBUG: " + strMessage;
                 console.info(strConsoleMessage, strResult);
             }
             if (blnNotification){
@@ -1069,10 +1060,10 @@ export function postConsoleAndNotification(message, result, blnDivider, blnDebug
     } else {
         // Normal Mode (NOT DEBUG)
         if (COFFEEPUB.blnFancyConsole) {
-            strConsoleMessage = "%c" + MODULE_AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + MODULE_TITLE + "%c" + strMessage;
+            strConsoleMessage = "%c" + MODULE_AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleTitle + "%c" + strMessage;
             console.info(strConsoleMessage, MODULE_CONSOLE_NORMAL_STYLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_NORMAL_STYLE_MODULE, MODULE_CONSOLE_NORMAL_STYLE_TEXT, strResult);
         } else {
-            strConsoleMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + MODULE_TITLE + ": " + strMessage;
+            strConsoleMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleTitle + ": " + strMessage;
             console.info(strConsoleMessage, strResult);
         }
         if (blnNotification){

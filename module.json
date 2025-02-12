@@ -15,7 +15,7 @@
       "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json"
     },
     {
-      "id": "libWrapper",
+      "id": "lib-wrapper",
       "type": "module",
       "manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
     }]

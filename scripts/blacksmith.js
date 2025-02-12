@@ -122,7 +122,8 @@ Hooks.once('init', async function() {
         isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
         getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
         utils: UtilsManager.getUtils(),
-        version: API_VERSION
+        version: API_VERSION,
+        BLACKSMITH: BLACKSMITH
     };
     
     // Initialize other systems
@@ -230,6 +231,7 @@ Hooks.once('ready', function() {
     const blnFancyConsole = game.settings.get(MODULE_ID, 'globalFancyConsole');
     postConsoleAndNotification("Fancy console: ", blnFancyConsole, false, false, false); 
     BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
+    COFFEEPUB.blnFancyConsole = blnFancyConsole;
     postConsoleAndNotification("Updated BLACKSMITH.blnFancyConsole to:", BLACKSMITH.blnFancyConsole, false, true, false);    
 
     // DEBUG ON/OFF

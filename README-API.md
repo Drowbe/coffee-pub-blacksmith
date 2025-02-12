@@ -57,12 +57,26 @@ Blacksmith provides a set of shared utility functions that all Coffee Pub module
 ```javascript
 // Instead of using console.log or ui.notifications directly
 blacksmith.utils.postConsoleAndNotification(
-    message,      // The message to display
-    result,       // Optional data to show in console
-    blnDivider,   // Show divider in console
-    blnDebug,     // Is this a debug message
-    blnNotification // Show as UI notification
+    message,           // The message to display (mandatory)
+    result = "",       // Optional data to show in console
+    blnDivider = false,// Show divider in console
+    blnDebug = true,   // Is this a debug message
+    blnNotification = false, // Show as UI notification
+    strModuleTitle = "BLACKSMITH" // Optional module title for styling
 );
+
+// Example usage:
+blacksmith.utils.postConsoleAndNotification(
+    "Initializing module",     // Required message
+    { version: "1.0.0" },      // Optional result data
+    false,                     // No divider
+    true,                      // Debug mode
+    false,                     // No notification
+    "BIBLIOSOPH"              // Custom module title
+);
+
+// Minimal usage (using defaults):
+blacksmith.utils.postConsoleAndNotification("Required message");
 ```
 
 #### Time and Formatting
@@ -133,6 +147,74 @@ Add icons to the chat panel toolbar:
 }
 ```
 
+### BLACKSMITH Global Object
+The BLACKSMITH object is now accessible through the API, providing access to various shared resources and settings:
+
+```javascript
+// Access the BLACKSMITH object
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+const blacksmithObj = blacksmith.BLACKSMITH;
+
+// Access theme choices
+const themeChoices = blacksmithObj.arrThemeChoices;
+
+// Access sound choices
+const soundChoices = blacksmithObj.arrSoundChoices;
+
+// Access default sound settings
+const defaultSoundFile = blacksmithObj.strDEFAULTSOUNDFILE;
+const defaultSoundVolume = blacksmithObj.strDEFAULTSOUNDVOLUME;
+
+// Access volume presets
+const loudVolume = blacksmithObj.SOUNDVOLUMELOUD;     // "0.8"
+const normalVolume = blacksmithObj.SOUNDVOLUMENORMAL; // "0.5"
+const softVolume = blacksmithObj.SOUNDVOLUMESOFT;    // "0.3"
+
+// Access predefined sounds
+const errorSound = blacksmithObj.SOUNDERROR01;
+const notificationSound = blacksmithObj.SOUNDNOTIFICATION01;
+const buttonSound = blacksmithObj.SOUNDBUTTON01;
+```
+
+Example usage in your module:
+```javascript
+Hooks.once('init', async function() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
+
+    // Register your module
+    blacksmith.registerModule('your-module-id', {
+        name: 'YOUR_MODULE',
+        version: '1.0.0',
+        features: [{
+            type: 'chatPanelIcon',
+            data: {
+                icon: 'fas fa-dice',
+                tooltip: 'Roll Dice',
+                onClick: () => {
+                    // Play a sound using BLACKSMITH's predefined sounds
+                    blacksmith.utils.playSound(
+                        blacksmith.BLACKSMITH.SOUNDBUTTON01,
+                        blacksmith.BLACKSMITH.SOUNDVOLUMENORMAL
+                    );
+                }
+            }
+        }]
+    });
+
+    // Use theme choices in your module's settings
+    game.settings.register('your-module-id', 'theme', {
+        name: 'Theme',
+        hint: 'Select a theme for your module',
+        scope: 'world',
+        config: true,
+        type: String,
+        choices: blacksmith.BLACKSMITH.arrThemeChoices,
+        default: 'default'
+    });
+});
+```
+
 ## Events
 Blacksmith emits several events that your module can listen to:
 
@@ -175,6 +257,7 @@ blacksmith.registerModule('your-module-id', {
 2. Register your module during the 'init' hook
 3. Use the provided event system for inter-module communication
 4. Follow the naming conventions for module IDs and titles
+5. When using BLACKSMITH object properties, check if they exist before using them
 
 ## Version Compatibility
 - Foundry VTT: v12 (with v13 readiness)
