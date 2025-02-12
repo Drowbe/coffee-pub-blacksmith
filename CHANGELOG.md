@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3] - UI Improvements and Bug Fixes
+
+### Added
+- Added quality of life aesthetic improvements
+- Enhanced UI elements for better user experience
+
+### Changed
+- Updated module version to 1.0.3
+- Improved overall visual consistency
+
 ## [1.0.2] - Cleanup and Refactor
 
 ### Added
