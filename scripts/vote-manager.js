@@ -394,7 +394,7 @@ export class VoteManager {
         // Create a single message from the GM
         const message = await ChatMessage.create({
             content: content,
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
             speaker: ChatMessage.getSpeaker({ user: gmUser }),
             whisper: [], // Empty array means visible to all
             flags: {

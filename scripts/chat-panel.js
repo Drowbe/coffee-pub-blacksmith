@@ -549,8 +549,7 @@ class ChatPanel {
         await ChatMessage.create({
             content: messageHtml,
             style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name }
+            speaker: ChatMessage.getSpeaker({ user: gmUser })
         });
     }
 
@@ -628,7 +627,7 @@ class ChatPanel {
                 const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
                 await ChatMessage.create({
                     content: messageHtml,
-                    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
                     speaker: ChatMessage.getSpeaker({ user: gmUser })
                 });
             }
