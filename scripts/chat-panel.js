@@ -305,7 +305,7 @@ class ChatPanel {
         if (game.user.isGM) {
             setInterval(() => {
                 if (this.sessionEndTime) {
-                    this.updateTimer(this.sessionEndTime, this.sessionStartTime);
+                    this.updateTimer(this.sessionEndTime, this.sessionStartTime, false);
                 }
             }, 30000); // 30 second intervals
         }
@@ -507,15 +507,8 @@ class ChatPanel {
                             await game.settings.set(MODULE_ID, 'sessionTimerDefault', hours * 60 + minutes);
                         }
                         
-                        // Update all clients
-                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime);
-                        
-                        // Send timer set message
-                        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                        await this.sendTimerMessage({
-                            isTimerSet: true,
-                            timeString: timeString
-                        });
+                        // Update all clients and send message since this is an explicit timer set
+                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
                         
                         this.updateTimerDisplay();
                     }
@@ -581,11 +574,22 @@ class ChatPanel {
         }
     }
 
-    static async updateTimer(endTime, startTime) {
+    static async updateTimer(endTime, startTime, sendMessage = false) {
         if (game.user.isGM) {
             const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("updateTimer", { endTime, startTime });
             this.updateTimerDisplay();
+
+            // Only send the timer message if explicitly requested
+            if (sendMessage) {
+                const hours = Math.floor((endTime - startTime) / (1000 * 60 * 60));
+                const minutes = Math.floor(((endTime - startTime) % (1000 * 60 * 60)) / (1000 * 60));
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                await this.sendTimerMessage({
+                    isTimerSet: true,
+                    timeString: timeString
+                });
+            }
         }
     }
 
