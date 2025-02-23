@@ -243,7 +243,7 @@ export class VoteManager {
 
         // If this was a leader vote and we have a winner, update the leader
         if (this.activeVote.type === 'leader' && results.winner) {
-            await ChatPanel.setNewLeader(results.winner);
+            await ChatPanel.setNewLeader(results.winner, true);
         }
 
         // Notify other clients
@@ -337,7 +337,7 @@ export class VoteManager {
                     label: "Choose Leader",
                     callback: async (html) => {
                         const selectedId = html.find('#tie-breaker-select').val();
-                        await ChatPanel.setNewLeader(selectedId);
+                        await ChatPanel.setNewLeader(selectedId, true);
                         this.activeVote.results.winner = selectedId;
                         await this._updateVoteMessage();
                     }

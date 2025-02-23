@@ -235,7 +235,8 @@ class ChatPanel {
                     callback: async (html) => {
                         const selectedId = html.find('#leader-select').val();
                         if (selectedId) {
-                            await ChatPanel.setNewLeader(selectedId);
+                            // Send messages when selecting from dialog
+                            await ChatPanel.setNewLeader(selectedId, true);
                         } else {
                             // Handle clearing the leader if none selected
                             await game.settings.set(MODULE_ID, 'partyLeader', null);
@@ -258,7 +259,8 @@ class ChatPanel {
         postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
         
         if (leaderId) {
-            await ChatPanel.setNewLeader(leaderId);
+            // Don't send messages during initialization
+            await ChatPanel.setNewLeader(leaderId, false);
         } else {
             ChatPanel.currentLeader = null;
             await ChatPanel.updateLeader(null);
@@ -590,9 +592,10 @@ class ChatPanel {
     /**
      * Set a new party leader and handle all related updates
      * @param {string} userId - The user ID of the new leader
+     * @param {boolean} [sendMessages=false] - Whether to send chat messages about the new leader
      * @returns {Promise<boolean>} - True if successful, false if failed
      */
-    static async setNewLeader(userId) {
+    static async setNewLeader(userId, sendMessages = false) {
         try {
             // Get the user
             const user = game.users.get(userId);
@@ -614,22 +617,24 @@ class ChatPanel {
             // Update vote icon permissions
             this.updateVoteIconState();
 
-            // Send the leader messages
-            const gmUser = game.users.find(u => u.isGM);
-            if (gmUser) {
-                const messageData = {
-                    isPublic: true,
-                    isLeader: true,
-                    leaderName: user.name,
-                    leaderId: userId
-                };
+            // Send the leader messages only if requested
+            if (sendMessages) {
+                const gmUser = game.users.find(u => u.isGM);
+                if (gmUser) {
+                    const messageData = {
+                        isPublic: true,
+                        isLeader: true,
+                        leaderName: user.name,
+                        leaderId: userId
+                    };
 
-                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
-                await ChatMessage.create({
-                    content: messageHtml,
-                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                    speaker: ChatMessage.getSpeaker({ user: gmUser })
-                });
+                    const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+                    await ChatMessage.create({
+                        content: messageHtml,
+                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                        speaker: ChatMessage.getSpeaker({ user: gmUser })
+                    });
+                }
             }
 
             return true;
