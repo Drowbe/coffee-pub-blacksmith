@@ -97,8 +97,8 @@ class ChatPanel {
                 timerSection.on('click', () => this.showTimerDialog());
             }
 
-            // Add vote icon click handler
-            html.find('.vote-icon').click(async (event) => {
+            // Add vote div click handler
+            html.find('.tool.vote').click(async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 

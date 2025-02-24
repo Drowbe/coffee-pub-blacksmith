@@ -36,7 +36,7 @@
     gap: 8px;
 }
 
-.leader-info, .timer-info {
+.leader-info, .timer-info, .vote-info {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -67,17 +67,33 @@
     color: #f0f0e0;
 }
 
-.leader-icon {
+.leader-icon, .vote-icon {
     color: #f0f0e0;
     font-size: 0.9em;
 }
 
-.party-leader {
+.party-leader, .vote-label {
     color: #eeeeed;
     font-size: 0.9em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.tool.vote {
+    display: flex;
+    align-items: center;
+}
+
+.tool.vote:hover .vote-icon,
+.tool.vote:hover .vote-label {
+    color: hsl(27, 99%, 38%);
+}
+
+.tool.vote[style*="not-allowed"]:hover .vote-icon,
+.tool.vote[style*="not-allowed"]:hover .vote-label {
+    color: #f0f0e0;
+    opacity: 0.5;
 }
 
 /* Timer warning and expired messages */
@@ -129,9 +145,9 @@
 }
 
 .timer-info i {
-    font-size: .8em;
+    font-size: 1.0em;
     padding-top: 1px;
-    margin-right: 1px;
+    margin-right: 0px;
 }
 
 .timer-info.warning {
@@ -170,18 +186,11 @@
 	background: rgba(93, 187, 4, 0.3);
 }
 
-
-
-
-
-
 .leader-section:hover .leader-icon,
 .leader-section:hover .party-leader,
 .timer-section:hover .session-timer {
     color: hsl(27, 99%, 38%);
 }
-
-
 
 /* Vote Config Styles */
 .vote-config .vote-config-content {
