@@ -17,6 +17,7 @@ class ChatPanel {
     static hasHandledExpiration = false;
     static hasHandledWarning = false;
     static toolbarIcons = new Map();
+    static previousRemainingMinutes = null;
 
     static initialize() {
         // Load the templates
@@ -353,11 +354,15 @@ class ChatPanel {
 
         timerInfo.style.setProperty('--progress', progress);
 
-        // Handle expired state first
-        if (remaining <= 0) {
+        // Handle expired state
+        if (remaining <= 0 && this.sessionEndTime !== null) {
             timerInfo.classList.add('expired');
             timerInfo.classList.remove('warning');
-            if (game.user.isGM && !this.hasHandledExpiration) {
+            
+            // Send expiration message if:
+            // 1. We haven't handled this expiration yet
+            // 2. The timer actually just expired (current time is close to the end time)
+            if (!this.hasHandledExpiration && (now - this.sessionEndTime) < 2000) {
                 this.hasHandledExpiration = true;
                 this.handleTimerExpired();
             }
@@ -372,10 +377,23 @@ class ChatPanel {
             } catch (error) {
                 postConsoleAndNotification("Chat Panel: Warning threshold setting not registered yet, using default", "", false, true, false);
             }
-            if (remainingMinutes <= warningThreshold) {
+
+            const warningThresholdMs = warningThreshold * 60 * 1000;
+            const previousRemainingMinutes = this.previousRemainingMinutes || Infinity;
+
+            // If we're in or entering the warning period
+            if (remainingMinutes <= warningThreshold && this.sessionEndTime !== null) {
                 timerInfo.classList.add('warning');
                 timerInfo.style.setProperty('--progress-color', 'hsl(9, 94%, 20%)');
-                if (game.user.isGM && !this.hasHandledWarning) {
+                
+                // Detect when we first cross the warning threshold
+                const justEnteredWarning = previousRemainingMinutes > warningThreshold && 
+                                         remainingMinutes <= warningThreshold;
+
+                // Send warning message if:
+                // 1. We haven't handled this warning yet
+                // 2. We just crossed into warning territory
+                if (!this.hasHandledWarning && justEnteredWarning) {
                     this.hasHandledWarning = true;
                     this.handleTimerWarning();
                 }
@@ -385,7 +403,12 @@ class ChatPanel {
                 // Reset warning flag when we're no longer in warning state
                 this.hasHandledWarning = false;
             }
+
+            // Store the current remaining minutes for next comparison
+            this.previousRemainingMinutes = remainingMinutes;
+
         } catch (error) {
+            console.error("Error in timer warning check:", error);
             // If settings aren't registered yet, just use default styling
             timerInfo.classList.remove('warning', 'expired');
             timerInfo.style.setProperty('--progress-color', '#c1bfb5');

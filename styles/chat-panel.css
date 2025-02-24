@@ -105,27 +105,39 @@
 }
 
 /* Timer Styles */
+.session-timer {
+    color: #eeeeed;
+    white-space: nowrap;
+}
+.session-timer:hover {
+    color: #eeeeed !important;
+}
 .timer-info {
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 0.85em;
-    border-radius: 5px;
-    padding: 2px 6px;
+    border-radius: 4px;
+    padding-top: 2px;
+	padding-bottom: 2px;
+	padding-left: 6px;
+	padding-right: 6px;
     position: relative;
-    background: rgba(0, 0, 0, 0.1);
-    border: 2px solid #64675d;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     background-clip: padding-box;
 }
 
 .timer-info i {
     font-size: .8em;
     padding-top: 1px;
-    margin-right: 2px;
+    margin-right: 1px;
 }
 
 .timer-info.warning {
     animation: borderPulse 2s ease-in-out infinite;
+    border-color: rgba(230, 170, 5, 0.1);
+	background: rgba(230, 170, 5, 0.3);
 }
 
 .timer-info::before {
@@ -145,17 +157,23 @@
 }
 
 .timer-info.expired {
-    border-color: hsl(27, 93%, 32%);
+    border-color: rgba(243, 0, 0, 0.1);
+	background: rgba(243, 0, 0, 0.3);
 }
 
 .timer-info.expired::before {
-    background: hsl(27, 93%, 32%);
+    background: rgba(157, 6, 6, 0.0);
 }
 
-.session-timer {
-    color: #eeeeed;
-    white-space: nowrap;
+.timer-info:hover {
+    border: 1px solid rgba(93, 187, 4, 0.1);
+	background: rgba(93, 187, 4, 0.3);
 }
+
+
+
+
+
 
 .leader-section:hover .leader-icon,
 .leader-section:hover .party-leader,
@@ -163,9 +181,7 @@
     color: hsl(27, 99%, 38%);
 }
 
-.timer-info:hover {
-    border: 2px solid hsl(27, 99%, 38%);
-}
+
 
 /* Vote Config Styles */
 .vote-config .vote-config-content {
