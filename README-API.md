@@ -359,3 +359,174 @@ if (blacksmith?.utils) {
     console.log('Registered Modules:', blacksmith.ModuleManager.registeredModules);
     // etc...
 } 
+```
+
+### Stats API
+The Stats API provides access to both player and combat statistics tracked by Blacksmith. This API allows other modules to retrieve and analyze player performance, combat data, and notable moments.
+
+#### Accessing the Stats API
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.stats) {
+    // Stats API is available
+}
+```
+
+#### Player Statistics
+Access individual player statistics:
+
+```javascript
+// Get complete stats for a player
+const playerStats = await blacksmith.stats.player.getStats(actorId);
+
+// Get lifetime statistics
+const lifetimeStats = await blacksmith.stats.player.getLifetimeStats(actorId);
+
+// Get current session statistics
+const sessionStats = blacksmith.stats.player.getSessionStats(actorId);
+
+// Get specific stat categories
+const attackStats = await blacksmith.stats.player.getStatCategory(actorId, 'attacks');
+const healingStats = await blacksmith.stats.player.getStatCategory(actorId, 'healing');
+const turnStats = await blacksmith.stats.player.getStatCategory(actorId, 'turnStats');
+```
+
+#### Combat Statistics
+Monitor and analyze combat data:
+
+```javascript
+// Get current combat statistics
+const currentCombat = blacksmith.stats.combat.getCurrentStats();
+
+// Get stats for a specific participant
+const participantStats = blacksmith.stats.combat.getParticipantStats(participantId);
+
+// Get notable moments from current combat
+const notableMoments = blacksmith.stats.combat.getNotableMoments();
+
+// Get round summary
+const currentRoundSummary = blacksmith.stats.combat.getRoundSummary();
+const specificRoundSummary = blacksmith.stats.combat.getRoundSummary(3); // Get round 3 summary
+```
+
+#### Real-time Combat Updates
+Subscribe to combat stat updates:
+
+```javascript
+// Subscribe to updates
+const subscriptionId = blacksmith.stats.combat.subscribeToUpdates((stats) => {
+    console.log('Combat stats updated:', stats);
+});
+
+// Unsubscribe when done
+blacksmith.stats.combat.unsubscribeFromUpdates(subscriptionId);
+```
+
+#### Utility Functions
+Helper functions for working with stats:
+
+```javascript
+// Format time values
+const formattedTime = blacksmith.stats.utils.formatTime(3600000); // "1:00:00"
+
+// Check if an actor is a player character
+const isPC = blacksmith.stats.utils.isPlayerCharacter(actorId);
+```
+
+### Example Integration
+
+Here's a complete example of integrating the Stats API into your module:
+
+```javascript
+Hooks.once('init', async function() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
+
+    // Register your module
+    blacksmith.registerModule('your-module-id', {
+        name: 'YOUR_MODULE',
+        version: '1.0.0',
+        features: [{
+            type: 'chatPanelIcon',
+            data: {
+                icon: 'fas fa-chart-line',
+                tooltip: 'Combat Analysis',
+                onClick: async () => {
+                    // Example: Display combat statistics
+                    const currentStats = blacksmith.stats.combat.getCurrentStats();
+                    const notableMoments = blacksmith.stats.combat.getNotableMoments();
+                    
+                    // Subscribe to updates
+                    const subId = blacksmith.stats.combat.subscribeToUpdates((stats) => {
+                        // Update your UI with new stats
+                        updateCombatDisplay(stats);
+                    });
+                    
+                    // Get player-specific stats
+                    const player = game.user.character;
+                    if (player) {
+                        const playerStats = await blacksmith.stats.player.getStats(player.id);
+                        displayPlayerStats(playerStats);
+                    }
+                }
+            }
+        }]
+    });
+});
+
+// Example function to update UI
+function updateCombatDisplay(stats) {
+    // Update your module's UI with the new stats
+    console.log('Combat stats updated:', stats);
+}
+
+// Example function to display player stats
+function displayPlayerStats(stats) {
+    // Display the player's statistics in your module's UI
+    console.log('Player stats:', stats);
+}
+```
+
+### AI-Friendly Integration Guide
+
+For AI assistants integrating with the Stats API:
+
+1. **Initial Setup**:
+   ```javascript
+   // Check for Blacksmith and Stats API availability
+   const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+   if (!blacksmith?.stats) {
+       console.error("Stats API not available");
+       return;
+   }
+   ```
+
+2. **Data Access Patterns**:
+   - Always use `await` with async methods
+   - Check for null/undefined returns
+   - Handle errors appropriately
+   ```javascript
+   try {
+       const stats = await blacksmith.stats.player.getStats(actorId);
+       if (!stats) {
+           console.warn("No stats available for actor");
+           return;
+       }
+       // Process stats
+   } catch (error) {
+       console.error("Error accessing stats:", error);
+   }
+   ```
+
+3. **Best Practices**:
+   - Cache results when appropriate
+   - Unsubscribe from updates when no longer needed
+   - Use utility functions for consistent formatting
+   - Validate actor IDs before querying
+
+4. **Performance Considerations**:
+   - Batch stat requests when possible
+   - Limit update subscription frequency
+   - Clean up subscriptions on module disable/unload
+
+This documentation should help both human developers and AI assistants effectively integrate with the Blacksmith Stats API.

@@ -36,6 +36,7 @@ import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './wrapper-manager.js';
 import { ModuleManager } from './module-manager.js';
 import { UtilsManager } from './utils-manager.js';
+import { StatsAPI } from './stats-api.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -123,7 +124,8 @@ Hooks.once('init', async function() {
         getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
         utils: UtilsManager.getUtils(),
         version: API_VERSION,
-        BLACKSMITH: BLACKSMITH
+        BLACKSMITH: BLACKSMITH,
+        stats: StatsAPI
     };
     
     // Initialize other systems
