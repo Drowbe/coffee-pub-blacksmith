@@ -82,4 +82,6 @@ P4 - Low Priority/Low Impact
 - Fix Vote System Leader Permissions [Priority: P0] [Label: blacksmith, bug, voting]
 - Update Vote UI Elements [Priority: P2] [Label: blacksmith, ui, voting]
 - Fix Vote Button State Updates [Priority: P1] [Label: blacksmith, bug, voting]
+- Improve Vote Tool Accessibility [Priority: P2] [Label: blacksmith, ui, voting]
+- Enhance Vote UI Consistency [Priority: P2] [Label: blacksmith, ui, voting]
 

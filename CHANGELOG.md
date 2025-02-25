@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.4] - Vote System and UI Improvements
+
+### Added
+- Added clickable vote tool area in chat panel
+- Added improved styling for vote section to match other UI elements
+
+### Changed
+- Updated vote tool UI to be more consistent with other elements
+- Improved vote label alignment and styling
+- Enhanced hover effects for vote controls
+
 ## [1.0.3] - UI Improvements and Bug Fixes
 
 ### Added
