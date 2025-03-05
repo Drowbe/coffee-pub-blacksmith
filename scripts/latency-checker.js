@@ -166,11 +166,12 @@ export class LatencyChecker {
                 if (!latencySpan) {
                     latencySpan = document.createElement("span");
                     latencySpan.className = "player-latency";
+                    latencySpan.style.cssText = "float: right; margin-left: 4px;";
                     playerNameSpan.appendChild(latencySpan);
                 }
                 
                 if (latency !== undefined) {
-                    latencySpan.textContent = ` ${latency}ms`;
+                    latencySpan.textContent = `${latency}ms`;
                     latencySpan.classList.remove("good", "medium", "poor");
                     latencySpan.classList.add(this.#getLatencyClass(latency));
                     latencySpan.style.display = "inline-block";
