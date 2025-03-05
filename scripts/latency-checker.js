@@ -90,12 +90,9 @@ export class LatencyChecker {
     }
 
     static #handleSocketMessage(data) {
-        if (!data.type || !data.from || !data.to) return;
+        if (!data.type) return;
 
-        // Only process messages meant for us
-        if (data.to !== game.user.id) return;
-
-        if (data.type === "ping") {
+        if (data.type === "ping" && data.to === game.user.id) {
             // Respond to ping with a pong
             game.socket.emit("module.coffee-pub-blacksmith", {
                 type: "pong",
@@ -103,7 +100,7 @@ export class LatencyChecker {
                 to: data.from,
                 time: data.time
             });
-        } else if (data.type === "pong") {
+        } else if (data.type === "pong" && data.to === game.user.id) {
             // Calculate latency from pong
             const endTime = performance.now();
             const startTime = data.time;
@@ -111,16 +108,21 @@ export class LatencyChecker {
             if (startTime) {
                 const roundTrip = endTime - startTime;
                 const latency = Math.round(roundTrip / 2); // One-way latency
-                this.#latencyData.set(data.from, latency);
                 
-                // If we're the GM, broadcast the updated latency data to all clients
                 if (game.user.isGM) {
+                    // GM updates latency for the responding player
+                    this.#latencyData.set(data.from, latency);
+                    // Broadcast complete latency data to all clients
                     this.#broadcastLatencyData();
+                } else {
+                    // Players update their own latency to GM
+                    this.#latencyData.set(data.from, latency);
                 }
             }
         } else if (data.type === "latencyUpdate") {
-            // Update our local latency data with the data from the GM
+            // Everyone receives and processes the complete latency data from GM
             if (data.latencyData) {
+                // Update our local latency data with the complete dataset
                 this.#latencyData = new Map(Object.entries(data.latencyData));
                 this.#updateLatencyDisplay();
             }
@@ -133,13 +135,13 @@ export class LatencyChecker {
         // Convert Map to object for transmission
         const latencyObject = Object.fromEntries(this.#latencyData);
         
-        // Broadcast to all clients
+        // Broadcast to all clients using a general message
         game.socket.emit("module.coffee-pub-blacksmith", {
             type: "latencyUpdate",
             latencyData: latencyObject
         });
         
-        // Update our own display
+        // Update GM's own display
         this.#updateLatencyDisplay();
     }
 
@@ -195,6 +197,7 @@ export class LatencyChecker {
                 });
                 // Set GM's own latency to 0
                 this.#latencyData.set(game.user.id, 0);
+                // Always broadcast complete data after checking users
                 this.#broadcastLatencyData();
             } else {
                 // Players only measure latency to GM
