@@ -35,8 +35,11 @@ export class LatencyChecker {
             // Start periodic checks
             this.startPeriodicCheck();
             
-            // Set self latency to 0
-            this.#latencyData.set(game.user.id, 0);
+            // Set initial latency
+            if (this.#isLocalGM()) {
+                // If GM is hosting locally, set their latency to 0
+                this.#latencyData.set(game.user.id, 0);
+            }
             
             // Initial update
             this.#updateLatencyDisplay();
@@ -67,8 +70,8 @@ export class LatencyChecker {
     static async #measureLatency(userId) {
         if (!this.#initialized) return;
 
-        // If measuring self latency, just set it to 0
-        if (userId === game.user.id) {
+        // Only set 0ms latency for local GM
+        if (userId === game.user.id && this.#isLocalGM()) {
             this.#latencyData.set(userId, 0);
             return;
         }
@@ -191,12 +194,16 @@ export class LatencyChecker {
             if (game.user.isGM) {
                 // GM measures latency for all active players
                 game.users.forEach(user => {
-                    if (user.active && !user.isGM) {
+                    if (user.active && user.id !== game.user.id) {
                         this.#measureLatency(user.id);
                     }
                 });
-                // Set GM's own latency to 0
-                this.#latencyData.set(game.user.id, 0);
+
+                // Only set GM latency to 0 if hosting locally
+                if (this.#isLocalGM()) {
+                    this.#latencyData.set(game.user.id, 0);
+                }
+
                 // Always broadcast complete data after checking users
                 this.#broadcastLatencyData();
             } else {
@@ -213,6 +220,11 @@ export class LatencyChecker {
 
     static #onRenderPlayerList(playerList, html) {
         this.#updateLatencyDisplay();
+    }
+
+    // Helper to determine if GM is hosting locally
+    static #isLocalGM() {
+        return game.user.isGM && window.location.hostname === 'localhost';
     }
 }
 
