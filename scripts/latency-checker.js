@@ -161,12 +161,17 @@ export class LatencyChecker {
                 const playerNameSpan = li.querySelector(".player-name");
                 if (!playerNameSpan) return;
 
+                // Ensure player-name uses flex layout
+                playerNameSpan.style.display = "flex";
+                playerNameSpan.style.justifyContent = "space-between";
+                playerNameSpan.style.alignItems = "center";
+                
                 // Create or get the latency span
                 let latencySpan = playerNameSpan.querySelector(".player-latency");
                 if (!latencySpan) {
                     latencySpan = document.createElement("span");
                     latencySpan.className = "player-latency";
-                    latencySpan.style.cssText = "float: right; margin-left: 4px;";
+                    latencySpan.style.cssText = "margin-left: auto; font-size: 0.9em;";
                     playerNameSpan.appendChild(latencySpan);
                 }
                 
