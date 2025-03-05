@@ -59,26 +59,20 @@ export class LatencyChecker {
         // Periodic checks
         setInterval(() => {
             if (this.#initialized) {
-                console.log("BLACKSMITH | Latency: Running periodic check");
                 this.#checkAllUsers();
             }
         }, this.PING_INTERVAL);
     }
 
     static async #measureLatency(userId) {
-        if (!this.#initialized) {
-            console.warn("BLACKSMITH | Latency: Cannot measure latency - LatencyChecker not initialized");
-            return;
-        }
+        if (!this.#initialized) return;
 
         // If measuring self latency, just set it to 0
         if (userId === game.user.id) {
             this.#latencyData.set(userId, 0);
-            this.#updateLatencyDisplay();
             return;
         }
 
-        console.log(`BLACKSMITH | Latency: Measuring latency for user ${userId}`);
         try {
             const startTime = performance.now();
             this.#startTimes.set(userId, startTime);
@@ -117,11 +111,36 @@ export class LatencyChecker {
             if (startTime) {
                 const roundTrip = endTime - startTime;
                 const latency = Math.round(roundTrip / 2); // One-way latency
-                console.log(`BLACKSMITH | Latency: Calculated latency for ${data.from}: ${latency}ms`);
                 this.#latencyData.set(data.from, latency);
+                
+                // If we're the GM, broadcast the updated latency data to all clients
+                if (game.user.isGM) {
+                    this.#broadcastLatencyData();
+                }
+            }
+        } else if (data.type === "latencyUpdate") {
+            // Update our local latency data with the data from the GM
+            if (data.latencyData) {
+                this.#latencyData = new Map(Object.entries(data.latencyData));
                 this.#updateLatencyDisplay();
             }
         }
+    }
+
+    static #broadcastLatencyData() {
+        if (!game.user.isGM) return;
+        
+        // Convert Map to object for transmission
+        const latencyObject = Object.fromEntries(this.#latencyData);
+        
+        // Broadcast to all clients
+        game.socket.emit("module.coffee-pub-blacksmith", {
+            type: "latencyUpdate",
+            latencyData: latencyObject
+        });
+        
+        // Update our own display
+        this.#updateLatencyDisplay();
     }
 
     static #updateLatencyDisplay() {
@@ -167,12 +186,23 @@ export class LatencyChecker {
 
     static #checkAllUsers() {
         try {
-            game.users.forEach(user => {
-                // Check all active users including self
-                if (user.active) {
-                    this.#measureLatency(user.id);
+            if (game.user.isGM) {
+                // GM measures latency for all active players
+                game.users.forEach(user => {
+                    if (user.active && !user.isGM) {
+                        this.#measureLatency(user.id);
+                    }
+                });
+                // Set GM's own latency to 0
+                this.#latencyData.set(game.user.id, 0);
+                this.#broadcastLatencyData();
+            } else {
+                // Players only measure latency to GM
+                const gmUser = game.users.find(u => u.isGM && u.active);
+                if (gmUser) {
+                    this.#measureLatency(gmUser.id);
                 }
-            });
+            }
         } catch (error) {
             console.error("BLACKSMITH | Latency: Error checking users:", error);
         }
