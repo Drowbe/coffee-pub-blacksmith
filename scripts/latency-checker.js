@@ -6,7 +6,6 @@ export class LatencyChecker {
     static PING_INTERVAL = 5000; // Check every 5 seconds
     static #latencyData = new Map();
     static #startTimes = new Map();
-    static #pingIds = new Map();
     static #initialized = false;
     
     static isInitialized() {
@@ -24,7 +23,7 @@ export class LatencyChecker {
             }
 
             // Register socket handlers using game.socket.on
-            game.socket.on("module.coffee-pub-blacksmith", this.#handlePong.bind(this));
+            game.socket.on("module.coffee-pub-blacksmith", this.#handleSocketMessage.bind(this));
             console.log("BLACKSMITH | Latency: Socket handlers registered successfully");
             
             // Only start operations after handlers are registered
@@ -35,6 +34,9 @@ export class LatencyChecker {
             
             // Start periodic checks
             this.startPeriodicCheck();
+            
+            // Set self latency to 0
+            this.#latencyData.set(game.user.id, 0);
             
             // Initial update
             this.#updateLatencyDisplay();
@@ -69,81 +71,86 @@ export class LatencyChecker {
             return;
         }
 
+        // If measuring self latency, just set it to 0
+        if (userId === game.user.id) {
+            this.#latencyData.set(userId, 0);
+            this.#updateLatencyDisplay();
+            return;
+        }
+
         console.log(`BLACKSMITH | Latency: Measuring latency for user ${userId}`);
         try {
             const startTime = performance.now();
+            this.#startTimes.set(userId, startTime);
             
             // Send ping through socket
             game.socket.emit("module.coffee-pub-blacksmith", {
-                userId: game.user.id,
-                average: 0 // Will be calculated when pong is received
+                type: "ping",
+                from: game.user.id,
+                to: userId,
+                time: startTime
             });
-            
-            this.#startTimes.set(userId, startTime);
         } catch (error) {
             console.error("BLACKSMITH | Latency: Error measuring latency:", error);
         }
     }
 
-    static #handlePong(data) {
-        console.log(`BLACKSMITH | Latency: Received pong from ${data.userId}`);
-        try {
+    static #handleSocketMessage(data) {
+        if (!data.type || !data.from || !data.to) return;
+
+        // Only process messages meant for us
+        if (data.to !== game.user.id) return;
+
+        if (data.type === "ping") {
+            // Respond to ping with a pong
+            game.socket.emit("module.coffee-pub-blacksmith", {
+                type: "pong",
+                from: game.user.id,
+                to: data.from,
+                time: data.time
+            });
+        } else if (data.type === "pong") {
+            // Calculate latency from pong
             const endTime = performance.now();
-            const startTime = this.#startTimes.get(data.userId);
+            const startTime = data.time;
             
             if (startTime) {
-                const latency = Math.round((endTime - startTime) / 2); // Round trip time divided by 2
-                console.log(`BLACKSMITH | Latency: Calculated latency for ${data.userId}: ${latency}ms`);
-                this.#latencyData.set(data.userId, latency);
+                const roundTrip = endTime - startTime;
+                const latency = Math.round(roundTrip / 2); // One-way latency
+                console.log(`BLACKSMITH | Latency: Calculated latency for ${data.from}: ${latency}ms`);
+                this.#latencyData.set(data.from, latency);
                 this.#updateLatencyDisplay();
-                this.#startTimes.delete(data.userId);
             }
-        } catch (error) {
-            console.error("BLACKSMITH | Latency: Error handling pong:", error);
         }
     }
 
     static #updateLatencyDisplay() {
-        console.log("BLACKSMITH | Latency: Updating latency display");
         try {
             const playerList = document.getElementById("player-list");
-            if (!playerList) {
-                console.log("BLACKSMITH | Latency: Player list not found");
-                return;
-            }
-
-            console.log("BLACKSMITH | Latency: Current latency data:", Object.fromEntries(this.#latencyData));
+            if (!playerList) return;
 
             playerList.querySelectorAll("li.player").forEach(li => {
                 const userId = li.dataset.userId;
                 const latency = this.#latencyData.get(userId);
-                console.log(`BLACKSMITH | Latency: Processing user ${userId} with latency ${latency}`);
                 
                 // Find the player-name span
                 const playerNameSpan = li.querySelector(".player-name");
-                if (!playerNameSpan) {
-                    console.log(`BLACKSMITH | Latency: Player name span not found for ${userId}`);
-                    return;
-                }
+                if (!playerNameSpan) return;
 
                 // Create or get the latency span
                 let latencySpan = playerNameSpan.querySelector(".player-latency");
                 if (!latencySpan) {
-                    console.log(`BLACKSMITH | Latency: Creating latency span for ${userId}`);
                     latencySpan = document.createElement("span");
                     latencySpan.className = "player-latency";
-                    // Insert after any text content
                     playerNameSpan.appendChild(latencySpan);
                 }
                 
-                if (latency !== undefined && userId !== game.user.id) {
-                    console.log(`BLACKSMITH | Latency: Setting latency display for ${userId} to ${latency}ms`);
+                if (latency !== undefined) {
                     latencySpan.textContent = ` ${latency}ms`;
                     latencySpan.classList.remove("good", "medium", "poor");
                     latencySpan.classList.add(this.#getLatencyClass(latency));
                     latencySpan.style.display = "inline-block";
                 } else {
-                    console.log(`BLACKSMITH | Latency: Hiding latency display for ${userId}`);
                     latencySpan.style.display = "none";
                 }
             });
@@ -153,18 +160,16 @@ export class LatencyChecker {
     }
 
     static #getLatencyClass(latency) {
-        if (latency < 100) return "good";
-        if (latency < 200) return "medium";
+        if (latency < 25) return "good";      // Local connections should be under 25ms
+        if (latency < 50) return "medium";    // Adjusted for more realistic local thresholds
         return "poor";
     }
 
     static #checkAllUsers() {
-        console.log("BLACKSMITH | Latency: Checking all users");
         try {
             game.users.forEach(user => {
-                // Only check active users except self
-                if (user.active && user.id !== game.user.id) {
-                    console.log(`BLACKSMITH | Latency: Checking user ${user.id} (active: ${user.active})`);
+                // Check all active users including self
+                if (user.active) {
                     this.#measureLatency(user.id);
                 }
             });
@@ -174,7 +179,6 @@ export class LatencyChecker {
     }
 
     static #onRenderPlayerList(playerList, html) {
-        console.log("BLACKSMITH | Latency: Player list rendered, updating display");
         this.#updateLatencyDisplay();
     }
 }
