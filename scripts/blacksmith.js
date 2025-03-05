@@ -37,6 +37,7 @@ import { WrapperManager } from './wrapper-manager.js';
 import { ModuleManager } from './module-manager.js';
 import { UtilsManager } from './utils-manager.js';
 import { StatsAPI } from './stats-api.js';
+import { LatencyChecker } from './latency-checker.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -169,6 +170,10 @@ Hooks.once('ready', async function() {
 
     // Initialize player stats tracking
     CPBPlayerStats.initialize();
+
+    // Initialize latency checker
+    postConsoleAndNotification("Initializing LatencyChecker", "", false, true, false);
+    LatencyChecker.initialize();
 });
 
 // ***************************************************

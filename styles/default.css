@@ -41,3 +41,6 @@
 
 /* --- Voting ---------------------- */
 @import "vote.css";   
+
+/* --- Latency Display ---------------------- */
+@import "latency.css";

@@ -1,0 +1,42 @@
+.player-latency {
+    margin-left: 8px;
+    font-size: 0.8em;
+    opacity: 0.8;
+    font-family: "Signika", sans-serif;
+    display: inline-block;
+    vertical-align: middle;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+#player-list li.player .player-name {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+}
+
+.player-name-wrapper {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Latency color indicators */
+.player-latency.good {
+    color: #45d645;  /* Lighter green */
+    text-shadow: 0 0 8px #45d645;
+}
+
+.player-latency.medium {
+    color: #d6d645;  /* Lighter yellow */
+    text-shadow: 0 0 8px #d6d645;
+}
+
+.player-latency.poor {
+    color: #d64545;  /* Lighter red */
+    text-shadow: 0 0 8px #d64545;
+} 
