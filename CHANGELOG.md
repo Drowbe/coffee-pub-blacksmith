@@ -17,6 +17,9 @@
 - Improved latency threshold values for more accurate status indication
 - Enhanced socket message handling for better network communication
 
+### Removed
+- Removed the redundant dashboard now that we have the Squire module 
+
 ## [1.0.4] - Vote System and UI Improvements
 
 ### Added

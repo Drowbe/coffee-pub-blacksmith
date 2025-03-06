@@ -157,6 +157,8 @@ Each module in the Coffee Pub collection enhances different aspects of your game
 - [Coffee Pub Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph): Library and reference management
 - [Coffee Pub Crier](https://github.com/Drowbe/coffee-pub-crier): Enhanced announcements and notifications
 - [Coffee Pub Scribe](https://github.com/Drowbe/coffee-pub-scribe): Advanced journaling and note-taking
+- [Coffee Pub Squire](https://github.com/Drowbe/coffee-pub-squire): Character sheet as a sidebar tray
+- [Coffee Pub Monarch](https://github.com/Drowbe/coffee-pub-monarch): Module collection management
 - Other modules coming soon!
 
 The Blacksmith module serves as the foundation for all Coffee Pub modules, providing shared services and functionality that other modules build upon.

@@ -309,7 +309,6 @@ export const BLACKSMITH = {
     // Template paths
     TEMPLATES: {
         WINDOW_QUERY: 'templates/window-query.hbs',
-        DASHBOARD: 'templates/window-dashboard.hbs'
     },
     
     // Debug settings
@@ -539,7 +538,6 @@ export function addToolbarButton() {
             title: "Blacksmith Utilities",
             tools: [
                 // Core tools
-                dashboardTool,
                 regentTool,
                 // Workspace tools
                 lookupTool,
