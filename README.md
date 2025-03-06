@@ -39,6 +39,13 @@ The Blacksmith Module serves as the foundational framework for the entire Coffee
 - **Combat Session Stats**: Detailed tracking of player achievements within each combat
 - **Turn Management**: Enhanced turn tracking with accurate timing
 
+### Network Statistics
+- **Latency Display**: 
+  - Real-time latency monitoring for all players
+  - Color-coded indicators (good/medium/poor)
+  - Configurable check frequency
+  - Automatic local GM detection
+
 ### Combat Management
 - **Combat Timer**: 
   - Accurate turn duration tracking with pause/resume functionality
@@ -161,6 +168,8 @@ Access the module settings through the Module Settings menu in Foundry VTT:
 - Dashboard visibility on game load
 - Toolbar configuration options
 - Module integration preferences
+- Latency display toggle (enabled by default)
+- Latency check frequency (5s to 5min, default 30s)
 
 #### Theme Configuration
 - Multiple visual theme selection

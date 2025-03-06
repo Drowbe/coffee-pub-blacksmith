@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.5] - Network Monitoring and Settings
+
+### Added
+- Added real-time latency monitoring system
+  - Color-coded latency display next to player names
+  - Configurable latency check frequency (5s to 5min)
+  - Enable/disable latency display option
+  - Automatic local GM detection for accurate readings
+- Added new settings for latency monitoring
+  - Toggle for enabling/disabling latency display
+  - Slider for adjusting check frequency
+
+### Changed
+- Updated settings organization for better clarity
+- Improved latency threshold values for more accurate status indication
+- Enhanced socket message handling for better network communication
+
 ## [1.0.4] - Vote System and UI Improvements
 
 ### Added

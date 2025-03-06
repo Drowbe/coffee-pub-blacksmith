@@ -37,6 +37,10 @@ P4 - Low Priority/Low Impact
 - Implement AI-powered Insights [Priority: P0] [Label: blacksmith, feature, ai]
 - Add Cross-session Statistics [Priority: P0] [Label: blacksmith, data, feature]
 - Add Combat Statistics Export [Priority: P2] [Label: blacksmith, data, feature]
+- Add Network Performance History [Priority: P2] [Label: blacksmith, network, feature]
+- Implement Network Quality Alerts [Priority: P1] [Label: blacksmith, network, feature]
+- Add Network Diagnostics Tool [Priority: P2] [Label: blacksmith, network, feature]
+- Add Network Stats Export [Priority: P3] [Label: blacksmith, network, feature]
 
 ## IN PROGRESS
 
@@ -58,6 +62,9 @@ P4 - Low Priority/Low Impact
 
 ## CLOSED
 
+- Implement Real-time Latency Display [Priority: P1] [Label: blacksmith, network, feature]
+- Add Latency Configuration Options [Priority: P2] [Label: blacksmith, network, settings]
+- Optimize Socket Message Handling [Priority: P1] [Label: blacksmith, network, performance]
 - Verify Timer Tracking Accuracy [Priority: P1] [Label: blacksmith, bug, timer]
 - Remove MVP Name Underline [Priority: P0] [Label: blacksmith, ui]
 - Make Fumble Icon Brighter [Priority: P0] [Label: blacksmith, ui]
