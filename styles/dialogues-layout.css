@@ -47,6 +47,8 @@ div#coffee-pub-blacksmith .window-content {
     flex-direction: column;
     transition: all 0.3s ease;
     background: #222222;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 #blacksmith-workspace-wrapper.workspace-hidden {
@@ -61,8 +63,26 @@ div#coffee-pub-blacksmith .window-content {
 #blacksmith-workspace-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     border-radius: var(--element-radius);
     width: 400px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Add custom scrollbar styling */
+#blacksmith-workspace-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#blacksmith-workspace-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#blacksmith-workspace-content::-webkit-scrollbar-thumb {
+    background: #444444;
+    border-radius: 4px;
+    border: 2px solid #222222;
 }
 
 /* --------BEGIN NON BLACKSMITH WRAPPER STUFF ----------- */
@@ -300,41 +320,34 @@ div#blacksmith-message-options .blacksmith-checkbox {
     border-radius: var(--element-radius);
 }
 
-.workspace-content h3{
-    font-weight:700;
-    font-size: 1.2em;
-	text-transform: uppercase;
-	margin-bottom: 10px;
-    padding-bottom: 5px;
-	padding-top: 5px;
-	padding-left: 10px;
-	padding-right: 10px;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-	background-color: #000000;
-	color: #ffffff;
-	border: 1px solid #2b2b2b;
-	border-radius: var(--element-radius);
-}
-
-
-
-/* --- -------------------------- --- */
-/* --- WORKSPACE SECTION ELEMENTS --- */
-/* --- -------------------------- --- */
-
-
 /* Workspace Section */
 .workspace-section {
-    width: 400px;
+    width: 100%;
     font-weight: 100;
     font-size: 1.0em;
     margin-bottom: 10px;
-    padding: var(--container-padding);
+    padding: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     background-color: #000000;
     color: #ffffff;
     border: 1px solid #2b2b2b;
     border-radius: 5px;
+    box-sizing: border-box;
+}
+
+/* Workspace Section Headers */
+.workspace-content h3 {
+    width: 100%;
+    font-weight: 700;
+    font-size: 1.2em;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+    padding: 5px 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #2b2b2b;
+    border-radius: var(--element-radius);
     box-sizing: border-box;
 }
 
@@ -345,6 +358,15 @@ div#blacksmith-message-options .blacksmith-checkbox {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    margin: 0;
+}
+
+/* Section Content */
+.workspace-section-content {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
 }
 
 .workspace-section-divider {
@@ -398,15 +420,11 @@ div#blacksmith-message-options .blacksmith-checkbox {
 
 
 .workspace-section-content {
-    padding-top: 0px;
-	padding-bottom:0px;
-	padding-right: 0px;
-	padding-left: 0px;
-	margin-top: 0px;
-	margin-bottom: 0px;
-	margin-right: 0px;
-	margin-left: 0px;
-	transition: max-height 0.3s ease, opacity 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
     max-height: 1000px; /* Set a high enough value to accommodate the content */
     overflow: hidden; /* Ensure content doesn't overflow */
     opacity: 1; /* Ensure the content is fully visible */
