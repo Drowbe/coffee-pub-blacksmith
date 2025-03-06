@@ -7,23 +7,16 @@
 }
 
 .player-latency {
-
     position: absolute;
-    right: 2px;
-    font-size: 0.75em;
-    opacity: 0.9;
-
-
-
-    margin-left: 8px;
+    right: 0px;
     font-size: 0.8em;
-    opacity: 0.8;
+    opacity: 0.7;
     font-family: "Signika", sans-serif;
     display: inline-block;
     vertical-align: middle;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 0 4px;
-    border-radius: 3px;
+    background: rgba(0, 0, 0, 1);
+	padding: 0 4px;
+    border-radius: 4px;
 }
 
 #player-list li.player .player-name {
@@ -48,11 +41,11 @@
 }
 
 .player-latency.medium {
-    color: #d6d645;  /* Lighter yellow */
+    color: #9b9b0f;  /* Lighter yellow */
     text-shadow: 0 0 8px #d6d645;
 }
 
 .player-latency.poor {
-    color: #d64545;  /* Lighter red */
+    color: #b41111;  /* Lighter red */
     text-shadow: 0 0 8px #d64545;
 } 

@@ -377,6 +377,18 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+
+		// ---------- LATENCY CHECKER ----------
+		game.settings.register(MODULE_ID, "headingH3Latency", {
+			name: MODULE_ID + '.headingH3Latency-Label',
+			hint: MODULE_ID + '.headingH3Latency-Hint',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
 		// Latency Settings
 		game.settings.register(MODULE_ID, 'enableLatency', {
 			name: 'Enable Latency Display',

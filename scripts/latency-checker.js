@@ -244,14 +244,4 @@ export class LatencyChecker {
     static #isLocalGM() {
         return game.user.isGM && window.location.hostname === 'localhost';
     }
-}
-
-// Initialize when the game is ready
-Hooks.once('init', () => {
-    console.log("BLACKSMITH | Latency: Init hook fired for LatencyChecker");
-});
-
-Hooks.once('ready', async () => {
-    console.log("BLACKSMITH | Latency: Ready hook fired for LatencyChecker");
-    await LatencyChecker.initialize();
-}); 
+} 
