@@ -161,17 +161,11 @@ export class LatencyChecker {
                 const playerNameSpan = li.querySelector(".player-name");
                 if (!playerNameSpan) return;
 
-                // Ensure player-name uses flex layout
-                playerNameSpan.style.display = "flex";
-                playerNameSpan.style.justifyContent = "space-between";
-                playerNameSpan.style.alignItems = "center";
-                
                 // Create or get the latency span
                 let latencySpan = playerNameSpan.querySelector(".player-latency");
                 if (!latencySpan) {
                     latencySpan = document.createElement("span");
                     latencySpan.className = "player-latency";
-                    latencySpan.style.cssText = "margin-left: auto; font-size: 0.9em;";
                     playerNameSpan.appendChild(latencySpan);
                 }
                 
@@ -179,9 +173,11 @@ export class LatencyChecker {
                     latencySpan.textContent = `${latency}ms`;
                     latencySpan.classList.remove("good", "medium", "poor");
                     latencySpan.classList.add(this.#getLatencyClass(latency));
-                    latencySpan.style.display = "inline-block";
+                    latencySpan.style.display = "inline";
+                    playerNameSpan.style.paddingRight = "40px";
                 } else {
                     latencySpan.style.display = "none";
+                    playerNameSpan.style.paddingRight = "0";
                 }
             });
         } catch (error) {
