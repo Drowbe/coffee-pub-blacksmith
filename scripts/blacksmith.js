@@ -785,6 +785,16 @@ async function buildInjuryJournalEntry(journalData) {
     return;
 }
 
+// Function to check if a string is valid JSON
+function isJSON(str) {
+    try {
+        const result = JSON.parse(str);
+        return typeof result === 'object' && result !== null;
+    } catch (e) {
+        return false;
+    }
+}
+
 // ***************************************************
 // ** UTILITY Build Query Card
 // ***************************************************
@@ -851,7 +861,8 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
         strSpeakerName: "Regent",
         strMessageIntro: "",
         strMessageContent: strAnswer,
-        messageId: messageId
+        messageId: messageId,
+        blnIsJSON: isJSON(strAnswer) // Add the JSON check here
     };
     compiledHtml = template(CARDDATA);
     queryWindow.displayMessage(compiledHtml);

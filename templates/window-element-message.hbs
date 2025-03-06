@@ -28,10 +28,11 @@
 
     {{#if blnToolbar}}
         <div id="blacksmith-message-toolbar" class="toolbar-right">
-
+                {{#if blnIsJSON}}
                 <button id="blacksmith-chat-button-json" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
                     <i class="fa-solid fa-message-arrow-down"></i>
                 </button>
+                {{/if}}
 
             <button id="blacksmith-chat-button-copy" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
                 <i class="fa-solid fa-copy"></i>
