@@ -1,6 +1,6 @@
 import { MODULE_ID } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
-import { buildButtonEventRegent, buildButtonEventBrowser } from './blacksmith.js';
+import { buildButtonEventRegent } from './blacksmith.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './global.js';
 

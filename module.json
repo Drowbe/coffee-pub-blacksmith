@@ -42,7 +42,6 @@
     "scripts/planning-timer.js",
     "scripts/round-timer.js",
     "scripts/window-query.js",
-    "scripts/window-browser.js",
     "scripts/settings.js",
     "scripts/player-stats.js",
     "scripts/canvas-layer.js",

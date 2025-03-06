@@ -15,7 +15,6 @@
 /* --------BEGIN NON BLACKSMITH WRAPPER STUFF ----------- */
 
 /* Form */
-div#coffee-pub-blacksmith-browser,
 div#coffee-pub-blacksmith,
 div#coffee-pub-bibliosoph {
     overflow: hidden;
@@ -25,7 +24,6 @@ div#coffee-pub-bibliosoph {
 }
 
 /* Window Background */
-div#coffee-pub-blacksmith-browser .window-content,
 div#coffee-pub-blacksmith .window-content,
 div#coffee-pub-bibliosoph .window-content {
 	opacity: var(--container-opacity);
@@ -34,7 +32,6 @@ div#coffee-pub-bibliosoph .window-content {
 	padding: 10px;
 }
 
-div#coffee-pub-blacksmith-browser,
 div#coffee-pub-blacksmith {
 	min-height: 506px;
 }
@@ -1214,13 +1211,6 @@ div#blacksmith-message-options label {
     word-break: break-word;
 
 }
-/* Browser */
-.blacksmith-browser {
- width: 100%;
-  height: 100%;
-  border: none; /* Removes the default border around iframes */
-  border-radius:  var(--element-radius) var(--element-radius) var(--element-radius) var(--element-radius);
-}
 
 
 /* Button: Small Round Pill Button */
@@ -1453,20 +1443,11 @@ div#blacksmith-message-toolbar button[data-label] span {
 	border: 1px solid #767676;
 }
 
-
-  
-
-
-
-
-
-
 /* ------------------------------------ */
 /* -- THEMES                 ---------- */
 /* ------------------------------------ */
 
 /* Window Background */
-div#coffee-pub-blacksmith-browser .window-content,
 div#coffee-pub-blacksmith-query .window-content,
 div#coffee-pub-blacksmith .window-content,
 div#coffee-pub-bibliosoph .window-content {

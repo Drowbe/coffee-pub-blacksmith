@@ -567,9 +567,7 @@ export function addToolbarButton() {
    ```
 
 2. **Specialized Windows**
-   - Dashboard window
    - Query window
-   - Browser window
    - Combat summary window
 
 #### Template System

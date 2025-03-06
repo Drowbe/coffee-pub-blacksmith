@@ -24,12 +24,6 @@ export const BLACKSMITH = {
     WINDOW_QUERY: `modules/${MODULE_ID}/templates/window-query.hbs`,
     WINDOW_QUERY_MESSAGE: `modules/${MODULE_ID}/templates/window-element-message.hbs`,
 
-    WINDOW_BROWSER_TITLE: "Blacksmith Browser",
-    WINDOW_BROWSER: `modules/${MODULE_ID}/templates/window-browser.hbs`,
-    WINDOW_BROWSER_URL: `http://wwwlgoogle.com`,
-
-
-
     JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE_ID}/templates/journal-narrative.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE_ID}/templates/journal-injury.hbs`,
     // These get overriden as soon as the settings and everything else loads.

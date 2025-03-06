@@ -45,10 +45,12 @@ function checkInstalledModules() {
 	let coffeePubMissing = [];
 	let MODULE_IDs = [
 		'coffee-pub-blacksmith',
-		'coffee-pub-bubo',
+		'coffee-pub-monarch',
 		'coffee-pub-scribe',
+		'coffee-pub-squire',
 		'coffee-pub-crier',
 		'coffee-pub-bibliosoph',
+		'coffee-pub-bubo',
 		'coffee-pub-lib'
 	];
 
@@ -1255,212 +1257,10 @@ export const registerSettings = async () => {
 	});
 
 
-// ---------- Narratvie Generator ----------
-game.settings.register(MODULE_ID, "headingH3simpleheadingH2NarrativeGenerator", {
-	name: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Label',
-	hint: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Hint',
-	scope: "world",
-	config: true,
-	default: "",
-	type: String,
-});
-// -------------------------------------
-
-// -- Default Narrative Folder --
-game.settings.register(MODULE_ID, 'defaultNarrativeFolder', {
-	name: MODULE_ID + '.defaultNarrativeFolder-Label',
-	hint: MODULE_ID + '.defaultNarrativeFolder-Hint',
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: 'New Narratives'
-});
-
-// -- Default Journal Page Title --
-game.settings.register(MODULE_ID, 'defaultJournalPageTitle', {
-	name: MODULE_ID + '.defaultJournalPageTitle-Label',
-	hint: MODULE_ID + '.defaultJournalPageTitle-Hint',
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: ''	
-});
-
-// -- Default Scene Location --
-game.settings.register(MODULE_ID, 'defaultSceneLocation', {
-	name: MODULE_ID + '.defaultSceneLocation-Label',
-	hint: MODULE_ID + '.defaultSceneLocation-Hint',
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: ''
-});
-
-// -- Default Scene Parent --
-game.settings.register(MODULE_ID, 'defaultSceneParent', {
-	name: MODULE_ID + '.defaultSceneParent-Label',
-	hint: MODULE_ID + '.defaultSceneParent-Hint',
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: ''
-});
-
-// -- Default Scene Area --
-game.settings.register(MODULE_ID, 'defaultSceneArea', {
-	name: MODULE_ID + '.defaultSceneArea-Label',
-	hint: MODULE_ID + '.defaultSceneArea-Hint',	
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: ''
-});
-
-// -- Default Scene Environment --
-game.settings.register(MODULE_ID, 'defaultSceneEnvironment', {	
-	name: MODULE_ID + '.defaultSceneEnvironment-Label',	
-	hint: MODULE_ID + '.defaultSceneEnvironment-Hint',
-	scope: "world",
-	config: true,
-	requiresReload: false,
-	type: String,
-	default: ''
-});	
-
-// -- Use Cookies --
-game.settings.register(MODULE_ID, 'narrativeUseCookies', {
-    name: MODULE_ID + '.narrativeUseCookies-Label',
-    hint: MODULE_ID + '.narrativeUseCookies-Hint',
-    type: Boolean,
-    config: true,
-    requiresReload: false,
-    scope: 'world',
-    default: false,
-});
-
-// -- Default Card Image Selection --
-game.settings.register(MODULE_ID, 'narrativeDefaultCardImage', {
-    name: MODULE_ID + '.narrativeDefaultCardImage-Label',
-    hint: MODULE_ID + '.narrativeDefaultCardImage-Hint',
-    scope: 'world',
-    config: true,
-    requiresReload: false,
-    type: String,
-    default: 'none',
-    choices: {
-        'none': 'No Image',
-        'custom': 'Custom: Paste the Path Below',
-        'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
-        'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
-        'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
-        'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
-        'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
-    }
-});
-
-// -- Default Image Path --
-game.settings.register(MODULE_ID, 'narrativeDefaultImagePath', {
-    name: MODULE_ID + '.narrativeDefaultImagePath-Label',
-    hint: MODULE_ID + '.narrativeDefaultImagePath-Hint',
-    scope: "world",
-    config: true,
-    requiresReload: false,
-    type: String,
-    default: ''
-});
-
-// -- Include Encounter by Default --
-game.settings.register(MODULE_ID, 'narrativeDefaultIncludeEncounter', {
-    name: MODULE_ID + '.narrativeDefaultIncludeEncounter-Label',
-    hint: MODULE_ID + '.narrativeDefaultIncludeEncounter-Hint',
-    type: Boolean,
-    config: true,
-    requiresReload: false,
-    scope: 'world',
-    default: false,
-});
-
-// -- Default Encounter Details --
-game.settings.register(MODULE_ID, 'narrativeDefaultEncounterDetails', {
-    name: MODULE_ID + '.narrativeDefaultEncounterDetails-Label',
-    hint: MODULE_ID + '.narrativeDefaultEncounterDetails-Hint',
-    scope: "world",
-    config: true,
-    requiresReload: false,
-    type: String,
-    default: ''
-});
-
-// -- Include Treasure by Default --
-game.settings.register(MODULE_ID, 'narrativeDefaultIncludeTreasure', {
-    name: MODULE_ID + '.narrativeDefaultIncludeTreasure-Label',
-    hint: MODULE_ID + '.narrativeDefaultIncludeTreasure-Hint',
-    type: Boolean,
-    config: true,
-    requiresReload: false,
-    scope: 'world',
-    default: false,
-});
-
-// -- Default XP --
-game.settings.register(MODULE_ID, 'narrativeDefaultXP', {
-    name: MODULE_ID + '.narrativeDefaultXP-Label',
-    hint: MODULE_ID + '.narrativeDefaultXP-Hint',
-    scope: "world",
-    config: true,
-    requiresReload: false,
-    type: String,
-    default: 'None'
-});
-
-// -- Default Treasure Details --
-game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
-    name: MODULE_ID + '.narrativeDefaultTreasureDetails-Label',
-    hint: MODULE_ID + '.narrativeDefaultTreasureDetails-Hint',
-    scope: "world",
-    config: true,
-    requiresReload: false,
-    type: String,
-    default: ''
-});
-
-
-
-
-
-
-
-
-
-
-
-
-	// ---------- SUBHEADING - BROWSER ----------
-	game.settings.register(MODULE_ID, "headingH2Browser", {
-		name: MODULE_ID + '.headingH2Browser-Label',
-		hint: MODULE_ID + '.headingH2Browser-Hint',
+	// ---------- Narratvie Generator ----------
+	game.settings.register(MODULE_ID, "headingH3simpleheadingH2NarrativeGenerator", {
+		name: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Label',
+		hint: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1468,30 +1268,188 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 	});
 	// -------------------------------------
 
-	// -- OPENAI MACRO --
-	game.settings.register(MODULE_ID,'browserMacro', {
-		name: MODULE_ID + '.browserMacro-Label',
-		hint: MODULE_ID + '.browserMacro-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		default: '-- Choose a Macro --',
-		choices: COFFEEPUB.arrMACROCHOICES
-	});
-
-	// -- URL --
-	game.settings.register(MODULE_ID, 'browserURL', {
-		name: MODULE_ID + '.browserURL-Label',
-		hint: MODULE_ID + '.browserURL-Hint',
+	// -- Default Narrative Folder --
+	game.settings.register(MODULE_ID, 'defaultNarrativeFolder', {
+		name: MODULE_ID + '.defaultNarrativeFolder-Label',
+		hint: MODULE_ID + '.defaultNarrativeFolder-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
 		type: String,
-		default: 'google.com'
+		default: 'New Narratives'
+	});
+
+	// -- Default Journal Page Title --
+	game.settings.register(MODULE_ID, 'defaultJournalPageTitle', {
+		name: MODULE_ID + '.defaultJournalPageTitle-Label',
+		hint: MODULE_ID + '.defaultJournalPageTitle-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''	
+	});
+
+	// -- Default Scene Location --
+	game.settings.register(MODULE_ID, 'defaultSceneLocation', {
+		name: MODULE_ID + '.defaultSceneLocation-Label',
+		hint: MODULE_ID + '.defaultSceneLocation-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Scene Parent --
+	game.settings.register(MODULE_ID, 'defaultSceneParent', {
+		name: MODULE_ID + '.defaultSceneParent-Label',
+		hint: MODULE_ID + '.defaultSceneParent-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Scene Area --
+	game.settings.register(MODULE_ID, 'defaultSceneArea', {
+		name: MODULE_ID + '.defaultSceneArea-Label',
+		hint: MODULE_ID + '.defaultSceneArea-Hint',	
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Scene Environment --
+	game.settings.register(MODULE_ID, 'defaultSceneEnvironment', {	
+		name: MODULE_ID + '.defaultSceneEnvironment-Label',	
+		hint: MODULE_ID + '.defaultSceneEnvironment-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});	
+
+	// -- Use Cookies --
+	game.settings.register(MODULE_ID, 'narrativeUseCookies', {
+		name: MODULE_ID + '.narrativeUseCookies-Label',
+		hint: MODULE_ID + '.narrativeUseCookies-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Default Card Image Selection --
+	game.settings.register(MODULE_ID, 'narrativeDefaultCardImage', {
+		name: MODULE_ID + '.narrativeDefaultCardImage-Label',
+		hint: MODULE_ID + '.narrativeDefaultCardImage-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'No Image',
+			'custom': 'Custom: Paste the Path Below',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
+		}
+	});
+
+	// -- Default Image Path --
+	game.settings.register(MODULE_ID, 'narrativeDefaultImagePath', {
+		name: MODULE_ID + '.narrativeDefaultImagePath-Label',
+		hint: MODULE_ID + '.narrativeDefaultImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Include Encounter by Default --
+	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeEncounter', {
+		name: MODULE_ID + '.narrativeDefaultIncludeEncounter-Label',
+		hint: MODULE_ID + '.narrativeDefaultIncludeEncounter-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Default Encounter Details --
+	game.settings.register(MODULE_ID, 'narrativeDefaultEncounterDetails', {
+		name: MODULE_ID + '.narrativeDefaultEncounterDetails-Label',
+		hint: MODULE_ID + '.narrativeDefaultEncounterDetails-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Include Treasure by Default --
+	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeTreasure', {
+		name: MODULE_ID + '.narrativeDefaultIncludeTreasure-Label',
+		hint: MODULE_ID + '.narrativeDefaultIncludeTreasure-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Default XP --
+	game.settings.register(MODULE_ID, 'narrativeDefaultXP', {
+		name: MODULE_ID + '.narrativeDefaultXP-Label',
+		hint: MODULE_ID + '.narrativeDefaultXP-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'None'
+	});
+
+	// -- Default Treasure Details --
+	game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
+		name: MODULE_ID + '.narrativeDefaultTreasureDetails-Label',
+		hint: MODULE_ID + '.narrativeDefaultTreasureDetails-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
 	});
 
 
-	
+
 
 
 	// *** ROUND ANNOUNCMENTS ***

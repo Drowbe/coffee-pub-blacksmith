@@ -21,7 +21,6 @@ import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './
 // -- Import special page variables --
 // Register settings so they can be loaded below.
 import { registerSettings } from './settings.js';
-import { BlacksmithWindowBrowser } from './window-browser.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './toolbar.js';
@@ -412,22 +411,7 @@ Hooks.on("ready", () => {
     } else {
         postConsoleAndNotification("Macro for OpenAI not set.", "", false, true, true);
     } 
-    // OPEN BROWSER WINDOW 
-    var strBrowserURL = game.settings.get(MODULE_ID, 'browserURL');
-    var strOpenBrowserMacro = game.settings.get(MODULE_ID, 'browserMacro');
-    if(strOpenBrowserMacro) {
-        let OpenBrowserMacro = game.macros.getName(strOpenBrowserMacro);
-        if(OpenBrowserMacro) {
-            OpenBrowserMacro.execute = async () => {
-                buildButtonEventBrowser()
-            };
-        } else {
-            postConsoleAndNotification("Browser Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenBrowserMacro, false, true, true);
-        }
-    } else {
-        postConsoleAndNotification("Macro for Browser not set.", "", false, true, true);
-    } 
-
+    
 });
 
 // ***************************************************
@@ -518,19 +502,7 @@ Hooks.on('preCreateNote', async (note, options, userId) => {
     }
 });
 
-// Browser Button
-export function buildButtonEventBrowser() {
-    postConsoleAndNotification("Clicked Button", "Browser", false, false, false);
-    
-    // Get the URL from your module settings
-    const browserURL = game.settings.get(MODULE_ID, 'browserURL');
-    
-    // Create the browser window with the URL
-    var browserWindow = new BlacksmithWindowBrowser(browserURL);
-    browserWindow.formTitle = 'Browser';
-    playSound(COFFEEPUB.SOUNDBUTTON06,COFFEEPUB.SOUNDVOLUMESOFT);
-    browserWindow.render(true); 
-}
+
 
 export function buildButtonEventRegent(worksheet = 'default') {
     postConsoleAndNotification(`BLACKSMITH: Opening Regent with worksheet: ${worksheet}`, "", false, true, false);

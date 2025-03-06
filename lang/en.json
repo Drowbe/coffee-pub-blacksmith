@@ -244,18 +244,6 @@
 		"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
 		"narrativeDefaultEncounterDetails-Hint": "The default encounter description to use in new narratives. (optional)",
 
-
-		"headingH2Browser-Label": "Blacksmith Browser",
-		"headingH2Browser-Hint": "A simple web broweser within Foundry that you can use to look things up or take notes online (outside of Foundry).",
-
-		"browserMacro-Label": "Macro",
-		"browserMacro-Hint": "The name of the macro that should trigger the browser window if you want one in addition to the  button in the toolbar.",
-
-		"browserURL-Label": "Deafult URL",
-		"browserURL-Hint": "The goal of the Blacksmith browser is to give you an easy way to look things up or take notes online (outside of Foundry). Set the URL you'd like to load in the window. Default: google.com",
-
-
-
 		"headingH2Debug-Label": "Developer Settings",
 		"headingH2Debug-Hint": "Only enable settings in the section if you are having problems -- these settings are global to all Coffee Pub modules. It will fill your console with lots of messages... lots of beautiful messages.",
 
