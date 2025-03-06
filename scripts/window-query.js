@@ -1396,15 +1396,15 @@ export class BlacksmithWindowQuery extends FormApplication {
             // They selected "Custom"
             if (inputCardImage) {
                 // They added a custom image
-                strPromptEncounter += `\n- CARDIMAGE: Set to "` + inputCardImage + `". Do not add a period to the end. Do not add any html tags to this field.`;
+                strPromptEncounter += `\n- CARDIMAGE: Set to the image path "` + inputCardImage + `". Do not add a period to the end. Do not add any html tags or image tags to this field.`;
             } else {
                 // They did not add a custom image
-                strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags to this field.`;
+                strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags or image tags to this field.`;
             }
         } else if (optionCardImage === "none") {
-            strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags to this field.`;
+            strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags or image tags to this field.`;
         } else {
-            strPromptEncounter += `\n- CARDIMAGE: Set to "` + optionCardImage + `". Do not add a period to the end. Do not add any html tags to this field.`;
+            strPromptEncounter += `\n- CARDIMAGE: Set to the image path "` + optionCardImage + `". Do not add a period to the end. Do not add any html tags or image tags to this field.`;
         }
         strPromptEncounter += `\n- SCENETITLE: Title of the encounter you are writing the narrative for. Set it to "Encounter: ` + inputSceneTitle + `". Keep it under 5 words long. Do not add any html tags to this field.`;
         strPromptEncounter += `\n- INTRO: One or two sentences letting the GM know what is going to happen in this encounter. Do not add any html tags to this field.`;

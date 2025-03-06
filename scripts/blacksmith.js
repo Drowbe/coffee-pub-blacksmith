@@ -785,13 +785,90 @@ async function buildInjuryJournalEntry(journalData) {
     return;
 }
 
-// Function to check if a string is valid JSON
-function isJSON(str) {
+// Function to check if a string is valid JSON and clean it if needed
+function cleanAndValidateJSON(str) {
     try {
-        const result = JSON.parse(str);
-        return typeof result === 'object' && result !== null;
+        // First try to parse as-is
+        const parsed = JSON.parse(str);
+        
+        // If successful, clean up any HTML tags in the fields that shouldn't have them
+        if (typeof parsed === 'object' && parsed !== null) {
+            // Fields that should be plain text only (no HTML at all)
+            const plainTextFields = [
+                'journaltype', 'foldername', 'sceneparent', 'scenearea', 
+                'sceneenvironment', 'scenelocation', 'scenetitle', 'prepencounter',
+                'cardtitle', 'cardimagetitle', 'cardimage', 'contextintro',
+                'carddescriptionprimary', 'carddescriptionsecondary'
+            ];
+
+            // Fields that should only contain lists with bold tags
+            const listFields = [
+                'prepencounterdetails', 'preprewards', 'prepsetup',
+                'contextadditionalnarration', 'contextatmosphere', 'contextgmnotes'
+            ];
+
+            // Clean up plain text fields
+            for (const field of plainTextFields) {
+                if (parsed[field]) {
+                    // Remove all HTML tags and trim
+                    parsed[field] = parsed[field].replace(/<[^>]*>/g, '').trim();
+                }
+            }
+
+            // Clean up list fields
+            for (const field of listFields) {
+                if (parsed[field]) {
+                    // Keep only <ul>, <li>, and <b> tags
+                    let content = parsed[field];
+                    
+                    // Remove any header tags
+                    content = content.replace(/<h[1-6]>.*?<\/h[1-6]>/g, '');
+                    
+                    // Ensure content starts with <ul> and ends with </ul>
+                    if (!content.startsWith('<ul>')) {
+                        content = '<ul>' + content;
+                    }
+                    if (!content.endsWith('</ul>')) {
+                        content = content + '</ul>';
+                    }
+                    
+                    parsed[field] = content;
+                }
+            }
+
+            // Special handling for cardimage
+            if (parsed.cardimage) {
+                // Extract src from img tag if present, otherwise use as-is
+                const match = parsed.cardimage.match(/src="([^"]*)"/);
+                parsed.cardimage = match ? match[1] : parsed.cardimage;
+                // If empty img tag or no content, set to empty string
+                if (parsed.cardimage === '<img src="" alt="">' || !parsed.cardimage) {
+                    parsed.cardimage = '';
+                }
+            }
+
+            // Special handling for carddialogue
+            if (parsed.carddialogue) {
+                if (parsed.carddialogue === '<h4></h4>' || !parsed.carddialogue.trim()) {
+                    parsed.carddialogue = ' ';
+                } else {
+                    // Keep only <h6> and <b> tags for dialogue
+                    parsed.carddialogue = parsed.carddialogue
+                        .replace(/<h[1-5]>.*?<\/h[1-5]>/g, '')
+                        .replace(/<(?!\/?(?:h6|b)(?:>|\s[^>]*>))\/?[a-zA-Z][^>]*>/g, '')
+                        .trim();
+                }
+            }
+
+            return {
+                isValid: true,
+                cleaned: JSON.stringify(parsed, null, 2),
+                parsed: parsed
+            };
+        }
+        return { isValid: false };
     } catch (e) {
-        return false;
+        return { isValid: false };
     }
 }
 
@@ -804,7 +881,6 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     var strAnswer = "";
     var compiledHtml = "";
     var strQueryContext = queryContext;
-    //postConsoleAndNotification("buildQueryCard question...", question, false, true, false); 
     var strDateStamp = generateFormattedDate();
     // Set the template type
     const templatePath = BLACKSMITH.WINDOW_QUERY_MESSAGE;
@@ -850,6 +926,12 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     // Get the answer
     strAnswer = await getOpenAIReplyAsHtml(strQuestion);
 
+    // Check if it's JSON and clean it if needed
+    const jsonCheck = cleanAndValidateJSON(strAnswer);
+    if (jsonCheck.isValid) {
+        strAnswer = jsonCheck.cleaned;
+    }
+
     // Display the answer
     const messageId = Date.now();
     var CARDDATA = {
@@ -862,7 +944,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
         strMessageIntro: "",
         strMessageContent: strAnswer,
         messageId: messageId,
-        blnIsJSON: isJSON(strAnswer) // Add the JSON check here
+        blnIsJSON: jsonCheck.isValid
     };
     compiledHtml = template(CARDDATA);
     queryWindow.displayMessage(compiledHtml);
