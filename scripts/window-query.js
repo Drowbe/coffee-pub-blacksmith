@@ -365,16 +365,12 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     static get defaultOptions() {
         const intHeight = game.user.isGM ? 950 : 600;
-        const baseWidth = 600;
-        const workspaceWidth = 350;
-        const padding = 8;
-        
         return mergeObject(super.defaultOptions, {
             id: 'coffee-pub-blacksmith',
             template: 'modules/coffee-pub-blacksmith/templates/window-query.hbs',
             title: 'Blacksmith Query',
             resizable: true,
-            width: this?.showWorkspace ? baseWidth + workspaceWidth + padding : baseWidth,
+            width: 600,
             height: intHeight,
             classes: ['blacksmith-window'],
             minimizable: true,
@@ -668,15 +664,16 @@ export class BlacksmithWindowQuery extends FormApplication {
         const isHidden = workspace.classList.contains('workspace-hidden');
         const baseWidth = 600;
         const workspaceWidth = 350;
-        const padding = 8;
+        const padding = 40;
 
-        // Toggle workspace visibility
+        // First update the classes
         workspace.classList.toggle('workspace-hidden');
         windowElement.classList.toggle('has-workspace');
 
         // Update window size
-        const newWidth = !isHidden ? baseWidth : (baseWidth + workspaceWidth + padding);
-        this.setPosition({ width: newWidth });
+        const newWidth = isHidden ? (baseWidth + workspaceWidth + padding) : baseWidth;
+        this.position.width = newWidth;
+        windowElement.style.width = `${newWidth}px`;
 
         // Update toggle button icon
         if (toggleButton) {

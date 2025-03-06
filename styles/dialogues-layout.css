@@ -6,11 +6,62 @@
 
 /* Window Variables */
 :root {
-    --container-padding: 8px;
     --element-radius: 4px;
-	--container-opacity: 0.85;
-	--workspace-width: 350px;
-    --base-width: 600px;
+    --container-opacity: 0.85;
+}
+
+/* Main Window */
+div#coffee-pub-blacksmith {
+    min-height: 506px;
+}
+
+/* Window Content */
+div#coffee-pub-blacksmith .window-content {
+    opacity: var(--container-opacity);
+    padding: 10px;
+    background: #222222;
+    color: #ffffff;
+}
+
+/* Main Wrapper */
+#coffee-pub-blacksmith-wrapper {
+    display: flex;
+    flex-direction: row;
+    min-height: 350px;
+    height: 100%;
+    gap: 10px;
+}
+
+/* Main Container */
+#coffee-pub-blacksmith-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Workspace Wrapper */
+#blacksmith-workspace-wrapper {
+    width: 350px;
+    flex: 0 0 350px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    background: #222222;
+}
+
+#blacksmith-workspace-wrapper.workspace-hidden {
+    width: 0;
+    flex: 0 0 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Workspace Content */
+#blacksmith-workspace-content {
+    flex: 1;
+    overflow-y: auto;
+    border-radius: var(--element-radius);
 }
 
 /* --------BEGIN NON BLACKSMITH WRAPPER STUFF ----------- */
@@ -21,11 +72,13 @@ div#coffee-pub-bibliosoph {
     overflow: hidden;
     min-width: var(--base-width);
     transition: min-width 0.3s ease;
+    box-sizing: border-box;
 }
 
 div#coffee-pub-blacksmith.has-workspace {
-    min-width: calc(var(--base-width) + var(--workspace-width) + var(--container-padding));
-    width: calc(var(--base-width) + var(--workspace-width) + var(--container-padding));
+    min-width: var(--total-width);
+    width: var(--total-width);
+    max-width: var(--total-width);
 }
 
 /* Window Background */
@@ -150,10 +203,7 @@ div#blacksmith-message-options .blacksmith-checkbox {
 	overflow-y: visible;
 	border-radius: var(--element-radius);
 	margin-bottom: 8px;
-	padding-top: 6px;
-	padding-bottom: 6px;
-	padding-left: 6px;
-	padding-right: 6px;
+	padding: 6px;
 }
 
 /* -------- BLACKSMITH INPUT ----------- */
@@ -164,10 +214,7 @@ div#blacksmith-message-options .blacksmith-checkbox {
 */
 #coffee-pub-blacksmith-input {
     flex-shrink: 0; /* Prevents this div from shrinking */
-	padding-top: 0px;
-	padding-right: 1px;
-	padding-left: 0px;
-	padding-bottom: 0px;
+	padding: 0 1px;
 }
 
 
@@ -182,43 +229,45 @@ div#blacksmith-message-options .blacksmith-checkbox {
 	- it is a fixed width
 */
 #blacksmith-workspace-wrapper {
-	width: var(--workspace-width);
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	box-sizing: border-box;
-	flex: 0 0 var(--workspace-width);
-	overflow: hidden;
-	position: relative;
-	margin-left: var(--container-padding);
-	transition: all 0.3s ease;
+    width: var(--workspace-width);
+    flex: 0 0 var(--workspace-width);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    margin-left: var(--container-padding);
+    transition: all 0.3s ease;
+    background: #222222;
+    color: #000000;
 }
 #blacksmith-workspace-wrapper.workspace-hidden {
-	width: 0;
-	margin-left: 0;
-	flex: 0 0 0;
-	padding: 0;
-	overflow: hidden;
-	opacity: 0;
+    width: 0;
+    flex: 0 0 0;
+    margin-left: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
 }
 
 /* Holds the content in the workspace */
 #blacksmith-workspace-content {
-	flex: 1;
-	overflow-y: auto;
-	padding-top:0px;
-	padding-right: 0px;
-	padding-bottom: 0px;
-	padding-left: 0px;
-	border-radius: var(--element-radius);
+    flex: 1;
+    overflow-y: auto;
+    padding-top:0px;
+    padding-right: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    border-radius: var(--element-radius);
   }
 
 #blacksmith-workspace-footer {
-	padding-top:4px;
-	padding-right: 0px;
-	padding-bottom: 0px;
-	padding-left: 0px;
-	box-sizing: border-box;
+    padding-top:4px;
+    padding-right: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    box-sizing: border-box;
 }
 
 /* Hide/Show the internal divs in content */
