@@ -377,9 +377,6 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
-
-
-
 		// Latency Settings
 		game.settings.register(MODULE_ID, 'enableLatency', {
 			name: 'Enable Latency Display',
@@ -388,7 +385,6 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			default: true,
-			onChange: () => window.location.reload()
 		});
 
 		game.settings.register(MODULE_ID, 'latencyCheckInterval', {
@@ -403,10 +399,7 @@ export const registerSettings = async () => {
 				step: 5
 			},
 			default: 30,
-			onChange: () => window.location.reload()
 		});
-
-
 
 
 		// *** THEMES ***
