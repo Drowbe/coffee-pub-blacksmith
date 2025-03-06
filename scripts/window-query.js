@@ -331,35 +331,32 @@ export class BlacksmithWindowQuery extends FormApplication {
         super(options);
         this.messages = [];
         postConsoleAndNotification("Setting the selected workspace mode...", "", false, true, false);
+        
         // Set workspaceId based on mode
-        // put events and actions for the workspace in "initialize"
         if (mode === 'encounter') {
             this.workspaceId = 'encounter';
             this.showWorkspace = true; 
-            postConsoleAndNotification("Setting up for Encounter mode", "", false, true, false);
         } else if (mode === 'assistant') {
             this.workspaceId = 'assistant';
             this.showWorkspace = true; 
-            postConsoleAndNotification("Setting up for Assistant mode", "", false, true, false);
         } else if (mode === 'narrative') {
             this.workspaceId = 'narrative';
             this.showWorkspace = true; 
-            postConsoleAndNotification("Setting up for Narration mode", "", false, true, false);
         } else if (mode === 'character') {
             this.workspaceId = 'character';
             this.showWorkspace = true; 
-            postConsoleAndNotification("Setting up for Character mode", "", false, true, false);
         } else if (mode === 'lookup') {
             this.workspaceId = 'lookup';
             this.showWorkspace = true; 
-            postConsoleAndNotification("Setting up for Lookup mode", "", false, true, false);
         } else {
             this.workspaceId = 'lookup'; // Default to 'lookup' for any other mode
             this.showWorkspace = false;
-            postConsoleAndNotification("Setting up for Default mode (Lookup)", "", false, true, false);
         }
-    
-        postConsoleAndNotification(`BlacksmithWindowQuery initialized with mode: ${mode} andworkspaceId: ${this.workspaceId}`, "", false, true, false);
+        
+        // Store the last active workspace
+        this.lastActiveWorkspace = this.workspaceId;
+        
+        postConsoleAndNotification(`BlacksmithWindowQuery initialized with mode: ${mode} and workspaceId: ${this.workspaceId}`, "", false, true, false);
     }
 
     // ************************************
@@ -371,10 +368,10 @@ export class BlacksmithWindowQuery extends FormApplication {
         let intWidth = 600;
         if (game.user.isGM) {
             intHeight = 950;
-            intWidth = 800;
+            intWidth = this.showWorkspace ? 950 : 600;
         } else {
             intHeight = 600;
-            intWidth = 600;
+            intWidth = this.showWorkspace ? 950 : 600;
         }
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: "coffee-pub-blacksmith",
@@ -383,6 +380,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             width: intWidth,
             height: intHeight,
             resizable: true,
+            classes: ['blacksmith-window']
         });
     }
 
@@ -403,7 +401,34 @@ export class BlacksmithWindowQuery extends FormApplication {
     async initialize(html) {
         postConsoleAndNotification(`BlacksmithWindowQuery initialized.`, "", false, true, false);
         postConsoleAndNotification(`this.workspaceId: ${this.workspaceId}`, "", false, true, false);
-    
+
+        // Get the window element - try both jQuery and direct DOM approaches
+        const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
+        
+        // Set initial workspace visibility
+        if (!this.showWorkspace) {
+            const wrapper = document.getElementById('blacksmith-workspace-wrapper');
+            if (wrapper) {
+                wrapper.classList.add('workspace-hidden');
+                if (windowElement) {
+                    windowElement.classList.remove('has-workspace');
+                }
+            }
+            const toggleButton = document.getElementById('blacksmith-toggle-workspace');
+            if (toggleButton) {
+                const icon = toggleButton.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-chevrons-right');
+                    icon.classList.add('fa-chevrons-left');
+                }
+            }
+        } else {
+            if (windowElement) {
+                windowElement.classList.add('has-workspace');
+            }
+            this.switchWorkspace(html, `blacksmith-query-workspace-${this.workspaceId}`);
+        }
+
         // Check if we're starting in encounter mode and have selected tokens
         if (this.workspaceId === 'encounter' && canvas.tokens.controlled.length > 0) {
             const checkDOMReady = setInterval(async () => {
@@ -412,7 +437,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                     clearInterval(checkDOMReady);
                     await this.addAllTokensToContainer('encounter');
                 }
-            }, 100); // Check every 100ms
+            }, 100);
         }
     }
 
@@ -602,18 +627,30 @@ export class BlacksmithWindowQuery extends FormApplication {
         postConsoleAndNotification("Switching Workspace", workspaceId, false, true, false);
         playSound(COFFEEPUB.SOUNDPOP03, COFFEEPUB.SOUNDVOLUMESOFT);
     
-        // Update workspaceId
+        // Update workspaceId and store as last active
         this.workspaceId = workspaceId.replace('blacksmith-query-workspace-', '');
+        this.lastActiveWorkspace = this.workspaceId;
         postConsoleAndNotification('Updated active workspace ID:', this.workspaceId, false, true, false);
     
-        // Toggle the active class for the clicked button
-        const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
-        workspaceButtons.removeClass('active');
-        html.find(`#blacksmith-query-button-${this.workspaceId}`).addClass('active');
-    
-        // Show the corresponding workspace content and hide others
-        html.find('.workspace-content').addClass('hidden');
-        html.find(`#${workspaceId}`).removeClass('hidden');
+        if (html) {
+            // jQuery path
+            const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            workspaceButtons.removeClass('active');
+            html.find(`#blacksmith-query-button-${this.workspaceId}`).addClass('active');
+            html.find('.workspace-content').addClass('hidden');
+            html.find(`#${workspaceId}`).removeClass('hidden');
+        } else {
+            // Direct DOM manipulation path
+            const workspaceButtons = document.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            workspaceButtons.forEach(button => button.classList.remove('active'));
+            const activeButton = document.getElementById(`blacksmith-query-button-${this.workspaceId}`);
+            if (activeButton) activeButton.classList.add('active');
+            
+            const workspaceContents = document.querySelectorAll('.workspace-content');
+            workspaceContents.forEach(content => content.classList.add('hidden'));
+            const activeWorkspace = document.getElementById(workspaceId);
+            if (activeWorkspace) activeWorkspace.classList.remove('hidden');
+        }
     }
 
     // ************************************
@@ -621,17 +658,41 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     toggleWorkspaceVisibility(html, logToggle = true) {
-        const workspace = html.find('#blacksmith-workspace-wrapper');
-        const icon = html.find('#blacksmith-toggle-workspace i');
+        // Get elements using both jQuery and direct DOM methods
+        const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
+        const workspace = html ? html.find('#blacksmith-workspace-wrapper')[0] : document.getElementById('blacksmith-workspace-wrapper');
+        const toggleButton = html ? html.find('#blacksmith-toggle-workspace')[0] : document.getElementById('blacksmith-toggle-workspace');
         
-        if (workspace.hasClass('workspace-hidden')) {
-            workspace.removeClass('workspace-hidden');
+        if (!workspace) {
+            console.error('Workspace element not found');
+            return;
+        }
+
+        const isHidden = workspace.classList.contains('workspace-hidden');
+        const icon = toggleButton ? (html ? toggleButton.querySelector('i') : toggleButton.querySelector('i')) : null;
+
+        if (isHidden) {
+            workspace.classList.remove('workspace-hidden');
+            if (windowElement) {
+                windowElement.classList.add('has-workspace');
+            }
             if (logToggle) postConsoleAndNotification("blacksmith-toggle-workspace", "removeClass('workspace-hidden')", false, true, false);
-            icon.removeClass('fa-chevrons-left').addClass('fa-chevrons-right');
+            if (icon) {
+                icon.classList.remove('fa-chevrons-left');
+                icon.classList.add('fa-chevrons-right');
+            }
+            // Show the last active workspace or default to first one
+            this.switchWorkspace(html, `blacksmith-query-workspace-${this.lastActiveWorkspace || 'lookup'}`);
         } else {
-            workspace.addClass('workspace-hidden');
+            workspace.classList.add('workspace-hidden');
+            if (windowElement) {
+                windowElement.classList.remove('has-workspace');
+            }
             if (logToggle) postConsoleAndNotification("blacksmith-toggle-workspace", "addClass('workspace-hidden')", false, true, false);
-            icon.removeClass('fa-chevrons-right').addClass('fa-chevrons-left');
+            if (icon) {
+                icon.classList.remove('fa-chevrons-right');
+                icon.classList.add('fa-chevrons-left');
+            }
         }
     }
 
