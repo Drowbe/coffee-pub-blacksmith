@@ -66,23 +66,28 @@ div#coffee-pub-blacksmith .window-content {
     overflow-x: hidden;
     border-radius: var(--element-radius);
     width: 400px;
-    padding: 10px;
+	padding-top:0px;
+    padding-right: 6px;
+    padding-bottom: 0px;
+    padding-left: 6px;
     box-sizing: border-box;
 }
 
+
 /* Add custom scrollbar styling */
 #blacksmith-workspace-content::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 #blacksmith-workspace-content::-webkit-scrollbar-track {
     background: transparent;
+    margin: 10px 0;
 }
 
 #blacksmith-workspace-content::-webkit-scrollbar-thumb {
     background: #444444;
-    border-radius: 4px;
-    border: 2px solid #222222;
+    border-radius: 3px;
+    border: 1px solid #222222;
 }
 
 /* --------BEGIN NON BLACKSMITH WRAPPER STUFF ----------- */
@@ -207,9 +212,6 @@ div#blacksmith-message-options .blacksmith-checkbox {
 /* END PULLED THESE FROM THE CUSTOM CSS MODULE
 
 
-
-
-
 /* -------- BLACKSMITH OUTPUT ----------- */
 /*
 	This container will hold the output from the the AI chat
@@ -272,16 +274,7 @@ div#blacksmith-message-options .blacksmith-checkbox {
     opacity: 0;
 }
 
-/* Holds the content in the workspace */
-#blacksmith-workspace-content {
-    flex: 1;
-    overflow-y: auto;
-    padding-top:0px;
-    padding-right: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    border-radius: var(--element-radius);
-  }
+
 
 #blacksmith-workspace-footer {
     padding-top:4px;
@@ -545,18 +538,6 @@ input::placeholder {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* Tokens and toggles */
 
 .workspace-section .tokens-container {
@@ -808,21 +789,9 @@ input::placeholder {
 }
 
 
-
-
-
-
-
-
-
-
-
 /* --- -------------------------- --- */
 /* ---     FORM OPTIONS 	      --- */
 /* --- -------------------------- --- */
-
-
-
 
 /* == TOGGLE BUTTONS == */
 
@@ -1214,16 +1183,6 @@ input::placeholder {
 
 
 
-
-
-
-
-
-
-
-
-
-
 /* VERIFY WHAT THESE DO OR IF WE USE THEM */
 
 
@@ -1271,15 +1230,9 @@ div#blacksmith-message-options label {
 }
 
 
-
-
-
 /* -------- ------------------------------------ ----------- */
 /* -------- THINGS BELOW HAVE NOT BEEN ORGANIZED ----------- */
 /* -------- ------------------------------------ ----------- */
-
-
-
 
 #blacksmith-input-message,
 	button[type="submit"] {
@@ -2111,21 +2064,6 @@ div#blacksmith-message-content h5 {
 	font-size: 96px;
 	line-height: 144px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
