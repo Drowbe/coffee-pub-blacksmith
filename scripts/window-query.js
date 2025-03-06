@@ -1417,36 +1417,61 @@ export class BlacksmithWindowQuery extends FormApplication {
             - PREPENCOUNTER: Use exactly these monsters in the encounter (no others): ${inputNarrativeEncounterMonsters}. Do not add any html tags to this field.`;
             } else {
                 // Include these monsters but can add others
+                // Get monsters from the worksheet
+                const worksheetMonsters = getWorksheetMonsters(id);
+                const worksheetMonstersList = worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ');
+                
                 if (targetCRValue > 0) {
                     strPromptEncounter += `
             - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
               • Target CR: ${targetCRValue}, Difficulty: ${targetRating}
               • Max 10 total monsters, max 5 per type
-              • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}
+              • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}${worksheetMonsters.length ? `, and these monsters from the worksheet: ${worksheetMonstersList}` : ''}
               • Can add additional official D&D5E monsters that fit the environment
               • Consider monster synergies and tactical roles`;
                 } else {
                     strPromptEncounter += `
             - PREPENCOUNTER: Select thematically appropriate monsters (comma-separated list)
-              • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}
+              • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}${worksheetMonsters.length ? `, and these monsters from the worksheet: ${worksheetMonstersList}` : ''}
               • Can add additional official D&D5E monster names in singular form
               • Choose additional creatures that create interesting tactical situations`;
                 }
             }
         } else {
-            // Original code for when no specific monsters are provided
-            if (targetCRValue > 0) {
-                strPromptEncounter += `
+            // No specific monsters provided, but check worksheet
+            const worksheetMonsters = getWorksheetMonsters(id);
+            if (worksheetMonsters.length > 0) {
+                const worksheetMonstersList = worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ');
+                if (targetCRValue > 0) {
+                    strPromptEncounter += `
+            - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
+              • Target CR: ${targetCRValue}, Difficulty: ${targetRating}
+              • Max 10 total monsters, max 5 per type
+              • MUST include these monsters from the worksheet: ${worksheetMonstersList}
+              • Can add additional official D&D5E monsters that fit the environment
+              • Consider monster synergies and tactical roles`;
+                } else {
+                    strPromptEncounter += `
+            - PREPENCOUNTER: Select thematically appropriate monsters (comma-separated list)
+              • MUST include these monsters from the worksheet: ${worksheetMonstersList}
+              • Can add additional official D&D5E monster names in singular form
+              • Choose additional creatures that create interesting tactical situations`;
+                }
+            } else {
+                // Original code for when no monsters are provided
+                if (targetCRValue > 0) {
+                    strPromptEncounter += `
             - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
               • Target CR: ${targetCRValue}, Difficulty: ${targetRating}
               • Max 10 total monsters, max 5 per type
               • Use official D&D5E monsters that fit the environment
               • Consider monster synergies and tactical roles`;
-            } else {
-                strPromptEncounter += `
+                } else {
+                    strPromptEncounter += `
             - PREPENCOUNTER: Select thematically appropriate monsters (comma-separated list)
               • Use official D&D5E monster names in singular form
               • Choose creatures that create interesting tactical situations`;
+                }
             }
         }
 
@@ -1554,11 +1579,17 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (inputNarrativeEncounterDetails) {
                 strPromptNarration += `\n- Take this into account when generating the encounter: ` + inputNarrativeEncounterDetails + `.`;
             }
+
+            // Get monsters from the worksheet first
+            const worksheetMonsters = getWorksheetMonsters(id);
+            const worksheetMonstersList = worksheetMonsters.length ? 
+                worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ') : '';
+
             if (inputNarrativeEncounterMonsters) {
                 if (blnSpecificEncounterMonsters) {
                     // Only use the specified monsters
                     strPromptNarration += `
-                - PREPENCOUNTER: Use exactly these monsters in the encounter (no others): ${inputNarrativeEncounterMonsters}. Do not add any html tags to this field.`;
+                - PREPENCOUNTER: Use exactly these monsters in the encounter (no others): ${inputNarrativeEncounterMonsters}${worksheetMonsters.length ? ` and these monsters from the worksheet: ${worksheetMonstersList}` : ''}. Do not add any html tags to this field.`;
                 } else {
                     // Include these monsters but can add others
                     if (targetCRValue > 0) {
@@ -1566,19 +1597,36 @@ export class BlacksmithWindowQuery extends FormApplication {
                 - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
                   • Target CR: ${targetCRValue}, Difficulty: ${targetRating}
                   • Max 10 total monsters, max 5 per type
-                  • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}
+                  • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}${worksheetMonsters.length ? `, and these monsters from the worksheet: ${worksheetMonstersList}` : ''}
                   • Can add additional official D&D5E monsters that fit the environment
                   • Consider monster synergies and tactical roles`;
                     } else {
                         strPromptNarration += `
                 - PREPENCOUNTER: Select thematically appropriate monsters (comma-separated list)
-                  • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}
+                  • MUST include these specific monsters: ${inputNarrativeEncounterMonsters}${worksheetMonsters.length ? `, and these monsters from the worksheet: ${worksheetMonstersList}` : ''}
                   • Can add additional official D&D5E monster names in singular form
                   • Choose additional creatures that create interesting tactical situations`;
                     }
                 }
+            } else if (worksheetMonsters.length > 0) {
+                // No specific monsters provided but we have worksheet monsters
+                if (targetCRValue > 0) {
+                    strPromptNarration += `
+                - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
+                  • Target CR: ${targetCRValue}, Difficulty: ${targetRating}
+                  • Max 10 total monsters, max 5 per type
+                  • MUST include these monsters from the worksheet: ${worksheetMonstersList}
+                  • Can add additional official D&D5E monsters that fit the environment
+                  • Consider monster synergies and tactical roles`;
+                } else {
+                    strPromptNarration += `
+                - PREPENCOUNTER: Select thematically appropriate monsters (comma-separated list)
+                  • MUST include these monsters from the worksheet: ${worksheetMonstersList}
+                  • Can add additional official D&D5E monster names in singular form
+                  • Choose additional creatures that create interesting tactical situations`;
+                }
             } else {
-                // Original code for when no specific monsters are provided
+                // No specific monsters or worksheet monsters
                 if (targetCRValue > 0) {
                     strPromptNarration += `
                 - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
@@ -2259,5 +2307,27 @@ function loadNarrativeCookies(id) {
     if (includeRewards) {
         includeRewards.checked = getCookie('include_rewards') === 'true';
     }
+}
+
+// Function to get monsters from the worksheet
+function getWorksheetMonsters(id) {
+    const monsterContainer = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
+    if (!monsterContainer) return [];
+
+    const monsterCards = monsterContainer.querySelectorAll('.player-card');
+    const monsters = [];
+
+    monsterCards.forEach(card => {
+        const name = card.querySelector('.character-name')?.textContent?.trim();
+        const details = card.querySelector('.character-rollup')?.textContent?.trim();
+        if (name && details) {
+            // Extract CR from details (format: "CR X Type")
+            const crMatch = details.match(/CR\s+([0-9/]+)/);
+            const cr = crMatch ? crMatch[1] : 'Unknown';
+            monsters.push({ name, cr });
+        }
+    });
+
+    return monsters;
 }
 
