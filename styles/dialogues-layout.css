@@ -10,6 +10,7 @@
     --element-radius: 4px;
 	--container-opacity: 0.85;
 	--workspace-width: 350px;
+    --base-width: 600px;
 }
 
 /* --------BEGIN NON BLACKSMITH WRAPPER STUFF ----------- */
@@ -18,9 +19,13 @@
 div#coffee-pub-blacksmith,
 div#coffee-pub-bibliosoph {
     overflow: hidden;
-	width: 600px;
-	min-width: 450px;
-	
+    min-width: var(--base-width);
+    transition: min-width 0.3s ease;
+}
+
+div#coffee-pub-blacksmith.has-workspace {
+    min-width: calc(var(--base-width) + var(--workspace-width) + var(--container-padding));
+    width: calc(var(--base-width) + var(--workspace-width) + var(--container-padding));
 }
 
 /* Window Background */
@@ -74,6 +79,7 @@ div#coffee-pub-blacksmith-query .window-content {
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+    transition: all 0.3s ease;
 }
   
 #coffee-pub-blacksmith-wrapper .window-content {
@@ -90,12 +96,12 @@ div#coffee-pub-blacksmith-query .window-content {
 */
 #coffee-pub-blacksmith-container {
 	flex: 1;
-	min-width: 450px;
+	min-width: var(--base-width);
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	transition: width 0.3s ease;
+	transition: all 0.3s ease;
 }
 
 /* BEGIN PULLED THESE FROM THE CUSTOM CSS MODULE
@@ -185,14 +191,15 @@ div#blacksmith-message-options .blacksmith-checkbox {
 	overflow: hidden;
 	position: relative;
 	margin-left: var(--container-padding);
-	transition: width 0.3s ease, margin 0.3s ease;
+	transition: all 0.3s ease;
 }
 #blacksmith-workspace-wrapper.workspace-hidden {
 	width: 0;
 	margin-left: 0;
-	flex: 0;
+	flex: 0 0 0;
 	padding: 0;
 	overflow: hidden;
+	opacity: 0;
 }
 
 /* Holds the content in the workspace */

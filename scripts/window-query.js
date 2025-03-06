@@ -364,23 +364,21 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     static get defaultOptions() {
-        let intHeight = 600;
-        let intWidth = 600;
-        if (game.user.isGM) {
-            intHeight = 950;
-            intWidth = this.showWorkspace ? 950 : 600;
-        } else {
-            intHeight = 600;
-            intWidth = this.showWorkspace ? 950 : 600;
-        }
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: "coffee-pub-blacksmith",
-            template: "modules/coffee-pub-blacksmith/templates/window-query.hbs",
-            title: "Blacksmith Query",
-            width: intWidth,
-            height: intHeight,
+        const intHeight = game.user.isGM ? 950 : 600;
+        const baseWidth = 600;
+        const workspaceWidth = 350;
+        const padding = 8;
+        
+        return mergeObject(super.defaultOptions, {
+            id: 'coffee-pub-blacksmith',
+            template: 'modules/coffee-pub-blacksmith/templates/window-query.hbs',
+            title: 'Blacksmith Query',
             resizable: true,
-            classes: ['blacksmith-window']
+            width: this?.showWorkspace ? baseWidth + workspaceWidth + padding : baseWidth,
+            height: intHeight,
+            classes: ['blacksmith-window'],
+            minimizable: true,
+            scrollY: ['.blacksmith-output']
         });
     }
 
@@ -658,41 +656,38 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     toggleWorkspaceVisibility(html, logToggle = true) {
-        // Get elements using both jQuery and direct DOM methods
-        const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
-        const workspace = html ? html.find('#blacksmith-workspace-wrapper')[0] : document.getElementById('blacksmith-workspace-wrapper');
-        const toggleButton = html ? html.find('#blacksmith-toggle-workspace')[0] : document.getElementById('blacksmith-toggle-workspace');
+        const windowElement = document.getElementById('coffee-pub-blacksmith');
+        const workspace = document.getElementById('blacksmith-workspace-wrapper');
+        const toggleButton = document.getElementById('blacksmith-toggle-workspace');
         
-        if (!workspace) {
-            console.error('Workspace element not found');
+        if (!workspace || !windowElement) {
+            console.error('Could not find workspace or window elements');
             return;
         }
 
         const isHidden = workspace.classList.contains('workspace-hidden');
-        const icon = toggleButton ? (html ? toggleButton.querySelector('i') : toggleButton.querySelector('i')) : null;
+        const baseWidth = 600;
+        const workspaceWidth = 350;
+        const padding = 8;
 
-        if (isHidden) {
-            workspace.classList.remove('workspace-hidden');
-            if (windowElement) {
-                windowElement.classList.add('has-workspace');
-            }
-            if (logToggle) postConsoleAndNotification("blacksmith-toggle-workspace", "removeClass('workspace-hidden')", false, true, false);
+        // Toggle workspace visibility
+        workspace.classList.toggle('workspace-hidden');
+        windowElement.classList.toggle('has-workspace');
+
+        // Update window size
+        const newWidth = !isHidden ? baseWidth : (baseWidth + workspaceWidth + padding);
+        this.setPosition({ width: newWidth });
+
+        // Update toggle button icon
+        if (toggleButton) {
+            const icon = toggleButton.querySelector('i');
             if (icon) {
-                icon.classList.remove('fa-chevrons-left');
-                icon.classList.add('fa-chevrons-right');
+                icon.className = isHidden ? 'fa-solid fa-chevrons-right' : 'fa-solid fa-chevrons-left';
             }
-            // Show the last active workspace or default to first one
-            this.switchWorkspace(html, `blacksmith-query-workspace-${this.lastActiveWorkspace || 'lookup'}`);
-        } else {
-            workspace.classList.add('workspace-hidden');
-            if (windowElement) {
-                windowElement.classList.remove('has-workspace');
-            }
-            if (logToggle) postConsoleAndNotification("blacksmith-toggle-workspace", "addClass('workspace-hidden')", false, true, false);
-            if (icon) {
-                icon.classList.remove('fa-chevrons-right');
-                icon.classList.add('fa-chevrons-left');
-            }
+        }
+
+        if (logToggle) {
+            console.log(`Workspace visibility toggled. Hidden: ${!isHidden}`);
         }
     }
 
