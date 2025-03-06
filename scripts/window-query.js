@@ -7,15 +7,54 @@ import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 
+// Base template for AI instructions
+const BASE_PROMPT_TEMPLATE = {
+    formatting: `Format your response as valid JSON with these guidelines:
+- Use bold (**text**) for emphasis
+- Create lists with <ul><li>item</li></ul>
+- Keep descriptions clear and concise
+- Use proper D&D5E terminology`,
+    
+    atmosphere: `Include for all scenes:
+- Sensory details (sight, sound, smell)
+- Physical space descriptions
+- Mood and ambiance elements`,
+    
+    narrative: `For all narrative elements:
+- Connect to broader campaign story
+- Include specific, vivid details
+- Maintain D&D5E authenticity`,
+    
+    jsonFormat: `{
+    "journaltype": "JOURNALTYPE",
+    "foldername": "FOLDERNAME",
+    "sceneparent": "SCENEPARENT",
+    "scenearea": "SCENEAREA",
+    "sceneenvironment": "ENVIRONMENT",
+    "scenelocation": "LOCATION",
+    "scenetitle": "SCENETITLE",
+    "prepencounter": "PREPENCOUNTER",
+    "prepencounterdetails": "PREPENCOUNTERDETAILS",
+    "preprewards": "PREPREWARDS",
+    "prepsetup": "PREPSETUP",
+    "contextintro": "INTRO",
+    "cardtitle": "CARDTITLE",
+    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+    "cardimagetitle": "CARDIMAGETITLE",
+    "cardimage": "CARDIMAGE",
+    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+    "carddialogue": "CARDDIALOGUE",
+    "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
+    "contextatmosphere": "CONTEXTATMOSPHERE",
+    "contextgmnotes": "CONTEXTGMNOTES"
+}`
+};
+
 // ================================================================== 
 // ===== REGISTER TEMPLATE PARTIALS =================================
 // ================================================================== 
 
-
-
-
 document.addEventListener('DOMContentLoaded', () => {
-    
     
     // Function to add event listeners
     const addEventListeners = () => {
@@ -1381,11 +1420,65 @@ export class BlacksmithWindowQuery extends FormApplication {
         // -- USE ON: Encounter
         // --------------------------------------------------------------
 
-        strPromptEncounter = `You are a dungeon master. You are incredibly witty, interesting, and craft engaging narratives. You know a narrative can span multiple scenes and try to create a cohesive thread when writing the narratives. You are writing the narration for an encounter in dungeons and dragons DND5E campaign called "` + strCampaignName + `." Encounters are where the players fight monsters. You will need to consider Total Challenge Rating (CR), Multiple Adversaries (Dynamic encounters often feature multiple adversaries that leverage the party's vulnerabilities. This could involve a main antagonist supported by other creatures that contribute varied tactical elements to the encounter, enriching the combat experience), Strategic Depth (Select monsters with abilities that challenge the players' strategic thinking. Include adversaries with robust defensive tactics, healing capabilities, or the power to summon reinforcements, ensuring the encounter demands more than straightforward attacks), and Narrative Significance (Ensure the scene is deeply embedded within the campaign's story. The encounter could involve a significant antagonist or a pivotal moment that advances the plot or impacts the campaign's outcome) when generating the encounter. You are going generate the encounter replacing the words below in all caps with titles, narration, and other details as is outlined below for each one:`;
+        strPromptEncounter = `You are a D&D5E DM creating an encounter for "${strCampaignName}". ${BASE_PROMPT_TEMPLATE.formatting}
+
+${BASE_PROMPT_TEMPLATE.narrative}
+
+Key encounter requirements:`;
+
         if (inputNarrativeEncounterDetails) {
-            strPromptEncounter += `\n- Take this into account when generating the encounter: ` + inputNarrativeEncounterDetails + `.`;
+            strPromptEncounter += `\nContext: ${inputNarrativeEncounterDetails}`;
         }
-        strPromptEncounter += `\n- JOURNALTYPE: Set to "Encounter". Do not add any html tags to this field.`;
+
+        // Build core metadata
+        const metadata = {
+            journaltype: "Encounter",
+            foldername: inputFolderName || "",
+            sceneparent: inputSceneParent || "",
+            scenearea: inputSceneArea || "",
+            sceneenvironment: inputEnvironment || "",
+            scenelocation: inputLocation || "",
+            scenetitle: inputSceneTitle || "",
+            cardimage: optionCardImage || inputCardImage || "", // Add card image from either option or direct input
+            cardimagetitle: optionCardImage ? "Selected preset image" : (inputCardImage ? "Custom image" : "") // Add image title
+        };
+
+        // Add metadata fields
+        Object.entries(metadata).forEach(([key, value]) => {
+            if (value) {
+                strPromptEncounter += `\n${key.toUpperCase()}: ${value}`;
+                if (key === 'cardimage' && value) {
+                    strPromptEncounter += `\nNote: Use this image to inspire atmospheric and environmental descriptions.`;
+                }
+            }
+        });
+
+        // Get worksheet monsters before monster selection criteria
+        const worksheetMonsters = getWorksheetMonsters(id);
+
+        // Add monster selection criteria more concisely
+        if (inputNarrativeEncounterMonsters || worksheetMonsters.length > 0) {
+            const monsterList = [];
+            if (inputNarrativeEncounterMonsters) monsterList.push(inputNarrativeEncounterMonsters);
+            if (worksheetMonsters.length > 0) {
+                monsterList.push(`Worksheet monsters: ${worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ')}`);
+            }
+
+            strPromptEncounter += `\n\nPREPENCOUNTER requirements:
+- ${targetCRValue > 0 ? `Target CR: ${targetCRValue}, Difficulty: ${targetRating}` : 'Select thematically appropriate monsters'}
+- Required monsters: ${monsterList.join(', ')}
+- Max 10 total monsters, max 5 per type
+- Consider tactical roles and synergies`;
+        }
+
+        // Add atmosphere and environment context
+        if (inputEnvironment || inputLocation) {
+            strPromptEncounter += `\n\n${BASE_PROMPT_TEMPLATE.atmosphere}`;
+        }
+
+        // Add the JSON format template
+        strPromptEncounter += `\n\nRespond with JSON in this format:\n${BASE_PROMPT_TEMPLATE.jsonFormat}`;
+
         strPromptEncounter += `\n- FOLDERNAME: Set to "` + inputFolderName + `". Do not add any html tags to this field.`;
         strPromptEncounter += `\n- SCENEPARENT: Set to "` + inputSceneParent + `". Do not add any html tags to this field.`;
         strPromptEncounter += `\n- SCENEAREA: Set to "` + inputSceneArea + `". Do not add any html tags to this field.`;
