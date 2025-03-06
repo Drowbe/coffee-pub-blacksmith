@@ -380,6 +380,33 @@ export const registerSettings = async () => {
 
 
 
+		// Latency Settings
+		game.settings.register(MODULE_ID, 'enableLatency', {
+			name: 'Enable Latency Display',
+			hint: 'Show latency information next to player names',
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			default: true,
+			onChange: () => window.location.reload()
+		});
+
+		game.settings.register(MODULE_ID, 'latencyCheckInterval', {
+			name: 'Latency Check Interval',
+			hint: 'How often to check latency (in seconds)',
+			type: Number,
+			scope: 'world',
+			config: true,
+			range: {
+				min: 5,
+				max: 300,
+				step: 5
+			},
+			default: 30,
+			onChange: () => window.location.reload()
+		});
+
+
 
 
 		// *** THEMES ***
@@ -2183,7 +2210,9 @@ game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
 
 	// --------------------------------------------------------
 	}); // END OF "Hooks.once('ready', async()"
-// --------------------------------------------------------
+	// --------------------------------------------------------
+
+
 
 
 } // END OF "export const registerSettings"

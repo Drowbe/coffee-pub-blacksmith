@@ -2,11 +2,13 @@
 // ===== LATENCY CHECKER ==============================================
 // ================================================================== 
 
+import { MODULE_ID } from './const.js';
+
 export class LatencyChecker {
-    static PING_INTERVAL = 5000; // Check every 5 seconds
     static #latencyData = new Map();
     static #startTimes = new Map();
     static #initialized = false;
+    static #checkInterval = null;
     
     static isInitialized() {
         return this.#initialized;
@@ -16,6 +18,12 @@ export class LatencyChecker {
         console.log("BLACKSMITH | Latency: Initializing LatencyChecker");
         
         try {
+            // Check if latency is enabled in settings
+            if (!game.settings.get(MODULE_ID, 'enableLatency')) {
+                console.log("BLACKSMITH | Latency: Latency display is disabled in settings");
+                return;
+            }
+
             // Wait for socket to be ready
             if (!game.socket?.connected) {
                 console.error("BLACKSMITH | Latency: Socket not connected!");
@@ -55,16 +63,24 @@ export class LatencyChecker {
             return;
         }
 
-        console.log("BLACKSMITH | Latency: Starting periodic checks");
+        // Clear any existing interval
+        if (this.#checkInterval) {
+            clearInterval(this.#checkInterval);
+        }
+
+        // Get interval from settings (convert from seconds to milliseconds)
+        const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
+
+        console.log(`BLACKSMITH | Latency: Starting periodic checks every ${interval/1000} seconds`);
         // Initial check
         this.#checkAllUsers();
         
         // Periodic checks
-        setInterval(() => {
+        this.#checkInterval = setInterval(() => {
             if (this.#initialized) {
                 this.#checkAllUsers();
             }
-        }, this.PING_INTERVAL);
+        }, interval);
     }
 
     static async #measureLatency(userId) {
@@ -186,8 +202,8 @@ export class LatencyChecker {
     }
 
     static #getLatencyClass(latency) {
-        if (latency < 25) return "good";      // Local connections should be under 25ms
-        if (latency < 50) return "medium";    // Adjusted for more realistic local thresholds
+        if (latency < 100) return "good";      // Local connections should be under 25ms
+        if (latency < 250) return "medium";    // Adjusted for more realistic local thresholds
         return "poor";
     }
 
@@ -231,6 +247,10 @@ export class LatencyChecker {
 }
 
 // Initialize when the game is ready
+Hooks.once('init', () => {
+    console.log("BLACKSMITH | Latency: Init hook fired for LatencyChecker");
+});
+
 Hooks.once('ready', async () => {
     console.log("BLACKSMITH | Latency: Ready hook fired for LatencyChecker");
     await LatencyChecker.initialize();

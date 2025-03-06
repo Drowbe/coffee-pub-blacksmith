@@ -45,26 +45,4 @@
 /* --- Latency Display ---------------------- */
 @import "latency.css";
 
-/* Latency Display */
-.player-latency {
-    position: absolute;
-    right: 8px;
-    font-size: 0.75em;
-    opacity: 0.9;
-}
 
-.player-name {
-    position: relative;  /* Ensure absolute positioning of latency works */
-}
-
-.player-latency.good {
-    color: #00ff00;
-}
-
-.player-latency.medium {
-    color: #ffff00;
-}
-
-.player-latency.poor {
-    color: #ff0000;
-}
