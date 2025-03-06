@@ -28,8 +28,7 @@ export const BLACKSMITH = {
     WINDOW_BROWSER: `modules/${MODULE_ID}/templates/window-browser.hbs`,
     WINDOW_BROWSER_URL: `http://wwwlgoogle.com`,
 
-    WINDOW_DASHBOARD_TITLE: "Blacksmith Dashboard",
-    WINDOW_DASHBOARD: `modules/${MODULE_ID}/templates/window-dashboard.hbs`,
+
 
     JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE_ID}/templates/journal-narrative.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE_ID}/templates/journal-injury.hbs`,

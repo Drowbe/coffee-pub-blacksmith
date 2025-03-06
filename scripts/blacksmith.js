@@ -23,7 +23,6 @@ import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './
 import { registerSettings } from './settings.js';
 import { BlacksmithWindowBrowser } from './window-browser.js';
 import { BlacksmithWindowQuery } from './window-query.js';
-import { BlacksmithWindowDashboard } from './window-dashboard.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './toolbar.js';
 import { CombatTimer } from './combat-timer.js';
@@ -69,13 +68,6 @@ await registerSettings();
 // ================================================================== 
 
 Hooks.once('ready', () => {
-    postConsoleAndNotification("Readying the Dashboard.", "", false, false, false); 
-    const dashboard = BlacksmithWindowDashboard.getInstance();
-    let blnShowDashboard = game.settings.get(MODULE_ID, 'showDashboard');
-    if (blnShowDashboard) {
-        dashboard.render(true);
-    }
-    
     // Initialize combat stats tracking
     CombatStats.initialize();
 
@@ -136,7 +128,6 @@ Hooks.once('init', async function() {
     
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
-    postConsoleAndNotification("Dashboard and Toolbar ready.", "", false, false, false); 
 
     // COMBAT TIMER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CombatTimer...", "", false, true, false);
@@ -157,13 +148,6 @@ Hooks.once('init', async function() {
 Hooks.once('ready', async function() {
     postConsoleAndNotification("Blacksmith | Initializing WrapperManager", "", false, true, false);
     WrapperManager.initialize();
-    
-    postConsoleAndNotification("Readying the Dashboard.", "", false, false, false); 
-    const dashboard = BlacksmithWindowDashboard.getInstance();
-    let blnShowDashboard = game.settings.get(MODULE_ID, 'showDashboard');
-    if (blnShowDashboard) {
-        dashboard.render(true);
-    }
     
     // Initialize combat stats tracking
     CombatStats.initialize();

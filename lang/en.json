@@ -10,12 +10,6 @@
 		"headingH2General-Label": "General",
 		"headingH2General-Hint": "General settings, connfiguration, and other goodies.",
 
-		"headingH3simpleToolbar-Label": "Toolbar",
-		"headingH3simpleToolbar-Hint": "Settings related to the toolbar.",
-
-		"showDashboard-Label": "Show Dashboard on Load",
-		"showDashboard-Hint": "If checked, the Coffee Pub dashboard will be shown when the game is loaded.",
-
 
 		"headingH3Latency-Label": "Player Latency",
 		"headingH3Latency-Hint": "Settings related to the player latency.",

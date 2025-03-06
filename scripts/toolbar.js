@@ -1,5 +1,4 @@
 import { MODULE_ID } from './const.js';
-import { BlacksmithWindowDashboard } from './window-dashboard.js';
 import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
 import { buildButtonEventRegent, buildButtonEventBrowser } from './blacksmith.js';
 // -- Global utilities --
@@ -10,29 +9,6 @@ export function addToolbarButton() {
 
     Hooks.on('getSceneControlButtons', (controls) => {
         postConsoleAndNotification("getSceneControlButtons hook triggered", "", false, true, false);
-
-        const dashboardTool = {
-            icon: "fa-solid fa-shield-heart",
-            name: "dashboard",
-            title: "Toggle Blacksmith Dashboard",
-            button: true,
-            visible: true,
-            onClick: () => {
-                postConsoleAndNotification("Dashboard button clicked", "", false, true, false);
-                const dashboard = BlacksmithWindowDashboard.getInstance();
-                dashboard.toggleVisibility();
-                postConsoleAndNotification("Dashboard visibility toggled", "", false, true, false);
-            }
-        };
-
-        // const browserTool = {
-        //     icon: "fa-solid fa-browser",
-        //     name: "browser",
-        //     title: "Open the Browser",
-        //     button: true,
-        //     visible: true,
-        //     onClick: buildButtonEventBrowser
-        // };
 
         const regentTool = {
             icon: "fa-solid fa-crystal-ball",
@@ -93,8 +69,7 @@ export function addToolbarButton() {
             title: "Blacksmith Utilities",
             icon: "fa-solid fa-mug-hot",
             layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-            //tools: [dashboardTool, browserTool, regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
-            tools: [dashboardTool, regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
+            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
         });
         postConsoleAndNotification("Toolbar buttons added to controls", "", false, true, false);
     });

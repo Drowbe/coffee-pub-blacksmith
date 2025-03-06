@@ -37,7 +37,6 @@
   "esmodules": [
     "scripts/blacksmith.js",
     "scripts/toolbar.js",
-    "scripts/window-dashboard.js",
     "scripts/combat-stats.js",
     "scripts/combat-timer.js",
     "scripts/planning-timer.js",

@@ -354,30 +354,6 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
-
-		// ---------- TOOLBAR ----------
-		game.settings.register(MODULE_ID, "headingH3simpleToolbar", {
-			name: MODULE_ID + '.headingH3simpleToolbar-Label',
-			hint: MODULE_ID + '.headingH3simpleToolbar-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Show Dashboard --
-		game.settings.register(MODULE_ID, 'showDashboard', {
-			name: MODULE_ID + '.showDashboard-Label',
-			hint: MODULE_ID + '.showDashboard-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: false,
-			scope: 'world',
-			default: true,
-		});
-
-
 		// ---------- LATENCY CHECKER ----------
 		game.settings.register(MODULE_ID, "headingH3Latency", {
 			name: MODULE_ID + '.headingH3Latency-Label',

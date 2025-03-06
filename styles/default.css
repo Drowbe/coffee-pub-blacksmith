@@ -27,9 +27,6 @@
 /* --- Links ---------------------- */
 @import "links-themes.css";
 
-/* --- Dashboard ---------------------- */
-@import "dashboard.css";
-
 /* --- Combat Timer ---------------------- */
 @import "combat-timer.css";
 
