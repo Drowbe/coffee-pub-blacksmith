@@ -391,8 +391,8 @@ export const registerSettings = async () => {
 
 		// Latency Settings
 		game.settings.register(MODULE_ID, 'enableLatency', {
-			name: 'Enable Latency Display',
-			hint: 'Show latency information next to player names',
+			name: MODULE_ID + '.enableLatency-Label',
+			hint: MODULE_ID + '.enableLatency-Hint',
 			type: Boolean,
 			scope: 'world',
 			config: true,
@@ -400,8 +400,8 @@ export const registerSettings = async () => {
 		});
 
 		game.settings.register(MODULE_ID, 'latencyCheckInterval', {
-			name: 'Latency Check Interval',
-			hint: 'How often to check latency (in seconds)',
+			name: MODULE_ID + '.latencyCheckInterval-Label',
+			hint: MODULE_ID + '.latencyCheckInterval-Hint',
 			type: Number,
 			scope: 'world',
 			config: true,

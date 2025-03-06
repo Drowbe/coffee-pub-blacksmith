@@ -17,14 +17,15 @@
 		"showDashboard-Hint": "If checked, the Coffee Pub dashboard will be shown when the game is loaded.",
 
 
-		"headingH3Latency-Label": "Toolbar",
-		"headingH3Latency-Hint": "Settings related to the toolbar.",
+		"headingH3Latency-Label": "Player Latency",
+		"headingH3Latency-Hint": "Settings related to the player latency.",
+
+		"latencyCheckInterval-Label": "Latency Check Interval",
+		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds.",
+
+		"enableLatency-Label": "Enable Player Latency Checks",
+		"enableLatency-Hint": "If checked, the player latency will be checked and displayed in the player list.",
 		
-
-
-
-
-
 
 		"headingH2Themes-Label": "Themes",
 		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
