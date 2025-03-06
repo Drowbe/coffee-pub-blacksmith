@@ -663,7 +663,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         const isHidden = workspace.classList.contains('workspace-hidden');
         const baseWidth = 600;
-        const workspaceWidth = 350;
+        const workspaceWidth = 400;  // Changed from 350 to 400
         const padding = 40;
 
         // First update the classes
