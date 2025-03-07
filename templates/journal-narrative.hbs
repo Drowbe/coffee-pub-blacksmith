@@ -44,7 +44,7 @@
 
 {{#if (or 
     (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))
-    (and strCardImage (ne strCardImage "")))}}
+    (and strCardImage (ne strCardImage "") (ne strCardImage "null")))}}
     <blockquote>
         {{#if (and strCardTitle (ne strCardTitle ""))}}
         <h4>{{strCardTitle}}</h4>
@@ -52,7 +52,7 @@
         {{#if (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))}}
         <p>{{strCardDescriptionPrimary}}</p>
         {{/if}}
-        {{#if (and strCardImage (ne strCardImage ""))}}
+        {{#if (and strCardImage (ne strCardImage "") (ne strCardImage "null"))}}
             {{#if (and strCardImageTitle (ne strCardImageTitle ""))}}
             <h5>{{strCardImageTitle}}</h5>
             {{/if}}

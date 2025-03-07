@@ -13,7 +13,8 @@ const BASE_PROMPT_TEMPLATE = {
 - Use bold (**text**) for emphasis
 - Create lists with <ul><li>item</li></ul>
 - Keep descriptions clear and concise
-- Use proper D&D5E terminology`,
+- Use proper D&D5E terminology
+- Use empty strings ("") for any empty or missing values, never use null`,
     
     atmosphere: `Include for all scenes:
 - Sensory details (sight, sound, smell)
@@ -26,27 +27,27 @@ const BASE_PROMPT_TEMPLATE = {
 - Maintain D&D5E authenticity`,
     
     jsonFormat: `{
-    "journaltype": "JOURNALTYPE",
-    "foldername": "FOLDERNAME",
-    "sceneparent": "SCENEPARENT",
-    "scenearea": "SCENEAREA",
-    "sceneenvironment": "ENVIRONMENT",
-    "scenelocation": "LOCATION",
-    "scenetitle": "SCENETITLE",
-    "prepencounter": "PREPENCOUNTER",
-    "prepencounterdetails": "PREPENCOUNTERDETAILS",
-    "preprewards": "PREPREWARDS",
-    "prepsetup": "PREPSETUP",
-    "contextintro": "INTRO",
-    "cardtitle": "CARDTITLE",
-    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-    "cardimagetitle": "CARDIMAGETITLE",
-    "cardimage": "CARDIMAGE",
-    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-    "carddialogue": "CARDDIALOGUE",
-    "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
-    "contextatmosphere": "CONTEXTATMOSPHERE",
-    "contextgmnotes": "CONTEXTGMNOTES"
+    "journaltype": "",
+    "foldername": "",
+    "sceneparent": "",
+    "scenearea": "",
+    "sceneenvironment": "",
+    "scenelocation": "",
+    "scenetitle": "",
+    "prepencounter": "",
+    "prepencounterdetails": "",
+    "preprewards": "",
+    "prepsetup": "",
+    "contextintro": "",
+    "cardtitle": "",
+    "carddescriptionprimary": "",
+    "cardimagetitle": "",
+    "cardimage": "",
+    "carddescriptionsecondary": "",
+    "carddialogue": "",
+    "contextadditionalnarration": "",
+    "contextatmosphere": "",
+    "contextgmnotes": ""
 }`
 };
 
@@ -1522,7 +1523,9 @@ Key encounter requirements:`;
             cardimage: optionCardImage === "custom" ? (inputCardImage || "") : 
                       optionCardImage === "none" ? "" : 
                       optionCardImage || "", // Add card image from either option or direct input
-            cardimagetitle: optionCardImage ? "Selected preset image" : (inputCardImage ? "Custom image" : "") // Add image title
+            cardimagetitle: optionCardImage === "none" ? "" :
+                           optionCardImage === "custom" ? (inputCardImage ? "Custom image" : "") :
+                           optionCardImage ? "Selected preset image" : "" // Add image title
         };
 
         // Add metadata fields
@@ -1579,7 +1582,7 @@ Key encounter requirements:`;
         } else if (optionCardImage === "none") {
             strPromptEncounter += `\n- CARDIMAGE: Set to "". Do not add any html tags or image tags to this field.`;
         } else {
-            strPromptEncounter += `\n- CARDIMAGE: Set to "${optionCardImage}". Do not add any html tags or image tags to this field.`;
+            strPromptEncounter += `\n- CARDIMAGE: Set to "${optionCardImage || ''}". Do not add any html tags or image tags to this field.`;
         }
         strPromptEncounter += `\n- SCENETITLE: Title of the encounter you are writing the narrative for. Set it to "Encounter: ` + inputSceneTitle + `". Keep it under 5 words long. Do not add any html tags to this field.`;
         strPromptEncounter += `\n- INTRO: One or two sentences letting the GM know what is going to happen in this encounter. Do not add any html tags to this field.`;
@@ -1732,11 +1735,11 @@ Key encounter requirements:`;
         // Core scene information
         strPromptNarration += `
         - JOURNALTYPE: "Narrative"
-        - FOLDERNAME: "${inputFolderName}"
-        - SCENEPARENT: "${inputSceneParent}"
-        - SCENEAREA: "${inputSceneArea}"
-        - ENVIRONMENT: "${inputEnvironment}"
-        - LOCATION: "${inputLocation}"`;
+        - FOLDERNAME: "${inputFolderName || ''}"
+        - SCENEPARENT: "${inputSceneParent || ''}"
+        - SCENEAREA: "${inputSceneArea || ''}"
+        - ENVIRONMENT: "${inputEnvironment || ''}"
+        - LOCATION: "${inputLocation || ''}"`;
 
         // Card image handling
         if (optionCardImage === "custom") {
@@ -1749,7 +1752,7 @@ Key encounter requirements:`;
 
         // Scene details with emphasis on rich description
         strPromptNarration += `
-        - SCENETITLE: "${inputSceneTitle}" (compelling, under 5 words)
+        - SCENETITLE: "${inputSceneTitle || ''}" (compelling, under 5 words)
         - INTRO: Create an evocative GM overview that sets the scene's mood and importance (1-2 sentences)`;
 
         // Encounter information with tactical depth
@@ -1819,23 +1822,20 @@ Key encounter requirements:`;
                 }
             }
         } else {
-            strPromptNarration += `\n- PREPENCOUNTER: "None"`;
+            strPromptNarration += `\n- PREPENCOUNTER: ""`;
+            strPromptNarration += `\n- PREPENCOUNTERDETAILS: ""`;
         }
 
-        // Detailed encounter information
-        strPromptNarration += `
-        - PREPENCOUNTERDETAILS: Create a comprehensive bullet list including:
-          • **Difficulty** (Easy/Medium/Hard/Deadly with clear consequences)
-          • **Overall Challenge Rating** (total CR)
-          • **Monster Challenge Rating** (format: "Monster (count) - CR")
-          • **Tactics** (detailed combat strategies)`;
-
         // Rewards with narrative significance
-        strPromptNarration += `
-        - PREPREWARDS: ${blnAddRewards ? `Create meaningful rewards:
+        if (blnAddRewards) {
+            strPromptNarration += `
+        - PREPREWARDS: Create meaningful rewards:
           • XP: ${inputXP || 'Standard for level'}
           • Treasure: ${inputNarrativeRewardDetails || 'Thematically appropriate'}
-          • Consider story significance and future use` : '"None"'}`;
+          • Consider story significance and future use`;
+        } else {
+            strPromptNarration += `\n- PREPREWARDS: ""`;
+        }
 
         // Rich narrative elements
         strPromptNarration += `
@@ -1844,16 +1844,16 @@ Key encounter requirements:`;
           • **Key Moments**: Dramatic points and revelations
           • **GM Guidance**: Running the scene effectively
 
-        - CARDTITLE: Evocative scene title (distinct from SCENETITLE)
+        - CARDTITLE: "${inputSceneTitle ? 'Evocative scene title based on ' + inputSceneTitle : ''}"
         - CARDDESCRIPTIONPRIMARY: Vivid player narrative (5-8 sentences)
-        - CARDIMAGETITLE: Atmospheric title
+        - CARDIMAGETITLE: "${optionCardImage === "none" ? '' : 'Atmospheric title'}"
         - CARDDESCRIPTIONSECONDARY: Detailed scene expansion (3-5 sentences)
-        - CARDDIALOGUE: ${blnGenerateDialogue ? 'Create impactful character dialogue using <h6><b>Speaker</b>"Dialogue"</h6>' : '" "'}
+        - CARDDIALOGUE: ${blnGenerateDialogue ? 'Create impactful character dialogue using <h6><b>Speaker</b>"Dialogue"</h6>' : '""'}
 
         - CONTEXTADDITIONALNARRATION: Create 10-20 detailed bullet points:
           • **Bold** key terms and concepts
           • Include connections to broader narrative
-          • Reference provided context: "${inputNarrativeDetails}"
+          • Reference provided context: "${inputNarrativeDetails || ''}"
 
         - CONTEXTATMOSPHERE: Create immersive environmental details:
           • **Sight/Sound/Smell**: Specific sensory details
@@ -1883,7 +1883,7 @@ Key encounter requirements:`;
             "cardtitle": "CARDTITLE",
             "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
             "cardimagetitle": "CARDIMAGETITLE",
-            "cardimage": "CARDIMAGE",
+            "cardimage": "${optionCardImage === "custom" ? (inputCardImage || "") : optionCardImage === "none" ? "" : optionCardImage || ""}",
             "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
             "carddialogue": "CARDDIALOGUE",
             "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
