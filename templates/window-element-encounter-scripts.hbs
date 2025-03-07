@@ -561,48 +561,6 @@ function updateCharacterTypeDisplay(element) {
 
 // ===== CARDS AND CARD COUNTS =====
 
-// REMOVE CARD FROM LIST
-
-function removeCard(event, button, id) {
-    //console.log("IN Remove CARD Event:", event);
-    //console.log("IN Remove CARD button:", button);
-    //console.log("IN Remove CARD id:", id);
-    event.preventDefault();
-    event.stopPropagation();
-    const card = button.closest('.player-card');
-    if (card) {
-        const level = parseInt(card.getAttribute('data-level'), 10);
-        card.remove();
-        updateAllCounts(id); // Call updateAllCounts with the id
-
-        // Find the corresponding level button and call decrementLevelCount
-        const levelButton = document.querySelector(`.level-button[data-level="${level}"] .clear-button`);
-        if (levelButton) {
-            decrementLevelCount(event, levelButton, level, id);
-        }
-    }
-}
-
-// UPDATE ALL COUNTS
-function updateAllCounts(id, cardType = null) {
-    console.log("BLACKSMITH | Regent: IN updateAllCounts id:", id, "cardType:", cardType);
-    
-    // Only update monster CR if we're not dealing with encounters
-    if (cardType !== 'encounter') {
-        // Monster Updates
-        updateTotalMonsterCR(id); // Ensure total monster CR is updated
-    }
-    
-    // Player Updates
-    updateTotalPlayerCounts(id); // gets the total level and class values from cards
-    // NPC Updates
-    updateTotalNPCCR(id); // Ensure total NPC CR is updated
-    // Total Updates
-    updateEncounterDetails(id); // updates totals and does calcs.
-    // updateSlider(id, sliderValue = null)
-    updateSlider(id);
-}
-
 // ===== ENCOUNTER SLIDER =====
 
 // UPDATE SLIDER VALUE

@@ -2846,18 +2846,16 @@ window.removeCard = function(event, button, id) {
     const card = button.closest('.player-card');
     if (!card) return;
 
-    // Get the card type
+    // Get the card type from the data attribute
     const cardType = card.dataset.cardType || 'monster'; // Default to monster for backward compatibility
+    console.log("BLACKSMITH | Regent: IN removeCard id:", id, "cardType:", cardType);
 
     // Remove the card
     card.remove();
-
-    // Only update counts if it's NOT an encounter card
-    if (cardType !== 'encounter') {
-        // Update monster counts and CR
-        updateAllCounts(id, cardType);
-    } else {
-        // If it's an encounter, update the encounters data
+    
+    // Handle updates based on card type
+    if (cardType === 'encounter') {
+        // If it's an encounter, only update the encounters data
         const form = document.querySelector(`#blacksmith-query-workspace-narrative`);
         if (form) {
             const encountersInput = form.querySelector('#input-encounters-data');
@@ -2873,6 +2871,32 @@ window.removeCard = function(event, button, id) {
                 }
             }
         }
+    } else {
+        // For monster, player, or NPC cards, update all counts
+        updateAllCounts(id, cardType);
     }
 };
+
+// Update the updateAllCounts function to handle different card types
+function updateAllCounts(id, cardType = null) {
+    console.log("BLACKSMITH | Regent: IN updateAllCounts id:", id, "cardType:", cardType);
+    
+    // Only update monster CR if we're not dealing with encounters
+    if (cardType !== 'encounter') {
+        // Monster Updates
+        updateTotalMonsterCR(id);
+        
+        // Player Updates
+        updateTotalPlayerCounts(id);
+        
+        // NPC Updates
+        updateTotalNPCCR(id);
+        
+        // Total Updates
+        updateEncounterDetails(id);
+        
+        // Update the slider
+        updateSlider(id);
+    }
+}
 
