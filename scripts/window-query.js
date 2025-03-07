@@ -2252,13 +2252,14 @@ function calculateNPCCR(actor) {
     const actorData = actor.system;
     
     // Calculate Defensive CR
-    const hp = actorData.attributes.hp.value;
-    const ac = actorData.attributes.ac.value;
+    const hp = foundry.utils.getProperty(actorData, "attributes.hp.value") || 0;
+    const ac = foundry.utils.getProperty(actorData, "attributes.ac.value") || 10;
     let defensiveCR = calculateDefensiveCR(hp, ac);
     
     // Calculate Offensive CR
-    const spellDC = actorData.attributes.spelldc;
-    const spellLevel = Math.max(...Object.values(actorData.spells).map(s => parseInt(s?.value) || 0));
+    const spellDC = foundry.utils.getProperty(actorData, "attributes.spelldc") || 0;
+    const spells = foundry.utils.getProperty(actorData, "spells") || {};
+    const spellLevel = Math.max(...Object.values(spells).map(s => parseInt(foundry.utils.getProperty(s, "value") || 0)));
     let offensiveCR = calculateOffensiveCR(spellDC, spellLevel);
     
     // Calculate final CR
@@ -2278,7 +2279,6 @@ function calculateDefensiveCR(hp, ac) {
     else if (hp <= 70) cr = 1/2;
     else if (hp <= 85) cr = 1;
     else if (hp <= 100) cr = 2;
-    // ... add more ranges as needed
     
     // Adjust for AC
     if (ac >= 15) cr += 1;
@@ -2419,8 +2419,8 @@ function getWorksheetMonsters(id) {
     const monsters = [];
 
     monsterCards.forEach(card => {
-        const name = card.querySelector('.character-name')?.textContent?.trim();
-        const details = card.querySelector('.character-rollup')?.textContent?.trim();
+        const name = foundry.utils.getProperty(card.querySelector('.character-name'), "textContent")?.trim();
+        const details = foundry.utils.getProperty(card.querySelector('.character-rollup'), "textContent")?.trim();
         if (name && details) {
             // Extract CR from details (format: "CR X Type")
             const crMatch = details.match(/CR\s+([0-9/]+)/);
