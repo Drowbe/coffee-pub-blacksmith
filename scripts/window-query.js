@@ -626,58 +626,26 @@ export class BlacksmithWindowQuery extends FormApplication {
                 event.preventDefault();
                 dropZone.classList.remove('dragover');
 
-                // Get the dropped actor data
                 try {
                     const data = JSON.parse(event.dataTransfer.getData('text/plain'));
                     if (data.type === 'Actor') {
                         const id = dropZone.id.split('-').pop();
                         const actor = await fromUuid(data.uuid);
                         if (actor) {
-                            // Create a temporary token data structure
+                            // Create a temporary token-like structure
                             const tokenData = {
                                 actor: actor,
                                 name: actor.name,
                                 document: {
                                     disposition: -1, // Hostile by default for monsters
-                                    effects: []
+                                    texture: { src: actor.img },
+                                    effects: [],
+                                    uuid: data.uuid
                                 }
                             };
 
-                            // Add the token to the monster container
-                            const container = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
-                            if (container) {
-                                // Clear the initial message if it exists
-                                const message = container.querySelector('.message-box');
-                                if (message) {
-                                    message.style.display = 'none';
-                                }
-
-                                // Add the monster card
-                                const img = actor.img;
-                                const strName = actor.name;
-                                const cr = actor.system?.details?.cr || 'Unknown';
-                                const type = actor.system?.details?.type?.value || 'Unknown';
-
-                                const tokenHTML = `
-                                    <div data-cr="${cr}" 
-                                         data-type="Monster" 
-                                         data-actor-uuid="${actor.uuid}"
-                                         data-actor-name="${actor.name}"
-                                         data-display-name="${strName}"
-                                         class="player-card disposition-hostile">
-                                        <img src="${img}" alt="${strName}">
-                                        <div class="player-card-details">
-                                            <div class="character-name">${strName}</div>
-                                            <div class="character-details character-rollup">CR ${cr} ${type}</div>
-                                        </div>
-                                        <button type="button" class="clear-button" onclick="removeCard(event, this, '${id}')">x</button>
-                                    </div>
-                                `;
-                                container.insertAdjacentHTML('beforeend', tokenHTML);
-
-                                // Update counts
-                                await updateAllCounts(id);
-                            }
+                            // Pass a single token in an array
+                            await this.addTokensToContainer(id, 'monster', [tokenData]);
                         }
                     }
                 } catch (error) {
@@ -895,7 +863,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     }
 
-    async addTokensToContainer(id, type = 'player') {
+    async addTokensToContainer(id, type = 'player', providedTokens = null) {
         postConsoleAndNotification(`Adding ${type} tokens to container for ID:`, id, false, true, false);
         const intHPThreshold = 50;
         
@@ -914,14 +882,15 @@ export class BlacksmithWindowQuery extends FormApplication {
             return;
         }
     
-        tokensContainer.innerHTML = ''; // Clear existing tokens
-        
-        // Fetch tokens from canvas
-        const allTokens = canvas.tokens.placeables;
-        const selectedTokens = canvas.tokens.controlled;
-        
-        // Use selected tokens if any, otherwise use all tokens
-        let tokens = selectedTokens.length >= 1 ? selectedTokens : allTokens;
+        // Use provided tokens if available, otherwise get from canvas
+        let tokens;
+        if (providedTokens) {
+            tokens = providedTokens;
+        } else {
+            const allTokens = canvas.tokens.placeables;
+            const selectedTokens = canvas.tokens.controlled;
+            tokens = selectedTokens.length >= 1 ? selectedTokens : allTokens;
+        }
         
         // Check if Item Piles module is active
         const isItemPilesActive = game.modules.get("item-piles")?.active;
@@ -953,12 +922,24 @@ export class BlacksmithWindowQuery extends FormApplication {
         postConsoleAndNotification(`Filtered ${type} tokens:`, tokens, false, true, false);
     
         if (tokens.length === 0) {
-            tokensContainer.innerHTML = `<p>No ${type} tokens found on the canvas.</p>`;
+            if (!tokensContainer.hasChildNodes()) {
+                tokensContainer.innerHTML = `<p>No ${type} tokens found on the canvas.</p>`;
+            }
             return;
         }
+
+        // Get existing token UUIDs in the container
+        const existingUUIDs = new Set(Array.from(tokensContainer.querySelectorAll('.player-card'))
+            .map(card => card.dataset.tokenUuid)
+            .filter(uuid => uuid)); // Filter out any undefined/null values
     
-        // Generate HTML for each token
+        // Generate HTML for each new token
         tokens.forEach(token => {
+            // Skip if token is already in the container
+            if (existingUUIDs.has(token.document.uuid)) {
+                return;
+            }
+
             if (!foundry.utils.hasProperty(token.actor, "system")) return;
             
             const actorData = token.actor.system;
@@ -1026,22 +1007,21 @@ export class BlacksmithWindowQuery extends FormApplication {
                 tokensContainer.insertAdjacentHTML('beforeend', tokenHTML);
             } else if (type === 'npc') {
                 // For NPCs (non-hostile)
-                //let cr = actorData.details?.cr || 'Unknown';
                 const npcType = actorData.details?.type?.value || 'Unknown';
                 const uuid = token.document.uuid || 'UUID Unknown';
-                const strFormattedUUID = `@UUID[Actor."${uuid}"]{${strName}}`;
 
                 // Call the function to calculate the NPC CR
                 let cr = calculateNPCCR(token.actor);
             
-                // type = 'NPC';
-
                 detailsHTML = `
                     <div class="character-details character-rollup">CR ${cr} ${npcType}</div>    
                 `;
 
                 tokenHTML = `
-                    <div data-cr="${cr}" data-type="${type}" class="player-card ${strDispositionClass} ${hpDyingClass}">
+                    <div data-cr="${cr}" 
+                         data-type="${type}"
+                         data-token-uuid="${token.document.uuid}"
+                         class="player-card ${strDispositionClass} ${hpDyingClass}">
                         <img src="${img}" alt="${name}">
                         <div class="player-card-details">
                             <div class="character-name">${strName}</div>
@@ -1072,7 +1052,6 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                 const monsterType = actorData.details?.type?.value || 'Unknown';
                 const uuid = token.document.uuid || 'UUID Unknown';
-                const strFormattedUUID = `@UUID[Actor."${uuid}"]{${strName}}`;
 
                 // For debugging
                 postConsoleAndNotification("Monster CR Data:", {
@@ -1110,9 +1089,6 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
     
         // Apply the token data to the toggle buttons for level and class
-    
-        postConsoleAndNotification("REGENT BEFORE UPDATING LEVEL AND TOTAL MONSTER CR. type:", type, false, true, false);
-    
         if (type === 'player') {
             this._applyTokenDataToButtons(tokens);
             // update the level and total monster CR    
@@ -1121,7 +1097,6 @@ export class BlacksmithWindowQuery extends FormApplication {
             // HIDE THE TOKENS ADDED MESSAGE
             // Display the message and hide the rest of the content
             document.getElementById(`tokens-added-message-${id}`).style.display = 'block';
-            //document.getElementById(`encounter-details-${id}`).style.display = 'none';
         } else if (type === 'monster') {
             postConsoleAndNotification("Update Monster CR.", id, false, true, false);
             updateTotalMonsterCR(id, tokens);
