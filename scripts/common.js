@@ -135,7 +135,11 @@ export async function createJournalEntry(journalData) {
     compiledHtml = template(CARDDATA);
 
     // Check if the journal entry already exists
-    let existingEntry = game.journal.find(entry => entry.name === strSceneArea && entry.folder?.id === folder?.id);
+    let existingEntry = game.journal.find(entry => {
+        // If we have a scene area, use that, otherwise use scene title
+        const entryName = strSceneArea || strSceneTitle || "Unnamed Entry";
+        return entry.name === entryName && entry.folder?.id === folder?.id;
+    });
     if (existingEntry) {
         // Check if the page already exists
         let existingPage = existingEntry.pages.find(page => page.name === strSceneTitle);
@@ -163,7 +167,7 @@ export async function createJournalEntry(journalData) {
     } else {
         // Create a new journal entry with a page
         await JournalEntry.create({
-            name: strSceneArea,
+            name: strSceneArea || strSceneTitle || "Unnamed Entry", // Use scene title as fallback
             pages: [
                 {
                     name: strSceneTitle,

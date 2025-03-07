@@ -4,7 +4,12 @@
 
         {{!-- Folder Name --}}
         <div class="form-label">Folder Name <span class="helper">(REQUIRED: Where the narratives will be stored)</span></div>
-        <input class="form-input" type="text" id="input-FOLDERNAME-{{id}}" value="{{strDefaultNarrativeFolder}}" placeholder="">
+        {{#if (eq id "narrative")}}
+            <input class="form-input" type="text" id="input-FOLDERNAME-{{id}}" value="{{strDefaultNarrativeFolder}}" placeholder="">
+        {{else}}
+            <input class="form-input" type="text" id="input-FOLDERNAME-{{id}}" value="Random Encounters" placeholder="">
+        {{/if}}
+
 
         {{!-- Journal Page Title --}}
         <div class="form-label">Journal Page Title <span class="helper">(OPTIONAL: Will be generated if left blank)</span></div>

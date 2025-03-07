@@ -15,11 +15,11 @@
 
         {{!-- Encounter Details --}}
         <div class="form-label">Encounter Details <span class="helper">(Encounter context)</span></div>
-        <textarea id="inputNarrativeEncounterDetails-{{id}}" rows="4" placeholder="Enter encounter details">{{strNarrativeDefaultEncounterDetails}}</textarea>
+        <textarea id="inputNarrativeEncounterDetails-{{id}}" rows="4" placeholder="Specify encounter details you want included in the encounter here...">{{strNarrativeDefaultEncounterDetails}}</textarea>
         <div class="form-label">Specific Monsters <span class="helper">(Use these monsters)</span></div>
-        <textarea id="inputNarrativeEncounterMonsters-{{id}}" rows="3" placeholder="Enter encounter details">{{strNarrativeDefaultEncounterMonsters}}</textarea>
+        <textarea id="inputNarrativeEncounterMonsters-{{id}}" rows="3" placeholder="Note specific monsters you want to ensure are in the encounter here...">{{strNarrativeDefaultEncounterMonsters}}</textarea>
         <label>
-            <input type="checkbox" id="blnSpecificEncounterMonsters-{{id}}" {{#if blnSpecificEncounterMonsters}}checked{{/if}}>Only Include the monsters listed above
+            <input type="checkbox" id="blnSpecificEncounterMonsters-{{id}}" {{#if blnSpecificEncounterMonsters}}checked{{/if}}>Only include the monsters listed here and in the worksheet
         </label>
         <!-- PARTY LEVEL BADGES -->    
         <div class="encounter-info-row">

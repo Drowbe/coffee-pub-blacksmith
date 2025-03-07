@@ -1519,7 +1519,9 @@ Key encounter requirements:`;
             sceneenvironment: inputEnvironment || "",
             scenelocation: inputLocation || "",
             scenetitle: inputSceneTitle || "",
-            cardimage: optionCardImage || inputCardImage || "", // Add card image from either option or direct input
+            cardimage: optionCardImage === "custom" ? (inputCardImage || "") : 
+                      optionCardImage === "none" ? "" : 
+                      optionCardImage || "", // Add card image from either option or direct input
             cardimagetitle: optionCardImage ? "Selected preset image" : (inputCardImage ? "Custom image" : "") // Add image title
         };
 
@@ -1559,25 +1561,25 @@ Key encounter requirements:`;
         // Add the JSON format template
         strPromptEncounter += `\n\nRespond with JSON in this format:\n${BASE_PROMPT_TEMPLATE.jsonFormat}`;
 
-        strPromptEncounter += `\n- FOLDERNAME: Set to "` + inputFolderName + `". Do not add any html tags to this field.`;
-        strPromptEncounter += `\n- SCENEPARENT: Set to "` + inputSceneParent + `". Do not add any html tags to this field.`;
-        strPromptEncounter += `\n- SCENEAREA: Set to "` + inputSceneArea + `". Do not add any html tags to this field.`;
-        strPromptEncounter += `\n- ENVIRONMENT: Set to "` + inputEnvironment + `". Do not add any html tags to this field.`;
-        strPromptEncounter += `\n- LOCATION: Set to "` + inputLocation + `". Do not add any html tags to this field.`;
+        strPromptEncounter += `\n- FOLDERNAME: Set to "${inputFolderName}". Do not add any html tags to this field.`;
+        strPromptEncounter += `\n- SCENEPARENT: Set to "". Do not add any html tags to this field.`;
+        strPromptEncounter += `\n- SCENEAREA: Set to "". Do not add any html tags to this field.`;
+        strPromptEncounter += `\n- ENVIRONMENT: Set to "". Do not add any html tags to this field.`;
+        strPromptEncounter += `\n- LOCATION: Set to "". Do not add any html tags to this field.`;
         // They want an image on the card
         if (optionCardImage === "custom") {
             // They selected "Custom"
             if (inputCardImage) {
                 // They added a custom image
-                strPromptEncounter += `\n- CARDIMAGE: Set to the image path "` + inputCardImage + `". Do not add a period to the end. Do not add any html tags or image tags to this field.`;
+                strPromptEncounter += `\n- CARDIMAGE: Set to "${inputCardImage}". Do not add any html tags or image tags to this field.`;
             } else {
                 // They did not add a custom image
-                strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags or image tags to this field.`;
+                strPromptEncounter += `\n- CARDIMAGE: Set to "". Do not add any html tags or image tags to this field.`;
             }
         } else if (optionCardImage === "none") {
-            strPromptEncounter += `\n- CARDIMAGE: Set to "" and Do not add any html tags or image tags to this field.`;
+            strPromptEncounter += `\n- CARDIMAGE: Set to "". Do not add any html tags or image tags to this field.`;
         } else {
-            strPromptEncounter += `\n- CARDIMAGE: Set to the image path "` + optionCardImage + `". Do not add a period to the end. Do not add any html tags or image tags to this field.`;
+            strPromptEncounter += `\n- CARDIMAGE: Set to "${optionCardImage}". Do not add any html tags or image tags to this field.`;
         }
         strPromptEncounter += `\n- SCENETITLE: Title of the encounter you are writing the narrative for. Set it to "Encounter: ` + inputSceneTitle + `". Keep it under 5 words long. Do not add any html tags to this field.`;
         strPromptEncounter += `\n- INTRO: One or two sentences letting the GM know what is going to happen in this encounter. Do not add any html tags to this field.`;
@@ -1670,21 +1672,24 @@ Key encounter requirements:`;
         } else {
             strPromptEncounter += `\n- CARDDIALOGUE: There is no dialogue in this encounter. Set to " ". Do not add any html tags to this field.`;
         }
-        strPromptEncounter += `\n- CONTEXTADDITIONALNARRATION: Bulleted list of additional narration that the GM may share verbally with the party that answers questions they may have about the encounter. This narration adds details to the encounter shared on the card and for the encounter. Notes that relate this encounter to other scenes or contained in the additional context "${inputNarrativeDetails}" are helpful. Try to have 10 to 20 bullet points. Bold the keywords. Do not add any html tags to this field other than bullets and bolding.`;
-        strPromptEncounter += `\n- CONTEXTATMOSPHERE: Bulleted list of details about the labels sight, sounds, and smells, and whareve else makes sense for the encounter. Make these details specific to the environment of th emonster and do not mention the room or area around the monster. Break things down formatted as "label: content". Bold the labels that start the bullet points. Try to be descriptive. Do not add any html tags to this field other than bullets and bolding.`;
+        strPromptEncounter += `\n- CONTEXTADDITIONALNARRATION: Bulleted list of additional narration that the GM may share verbally with the party that answers questions they may have about the encounter. This narration adds details to the encounter shared on the card and for the encounter. Notes that relate this encounter to other scenes or contained in the additional context "${inputNarrativeDetails || ''}" are helpful. Try to have 10 to 20 bullet points. Bold the keywords. Do not add any html tags to this field other than bullets and bolding.`;
+        strPromptEncounter += `\n- CONTEXTATMOSPHERE: Bulleted list of details about the labels sight, sounds, and smells, and whatever else makes sense for the encounter. Make these details specific to the environment of the monster and do not mention the room or area around the monster. Break things down formatted as "label: content". Bold the labels that start the bullet points. Try to be descriptive. Do not add any html tags to this field other than bullets and bolding.`;
         strPromptEncounter += `\n- CONTEXTGMNOTES: Bulleted list of context or strategies the GM might want to share with the party or need to run the encounter. Include details about the difficulty of the encounter from above. Add tactics for the monsters in the encounter and how to play them.
-    
-        For each monster type in the encounter, add an all-caps lable wrapped in an h5 tag point that says "Monster: Monster Name (CR X)" where you insert the monster name and CR. Under it add the bolded title with the lables "GM Notes", "Stats and Skills", and "Special Abilities".
 
-        Under "Monster Details" add a bullet labeled "Appearance and Behavior" and then sub-bullets with the details about the Appearance and Behavior of the monster.  Add another bullet labeld "Tactics" and then sub-bullets with the details that describes the tactics for running the monster. Add another bullet labeled "Morale" and then sub-bullets with the details that describes the minset and morale of the monster. Add a bullet point labeled "How it Relates" and add details that describe how this encounter relates to other encounters or narratives in the campaign connecting this encounter to other narratives you've created. Try to have 3 to 5 of these. 
-        
-        Under "Abilities and Weaknesses" add a bullet labeled "Abilities" and then sub-bullets with details about monster's special abilities and powers (e.g. Lifedrain, etc). Add a bullet point labeled "Resistances and Immunities" and then sub-bullets with the  details that describes the monster's resistances and immunities. Add a bullet labeled "Weaknesses and Vulnerabilities" and then sub-bullets with the details about the weaknesses and vulnerabilities of the monster. 
+        For each monster type in the encounter, add an all-caps label wrapped in an h5 tag point that says "Monster: Monster Name (CR X)" where you insert the monster name and CR. Under it add the bolded title with the labels "GM Notes", "Stats and Skills", and "Special Abilities".
 
-        Under "Stats and Skills" add a bullet labeled "Hit Points" and then sub-bullets with the details about the monster's hit points. Add a bullet labeled "Armor Class" and then the monster's armor class. Add a bullet labeled "Speed" and then the monster's speed. Add a bullet labeled "STR" and then the monster's strength. Add a bullet labeled "DEX" and then the monster's dexterity. Add a bullet labeled "CON" and then the monster's constitution. Add a bullet labeled "INT" and then the monster's intelligence. Add a bullet labeled "WIS" and then the monster's wisdom. Add a bullet labeled "CHA" and then the monster's.
-        
+        Under "Monster Details" add a bullet labeled "Appearance and Behavior" and then sub-bullets with the details about the Appearance and Behavior of the monster. Add another bullet labeled "Tactics" and then sub-bullets with the details that describes the tactics for running the monster. Add another bullet labeled "Morale" and then sub-bullets with the details that describes the mindset and morale of the monster. Add a bullet point labeled "How it Relates" and add details that describe how this encounter relates to other encounters or narratives in the campaign connecting this encounter to other narratives you've created. Try to have 3 to 5 of these.
+
+        Under "Abilities and Weaknesses" add a bullet labeled "Abilities" and then sub-bullets with details about monster's special abilities and powers (e.g. Lifedrain, etc). Add a bullet point labeled "Resistances and Immunities" and then sub-bullets with the details that describes the monster's resistances and immunities. Add a bullet labeled "Weaknesses and Vulnerabilities" and then sub-bullets with the details about the weaknesses and vulnerabilities of the monster.
+
+        Under "Stats and Skills" add a bullet labeled "Hit Points" and then sub-bullets with the details about the monster's hit points. Add a bullet labeled "Armor Class" and then the monster's armor class. Add a bullet labeled "Speed" and then the monster's speed. Add a bullet labeled "STR" and then the monster's strength. Add a bullet labeled "DEX" and then the monster's dexterity. Add a bullet labeled "CON" and then the monster's constitution. Add a bullet labeled "INT" and then the monster's intelligence. Add a bullet labeled "WIS" and then the monster's wisdom. Add a bullet labeled "CHA" and then the monster's charisma.
+
         Bold the keywords and labels. Do not add any html tags to this field other than bullets and bolding.`;
-        
-        strPromptEncounter += `\n- Be mindful of including these required details and notes as appropriate for all of the above sections: "${inputNarrativeDetails}". This is the additional context that will help you write the narrative.`;
+
+        // Be mindful of including these required details and notes as appropriate for all of the above sections
+        if (inputNarrativeDetails) {
+            strPromptEncounter += `\n\nBe mindful of including these required details and notes as appropriate for all of the above sections: "${inputNarrativeDetails}". This is the additional context that will help you write the narrative.`;
+        }
         strPromptEncounter += `\n- You will  take the above context and deliver it in the form JSON against this template replacing the all-caps words in the JSON that match the all-caps words above with the content you generated. All of the content should be plain text unless you were told to build a bulleted list, in which case you should generate the html in the form of <ul><li>content</li></ul>. Do not add a period to the end of any content you generate with HTML. Make sure you don't have double-periods in the content. When generating the text for the JSON, make sure it is JSON-friendly and escape html elements if needed. If you use quote marks in the html,  escape the quote marks so they do not break the json. Do not add any html tags unless you were told to do so. Here is the JSON template you should use:`;
         strPromptEncounter += `\n{`;
         strPromptEncounter += `\n"journaltype": "JOURNALTYPE",
@@ -1739,7 +1744,7 @@ Key encounter requirements:`;
         } else if (optionCardImage === "none") {
             strPromptNarration += `\n- CARDIMAGE: ""`;
         } else {
-            strPromptNarration += `\n- CARDIMAGE: "${optionCardImage}"`;
+            strPromptNarration += `\n- CARDIMAGE: "${optionCardImage || ''}"`;
         }
 
         // Scene details with emphasis on rich description

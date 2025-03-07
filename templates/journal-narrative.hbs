@@ -1,46 +1,84 @@
-<h5>{{strSceneLocation}} • {{strSceneParent}} • {{strSceneArea}} ({{strSceneEnvironment}}) • {{strSceneTitle}}</h5>
+{{#if (and 
+    strSceneLocation (ne strSceneLocation "") 
+    strSceneParent (ne strSceneParent "") 
+    strSceneArea (ne strSceneArea "") 
+    strSceneEnvironment (ne strSceneEnvironment "") 
+    strSceneTitle (ne strSceneTitle ""))}}
+<h5>
+    {{#if (and strSceneLocation (ne strSceneLocation ""))}}{{strSceneLocation}}{{/if}}
+    {{#if (and strSceneParent (ne strSceneParent ""))}} • {{strSceneParent}}{{/if}}
+    {{#if (and strSceneArea (ne strSceneArea ""))}} • {{strSceneArea}}{{/if}}
+    {{#if (and strSceneEnvironment (ne strSceneEnvironment ""))}} ({{strSceneEnvironment}}){{/if}}
+    {{#if (and strSceneTitle (ne strSceneTitle ""))}} • {{strSceneTitle}}{{/if}}
+</h5>
+{{/if}}
+
 <h2>Preparation</h2>
-{{#if strPrepEncounter}}
+{{#if (and strPrepEncounter (ne strPrepEncounter ""))}}
     <h4>Encounter Logistics</h4>
     <h5>Monsters and NPCs</h5>
     {{{strPrepEncounter}}}
+    {{#if (and strPrepEncounterDetails (ne strPrepEncounterDetails ""))}}
     <h5>Encounter Details</h5>
     {{{strPrepEncounterDetails}}}
+    {{/if}}
 {{/if}}
-{{#if strPrepRewards}}
+
+{{#if (and strPrepRewards (ne strPrepRewards "") (ne strPrepRewards "<ul>None</ul>"))}}
     <h4>Rewards and Treasure</h4>
     {{{strPrepRewards}}}
 {{/if}}
-{{#if strPrepSetup}}
+
+{{#if (and strPrepSetup (ne strPrepSetup ""))}}
     <h4>Summary and Setup</h4>
     {{{strPrepSetup}}}
 {{/if}}
+
+{{#if (and strSceneTitle (ne strSceneTitle ""))}}
 <h2>{{strSceneTitle}}</h2>
+{{/if}}
+
+{{#if (and strContextIntro (ne strContextIntro ""))}}
 {{strContextIntro}}
-{{#if (or strCardDescriptionPrimary strCardImage)}}
+{{/if}}
+
+{{#if (or 
+    (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))
+    (and strCardImage (ne strCardImage "")))}}
     <blockquote>
+        {{#if (and strCardTitle (ne strCardTitle ""))}}
         <h4>{{strCardTitle}}</h4>
+        {{/if}}
+        {{#if (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))}}
         <p>{{strCardDescriptionPrimary}}</p>
-        {{#if strCardImage}}
+        {{/if}}
+        {{#if (and strCardImage (ne strCardImage ""))}}
+            {{#if (and strCardImageTitle (ne strCardImageTitle ""))}}
             <h5>{{strCardImageTitle}}</h5>
+            {{/if}}
             <img src="{{{strCardImage}}}">
             <hr>
         {{/if}}
+        {{#if (and strCardDescriptionSecondary (ne strCardDescriptionSecondary ""))}}
         <p>{{strCardDescriptionSecondary}}</p>
-        {{~#if strCardDialogue~}}
+        {{/if}}
+        {{#if (and strCardDialogue (ne strCardDialogue "") (ne strCardDialogue " "))}}
             {{{strCardDialogue}}}
-        {{~/if~}}
+        {{/if}}
     </blockquote>
- {{/if}}
-{{#if strContextAdditionalNarration}}
+{{/if}}
+
+{{#if (and strContextAdditionalNarration (ne strContextAdditionalNarration ""))}}
     <h4>Extended Narrative</h4>
     {{{strContextAdditionalNarration}}}
 {{/if}}
-{{#if strContextAtmosphere}}
+
+{{#if (and strContextAtmosphere (ne strContextAtmosphere ""))}}
     <h4>Atmosphere and Environments</h4>
     {{{strContextAtmosphere}}}
 {{/if}}
-{{#if strContextGMNotes}}
+
+{{#if (and strContextGMNotes (ne strContextGMNotes ""))}}
     <h4>Notes and Strategies</h4>
     {{{strContextGMNotes}}}
 {{/if}}
