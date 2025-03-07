@@ -220,10 +220,12 @@ export async function buildCompendiumLinkActor(monsterData) {
         const countMatch = monsterData.match(/\((\d+)\)[^(]*$/);
         const count = countMatch ? countMatch[1] : null;
         
-        // Clean up the monster name by removing only parentheses containing numbers
+        // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
         const originalName = monsterData;
-        // This regex matches parentheses and their contents only if they contain numbers or symbols
-        const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)/g, '').trim();
+        // This regex matches:
+        // 1. Parentheses containing numbers or symbols: \s*\([^a-zA-Z]*[0-9]+[^)]*\)
+        // 2. Parentheses containing CR followed by any number/fraction: \s*\(CR\s*[0-9/]+\)
+        const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
         
         let strActorID;
         let strCompendiumLink = "";
