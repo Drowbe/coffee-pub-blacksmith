@@ -1505,6 +1505,11 @@ export class BlacksmithWindowQuery extends FormApplication {
 
 ${BASE_PROMPT_TEMPLATE.narrative}
 
+IMPORTANT:
+- Always generate a scene title if one is not provided
+- Never leave required fields empty (especially scene title)
+- Scene titles should be evocative and descriptive
+
 Key encounter requirements:`;
 
         if (inputNarrativeEncounterDetails) {
@@ -1519,7 +1524,7 @@ Key encounter requirements:`;
             scenearea: inputSceneArea || "",
             sceneenvironment: inputEnvironment || "",
             scenelocation: inputLocation || "",
-            scenetitle: inputSceneTitle || "",
+            scenetitle: inputSceneTitle || "Generate an evocative encounter title (required, 3-5 words)", // Modified this line
             cardimage: optionCardImage === "custom" ? (inputCardImage || "") : 
                       optionCardImage === "none" ? "" : 
                       optionCardImage || "", // Add card image from either option or direct input
@@ -1729,6 +1734,8 @@ Key encounter requirements:`;
         - Connect to the broader campaign story
         - Bold all important keywords and labels in bullet lists
         - Format bullet lists as <ul><li>content</li></ul>
+        - ALWAYS generate a scene title if one is not provided
+        - Never leave required fields empty (especially scene title)
 
         Generate content for these fields, maintaining D&D5E authenticity:`;
 
@@ -1739,7 +1746,8 @@ Key encounter requirements:`;
         - SCENEPARENT: "${inputSceneParent || ''}"
         - SCENEAREA: "${inputSceneArea || ''}"
         - ENVIRONMENT: "${inputEnvironment || ''}"
-        - LOCATION: "${inputLocation || ''}"`;
+        - LOCATION: "${inputLocation || ''}"
+        - SCENETITLE: ${inputSceneTitle ? `"${inputSceneTitle}"` : "Generate an evocative scene title (required, 3-5 words)"}`; // Modified this line
 
         // Card image handling
         if (optionCardImage === "custom") {
