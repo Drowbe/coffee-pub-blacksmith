@@ -1014,7 +1014,13 @@ export class BlacksmithWindowQuery extends FormApplication {
                 `;
 
                 tokenHTML = `
-                    <div data-cr="${cr}" data-type="${type}" class="player-card ${strDispositionClass} ${hpDyingClass}">
+                    <div data-cr="${cr}" 
+                         data-type="${type}" 
+                         data-token-uuid="${token.document.uuid}"
+                         data-actor-uuid="${token.actor.uuid}"
+                         data-actor-name="${token.actor.name}"
+                         data-display-name="${strName}"
+                         class="player-card ${strDispositionClass} ${hpDyingClass}">
                         <img src="${img}" alt="${name}">
                         <div class="player-card-details">
                             <div class="character-name">${strName}</div>
@@ -2421,11 +2427,23 @@ function getWorksheetMonsters(id) {
     monsterCards.forEach(card => {
         const name = foundry.utils.getProperty(card.querySelector('.character-name'), "textContent")?.trim();
         const details = foundry.utils.getProperty(card.querySelector('.character-rollup'), "textContent")?.trim();
+        const tokenUuid = card.dataset.tokenUuid;
+        const actorUuid = card.dataset.actorUuid;
+        const actorName = card.dataset.actorName;
+        const displayName = card.dataset.displayName;
+        
         if (name && details) {
             // Extract CR from details (format: "CR X Type")
             const crMatch = details.match(/CR\s+([0-9/]+)/);
             const cr = crMatch ? crMatch[1] : 'Unknown';
-            monsters.push({ name, cr });
+            monsters.push({ 
+                name: displayName,           // The display name (e.g., "Bob the Smasher")
+                actorName: actorName,        // The underlying actor name (e.g., "Goblin")
+                cr,
+                tokenUuid,                   // For direct token reference
+                actorUuid,                   // For actor reference
+                details: details             // Full details string
+            });
         }
     });
 

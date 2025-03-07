@@ -209,39 +209,50 @@ export async function createHTMLList(monsterString) {
 // ** UTILITY Build Actor Compendium Links
 // ***************************************************
 
-export async function buildCompendiumLinkActor(actorName) {
-    var strCompendiumName = "ddb-shared-compendium.ddb-monsters"; 
-    var strActorName = actorName;
-    let strActorID;
-    var strCompendiumLink = "";
+export async function buildCompendiumLinkActor(monsterData) {
+    // If we're passed a string, use the legacy behavior
+    if (typeof monsterData === 'string') {
+        var strCompendiumName = "ddb-shared-compendium.ddb-monsters"; 
+        var strActorName = monsterData;
+        let strActorID;
+        var strCompendiumLink = "";
 
-    let foundActor;
-    try {
-        foundActor = game.actors.getName(strActorName);
-    } catch (error) {
-        foundActor = null;
-    }
+        let foundActor;
+        try {
+            foundActor = game.actors.getName(strActorName);
+        } catch (error) {
+            foundActor = null;
+        }
 
-    if (foundActor) {
-        strActorID = foundActor.system._id;
-        strCompendiumLink = "@UUID[Actor."+strActorID+"]{" + strActorName + "}";
-    } else {
-        // Actor not found locally, we will now look into the compendium
-        let compendium = game.packs.get(strCompendiumName); 
-        if (!compendium){
-            strCompendiumLink = strActorName + "(Not Found locally or in the compendium.)";
-            return strCompendiumLink;
+        if (foundActor) {
+            strActorID = foundActor.system._id;
+            strCompendiumLink = "@UUID[Actor."+strActorID+"]{" + strActorName + "}";
         } else {
-            let index = await compendium.getIndex();
-            let entry = index.find(e => e.name === strActorName); 
-            if (!entry){
-                strCompendiumLink = strActorName + " (Link Manually)";
+            // Actor not found locally, we will now look into the compendium
+            let compendium = game.packs.get(strCompendiumName); 
+            if (!compendium){
+                strCompendiumLink = strActorName + "(Not Found locally or in the compendium.)";
                 return strCompendiumLink;
             } else {
-                strActorID = entry._id;
-                strCompendiumLink = "@UUID[Compendium." + strCompendiumName + ".Actor." + strActorID +"]{" + strActorName + "}";
+                let index = await compendium.getIndex();
+                let entry = index.find(e => e.name === strActorName); 
+                if (!entry){
+                    strCompendiumLink = strActorName + " (Link Manually)";
+                    return strCompendiumLink;
+                } else {
+                    strActorID = entry._id;
+                    strCompendiumLink = "@UUID[Compendium." + strCompendiumName + ".Actor." + strActorID +"]{" + strActorName + "}";
+                }
             }
         }
+        return strCompendiumLink;
     }
-    return strCompendiumLink;
+
+    // If we have UUID data, use that
+    if (monsterData.actorUuid) {
+        return `@UUID[${monsterData.actorUuid}]{${monsterData.name}}`;
+    }
+
+    // If we have the actor name but no UUID, fall back to the legacy behavior
+    return buildCompendiumLinkActor(monsterData.actorName || monsterData.name);
 }
