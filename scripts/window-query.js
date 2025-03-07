@@ -1548,7 +1548,7 @@ Key encounter requirements:`;
             // No specific monsters provided, but check worksheet
             const worksheetMonsters = getWorksheetMonsters(id);
             if (worksheetMonsters.length > 0) {
-                const worksheetMonstersList = worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ');
+                const worksheetMonstersList = worksheetMonsters.map(m => `${m.actorName} (CR ${m.cr})`).join(', ');
                 if (targetCRValue > 0) {
                     strPromptEncounter += `
             - PREPENCOUNTER: Create a tactically interesting encounter (comma-separated list)
@@ -1689,8 +1689,7 @@ Key encounter requirements:`;
 
             // Get monsters from the worksheet first
             const worksheetMonsters = getWorksheetMonsters(id);
-            const worksheetMonstersList = worksheetMonsters.length ? 
-                worksheetMonsters.map(m => `${m.name} (CR ${m.cr})`).join(', ') : '';
+            const worksheetMonstersList = worksheetMonsters.map(m => `${m.actorName} (CR ${m.cr})`).join(', ');
 
             if (inputNarrativeEncounterMonsters) {
                 if (blnSpecificEncounterMonsters) {

@@ -1415,6 +1415,45 @@ export const registerSettings = async () => {
 		default: ''
 	});
 
+
+    // -- Search World Actors First --
+    game.settings.register(MODULE_ID, 'searchWorldActorsFirst', {
+        name: 'Search World Actors First',
+        hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+        type: Boolean,
+        config: true,
+        scope: 'world',
+        default: false,
+    });
+
+	// -- Default PRIMARY Monster Compendium --
+	game.settings.register(MODULE_ID,'monsterCompendiumPrimary', {
+		name: MODULE_ID + '.monsterCompendiumPrimary-Label',
+		hint: MODULE_ID + '.monsterCompendiumPrimary-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose the Primary Monster Compendium --',
+		choices: COFFEEPUB.arrCOMPENDIUMCHOICES
+	});
+
+	// -- Default SECONDARY Monster Compendium --
+	game.settings.register(MODULE_ID,'monsterCompendiumSecondary', {
+		name: MODULE_ID + '.monsterCompendiumSecondary-Label',
+		hint: MODULE_ID + '.monsterCompendiumSecondary-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose the Secondary Monster Compendium --',
+		choices: COFFEEPUB.arrCOMPENDIUMCHOICES
+	});
+
+
+
+
+
+
+
 	// -- Include Treasure by Default --
 	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeTreasure', {
 		name: MODULE_ID + '.narrativeDefaultIncludeTreasure-Label',
