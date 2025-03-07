@@ -549,7 +549,7 @@ input::placeholder {
 } 
 
 /* Container for the player cards */
-.tokens-container, .monsters-container, .npc-container {
+.tokens-container, .monsters-container, .npc-container, .encounters-container {
     display: flex;
     flex-wrap: wrap; /* Allow wrapping of items */
     gap: 10px; /* Space between cards */
@@ -622,6 +622,8 @@ input::placeholder {
     margin-top: 0px;
     width: calc(50% - 5px); /* Two columns with space between */
     box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    flex-grow: 0; /* Prevent cards from growing */
+    flex-shrink: 0; /* Prevent cards from shrinking */
 }
 
 .player-card img {
@@ -2033,36 +2035,6 @@ div#blacksmith-message-content h5 {
 	border: 1px solid var(--color-border-highlight-alt);
 	border-bottom: 1px solid var(--color-border-highlight);
 	box-shadow: 0 0 10px var(--color-shadow-highlight);
-}
-
-
-
-/* BUTTON - 1x1 */
-#blacksmith-button-wrapper-bar .blacksmith-button-1x1 {
-	width: 38px;
-	height: 38px;
-	min-height: 38px;
-	min-width: 38px;
-	font-size: 23px;
-	line-height: 38px;
-}
-/* BUTTON - 2x2 */
-#blacksmith-button-wrapper-bar .blacksmith-button-2x2 {
-	width: 72px;
-	height: 72px;
-	min-height: 72px;
-	min-width: 72px;
-	font-size: 48px;
-	line-height: 72px;
-}
-/* BUTTON - 4x4 */
-#blacksmith-button-wrapper-bar .blacksmith-button-4x4 {
-	width: 144px;
-	height: 144px;
-	min-height: 144px;
-	min-width: 144px;
-	font-size: 96px;
-	line-height: 144px;
 }
 
 

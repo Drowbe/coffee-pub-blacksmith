@@ -1,4 +1,3 @@
-
 <script>
 
 // ========= BEGIN SCRIPTS ===============================
@@ -74,6 +73,12 @@ function updateTotalNPCCR(id, npcTokens = null) {
 // UPDATE TOTAL MONSTER CR
 
 function updateTotalMonsterCR(id, monsterTokens = null) {
+    // Get the monsters container first
+    const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id}`);
+    if (!monstersContainer) {
+        console.log('BLACKSMITH | Regent: No monsters container found, skipping CR update');
+        return;
+    }
 
     let totalCR = 0;
     if (monsterTokens) {
@@ -89,7 +94,7 @@ function updateTotalMonsterCR(id, monsterTokens = null) {
             }
         });
     } else {
-        const monsterElements = document.querySelectorAll(`#workspace-section-monsters-content-${id} .player-card`);
+        const monsterElements = monstersContainer.querySelectorAll('.player-card');
         monsterElements.forEach(element => {
             if (element.getAttribute('data-type') === "NPC") {
                 return;
@@ -102,7 +107,11 @@ function updateTotalMonsterCR(id, monsterTokens = null) {
             }
         });
     }
-    document.getElementById(`monsterCRValue-${id}`).innerText = totalCR.toFixed(2);
+
+    const crValueElement = document.getElementById(`monsterCRValue-${id}`);
+    if (crValueElement) {
+        crValueElement.innerText = totalCR.toFixed(2);
+    }
 }
 
 
@@ -575,22 +584,23 @@ function removeCard(event, button, id) {
 }
 
 // UPDATE ALL COUNTS
-function updateAllCounts(id) {
-    console.log("IN updateAllCounts id:", id);
-    // THE ORDER OF THESE MATTER
-    // NPC must be after PLAYER since it uses PLAYER values for its calcs
-    // Monster Updates
-    updateTotalMonsterCR(id); // Ensure total monster CR is updated
+function updateAllCounts(id, cardType = null) {
+    console.log("BLACKSMITH | Regent: IN updateAllCounts id:", id, "cardType:", cardType);
+    
+    // Only update monster CR if we're not dealing with encounters
+    if (cardType !== 'encounter') {
+        // Monster Updates
+        updateTotalMonsterCR(id); // Ensure total monster CR is updated
+    }
+    
     // Player Updates
     updateTotalPlayerCounts(id); // gets the total level and class values from cards
     // NPC Updates
     updateTotalNPCCR(id); // Ensure total NPC CR is updated
-    // Hero CR Updates
-    //updateTotalHeroCR(id); // Ensure total Hero CR is updated
     // Total Updates
     updateEncounterDetails(id); // updates totals and does calcs.
     // updateSlider(id, sliderValue = null)
-    updateSlider(id) 
+    updateSlider(id);
 }
 
 // ===== ENCOUNTER SLIDER =====

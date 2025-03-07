@@ -304,7 +304,7 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] .notes {
 	display: none;	
 }
 
-.monster-drop-zone {
+.panel-drop-zone {
     border: 2px dashed #666;
     border-radius: 5px;
     padding: 20px;
@@ -314,12 +314,12 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] .notes {
     transition: all 0.3s ease;
 }
 
-.monster-drop-zone.dragover {
+.panel-drop-zone.dragover {
     background-color: rgba(0, 100, 0, 0.2);
     border-color: #0f0;
 }
 
-.monster-drop-zone .drop-zone-content {
+.panel-drop-zone .drop-zone-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -327,7 +327,7 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] .notes {
     color: #666;
 }
 
-.monster-drop-zone .drop-zone-content i {
+.panel-drop-zone .drop-zone-content i {
     font-size: 24px;
 }
 

@@ -624,8 +624,8 @@ export class BlacksmithWindowQuery extends FormApplication {
             });
         });
 
-        // Add drag and drop event listeners for monster drop zones
-        html.find('.monster-drop-zone').each((index, dropZone) => {
+        // Add drag and drop event listeners for panel drop zones
+        html.find('.panel-drop-zone').each((index, dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -640,47 +640,137 @@ export class BlacksmithWindowQuery extends FormApplication {
                 dropZone.classList.remove('dragover');
 
                 try {
-                    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
-                    if (data.type === 'Actor') {
-                        const id = dropZone.id.split('-').pop();
-                        const actor = await fromUuid(data.uuid);
-                        if (actor) {
-                            // Create a temporary token-like structure
-                            const tokenData = {
-                                actor: actor,
-                                name: actor.name,
-                                document: {
-                                    disposition: -1, // Hostile by default for monsters
-                                    texture: { src: actor.img },
-                                    effects: [],
-                                    uuid: data.uuid
+                    console.log('BLACKSMITH | Regent: Drop event triggered on zone:', dropZone.id);
+                    const rawData = event.dataTransfer.getData('text/plain');
+                    console.log('BLACKSMITH | Regent: Raw drop data:', rawData);
+                    
+                    const data = JSON.parse(rawData);
+                    console.log('BLACKSMITH | Regent: Parsed drop data:', data);
+                    
+                    const id = dropZone.id.split('-').pop();
+                    console.log('BLACKSMITH | Regent: Zone ID:', id);
+
+                    // Handle different drop types based on the zone
+                    if (dropZone.id.includes('encounters-drop-zone')) {
+                        console.log('BLACKSMITH | Regent: Processing drop for encounters zone');
+                        
+                        // Handle both JournalEntry and JournalEntryPage drops
+                        if (data.type === 'JournalEntry' || data.type === 'JournalEntryPage') {
+                            let journal, page;
+                            
+                            if (data.type === 'JournalEntryPage') {
+                                console.log('BLACKSMITH | Regent: Processing JournalEntryPage:', data.uuid);
+                                page = await fromUuid(data.uuid);
+                                if (!page) {
+                                    console.warn('BLACKSMITH | Regent: Page not found for UUID:', data.uuid);
+                                    return;
                                 }
-                            };
+                                journal = page.parent;
+                                await addEncounterToNarrative(id, journal, page);
+                            } else {
+                                console.log('BLACKSMITH | Regent: Processing JournalEntry:', data.uuid);
+                                journal = await fromUuid(data.uuid);
+                                if (!journal) {
+                                    console.warn('BLACKSMITH | Regent: Journal not found for UUID:', data.uuid);
+                                    return;
+                                }
 
-                            // Pass a single token in an array
-                            await this.addTokensToContainer(id, 'monster', [tokenData]);
+                                // If a specific page was dropped
+                                if (data.pageId) {
+                                    console.log('BLACKSMITH | Regent: Processing specific page:', data.pageId);
+                                    page = journal.pages.get(data.pageId);
+                                    if (page) {
+                                        await addEncounterToNarrative(id, journal, page);
+                                    }
+                                } else {
+                                    // If the whole journal was dropped, show a dialog to select a page
+                                    const pages = journal.pages.contents;
+                                    console.log('BLACKSMITH | Regent: Journal pages:', pages.length);
+                                    
+                                    if (pages.length === 0) {
+                                        ui.notifications.warn("This journal has no pages.");
+                                        return;
+                                    }
+                                    
+                                    if (pages.length === 1) {
+                                        console.log('BLACKSMITH | Regent: Single page journal, using first page');
+                                        await addEncounterToNarrative(id, journal, pages[0]);
+                                    } else {
+                                        console.log('BLACKSMITH | Regent: Multiple pages, showing selection dialog');
+                                        // Create dialog for page selection
+                                        const dialog = new Dialog({
+                                            title: "Select Encounter Page",
+                                            content: `<div><select id="page-select" style="width: 100%;">
+                                                ${pages.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                                            </select></div>`,
+                                            buttons: {
+                                                select: {
+                                                    label: "Select",
+                                                    callback: async (html) => {
+                                                        const pageId = html.find('#page-select').val();
+                                                        console.log('BLACKSMITH | Regent: Selected page:', pageId);
+                                                        const page = journal.pages.get(pageId);
+                                                        if (page) {
+                                                            await addEncounterToNarrative(id, journal, page);
+                                                        }
+                                                    }
+                                                },
+                                                cancel: {
+                                                    label: "Cancel"
+                                                }
+                                            },
+                                            default: "select"
+                                        });
+                                        dialog.render(true);
+                                    }
+                                }
+                            }
+                        } else {
+                            console.warn('BLACKSMITH | Regent: Dropped item is not a JournalEntry or JournalEntryPage:', data.type);
+                        }
+                    } else if (dropZone.id.includes('monster-drop-zone')) {
+                        // Handle actor drops for monsters
+                        if (data.type === 'Actor') {
+                            const actor = await fromUuid(data.uuid);
+                            if (actor) {
+                                // Create a temporary token-like structure
+                                const tokenData = {
+                                    actor: actor,
+                                    name: actor.name,
+                                    document: {
+                                        disposition: -1, // Hostile by default for monsters
+                                        texture: { src: actor.img },
+                                        effects: [],
+                                        uuid: data.uuid
+                                    }
+                                };
 
-                            // Update the monster CR calculations
-                            const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
-                            if (monstersContainer) {
-                                const monsterCards = Array.from(monstersContainer.querySelectorAll('.player-card'));
-                                const tokens = monsterCards.map(card => {
-                                    return {
-                                        actor: {
-                                            system: {
-                                                details: {
-                                                    cr: card.dataset.cr
+                                // Pass a single token in an array
+                                await this.addTokensToContainer(id, 'monster', [tokenData]);
+
+                                // Update the monster CR calculations
+                                const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
+                                if (monstersContainer) {
+                                    const monsterCards = Array.from(monstersContainer.querySelectorAll('.player-card'));
+                                    const tokens = monsterCards.map(card => {
+                                        return {
+                                            actor: {
+                                                system: {
+                                                    details: {
+                                                        cr: card.dataset.cr
+                                                    }
                                                 }
                                             }
-                                        }
-                                    };
-                                });
-                                updateTotalMonsterCR(id, tokens);
+                                        };
+                                    });
+                                    updateTotalMonsterCR(id, tokens);
+                                }
                             }
                         }
                     }
                 } catch (error) {
-                    console.error('BLACKSMITH | REGENT: Error processing dropped actor:', error);
+                    console.error('Error processing dropped item:', error);
+                    console.error('Error stack:', error.stack);
                 }
             });
         });
@@ -723,6 +813,76 @@ export class BlacksmithWindowQuery extends FormApplication {
             saveNarrativeCookies(this.workspaceId);
         });
 
+        // Add event listener for encounter journal drops
+        html.find('.encounters-drop-zone').each((index, dropZone) => {
+            dropZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                dropZone.classList.remove('dragover');
+
+                try {
+                    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+                    if (data.type === 'JournalEntry' && data.uuid) {
+                        const id = dropZone.id.split('-').pop();
+                        const journal = await fromUuid(data.uuid);
+                        
+                        // If a specific page was dropped
+                        if (data.pageId) {
+                            const page = journal.pages.get(data.pageId);
+                            if (page) {
+                                await addEncounterToNarrative(id, journal, page);
+                            }
+                        } else {
+                            // If the whole journal was dropped, show a dialog to select a page
+                            const pages = journal.pages.contents;
+                            if (pages.length === 0) {
+                                ui.notifications.warn("This journal has no pages.");
+                                return;
+                            }
+                            
+                            if (pages.length === 1) {
+                                await addEncounterToNarrative(id, journal, pages[0]);
+                            } else {
+                                // Create dialog for page selection
+                                const dialog = new Dialog({
+                                    title: "Select Encounter Page",
+                                    content: `<div><select id="page-select" style="width: 100%;">
+                                        ${pages.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                                    </select></div>`,
+                                    buttons: {
+                                        select: {
+                                            label: "Select",
+                                            callback: async (html) => {
+                                                const pageId = html.find('#page-select').val();
+                                                const page = journal.pages.get(pageId);
+                                                if (page) {
+                                                    await addEncounterToNarrative(id, journal, page);
+                                                }
+                                            }
+                                        },
+                                        cancel: {
+                                            label: "Cancel"
+                                        }
+                                    },
+                                    default: "select"
+                                });
+                                dialog.render(true);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error processing dropped journal:', error);
+                }
+            });
+        });
 
     }
 
@@ -1885,7 +2045,33 @@ Key encounter requirements:`;
           • Include encounter difficulty and tactics
           • Connect to other narrative elements`;
 
-        // JSON template remains the same for compatibility
+        // In the narrative prompt construction section, add:
+        strPromptNarration += `\n- LINKEDENCOUNTERS: Add a section for linked encounters:`;
+
+        // Get encounters data from the hidden input
+        const encountersInput = form.querySelector('#input-encounters-data');
+        if (encountersInput && encountersInput.value) {
+            try {
+                const encountersData = JSON.parse(encountersInput.value);
+                if (encountersData.length > 0) {
+                    strPromptNarration += `\nInclude these encounters in the narrative:`;
+                    encountersData.forEach(encounter => {
+                        strPromptNarration += `\n- ${encounter.name}:`;
+                        strPromptNarration += `\n  Synopsis: ${encounter.synopsis}`;
+                        if (encounter.keyMoments.length > 0) {
+                            strPromptNarration += `\n  Key Moments:`;
+                            encounter.keyMoments.forEach(moment => {
+                                strPromptNarration += `\n    • ${moment}`;
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing encounters data:', e);
+            }
+        }
+
+        // Update the JSON template to include linkedEncounters
         strPromptNarration += `\n\nProvide the response in this JSON format:
         {
             "journaltype": "JOURNALTYPE",
@@ -1908,7 +2094,15 @@ Key encounter requirements:`;
             "carddialogue": "CARDDIALOGUE",
             "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
             "contextatmosphere": "CONTEXTATMOSPHERE",
-            "contextgmnotes": "CONTEXTGMNOTES"
+            "contextgmnotes": "CONTEXTGMNOTES",
+            "linkedEncounters": [
+                {
+                    "uuid": "JOURNAL_UUID",
+                    "name": "ENCOUNTER_NAME",
+                    "synopsis": "ENCOUNTER_SYNOPSIS",
+                    "keyMoments": ["MOMENT1", "MOMENT2", ...]
+                }
+            ]
         }`;
 
         // ==============================================================
@@ -2539,4 +2733,146 @@ function getWorksheetMonsters(id) {
 
     return monsters;
 }
+
+// Add after other utility functions, before the BlacksmithWindowQuery class
+async function addEncounterToNarrative(id, journalEntry, page) {
+    const encountersContainer = document.querySelector(`#workspace-section-encounters-${id} .encounters-container`);
+    if (!encountersContainer) return;
+
+    // Get existing encounter UUIDs to prevent duplicates
+    const existingUUIDs = new Set(Array.from(encountersContainer.querySelectorAll('.player-card'))
+        .map(card => card.dataset.pageUuid)
+        .filter(uuid => uuid));
+
+    // Check for duplicate
+    if (existingUUIDs.has(page.uuid)) {
+        ui.notifications.warn("This encounter is already linked to the narrative.");
+        return;
+    }
+
+    // Parse the content to find Synopsis and Key Moments
+    const content = page.text.content;
+    const setupMatch = content.match(/<h4>Summary and Setup<\/h4>([\s\S]*?)(?=<h4>|$)/i);
+    if (!setupMatch) {
+        ui.notifications.warn("This journal page doesn't appear to be an encounter (no Summary and Setup section found).");
+        return;
+    }
+
+    const setupContent = setupMatch[1];
+    const synopsis = setupContent.match(/Synopsis:(.*?)(?=-|$)/i)?.[1]?.trim() || "";
+    const keyMomentsMatch = setupContent.match(/Key Moments:(.*?)(?=<h4>|$)/i)?.[1] || "";
+    const keyMoments = keyMomentsMatch
+        .split(/•|-/)
+        .map(moment => moment.trim())
+        .filter(moment => moment);
+
+    // Create the encounter card
+    const strName = trimString(page.name, 24);
+    const cardHtml = `
+        <div class="player-card" data-journal-uuid="${journalEntry.uuid}" data-page-uuid="${page.uuid}" data-page-name="${page.name}" data-card-type="encounter">
+            <img src="${page.src || journalEntry.thumb || 'icons/svg/book.svg'}" alt="${page.name}">
+            <div class="player-card-details">
+                <div class="character-name">${strName}</div>
+                <div class="character-details character-rollup">Encounter</div>
+                <div class="character-details character-extra">${synopsis ? `Synopsis: ${trimString(synopsis, 30)}` : 'No synopsis available'}</div>
+            </div>
+            <button type="button" class="clear-button" onclick="removeCard(event, this, '${id}')">×</button>
+        </div>
+    `;
+
+    // Add to encounters container
+    encountersContainer.insertAdjacentHTML('beforeend', cardHtml);
+
+    // Store the full encounter data in a dataset for use when generating the narrative
+    const encounterData = {
+        journalUuid: journalEntry.uuid,
+        pageUuid: page.uuid,
+        name: page.name,
+        synopsis: synopsis,
+        keyMoments: keyMoments
+    };
+    
+    // Update or create the encounters data in the form
+    updateEncountersData(id, encounterData);
+}
+
+function updateEncountersData(id, newEncounterData) {
+    const form = document.querySelector(`#blacksmith-query-workspace-narrative`);
+    if (!form) return;
+
+    // Get or create the hidden input for encounters data
+    let encountersInput = form.querySelector('#input-encounters-data');
+    if (!encountersInput) {
+        encountersInput = document.createElement('input');
+        encountersInput.type = 'hidden';
+        encountersInput.id = 'input-encounters-data';
+        form.appendChild(encountersInput);
+    }
+
+    // Get current encounters data
+    let encountersData = [];
+    try {
+        encountersData = JSON.parse(encountersInput.value || '[]');
+    } catch (e) {
+        encountersData = [];
+    }
+
+    // Add new encounter if provided
+    if (newEncounterData) {
+        // Format the encounter data to match the expected JSON structure
+        const formattedEncounter = {
+            uuid: newEncounterData.pageUuid,
+            name: newEncounterData.name,
+            synopsis: newEncounterData.synopsis,
+            keyMoments: newEncounterData.keyMoments
+        };
+        
+        // Check for duplicates before adding
+        const existingIndex = encountersData.findIndex(e => e.uuid === formattedEncounter.uuid);
+        if (existingIndex === -1) {
+            encountersData.push(formattedEncounter);
+        }
+    }
+
+    // Update the input value with the formatted data
+    encountersInput.value = JSON.stringify(encountersData);
+    
+    console.log('BLACKSMITH | Regent: Updated encounters data:', encountersData);
+}
+
+// Add this function to handle card removal
+window.removeCard = function(event, button, id) {
+    event.preventDefault();
+    const card = button.closest('.player-card');
+    if (!card) return;
+
+    // Get the card type
+    const cardType = card.dataset.cardType || 'monster'; // Default to monster for backward compatibility
+
+    // Remove the card
+    card.remove();
+
+    // Only update counts if it's NOT an encounter card
+    if (cardType !== 'encounter') {
+        // Update monster counts and CR
+        updateAllCounts(id, cardType);
+    } else {
+        // If it's an encounter, update the encounters data
+        const form = document.querySelector(`#blacksmith-query-workspace-narrative`);
+        if (form) {
+            const encountersInput = form.querySelector('#input-encounters-data');
+            if (encountersInput) {
+                try {
+                    let encountersData = JSON.parse(encountersInput.value || '[]');
+                    // Remove the encounter with matching UUID
+                    encountersData = encountersData.filter(e => e.uuid !== card.dataset.pageUuid);
+                    encountersInput.value = JSON.stringify(encountersData);
+                    console.log('BLACKSMITH | Regent: Updated encounters data after removal:', encountersData);
+                } catch (e) {
+                    console.error('BLACKSMITH | Regent: Error updating encounters data:', e);
+                }
+            }
+        }
+    }
+};
 

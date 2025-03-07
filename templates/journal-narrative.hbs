@@ -73,6 +73,28 @@
     {{{strContextAdditionalNarration}}}
 {{/if}}
 
+{{#if linkedEncounters}}
+<h4>Related Encounters</h4>
+<div class="related-encounters">
+    {{#each linkedEncounters}}
+    <div class="encounter-reference">
+        <h5>@UUID[{{this.uuid}}]{{{this.name}}}</h5>
+        {{#if this.synopsis}}
+        <p><strong>Synopsis:</strong> {{this.synopsis}}</p>
+        {{/if}}
+        {{#if this.keyMoments}}
+        <p><strong>Key Moments:</strong></p>
+        <ul>
+            {{#each this.keyMoments}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ul>
+        {{/if}}
+    </div>
+    {{/each}}
+</div>
+{{/if}}
+
 {{#if (and strContextAtmosphere (ne strContextAtmosphere ""))}}
     <h4>Atmosphere and Environments</h4>
     {{{strContextAtmosphere}}}
