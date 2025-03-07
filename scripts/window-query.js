@@ -646,6 +646,24 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                             // Pass a single token in an array
                             await this.addTokensToContainer(id, 'monster', [tokenData]);
+
+                            // Update the monster CR calculations
+                            const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
+                            if (monstersContainer) {
+                                const monsterCards = Array.from(monstersContainer.querySelectorAll('.player-card'));
+                                const tokens = monsterCards.map(card => {
+                                    return {
+                                        actor: {
+                                            system: {
+                                                details: {
+                                                    cr: card.dataset.cr
+                                                }
+                                            }
+                                        }
+                                    };
+                                });
+                                updateTotalMonsterCR(id, tokens);
+                            }
                         }
                     }
                 } catch (error) {
@@ -890,6 +908,14 @@ export class BlacksmithWindowQuery extends FormApplication {
             const allTokens = canvas.tokens.placeables;
             const selectedTokens = canvas.tokens.controlled;
             tokens = selectedTokens.length >= 1 ? selectedTokens : allTokens;
+
+            // Get existing token UUIDs in the container - ONLY for canvas tokens
+            const existingUUIDs = new Set(Array.from(tokensContainer.querySelectorAll('.player-card'))
+                .map(card => card.dataset.tokenUuid)
+                .filter(uuid => uuid)); // Filter out any undefined/null values
+
+            // Filter out duplicates only for canvas tokens
+            tokens = tokens.filter(token => !existingUUIDs.has(token.document.uuid));
         }
         
         // Check if Item Piles module is active
@@ -927,19 +953,9 @@ export class BlacksmithWindowQuery extends FormApplication {
             }
             return;
         }
-
-        // Get existing token UUIDs in the container
-        const existingUUIDs = new Set(Array.from(tokensContainer.querySelectorAll('.player-card'))
-            .map(card => card.dataset.tokenUuid)
-            .filter(uuid => uuid)); // Filter out any undefined/null values
     
         // Generate HTML for each new token
         tokens.forEach(token => {
-            // Skip if token is already in the container
-            if (existingUUIDs.has(token.document.uuid)) {
-                return;
-            }
-
             if (!foundry.utils.hasProperty(token.actor, "system")) return;
             
             const actorData = token.actor.system;
