@@ -108,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const narrativeTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-narrative.hbs').then(response => response.text());
             Handlebars.registerPartial('window-query-workspace-narrative', narrativeTemplate);
 
+
+           
+
+
             // Encounter
             const encounterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-encounter.hbs').then(response => response.text());
             Handlebars.registerPartial('window-query-workspace-encounter', encounterTemplate);
@@ -116,9 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // GLOBAL
 
-            // gm options
-            const globalGMOptionsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-global-gmoptions.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-global-gmoptions', globalGMOptionsTemplate);
+            
 
             // general options -- section sellection, etc.
             const globalOptionsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-global-options.hbs').then(response => response.text());
@@ -199,6 +201,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // narrative rewards
             const narrativeRewardsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-rewards.hbs').then(response => response.text());
             Handlebars.registerPartial('window-element-narrative-rewards', narrativeRewardsTemplate);   
+
+            // Characters for the narrative
+            const narrativeCharactersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-characters.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-narrative-characters', narrativeCharactersTemplate);
+
+            // Encounters for the narrative
+            const narrativeEncountersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-encounters.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-narrative-encounters', narrativeEncountersTemplate);
+
+
 
             // MAIN TEMPLATE
             // Render the main template (assuming you have a main template to render)

@@ -1,13 +1,15 @@
 {{!-- ----- NARRATIVE WORKSPACE ----- --}}
 <div id="blacksmith-query-workspace-encounter" class="workspace-content hidden">
-    <h3>Quick Encounter</h3>
-
+    <h3>Encounter Generator</h3>
 
     <!-- SETTINGS -->
     {{> window-element-narrative-settings id="encounter"}}
 
     <!-- ENCOUNTER SCRIPTS -->
     {{> window-element-encounter-scripts id="encounter"}}
+
+    <!-- GEOGRAPHY -->
+    {{> window-element-narrative-geography id="encounter"}}
 
     <!-- ENCOUNTER CONFIGURATION -->
     {{> window-element-encounter-configuration id="encounter"}}
@@ -24,23 +26,16 @@
     <!-- ENCOUNTER NPCS -->
     {{> window-element-encounter-npcs id="encounter"}} 
     
-
     <!-- NARRATIVE DETAILS -->
     <!-- {{> window-element-narrative-details id="encounter"}} -->
 
-    <!-- NARRATIVE DETAILS -->
+    <!-- NARRATIVE IMAGE -->
     <!-- {{> window-element-narrative-image id="encounter"}} -->
-
-    <!-- GEOGRAPHY -->
-    <!-- {{> window-element-narrative-geography id="encounter"}} -->
 
     <!-- REWARDS -->
     {{> window-element-narrative-rewards id="encounter"}}
 
-
-
     {{!-- GLOBAL OPTIONS --}}
     {{> window-element-global-options id="encounter"}}
-
 
 </div>

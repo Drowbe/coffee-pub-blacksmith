@@ -25,6 +25,7 @@ export const BLACKSMITH = {
     WINDOW_QUERY_MESSAGE: `modules/${MODULE_ID}/templates/window-element-message.hbs`,
 
     JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE_ID}/templates/journal-narrative.hbs`,
+    JOURNAL_ENCOUNTER_TEMPLATE: `modules/${MODULE_ID}/templates/journal-encounter.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE_ID}/templates/journal-injury.hbs`,
     // These get overriden as soon as the settings and everything else loads.
     blnDebugOn: false, // Display debug messages
