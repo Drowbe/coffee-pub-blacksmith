@@ -1,15 +1,15 @@
-{{#if (and 
-    strSceneLocation (ne strSceneLocation "") 
-    strSceneParent (ne strSceneParent "") 
-    strSceneArea (ne strSceneArea "") 
-    strSceneEnvironment (ne strSceneEnvironment "") 
-    strSceneTitle (ne strSceneTitle ""))}}
+{{#if (or 
+    (and strSceneLocation (ne strSceneLocation ""))
+    (and strSceneParent (ne strSceneParent ""))
+    (and strSceneArea (ne strSceneArea ""))
+    (and strSceneEnvironment (ne strSceneEnvironment ""))
+    (and strSceneTitle (ne strSceneTitle "")))}}
 <h5>
-    {{#if (and strSceneLocation (ne strSceneLocation ""))}}{{strSceneLocation}}{{/if}}
-    {{#if (and strSceneParent (ne strSceneParent ""))}} • {{strSceneParent}}{{/if}}
-    {{#if (and strSceneArea (ne strSceneArea ""))}} • {{strSceneArea}}{{/if}}
-    {{#if (and strSceneEnvironment (ne strSceneEnvironment ""))}} ({{strSceneEnvironment}}){{/if}}
-    {{#if (and strSceneTitle (ne strSceneTitle ""))}} • {{strSceneTitle}}{{/if}}
+    {{~#if (and strSceneLocation (ne strSceneLocation ""))}}{{strSceneLocation}}{{/if~}}
+    {{~#if (and strSceneParent (ne strSceneParent ""))}}{{#if (and strSceneLocation (ne strSceneLocation ""))}} • {{/if}}{{strSceneParent}}{{/if~}}
+    {{~#if (and strSceneArea (ne strSceneArea ""))}}{{#if (or (and strSceneLocation (ne strSceneLocation "")) (and strSceneParent (ne strSceneParent "")))}} • {{/if}}{{strSceneArea}}{{/if~}}
+    {{~#if (and strSceneEnvironment (ne strSceneEnvironment ""))}} ({{strSceneEnvironment}}){{/if~}}
+    {{~#if (and strSceneTitle (ne strSceneTitle ""))}}{{#if (or (and strSceneLocation (ne strSceneLocation "")) (and strSceneParent (ne strSceneParent "")) (and strSceneArea (ne strSceneArea "")))}} • {{/if}}{{strSceneTitle}}{{/if~}}
 </h5>
 {{/if}}
 
