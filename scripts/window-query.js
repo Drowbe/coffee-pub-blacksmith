@@ -404,7 +404,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     static get defaultOptions() {
         const intHeight = game.user.isGM ? 950 : 600;
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'coffee-pub-blacksmith',
             template: 'modules/coffee-pub-blacksmith/templates/window-query.hbs',
             title: 'Blacksmith Query',

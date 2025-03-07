@@ -926,6 +926,10 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     // Get the answer
     strAnswer = await getOpenAIReplyAsHtml(strQuestion);
 
+    // Debug the answer
+    postConsoleAndNotification("From OPENAI getOpenAIReplyAsHtml | strAnswer:", strAnswer, false, true, false);
+
+
     // Check if it's JSON and clean it if needed
     const jsonCheck = cleanAndValidateJSON(strAnswer);
     if (jsonCheck.isValid) {
