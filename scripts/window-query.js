@@ -611,6 +611,81 @@ export class BlacksmithWindowQuery extends FormApplication {
             });
         });
 
+        // Add drag and drop event listeners for monster drop zones
+        html.find('.monster-drop-zone').each((index, dropZone) => {
+            dropZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                dropZone.classList.remove('dragover');
+
+                // Get the dropped actor data
+                try {
+                    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+                    if (data.type === 'Actor') {
+                        const id = dropZone.id.split('-').pop();
+                        const actor = await fromUuid(data.uuid);
+                        if (actor) {
+                            // Create a temporary token data structure
+                            const tokenData = {
+                                actor: actor,
+                                name: actor.name,
+                                document: {
+                                    disposition: -1, // Hostile by default for monsters
+                                    effects: []
+                                }
+                            };
+
+                            // Add the token to the monster container
+                            const container = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
+                            if (container) {
+                                // Clear the initial message if it exists
+                                const message = container.querySelector('.message-box');
+                                if (message) {
+                                    message.style.display = 'none';
+                                }
+
+                                // Add the monster card
+                                const img = actor.img;
+                                const strName = actor.name;
+                                const cr = actor.system?.details?.cr || 'Unknown';
+                                const type = actor.system?.details?.type?.value || 'Unknown';
+
+                                const tokenHTML = `
+                                    <div data-cr="${cr}" 
+                                         data-type="Monster" 
+                                         data-actor-uuid="${actor.uuid}"
+                                         data-actor-name="${actor.name}"
+                                         data-display-name="${strName}"
+                                         class="player-card disposition-hostile">
+                                        <img src="${img}" alt="${strName}">
+                                        <div class="player-card-details">
+                                            <div class="character-name">${strName}</div>
+                                            <div class="character-details character-rollup">CR ${cr} ${type}</div>
+                                        </div>
+                                        <button type="button" class="clear-button" onclick="removeCard(event, this, '${id}')">x</button>
+                                    </div>
+                                `;
+                                container.insertAdjacentHTML('beforeend', tokenHTML);
+
+                                // Update counts
+                                await updateAllCounts(id);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('BLACKSMITH | REGENT: Error processing dropped actor:', error);
+                }
+            });
+        });
+
 
         // Add event listener for "add-monsters-button"
         html.find('.add-all-button').each((index, button) => {
