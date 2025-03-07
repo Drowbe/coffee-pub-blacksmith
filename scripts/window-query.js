@@ -732,7 +732,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     _getActorClasses(actor) {
-        if (!actor.classes) {
+        if (!foundry.utils.hasProperty(actor, "classes")) {
             return 'Unknown';
         }
 
@@ -853,20 +853,23 @@ export class BlacksmithWindowQuery extends FormApplication {
         
         // Filter tokens based on type
         tokens = tokens.filter(token => {
-            const isPlayerToken = token.actor.type === 'character';
-            const isAlive = token.actor.system.attributes.hp.value > 0 && 
+            const isPlayerToken = foundry.utils.hasProperty(token.actor, "type") && token.actor.type === 'character';
+            const isAlive = foundry.utils.hasProperty(token.actor, "system.attributes.hp.value") && 
+                           token.actor.system.attributes.hp.value > 0 && 
                            !token.document.effects.some(e => e.label === "Dead");
             const isItemPile = isItemPilesActive && game.itempiles.API.isValidItemPile(token.actor);
             
             if (type === 'player') {
                 return isPlayerToken && !isItemPile;
             } else if (type === 'npc') {
-                return token.actor.type === 'npc' && 
+                return foundry.utils.hasProperty(token.actor, "type") && 
+                       token.actor.type === 'npc' && 
                        token.document.disposition >= 0 && 
                        isAlive && 
                        !isItemPile;
             } else { // monster
-                return token.actor.type === 'npc' && 
+                return foundry.utils.hasProperty(token.actor, "type") && 
+                       token.actor.type === 'npc' && 
                        token.document.disposition < 0 && 
                        isAlive && 
                        !isItemPile;
@@ -881,6 +884,8 @@ export class BlacksmithWindowQuery extends FormApplication {
     
         // Generate HTML for each token
         tokens.forEach(token => {
+            if (!foundry.utils.hasProperty(token.actor, "system")) return;
+            
             const actorData = token.actor.system;
             postConsoleAndNotification("Actor Data:", actorData, false, true, false);
             const name = token.name;
@@ -890,10 +895,11 @@ export class BlacksmithWindowQuery extends FormApplication {
             const blnImagePortrait = true;
             let img;
             if (blnImagePortrait) {
-                img = token.actor.img; // Pull the portrait image
+                img = foundry.utils.hasProperty(token.actor, "img") ? token.actor.img : null;
             } else {
-                img = token.document.texture.src; // Pull the token image
+                img = foundry.utils.hasProperty(token.document, "texture.src") ? token.document.texture.src : null;
             }
+            if (!img) return; // Skip if no image found
     
             // Determine the disposition and corresponding class
             const disposition = token.document.disposition;
@@ -914,7 +920,9 @@ export class BlacksmithWindowQuery extends FormApplication {
             }
     
             // Determine if the token is dying (less than 20% HP)
-            const hpPercentage = (actorData.attributes.hp.value / actorData.attributes.hp.max) * 100;
+            const hpValue = foundry.utils.getProperty(actorData, "attributes.hp.value") || 0;
+            const hpMax = foundry.utils.getProperty(actorData, "attributes.hp.max") || 1;
+            const hpPercentage = (hpValue / hpMax) * 100;
             const isDying = hpPercentage < intHPThreshold;
             const hpDyingClass = isDying ? 'hp-dying' : '';
     
@@ -923,8 +931,8 @@ export class BlacksmithWindowQuery extends FormApplication {
             // WE should be using a template here
             if (type === 'player') {
                 const classes = this._getActorClasses(token.actor);
-                const level = actorData.details?.level || 'Unknown Level';
-                const hp = actorData.attributes.hp.value + "/" + actorData.attributes.hp.max || 'Unknown HP';
+                const level = foundry.utils.getProperty(actorData, "details.level") || 'Unknown Level';
+                const hp = `${hpValue}/${hpMax}`;
                 detailsHTML = `
                     <div class="character-details character-rollup">Level ${level} ${classes}</div>
                     <div class="character-details character-extra">${hp} HP</div>
