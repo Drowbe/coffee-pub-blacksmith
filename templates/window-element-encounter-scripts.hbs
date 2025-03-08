@@ -392,13 +392,14 @@ function incrementLevelCount(element, levelCount, id) {
     const countSpan = element.querySelector('.count');
     let count = parseInt(countSpan.innerText, 10);
     const level = parseInt(element.getAttribute('data-level'), 10);
+    
+    // Get the number of player cards at this level BEFORE incrementing
+    const cardElements = document.querySelectorAll(`#workspace-section-tokens-content-${id} .player-card[data-level="${level}"]`);
+    const minCount = cardElements.length;
+    
     // Increment the count
     count += 1;
     countSpan.innerText = count;
-
-    // Get the number of player cards at this level
-    const cardElements = document.querySelectorAll(`#workspace-section-tokens-content-${id} .player-card[data-level="${level}"]`);
-    const minCount = cardElements.length;
 
     // Apply "auto" status if count equals minCount, otherwise "active"
     if (count === minCount) {
@@ -476,17 +477,31 @@ function decrementLevelCount(event, button, levelCount, id) {
 function incrementCharacterType(element, characterType, id) {
     const countSpan = element.querySelector('.count');
     let count = parseInt(countSpan.innerText);
+    const dataClass = element.getAttribute('data-class');
+    
+    // Get the number of player cards with this class BEFORE incrementing
+    const cardElements = document.querySelectorAll(`#workspace-section-tokens-content-${id} .player-card[data-class="${dataClass}"]`);
+    const minCount = cardElements.length;
+    
+    // Increment the count
     count += 1;
     countSpan.innerText = count;
-    element.classList.add('active');
 
-
+    // Apply "auto" status if count equals minCount, otherwise "active"
+    if (count === minCount) {
+        element.classList.remove('active');
+        element.classList.add('auto');
+    } else if (count > minCount) {
+        element.classList.remove('auto');
+        element.classList.add('active');
+    } else {
+        element.classList.remove('active');
+        element.classList.remove('auto');
+    }
 
     updateCharacterTypeDisplay(element);
-    //Update to numbers
     updateTotalPlayerCounts(id);
     updateEncounterDetails(id);
-    
 }
 
 // DECREMENT CHARACTER TYPE

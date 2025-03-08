@@ -2521,7 +2521,10 @@ Key encounter requirements:`;
         Object.entries(levelCounts).forEach(([level, count]) => {
             const levelButton = this.element.find(`.level-button[data-level="${level}"]`);
             if (levelButton.length) {
-                levelButton.addClass('active');
+                // Remove both classes first
+                levelButton.removeClass('active auto');
+                // Add 'auto' since count matches token count
+                levelButton.addClass('auto');
                 levelButton.find('.count').text(count).show();
 
                 // Activate the clear button
@@ -2536,7 +2539,10 @@ Key encounter requirements:`;
         Object.entries(classCounts).forEach(([className, count]) => {
             const classButton = this.element.find(`.class-button[data-class="${className.toLowerCase()}"]`);
             if (classButton.length) {
-                classButton.addClass('active');
+                // Remove both classes first
+                classButton.removeClass('active auto');
+                // Add 'auto' since count matches token count
+                classButton.addClass('auto');
                 classButton.find('.count').text(count).show();
 
                 // Activate the clear button
