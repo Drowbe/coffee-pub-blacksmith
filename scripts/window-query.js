@@ -767,6 +767,34 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 }
                             }
                         }
+                    } else if (dropZone.id.includes('party-drop-zone')) {
+                        // Handle actor drops for party members
+                        if (data.type === 'Actor') {
+                            const actor = await fromUuid(data.uuid);
+                            if (actor && actor.type === 'character') {
+                                // Create a temporary token-like structure
+                                const tokenData = {
+                                    actor: actor,
+                                    name: actor.name,
+                                    document: {
+                                        disposition: 1, // Friendly by default for party
+                                        texture: { src: actor.img },
+                                        effects: [],
+                                        uuid: data.uuid
+                                    }
+                                };
+
+                                // Pass a single token in an array
+                                await this.addTokensToContainer(id, 'player', [tokenData]);
+
+                                // Update party calculations
+                                this._applyTokenDataToButtons([tokenData]);
+                                updateTotalPlayerCounts(id);
+                                updateEncounterDetails(id);
+                            } else {
+                                ui.notifications.warn("Only player characters can be added to the party.");
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('Error processing dropped item:', error);
@@ -1081,15 +1109,19 @@ export class BlacksmithWindowQuery extends FormApplication {
             const allTokens = canvas.tokens.placeables;
             const selectedTokens = canvas.tokens.controlled;
             tokens = selectedTokens.length >= 1 ? selectedTokens : allTokens;
-
-            // Get existing token UUIDs in the container - ONLY for canvas tokens
-            const existingUUIDs = new Set(Array.from(tokensContainer.querySelectorAll('.player-card'))
-                .map(card => card.dataset.tokenUuid)
-                .filter(uuid => uuid)); // Filter out any undefined/null values
-
-            // Filter out duplicates only for canvas tokens
-            tokens = tokens.filter(token => !existingUUIDs.has(token.document.uuid));
         }
+
+        // Get existing token UUIDs in the container
+        const existingUUIDs = new Set(Array.from(tokensContainer.querySelectorAll('.player-card'))
+            .map(card => card.dataset.tokenUuid || card.dataset.actorUuid)
+            .filter(uuid => uuid));
+
+        // Filter out duplicates
+        tokens = tokens.filter(token => {
+            const tokenUuid = token.document?.uuid;
+            const actorUuid = token.actor?.uuid;
+            return !existingUUIDs.has(tokenUuid) && !existingUUIDs.has(actorUuid);
+        });
         
         // Check if Item Piles module is active
         const isItemPilesActive = game.modules.get("item-piles")?.active;
@@ -1183,7 +1215,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                     <div class="character-details character-extra">${hp} HP</div>
                 `;
                 tokenHTML = `
-                    <div data-class="${classes}" data-level="${level}" class="player-card ${strDispositionClass} ${hpDyingClass}">
+                    <div data-class="${classes}" 
+                         data-level="${level}" 
+                         data-token-uuid="${token.document.uuid}"
+                         data-actor-uuid="${token.actor.uuid}"
+                         data-type="player"
+                         class="player-card ${strDispositionClass} ${hpDyingClass}">
                         <img src="${img}" alt="${name}">
                         <div class="player-card-details">
                             <div class="character-name">${strName}</div>
@@ -1210,6 +1247,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                     <div data-cr="${cr}" 
                          data-type="${type}"
                          data-token-uuid="${token.document.uuid}"
+                         data-actor-uuid="${token.actor.uuid}"
                          class="player-card ${strDispositionClass} ${hpDyingClass}">
                         <img src="${img}" alt="${name}">
                         <div class="player-card-details">
@@ -2769,7 +2807,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     // Create the encounter card
     const strName = trimString(page.name, 24);
     const cardHtml = `
-        <div class="player-card" data-journal-uuid="${journalEntry.uuid}" data-page-uuid="${page.uuid}" data-page-name="${page.name}" data-card-type="encounter">
+        <div class="player-card" data-journal-uuid="${journalEntry.uuid}" data-page-uuid="${page.uuid}" data-page-name="${page.name}" data-type="encounter">
             <img src="${page.src || journalEntry.thumb || 'icons/svg/book.svg'}" alt="${page.name}">
             <div class="player-card-details">
                 <div class="character-name">${strName}</div>
@@ -2840,63 +2878,7 @@ function updateEncountersData(id, newEncounterData) {
     console.log('BLACKSMITH | Regent: Updated encounters data:', encountersData);
 }
 
-// Add this function to handle card removal
-window.removeCard = function(event, button, id) {
-    event.preventDefault();
-    const card = button.closest('.player-card');
-    if (!card) return;
 
-    // Get the card type from the data attribute
-    const cardType = card.dataset.cardType || 'monster'; // Default to monster for backward compatibility
-    console.log("BLACKSMITH | Regent: IN removeCard id:", id, "cardType:", cardType);
 
-    // Remove the card
-    card.remove();
-    
-    // Handle updates based on card type
-    if (cardType === 'encounter') {
-        // If it's an encounter, only update the encounters data
-        const form = document.querySelector(`#blacksmith-query-workspace-narrative`);
-        if (form) {
-            const encountersInput = form.querySelector('#input-encounters-data');
-            if (encountersInput) {
-                try {
-                    let encountersData = JSON.parse(encountersInput.value || '[]');
-                    // Remove the encounter with matching UUID
-                    encountersData = encountersData.filter(e => e.uuid !== card.dataset.pageUuid);
-                    encountersInput.value = JSON.stringify(encountersData);
-                    console.log('BLACKSMITH | Regent: Updated encounters data after removal:', encountersData);
-                } catch (e) {
-                    console.error('BLACKSMITH | Regent: Error updating encounters data:', e);
-                }
-            }
-        }
-    } else {
-        // For monster, player, or NPC cards, update all counts
-        updateAllCounts(id, cardType);
-    }
-};
 
-// Update the updateAllCounts function to handle different card types
-function updateAllCounts(id, cardType = null) {
-    console.log("BLACKSMITH | Regent: IN updateAllCounts id:", id, "cardType:", cardType);
-    
-    // Only update monster CR if we're not dealing with encounters
-    if (cardType !== 'encounter') {
-        // Monster Updates
-        updateTotalMonsterCR(id);
-        
-        // Player Updates
-        updateTotalPlayerCounts(id);
-        
-        // NPC Updates
-        updateTotalNPCCR(id);
-        
-        // Total Updates
-        updateEncounterDetails(id);
-        
-        // Update the slider
-        updateSlider(id);
-    }
-}
 
