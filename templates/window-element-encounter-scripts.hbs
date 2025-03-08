@@ -570,10 +570,29 @@ window.removeCard = function(event, button, id) {
 
     const cardType = card.dataset.type || 'monster';  // Default to 'monster' for backward compatibility
 
-
     console.log('BLACKSMITH | Regent: id:', id, 'cardType:', cardType);
     
+
+    // First, Remove the card
     card.remove();
+
+    // Now tha the card is removed, If this is a player card, trigger the decrement functions before removal
+    if (cardType === 'player') {
+        const cardLevel = parseInt(card.getAttribute('data-level'));
+        const cardClass = card.getAttribute('data-class');
+        
+        // Find and trigger decrement on the level button
+        const levelButton = document.querySelector(`#workspace-section-encounter-${id} .level-button[data-level="${cardLevel}"] .clear-button`);
+        if (levelButton) {
+            decrementLevelCount({ preventDefault: () => {}, stopPropagation: () => {} }, levelButton, cardLevel, id);
+        }
+        
+        // Find and trigger decrement on the class button
+        const classButton = document.querySelector(`#workspace-section-encounter-${id} .class-button[data-class="${cardClass}"] .clear-button`);
+        if (classButton) {
+            decrementCharacterType({ preventDefault: () => {}, stopPropagation: () => {} }, classButton, cardClass, id);
+        }
+    }
 
     // If this is an encounter card, update the encounters data
     if (cardType === 'encounter') {
@@ -593,7 +612,7 @@ window.removeCard = function(event, button, id) {
             }
         }
     } else {
-        // For monster, player, or NPC cards, update all counts
+        console.log('BLACKSMITH | GOING TO CALL updateAllCounts next. Regent: id:', id, 'cardType:', cardType);
         updateAllCounts(id, cardType);
     }
 };
