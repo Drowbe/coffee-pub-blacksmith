@@ -408,9 +408,11 @@ function incrementLevelCount(element, levelCount, id) {
     } else if (count > minCount) {
         element.classList.remove('auto');
         element.classList.add('active');
-    } else {
-        element.classList.remove('active');
-        element.classList.remove('auto');
+        
+        // Add placeholder card for manual addition
+        const container = document.querySelector(`#workspace-section-tokens-content-${id} .tokens-container`);
+        const placeholderCard = createPlaceholderCard(id, 'level', level);
+        container.appendChild(placeholderCard);
     }
 
     if (count === 0) {
@@ -472,6 +474,37 @@ function decrementLevelCount(event, button, levelCount, id) {
 
 // ===== CHARACTER TYPES =====
 
+// CREATE PLACEHOLDER CARD
+function createPlaceholderCard(id, type, value) {
+    const card = document.createElement('div');
+    card.className = 'player-card placeholder-card';
+    card.setAttribute('data-type', 'player');
+    
+    if (type === 'level') {
+        card.setAttribute('data-level', value);
+        card.setAttribute('data-class', 'placeholder');
+        card.innerHTML = `
+            <div class="player-card-details">
+                <div class="character-name">Level ${value}</div>
+                <div class="character-details character-rollup">Manual Addition</div>
+            </div>
+            <button type="button" class="clear-button" onclick="removeCard(event, this, '${id}')">x</button>
+        `;
+    } else { // class
+        card.setAttribute('data-level', '0');
+        card.setAttribute('data-class', value);
+        card.innerHTML = `
+            <div class="player-card-details">
+                <div class="character-name">${value}</div>
+                <div class="character-details character-rollup">Manual Addition</div>
+            </div>
+            <button type="button" class="clear-button" onclick="removeCard(event, this, '${id}')">x</button>
+        `;
+    }
+    
+    return card;
+}
+
 // INCREMENT CHARACTER TYPE
 
 function incrementCharacterType(element, characterType, id) {
@@ -494,9 +527,11 @@ function incrementCharacterType(element, characterType, id) {
     } else if (count > minCount) {
         element.classList.remove('auto');
         element.classList.add('active');
-    } else {
-        element.classList.remove('active');
-        element.classList.remove('auto');
+        
+        // Add placeholder card for manual addition
+        const container = document.querySelector(`#workspace-section-tokens-content-${id} .tokens-container`);
+        const placeholderCard = createPlaceholderCard(id, 'class', dataClass);
+        container.appendChild(placeholderCard);
     }
 
     updateCharacterTypeDisplay(element);
