@@ -61,6 +61,64 @@ function updateTotalNPCCR(id, npcTokens = null) {
     document.getElementById(`badgeHeroCRValue-${id}`).innerText = heroCRValue.toFixed(2);
 }
 
+// ===== DROP ZONE HANDLERS =====
+
+// Add NPC Drop Zone Event Handlers
+function addNPCDropZoneHandlers(id) {
+    const dropZone = document.getElementById(`npcs-drop-zone-${id}`);
+    if (!dropZone) return;
+
+    dropZone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.remove('dragover');
+
+        // Get the dropped token data
+        const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+        if (!data) return;
+
+        // Get the token document
+        const token = await fromUuid(data.uuid);
+        if (!token) return;
+
+        // Check if it's an NPC token
+        if (token.actor?.type !== 'npc' || token.document.disposition < 0) {
+            ui.notifications.warn("Only non-hostile NPCs can be added to the NPC worksheet.");
+            return;
+        }
+
+        // Add the token to the NPC container
+        const container = document.querySelector(`#workspace-section-npcs-content-${id} .npc-container`);
+        if (container) {
+            // Clear the message if it exists
+            const message = container.querySelector('.message-box');
+            if (message) message.style.display = 'none';
+
+            // Add the token
+            const tokenData = {
+                actor: token.actor,
+                document: token.document
+            };
+            const tokens = [tokenData];
+            await addTokensToContainer(id, 'npc', tokens);
+            updateTotalNPCCR(id);
+            updateAllCounts(id);
+        }
+    });
+}
+
 
 
 

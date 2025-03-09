@@ -624,6 +624,10 @@ export class BlacksmithWindowQuery extends FormApplication {
             });
         });
 
+        // Initialize drop zones
+        const id = this.id;
+        addNPCDropZoneHandlers(id);
+
         // Add drag and drop event listeners for panel drop zones
         html.find('.panel-drop-zone').each((index, dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
@@ -793,6 +797,31 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 updateEncounterDetails(id);
                             } else {
                                 ui.notifications.warn("Only player characters can be added to the party.");
+                            }
+                        }
+                    } else if (dropZone.id.includes('npcs-drop-zone')) {
+                        // Handle actor drops for NPCs
+                        if (data.type === 'Actor') {
+                            const actor = await fromUuid(data.uuid);
+                            if (actor && actor.type === 'npc' && actor.prototypeToken.disposition >= 0) {
+                                // Create a temporary token-like structure
+                                const tokenData = {
+                                    actor: actor,
+                                    name: actor.name,
+                                    document: {
+                                        disposition: 1, // Friendly for NPCs
+                                        texture: { src: actor.img },
+                                        effects: [],
+                                        uuid: data.uuid
+                                    }
+                                };
+
+                                // Pass a single token in an array
+                                await this.addTokensToContainer(id, 'npc', [tokenData]);
+                                updateTotalNPCCR(id);
+                                updateAllCounts(id);
+                            } else {
+                                ui.notifications.warn("Only non-hostile NPCs can be added to the NPC worksheet.");
                             }
                         }
                     }
