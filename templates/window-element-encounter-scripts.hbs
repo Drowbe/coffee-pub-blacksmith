@@ -1004,11 +1004,19 @@ function updateEncounterDetails(id) {
 
     // SET THE BADGE VALUES
 
-    // PARTY CR BADGE
+    // Get NPC CR Value
+    const npcCRElement = document.querySelector(`#npcNPCCRValue-${id}`);
+    let npcCRValue = 0;
+    if (npcCRElement) {
+        npcCRValue = parseFloat(npcCRElement.innerText) || 0;
+    }
+
+    // PARTY CR BADGE (now includes NPC CR for total Hero CR)
     const badgeHeroCRElement = document.querySelector(`#badgeHeroCRValue-${id}`);
     if (badgeHeroCRElement) {
-        badgeHeroCRElement.innerText = partyCRValue;
-        console.log(`Party CR for id ${id} set to:`, partyCRValue);
+        const totalHeroCR = partyCRValue + npcCRValue;
+        badgeHeroCRElement.innerText = totalHeroCR.toFixed(2);
+        console.log(`Hero CR (Party + NPC) for id ${id} set to:`, totalHeroCR);
     } else {
         console.error(`Element with id #badgeHeroCRValue-${id} not found.`);
     }
