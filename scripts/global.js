@@ -678,7 +678,8 @@ function pushHistory(...args) {
 	const maxHistoryLength = game.settings.get(MODULE_ID, 'openAIContextLength');
 
 	history.push(...args);
-	if (history.length > maxHistoryLength) {
+	// Only limit history if maxHistoryLength is greater than 0
+	if (maxHistoryLength > 0 && history.length > maxHistoryLength) {
 		history = history.slice(history.length - maxHistoryLength);
 	}
 
@@ -686,94 +687,125 @@ function pushHistory(...args) {
 }
 // -- FUNCTION TO CALL OPENAI TXT --
 async function callGptApiText(query) {
-    //postConsoleAndNotification("In callGptApiText(): query =", query, false, true, false);    
-    
     // right off make sure there is data to process.
     if (!query) {
-        // Nothing to process, let them know.
-        return "What madness is this? You query me with slince? I received no words.";
+        return "What madness is this? You query me with silence? I received no words.";
     }
    
     var strErrorMessage = "";
-	const apiKey = COFFEEPUB.strOpenAIAPIKey;
-	const model = COFFEEPUB.strOpenAIModel;
-	const prompt = COFFEEPUB.strOpenAIPrompt;
-	const temperature = COFFEEPUB.strOpenAITemperature;
-	const apiUrl = 'https://api.openai.com/v1/chat/completions';
-	const promptMessage = {role: 'user', content: prompt};
-	const queryMessage = {role: 'user', content: query};
-	const messages = pushHistory().concat(promptMessage, queryMessage);
-	const requestBody = {
-		model,
-		messages,
-		temperature: temperature,
-	};
-	const requestOptions = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${apiKey}`,
-		},
-		body: JSON.stringify(requestBody),
-	};
-	const is4xx = c => c >= 400 && c < 500;
-	const handleFailedQuery = async (response, msg) => {
-		let err = `${response?.status}`;
-		try {
-			const data = await response.json();
-			postConsoleAndNotification("callGptApiText(): failure data =", data, false, false, false);    
-			err = `${data?.error?.message} (${err})`;
-            strErrorMessage = "My brain is foggy. We have run into an error: " + err;
-		} catch (e) {
-			postConsoleAndNotification("Could not decode failed API response.", e, false, false, false);  
-            strErrorMessage = "The gods have frowned upon us. Could not decode failed API response: " + e; 
-		}
-		//throw new Error(`${msg}: ${err}`);
-	};
-    // This is where the actual Query begins.
-	let response = {};
-	for (
-		let retries = 0, backoffTime = 5000;
-		retries < 5 && !response?.ok;
-		retries++, await new Promise(r => setTimeout(r, backoffTime))
-	) {
-		postConsoleAndNotification("callGptApiText(): waiting for reply. ", retries + " Tries", false, false, false);    
-		response = await fetch(apiUrl, requestOptions);
-		postConsoleAndNotification("callGptApiText(): response", response.message, false, false, false);    
-		
-		if (response?.status && is4xx(response?.status)) {
-			await handleFailedQuery(response, "ChatGPT API failed");
-            strErrorMessage = "Oh no, I've blacked out a moment. The ChatGPT API failed, damned thing: " + response.message;
-		}
-	}
-	if (response?.ok) {
-		const data = await response.json();
-		//postConsoleAndNotification("callGptApiText(): response data.", data, false, true, false);    
+    const apiKey = COFFEEPUB.strOpenAIAPIKey;
+    const model = COFFEEPUB.strOpenAIModel;
+    const prompt = COFFEEPUB.strOpenAIPrompt;
+    const temperature = COFFEEPUB.strOpenAITemperature;
+    const apiUrl = 'https://api.openai.com/v1/chat/completions';
+    const promptMessage = {role: 'user', content: prompt};
+    const queryMessage = {role: 'user', content: query};
 
-		const replyMessage = data.choices[0].message;
-		const usage = data.usage;
-		
-		// Calculate cost based on model
-		let cost = 0;
-		if (model === 'gpt-4-turbo-preview') {
-			cost = (usage.prompt_tokens * 0.01 + usage.completion_tokens * 0.03) / 1000;
-		} else if (model === 'gpt-4') {
-			cost = (usage.prompt_tokens * 0.03 + usage.completion_tokens * 0.06) / 1000;
-		} else if (model === 'gpt-3.5-turbo') {
-			cost = (usage.prompt_tokens * 0.0005 + usage.completion_tokens * 0.0015) / 1000;
-		}
-		
-		// Add usage and cost to the message
-		replyMessage.usage = usage;
-		replyMessage.cost = cost;
-		
-		pushHistory(queryMessage, replyMessage);
-		return replyMessage;
-	} else {
-        // There was an error
-		await handleFailedQuery(response, "Well this isn't good. The ChatGPT API failed multiple times.");
-        return strErrorMessage;
-	}
+    // Get message history based on context length setting
+    const maxHistoryLength = game.settings.get(MODULE_ID, 'openAIContextLength');
+    const history = maxHistoryLength > 0 ? pushHistory().slice(-maxHistoryLength) : pushHistory();
+    const messages = history.concat(promptMessage, queryMessage);
+
+    const requestBody = {
+        model,
+        messages,
+        temperature: temperature,
+        max_tokens: 4000,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1,
+        top_p: 1
+    };
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+    };
+
+    // Enhanced error handling
+    const handleError = async (response, error = null) => {
+        let errorMessage = "";
+        
+        if (error) {
+            if (error.name === "AbortError") {
+                errorMessage = "The request timed out. Please try again.";
+            } else {
+                errorMessage = `An unexpected error occurred: ${error.message}`;
+            }
+        } else if (response) {
+            const status = response.status;
+            try {
+                const data = await response.json();
+                switch (status) {
+                    case 401:
+                        errorMessage = "Invalid API key. Please check your OpenAI API key in settings.";
+                        break;
+                    case 429:
+                        errorMessage = "Rate limit exceeded. Please wait a moment before trying again.";
+                        break;
+                    case 500:
+                        errorMessage = "OpenAI server error. Please try again later.";
+                        break;
+                    default:
+                        errorMessage = data?.error?.message || "Unknown error occurred";
+                }
+            } catch (e) {
+                errorMessage = "Could not decode API response";
+            }
+        }
+        
+        return `My mind is clouded. ${errorMessage}`;
+    };
+
+    try {
+        let response = null;
+        // Implement exponential backoff for retries
+        for (let retries = 0, backoffTime = 1000; retries < 3; retries++, backoffTime *= 2) {
+            if (retries > 0) {
+                await new Promise(r => setTimeout(r, backoffTime));
+            }
+            
+            response = await fetch(apiUrl, requestOptions);
+            
+            if (response.ok) {
+                const data = await response.json();
+                const replyMessage = data.choices[0].message;
+                const usage = data.usage;
+                
+                // Calculate cost based on model
+                let cost = 0;
+                if (model === 'gpt-4-turbo-preview') {
+                    cost = (usage.prompt_tokens * 0.01 + usage.completion_tokens * 0.03) / 1000;
+                } else if (model === 'gpt-4') {
+                    cost = (usage.prompt_tokens * 0.03 + usage.completion_tokens * 0.06) / 1000;
+                } else if (model === 'gpt-3.5-turbo') {
+                    cost = (usage.prompt_tokens * 0.0005 + usage.completion_tokens * 0.0015) / 1000;
+                }
+                
+                // Add usage and cost to the message
+                replyMessage.usage = usage;
+                replyMessage.cost = cost;
+                
+                // Update history with the latest exchange
+                pushHistory(queryMessage, replyMessage);
+                return replyMessage;
+            }
+            
+            // If we get a 429 (rate limit), retry with backoff
+            if (response.status !== 429) {
+                break;
+            }
+        }
+        
+        // If we get here, all retries failed or we got a non-429 error
+        return await handleError(response);
+    } catch (error) {
+        return await handleError(null, error);
+    }
 }
 // -- FUNCTION TO CALL OPENAI IMAGE --
 async function callGptApiImage(query) {
@@ -814,12 +846,31 @@ export async function getOpenAIReplyAsHtml(query) {
         return response;
     }
 
-    // Format the content as HTML
-    const html = /<\/?[a-z][\s\S]*>/i.test(response.content) || !response.content.includes('\n') ?
-        response.content : response.content.replace(/\n/g, "<br>");
+    let content = response.content;
 
-    response.content = html.replaceAll("<p></p>", "").replace("```html", "").replace("```");
-    
+    // Clean up JSON responses
+    if (content.includes('{') && content.includes('}')) {
+        // Find the first { and last }
+        const startIndex = content.indexOf('{');
+        const endIndex = content.lastIndexOf('}') + 1;
+        
+        // Extract just the JSON part
+        content = content.substring(startIndex, endIndex);
+        
+        // Remove any trailing quotes or text
+        content = content.replace(/['"`]+$/, '');
+    } else {
+        // For non-JSON content, format as HTML
+        content = /<\/?[a-z][\s\S]*>/i.test(content) || !content.includes('\n') ?
+            content : content.replace(/\n/g, "<br>");
+            
+        // Clean up empty paragraphs and code blocks
+        content = content.replaceAll("<p></p>", "")
+                        .replace(/```\w*\n?/g, "") // Removes any code block markers with optional language
+                        .trim();
+    }
+
+    response.content = content;
     return response;
 }
 

@@ -1233,11 +1233,11 @@ export const registerSettings = async () => {
 		requiresReload: true,
 		type: Number,
 		range: {
-		min: 0,
-		max: 50,
-		step: 1,
+			min: 0,
+			max: 100,
+			step: 5,
 		},
-		default: 0,
+		default: 10,
 	});
 	// -- TEMPERATURE --
 	game.settings.register(MODULE_ID,'openAITemperature', {
