@@ -751,8 +751,24 @@ async function callGptApiText(query) {
 		//postConsoleAndNotification("callGptApiText(): response data.", data, false, true, false);    
 
 		const replyMessage = data.choices[0].message;
+		const usage = data.usage;
+		
+		// Calculate cost based on model
+		let cost = 0;
+		if (model === 'gpt-4-turbo-preview') {
+			cost = (usage.prompt_tokens * 0.01 + usage.completion_tokens * 0.03) / 1000;
+		} else if (model === 'gpt-4') {
+			cost = (usage.prompt_tokens * 0.03 + usage.completion_tokens * 0.06) / 1000;
+		} else if (model === 'gpt-3.5-turbo') {
+			cost = (usage.prompt_tokens * 0.0005 + usage.completion_tokens * 0.0015) / 1000;
+		}
+		
+		// Add usage and cost to the message
+		replyMessage.usage = usage;
+		replyMessage.cost = cost;
+		
 		pushHistory(queryMessage, replyMessage);
-		return replyMessage.content.trim();
+		return replyMessage;
 	} else {
         // There was an error
 		await handleFailedQuery(response, "Well this isn't good. The ChatGPT API failed multiple times.");
@@ -791,16 +807,20 @@ async function callGptApiImage(query) {
 export async function getOpenAIReplyAsHtml(query) {
     postConsoleAndNotification("In getOpenAIReplyAsHtml(query): query =", query, false, true, false);  
 	
-    const answer = await callGptApiText(query);
-    //const answer = await callGptApiImage(query);
+    const response = await callGptApiText(query);
+    
+    if (typeof response === 'string') {
+        // If it's an error message or simple string
+        return response;
+    }
 
-    var strFinalAnswer = "";
-	//postConsoleAndNotification("Answer", answer, false, true, false); 
-	var html = /<\/?[a-z][\s\S]*>/i.test(answer) || !answer.includes('\n') ?
-		answer : answer.replace(/\n/g, "<br>");
+    // Format the content as HTML
+    const html = /<\/?[a-z][\s\S]*>/i.test(response.content) || !response.content.includes('\n') ?
+        response.content : response.content.replace(/\n/g, "<br>");
 
-    strFinalAnswer = html.replaceAll("<p></p>", "").replace("```html", "").replace("```")
-	return strFinalAnswer
+    response.content = html.replaceAll("<p></p>", "").replace("```html", "").replace("```");
+    
+    return response;
 }
 
 // ************************************

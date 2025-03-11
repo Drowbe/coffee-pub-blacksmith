@@ -924,16 +924,17 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     playSound(COFFEEPUB.SOUNDPOP01,COFFEEPUB.SOUNDVOLUMESOFT);
 
     // Get the answer
-    strAnswer = await getOpenAIReplyAsHtml(strQuestion);
+    const openAIResponse = await getOpenAIReplyAsHtml(strQuestion);
 
     // Debug the answer
-    postConsoleAndNotification("From OPENAI getOpenAIReplyAsHtml | strAnswer:", strAnswer, false, true, false);
-
+    postConsoleAndNotification("From OPENAI getOpenAIReplyAsHtml | strAnswer:", openAIResponse, false, true, false);
 
     // Check if it's JSON and clean it if needed
-    const jsonCheck = cleanAndValidateJSON(strAnswer);
+    const jsonCheck = cleanAndValidateJSON(openAIResponse.content || openAIResponse);
     if (jsonCheck.isValid) {
         strAnswer = jsonCheck.cleaned;
+    } else {
+        strAnswer = openAIResponse.content || openAIResponse;
     }
 
     // Display the answer
@@ -948,7 +949,9 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
         strMessageIntro: "",
         strMessageContent: strAnswer,
         messageId: messageId,
-        blnIsJSON: jsonCheck.isValid
+        blnIsJSON: jsonCheck.isValid,
+        tokenInfo: openAIResponse.usage ? `${openAIResponse.usage.total_tokens} Tokens` : null,
+        cost: openAIResponse.cost ? openAIResponse.cost.toFixed(4) : null
     };
     compiledHtml = template(CARDDATA);
     queryWindow.displayMessage(compiledHtml);

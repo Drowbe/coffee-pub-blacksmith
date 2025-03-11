@@ -42,7 +42,7 @@
                 <span>Send to Chat</span>
             </button>
         </div>
-        <div id="blacksmith-message-divider">{{strDateStamp}} — Hear ye! The Regent has spoken, it is so!</div>
+        <div id="blacksmith-message-divider">{{strDateStamp}}{{#if tokenInfo}} | {{tokenInfo}} | ${{cost}}{{/if}} — Hear ye! The Regent has spoken, it is so!</div>
     {{/if}}
 
 {{/unless}}
