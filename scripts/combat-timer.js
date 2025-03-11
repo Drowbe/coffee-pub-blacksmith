@@ -451,6 +451,14 @@ class CombatTimer {
             if (!this.state.isPaused) {
                 this.timer = setInterval(() => this.tick(), 1000);
                 
+                // Send start message if GM and setting enabled
+                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnStart')) {
+                    this.sendChatMessage({
+                        isTimerStart: true,
+                        duration: Math.floor(duration / 60)
+                    });
+                }
+                
                 // Emit state change hook when starting
                 Hooks.callAll('combatTimerStateChange', {
                     isPaused: false,
@@ -489,8 +497,8 @@ class CombatTimer {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
 
-        // Send chat message if GM
-        if (game.user.isGM) {
+        // Send chat message if GM and setting enabled
+        if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatPauseUnpause')) {
             this.sendChatMessage({
                 isTimerPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -554,11 +562,13 @@ class CombatTimer {
             // Record timer resume for stats
             CombatStats.recordTimerUnpause();
             
-            // Send chat message for resume
-            this.sendChatMessage({
-                isTimerResumed: true,
-                timeRemaining: this.formatTime(this.state.remaining)
-            });
+            // Send chat message for resume if setting enabled
+            if (game.settings.get(MODULE_ID, 'timerChatPauseUnpause')) {
+                this.sendChatMessage({
+                    isTimerResumed: true,
+                    timeRemaining: this.formatTime(this.state.remaining)
+                });
+            }
 
             this.syncState();
         }
@@ -596,7 +606,6 @@ class CombatTimer {
         
         // Sync state to players on every tick if GM
         if (game.user.isGM) {
-            //postConsoleAndNotification("Combat Timer: Ticking, syncing state to players", "", false, true, false);
             this.syncState();
         }
         
@@ -622,8 +631,8 @@ class CombatTimer {
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
 
-                // Send warning chat message if GM
-                if (game.user.isGM) {
+                // Send warning chat message if GM and setting enabled
+                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerWarning: true,
                         warningMessage: message
@@ -647,8 +656,8 @@ class CombatTimer {
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
 
-                // Send critical warning chat message if GM
-                if (game.user.isGM) {
+                // Send critical warning chat message if GM and setting enabled
+                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerExpiringSoon: true,
                         expiringSoonMessage: message
@@ -751,11 +760,13 @@ class CombatTimer {
             const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage');
             ui.notifications.warn(message.replace('{name}', game.combat?.combatant?.name || ''));
 
-            // Send expired chat message
-            this.sendChatMessage({
-                isTimerExpired: true,
-                expiredMessage: message
-            });
+            // Send expired chat message if setting enabled
+            if (game.settings.get(MODULE_ID, 'timerChatTurnEnded')) {
+                this.sendChatMessage({
+                    isTimerExpired: true,
+                    expiredMessage: message
+                });
+            }
         }
 
         // Auto-advance turn if enabled

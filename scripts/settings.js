@@ -1643,12 +1643,12 @@ export const registerSettings = async () => {
 
 	// Add shared volume control for all timer sounds
 	game.settings.register(MODULE_ID, 'timerSoundVolume', {
-		name: 'Timer Sound Volume',
-		hint: 'Adjust the volume for all timer sounds (0 = silent, 1 = full volume)',
-		scope: 'world',
+		name: "Timer Sound Volume",
+		hint: "Volume level for timer sounds (0-1)",
+		scope: "client",
 		config: true,
 		type: Number,
-		default: 0.5,
+		default: 0.8,
 		range: {
 			min: 0,
 			max: 1,
@@ -1656,6 +1656,75 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// Timer Chat Message Settings
+	game.settings.register(MODULE_ID, 'timerChatPauseUnpause', {
+		name: "Send Pause/Unpause Messages to Chat",
+		hint: "When enabled, sends messages to chat when timers are paused or unpaused",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatPlanningStart', {
+		name: "Send Planning Starting Messages to Chat",
+		hint: "When enabled, sends messages to chat when planning phase begins",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatTurnStart', {
+		name: "Send Turn Starting Messages to Chat",
+		hint: "When enabled, sends messages to chat when a new turn begins",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatPlanningRunningOut', {
+		name: "Send Planning Running Out Messages to Chat",
+		hint: "When enabled, sends warning messages to chat when planning time is running low",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatTurnRunningOut', {
+		name: "Send Turn Running Out Messages to Chat",
+		hint: "When enabled, sends warning messages to chat when turn time is running low",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatPlanningEnded', {
+		name: "Send Planning Ended Messages to Chat",
+		hint: "When enabled, sends messages to chat when planning phase ends",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'timerChatTurnEnded', {
+		name: "Send Turn Ended Messages to Chat",
+		hint: "When enabled, sends messages to chat when a turn ends",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+
+
+
+
+	
 
 
 	// ---------- ROUND TIMER ----------
