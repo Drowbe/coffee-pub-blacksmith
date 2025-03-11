@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.6] - Chat Message Improvements
+
+### Added
+- Added new settings for chat message control
+  - Toggle for GM-only timer notifications
+  - Configurable message visibility options
+- Enhanced chat message handling for timers and notifications
+
+### Changed
+- Updated chat message system to respect GM-only settings
+- Improved message handling for better user experience
+- Fixed JSON formatting issues in chat responses
+
 ## [1.0.5] - Network Monitoring and Settings
 
 ### Added
