@@ -706,11 +706,23 @@ async function callGptApiText(query) {
     const history = maxHistoryLength > 0 ? pushHistory().slice(-maxHistoryLength) : pushHistory();
     const messages = history.concat(promptMessage, queryMessage);
 
+    // Set max tokens based on model
+    let max_tokens;
+    if (model.includes('gpt-4-turbo')) {
+        max_tokens = 4096;  // GPT-4 Turbo max completion tokens
+    } else if (model.includes('gpt-4')) {
+        max_tokens = 8192;  // Standard GPT-4 max completion tokens
+    } else {
+        max_tokens = 4096;  // Default for other models
+    }
+
+    console.log(`BLACKSMITH: Using model ${model} with max_tokens ${max_tokens}`);
+
     const requestBody = {
         model,
         messages,
         temperature: temperature,
-        max_tokens: 8000,  // Increased from 4000
+        max_tokens: max_tokens,
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
         top_p: 1

@@ -422,20 +422,22 @@ class ChatPanel {
 
     static async handleTimerWarning() {
         try {
-            // Play warning sound if configured
+            // Play warning sound if configured (for all clients)
             const warningSound = game.settings.get(MODULE_ID, 'sessionTimerWarningSound');
             if (warningSound !== 'none') {
                 playSound(warningSound, 0.8);
             }
 
-            // Send warning message
-            const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
-                .replace('{time}', this.getTimerText());
+            // Only send warning message from GM client
+            if (game.user.isGM) {
+                const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
+                    .replace('{time}', this.getTimerText());
 
-            await this.sendTimerMessage({
-                isTimerWarning: true,
-                warningMessage: message
-            });
+                await this.sendTimerMessage({
+                    isTimerWarning: true,
+                    warningMessage: message
+                });
+            }
         } catch (error) {
             postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping warning notification", "", false, true, false);
         }
@@ -443,18 +445,20 @@ class ChatPanel {
 
     static async handleTimerExpired() {
         try {
-            // Play expired sound if configured
+            // Play expired sound if configured (for all clients)
             const expiredSound = game.settings.get(MODULE_ID, 'sessionTimerExpiredSound');
             if (expiredSound !== 'none') {
                 playSound(expiredSound, 0.8);
             }
 
-            // Send expired message
-            const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
-            await this.sendTimerMessage({
-                isTimerExpired: true,
-                expiredMessage: message
-            });
+            // Only send expired message from GM client
+            if (game.user.isGM) {
+                const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
+                await this.sendTimerMessage({
+                    isTimerExpired: true,
+                    expiredMessage: message
+                });
+            }
         } catch (error) {
             postConsoleAndNotification("Chat Panel: Settings not yet registered, skipping expiration notification", "", false, true, false);
         }
@@ -644,24 +648,21 @@ class ChatPanel {
             // Update vote icon permissions
             this.updateVoteIconState();
 
-            // Send the leader messages only if requested
-            if (sendMessages) {
-                const gmUser = game.users.find(u => u.isGM);
-                if (gmUser) {
-                    const messageData = {
-                        isPublic: true,
-                        isLeader: true,
-                        leaderName: user.name,
-                        leaderId: userId
-                    };
+            // Send the leader messages only if requested AND we are the GM
+            if (sendMessages && game.user.isGM) {
+                const messageData = {
+                    isPublic: true,
+                    isLeader: true,
+                    leaderName: user.name,
+                    leaderId: userId
+                };
 
-                    const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
-                    await ChatMessage.create({
-                        content: messageHtml,
-                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                        speaker: ChatMessage.getSpeaker({ user: gmUser })
-                    });
-                }
+                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+                await ChatMessage.create({
+                    content: messageHtml,
+                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                    speaker: ChatMessage.getSpeaker({ user: game.user })
+                });
             }
 
             return true;
