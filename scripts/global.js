@@ -710,7 +710,7 @@ async function callGptApiText(query) {
         model,
         messages,
         temperature: temperature,
-        max_tokens: 4000,
+        max_tokens: 8000,  // Increased from 4000
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
         top_p: 1
@@ -723,7 +723,7 @@ async function callGptApiText(query) {
             'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(30000) // 30 second timeout
+        signal: AbortSignal.timeout(120000) // Increased to 120 second timeout
     };
 
     // Enhanced error handling
@@ -732,7 +732,7 @@ async function callGptApiText(query) {
         
         if (error) {
             if (error.name === "AbortError") {
-                errorMessage = "The request timed out. Please try again.";
+                errorMessage = "The request timed out. The response may be too large - try breaking your request into smaller parts.";
             } else {
                 errorMessage = `An unexpected error occurred: ${error.message}`;
             }
@@ -750,6 +750,9 @@ async function callGptApiText(query) {
                     case 500:
                         errorMessage = "OpenAI server error. Please try again later.";
                         break;
+                    case 413:
+                        errorMessage = "The request is too large. Try breaking it into smaller parts.";
+                        break;
                     default:
                         errorMessage = data?.error?.message || "Unknown error occurred";
                 }
@@ -763,45 +766,55 @@ async function callGptApiText(query) {
 
     try {
         let response = null;
-        // Implement exponential backoff for retries
-        for (let retries = 0, backoffTime = 1000; retries < 3; retries++, backoffTime *= 2) {
+        // Implement exponential backoff for retries with longer initial wait
+        for (let retries = 0, backoffTime = 2000; retries < 4; retries++, backoffTime *= 2) {
             if (retries > 0) {
                 await new Promise(r => setTimeout(r, backoffTime));
+                console.log(`BLACKSMITH: Retry attempt ${retries} after ${backoffTime}ms wait`);
             }
             
-            response = await fetch(apiUrl, requestOptions);
-            
-            if (response.ok) {
-                const data = await response.json();
-                const replyMessage = data.choices[0].message;
-                const usage = data.usage;
+            try {
+                response = await fetch(apiUrl, requestOptions);
                 
-                // Calculate cost based on model
-                let cost = 0;
-                if (model === 'gpt-4-turbo-preview') {
-                    cost = (usage.prompt_tokens * 0.01 + usage.completion_tokens * 0.03) / 1000;
-                } else if (model === 'gpt-4') {
-                    cost = (usage.prompt_tokens * 0.03 + usage.completion_tokens * 0.06) / 1000;
-                } else if (model === 'gpt-3.5-turbo') {
-                    cost = (usage.prompt_tokens * 0.0005 + usage.completion_tokens * 0.0015) / 1000;
+                if (response.ok) {
+                    const data = await response.json();
+                    const replyMessage = data.choices[0].message;
+                    const usage = data.usage;
+                    
+                    // Calculate cost based on model
+                    let cost = 0;
+                    if (model === 'gpt-4-turbo-preview') {
+                        cost = (usage.prompt_tokens * 0.01 + usage.completion_tokens * 0.03) / 1000;
+                    } else if (model === 'gpt-4') {
+                        cost = (usage.prompt_tokens * 0.03 + usage.completion_tokens * 0.06) / 1000;
+                    } else if (model === 'gpt-3.5-turbo') {
+                        cost = (usage.prompt_tokens * 0.0005 + usage.completion_tokens * 0.0015) / 1000;
+                    }
+                    
+                    // Add usage and cost to the message
+                    replyMessage.usage = usage;
+                    replyMessage.cost = cost;
+                    
+                    // Update history with the latest exchange
+                    pushHistory(queryMessage, replyMessage);
+                    return replyMessage;
                 }
                 
-                // Add usage and cost to the message
-                replyMessage.usage = usage;
-                replyMessage.cost = cost;
-                
-                // Update history with the latest exchange
-                pushHistory(queryMessage, replyMessage);
-                return replyMessage;
-            }
-            
-            // If we get a 429 (rate limit), retry with backoff
-            if (response.status !== 429) {
-                break;
+                // If we get a 429 (rate limit) or 500 (server error), retry with backoff
+                if (response.status !== 429 && response.status !== 500) {
+                    break;
+                }
+            } catch (fetchError) {
+                // If it's not a timeout error, break the retry loop
+                if (fetchError.name !== "AbortError") {
+                    throw fetchError;
+                }
+                // For timeout errors, continue with retry
+                console.log(`BLACKSMITH: Request timed out, will retry`);
             }
         }
         
-        // If we get here, all retries failed or we got a non-429 error
+        // If we get here, all retries failed or we got a non-retryable error
         return await handleError(response);
     } catch (error) {
         return await handleError(null, error);
@@ -850,15 +863,36 @@ export async function getOpenAIReplyAsHtml(query) {
 
     // Clean up JSON responses
     if (content.includes('{') && content.includes('}')) {
-        // Find the first { and last }
-        const startIndex = content.indexOf('{');
-        const endIndex = content.lastIndexOf('}') + 1;
-        
-        // Extract just the JSON part
-        content = content.substring(startIndex, endIndex);
-        
-        // Remove any trailing quotes or text
-        content = content.replace(/['"`]+$/, '');
+        try {
+            // Find the first { and last }
+            const startIndex = content.indexOf('{');
+            const endIndex = content.lastIndexOf('}') + 1;
+            
+            // Extract just the JSON part
+            content = content.substring(startIndex, endIndex);
+            
+            // Remove any trailing quotes or text
+            content = content.replace(/['"`]+$/, '');
+
+            // Parse and validate the JSON
+            const jsonObj = JSON.parse(content);
+            
+            // Ensure linkedEncounters is properly formatted
+            if (jsonObj.linkedEncounters) {
+                jsonObj.linkedEncounters = jsonObj.linkedEncounters.map(encounter => ({
+                    uuid: encounter.uuid || "",
+                    name: encounter.name || "",
+                    synopsis: encounter.synopsis || "",
+                    keyMoments: Array.isArray(encounter.keyMoments) ? encounter.keyMoments : []
+                }));
+            }
+            
+            // Convert back to string
+            content = JSON.stringify(jsonObj, null, 2);
+        } catch (e) {
+            console.error("Error processing JSON:", e);
+            // Keep the original content if JSON processing fails
+        }
     } else {
         // For non-JSON content, format as HTML
         content = /<\/?[a-z][\s\S]*>/i.test(content) || !content.includes('\n') ?

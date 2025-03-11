@@ -41,9 +41,7 @@ export async function createJournalEntry(journalData) {
     var compiledHtml = "";
     let folder;
 
-
     postConsoleAndNotification("BLACKSMITH: createJournalEntry journalData", journalData, false, true, false);
-
 
     // ---------- CHECK & CREATE THE FOLDER ----------
     if (strFolderName) {
@@ -60,10 +58,51 @@ export async function createJournalEntry(journalData) {
     }
 
     // Build the encounter data as appropriate.
-    var templatePath = BLACKSMITH.JOURNAL_NARRATIVE_TEMPLATE;
+    var templatePath = journalData.journaltype.toUpperCase() === "ENCOUNTER" ? 
+        BLACKSMITH.JOURNAL_ENCOUNTER_TEMPLATE : 
+        BLACKSMITH.JOURNAL_NARRATIVE_TEMPLATE;
     var response = await fetch(templatePath);
     var templateText = await response.text();
     var template = Handlebars.compile(templateText);
+
+    // Convert any object fields to HTML
+    const convertObjectToHtml = (obj) => {
+        if (typeof obj === 'string') return obj;
+        if (typeof obj === 'object' && obj !== null) {
+            let html = '<ul>';
+            for (const [key, value] of Object.entries(obj)) {
+                html += `<li><b>${key}:</b> ${value}</li>`;
+            }
+            html += '</ul>';
+            return html;
+        }
+        return '';
+    };
+
+    // Function to create a journal link
+    const createJournalLink = async (title) => {
+        // Search for the journal entry
+        const entry = game.journal.find(j => j.name === title);
+        if (entry) {
+            return `@UUID[JournalEntry.${entry.id}]{${title}}`;
+        }
+        return title;
+    };
+
+    // Function to format monster list with links
+    const formatMonsterList = async (monsters) => {
+        if (!monsters || monsters === "(Link Manually)") {
+            // If we have linked encounters, try to extract monsters from there
+            if (journalData.linkedEncounters && journalData.linkedEncounters.length > 0) {
+                const linkedEncounter = journalData.linkedEncounters[0]; // Take the first linked encounter
+                if (linkedEncounter.monsters) {
+                    return await createHTMLList(linkedEncounter.monsters);
+                }
+            }
+            return "<ul><li>(No monsters specified)</li></ul>";
+        }
+        return await createHTMLList(monsters);
+    };
 
     let strSceneParent = journalData.sceneparent;
     let strSceneArea = journalData.scenearea;
@@ -71,9 +110,9 @@ export async function createJournalEntry(journalData) {
     let strSceneLocation = journalData.scenelocation;
     let strSceneTitle = toSentenceCase(journalData.scenetitle);
     let strContextIntro = journalData.contextintro;
-    let strPrepEncounter = await createHTMLList(journalData.prepencounter);
+    let strPrepEncounter = await formatMonsterList(journalData.prepencounter);
     let strPrepEncounterDetails = journalData.prepencounterdetails;
-    let strPrepRewards = journalData.preprewards;
+    let strPrepRewards = convertObjectToHtml(journalData.preprewards);
     let strPrepSetup = journalData.prepsetup;
     let strCardTitle = toSentenceCase(journalData.cardtitle);
     let strCardDescriptionPrimary = journalData.carddescriptionprimary;
@@ -84,25 +123,43 @@ export async function createJournalEntry(journalData) {
     let strContextAdditionalNarration = journalData.contextadditionalnarration;
     let strContextAtmosphere = journalData.contextatmosphere;
     let strContextGMNotes = journalData.contextgmnotes;
-    postConsoleAndNotification("BLACKSMITH: strSceneParent", strSceneParent, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strSceneArea", strSceneArea, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strSceneEnvironment", strSceneEnvironment, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strSceneLocation", strSceneLocation, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strSceneTitle", strSceneTitle, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strContextIntro", strContextIntro, false, true, false); 
-    postConsoleAndNotification("BLACKSMITH: strPrepEncounter", strPrepEncounter, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strPrepEncounterDetails", strPrepEncounterDetails, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strPrepRewards", strPrepRewards, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strPrepSetup", strPrepSetup, false, true, false);   
-    postConsoleAndNotification("BLACKSMITH: strCardTitle", strCardTitle, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strCardDescriptionPrimary", strCardDescriptionPrimary, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strCardImageTitle", strCardImageTitle, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strCardImage", strCardImage, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strCardDescriptionSecondary", strCardDescriptionSecondary, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strCardDialogue", strCardDialogue, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strContextAdditionalNarration", strContextAdditionalNarration, false, true, false); 
-    postConsoleAndNotification("BLACKSMITH: strContextAtmosphere", strContextAtmosphere, false, true, false);
-    postConsoleAndNotification("BLACKSMITH: strContextGMNotes", strContextGMNotes, false, true, false); 
+
+    // Handle linked encounters if they exist
+    let strLinkedEncounters = '';
+    if (journalData.linkedEncounters && journalData.linkedEncounters.length > 0) {
+        strLinkedEncounters = '<h3>Linked Encounters</h3><ul>';
+        for (const encounter of journalData.linkedEncounters) {
+            const encounterName = encounter.name || '';
+            if (encounterName) {
+                // Create link for the encounter name
+                const encounterLink = await createJournalLink(encounterName);
+                strLinkedEncounters += `<li><strong>${encounterLink}</strong>`;
+                
+                // Add synopsis if available
+                if (encounter.synopsis) {
+                    strLinkedEncounters += `<br><em>${encounter.synopsis}</em>`;
+                }
+                
+                // Add key moments if available
+                if (encounter.keyMoments && encounter.keyMoments.length > 0) {
+                    strLinkedEncounters += '<br><strong>Key Moments:</strong><ul>';
+                    for (const moment of encounter.keyMoments) {
+                        strLinkedEncounters += `<li>${moment}</li>`;
+                    }
+                    strLinkedEncounters += '</ul>';
+                }
+                
+                // Add monsters if available
+                if (encounter.monsters) {
+                    strLinkedEncounters += '<br><strong>Monsters:</strong>';
+                    strLinkedEncounters += await createHTMLList(encounter.monsters);
+                }
+                
+                strLinkedEncounters += '</li>';
+            }
+        }
+        strLinkedEncounters += '</ul>';
+    }
 
     // Prepare data for the template
     var CARDDATA = {
@@ -125,7 +182,8 @@ export async function createJournalEntry(journalData) {
         strCardDialogue: strCardDialogue,
         strContextAdditionalNarration: strContextAdditionalNarration,
         strContextAtmosphere: strContextAtmosphere,
-        strContextGMNotes: strContextGMNotes
+        strContextGMNotes: strContextGMNotes,
+        strLinkedEncounters: strLinkedEncounters
     };
 
     // Play a victory sound. lol
@@ -150,7 +208,7 @@ export async function createJournalEntry(journalData) {
                 type: "text",
                 text: {
                     content: compiledHtml,
-                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML // Use the constant for the format
+                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                 }
             });
         } else {
@@ -160,21 +218,21 @@ export async function createJournalEntry(journalData) {
                 type: "text",
                 text: {
                     content: compiledHtml,
-                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML // Use the constant for the format
+                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                 }
             }]);
         }
     } else {
         // Create a new journal entry with a page
         await JournalEntry.create({
-            name: strSceneArea || strSceneTitle || "Unnamed Entry", // Use scene title as fallback
+            name: strSceneArea || strSceneTitle || "Unnamed Entry",
             pages: [
                 {
                     name: strSceneTitle,
                     type: "text",
                     text: {
                         content: compiledHtml,
-                        format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML // Use the constant for the format
+                        format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                     }
                 }
             ],
