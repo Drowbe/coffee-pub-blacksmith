@@ -1182,12 +1182,11 @@ export const registerSettings = async () => {
 		config: true,
 		requiresReload: false,
 		type: String,
-		default: 'gpt-3.5-turbo',
+		default: 'gpt-4-turbo-preview',
 		choices: {
-			'gpt-4o': 'GPT-4o (Expensive: 128,000 tokens in/16,384 tokens out)',  // https://platform.openai.com/docs/models/#gpt-4o-mini
-			'o1-mini': 'GPT-4o-mini (Cheaper: 128,000 tokens in/32,768 tokens out)', // https://platform.openai.com/docs/models/#gpt-4o-mini
-			'gpt-4': 'GPT-4 (8,192 tokens in/8,192 tokens out)', // https://platform.openai.com/docs/models/gpt-4
-			'gpt-3.5-turbo': 'GPT-3.5 Turbo 16,385 tokens in/4,096 tokens out)', // https://platform.openai.com/docs/models/gpt-3-5
+			'gpt-4-turbo-preview': 'GPT-4 Turbo (Latest: Best for D&D, 128K tokens)',
+			'gpt-4': 'GPT-4 (8,192 tokens)',
+			'gpt-3.5-turbo': 'GPT-3.5 Turbo (16K tokens)',
 		}
 	});
 
@@ -1249,11 +1248,11 @@ export const registerSettings = async () => {
 		requiresReload: true,
 		type: Number,
 		range: {
-		min: 0,
-		max: 2,
-		step: .1,
+			min: 0,
+			max: 2,
+			step: .1,
 		},
-		default: .1,
+		default: 1,
 	});
 
 

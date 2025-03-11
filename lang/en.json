@@ -172,7 +172,7 @@
 		"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
 
 		"openAIModel-Label": "Model",
-		"openAIModel-Hint": "Version of the OpenAI model to use. Free accounts do not have access to GPT-4.",
+		"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
 
 		"headingH3simpleheadingH2OpenAIContext-Label": "Context",
 		"headingH3simpleheadingH2OpenAIContext-Hint": "Description",
@@ -187,7 +187,7 @@
 		"openAIPrompt-Hint": "Overrides prompt for the game system above. Set to customize or refine OpenAI behavior.",
 
 		"openAITemperature-Label": "Temperature",
-		"openAITemperature-Hint": "The OpenAI API incorporates a hyperparameter known as temperature that affects the computation of token probabilities when generating output through the large language model. The temperature value ranges from 0 to 2, with lower values indicating greater determinism and higher values indicating more randomness. Default: 0.1",
+		"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
 
 
