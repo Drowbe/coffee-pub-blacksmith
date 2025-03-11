@@ -483,7 +483,7 @@ class CombatTimer {
         // Record pause for stats
         CombatStats.recordTimerPause();
 
-        // Play pause/resume sound if configured
+        // Play pause/resume sound if configured (for all clients)
         const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
@@ -542,9 +542,9 @@ class CombatTimer {
         // Update state first
         this.state.isPaused = false;
         this.state.showingMessage = false;
-        this.state.isActive = true;  // Add this to ensure timer is marked as active
+        this.state.isActive = true;
 
-        // Only GM should handle the interval
+        // Only GM should handle the interval and messages
         if (game.user.isGM) {
             if (this.timer) clearInterval(this.timer);
             this.timer = setInterval(() => this.tick(), 1000);
@@ -554,12 +554,6 @@ class CombatTimer {
             // Record timer resume for stats
             CombatStats.recordTimerUnpause();
             
-            // Play pause/resume sound if configured
-            const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
-            if (pauseResumeSound !== 'none') {
-                playSound(pauseResumeSound, this.getTimerVolume());
-            }
-
             // Send chat message for resume
             this.sendChatMessage({
                 isTimerResumed: true,
@@ -567,6 +561,12 @@ class CombatTimer {
             });
 
             this.syncState();
+        }
+
+        // Play pause/resume sound if configured (for all clients)
+        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+        if (pauseResumeSound !== 'none') {
+            playSound(pauseResumeSound, this.getTimerVolume());
         }
 
         this.updateUI();

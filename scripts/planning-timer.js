@@ -273,7 +273,7 @@ export class PlanningTimer {
         // Record pause for stats
         CombatStats.recordTimerPause();
 
-        // Play pause/resume sound if configured
+        // Play pause/resume sound if configured (for all clients)
         const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
@@ -282,7 +282,7 @@ export class PlanningTimer {
         // Send chat message if GM
         if (game.user.isGM) {
             this.sendChatMessage({
-                isTimerPaused: true,
+                isPlanningPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
             });
         }
@@ -312,17 +312,16 @@ export class PlanningTimer {
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
                 if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound
+                    // Play ending soon sound (for all clients)
                     const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
                     
-                    // Show ending soon notification
-                    if (this.shouldShowNotification()) {
+                    // Show ending soon notification and send chat message (GM only)
+                    if (this.shouldShowNotification() && game.user.isGM) {
                         const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
                         ui.notifications.warn(message);
-                        // Send warning chat message
                         this.sendChatMessage({
                             isTimerWarning: true,
                             warningMessage: message
@@ -338,19 +337,17 @@ export class PlanningTimer {
             // Record resume for stats
             CombatStats.recordTimerUnpause();
             
-            // Play pause/resume sound if configured
+            // Play pause/resume sound (for all clients)
             const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
             if (pauseResumeSound !== 'none') {
                 playSound(pauseResumeSound, this.getTimerVolume());
             }
 
-            // Send chat message for resume
-            if (game.user.isGM) {
-                this.sendChatMessage({
-                    isTimerResumed: true,
-                    timeRemaining: this.formatTime(this.state.remaining)
-                });
-            }
+            // Send chat message for resume (GM only)
+            this.sendChatMessage({
+                isPlanningResumed: true,
+                timeRemaining: this.formatTime(this.state.remaining)
+            });
 
             this.syncState();
         }
@@ -460,58 +457,13 @@ export class PlanningTimer {
         // Send chat message for planning start if GM and timer is at full duration
         if (game.user.isGM && duration === game.settings.get(MODULE_ID, 'planningTimerDuration')) {
             this.sendChatMessage({
-                isTimerStart: true,
+                isPlanningStart: true,
                 duration: Math.floor(duration / 60)
             });
         }
 
-        // Only GM should handle the interval
-        if (game.user.isGM) {
-            if (this.timer) clearInterval(this.timer);
-            if (!this.state.isPaused) {
-                this.timer = setInterval(() => {
-                    if (this.state.isPaused) return;
-                    
-                    this.state.remaining--;
-                    this.syncState();
-
-                    // Calculate percentage of time remaining
-                    const percentRemaining = (this.state.remaining / this.state.duration) * 100;
-
-                    // Check ending soon threshold
-                    const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
-                    if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                        // Play ending soon sound
-                        const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
-                        if (endingSoonSound !== 'none') {
-                            playSound(endingSoonSound, this.getTimerVolume());
-                        }
-                        
-                        // Show ending soon notification and send chat message
-                        if (this.shouldShowNotification()) {
-                            const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
-                            ui.notifications.warn(message);
-                            // Send warning chat message if GM
-                            if (game.user.isGM) {
-                                this.sendChatMessage({
-                                    isTimerWarning: true,
-                                    warningMessage: message
-                                });
-                            }
-                        }
-                    }
-
-                    if (this.state.remaining <= 0) {
-                        this.timeExpired();
-                    }
-                }, 1000);
-            }
-        }
-
         this.updateUI();
-        if (game.user.isGM) {
-            this.syncState();
-        }
+        this.syncState();
     }
 
     static updateUI() {
