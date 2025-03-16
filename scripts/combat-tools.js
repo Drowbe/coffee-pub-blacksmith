@@ -31,10 +31,29 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
                     height: 48px;
                     pointer-events: none;
                     z-index: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
                 .token-image {
                     position: relative;
                     z-index: 2;
+                    width: 32px !important;
+                    height: 32px !important;
+                    min-width: 32px !important;
+                    min-height: 32px !important;
+                    max-width: 32px !important;
+                    max-height: 32px !important;
+                    margin: 8px !important;
+                    border-radius: 50% !important;
+                    object-fit: cover !important;
+                }
+                .health-ring-container svg {
+                    position: absolute;
+                    top: 4px;
+                    left: 4px;
+                    width: 40px;
+                    height: 40px;
                 }
             </style>
         `);
@@ -90,9 +109,9 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
         };
 
         // Fixed dimensions for the ring
-        const size = 48;
+        const size = 40; // Ring size
         const strokeWidth = 2;
-        const radius = 23; // (48 - 2) / 2
+        const radius = 19; // (40 - 2) / 2
         const circumference = 2 * Math.PI * radius;
         const dashOffset = circumference - (healthPercent / 100) * circumference;
         const healthColor = getHealthColor(healthPercent);

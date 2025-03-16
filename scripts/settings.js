@@ -1565,9 +1565,19 @@ export const registerSettings = async () => {
 		default: true
 	});
 
-	// -- Set Current Combartant Icon --
+	// -- Show Health Bar --
+	game.settings.register(MODULE_ID, 'combatTrackerShowPortraits', {
+		name: 'Show Portraits in Combat Tracker',
+		hint: 'When enabled, combatants in the combat tracker will have a portrait icon.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// -- Set Current Combatant Icon --
 	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
-		name: 'Set Current Combartant Icon',
+		name: 'Show Set Current Combatant Icon',
 		hint: 'When enabled, and icon sill show up for each combatant that allows you to set them as the current combatant.',
 		scope: 'client',
 		config: true,
