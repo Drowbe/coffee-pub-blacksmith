@@ -57,8 +57,8 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             }
         });
 
-        // Insert our button before the token-effects div
-        controls.find('.token-effects').before(button);
+        // Insert our button as the first control
+        controls.prepend(button);
     });
 });
 
