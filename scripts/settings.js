@@ -1555,6 +1555,33 @@ export const registerSettings = async () => {
 	});
 
 
+	// -- Show Health Bar --
+	game.settings.register(MODULE_ID, 'combatTrackerShowHealthBar', {
+		name: 'Show Health Bar',
+		hint: 'When enabled, combatants in the combat tracker will have a health bar around the token.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Set Current Combartant Icon --
+	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
+		name: 'Set Current Combartant Icon',
+		hint: 'When enabled, and icon sill show up for each combatant that allows you to set them as the current combatant.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+
+
+
+
+
+
+
 	// *** TIMER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
