@@ -1,0 +1,67 @@
+.combatant {
+    position: relative;
+    cursor: grab;
+}
+
+.combatant.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.combatant.drag-over {
+    border-top: 4px solid var(--color-border-highlight-alt);
+    margin-top: -2px;
+    box-shadow: 0 0 5px var(--color-shadow-highlight);
+}
+
+.health-ring-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.token-image {
+    position: relative;
+    z-index: 2;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    margin: 8px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+}
+
+.health-ring-container svg {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 40px;
+    height: 40px;
+}
+
+/* Health Ring Colors */
+.health-ring-healthy circle {
+    stroke: #2ecc71;
+}
+
+.health-ring-injured circle {
+    stroke: #f1c40f;
+}
+
+.health-ring-bloodied circle {
+    stroke: #e67e22;
+}
+
+.health-ring-critical circle {
+    stroke: #e74c3c;
+} 

@@ -126,60 +126,6 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
         });
     });
 
-    // Add global styles once
-    if (!html.find('#combat-tools-styles').length) {
-        const globalStyles = $(`
-            <style id="combat-tools-styles">
-                .combatant {
-                    position: relative;
-                    cursor: grab;
-                }
-                .combatant.dragging {
-                    opacity: 0.5;
-                    cursor: grabbing;
-                }
-                .combatant.drag-over {
-                    border-top: 2px solid var(--color-border-highlight);
-                }
-                ${game.settings.get(MODULE_ID, 'combatTrackerShowHealthBar') ? `
-                    .health-ring-container {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 48px;
-                        height: 48px;
-                        pointer-events: none;
-                        z-index: 1;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .token-image {
-                        position: relative;
-                        z-index: 2;
-                        width: 32px !important;
-                        height: 32px !important;
-                        min-width: 32px !important;
-                        min-height: 32px !important;
-                        max-width: 32px !important;
-                        max-height: 32px !important;
-                        margin: 8px !important;
-                        border-radius: 50% !important;
-                        object-fit: cover !important;
-                    }
-                    .health-ring-container svg {
-                        position: absolute;
-                        top: 4px;
-                        left: 4px;
-                        width: 40px;
-                        height: 40px;
-                    }
-                ` : ''}
-            </style>
-        `);
-        html.prepend(globalStyles);
-    }
-
     // Process each combatant
     html.find('.combatant').each((i, element) => {
         const combatant = $(element);
@@ -228,11 +174,11 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
 
             // Get health color based on percentage
-            const getHealthColor = (percent) => {
-                if (percent >= 75) return '#2ecc71'; // Green
-                if (percent >= 50) return '#f1c40f'; // Yellow
-                if (percent >= 25) return '#e67e22'; // Orange
-                return '#e74c3c'; // Red
+            const getHealthClass = (percent) => {
+                if (percent >= 75) return 'health-ring-healthy';
+                if (percent >= 50) return 'health-ring-injured';
+                if (percent >= 25) return 'health-ring-bloodied';
+                return 'health-ring-critical';
             };
 
             // Fixed dimensions for the ring
@@ -241,7 +187,7 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             const radius = 19; // (40 - 2) / 2
             const circumference = 2 * Math.PI * radius;
             const dashOffset = circumference - (healthPercent / 100) * circumference;
-            const healthColor = getHealthColor(healthPercent);
+            const healthClass = getHealthClass(healthPercent);
 
             // Create container div if it doesn't exist
             let container = combatant.find('.health-ring-container');
@@ -252,13 +198,12 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
 
             // Create SVG for health ring
             const svg = $(`
-                <svg width="${size}" height="${size}">
+                <svg width="${size}" height="${size}" class="${healthClass}">
                     <circle
                         cx="${size/2}"
                         cy="${size/2}"
                         r="${radius}"
                         fill="none"
-                        stroke="${healthColor}"
                         stroke-width="${strokeWidth}"
                         stroke-dasharray="${circumference}"
                         stroke-dashoffset="${dashOffset}"
