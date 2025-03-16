@@ -172,11 +172,19 @@ class CombatTimer {
                 }
             );
             
-            const activeCombatant = html.find('.combatant.active');
+            // Modified selector to exclude groups and look for active individual combatant
+            const activeCombatant = html.find('.combatant.active:not(.combatant-group)');
             if (activeCombatant.length) {
                 activeCombatant.after(timerHtml);
             } else {
-                html.find('#combat-tracker').append(timerHtml);
+                // Try to find active combatant within a group
+                const activeGroupMember = html.find('.group-children .combatant.active');
+                if (activeGroupMember.length) {
+                    activeGroupMember.after(timerHtml);
+                } else {
+                    // Fallback: append to combat tracker
+                    html.find('#combat-tracker').append(timerHtml);
+                }
             }
             
             if (isEnabled) {
