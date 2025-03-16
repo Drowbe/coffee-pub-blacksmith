@@ -37,9 +37,9 @@ import { UtilsManager } from './utils-manager.js';
 import { StatsAPI } from './stats-api.js';
 import { LatencyChecker } from './latency-checker.js';
 // Import combat-tools.js for its side effects (hook registration)
-console.log("COMBAT TOOLS: BLACKSMITH IMPORTING");
+postConsoleAndNotification("CombatTools | Importing module", "", false, true, false);
 import './combat-tools.js';
-console.log("COMBAT TOOLS: BLACKSMITH IMPORT COMPLETE");
+postConsoleAndNotification("CombatTools | Import complete", "", false, true, false);
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================

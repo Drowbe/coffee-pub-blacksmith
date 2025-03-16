@@ -2,28 +2,19 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-console.log("COMBAT TOOLS: MODULE LOADING");
-
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
-console.log("COMBAT TOOLS: IMPORTS COMPLETE");
-
 // Register hooks
 Hooks.once('ready', () => {
-    postConsoleAndNotification("COMBAT TOOLS | Ready hook triggered", "", false, true, false);
+    postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
 });
 
 // Add our control button to the combat tracker
 Hooks.on('renderCombatTracker', (app, html, data) => {
-    console.log("COMBAT TOOLS | Combat Tracker rendered");
-
     // Find all combatant control groups
     const controlGroups = html.find('.combatant-controls');
-    if (!controlGroups.length) {
-        console.log("COMBAT TOOLS | No combatant controls found");
-        return;
-    }
+    if (!controlGroups.length) return;
 
     // Add our button to each control group
     controlGroups.each((i, div) => {
@@ -52,7 +43,6 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
 
             const combatant = game.combat?.combatants.get(combatantId);
             if (combatant && game.combat) {
-                console.log("COMBAT TOOLS | Setting current combatant:", combatant);
                 await game.combat.update({turn: game.combat.turns.findIndex(t => t.id === combatant.id)});
             }
         });
@@ -62,6 +52,4 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
     });
 });
 
-console.log("COMBAT TOOLS: HOOKS REGISTERED");
-console.log("COMBAT TOOLS: MODULE LOADED");
 postConsoleAndNotification("CombatTools | Module loaded", "", false, true, false); 
