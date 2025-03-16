@@ -46,7 +46,8 @@
     "scripts/player-stats.js",
     "scripts/canvas-layer.js",
     "scripts/chat-panel.js",
-    "scripts/latency-checker.js"
+    "scripts/latency-checker.js",
+    "scripts/combat-tools.js"
   ],
   "styles": [
     "styles/default.css"
