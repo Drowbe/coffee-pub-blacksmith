@@ -10,11 +10,52 @@ Hooks.once('ready', () => {
     postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
 });
 
+// Function to update portrait
+const updatePortrait = (element) => {
+    const combatant = $(element);
+    const combatantId = combatant.data('combatantId');
+    const actor = game.combat?.combatants.get(combatantId)?.actor;
+    
+    if (!actor) return;
+    
+    const img = combatant.find('img.token-image');
+    if (img.length) {
+        const portraitPath = actor.img || actor.prototypeToken.texture.src;
+        if (portraitPath && img.attr('src') !== portraitPath) {
+            img.attr('src', portraitPath);
+        }
+    }
+};
+
 // Add our control button and health rings to the combat tracker
 Hooks.on('renderCombatTracker', (app, html, data) => {
     // Find all combatant control groups
     const controlGroups = html.find('.combatant-controls');
     if (!controlGroups.length) return;
+
+    // Set up observer for portrait changes if enabled
+    if (game.settings.get(MODULE_ID, 'combatTrackerShowPortraits')) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    const combatant = $(mutation.target).closest('.combatant');
+                    if (combatant.length) {
+                        updatePortrait(combatant[0]);
+                    }
+                }
+            });
+        });
+
+        // Observe the combat tracker for changes
+        html.find('.directory-list').each((i, el) => {
+            observer.observe(el, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['src']
+            });
+        });
+    }
 
     // Add global styles once
     if (!html.find('#combat-tools-styles').length) {
@@ -70,6 +111,11 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
 
         // Only proceed if we have a valid actor
         if (!actor) return;
+
+        // Handle portrait vs token image
+        if (game.settings.get(MODULE_ID, 'combatTrackerShowPortraits')) {
+            updatePortrait(element);
+        }
 
         // Add our button for GMs
         if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerSetCurrentCombatant')) {
