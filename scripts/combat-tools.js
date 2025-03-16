@@ -27,6 +27,23 @@ const updatePortrait = (element) => {
     }
 };
 
+// Function to calculate new initiative value
+const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
+    const above = combatants[dropIndex - 1];
+    const below = combatants[dropIndex];
+    
+    // If dropping at the top
+    if (!above) {
+        return below.initiative + 2;
+    }
+    // If dropping at the bottom
+    if (!below) {
+        return above.initiative - 1;
+    }
+    // Drop between two combatants
+    return above.initiative - ((above.initiative - below.initiative) / 2);
+};
+
 // Add our control button and health rings to the combat tracker
 Hooks.on('renderCombatTracker', (app, html, data) => {
     // Find all combatant control groups
@@ -57,12 +74,72 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
         });
     }
 
+    // Make combatants draggable
+    html.find('.combatant').each((i, element) => {
+        element.draggable = true;
+        element.addEventListener('dragstart', (ev) => {
+            ev.dataTransfer.setData('text/plain', ev.target.dataset.combatantId);
+            ev.target.classList.add('dragging');
+        });
+        element.addEventListener('dragend', (ev) => {
+            ev.target.classList.remove('dragging');
+        });
+        element.addEventListener('dragover', (ev) => {
+            ev.preventDefault();
+            const draggingElement = html.find('.dragging')[0];
+            if (draggingElement && draggingElement !== ev.target) {
+                ev.target.classList.add('drag-over');
+            }
+        });
+        element.addEventListener('dragleave', (ev) => {
+            ev.target.classList.remove('drag-over');
+        });
+        element.addEventListener('drop', async (ev) => {
+            ev.preventDefault();
+            const draggedId = ev.dataTransfer.getData('text/plain');
+            const dropTarget = $(ev.target).closest('.combatant');
+            
+            if (!draggedId || !dropTarget.length) return;
+            
+            // Remove drag-over styling
+            html.find('.drag-over').removeClass('drag-over');
+            
+            // Get all combatants in current order
+            const combatants = game.combat.turns.map(t => t);
+            const draggedIndex = combatants.findIndex(c => c.id === draggedId);
+            const dropIndex = combatants.findIndex(c => c.id === dropTarget.data('combatantId'));
+            
+            if (draggedIndex === dropIndex) return;
+            
+            // Calculate new initiative
+            const newInitiative = calculateNewInitiative(
+                combatants,
+                dropIndex > draggedIndex ? dropIndex + 1 : dropIndex,
+                draggedId
+            );
+            
+            // Update the initiative
+            await game.combat.updateEmbeddedDocuments("Combatant", [{
+                _id: draggedId,
+                initiative: newInitiative
+            }]);
+        });
+    });
+
     // Add global styles once
     if (!html.find('#combat-tools-styles').length) {
         const globalStyles = $(`
             <style id="combat-tools-styles">
                 .combatant {
                     position: relative;
+                    cursor: grab;
+                }
+                .combatant.dragging {
+                    opacity: 0.5;
+                    cursor: grabbing;
+                }
+                .combatant.drag-over {
+                    border-top: 2px solid var(--color-border-highlight);
                 }
                 ${game.settings.get(MODULE_ID, 'combatTrackerShowHealthBar') ? `
                     .health-ring-container {
