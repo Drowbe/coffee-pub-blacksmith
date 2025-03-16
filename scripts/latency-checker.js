@@ -177,13 +177,13 @@ export class LatencyChecker {
                 const playerNameSpan = li.querySelector(".player-name");
                 if (!playerNameSpan) return;
 
-                // Create or get the latency span
-                let latencySpan = playerNameSpan.querySelector(".player-latency");
-                if (!latencySpan) {
-                    latencySpan = document.createElement("span");
-                    latencySpan.className = "player-latency";
-                    playerNameSpan.appendChild(latencySpan);
-                }
+                // Remove any existing latency spans
+                playerNameSpan.querySelectorAll(".player-latency").forEach(span => span.remove());
+
+                // Create new latency span
+                const latencySpan = document.createElement("span");
+                latencySpan.className = "player-latency";
+                playerNameSpan.appendChild(latencySpan);
                 
                 if (latency !== undefined) {
                     latencySpan.textContent = `${latency}ms`;
