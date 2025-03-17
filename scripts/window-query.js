@@ -2337,21 +2337,23 @@ Key encounter requirements:`;
                             skillRollText = ` with ${optionSkill} check (${inputDiceValue})`;
                         }
                         
-                        strGMSimpleContext = `<p><b>Generating ${optionType || 'information'}</b>`;
-                        if (inputContextName) strGMSimpleContext += ` for "${inputContextName}"`;
+                        strGMSimpleContext = `<p><b>Knowledge check</b>`;
+                        if (optionType) strGMSimpleContext += ` about ${optionType}`;
+                        if (inputContextName) strGMSimpleContext += ` "${inputContextName}"`;
                         strGMSimpleContext += skillRollText;
-                        if (blnGenerateDescription) strGMSimpleContext += `, with description`;
-                        if (blnGenerateDetails) strGMSimpleContext += `, with details`;
-                        if (blnGenerateStats) strGMSimpleContext += `, with stats`;
-                        if (blnGenerateBackstory) strGMSimpleContext += `, with backstory`;
+                        if (blnGenerateDescription) strGMSimpleContext += `, including descriptions`;
+                        if (blnGenerateDetails) strGMSimpleContext += `, including details`;
+                        if (blnGenerateStats) strGMSimpleContext += `, including stats`;
+                        if (blnGenerateBackstory) strGMSimpleContext += `, including backstory`;
                         strGMSimpleContext += `.</p>`;
                         
                         // Player simple context - same as GM but without GM-specific details
-                        strPlayerSimpleContext = `<p><b>Generating ${optionType || 'information'}</b>`;
-                        if (inputContextName) strPlayerSimpleContext += ` for "${inputContextName}"`;
+                        strPlayerSimpleContext = `<p><b>Knowledge check</b>`;
+                        if (optionType) strPlayerSimpleContext += ` about ${optionType}`;
+                        if (inputContextName) strPlayerSimpleContext += ` "${inputContextName}"`;
                         strPlayerSimpleContext += skillRollText;
-                        if (blnGenerateDescription) strPlayerSimpleContext += `, with description`;
-                        if (blnGenerateDetails) strPlayerSimpleContext += `, with details`;
+                        if (blnGenerateDescription) strPlayerSimpleContext += `, including descriptions`;
+                        if (blnGenerateDetails) strPlayerSimpleContext += `, including details`;
                         strPlayerSimpleContext += `.</p>`;
                         break;
                     case "character":
