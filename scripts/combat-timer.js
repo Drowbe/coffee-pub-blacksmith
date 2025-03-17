@@ -23,6 +23,9 @@ class CombatTimer {
         }
     };
 
+    // Track the last processed round
+    static _lastProcessedRound = 0;
+
     static initialize() {
         Hooks.once('ready', () => {
             try {
@@ -36,6 +39,13 @@ class CombatTimer {
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
                 this.state.remaining = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? 60;
+                
+                // Add debounce for round changes
+                this._lastRoundChange = 0;
+                this._roundChangeDebounceTime = 100; // ms
+                
+                // Reset last processed round
+                this._lastProcessedRound = 0;
                 
                 // Hook into combat turns with debounce for performance
                 const debouncedUpdate = foundry.utils.debounce(this._onUpdateCombat.bind(this), 100);
@@ -340,14 +350,72 @@ class CombatTimer {
     }
 
     static async _onUpdateCombat(combat, changed, options, userId) {
+        postConsoleAndNotification("Combat Timer: IN ONUPDATECOMBAT!!!", "", false, true, false);
+        
         if (!game.user.isGM) return;
         
-        postConsoleAndNotification("Combat Timer: Update Combat", { combat, changed }, false, true, false);
-        
+        postConsoleAndNotification("Combat Timer: _onUpdateCombat called with:", { 
+            round: combat.round,
+            turn: combat.turn,
+            changed,
+            currentState: {
+                isPaused: this.state.isPaused,
+                remaining: this.state.remaining,
+                timer: this.timer ? "active" : "null"
+            },
+            lastProcessedRound: this._lastProcessedRound
+        }, false, true, false);
+
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
             postConsoleAndNotification("Combat Timer: Skipping update while ending planning timer", "", false, true, false);
             return;
+        }
+
+        // Handle round changes first - use our own tracking variable
+        if (combat.round > 0 && combat.round !== this._lastProcessedRound) {
+            postConsoleAndNotification("Combat Timer: Round change detected from " + this._lastProcessedRound + " to " + combat.round, "", false, true, false);
+            
+            // Update our tracking variable
+            this._lastProcessedRound = combat.round;
+            
+            // Record the end of the last turn of the previous round
+            if (combat.combatant) {
+                postConsoleAndNotification("Combat Timer: Recording end of last turn for round change:", combat.combatant.name, false, true, false);
+                CombatStats.recordTurnEnd(combat.combatant);
+            }
+
+            // Force stop any existing timer
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+
+            // Reset timer and set initial state based on auto-start setting
+            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+            
+            // Always reset to full time on round change
+            this.resetTimer();
+            this.state.isPaused = !autoStart;
+            
+            if (combat.turn === 0) {
+                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
+                this.state.isPaused = true;
+                this.pauseTimer();
+            } else if (autoStart) {
+                postConsoleAndNotification("Combat Timer: Auto-starting timer for new round", "", false, true, false);
+                this.resumeTimer();
+                
+                // Play start sound if configured
+                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                if (startSound !== 'none') {
+                    playSound(startSound, this.getTimerVolume());
+                }
+            } else {
+                postConsoleAndNotification("Combat Timer: Keeping timer paused for new round", "", false, true, false);
+                this.pauseTimer();
+            }
+            return;  // Don't process other changes on round change
         }
 
         // Handle turn changes
@@ -397,42 +465,6 @@ class CombatTimer {
                 this.pauseTimer();
             }
         }
-
-        // Handle round changes first
-        if ("round" in changed) {
-            // Record the end of the last turn of the previous round
-            if (combat.combatant) {
-                postConsoleAndNotification("Combat Timer: Recording end of last turn for round change:", combat.combatant.name, false, true, false);
-                CombatStats.recordTurnEnd(combat.combatant);
-            }
-
-            postConsoleAndNotification("Combat Timer: Round change detected", "", false, true, false);
-            // Reset timer and set initial state based on auto-start setting
-            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-            
-            // Always reset to full time on round change
-            this.resetTimer();
-            this.state.isPaused = !autoStart;
-            
-            if (combat.turn === 0) {
-                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
-                this.state.isPaused = true;
-                this.pauseTimer();
-            } else if (autoStart) {
-                postConsoleAndNotification("Combat Timer: Auto-starting timer for new round", "", false, true, false);
-                this.resumeTimer();
-                
-                // Play start sound if configured
-                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
-                if (startSound !== 'none') {
-                    playSound(startSound, this.getTimerVolume());
-                }
-            } else {
-                postConsoleAndNotification("Combat Timer: Keeping timer paused for new round", "", false, true, false);
-                this.pauseTimer();
-            }
-            return;  // Don't process other changes on round change
-        }
     }
 
     static getTimerVolume() {
@@ -441,6 +473,8 @@ class CombatTimer {
 
     static startTimer(duration = null) {
         try {
+            postConsoleAndNotification("Combat Timer: startTimer called with duration:", duration, false, true, false);
+            
             // If no duration provided, get from settings and update DEFAULTS
             if (duration === null) {
                 duration = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
@@ -450,6 +484,12 @@ class CombatTimer {
             this.state.remaining = duration;
             this.state.duration = duration;  // Store duration in state
             
+            postConsoleAndNotification("Combat Timer: startTimer state before interval:", { 
+                isPaused: this.state.isPaused, 
+                remaining: this.state.remaining,
+                duration: this.state.duration
+            }, false, true, false);
+            
             if (this.timer) clearInterval(this.timer);
             
             // Force UI update before starting interval
@@ -457,6 +497,7 @@ class CombatTimer {
             
             // Only start interval if not paused
             if (!this.state.isPaused) {
+                postConsoleAndNotification("Combat Timer: Starting interval as timer is not paused", "", false, true, false);
                 this.timer = setInterval(() => this.tick(), 1000);
                 
                 // Send start message if GM and setting enabled
@@ -474,6 +515,7 @@ class CombatTimer {
                     remaining: this.state.remaining
                 });
             } else {
+                postConsoleAndNotification("Combat Timer: Not starting interval as timer is paused", "", false, true, false);
                 // Emit paused state
                 Hooks.callAll('combatTimerStateChange', {
                     isPaused: true,
@@ -487,7 +529,7 @@ class CombatTimer {
     }
 
     static pauseTimer() {
-        postConsoleAndNotification("Combat Timer | Pausing timer", "", false, true, false);
+        postConsoleAndNotification("Combat Timer: Pausing timer", "", false, true, false);
         this.state.isPaused = true;
         this.state.showingMessage = false;
 
@@ -821,6 +863,12 @@ class CombatTimer {
     }
 
     static resetTimer() {
+        postConsoleAndNotification("[TIMER_DEBUG] resetTimer called - Current state:", { 
+            isPaused: this.state.isPaused, 
+            remaining: this.state.remaining,
+            timer: this.timer ? "active" : "null"
+        }, false, true, false);
+
         // Clear any existing timer
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
@@ -840,8 +888,15 @@ class CombatTimer {
             });
         }
         
+        postConsoleAndNotification("[TIMER_DEBUG] About to call startTimer", "", false, true, false);
         // Start fresh timer
         this.startTimer();
+
+        postConsoleAndNotification("[TIMER_DEBUG] resetTimer completed - New state:", { 
+            isPaused: this.state.isPaused, 
+            remaining: this.state.remaining,
+            timer: this.timer ? "active" : "null"
+        }, false, true, false);
     }
 
     endTurn() {
