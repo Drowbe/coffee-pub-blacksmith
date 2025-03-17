@@ -4,7 +4,7 @@
 
 .round-timer {
     text-align: center;
-    background: rgba(0, 0, 0, 0.0);
+    background: rgba(0, 0, 0, 0.2);
     padding: 0px;
     margin: 0px;
     border: 0px;
@@ -15,24 +15,25 @@
 }
 .round-avg-label,
 .round-duration-label {
-    color: rgb(221, 221, 221);
+    color: rgb(221, 221, 221, 0.6);
 	text-transform: capitalize;
-	font-size: 14px;
-	font-weight: bold;
+	font-size: 12px;
+	font-weight: 400;
 	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
 	margin-right: 3px;
 }
 .round-avg-time,
 .round-duration-time {
-    color: rgb(221, 221, 221);
-    font-weight: 900;
+    color: rgb(221, 221, 221, 0.9);
+    font-weight: 400;
 	font-size: 14px;
 	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
 } 
 .separator {
 	font-weight: 900;
-	font-size: 20px;
+	font-size: 16px;
+	color: rgb(221, 221, 221, 0.2);
 	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
-	margin-left: 10px;
-	margin-right: 10px;
+	margin-left: 6px;
+	margin-right: 6px;
 }
