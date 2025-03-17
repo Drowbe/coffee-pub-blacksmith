@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.7] - Combat Timer Improvements
+
+### Added
+- Added token targeting detection to automatically start the combat timer
+- Added more robust round change detection using a custom tracking variable
+- Added detailed logging for better debugging of timer behavior
+- Added drag and drop functionality for initiative in the combat tracker
+- Added health bars to combat tracker tokens
+- Added option to show portraits in combat tracker
+- Added "Set as current combatant" button to combat tracker
+
+### Changed
+- Improved the interaction between Combat Timer and Planning Timer
+  - Replaced direct API access with Hook-based communication
+  - Simplified code structure for better maintainability
+- Enhanced round change detection to prevent timer issues during round transitions
+- Updated token movement detection for better compatibility with Foundry VTT v12
+
+### Fixed
+- Fixed issue with combat timer continuing to run during round changes
+- Fixed multiple timer activations when round changes occur
+- Fixed planning timer cleanup when transitioning between rounds
+- Fixed round timer to pause when the session is not running
+
 ## [1.0.6] - Chat Message Improvements
 
 ### Added

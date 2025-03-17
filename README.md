@@ -52,11 +52,20 @@ The Blacksmith Module serves as the foundational framework for the entire Coffee
   - Automatic active time calculation (excluding paused time)
   - Visual progress indicators
   - Configurable notifications
+  - Auto-start on token movement, targeting, and attack/damage rolls
+  - Robust round change detection to prevent timer issues
 - **Planning Timer**: 
   - Dedicated planning phase timing tool
   - Pause/resume support
   - Integration with combat stats
+  - Seamless transition to combat timer
 - **Turn Management**: Enhanced turn tracking and notification system
+- **Enhanced Combat Tracker**:
+  - Drag and drop initiative ordering
+  - Health bars for combatants
+  - Optional portrait display
+  - "Set as current combatant" button
+  - Improved round transition handling
 
 ### UI Enhancements
 - **Combat Dashboard**: 
@@ -231,9 +240,18 @@ Access the module settings through the Module Settings menu in Foundry VTT:
 
 ### Combat Tools
 - Use the combat timer to manage turn durations
+  - Timer automatically starts when a player moves their token, targets an enemy, or makes an attack/damage roll
+  - Robust round change detection prevents timer issues during transitions
 - Implement the planning timer for strategic phases
 - Pause/resume functionality for accurate timing
 - Access quick combat management tools through the toolbar
+
+### Enhanced Combat Tracker
+- Drag and drop combatants to reorder initiative
+- View health bars directly in the combat tracker
+- Toggle portrait display for better visual identification
+- Use the "Set as current combatant" button to manually control turn order
+- Improved round transition handling for smoother gameplay
 
 ## Compatibility
 
