@@ -111,6 +111,30 @@ class CombatTimer {
                     }
                 });
 
+                // Monitor token targeting
+                Hooks.on('targetToken', (user, token, targeted) => {
+                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.combat?.started) return;
+                    
+                    // Only process if a token is being targeted (not untargeted)
+                    if (!targeted) return;
+                    
+                    // Check if the user controls the current combatant
+                    const currentCombatant = game.combat.combatant;
+                    if (!currentCombatant) return;
+                    
+                    // Check if this user controls the current combatant
+                    const isCurrentCombatantUser = currentCombatant.isOwner && 
+                                                  (user.id === game.user.id);
+                    
+                    if (isCurrentCombatantUser && CombatTimer.state.isPaused) {
+                        postConsoleAndNotification("Combat Timer: Token targeting detected, resuming timer", "", false, true, false);
+                        CombatTimer.state.showingMessage = false;
+                        $('.combat-timer-text').text('');
+                        CombatTimer.resumeTimer();
+                    }
+                });
+
                 // Set up auto-open after combat tracker is ready
                 Hooks.once('renderCombatTracker', () => {
                     if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
