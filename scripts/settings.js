@@ -1587,11 +1587,6 @@ export const registerSettings = async () => {
 
 
 
-
-
-
-
-
 	// *** TIMER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
