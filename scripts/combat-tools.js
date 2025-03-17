@@ -171,10 +171,10 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             const hp = actor.system.attributes.hp;
             const currentHP = hp.value;
             const maxHP = hp.max;
-            const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
-
+            
             // Get health color based on percentage
-            const getHealthClass = (percent) => {
+            const getHealthClass = (percent, currentHP) => {
+                if (currentHP <= 0) return 'health-ring-dead';
                 if (percent >= 75) return 'health-ring-healthy';
                 if (percent >= 50) return 'health-ring-injured';
                 if (percent >= 25) return 'health-ring-bloodied';
@@ -186,8 +186,12 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             const strokeWidth = 2;
             const radius = 19; // (40 - 2) / 2
             const circumference = 2 * Math.PI * radius;
-            const dashOffset = circumference - (healthPercent / 100) * circumference;
-            const healthClass = getHealthClass(healthPercent);
+            
+            // When dead (HP <= 0), show full ring, otherwise calculate normally
+            const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
+            const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercent / 100) * circumference;
+            
+            const healthClass = getHealthClass(healthPercent, currentHP);
 
             // Create container div if it doesn't exist
             let container = combatant.find('.health-ring-container');
@@ -208,13 +212,25 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
                         stroke-dasharray="${circumference}"
                         stroke-dashoffset="${dashOffset}"
                         transform="rotate(-90, ${size/2}, ${size/2})"
-                        style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"
+                        ${currentHP > 0 ? 'style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"' : ''}
                     />
                 </svg>
             `);
 
-            // Update the ring
+            // Update the ring and handle dead state
             container.empty().append(svg);
+
+            // Add dead class and skull overlay if HP is 0 or less
+            if (currentHP <= 0 && game.settings.get(MODULE_ID, 'combatTrackerShowPortraits')) {
+                combatant.addClass('portrait-dead');
+                // Add skull overlay if it doesn't exist
+                if (!container.find('.portrait-dead-overlay').length) {
+                    container.append('<i class="fas fa-skull portrait-dead-overlay"></i>');
+                }
+            } else {
+                combatant.removeClass('portrait-dead');
+                container.find('.portrait-dead-overlay').remove();
+            }
         }
     });
 });

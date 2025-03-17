@@ -47,21 +47,73 @@
     left: 4px;
     width: 40px;
     height: 40px;
+    z-index: 3;
 }
 
 /* Health Ring Colors */
 .health-ring-healthy circle {
-    stroke: #2ecc71;
+    stroke: #44b428;
 }
 
 .health-ring-injured circle {
-    stroke: #f1c40f;
+    stroke: #c09e16;
 }
 
 .health-ring-bloodied circle {
-    stroke: #e67e22;
+    stroke: #c06312;
 }
 
 .health-ring-critical circle {
-    stroke: #e74c3c;
+    stroke: #a11c1b;
+}
+
+@keyframes pulse-dead {
+    0% {
+        stroke: #a11c1b;
+        stroke-width: 2px;
+        filter: drop-shadow(0 0 1px #a11c1b);
+    }
+    50% {
+        stroke: #d81010;
+        stroke-width: 3px;
+        filter: drop-shadow(0 0 3px #d81010);
+    }
+    100% {
+        stroke: #a11c1b;
+        stroke-width: 2px;
+        filter: drop-shadow(0 0 1px #a11c1b);
+    }
+}
+
+.health-ring-dead circle {
+    stroke: #7b1615;
+    animation: pulse-dead 2s ease-in-out infinite;
+}
+
+.portrait-dead-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
+    color: white;
+    font-size: 20px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8),
+                -1px -1px 2px rgba(0,0,0,0.8),
+                1px -1px 2px rgba(0,0,0,0.8),
+                -1px 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+}
+
+.portrait-dead .token-image {
+    filter: grayscale(100%) brightness(40%);
+    transition: filter 0.3s ease-in-out;
+}
+
+.health-ring-container .portrait-dead-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
 } 
