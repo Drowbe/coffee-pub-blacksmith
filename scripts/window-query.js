@@ -1593,7 +1593,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             case "encounter":
                 // ENCOUNTER
                 // update this once generating realtime encounters
-                isWorkspaceSet = inputFolderName || inputSceneTitle || optionCardImage || inputCardImage || inputLocation || inputSceneParent || inputSceneArea || inputEnvironment || inputPrepTitle || inputPrepDescription || inputPrepDetails || inputXP || inputNarrativeRewardDetails;
+                isWorkspaceSet = inputFolderName || inputSceneTitle || inputLocation || inputSceneParent || inputSceneArea || inputEnvironment || inputPrepTitle || inputPrepDescription || inputPrepDetails || inputXP || inputNarrativeRewardDetails;
                 break;
             case "narrative":
                 // NARRATIVE
@@ -2124,21 +2124,28 @@ Key encounter requirements:`;
                     strPromptNarration += `\nInclude these encounters in the narrative:`;
                     encountersData.forEach(encounter => {
                         strPromptNarration += `\n- ${encounter.name}:`;
-                        strPromptNarration += `\n  Synopsis: ${encounter.synopsis}`;
-                        if (encounter.keyMoments.length > 0) {
+                        strPromptNarration += `\n  UUID: ${encounter.uuid || ""}`;
+                        strPromptNarration += `\n  Synopsis: ${encounter.synopsis || "No synopsis available"}`;
+                        
+                        if (encounter.keyMoments && encounter.keyMoments.length > 0) {
                             strPromptNarration += `\n  Key Moments:`;
                             encounter.keyMoments.forEach(moment => {
                                 strPromptNarration += `\n    • ${moment}`;
                             });
+                        } else {
+                            strPromptNarration += `\n  Key Moments:\n    • No key moments specified`;
                         }
                     });
+                    
+                    // Add explicit instructions for the JSON format
+                    strPromptNarration += `\n\nIMPORTANT: Make sure to include ALL linked encounters in your JSON response. The linkedEncounters array MUST include all encounters listed above, with proper uuid, name, synopsis, and keyMoments fields for each encounter. DO NOT omit any fields.`;
                 }
             } catch (e) {
                 console.error('Error parsing encounters data:', e);
             }
         }
 
-        // Update the JSON template to include linkedEncounters
+        // Update the JSON template to include linkedEncounters with explicit instructions
         strPromptNarration += `\n\nProvide the response in this JSON format:
         {
             "journaltype": "JOURNALTYPE",
@@ -2156,19 +2163,48 @@ Key encounter requirements:`;
             "cardtitle": "CARDTITLE",
             "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
             "cardimagetitle": "CARDIMAGETITLE",
-            "cardimage": "${optionCardImage === "custom" ? (inputCardImage || "") : optionCardImage === "none" ? "" : optionCardImage || ""}",
+            "cardimage": "${optionCardImage || inputCardImage || 'icons/svg/book.svg'}",
             "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
             "carddialogue": "CARDDIALOGUE",
             "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
             "contextatmosphere": "CONTEXTATMOSPHERE",
             "contextgmnotes": "CONTEXTGMNOTES",
-            "linkedEncounters": [
+            "linkedEncounters": [`;
+            
+        // Add any actual encounter data to the JSON template if available
+        const encountersData = encountersInput && encountersInput.value ? JSON.parse(encountersInput.value || '[]') : [];
+        if (encountersData.length > 0) {
+            encountersData.forEach((encounter, index) => {
+                strPromptNarration += `
+                {
+                    "uuid": "${encounter.uuid || ''}",
+                    "name": "${encounter.name || ''}",
+                    "synopsis": "${(encounter.synopsis || 'No synopsis available').replace(/"/g, '\\"')}",
+                    "keyMoments": [`;
+                
+                if (encounter.keyMoments && encounter.keyMoments.length > 0) {
+                    encounter.keyMoments.forEach((moment, mIndex) => {
+                        strPromptNarration += `"${moment.replace(/"/g, '\\"')}"${mIndex < encounter.keyMoments.length - 1 ? ', ' : ''}`;
+                    });
+                } else {
+                    strPromptNarration += `"No key moments specified"`;
+                }
+                
+                strPromptNarration += `]
+                }${index < encountersData.length - 1 ? ',' : ''}`;
+            });
+        } else {
+            // Template with placeholders
+            strPromptNarration += `
                 {
                     "uuid": "JOURNAL_UUID",
                     "name": "ENCOUNTER_NAME",
                     "synopsis": "ENCOUNTER_SYNOPSIS",
                     "keyMoments": ["MOMENT1", "MOMENT2", ...]
-                }
+                }`;
+        }
+        
+        strPromptNarration += `
             ]
         }`;
 
@@ -2892,6 +2928,11 @@ async function addEncounterToNarrative(id, journalEntry, page) {
 
     // Parse the content to find Synopsis and Key Moments
     const content = page.text.content;
+    
+    // Log the content for debugging
+    console.log('BLACKSMITH | Regent: Parsing encounter content for:', page.name);
+    
+    // First try to find the Summary and Setup section
     const setupMatch = content.match(/<h4>Summary and Setup<\/h4>([\s\S]*?)(?=<h4>|$)/i);
     if (!setupMatch) {
         ui.notifications.warn("This journal page doesn't appear to be an encounter (no Summary and Setup section found).");
@@ -2899,12 +2940,54 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     }
 
     const setupContent = setupMatch[1];
-    const synopsis = setupContent.match(/Synopsis:(.*?)(?=-|$)/i)?.[1]?.trim() || "";
-    const keyMomentsMatch = setupContent.match(/Key Moments:(.*?)(?=<h4>|$)/i)?.[1] || "";
-    const keyMoments = keyMomentsMatch
-        .split(/•|-/)
-        .map(moment => moment.trim())
-        .filter(moment => moment);
+    console.log('BLACKSMITH | Regent: Setup content found, length:', setupContent.length);
+    
+    // Extract synopsis - handle multiple possible patterns
+    let synopsis = "";
+    // Try different patterns for Synopsis - with colon inside or outside the strong tag
+    let synopsisPatterns = [
+        /<li><strong>Synopsis:<\/strong>(.*?)<\/li>/i,
+        /<li><strong>Synopsis<\/strong>:(.*?)<\/li>/i
+    ];
+    
+    for (const pattern of synopsisPatterns) {
+        const match = setupContent.match(pattern);
+        if (match && match[1]) {
+            synopsis = match[1].trim();
+            break;
+        }
+    }
+    console.log('BLACKSMITH | Regent: Extracted synopsis:', synopsis);
+    
+    // Extract key moments - handle multiple possible patterns
+    let keyMoments = [];
+    // Try different patterns for Key Moments - with colon inside or outside the strong tag
+    let keyMomentsPatterns = [
+        /<li><strong>Key Moments:<\/strong>(.*?)<\/li>/i,
+        /<li><strong>Key Moments<\/strong>:(.*?)<\/li>/i
+    ];
+    
+    for (const pattern of keyMomentsPatterns) {
+        const match = setupContent.match(pattern);
+        if (match && match[1]) {
+            // Process the content based on what's there
+            const content = match[1].trim();
+            
+            // If it contains bullet points (• or -), split by those
+            if (content.includes('•') || content.includes('- ')) {
+                keyMoments = content.split(/•|-/)
+                    .map(moment => moment.trim())
+                    .filter(moment => moment && moment.length > 3);
+            } else {
+                // Otherwise split by natural sentence breaks
+                keyMoments = content.split(/[\.;,]/)
+                    .map(moment => moment.trim())
+                    .filter(moment => moment && moment.length > 5);
+            }
+            break;
+        }
+    }
+    console.log('BLACKSMITH | Regent: Extracted key moments:', keyMoments);
 
     // Create the encounter card
     const strName = trimString(page.name, 24);
