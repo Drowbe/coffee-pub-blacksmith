@@ -32,6 +32,9 @@ export class PlanningTimer {
 
         // Register hooks
         Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
+        
+        // Add hook for ending the planning timer from combat timer
+        Hooks.on('endPlanningTimer', this.forceEnd.bind(this));
 
         // Wait for game to be ready before checking initial state
         Hooks.once('ready', () => {
@@ -690,12 +693,8 @@ export class PlanningTimer {
     }
 }
 
-Hooks.once('init', () => {
-    postConsoleAndNotification("Exposing Planning Timer API", "", false, true, false);
-    // Initialize the API object if it doesn't exist
-    const module = game.modules.get(MODULE_ID);
-    module.api = module.api || {};
-    module.api.PlanningTimer = PlanningTimer;
-});
+// Remove the API exposure at the end of the file and replace with a comment
+// explaining that we're using Hooks for communication instead
+// This replaces the Hooks.once('init') block at the end of the file
 
 

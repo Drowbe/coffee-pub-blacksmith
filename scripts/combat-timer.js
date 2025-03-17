@@ -575,23 +575,8 @@ class CombatTimer {
             // Set flag to prevent recursion
             this._endingPlanningTimer = true;
             
-            // Get the planning timer instance and ensure it ends properly
-            const module = game.modules.get(MODULE_ID);
-            if (module?.api?.PlanningTimer) {
-                postConsoleAndNotification("Combat Timer: Found Planning Timer, ending it", "", false, true, false);
-                const planningTimer = module.api.PlanningTimer;
-                
-                // Directly clean up the planning timer
-                planningTimer.cleanupTimer();
-                planningTimer.state.isExpired = true;
-                
-                // Remove the planning timer from view
-                $('.planning-phase').fadeOut(400, function() {
-                    $(this).remove();
-                });
-            } else {
-                console.warn("Blacksmith | Combat Timer: Could not find Planning Timer API");
-            }
+            // Use Hook to end the planning timer instead of direct API access
+            Hooks.call('endPlanningTimer');
             
             // Resume the combat timer immediately
             this._endingPlanningTimer = false;
