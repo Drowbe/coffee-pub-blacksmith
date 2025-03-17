@@ -459,10 +459,13 @@ export class PlanningTimer {
 
         // Send chat message for planning start if GM and timer is at full duration
         if (game.user.isGM && duration === game.settings.get(MODULE_ID, 'planningTimerDuration')) {
-            this.sendChatMessage({
-                isPlanningStart: true,
-                duration: Math.floor(duration / 60)
-            });
+            // Check if the setting is enabled before sending the message
+            if (game.settings.get(MODULE_ID, 'timerChatPlanningStart')) {
+                this.sendChatMessage({
+                    isPlanningStart: true,
+                    duration: Math.floor(duration / 60)
+                });
+            }
         }
 
         this.updateUI();

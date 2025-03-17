@@ -889,7 +889,7 @@ class CombatTimer {
         $('.combat-timer-progress').removeClass('expired');
         
         // Start fresh timer with chat message
-        if (game.user.isGM) {
+        if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnStart')) {
             const duration = Math.floor(game.settings.get(MODULE_ID, 'combatTimerDuration') / 60);
             this.sendChatMessage({
                 isTimerStart: true,
