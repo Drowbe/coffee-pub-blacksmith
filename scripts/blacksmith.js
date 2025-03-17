@@ -882,6 +882,7 @@ function cleanAndValidateJSON(str) {
 
 async function buildQueryCard(question, queryWindow, queryContext = '') {
     var strQuestion = question;
+    var strDisplayQuestion = question; // New variable to store what's shown to the user
     var strAnswer = "";
     var compiledHtml = "";
     var strQueryContext = queryContext;
@@ -894,7 +895,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
 
     if (strQueryContext) {
         postConsoleAndNotification("TRUE: strQueryContext:", strQueryContext, false, true, false); 
-        strQuestion = strQueryContext;
+        strDisplayQuestion = strQueryContext; // Only change what's displayed, not what's sent to API
     }
     // Display user's question
     var CARDDATA = {
@@ -905,7 +906,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
         strHeaderStlye: "blacksmith-message-header-question",
         strSpeakerName: game.user.name,
         strMessageIntro: "",
-        strMessageContent: strQuestion
+        strMessageContent: strDisplayQuestion // Use the display version here
     };
     compiledHtml = template(CARDDATA);
     queryWindow.displayMessage(compiledHtml);
@@ -927,7 +928,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     scrollToBottom();
     playSound(COFFEEPUB.SOUNDPOP01,COFFEEPUB.SOUNDVOLUMESOFT);
 
-    // Get the answer
+    // Get the answer - using the original full question
     const openAIResponse = await getOpenAIReplyAsHtml(strQuestion);
 
     // Debug the answer
