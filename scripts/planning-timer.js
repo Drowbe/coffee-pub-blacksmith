@@ -468,6 +468,46 @@ export class PlanningTimer {
             }
         }
 
+        // If auto-start is enabled, start the timer interval
+        if (!this.state.isPaused && game.user.isGM) {
+            postConsoleAndNotification("Planning Timer | Auto-starting timer", "", false, true, false);
+            if (this.timer) clearInterval(this.timer);
+            this.timer = setInterval(() => {
+                if (this.state.isPaused) return;
+                
+                this.state.remaining--;
+                this.syncState();
+
+                // Calculate percentage of time remaining
+                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const percentRemaining = (this.state.remaining / timeLimit) * 100;
+
+                // Check ending soon threshold
+                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
+                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
+                    // Play ending soon sound (for all clients)
+                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
+                    if (endingSoonSound !== 'none') {
+                        playSound(endingSoonSound, this.getTimerVolume());
+                    }
+                    
+                    // Show ending soon notification and send chat message (GM only)
+                    if (this.shouldShowNotification() && game.user.isGM) {
+                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
+                        ui.notifications.warn(message);
+                        this.sendChatMessage({
+                            isTimerWarning: true,
+                            warningMessage: message
+                        });
+                    }
+                }
+
+                if (this.state.remaining <= 0) {
+                    this.timeExpired();
+                }
+            }, 1000);
+        }
+
         this.updateUI();
         this.syncState();
     }
