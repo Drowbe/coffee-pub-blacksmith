@@ -2229,6 +2229,15 @@ Key encounter requirements:`;
                         strGmContext += addTableRow('Prep Title', inputPrepTitle);
                         strGmContext += addTableRow('Prep Description', inputPrepDescription);
                         strGmContext += addTableRow('Prep Details', inputPrepDetails);
+                        
+                        // Simple context for encounter
+                        strGMSimpleContext = `<p><b>Generating encounter</b> for "${inputSceneTitle || 'unnamed encounter'}"`;
+                        if (inputLocation) strGMSimpleContext += ` in ${inputLocation}`;
+                        if (inputEnvironment) strGMSimpleContext += ` (${inputEnvironment})`;
+                        strGMSimpleContext += `.</p>`;
+                        
+                        // Player simple context
+                        strPlayerSimpleContext = strGMSimpleContext;
                         break;
                     case "narrative":
                         // NARRATIVE
@@ -2251,6 +2260,14 @@ Key encounter requirements:`;
                         strGmContext += addTableRow('Prep Description', inputPrepDescription);
                         strGmContext += addTableRow('Prep Details', inputPrepDetails);
 
+                        // Simple context for narrative
+                        strGMSimpleContext = `<p><b>Generating narrative</b> for "${inputSceneTitle || 'unnamed scene'}"`;
+                        if (inputLocation) strGMSimpleContext += ` in ${inputLocation}`;
+                        if (inputEnvironment) strGMSimpleContext += ` (${inputEnvironment})`;
+                        strGMSimpleContext += `.</p>`;
+                        
+                        // Player simple context
+                        strPlayerSimpleContext = strGMSimpleContext;
                         break;
                     case "lookup":
                         // LOOKUP
@@ -2272,6 +2289,14 @@ Key encounter requirements:`;
                         strPlayerContext += addTableRow('Details', inputFeaturesDetails);
                         strPlayerContext += addTableRow('Rules', blnMechanicsExplain);
                         strPlayerContext += addTableRow('Tutorial', blnMechanicsHowTo);
+                        
+                        // Simple context for lookup
+                        strGMSimpleContext = `<p><b>Looking up:</b> ${optionFeatures || 'SRD information'}`;
+                        if (inputFeaturesDetails) strGMSimpleContext += ` - ${inputFeaturesDetails}`;
+                        strGMSimpleContext += `.</p>`;
+                        
+                        // Player simple context
+                        strPlayerSimpleContext = strGMSimpleContext;
                         break;
                     case "assistant":
                         // SKILL CHECK
@@ -2305,10 +2330,50 @@ Key encounter requirements:`;
                         strGmContext += addTableRow('Tutorial', blnMechanicsHowTo);
                         // Player Context
                         // none for the player
+                        
+                        // Simple context for assistant/skill check
+                        let skillRollText = '';
+                        if (blnSkillRoll && optionSkill && inputDiceValue) {
+                            skillRollText = ` with ${optionSkill} check (${inputDiceValue})`;
+                        }
+                        
+                        strGMSimpleContext = `<p><b>Generating ${optionType || 'information'}</b>`;
+                        if (inputContextName) strGMSimpleContext += ` for "${inputContextName}"`;
+                        strGMSimpleContext += skillRollText;
+                        if (blnGenerateDescription) strGMSimpleContext += `, with description`;
+                        if (blnGenerateDetails) strGMSimpleContext += `, with details`;
+                        if (blnGenerateStats) strGMSimpleContext += `, with stats`;
+                        if (blnGenerateBackstory) strGMSimpleContext += `, with backstory`;
+                        strGMSimpleContext += `.</p>`;
+                        
+                        // Player simple context - same as GM but without GM-specific details
+                        strPlayerSimpleContext = `<p><b>Generating ${optionType || 'information'}</b>`;
+                        if (inputContextName) strPlayerSimpleContext += ` for "${inputContextName}"`;
+                        strPlayerSimpleContext += skillRollText;
+                        if (blnGenerateDescription) strPlayerSimpleContext += `, with description`;
+                        if (blnGenerateDetails) strPlayerSimpleContext += `, with details`;
+                        strPlayerSimpleContext += `.</p>`;
+                        break;
+                    case "character":
+                        // CHARACTER GUIDANCE
+                        // Add character guidance simple context
+                        strGMSimpleContext = `<p><b>Generating character guidance</b>`;
+                        if (inputContextName) strGMSimpleContext += ` for "${inputContextName}"`;
+                        if (blnGenerateDescription) strGMSimpleContext += `, with description`;
+                        if (blnGenerateDetails) strGMSimpleContext += `, with details`;
+                        if (blnGenerateBackstory) strGMSimpleContext += `, with backstory`;
+                        strGMSimpleContext += `.</p>`;
+                        
+                        // Player simple context
+                        strPlayerSimpleContext = strGMSimpleContext;
                         break;
                     default:
                         // override the top gm prompt with a random fact.   
                         strFinalPrompt += "Share a random dungeons and dragon fact.";
+                        
+                        // Default simple context
+                        strGMSimpleContext = `<p><b>Processing request</b> in ${this.workspaceId} workspace.</p>`;
+                        strPlayerSimpleContext = strGMSimpleContext;
                 }
             }
         }   
