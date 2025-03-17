@@ -87,6 +87,10 @@
     animation: pulse-dead 2s ease-in-out infinite;
 }
 
+.token-initiative {
+    position: relative;
+}
+
 .portrait-dead-overlay {
     position: absolute;
     top: 50%;
@@ -102,6 +106,6 @@
 }
 
 .portrait-dead .token-image {
-    filter: grayscale(100%) brightness(40%);
+    filter: brightness(90%) sepia(50%) saturate(300%) hue-rotate(-30deg);
     transition: filter 0.3s ease-in-out;
 } 

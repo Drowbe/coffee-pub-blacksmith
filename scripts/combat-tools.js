@@ -254,16 +254,15 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
             // Add dead class and skull overlay if HP is 0 or less
             if (currentHP <= 0 && game.settings.get(MODULE_ID, 'combatTrackerShowPortraits')) {
                 combatant.addClass('portrait-dead');
-                // Add skull overlay if it doesn't exist
-                if (!container.find('.portrait-dead-overlay').length) {
+                // Add skull overlay to the initiative div if it doesn't exist
+                const initiativeDiv = combatant.find('.token-initiative');
+                if (initiativeDiv.length && !initiativeDiv.find('.portrait-dead-overlay').length) {
                     const skullOverlay = $('<i class="fas fa-skull portrait-dead-overlay"></i>');
-                    container.append(skullOverlay);
-                    // Force the skull to be the last child
-                    skullOverlay.detach().appendTo(container);
+                    initiativeDiv.append(skullOverlay);
                 }
             } else {
                 combatant.removeClass('portrait-dead');
-                container.find('.portrait-dead-overlay').remove();
+                combatant.find('.portrait-dead-overlay').remove();
             }
         }
     });
