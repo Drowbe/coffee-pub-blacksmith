@@ -9,9 +9,9 @@
 }
 
 .combatant.drag-over {
-    border-top: 4px solid var(--color-border-highlight-alt);
+    border-top: 6px solid #ff6400;
     margin-top: -2px;
-    box-shadow: 0 0 5px var(--color-shadow-highlight);
+    box-shadow: 0 0 5px rgba(255, 100, 0, 0.5);
 }
 
 .health-ring-container {
