@@ -5,7 +5,38 @@
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
-// Register hooks
+// Register settings first
+Hooks.once('init', () => {
+    // Register module settings
+    game.settings.register(MODULE_ID, 'combatTrackerShowHealthBar', {
+        name: 'Show Health Bar',
+        hint: 'When enabled, combatants in the combat tracker will have a health bar around the token.',
+        scope: 'client',
+        config: true,
+        type: Boolean,
+        default: true
+    });
+
+    game.settings.register(MODULE_ID, 'combatTrackerShowPortraits', {
+        name: 'Show Portraits in Combat Tracker',
+        hint: 'When enabled, combatants in the combat tracker will have a portrait icon.',
+        scope: 'client',
+        config: true,
+        type: Boolean,
+        default: false
+    });
+
+    game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
+        name: 'Show Set Current Combatant Icon',
+        hint: 'When enabled, an icon will show up for each combatant that allows you to set them as the current combatant.',
+        scope: 'client',
+        config: true,
+        type: Boolean,
+        default: true
+    });
+});
+
+// Register hooks after settings are initialized
 Hooks.once('ready', () => {
     postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
 });
@@ -44,7 +75,7 @@ const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
     return above.initiative - ((above.initiative - below.initiative) / 2);
 };
 
-// Add our control button and health rings to the combat tracker
+// Move the renderCombatTracker hook after settings registration
 Hooks.on('renderCombatTracker', (app, html, data) => {
     // Find all combatant control groups
     const controlGroups = html.find('.combatant-controls');
@@ -225,7 +256,10 @@ Hooks.on('renderCombatTracker', (app, html, data) => {
                 combatant.addClass('portrait-dead');
                 // Add skull overlay if it doesn't exist
                 if (!container.find('.portrait-dead-overlay').length) {
-                    container.append('<i class="fas fa-skull portrait-dead-overlay"></i>');
+                    const skullOverlay = $('<i class="fas fa-skull portrait-dead-overlay"></i>');
+                    container.append(skullOverlay);
+                    // Force the skull to be the last child
+                    skullOverlay.detach().appendTo(container);
                 }
             } else {
                 combatant.removeClass('portrait-dead');
