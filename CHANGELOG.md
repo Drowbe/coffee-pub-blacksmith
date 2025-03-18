@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.8] - Encounter Toolbar
+
+### Added
+- Added Encounter Toolbar for journal entries with encounter metadata
+- Added monster deployment functionality with multiple formation patterns (circle, line, random)
+- Added combat creation and initiative rolling directly from journal entries
+- Added encounter difficulty visualization in toolbar
+- Added settings to control encounter toolbar behavior:
+  - Enable/disable encounter toolbar
+  - Auto-create combat after monster deployment
+  - Configure monster deployment pattern
+
+### Changed
+- Improved metadata handling in journal entries
+- Updated journal rendering hook to detect encounter journal entries
+
 ## [1.0.7] - Combat Timer Improvements
 
 ### Added
