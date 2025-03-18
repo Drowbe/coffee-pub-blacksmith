@@ -1,0 +1,22 @@
+{{!-- Encounter Toolbar Template --}}
+<div class="encounter-toolbar">
+    <div class="encounter-toolbar-header">
+        <div class="title">Encounter Management</div>
+        {{#if difficulty}}
+        <div class="difficulty {{difficultyClass}}">{{difficulty}}</div>
+        {{/if}}
+    </div>
+    <div class="encounter-toolbar-buttons">
+        {{#if hasMonsters}}
+        <button class="deploy-monsters" data-tooltip="Deploy monsters to the current scene">
+            <i class="fas fa-dragon"></i> Deploy Monsters
+        </button>
+        {{/if}}
+        <button class="roll-initiative" data-tooltip="Roll initiative for all combatants">
+            <i class="fas fa-dice-d20"></i> Roll Initiative
+        </button>
+        <button class="create-combat" data-tooltip="Create a new combat encounter">
+            <i class="fas fa-swords"></i> Create Combat
+        </button>
+    </div>
+</div> 

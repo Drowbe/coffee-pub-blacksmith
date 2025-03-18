@@ -785,6 +785,39 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+		// -- ENCOUNTER TOOLBAR --
+		game.settings.register(MODULE_ID, 'enableEncounterToolbar', {
+			name: MODULE_ID + '.enableEncounterToolbar-Label',
+			hint: MODULE_ID + '.enableEncounterToolbar-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+		});
+
+		game.settings.register(MODULE_ID, 'autoCreateCombatForEncounters', {
+			name: MODULE_ID + '.autoCreateCombatForEncounters-Label',
+			hint: MODULE_ID + '.autoCreateCombatForEncounters-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+		});
+
+		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentPattern', {
+			name: MODULE_ID + '.encounterToolbarDeploymentPattern-Label',
+			hint: MODULE_ID + '.encounterToolbarDeploymentPattern-Hint',
+			type: String,
+			choices: {
+				"circle": "Circle Formation",
+				"line": "Line Formation",
+				"random": "Random Positioning"
+			},
+			config: true,
+			scope: 'world',
+			default: "circle",
+		});
+
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - SCENES  ----------

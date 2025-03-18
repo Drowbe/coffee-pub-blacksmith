@@ -15,6 +15,7 @@
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
+@import "encounter-toolbar.css";
 
 /* --- Cards ---------------------- */
 @import "cards-layout.css";

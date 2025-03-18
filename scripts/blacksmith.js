@@ -36,6 +36,7 @@ import { ModuleManager } from './module-manager.js';
 import { UtilsManager } from './utils-manager.js';
 import { StatsAPI } from './stats-api.js';
 import { LatencyChecker } from './latency-checker.js';
+import { EncounterToolbar } from './encounter-toolbar.js';
 // Import combat-tools.js for its side effects (hook registration)
 postConsoleAndNotification("CombatTools | Importing module", "", false, true, false);
 import './combat-tools.js';
@@ -145,6 +146,10 @@ Hooks.once('init', async function() {
     // VOTE MANAGER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing VoteManager...", "", false, true, false);
     VoteManager.initialize();
+    
+    // ENCOUNTER TOOLBAR
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing EncounterToolbar...", "", false, true, false);
+    EncounterToolbar.init();
 });
 
 // Initialize WrapperManager after libWrapper is ready

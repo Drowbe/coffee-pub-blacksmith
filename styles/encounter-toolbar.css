@@ -1,0 +1,92 @@
+/* Encounter Toolbar Styles */
+.encounter-toolbar {
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 5px;
+    padding: 8px;
+    font-family: var(--font-primary);
+}
+
+.encounter-toolbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.encounter-toolbar-header .title {
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--color-text-dark-primary);
+}
+
+.encounter-toolbar-header .difficulty {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Difficulty colors */
+.encounter-toolbar-header .difficulty.easy {
+    background-color: #4caf50;
+    color: white;
+}
+
+.encounter-toolbar-header .difficulty.medium {
+    background-color: #ff9800;
+    color: white;
+}
+
+.encounter-toolbar-header .difficulty.hard {
+    background-color: #f44336;
+    color: white;
+}
+
+.encounter-toolbar-header .difficulty.deadly {
+    background-color: #9c27b0;
+    color: white;
+}
+
+.encounter-toolbar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.encounter-toolbar-buttons button {
+    background: var(--color-bg-btn);
+    color: var(--color-text-light-highlight);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 3px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.encounter-toolbar-buttons button:hover {
+    background: var(--color-bg-btn-hover);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.encounter-toolbar-buttons button i {
+    margin-right: 5px;
+}
+
+/* Make sure toolbar is responsive */
+@media (max-width: 768px) {
+    .encounter-toolbar-buttons {
+        flex-direction: column;
+    }
+    
+    .encounter-toolbar-buttons button {
+        width: 100%;
+        justify-content: center;
+    }
+} 
