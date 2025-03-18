@@ -183,14 +183,111 @@ export async function createJournalEntry(journalData) {
         strContextAdditionalNarration: strContextAdditionalNarration,
         strContextAtmosphere: strContextAtmosphere,
         strContextGMNotes: strContextGMNotes,
-        strLinkedEncounters: strLinkedEncounters
+        linkedEncounters: journalData.linkedEncounters || []
     };
+
+    // Add a hidden CDATA section with the raw linked encounters data if available
+    if (journalData.linkedEncounters && journalData.linkedEncounters.length > 0) {
+        // Use HTML encoding for the data attribute to avoid issues with quotes
+        const encodedData = encodeURIComponent(JSON.stringify(journalData.linkedEncounters));
+        CARDDATA.linkedEncountersData = `<div style="display:none" data-linked-encounters="${encodedData}"><![CDATA[${JSON.stringify(journalData.linkedEncounters)}]]></div>`;
+    } else {
+        CARDDATA.linkedEncountersData = '';
+    }
 
     // Play a victory sound. lol
     playSound(COFFEEPUB.SOUNDEFFECTBOOK02, COFFEEPUB.SOUNDVOLUMENORMAL);
 
     // Set the content
     compiledHtml = template(CARDDATA);
+
+    // Add metadata at the top of the journal entry for programmatic access
+    // This will make it easier to identify and manipulate journal entries
+    const metadata = {
+        type: journalData.journaltype,
+        location: strSceneLocation || "",
+        parent: strSceneParent || "",
+        area: strSceneArea || "",
+        environment: strSceneEnvironment || "",
+        title: strSceneTitle || "",
+        synopsis: "",
+        keyMoments: "",
+        difficulty: "",
+        linkedEncounters: journalData.linkedEncounters || []
+    };
+    
+    // Extract synopsis from prepsetup
+    if (journalData.prepsetup) {
+        // Try different patterns for Synopsis
+        const synopsisPatterns = [
+            /<li><strong>Synopsis<\/strong>:(.*?)<\/li>/i,
+            /<li><strong>Synopsis<\/strong>(.*?)<\/li>/i,
+            /<li><strong>Synopsis:<\/strong>(.*?)<\/li>/i
+        ];
+        
+        for (const pattern of synopsisPatterns) {
+            const match = journalData.prepsetup.match(pattern);
+            if (match && match[1]) {
+                metadata.synopsis = match[1].trim();
+                break;
+            }
+        }
+        
+        // Try different patterns for Key Moments
+        const keyMomentsPatterns = [
+            /<li><strong>Key Moments<\/strong>:(.*?)<\/li>/i,
+            /<li><strong>Key Moments<\/strong>(.*?)<\/li>/i,
+            /<li><strong>Key Moments:<\/strong>(.*?)<\/li>/i
+        ];
+        
+        for (const pattern of keyMomentsPatterns) {
+            const match = journalData.prepsetup.match(pattern);
+            if (match && match[1]) {
+                metadata.keyMoments = match[1].trim();
+                break;
+            }
+        }
+    }
+    
+    // Extract difficulty from prepencounterdetails
+    if (journalData.prepencounterdetails) {
+        // Try different patterns for Difficulty
+        const difficultyPatterns = [
+            /<li><strong>Difficulty<\/strong>:(.*?)<\/li>/i,
+            /<li><strong>Difficulty<\/strong>(.*?)<\/li>/i,
+            /<li><strong>Difficulty:<\/strong>(.*?)<\/li>/i
+        ];
+        
+        for (const pattern of difficultyPatterns) {
+            const match = journalData.prepencounterdetails.match(pattern);
+            if (match && match[1]) {
+                metadata.difficulty = match[1].trim();
+                break;
+            }
+        }
+    }
+    
+    // For monster lists, extract UUIDs
+    if (journalData.prepencounter && typeof journalData.prepencounter === 'string') {
+        const monsterUUIDPattern = /@UUID\[(.*?)\]/g;
+        const monsterUUIDs = [];
+        let match;
+        
+        while ((match = monsterUUIDPattern.exec(journalData.prepencounter)) !== null) {
+            monsterUUIDs.push(match[1]);
+        }
+        
+        if (monsterUUIDs.length > 0) {
+            metadata.monsters = monsterUUIDs;
+        }
+    }
+
+    // Encode the metadata
+    const encodedMetadata = encodeURIComponent(JSON.stringify(metadata));
+    const metadataBlock = `<div style="display:none" data-journal-metadata="${encodedMetadata}" data-journal-type="${journalData.journaltype}"><![CDATA[${JSON.stringify(metadata)}]]></div>`;
+    
+    // Add the metadata block at the beginning of the HTML
+    compiledHtml = metadataBlock + compiledHtml;
 
     // Check if the journal entry already exists
     let existingEntry = game.journal.find(entry => {

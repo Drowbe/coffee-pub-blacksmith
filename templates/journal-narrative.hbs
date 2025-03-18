@@ -73,22 +73,26 @@
     {{{strContextAdditionalNarration}}}
 {{/if}}
 
+{{#if (and strContextGMNotes (ne strContextGMNotes ""))}}
+    <h4>Notes and Strategies</h4>
+    {{{strContextGMNotes}}}
+{{/if}}
+
+{{!-- Include the hidden linked encounters data --}}
+{{{linkedEncountersData}}}
+
+{{!-- Display linked encounters in a more readable format --}}
 {{#if linkedEncounters}}
 <h4>Related Encounters</h4>
 <div class="related-encounters">
     {{#each linkedEncounters}}
     <div class="encounter-reference">
-        <h5>@UUID[{{this.uuid}}]{{{this.name}}}</h5>
+        <h5>@UUID[{{this.uuid}}]{{this.name}}</h5>
         {{#if this.synopsis}}
         <p><strong>Synopsis:</strong> {{this.synopsis}}</p>
         {{/if}}
         {{#if this.keyMoments}}
-        <p><strong>Key Moments:</strong></p>
-        <ul>
-            {{#each this.keyMoments}}
-            <li>{{this}}</li>
-            {{/each}}
-        </ul>
+        <p><strong>Key Moments:</strong> {{#each this.keyMoments}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}</p>
         {{/if}}
     </div>
     {{/each}}
@@ -98,9 +102,4 @@
 {{#if (and strContextAtmosphere (ne strContextAtmosphere ""))}}
     <h4>Atmosphere and Environments</h4>
     {{{strContextAtmosphere}}}
-{{/if}}
-
-{{#if (and strContextGMNotes (ne strContextGMNotes ""))}}
-    <h4>Notes and Strategies</h4>
-    {{{strContextGMNotes}}}
 {{/if}}
