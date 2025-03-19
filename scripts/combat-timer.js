@@ -103,6 +103,87 @@ class CombatTimer {
                     }
                 });
                 
+                // Handle new combatants based on initiative setting
+                Hooks.on('createCombatant', async (combatant, options, userId) => {
+                    // Only GM should process this
+                    if (!game.user.isGM) return;
+                    
+                    // Get the setting
+                    const initiativeMode = game.settings.get(MODULE_ID, 'combatTrackerAddInitiative');
+                    
+                    // Skip processing if the setting is 'none'
+                    if (initiativeMode === 'none') return;
+                    
+                    // Skip if combat isn't started yet
+                    const combat = combatant.combat;
+                    if (!combat?.started) return;
+                    
+                    // Skip player-controlled combatants
+                    const actor = combatant.actor;
+                    if (!actor || actor.hasPlayerOwner) return;
+                    
+                    postConsoleAndNotification("Combat Timer: NPC/Monster added to combat", {
+                        name: combatant.name,
+                        mode: initiativeMode
+                    }, false, true, false);
+                    
+                    // Process based on setting
+                    switch (initiativeMode) {
+                        case 'auto':
+                            // Roll initiative automatically
+                            await combatant.rollInitiative();
+                            postConsoleAndNotification("Combat Timer: Rolled initiative for " + combatant.name, "", false, true, false);
+                            break;
+                        
+                        case 'next': 
+                            // Set initiative to act immediately after current turn
+                            if (combat.turn !== undefined && combat.turns) {
+                                const currentCombatantIndex = combat.turn;
+                                const nextCombatantIndex = (currentCombatantIndex + 1) % combat.turns.length;
+                                const currentInit = combat.turns[currentCombatantIndex]?.initiative || 0;
+                                const nextInit = combat.turns[nextCombatantIndex]?.initiative || 0;
+                                
+                                // If next combatant has the same initiative as the current one
+                                // add a small decimal to place after current but before next with same init
+                                let newInit = currentInit;
+                                if (currentInit === nextInit) {
+                                    newInit = currentInit - 0.01;
+                                } else {
+                                    // Set halfway between current and next initiative
+                                    newInit = (currentInit + nextInit) / 2;
+                                }
+                                
+                                await combatant.update({initiative: newInit});
+                                postConsoleAndNotification("Combat Timer: Set " + combatant.name + " to act next with initiative " + newInit, "", false, true, false);
+                            } else {
+                                // If there's no active combat or turn, just roll
+                                await combatant.rollInitiative();
+                                postConsoleAndNotification("Combat Timer: No active turn, rolled initiative for " + combatant.name, "", false, true, false);
+                            }
+                            break;
+                        
+                        case 'last':
+                            // Find the lowest initiative in combat
+                            if (combat.turns && combat.turns.length > 0) {
+                                const validTurns = combat.turns.filter(t => t.id !== combatant.id && t.initiative !== null);
+                                if (validTurns.length > 0) {
+                                    const lowestInit = Math.min(...validTurns.map(t => t.initiative));
+                                    await combatant.update({initiative: lowestInit - 1});
+                                    postConsoleAndNotification("Combat Timer: Set " + combatant.name + " to act last with initiative " + (lowestInit - 1), "", false, true, false);
+                                } else {
+                                    // If no other combatants, just roll
+                                    await combatant.rollInitiative();
+                                    postConsoleAndNotification("Combat Timer: No other combatants with initiative, rolled for " + combatant.name, "", false, true, false);
+                                }
+                            } else {
+                                // If there's no other combatants, just roll
+                                await combatant.rollInitiative();
+                                postConsoleAndNotification("Combat Timer: No other combatants, rolled initiative for " + combatant.name, "", false, true, false);
+                            }
+                            break;
+                    }
+                });
+                
                 // Add timer to combat tracker
                 Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
 
