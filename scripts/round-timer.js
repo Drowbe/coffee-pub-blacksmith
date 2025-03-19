@@ -27,30 +27,43 @@ export class RoundTimer {
 
             // Set up game activity tracking
             this.isActive = true;
-            window.addEventListener('focus', () => {
-                this.isActive = true;
-                // When game becomes active, update the start timestamp to now
-                if (game.combat?.started) {
-                    const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
-                    if (stats.roundStartTimestamp) {
-                        stats.roundStartTimestamp = Date.now();
-                        stats.accumulatedTime = stats.accumulatedTime || 0;
-                        game.combat.setFlag(MODULE_ID, 'stats', stats);
+            
+            // Only register focus/blur handlers for GM
+            if (game.user.isGM) {
+                window.addEventListener('focus', () => {
+                    this.isActive = true;
+                    // When game becomes active, update the start timestamp to now
+                    if (game.combat?.started) {
+                        const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
+                        if (stats.roundStartTimestamp) {
+                            stats.roundStartTimestamp = Date.now();
+                            stats.accumulatedTime = stats.accumulatedTime || 0;
+                            game.combat.setFlag(MODULE_ID, 'stats', stats);
+                        }
                     }
-                }
-            });
+                });
 
-            window.addEventListener('blur', () => {
-                this.isActive = false;
-                // When game becomes inactive, save the accumulated time
-                if (game.combat?.started) {
-                    const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
-                    if (stats.roundStartTimestamp) {
-                        stats.accumulatedTime = (stats.accumulatedTime || 0) + (Date.now() - stats.roundStartTimestamp);
-                        game.combat.setFlag(MODULE_ID, 'stats', stats);
+                window.addEventListener('blur', () => {
+                    this.isActive = false;
+                    // When game becomes inactive, save the accumulated time
+                    if (game.combat?.started) {
+                        const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
+                        if (stats.roundStartTimestamp) {
+                            stats.accumulatedTime = (stats.accumulatedTime || 0) + (Date.now() - stats.roundStartTimestamp);
+                            game.combat.setFlag(MODULE_ID, 'stats', stats);
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                // For non-GM users, just track active state without updating combat
+                window.addEventListener('focus', () => {
+                    this.isActive = true;
+                });
+                
+                window.addEventListener('blur', () => {
+                    this.isActive = false;
+                });
+            }
             
             // Start update interval
             this.updateInterval = setInterval(() => {
@@ -98,7 +111,7 @@ export class RoundTimer {
 
     static _onUpdateCombat(combat, changed, options, userId) {
         // If round changes, we need to reset our timer
-        if (changed.round && changed.round !== combat.previous.round) {
+        if (changed.round && changed.round !== combat.previous.round && game.user.isGM) {
             // Reset the timer stats for the new round
             const stats = {
                 roundStartTimestamp: Date.now(),

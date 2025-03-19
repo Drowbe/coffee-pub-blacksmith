@@ -115,7 +115,7 @@
 		"headingH2Windows-Hint": "Style windows the way you want them.",
 
 		"headingH3TitlebarSettings-Label": "Titlebar Adjustments",
-		"headingH3TitlebarSettings-Hint": "If your titlebar is getting too crowded, tweak the setting below until it is laid out how you want it.",
+		"headingH3TitlebarSettings-Hint": "If your titlebar is getting too crowded, tweak the setting below until it is laid out how you want it. (Requires Reload)",
 
 		"titlebarTextSize-Label": "Text Size",
 		"titlebarTextSize-Hint": "Changes the font size of the text in the titlebar of windows. Setting the size to 0 hides the text entirely. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 14px.",

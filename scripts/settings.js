@@ -942,7 +942,7 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE_ID, "headingH2Windows", {
 			name: MODULE_ID + '.headingH2Windows-Label',
 			hint: MODULE_ID + '.headingH2Windows-Hint',
-			scope: "world",
+			scope: "client",
 			config: true,
 			default: "",
 			type: String,
@@ -953,7 +953,7 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE_ID, "headingH3TitlebarSettings", {
 			name: MODULE_ID + '.headingH3TitlebarSettings-Label',
 			hint: MODULE_ID + '.headingH3TitlebarSettings-Hint',
-			scope: "world",
+			scope: "client",
 			config: true,
 			default: "",
 			type: String,
@@ -963,7 +963,7 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE_ID, "titlebarTextSize", {
 			name: MODULE_ID + '.titlebarTextSize-Label',
 			hint: MODULE_ID + '.titlebarTextSize-Hint',
-			scope: "world",
+			scope: "client",
 			config: true,
 			requiresReload: true,
 			type: Number,
@@ -978,7 +978,7 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE_ID,"titlebarIconSize", {
 			name: MODULE_ID + '.titlebarIconSize-Label',
 			hint: MODULE_ID + '.titlebarIconSize-Hint',
-			scope: "world",
+			scope: "client",
 			config: true,
 			requiresReload: true,
 			type: Number,
@@ -993,7 +993,7 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE_ID,"titlebarSpacing", {
 			name: MODULE_ID + '.titlebarSpacing-Label',
 			hint: MODULE_ID + '.titlebarSpacing-Hint',
-			scope: "world",
+			scope: "client",
 			config: true,
 			requiresReload: true,
 			type: Number,
@@ -1665,7 +1665,7 @@ export const registerSettings = async () => {
 		scope: 'client',
 		config: true,
 		type: Boolean,
-		default: false
+		default: true
 	});
 
 
@@ -2304,7 +2304,7 @@ export const registerSettings = async () => {
 	game.settings.register(MODULE_ID, "headingH2Debug", {
 		name: MODULE_ID + '.headingH2Debug-Label',
 		hint: MODULE_ID + '.headingH2Debug-Hint',
-		scope: "world",
+		scope: "client",
 		config: true,
 		default: "",
 		type: String,
@@ -2315,7 +2315,7 @@ export const registerSettings = async () => {
 	game.settings.register(MODULE_ID, "headingH3simpleConsole", {
 		name: MODULE_ID + '.headingH3simpleConsole-Label',
 		hint: MODULE_ID + '.headingH3simpleConsole-Hint',
-		scope: "world",
+		scope: "client",
 		config: true,
 		default: "",
 		type: String,
@@ -2329,14 +2329,14 @@ export const registerSettings = async () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'world',
+		scope: 'client',
 		default: true,
 	});
 	// ---------- DEBUG SETTINGS ----------
 	game.settings.register(MODULE_ID, "headingH3simpleDebug", {
 		name: MODULE_ID + '.headingH3simpleDebug-Label',
 		hint: MODULE_ID + '.headingH3simpleDebug-Hint',
-		scope: "world",
+		scope: "client",
 		config: true,
 		default: "",
 		type: String,
@@ -2349,7 +2349,7 @@ export const registerSettings = async () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'world',
+		scope: 'client',
 		default: false,
 	});
 
@@ -2360,7 +2360,7 @@ export const registerSettings = async () => {
 		type: String,
 		config: true,
 		requiresReload: true,
-		scope: 'world',
+		scope: 'client',
 		default: "fancy",
 		choices: {
 			'fancy': 'Fancy Pants: Large Font and Boxes',
