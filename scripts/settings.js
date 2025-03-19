@@ -1610,10 +1610,20 @@ export const registerSettings = async () => {
 		default: false
 	});
 	
+	// -- Set Current Combatant Icon --
+	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer', {
+		name: 'Roll Monster/NPC Initiative',
+		hint: 'When enabled the combat tracker will roll initiative for all monsters and NPCs automatically each round.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
 	// -- Monster/NPC Initiative --
 	game.settings.register(MODULE_ID, 'combatTrackerAddInitiative', {
-		name: 'Monster/NPC Initiative',
-		hint: 'When an NPC or Monster is added to the combat tracker, this setting will determine what happens to their initiative.',
+		name: 'Monster/NPC Mid-combat Initiative',
+		hint: 'When an NPC or Monster is added to the combat tracker mid combat, this setting will determine what happens to their initiative.',
 		scope: 'world',
 		config: true,
 		requiresReload: false,

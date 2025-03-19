@@ -70,9 +70,14 @@ class CombatTimer {
                 });
                 
                 // Reset first combatant flag when a new combat is created
-                Hooks.on('createCombat', (combat) => {
+                Hooks.on('createCombat', async (combat) => {
                     postConsoleAndNotification("Combat Timer: New combat created, resetting first combatant flag", "", false, true, false);
                     this._hasSetFirstCombatant = false;
+                    
+                    // Auto-roll initiative for non-player combatants when enabled
+                    if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
+                        await this._rollInitiativeForNonPlayers(combat);
+                    }
                 });
                 
                 // Reset first combatant flag when combat is deleted or ended
@@ -287,6 +292,31 @@ class CombatTimer {
         Hooks.once('blacksmith.socketReady', () => {
             postConsoleAndNotification("Combat Timer | Socket is ready", "", false, true, false);
         });
+    }
+
+    // Helper method to roll initiative for non-player combatants
+    static async _rollInitiativeForNonPlayers(combat) {
+        if (!game.user.isGM || !combat) return;
+        
+        // Get all combatants with null initiative that are not player-controlled
+        const nonPlayerCombatants = combat.turns?.filter(c => 
+            c.initiative === null && 
+            c.actor && 
+            !c.actor.hasPlayerOwner
+        );
+        
+        if (!nonPlayerCombatants || nonPlayerCombatants.length === 0) {
+            postConsoleAndNotification("Combat Timer: No non-player combatants found that need initiative", "", false, true, false);
+            return;
+        }
+        
+        postConsoleAndNotification("Combat Timer: Rolling initiative for " + nonPlayerCombatants.length + " non-player combatants", "", false, true, false);
+        
+        // Roll initiative for each non-player combatant
+        const ids = nonPlayerCombatants.map(c => c.id);
+        await combat.rollInitiative(ids);
+        
+        postConsoleAndNotification("Combat Timer: Finished rolling initiative for non-player combatants", "", false, true, false);
     }
 
     static async syncState() {
@@ -558,6 +588,12 @@ class CombatTimer {
                 if (updates.length > 0) {
                     await combat.updateEmbeddedDocuments("Combatant", updates);
                     postConsoleAndNotification("Combat Timer: Initiative cleared for " + updates.length + " combatants", "", false, true, false);
+                    
+                    // After clearing initiative, auto-roll for non-player combatants if enabled
+                    if (game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
+                        postConsoleAndNotification("Combat Timer: Auto-rolling initiative for non-player combatants after clearing", "", false, true, false);
+                        await this._rollInitiativeForNonPlayers(combat);
+                    }
                 }
             }
 
