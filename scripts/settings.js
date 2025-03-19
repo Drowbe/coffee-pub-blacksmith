@@ -1577,9 +1577,6 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
-	
-	
-	
 	// -- Set Current Combatant Icon --
 	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
 		name: 'Show Set Current Combatant Icon',
@@ -1590,7 +1587,7 @@ export const registerSettings = async () => {
 		default: true
 	});
 	
-	// -- Set Current Combatant Icon --
+	// -- Clear Initiative --
 	game.settings.register(MODULE_ID, 'combatTrackerClearInitiative', {
 		name: 'Clear Initiative',
 		hint: 'When enabled the combat tracker will clear the initiative each round.',
@@ -1600,7 +1597,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 	
-	// -- Set Current Combatant Icon --
+	// -- Set First Combatant --
 	game.settings.register(MODULE_ID, 'combatTrackerSetFirstTurn', {
 		name: 'Set First Combatant',
 		hint: 'When enabled the combat tracker will set the first combatant as the current combatant.',
@@ -1610,7 +1607,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 	
-	// -- Set Current Combatant Icon --
+	// -- Roll Initiative for Monstars and NPCs --
 	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer', {
 		name: 'Roll Monster/NPC Initiative',
 		hint: 'When enabled the combat tracker will roll initiative for all monsters and NPCs automatically each round.',
@@ -1637,11 +1634,20 @@ export const registerSettings = async () => {
 		}
 	});
 
-
 	// -- Open Combat Tracker --
 	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
 		hint: 'When enabled, the combat tracker will be open by default when a combat starts',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// -- Auto-roll Player Inititive --
+	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativePlayer', {
+		name: 'Auto-roll Initiative for Characters',
+		hint: 'When enabled, the combat tracker will roll initiative for all owned characters automatically each round.',
 		scope: 'client',
 		config: true,
 		type: Boolean,
