@@ -152,18 +152,6 @@ class CombatTimer {
                     }
                 });
 
-                // Set up auto-open after combat tracker is ready
-                Hooks.once('renderCombatTracker', () => {
-                    if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
-                        const combat = game.combat;
-                        if (combat?.started && combat.combatants.find(c => c.isOwner)) {
-                            postConsoleAndNotification("Auto-opening combat tracker for player in active combat", "", false, true, false);
-                            const tabApp = ui["combat"];
-                            tabApp.renderPopout(tabApp);
-                        }
-                    }
-                });
-
             } catch (error) {
                 console.error(`Blacksmith | Could not initialize Combat Timer:`, error);
             }

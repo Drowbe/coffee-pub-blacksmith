@@ -1624,7 +1624,7 @@ export const registerSettings = async () => {
 		scope: 'client',
 		config: true,
 		type: Boolean,
-		default: true
+		default: false
 	});
 
 	// -- Monster/NPC Initiative --
