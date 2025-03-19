@@ -540,8 +540,9 @@ class CombatTimer {
             }
 
             // Check if we should clear initiative when round changes
-            if (game.settings.get(MODULE_ID, 'combatTrackerClearInitiative')) {
-                postConsoleAndNotification("Combat Timer: Clearing initiative for all combatants", "", false, true, false);
+            // ONLY clear initiative when changing to round 2 or higher
+            if (game.settings.get(MODULE_ID, 'combatTrackerClearInitiative') && combat.round > 1) {
+                postConsoleAndNotification("Combat Timer: Clearing initiative for all combatants (round > 1)", "", false, true, false);
                 
                 // Create an array of updates to apply to all combatants
                 // Use the turns array instead of combatants since combatants might not be an array
