@@ -1617,6 +1617,16 @@ export const registerSettings = async () => {
 		default: false
 	});
 
+	// -- Roll Initiative for Player Characters --
+	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativePlayer', {
+		name: 'Roll Player Character Initiative',
+		hint: 'When enabled, players will automatically roll initiative for their characters each round.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
 	// -- Monster/NPC Initiative --
 	game.settings.register(MODULE_ID, 'combatTrackerAddInitiative', {
 		name: 'Monster/NPC Mid-combat Initiative',
@@ -1644,15 +1654,6 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	// -- Auto-roll Player Inititive --
-	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativePlayer', {
-		name: 'Auto-roll Initiative for Characters',
-		hint: 'When enabled, the combat tracker will roll initiative for all owned characters automatically each round.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
 
 	// -- Show Health Bar --
 	game.settings.register(MODULE_ID, 'combatTrackerShowHealthBar', {

@@ -35,6 +35,7 @@ import { WrapperManager } from './wrapper-manager.js';
 import { ModuleManager } from './module-manager.js';
 import { UtilsManager } from './utils-manager.js';
 import { StatsAPI } from './stats-api.js';
+import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 // Import combat-tools.js for its side effects (hook registration)
@@ -142,6 +143,9 @@ Hooks.once('init', async function() {
     // ROUND TIMER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...", "", false, true, false);
     RoundTimer.initialize();
+    // COMBAT TRACKER
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CombatTracker...", "", false, true, false);
+    CombatTracker.initialize();
 
     // VOTE MANAGER
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing VoteManager...", "", false, true, false);
