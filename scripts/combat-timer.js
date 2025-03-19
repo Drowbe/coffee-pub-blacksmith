@@ -74,10 +74,11 @@ class CombatTimer {
                     postConsoleAndNotification("Combat Timer: New combat created, resetting first combatant flag", "", false, true, false);
                     this._hasSetFirstCombatant = false;
                     
-                    // Auto-roll initiative for non-player combatants when enabled
-                    if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
-                        await this._rollInitiativeForNonPlayers(combat);
-                    }
+                    // We don't need this anymore as it's handled per-combatant
+                    // when each NPC is added to the tracker
+                    // if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
+                    //     await this._rollInitiativeForNonPlayers(combat);
+                    // }
                 });
                 
                 // Reset first combatant flag when combat is deleted or ended
@@ -113,19 +114,31 @@ class CombatTimer {
                     // Only GM should process this
                     if (!game.user.isGM) return;
                     
-                    // Get the setting
+                    // Get NPC initiative setting
                     const initiativeMode = game.settings.get(MODULE_ID, 'combatTrackerAddInitiative');
                     
-                    // Skip processing if the setting is 'none'
-                    if (initiativeMode === 'none') return;
-                    
-                    // Skip if combat isn't started yet
-                    const combat = combatant.combat;
-                    if (!combat?.started) return;
+                    // Check if we should auto-roll initiative for non-player combatants when added to tracker
+                    const shouldAutoRoll = game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer');
                     
                     // Skip player-controlled combatants
                     const actor = combatant.actor;
                     if (!actor || actor.hasPlayerOwner) return;
+                    
+                    const combat = combatant.combat;
+                    
+                    // CASE 1: Combat hasn't started yet - auto-roll for NPCs/monsters when setting is enabled
+                    if (shouldAutoRoll && (!combat?.started || combat.round === 0)) {
+                        // Don't roll if initiative is already set
+                        if (combatant.initiative === null) {
+                            await combatant.rollInitiative();
+                            postConsoleAndNotification("Combat Timer: Auto-rolled initiative for " + combatant.name + " (combat not started yet)", "", false, true, false);
+                        }
+                        return;
+                    }
+                    
+                    // CASE 2: Combat is in progress - use the combatTrackerAddInitiative setting
+                    // Skip processing if the setting is 'none' or combat isn't started
+                    if (initiativeMode === 'none' || !combat?.started) return;
                     
                     postConsoleAndNotification("Combat Timer: NPC/Monster added to combat", {
                         name: combatant.name,
