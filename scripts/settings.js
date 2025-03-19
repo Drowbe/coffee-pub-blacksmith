@@ -1602,7 +1602,7 @@ export const registerSettings = async () => {
 	
 	// -- Set Current Combatant Icon --
 	game.settings.register(MODULE_ID, 'combatTrackerSetFirstTurn', {
-		name: 'Set FIrst Combatant',
+		name: 'Set First Combatant',
 		hint: 'When enabled the combat tracker will set the first combatant as the current combatant.',
 		scope: 'world',
 		config: true,
@@ -1610,6 +1610,24 @@ export const registerSettings = async () => {
 		default: false
 	});
 	
+	// -- Monster/NPC Initiative --
+	game.settings.register(MODULE_ID, 'combatTrackerAddInitiative', {
+		name: 'Monster/NPC Initiative',
+		hint: 'When an NPC or Monster is added to the combat tracker, this setting will determine what happens to their initiative.',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'Do Nothing: Just add the Monster/NPC to the combat tracker',
+			'auto': 'Roll Initiative: Automatically roll initiative for the Monster/NPC',
+			'next': 'Set Next: Monster/NPC takes the next available turn',
+			'last': 'Last: Monster/NPC gets added to the end of the combat tracker',
+		}
+	});
+
+
 	// -- Open Combat Tracker --
 	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
@@ -1619,9 +1637,6 @@ export const registerSettings = async () => {
 		type: Boolean,
 		default: false
 	});
-
-
-
 
 	// -- Show Health Bar --
 	game.settings.register(MODULE_ID, 'combatTrackerShowHealthBar', {
