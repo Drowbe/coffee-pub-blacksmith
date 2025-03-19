@@ -1644,7 +1644,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	// -- Open Combat Tracker --
+	// -- Open Combat Tracker -- move into tools
 	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
 		hint: 'When enabled, the combat tracker will be open by default when a combat starts',

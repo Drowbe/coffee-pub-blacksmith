@@ -56,40 +56,18 @@ class CombatTimer {
                     debouncedUpdate(combat, changed, options, userId);
                 });
                 
-                // Hook for detecting when all initiatives have been rolled
-                Hooks.on('updateCombatant', (combatant, data, options, userId) => {
-                    // Only process if initiative was changed and we're the GM
-                    if (!game.user.isGM || !('initiative' in data) || data.initiative === null) return;
-                    
-                    postConsoleAndNotification("Combat Timer: Combatant initiative updated", {
-                        combatantName: combatant.name,
-                        initiative: data.initiative
-                    }, false, true, false);
-                    
-                    this._checkAllInitiativesRolled(combatant.combat);
-                });
-                
                 // Reset first combatant flag when a new combat is created
                 Hooks.on('createCombat', async (combat) => {
-                    postConsoleAndNotification("Combat Timer: New combat created, resetting first combatant flag", "", false, true, false);
-                    this._hasSetFirstCombatant = false;
-                    
-                    // We don't need this anymore as it's handled per-combatant
-                    // when each NPC is added to the tracker
-                    // if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
-                    //     await this._rollInitiativeForNonPlayers(combat);
-                    // }
+                    postConsoleAndNotification("Combat Timer: New combat created", "", false, true, false);
                 });
                 
                 // Reset first combatant flag when combat is deleted or ended
                 Hooks.on('deleteCombat', () => {
-                    postConsoleAndNotification("Combat Timer: Combat deleted, resetting first combatant flag", "", false, true, false);
-                    this._hasSetFirstCombatant = false;
+                    postConsoleAndNotification("Combat Timer: Combat deleted", "", false, true, false);
                 });
                 
                 Hooks.on('endCombat', () => {
-                    postConsoleAndNotification("Combat Timer: Combat ended, resetting first combatant flag", "", false, true, false);
-                    this._hasSetFirstCombatant = false;
+                    postConsoleAndNotification("Combat Timer: Combat ended", "", false, true, false);
                 });
                 
                 // Check when a combat starts
@@ -305,31 +283,6 @@ class CombatTimer {
         Hooks.once('blacksmith.socketReady', () => {
             postConsoleAndNotification("Combat Timer | Socket is ready", "", false, true, false);
         });
-    }
-
-    // Helper method to roll initiative for non-player combatants
-    static async _rollInitiativeForNonPlayers(combat) {
-        if (!game.user.isGM || !combat) return;
-        
-        // Get all combatants with null initiative that are not player-controlled
-        const nonPlayerCombatants = combat.turns?.filter(c => 
-            c.initiative === null && 
-            c.actor && 
-            !c.actor.hasPlayerOwner
-        );
-        
-        if (!nonPlayerCombatants || nonPlayerCombatants.length === 0) {
-            postConsoleAndNotification("Combat Timer: No non-player combatants found that need initiative", "", false, true, false);
-            return;
-        }
-        
-        postConsoleAndNotification("Combat Timer: Rolling initiative for " + nonPlayerCombatants.length + " non-player combatants", "", false, true, false);
-        
-        // Roll initiative for each non-player combatant
-        const ids = nonPlayerCombatants.map(c => c.id);
-        await combat.rollInitiative(ids);
-        
-        postConsoleAndNotification("Combat Timer: Finished rolling initiative for non-player combatants", "", false, true, false);
     }
 
     static async syncState() {
@@ -581,38 +534,6 @@ class CombatTimer {
                 postConsoleAndNotification("Combat Timer: Recording end of last turn for round change:", combat.combatant.name, false, true, false);
                 CombatStats.recordTurnEnd(combat.combatant);
             }
-
-            // Check if we should clear initiative when round changes
-            // ONLY clear initiative when changing to round 2 or higher
-            if (game.settings.get(MODULE_ID, 'combatTrackerClearInitiative') && combat.round > 1) {
-                postConsoleAndNotification("Combat Timer: Clearing initiative for all combatants (round > 1)", "", false, true, false);
-                
-                // Create an array of updates to apply to all combatants
-                // Use the turns array instead of combatants since combatants might not be an array
-                const combatants = combat.turns || [];
-                const updates = combatants.map(c => {
-                    return {
-                        _id: c.id,
-                        initiative: null
-                    };
-                });
-                
-                // Apply the updates
-                if (updates.length > 0) {
-                    await combat.updateEmbeddedDocuments("Combatant", updates);
-                    postConsoleAndNotification("Combat Timer: Initiative cleared for " + updates.length + " combatants", "", false, true, false);
-                    
-                    // After clearing initiative, auto-roll for non-player combatants if enabled
-                    if (game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
-                        postConsoleAndNotification("Combat Timer: Auto-rolling initiative for non-player combatants after clearing", "", false, true, false);
-                        await this._rollInitiativeForNonPlayers(combat);
-                    }
-                }
-            }
-
-            // Reset the flag to track setting the first combatant for this new round
-            this._hasSetFirstCombatant = false;
-            postConsoleAndNotification("Combat Timer: Reset first combatant flag for new round", "", false, true, false);
             
             // Update our tracking variable
             this._lastProcessedRound = combat.round;
@@ -1151,68 +1072,6 @@ class CombatTimer {
     static async timerAdjusted(timeString) {
         if (!game.user.isGM) {
             ui.notifications.info(`Combat timer set to ${timeString}`);
-        }
-    }
-
-    // Helper method to check if all combatants have initiative values and set first combatant if needed
-    static async _checkAllInitiativesRolled(combat) {
-        if (!combat || !combat.started || !game.user.isGM) return;
-        
-        // Don't check if we've already set the first combatant for this round
-        if (this._hasSetFirstCombatant) {
-            postConsoleAndNotification("Combat Timer: First combatant already set for this round, skipping check", "", false, true, false);
-            return;
-        }
-        
-        // Don't proceed if the setting is not enabled
-        if (!game.settings.get(MODULE_ID, 'combatTrackerSetFirstTurn')) {
-            postConsoleAndNotification("Combat Timer: Setting not enabled, skipping check", "", false, true, false);
-            return;
-        }
-        
-        // Use the turns array to get combatants
-        const combatants = combat.turns || [];
-        
-        // Skip empty combats
-        if (combatants.length === 0) {
-            postConsoleAndNotification("Combat Timer: No combatants found, skipping", "", false, true, false);
-            return;
-        }
-        
-        // Log combatant initiatives for debugging
-        const initiativeValues = combatants.map(c => ({ 
-            id: c.id, 
-            name: c.name, 
-            initiative: c.initiative,
-            isDefeated: c.isDefeated
-        }));
-        
-        postConsoleAndNotification("Combat Timer: Checking all initiatives:", initiativeValues, false, true, false);
-        
-        // Get combatants that need initiative (not defeated and without initiative)
-        const combatantsNeedingInitiative = combatants.filter(c => c.initiative === null && !c.isDefeated);
-        
-        postConsoleAndNotification("Combat Timer: Combatants needing initiative:", 
-            combatantsNeedingInitiative.map(c => c.name), false, true, false);
-        
-        // If no combatants need initiative, all have been rolled
-        if (combatantsNeedingInitiative.length === 0) {
-            postConsoleAndNotification("Combat Timer: All combatants have initiative in round " + combat.round + ", setting first combatant", "", false, true, false);
-            
-            // Mark that we've set the first combatant for this round BEFORE making the async call
-            // This prevents potential race conditions
-            this._hasSetFirstCombatant = true;
-            
-            try {
-                // Set the turn to 0 (first combatant)
-                await combat.update({turn: 0}, {diff: false});
-                
-                postConsoleAndNotification("Combat Timer: First combatant set to: " + combatants[0]?.name, "", false, true, false);
-            } catch (error) {
-                console.error("Error setting first combatant:", error);
-                // Reset the flag if we failed
-                this._hasSetFirstCombatant = false;
-            }
         }
     }
 
