@@ -409,6 +409,25 @@ class CombatTimer {
                 CombatStats.recordTurnEnd(combat.combatant);
             }
 
+            // Check if we should clear initiative when round changes
+            if (game.settings.get(MODULE_ID, 'combatTrackerClearInitiative')) {
+                postConsoleAndNotification("Combat Timer: Clearing initiative for all combatants", "", false, true, false);
+                
+                // Create an array of updates to apply to all combatants
+                const updates = combat.combatants.map(c => {
+                    return {
+                        _id: c.id,
+                        initiative: null
+                    };
+                });
+                
+                // Apply the updates
+                if (updates.length > 0) {
+                    await combat.updateEmbeddedDocuments("Combatant", updates);
+                    postConsoleAndNotification("Combat Timer: Initiative cleared for " + updates.length + " combatants", "", false, true, false);
+                }
+            }
+
             // Force stop any existing timer
             if (this.timer) {
                 clearInterval(this.timer);

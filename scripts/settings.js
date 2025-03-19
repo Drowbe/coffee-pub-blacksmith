@@ -1577,6 +1577,39 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
+	
+	
+	
+	// -- Set Current Combatant Icon --
+	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
+		name: 'Show Set Current Combatant Icon',
+		hint: 'When enabled an icon will show up for each combatant that allows you to set them as the current combatant.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+	
+	// -- Set Current Combatant Icon --
+	game.settings.register(MODULE_ID, 'combatTrackerClearInitiative', {
+		name: 'Clear Initiative',
+		hint: 'When enabled the combat tracker will clear the initiative each round.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+	
+	// -- Set Current Combatant Icon --
+	game.settings.register(MODULE_ID, 'combatTrackerSetFirstTurn', {
+		name: 'Set FIrst Combatant',
+		hint: 'When enabled the combat tracker will set the first combatant as the current combatant.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+	
 	// -- Open Combat Tracker --
 	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
@@ -1586,6 +1619,8 @@ export const registerSettings = async () => {
 		type: Boolean,
 		default: false
 	});
+
+
 
 
 	// -- Show Health Bar --
@@ -1608,15 +1643,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	// -- Set Current Combatant Icon --
-	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
-		name: 'Show Set Current Combatant Icon',
-		hint: 'When enabled, and icon sill show up for each combatant that allows you to set them as the current combatant.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
+
 
 
 
