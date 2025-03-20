@@ -12,6 +12,17 @@ import { postConsoleAndNotification } from './global.js';
 Hooks.once('ready', () => {
     postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
     
+    // Add style for non-GM users
+    if (!game.user.isGM) {
+        const style = document.createElement('style');
+        style.textContent = `
+            #combat-tracker .combatant {
+                cursor: default !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     // Move the renderCombatTracker hook inside the ready hook to ensure settings are registered
     Hooks.on('renderCombatTracker', (app, html, data) => {
         // Find all combatant control groups
@@ -43,6 +54,9 @@ Hooks.once('ready', () => {
         }
 
         // Make combatants draggable
+        // Only GM can drag and drop
+        if (!game.user.isGM) return;
+
         html.find('.combatant').each((i, element) => {
             element.draggable = true;
             element.addEventListener('dragstart', (ev) => {
