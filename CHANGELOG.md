@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.9] - Combat Tracker Enhancements
+
+### Added
+- Added visual feedback animation when dropping combatants in the initiative order
+- Added improved drag and drop functionality in combat tracker
+- Added visual indicators for drop zones between combatants
+- Added "Roll Remaining" button to roll initiative for combatants without initiative
+- Added option to automatically set first combatant when all initiatives are rolled
+- Added automatic initiative rolling options:
+  - Auto-roll for NPCs/monsters when added to combat
+  - Auto-roll for player characters (configurable per user)
+  - Auto-roll for remaining NPCs at round start
+
+### Changed
+- Enhanced cursor feedback during drag operations
+- Improved spacing and visual feedback during drag and drop operations
+- Updated drop target styling for better visibility
+- Refactored combat tracker code for better maintainability and performance
+- Enhanced initiative handling with more configuration options
+- Improved mid-combat combatant addition with multiple initiative modes:
+  - Auto-roll initiative
+  - Set to act next
+  - Add to end of round
+
+### Fixed
+- Fixed cursor styles not updating during drag operations
+- Fixed initiative handling when adding new combatants mid-combat
+
 ## [1.0.8] - Encounter Toolbar
 
 ### Added
