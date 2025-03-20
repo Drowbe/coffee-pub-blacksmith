@@ -248,6 +248,32 @@ class CombatTracker {
                     }
                 });
                 
+                // Add Roll Remaining button to combat tracker
+                Hooks.on('renderCombatTracker', (app, html) => {
+                    // Only add for GM
+                    if (!game.user.isGM) return;
+
+                    // Find the Roll NPCs button
+                    const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
+                    if (!rollNPCButton.length) return;
+
+                    // Create and insert our new button
+                    const rollRemainingButton = $(`
+                        <a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll initiative for any combatants that haven't rolled yet" data-control="rollRemaining">
+                            <i class="fas fa-users-medical"></i>
+                        </a>
+                    `);
+
+                    // Insert after the Roll NPCs button
+                    rollNPCButton.after(rollRemainingButton);
+
+                    // Add click handler
+                    rollRemainingButton.click(async (event) => {
+                        event.preventDefault();
+                        await this._rollRemainingInitiatives();
+                    });
+                });
+                
             } catch (error) {
                 console.error(`${MODULE_TITLE} | Could not initialize Combat Tracker:`, error);
             }
@@ -441,6 +467,30 @@ class CombatTracker {
             postConsoleAndNotification("Combat Tracker: No player-owned combatants found needing initiative", "", false, true, false);
         } else {
             postConsoleAndNotification("Combat Tracker: Finished rolling initiative for player-owned combatants", "", false, true, false);
+        }
+    }
+
+    /**
+     * Roll initiative for any combatants that haven't rolled initiative
+     */
+    static async _rollRemainingInitiatives() {
+        const combat = game.combat;
+        if (!combat) return;
+
+        // Find all combatants that haven't rolled initiative
+        const remainingCombatants = combat.combatants.filter(c => c.initiative === null);
+        
+        if (remainingCombatants.length === 0) {
+            ui.notifications.info("All combatants have already rolled initiative!");
+            return;
+        }
+
+        postConsoleAndNotification(`Rolling initiative for ${remainingCombatants.length} remaining combatants`, "", false, true, false);
+
+        // Roll initiative for each remaining combatant
+        for (const combatant of remainingCombatants) {
+            await combatant.rollInitiative();
+            postConsoleAndNotification(`Rolled initiative for ${combatant.name}`, "", false, true, false);
         }
     }
 }
