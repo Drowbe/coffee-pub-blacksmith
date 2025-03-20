@@ -5,95 +5,9 @@
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
-
-
-
 // Register hooks after settings are initialized
 Hooks.once('ready', () => {
     postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
-    
-    // Add style for non-GM users
-    if (!game.user.isGM) {
-        const style = document.createElement('style');
-        style.textContent = `
-            #combat-tracker .combatant {
-                cursor: default !important;
-            }
-        `;
-        document.head.appendChild(style);
-    } else {
-        // Add drag and drop styles for GM
-        const style = document.createElement('style');
-        style.textContent = `
-            #combat-tracker .combatant {
-                position: relative;
-                transition: all 0.2s ease-out;
-            }
-            #combat-tracker.dragging-active .directory-list > .combatant {
-                padding: 8px 0;
-                border-top: 4px solid transparent;
-                border-bottom: 4px solid transparent;
-            }
-            #combat-tracker.dragging-active .directory-list > .combatant.dragging {
-                background: rgba(0, 0, 0, 0.1);
-            }
-            #combat-tracker .drop-zone {
-                position: absolute;
-                height: 8px;
-                left: 0;
-                right: 0;
-                background: transparent;
-                transition: all 0.2s;
-                z-index: 1;
-            }
-            #combat-tracker.dragging-active .drop-zone {
-                height: 16px;
-            }
-            #combat-tracker .drop-zone.top {
-                top: -4px;
-                border-top: 2px solid transparent;
-            }
-            #combat-tracker.dragging-active .drop-zone.top {
-                top: -8px;
-            }
-            #combat-tracker .drop-zone.bottom {
-                bottom: -4px;
-                border-bottom: 2px solid transparent;
-            }
-            #combat-tracker.dragging-active .drop-zone.bottom {
-                bottom: -8px;
-            }
-            #combat-tracker .drop-zone.drag-over {
-                background: rgba(0, 255, 0, 0.15);
-                box-shadow: 0 0 3px #00ff00;
-            }
-            #combat-tracker .drop-zone.drag-over.top {
-                border-top: 2px solid #00ff00;
-            }
-            #combat-tracker .drop-zone.drag-over.bottom {
-                border-bottom: 2px solid #00ff00;
-            }
-            #combat-tracker .combatant.dragging {
-                opacity: 0.5;
-                cursor: grabbing;
-            }
-            #combat-tracker .combatant:not(.dragging) {
-                cursor: grab;
-            }
-            /* Handle group spacing */
-            #combat-tracker.dragging-active .combatant-group {
-                padding: 8px 0;
-                border-top: 4px solid transparent;
-                border-bottom: 4px solid transparent;
-            }
-            #combat-tracker.dragging-active .group-children .combatant {
-                padding: 4px 0;
-                border-top: 2px solid transparent;
-                border-bottom: 2px solid transparent;
-            }
-        `;
-        document.head.appendChild(style);
-    }
 
     // Move the renderCombatTracker hook inside the ready hook to ensure settings are registered
     Hooks.on('renderCombatTracker', (app, html, data) => {
@@ -125,78 +39,101 @@ Hooks.once('ready', () => {
             });
         }
 
-        // Make combatants draggable
-        // Only GM can drag and drop
+        // Make combatants draggable for GM only
         if (!game.user.isGM) return;
 
-        html.find('.combatant').each((i, element) => {
-            // Add drop zones to each combatant
-            const topZone = $('<div class="drop-zone top"></div>');
-            const bottomZone = $('<div class="drop-zone bottom"></div>');
-            $(element).append(topZone, bottomZone);
+        const directoryList = html.find('.directory-list');
+        const combatants = html.find('.combatant');
 
-            element.draggable = true;
+        // First, clear any existing drop targets
+        html.find('.drop-target').remove();
+
+        // Add drop targets between combatants
+        combatants.each((i, element) => {
+            const dropTarget = $('<li class="drop-target"></li>');
+            $(element).before(dropTarget);
+        });
+        // Add final drop target at the end
+        directoryList.append($('<li class="drop-target"></li>'));
+
+        // Make combatants draggable
+        combatants.each((i, element) => {
+            element.setAttribute('draggable', 'true');
             element.addEventListener('dragstart', (ev) => {
                 ev.dataTransfer.setData('text/plain', ev.target.dataset.combatantId);
                 ev.target.classList.add('dragging');
-                // Add class to combat tracker to expand spacing
-                html.closest('#combat-tracker').addClass('dragging-active');
+                html.find('#combat-tracker').addClass('dragging-active');
             });
+
             element.addEventListener('dragend', (ev) => {
                 ev.target.classList.remove('dragging');
                 html.find('.drag-over').removeClass('drag-over');
-                // Remove expanded spacing
-                html.closest('#combat-tracker').removeClass('dragging-active');
+                html.find('#combat-tracker').removeClass('dragging-active');
+            });
+        });
+
+        // Add drop handlers to drop targets
+        html.find('.drop-target').each((i, element) => {
+            element.addEventListener('dragover', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const draggingElement = html.find('.dragging')[0];
+                if (draggingElement) {
+                    html.find('.drag-over').removeClass('drag-over');
+                    $(element).addClass('drag-over');
+                }
             });
 
-            // Handle drop zones
-            [topZone, bottomZone].forEach(zone => {
-                zone[0].addEventListener('dragover', (ev) => {
-                    ev.preventDefault();
-                    const draggingElement = html.find('.dragging')[0];
-                    if (draggingElement && draggingElement !== element) {
-                        html.find('.drag-over').removeClass('drag-over');
-                        zone.addClass('drag-over');
-                    }
-                });
+            element.addEventListener('dragenter', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+            });
 
-                zone[0].addEventListener('dragleave', (ev) => {
-                    zone.removeClass('drag-over');
-                });
+            element.addEventListener('dragleave', (ev) => {
+                $(element).removeClass('drag-over');
+            });
 
-                zone[0].addEventListener('drop', async (ev) => {
-                    ev.preventDefault();
-                    const draggedId = ev.dataTransfer.getData('text/plain');
-                    const dropTarget = $(element);
-                    
-                    if (!draggedId || !dropTarget.length) return;
-                    
-                    // Remove drag-over styling
-                    html.find('.drag-over').removeClass('drag-over');
-                    
-                    // Get all combatants in current order
-                    const combatants = game.combat.turns.map(t => t);
-                    const draggedIndex = combatants.findIndex(c => c.id === draggedId);
-                    const dropIndex = combatants.findIndex(c => c.id === dropTarget.data('combatantId'));
-                    
-                    if (draggedIndex === dropIndex) return;
-                    
-                    // Adjust drop index based on whether it's the top or bottom zone
-                    const adjustedDropIndex = zone.hasClass('top') ? dropIndex : dropIndex + 1;
-                    
-                    // Calculate new initiative
-                    const newInitiative = calculateNewInitiative(
-                        combatants,
-                        adjustedDropIndex,
-                        draggedId
-                    );
-                    
-                    // Update the initiative
-                    await game.combat.updateEmbeddedDocuments("Combatant", [{
-                        _id: draggedId,
-                        initiative: newInitiative
-                    }]);
-                });
+            element.addEventListener('drop', async (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const draggedId = ev.dataTransfer.getData('text/plain');
+                
+                if (!draggedId) return;
+                
+                // Remove drag-over styling
+                html.find('.drag-over').removeClass('drag-over');
+                
+                // Get all combatants in current order
+                const combatants = game.combat.turns;
+                if (!combatants) return;
+
+                const draggedIndex = combatants.findIndex(c => c.id === draggedId);
+                if (draggedIndex === -1) return;
+
+                // Calculate drop index based on the drop target's position
+                const dropTargets = html.find('.drop-target');
+                const dropIndex = dropTargets.index(element);
+                
+                // Calculate new initiative
+                let newInitiative;
+                if (dropIndex === 0) {
+                    // Dropping at the top
+                    newInitiative = combatants[0].initiative + 2;
+                } else if (dropIndex >= combatants.length) {
+                    // Dropping at the bottom
+                    newInitiative = combatants[combatants.length - 1].initiative - 1;
+                } else {
+                    // Dropping between combatants
+                    const above = combatants[dropIndex - 1];
+                    const below = combatants[dropIndex];
+                    newInitiative = above.initiative - ((above.initiative - below.initiative) / 2);
+                }
+
+                // Update the initiative
+                await game.combat.updateEmbeddedDocuments("Combatant", [{
+                    _id: draggedId,
+                    initiative: newInitiative
+                }]);
             });
         });
 

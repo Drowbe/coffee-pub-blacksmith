@@ -1,18 +1,58 @@
-.combatant {
+
+/* Drag and Drop */
+
+#combat-tracker .directory-list {
     position: relative;
+}
+
+#combat-tracker .combatant {
+    position: relative;
+    transition: margin 0.2s ease-out;
+    margin: 0px 0;
     cursor: grab;
 }
 
-.combatant.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
+#combat-tracker.dragging-active .combatant {
+    margin: 0px 0;
 }
 
-.combatant.drag-over {
-    border-top: 6px solid #ff6400;
-    margin-top: -2px;
-    box-shadow: 0 0 5px rgba(255, 100, 0, 0.5);
+#combat-tracker .drop-target {
+    position: relative;
+    height: 2px;
+    margin: 0;
+    background: transparent;
+    transition: all 0.2s ease-out;
+    list-style: none;
 }
+
+#combat-tracker.dragging-active .drop-target {
+    height: 16px;
+    background: rgba(33, 33, 31, 0.7);
+	border: 0px dashed rgba(159, 146, 117, 0.9);
+	outline: 1px dashed rgba(159, 146, 117, 0.9);
+  	outline-offset: -4px;
+}
+
+#combat-tracker .drop-target.drag-over {
+    height: 28px !important;
+    background: rgba(0, 255, 0, 0.2);
+    border: 0px dashed #00ff00;
+	outline: 1px dashed rgba(0, 170, 0, 0.8);
+	outline-offset: -4px;
+}
+
+#combat-tracker .combatant.dragging {
+    opacity: 0.5;
+    cursor: grabing;
+}
+
+/* Non-GM users should not see drag cursor */
+body:not(.gm) #combat-tracker .combatant {
+    cursor: default !important;
+}
+
+
+/* Health Ring  */
 
 .health-ring-container {
     position: absolute;
