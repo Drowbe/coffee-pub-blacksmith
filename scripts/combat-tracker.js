@@ -258,13 +258,16 @@ class CombatTracker {
                     // Only add for GM
                     if (!game.user.isGM) return;
 
+                    // Only add if there's an active combat
+                    if (!game.combat) return;
+
                     // Find the Roll NPCs button
                     const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
                     if (!rollNPCButton.length) return;
 
                     // Create and insert our new button
                     const rollRemainingButton = $(`
-                        <a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll initiative for remaining combatants" data-control="rollRemaining">
+                        <a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll Remaining" data-control="rollRemaining">
                             <i class="fas fa-users-medical"></i>
                         </a>
                     `);
