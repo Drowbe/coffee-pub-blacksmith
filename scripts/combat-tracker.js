@@ -50,11 +50,15 @@ class CombatTracker {
                     postConsoleAndNotification("Combat Tracker: New combat created, resetting first combatant flag", "", false, true, false);
                     this._hasSetFirstCombatant = false;
                     
-                    // We don't need this anymore as it's handled per-combatant
-                    // when each NPC is added to the tracker
-                    // if (game.user.isGM && game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
-                    //     await this._rollInitiativeForNonPlayers(combat);
-                    // }
+                    // Auto-open combat tracker when combat is created
+                    if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
+                        // Check if this user owns any combatants in the combat
+                        if (combat.combatants.find(c => c.isOwner)) {
+                            postConsoleAndNotification("Auto-opening combat tracker for player with combatant in new combat", "", false, true, false);
+                            const tabApp = ui["combat"];
+                            tabApp.renderPopout(tabApp);
+                        }
+                    }
                 });
                 
                 // Reset first combatant flag when combat is deleted or ended
@@ -116,11 +120,29 @@ class CombatTracker {
                     }, 500);
                 });
                 
-                // Handle new combatants based on initiative setting
+                // Handle player auto-roll when their combatants are created
                 Hooks.on('createCombatant', async (combatant, options, userId) => {
-                    // Only GM should process this
-                    if (!game.user.isGM) return;
-                    
+                    // Handle player auto-roll
+                    if (!game.user.isGM) {
+                        // Only process if:
+                        // 1. The combatant has an actor
+                        // 2. The actor is player-owned
+                        // 3. The current user owns the actor
+                        // 4. The combatant has null initiative
+                        // 5. Auto-roll is enabled for this user
+                        if (combatant.actor && 
+                            combatant.actor.hasPlayerOwner && 
+                            combatant.actor.isOwner && 
+                            combatant.initiative === null &&
+                            game.settings.get(MODULE_ID, 'combatTrackerRollInitiativePlayer')) {
+                            
+                            postConsoleAndNotification(`Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", false, true, false);
+                            await combatant.rollInitiative();
+                        }
+                        return;
+                    }
+
+                    // Handle GM auto-roll and initiative modes for NPCs
                     // Get NPC initiative setting
                     const initiativeMode = game.settings.get(MODULE_ID, 'combatTrackerAddInitiative');
                     
