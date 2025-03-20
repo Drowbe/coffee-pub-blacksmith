@@ -35,12 +35,17 @@ class CombatTracker {
                 // Hook for detecting when all initiatives have been rolled
                 Hooks.on('updateCombatant', (combatant, data, options, userId) => {
                     // Only process if initiative was changed and we're the GM
-                    if (!game.user.isGM || !('initiative' in data) || data.initiative === null) return;
+                    if (!game.user.isGM || !('initiative' in data)) return;
                     
                     postConsoleAndNotification("Combat Tracker: Combatant initiative updated", {
                         combatantName: combatant.name,
                         initiative: data.initiative
                     }, false, true, false);
+                    
+                    // Reset the flag when any initiative is set to null
+                    if (data.initiative === null) {
+                        this._hasSetFirstCombatant = false;
+                    }
                     
                     this._checkAllInitiativesRolled(combatant.combat);
                 });
@@ -322,13 +327,7 @@ class CombatTracker {
      * @param {Combat} combat - The combat instance
      */
     static async _checkAllInitiativesRolled(combat) {
-        if (!combat || !combat.started || !game.user.isGM) return;
-        
-        // Don't check if we've already set the first combatant for this round
-        if (this._hasSetFirstCombatant) {
-            postConsoleAndNotification("Combat Tracker: First combatant already set for this round, skipping check", "", false, true, false);
-            return;
-        }
+        if (!combat || !game.user.isGM) return;
         
         // Don't proceed if the setting is not enabled
         if (!game.settings.get(MODULE_ID, 'combatTrackerSetFirstTurn')) {
@@ -345,16 +344,6 @@ class CombatTracker {
             return;
         }
         
-        // Log combatant initiatives for debugging
-        const initiativeValues = combatants.map(c => ({ 
-            id: c.id, 
-            name: c.name, 
-            initiative: c.initiative,
-            isDefeated: c.isDefeated
-        }));
-        
-        postConsoleAndNotification("Combat Tracker: Checking all initiatives:", initiativeValues, false, true, false);
-        
         // Get combatants that need initiative (not defeated and without initiative)
         const combatantsNeedingInitiative = combatants.filter(c => c.initiative === null && !c.isDefeated);
         
@@ -363,20 +352,32 @@ class CombatTracker {
         
         // If no combatants need initiative, all have been rolled
         if (combatantsNeedingInitiative.length === 0) {
-            postConsoleAndNotification("Combat Tracker: All combatants have initiative in round " + combat.round + ", setting first combatant", "", false, true, false);
-            
-            // Mark that we've set the first combatant for this round BEFORE making the async call
-            // This prevents potential race conditions
-            this._hasSetFirstCombatant = true;
+            // Only proceed if combat has actually started
+            if (!combat.started || combat.round === 0) {
+                postConsoleAndNotification("Combat Tracker: All initiatives rolled but combat hasn't started yet", "", false, true, false);
+                return;
+            }
+
+            // Don't check if we've already set the first combatant for this round
+            if (this._hasSetFirstCombatant) {
+                postConsoleAndNotification("Combat Tracker: First combatant already set for this round, skipping check", "", false, true, false);
+                return;
+            }
+
+            postConsoleAndNotification("Combat Tracker: All combatants have initiative and combat has started, setting first turn...", "", false, true, false);
             
             try {
-                // Set the turn to 0 (first combatant)
-                await combat.update({turn: 0}, {diff: false});
+                // Wait a moment for the combat tracker to finish sorting
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
-                postConsoleAndNotification("Combat Tracker: First combatant set to: " + combatants[0]?.name, "", false, true, false);
+                // Set turn to 0 after the sort
+                await combat.update({turn: 0}, {diff: false});
+                postConsoleAndNotification("Combat Tracker: First combatant set to: " + combat.turns[0]?.name, "", false, true, false);
+                
+                // Only set the flag after successfully setting the turn
+                this._hasSetFirstCombatant = true;
             } catch (error) {
                 console.error("Error setting first combatant:", error);
-                // Reset the flag if we failed
                 this._hasSetFirstCombatant = false;
             }
         }

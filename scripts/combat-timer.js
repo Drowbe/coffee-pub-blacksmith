@@ -23,12 +23,6 @@ class CombatTimer {
         }
     };
 
-    // Track the last processed round
-    static _lastProcessedRound = 0;
-    
-    // Track if we've set the first combatant for this combat
-    static _hasSetFirstCombatant = false;
-
     static initialize() {
         Hooks.once('ready', () => {
             try {
@@ -47,27 +41,10 @@ class CombatTimer {
                 this._lastRoundChange = 0;
                 this._roundChangeDebounceTime = 100; // ms
                 
-                // Reset last processed round
-                this._lastProcessedRound = 0;
-                
                 // Hook into combat turns with debounce for performance
                 const debouncedUpdate = foundry.utils.debounce(this._onUpdateCombat.bind(this), 100);
                 Hooks.on('updateCombat', (combat, changed, options, userId) => {
                     debouncedUpdate(combat, changed, options, userId);
-                });
-                
-                // Reset first combatant flag when a new combat is created
-                Hooks.on('createCombat', async (combat) => {
-                    postConsoleAndNotification("Combat Timer: New combat created", "", false, true, false);
-                });
-                
-                // Reset first combatant flag when combat is deleted or ended
-                Hooks.on('deleteCombat', () => {
-                    postConsoleAndNotification("Combat Timer: Combat deleted", "", false, true, false);
-                });
-                
-                Hooks.on('endCombat', () => {
-                    postConsoleAndNotification("Combat Timer: Combat ended", "", false, true, false);
                 });
                 
                 // Add timer to combat tracker
