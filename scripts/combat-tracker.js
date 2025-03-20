@@ -231,12 +231,17 @@ class CombatTracker {
                     }
                 });
                 
-                // Set up auto-open after combat tracker is ready
-                Hooks.once('renderCombatTracker', () => {
-                    if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
-                        const combat = game.combat;
-                        if (combat?.started && combat.combatants.find(c => c.isOwner)) {
-                            postConsoleAndNotification("Auto-opening combat tracker for player in active combat", "", false, true, false);
+                // Handle auto-open for both new combats and client reloads
+                Hooks.on('renderCombatTracker', () => {
+                    // Only proceed if the setting is enabled
+                    if (!game.settings.get(MODULE_ID, 'combatTrackerOpen')) return;
+
+                    const combat = game.combat;
+                    // Check if this is an active combat (has started and has combatants)
+                    if (combat?.started && combat.combatants.size > 0) {
+                        // Check if this user owns any combatants in the combat
+                        if (combat.combatants.find(c => c.isOwner)) {
+                            postConsoleAndNotification("Auto-opening combat tracker for player with combatant in active combat", "", false, true, false);
                             const tabApp = ui["combat"];
                             tabApp.renderPopout(tabApp);
                         }
