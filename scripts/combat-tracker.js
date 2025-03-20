@@ -237,11 +237,11 @@ class CombatTracker {
                     if (!game.settings.get(MODULE_ID, 'combatTrackerOpen')) return;
 
                     const combat = game.combat;
-                    // Check if this is an active combat (has started and has combatants)
-                    if (combat?.started && combat.combatants.size > 0) {
+                    // Check if there are combatants in the combat
+                    if (combat?.combatants.size > 0) {
                         // Check if this user owns any combatants in the combat
                         if (combat.combatants.find(c => c.isOwner)) {
-                            postConsoleAndNotification("Auto-opening combat tracker for player with combatant in active combat", "", false, true, false);
+                            postConsoleAndNotification("Auto-opening combat tracker for player with combatant in combat", "", false, true, false);
                             const tabApp = ui["combat"];
                             tabApp.renderPopout(tabApp);
                         }
