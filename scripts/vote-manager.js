@@ -29,11 +29,33 @@ export class VoteManager {
         // Register helper to get list of voters
         Handlebars.registerHelper('getVoterList', function(votes) {
             if (!votes) return '';
-            const voters = Object.entries(votes)
-                .filter(([userId]) => !game.users.get(userId)?.isGM)
-                .map(([userId]) => game.users.get(userId)?.name)
-                .filter(Boolean);
-            return voters.join(', ');
+
+            // Get all active non-GM players
+            const allPlayers = game.users.filter(u => u.active && !u.isGM);
+            
+            // Split into voted and not voted
+            const votedPlayers = allPlayers.filter(u => votes[u.id]);
+            const notVotedPlayers = allPlayers.filter(u => !votes[u.id]);
+
+            let html = '<div style="text-align: left;">';
+            
+            // Add voted players section if any have voted
+            if (votedPlayers.length > 0) {
+                html += '<b>Voted:</b><ul style="margin: 0; padding-left: 15px;">';
+                html += votedPlayers.map(u => `<li>${u.name}</li>`).join('');
+                html += '</ul>';
+            }
+
+            // Add not voted players section if any haven't voted
+            if (notVotedPlayers.length > 0) {
+                if (votedPlayers.length > 0) html += '<br>'; // Add spacing if there were voters
+                html += '<b>Not Voted:</b><ul style="margin: 0; padding-left: 15px;">';
+                html += notVotedPlayers.map(u => `<li>${u.name}</li>`).join('');
+                html += '</ul>';
+            }
+
+            html += '</div>';
+            return html;
         });
 
         // Register helper to get vote details for completed votes
@@ -50,11 +72,11 @@ export class VoteManager {
                 .map(([userId, voteId]) => {
                     const userName = game.users.get(userId)?.name;
                     const voteName = optionNames[voteId];
-                    return `${userName}: <i>${voteName}</i>`;
+                    return `<li><b>${userName}</b>: ${voteName}</li></li>`;
                 })
                 .filter(Boolean);
             
-            return '<div style="text-align: left;"><b>Vote Details:</b><br>' + voteDetails.join('<br>') + '</div>';
+            return '<div style="text-align: left;"><b>Vote Details:</b><br><ul>' + voteDetails.join('<br>') + '</ul></div>';
         });
 
         // Register click handlers for vote cards
