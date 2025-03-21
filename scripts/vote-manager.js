@@ -50,11 +50,11 @@ export class VoteManager {
                 .map(([userId, voteId]) => {
                     const userName = game.users.get(userId)?.name;
                     const voteName = optionNames[voteId];
-                    return `${userName}: ${voteName}`;
+                    return `${userName}: <i>${voteName}</i>`;
                 })
                 .filter(Boolean);
             
-            return voteDetails.join('\n');
+            return '<div style="text-align: left;"><b>Vote Details:</b><br>' + voteDetails.join('<br>') + '</div>';
         });
 
         // Register click handlers for vote cards
