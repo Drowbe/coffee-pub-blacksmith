@@ -26,6 +26,37 @@ export class VoteManager {
             return isGM;
         });
 
+        // Register helper to get list of voters
+        Handlebars.registerHelper('getVoterList', function(votes) {
+            if (!votes) return '';
+            const voters = Object.entries(votes)
+                .filter(([userId]) => !game.users.get(userId)?.isGM)
+                .map(([userId]) => game.users.get(userId)?.name)
+                .filter(Boolean);
+            return voters.join(', ');
+        });
+
+        // Register helper to get vote details for completed votes
+        Handlebars.registerHelper('getVoteDetails', function(votes, options) {
+            if (!votes || !options) return '';
+            
+            // Create a map of option IDs to names
+            const optionNames = {};
+            options.forEach(opt => optionNames[opt.id] = opt.name);
+            
+            // Get vote details for each voter
+            const voteDetails = Object.entries(votes)
+                .filter(([userId]) => !game.users.get(userId)?.isGM)
+                .map(([userId, voteId]) => {
+                    const userName = game.users.get(userId)?.name;
+                    const voteName = optionNames[voteId];
+                    return `${userName}: ${voteName}`;
+                })
+                .filter(Boolean);
+            
+            return voteDetails.join('\n');
+        });
+
         // Register click handlers for vote cards
         Hooks.on('renderChatMessage', (message, html) => {
             if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {

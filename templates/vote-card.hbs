@@ -23,13 +23,13 @@
 
 
         {{#if vote.isActive}}
-            <div class="vote-status active">
+            <div class="vote-status active" {{#if currentUserIsGM}}title="Voters: {{getVoterList vote.votes}}"{{/if}}>
                 {{#if progress}}
                     {{progress.current}} of {{progress.total}} Voted
                 {{/if}}
             </div>
         {{else}}
-            <div class="vote-status complete">
+            <div class="vote-status complete" {{#if currentUserIsGM}}title="Vote Details:&#10;{{getVoteDetails vote.votes vote.options}}"{{/if}}>
                 <i class="fas fa-check-circle"></i>
             </div>
         {{/if}}
