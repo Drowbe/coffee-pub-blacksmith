@@ -210,18 +210,6 @@ export class CanvasTools {
 
     static async _convertTokenToLoot(token) {
         try {
-            // Convert to item pile
-            await game.itempiles.API.turnTokensIntoItemPiles([token]);
-            
-            // Update the image
-            const newImage = game.settings.get(MODULE_ID, 'tokenLootPileImage');
-            await token.document.update({img: newImage});
-            
-            // Apply TokenFX if available
-            if (game.modules.get("tokenmagic")?.active) {
-                await this._applyTokenEffect(token);
-            }
-            
             // Add loot from tables if configured
             const tables = [
                 {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
@@ -250,6 +238,18 @@ export class CanvasTools {
             
             // Add random coins
             await this._addRandomCoins(token.actor);
+
+            // Convert to item pile
+            await game.itempiles.API.turnTokensIntoItemPiles([token]);
+            
+            // Update the image
+            const newImage = game.settings.get(MODULE_ID, 'tokenLootPileImage');
+            await token.document.update({img: newImage});
+            
+            // Apply TokenFX if available
+            if (game.modules.get("tokenmagic")?.active) {
+                await this._applyTokenEffect(token);
+            }
             
             // Play sound
             const sound = game.settings.get(MODULE_ID, 'tokenLootSound');
