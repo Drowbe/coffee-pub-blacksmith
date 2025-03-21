@@ -65,6 +65,8 @@ li.table-result img.result-image  {
 /* ------------------------------------ */
 
 /* HEADINGS H1 - MAIN TITLE */
+input[name*="coffee-pub-monarch.headingH1"],
+input[name*="coffee-pub-squire.headingH1"],
 input[name*="coffee-pub-blacksmith.headingH1"],
 input[name*="coffee-pub-bubo.headingH1"],
 input[name*="coffee-pub-crier.headingH1"],
@@ -72,6 +74,8 @@ input[name*="coffee-pub-scribe.headingH1"],
 input[name*="coffee-pub-bibliosoph.headingH1"] {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH1"],
+div[data-setting-id*="coffee-pub-squire.headingH1"],
 div[data-setting-id*="coffee-pub-blacksmith.headingH1"],
 div[data-setting-id*="coffee-pub-bubo.headingH1"],
 div[data-setting-id*="coffee-pub-crier.headingH1"],
@@ -83,6 +87,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH1"] {
 	padding-left: 0px;
 	padding-right: 0px;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH1"] label,
+div[data-setting-id*="coffee-pub-squire.headingH1"] label,
 div[data-setting-id*="coffee-pub-blacksmith.headingH1"] label,
 div[data-setting-id*="coffee-pub-bubo.headingH1"] label,
 div[data-setting-id*="coffee-pub-crier.headingH1"] label,
@@ -93,6 +99,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH1"] label {
     font-style: normal;
     text-transform: uppercase;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH1"] i,
+div[data-setting-id*="coffee-pub-squire.headingH1"] i,
 div[data-setting-id*="coffee-pub-blacksmith.headingH1"] i,
 div[data-setting-id*="coffee-pub-bubo.headingH1"] i,
 div[data-setting-id*="coffee-pub-crier.headingH1"] i,
@@ -100,6 +108,8 @@ div[data-setting-id*="coffee-pub-scribe.headingH1"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH1"] i {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH1"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingH1"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingH1"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingH1"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingH1"] .notes,
@@ -110,6 +120,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH1"] .notes {
     font-style: normal;
 }
 /* HEADINGS H2 */
+input[name*="coffee-pub-monarch.headingH2"],
+input[name*="coffee-pub-squire.headingH2"],
 input[name*="coffee-pub-blacksmith.headingH2"],
 input[name*="coffee-pub-bubo.headingH2"],
 input[name*="coffee-pub-crier.headingH2"],
@@ -117,6 +129,8 @@ input[name*="coffee-pub-scribe.headingH2"],
 input[name*="coffee-pub-bibliosoph.headingH2"] {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH2"],
+div[data-setting-id*="coffee-pub-squire.headingH2"],
 div[data-setting-id*="coffee-pub-blacksmith.headingH2"],
 div[data-setting-id*="coffee-pub-bubo.headingH2"],
 div[data-setting-id*="coffee-pub-crier.headingH2"],
@@ -139,6 +153,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH2"] label {
     font-style: normal;
     text-transform: uppercase;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH2"] i,
+div[data-setting-id*="coffee-pub-squire.headingH2"] i,
 div[data-setting-id*="coffee-pub-blacksmith.headingH2"] i,
 div[data-setting-id*="coffee-pub-bubo.headingH2"] i,
 div[data-setting-id*="coffee-pub-crier.headingH2"] i,
@@ -146,6 +162,8 @@ div[data-setting-id*="coffee-pub-scribe.headingH2"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH2"] i {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH2"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingH2"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingH2"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingH2"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingH2"] .notes,
@@ -158,6 +176,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH2"] .notes {
 }
 
 /* SUBHEADINGS H3 - NORMAL */
+input[name*="coffee-pub-monarch.headingH3"],
+input[name*="coffee-pub-squire.headingH3"],
 input[name*="coffee-pub-blacksmith.headingH3"],
 input[name*="coffee-pub-bubo.headingH3"],
 input[name*="coffee-pub-crier.headingH3"],
@@ -165,6 +185,8 @@ input[name*="coffee-pub-scribe.headingH3"],
 input[name*="coffee-pub-bibliosoph.headingH3"] {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH3"],
+div[data-setting-id*="coffee-pub-squire.headingH3"],
 div[data-setting-id*="coffee-pub-blacksmith.headingH3"],
 div[data-setting-id*="coffee-pub-bubo.headingH3"],
 div[data-setting-id*="coffee-pub-crier.headingH3"],
@@ -176,6 +198,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH3"] {
 	padding-left: 8px;
 	padding-right: 8px;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH3"] label,
+div[data-setting-id*="coffee-pub-squire.headingH3"] label,
 div[data-setting-id*="coffee-pub-blacksmith.headingH3"] label,
 div[data-setting-id*="coffee-pub-bubo.headingH3"] label,
 div[data-setting-id*="coffee-pub-crier.headingH3"] label,
@@ -186,6 +210,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH3"] label {
     font-style: normal;
     text-transform: uppercase;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH3"] i,
+div[data-setting-id*="coffee-pub-squire.headingH3"] i,
 div[data-setting-id*="coffee-pub-blacksmith.headingH3"] i,
 div[data-setting-id*="coffee-pub-bubo.headingH3"] i,
 div[data-setting-id*="coffee-pub-crier.headingH3"] i,
@@ -193,6 +219,8 @@ div[data-setting-id*="coffee-pub-scribe.headingH3"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH3"] i {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH3"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingH3"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingH3"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingH3"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingH3"] .notes,
@@ -204,6 +232,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH3"] .notes {
 }
 
 /* SUBHEADINGS H3 - SIMPLE */
+div[data-setting-id*="coffee-pub-monarch.headingH3simple"],
+div[data-setting-id*="coffee-pub-squire.headingH3simple"],
 div[data-setting-id*="coffee-pub-blacksmith.headingH3simple"],
 div[data-setting-id*="coffee-pub-bubo.headingH3simple"],
 div[data-setting-id*="coffee-pub-crier.headingH3simple"],
@@ -211,6 +241,9 @@ div[data-setting-id*="coffee-pub-scribe.headingH3simple"],
 div[data-setting-id*="coffee-pub-bibliosoph.headingH3simple"] {
 	background-color: #F0EDE4;
 }
+
+div[data-setting-id*="coffee-pub-monarch.headingH3simple"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingH3simple"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingH3simple"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingH3simple"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingH3simple"] .notes,
@@ -220,6 +253,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH3simple"] .notes {
 }
 
 /* BOX TEXT H4 */
+input[name*="coffee-pub-monarch.headingH4"],
+input[name*="coffee-pub-squire.headingH4"],
 input[name*="coffee-pub-blacksmith.headingH4"],
 input[name*="coffee-pub-bubo.headingH4"],
 input[name*="coffee-pub-crier.headingH4"],
@@ -227,6 +262,8 @@ input[name*="coffee-pub-scribe.headingH4"],
 input[name*="coffee-pub-bibliosoph.headingH4"] {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH4"],
+div[data-setting-id*="coffee-pub-squire.headingH4"],
 div[data-setting-id*="coffee-pub-blacksmith.headingH4"],
 div[data-setting-id*="coffee-pub-bubo.headingH4"],
 div[data-setting-id*="coffee-pub-crier.headingH4"],
@@ -241,6 +278,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] {
 	padding-left: 8px;
 	padding-right: 8px;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH4"] label,
+div[data-setting-id*="coffee-pub-squire.headingH4"] label,
 div[data-setting-id*="coffee-pub-blacksmith.headingH4"] label,
 div[data-setting-id*="coffee-pub-bubo.headingH4"] label,
 div[data-setting-id*="coffee-pub-crier.headingH4"] label,
@@ -250,6 +289,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] label {
     font-size: 1.0em;
     font-style: normal;
 }
+div[data-setting-id*="coffee-pub-monarch.headingH4"] i,
+div[data-setting-id*="coffee-pub-squire.headingH4"] i,
 div[data-setting-id*="coffee-pub-blacksmith.headingH4"] i,
 div[data-setting-id*="coffee-pub-bubo.headingH4"] i,
 div[data-setting-id*="coffee-pub-crier.headingH4"] i,
@@ -257,6 +298,8 @@ div[data-setting-id*="coffee-pub-scribe.headingH4"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] i {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingH4"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingH4"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingH4"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingH4"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingH4"] .notes,
@@ -268,6 +311,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] .notes {
 }
 
 /* HORIZANTAL RULE HR */
+input[name*="coffee-pub-monarch.headingHR"],
+input[name*="coffee-pub-squire.headingHR"],
 input[name*="coffee-pub-blacksmith.headingHR"],
 input[name*="coffee-pub-bubo.headingHR"],
 input[name*="coffee-pub-crier.headingHR"],
@@ -275,6 +320,8 @@ input[name*="coffee-pub-scribe.headingHR"],
 input[name*="coffee-pub-bibliosoph.headingHR"] {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingHR"],
+div[data-setting-id*="coffee-pub-squire.headingHR"],
 div[data-setting-id*="coffee-pub-blacksmith.headingHR"],
 div[data-setting-id*="coffee-pub-bubo.headingHR"],
 div[data-setting-id*="coffee-pub-crier.headingHR"],
@@ -282,6 +329,8 @@ div[data-setting-id*="coffee-pub-scribe.headingHR"],
 div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] {
 	border-top: 2px dotted #5F5D58;
 }
+div[data-setting-id*="coffee-pub-monarch.headingHR"] label,
+div[data-setting-id*="coffee-pub-squire.headingHR"] label,
 div[data-setting-id*="coffee-pub-blacksmith.headingHR"] label,
 div[data-setting-id*="coffee-pub-bubo.headingHR"] label,
 div[data-setting-id*="coffee-pub-crier.headingHR"] label,
@@ -289,6 +338,8 @@ div[data-setting-id*="coffee-pub-scribe.headingHR"] label,
 div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] label {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingHR"] i,
+div[data-setting-id*="coffee-pub-squire.headingHR"] i,
 div[data-setting-id*="coffee-pub-blacksmith.headingHR"] i,
 div[data-setting-id*="coffee-pub-bubo.headingHR"] i,
 div[data-setting-id*="coffee-pub-crier.headingHR"] i,
@@ -296,6 +347,8 @@ div[data-setting-id*="coffee-pub-scribe.headingHR"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] i {
 	display: none;	
 }
+div[data-setting-id*="coffee-pub-monarch.headingHR"] .notes,
+div[data-setting-id*="coffee-pub-squire.headingHR"] .notes,
 div[data-setting-id*="coffee-pub-blacksmith.headingHR"] .notes,
 div[data-setting-id*="coffee-pub-bubo.headingHR"] .notes,
 div[data-setting-id*="coffee-pub-crier.headingHR"] .notes,
