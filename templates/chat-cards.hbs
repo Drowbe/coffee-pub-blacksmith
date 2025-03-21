@@ -76,6 +76,15 @@
             <div class="section-content">
             </div>
         </div>
+    {{else if isLootDrop}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                <i class="fas fa-coins"></i> Loot Dropped!
+            </div>
+            <div class="section-content">
+                <p>{{tokenName}} has been defeated and dropped their belongings!</p>
+            </div>
+        </div>
     {{else}}
         <div class="blacksmith-card theme-default">
             <div class="section-header">

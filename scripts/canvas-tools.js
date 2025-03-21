@@ -259,13 +259,19 @@ export class CanvasTools {
             
             // Send chat message if enabled
             if (game.settings.get(MODULE_ID, 'tokenLootChatMessage')) {
-                ChatMessage.create({
-                    content: `
-                        <div class="coffee-pub-card">
-                            <h3>Loot Dropped!</h3>
-                            <p>${token.name} has been defeated and dropped their belongings!</p>
-                        </div>
-                    `
+                const messageData = {
+                    isPublic: true,
+                    theme: 'default',
+                    isLootDrop: true,
+                    tokenName: token.name
+                };
+
+                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+
+                await ChatMessage.create({
+                    content: messageHtml,
+                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                    speaker: ChatMessage.getSpeaker({ alias: 'System' })
                 });
             }
         } catch (error) {
