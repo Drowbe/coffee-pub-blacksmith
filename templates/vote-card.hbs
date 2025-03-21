@@ -23,7 +23,7 @@
 
 
         {{#if vote.isActive}}
-            <div class="vote-status active" {{#if currentUserIsGM}}data-tooltip="Voters: {{getVoterList vote.votes}}"{{/if}}>
+            <div class="vote-status active" {{#if currentUserIsGM}}data-tooltip="{{getVoterList vote.votes}}"{{/if}}>
                 {{#if progress}}
                     {{progress.current}} of {{progress.total}} Voted
                 {{/if}}

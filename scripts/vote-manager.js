@@ -76,7 +76,7 @@ export class VoteManager {
                 })
                 .filter(Boolean);
             
-            return '<div style="text-align: left;"><b>Vote Details:</b><br><ul>' + voteDetails.join('<br>') + '</ul></div>';
+            return '<div style="text-align: left;"><b>RESULTS</b><br><br><ul>' + voteDetails.join('<br>') + '</ul></div>';
         });
 
         // Register click handlers for vote cards
