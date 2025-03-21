@@ -32,6 +32,11 @@ export class VoteManager {
                 // Vote button click handler
                 html.find('.vote-button').click(async (event) => {
                     event.preventDefault();
+                    // Prevent GMs from voting
+                    if (game.user.isGM) {
+                        ui.notifications.warn("GMs cannot participate in voting.");
+                        return;
+                    }
                     const optionId = event.currentTarget.dataset.optionId;
                     await this.castVote(game.user.id, optionId);
                 });
@@ -47,14 +52,22 @@ export class VoteManager {
                     });
                 }
 
-                // Add visual indicators for votes
+                // Add visual indicators for votes and GM status
                 if (this.activeVote?.votes) {
                     const userVote = this.activeVote.votes[game.user.id];
                     html.find('.vote-button').each((i, button) => {
                         const $button = $(button);
                         const optionId = $button.data('optionId');
                         
-                        if (userVote === optionId) {
+                        // Disable buttons for GMs
+                        if (game.user.isGM) {
+                            $button.prop('disabled', true);
+                            $button.css({
+                                'opacity': '0.6',
+                                'cursor': 'not-allowed',
+                                'pointer-events': 'none'
+                            });
+                        } else if (userVote === optionId) {
                             // Add check mark to voted option
                             const $icon = $('<i class="fas fa-check" style="margin-left: 10px; color: #2d8a45;"></i>');
                             $button.append($icon);
@@ -192,9 +205,28 @@ export class VoteManager {
      * @param {string} choiceId - The ID of the chosen option
      */
     static async castVote(voterId, choiceId) {
-        if (!this.activeVote?.isActive) {
+        // Check if there's an active vote
+        if (!this.activeVote) {
             ui.notifications.warn("No active vote to participate in.");
             return;
+        }
+
+        // Check if the vote is still active
+        if (!this.activeVote.isActive) {
+            ui.notifications.warn("This vote has already ended.");
+            return;
+        }
+
+        // Check if there are any active players to vote
+        const activePlayers = game.users.filter(u => u.active && !u.isGM);
+        if (activePlayers.length === 0) {
+            ui.notifications.warn("There are no active players to vote.");
+            return;
+        }
+
+        // Initialize votes object if it doesn't exist
+        if (!this.activeVote.votes) {
+            this.activeVote.votes = {};
         }
 
         // Record the vote
@@ -354,8 +386,11 @@ export class VoteManager {
      */
     static _getVotingProgress() {
         const eligibleVoters = game.users.filter(u => u.active && !u.isGM);
+        const nonGMVotes = Object.entries(this.activeVote.votes || {})
+            .filter(([userId]) => !game.users.get(userId)?.isGM)
+            .length;
         return {
-            current: Object.keys(this.activeVote.votes).length,
+            current: nonGMVotes,
             total: eligibleVoters.length
         };
     }
