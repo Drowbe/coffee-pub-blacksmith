@@ -35,13 +35,10 @@ import { WrapperManager } from './wrapper-manager.js';
 import { ModuleManager } from './module-manager.js';
 import { UtilsManager } from './utils-manager.js';
 import { StatsAPI } from './stats-api.js';
+import { CanvasTools } from './canvas-tools.js';
 import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
-// Import combat-tools.js for its side effects (hook registration)
-postConsoleAndNotification("CombatTools | Importing module", "", false, true, false);
-import './combat-tools.js';
-postConsoleAndNotification("CombatTools | Import complete", "", false, true, false);
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -154,6 +151,10 @@ Hooks.once('init', async function() {
     // ENCOUNTER TOOLBAR
     postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing EncounterToolbar...", "", false, true, false);
     EncounterToolbar.init();
+
+    // Initialize CanvasTools
+    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CanvasTools...", "", false, true, false);
+    CanvasTools.initialize();
 });
 
 // Initialize WrapperManager after libWrapper is ready
@@ -408,6 +409,7 @@ Hooks.on("ready", () => {
     // Set defaults
     let strDefaultCardTheme = game.settings.get(MODULE_ID, 'defaultCardTheme');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
+
     // *** CHECK FOR MACRO BUTTONS ***
     // OPEN AI WINDOW
     var strOpenAIMacro = game.settings.get(MODULE_ID, 'openAIMacro');
@@ -415,7 +417,6 @@ Hooks.on("ready", () => {
         let OpenAIMacro = game.macros.getName(strOpenAIMacro);
         if(OpenAIMacro) {
             OpenAIMacro.execute = async () => {
-                
                 buildButtonEventRegent();
             };
         } else {
@@ -424,8 +425,9 @@ Hooks.on("ready", () => {
     } else {
         postConsoleAndNotification("Macro for OpenAI not set.", "", false, true, true);
     } 
-    
 });
+
+
 
 // ***************************************************
 // ** HOOKS ON: CREATE NOTE

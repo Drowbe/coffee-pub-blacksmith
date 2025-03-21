@@ -1169,6 +1169,7 @@ export const registerSettings = async () => {
 		type: String,
 	});
 
+
 	// -- Fuzzy Match --
 	game.settings.register(MODULE_ID, 'tokenConvertDeadToLoot', {
 		name: 'Convert Dead to Loot',
@@ -1180,6 +1181,115 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// *** TREASURE LOOT ***
+
+	game.settings.register(MODULE_ID,'tokenLootTableTreasure', {
+		name: 'Treasure Loot Table',
+		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the treasure loot, aside from what they were carrying.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a Treasure Table --',
+		choices: BLACKSMITH.arrTableChoices
+	});
+
+	// -- Treasure Loot Amount --
+	game.settings.register(MODULE_ID,"tokenLootTableTreasureAmount", {
+		name: 'Treasure Loot Amount',
+		hint: 'How many of this type of treasure should be added to the loot pile?',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 1,
+	});
+
+	// *** GEAR LOOT ***
+
+	game.settings.register(MODULE_ID,'tokenLootTableGear', {
+		name: 'Gear Loot Table',
+		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the gear loot, aside from what they were carrying.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a Gear Loot Table --',
+		choices: BLACKSMITH.arrTableChoices
+	});
+	
+	// -- Gear Loot Amount --
+	game.settings.register(MODULE_ID,"tokenLootTableGearAmount", {
+		name: 'Gear Loot Amount',
+		hint: 'How many of this type of Gear loot should be added to the loot pile?',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 2,
+	});
+
+	// *** General LOOT ***
+
+	game.settings.register(MODULE_ID,'tokenLootTableGeneral', {
+		name: 'General Loot Table',
+		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the general loot, aside from what they were carrying.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a General Loot Table --',
+		choices: BLACKSMITH.arrTableChoices
+	});
+
+	// -- General Loot Amount --
+	game.settings.register(MODULE_ID,"tokenLootTableGeneralAmount", {
+		name: 'General Loot Amount',
+		hint: 'How many of this type of General loot should be added to the loot pile?',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 3,
+	});
+
+
+
+	game.settings.register(MODULE_ID, 'tokenLootSound', {
+        scope: 'client',
+        config: false,
+        type: String,
+        default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
+    });
+
+	game.settings.register(MODULE_ID, 'tokenLootPileImage', {
+        scope: 'client',
+        config: false,
+        type: String,
+        default: 'modules/coffee-pub-blacksmith/images/tokens/deathsplat-round-loot-sack.webp'
+    });
+
+	game.settings.register(MODULE_ID, 'tokenLootChatMessage', {
+		name: 'Loot Chat Message',
+		hint: 'Send loot updates to the chat log.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
 
 	// *** OPEN AI SETTINGS ***
 
