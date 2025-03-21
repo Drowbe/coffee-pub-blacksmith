@@ -1181,6 +1181,22 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// -- Loot Delay --
+	game.settings.register(MODULE_ID,"tokenConvertDelay", {
+		name: 'Loot Delay',
+		hint: 'How many seconds to wait before the loot is converted to a pile?',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 30,
+		step: 1,
+		},
+		default: 10,
+	});
+
 	// *** TREASURE LOOT ***
 
 	game.settings.register(MODULE_ID,'tokenLootTableTreasure', {
@@ -1265,8 +1281,6 @@ export const registerSettings = async () => {
 		default: 3,
 	});
 
-
-
 	game.settings.register(MODULE_ID, 'tokenLootSound', {
         scope: 'client',
         config: false,
@@ -1278,7 +1292,7 @@ export const registerSettings = async () => {
         scope: 'client',
         config: false,
         type: String,
-        default: 'modules/coffee-pub-blacksmith/images/tokens/deathsplat-round-loot-sack.webp'
+        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
     });
 
 	game.settings.register(MODULE_ID, 'tokenLootChatMessage', {

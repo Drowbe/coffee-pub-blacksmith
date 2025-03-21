@@ -174,7 +174,175 @@ export class CanvasTools {
 
     // *** TOKEN CONVERSION ***
     static _initializeTokenConversion() {
-        // This will be implemented in the next phase
-        // It will handle converting dead tokens to loot piles
+        // Check if Item Piles is installed
+        if (!game.modules.get("item-piles")?.active) {
+            postConsoleAndNotification("Item Piles module not installed. Token conversion disabled.", "", false, true, false);
+            return;
+        }
+        
+        // Watch for token HP changes
+        Hooks.on("updateActor", this._checkTokenDeath.bind(this));
+    }
+
+    static async _checkTokenDeath(actor, changes) {
+        // Exit if feature is disabled
+        if (!game.settings.get(MODULE_ID, 'tokenConvertDeadToLoot')) return;
+        
+        try {
+            // Check if HP changed to 0 or below
+            const newHP = changes.system?.attributes?.hp?.value;
+            if (newHP === undefined || newHP > 0) return;
+            
+            // Only convert non-player characters
+            if (actor.type === "character") return;
+            
+            // Get the token
+            const token = actor.getActiveTokens()[0];
+            if (!token) return;
+            
+            // Start the conversion delay
+            const delay = game.settings.get(MODULE_ID, 'tokenConvertDelay') * 1000;
+            setTimeout(() => this._convertTokenToLoot(token), delay);
+        } catch (error) {
+            postConsoleAndNotification("Error checking token death:", error, false, true, false);
+        }
+    }
+
+    static async _convertTokenToLoot(token) {
+        try {
+            // Convert to item pile
+            await game.itempiles.API.turnTokensIntoItemPiles([token]);
+            
+            // Update the image
+            const newImage = game.settings.get(MODULE_ID, 'tokenLootPileImage');
+            await token.document.update({img: newImage});
+            
+            // Apply TokenFX if available
+            if (game.modules.get("tokenmagic")?.active) {
+                await this._applyTokenEffect(token);
+            }
+            
+            // Add loot from tables if configured
+            const tables = [
+                {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
+                {setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount'},
+                {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
+            ];
+            
+            for (const table of tables) {
+                const tableName = game.settings.get(MODULE_ID, table.setting);
+                if (tableName && tableName !== "none") {
+                    const amount = game.settings.get(MODULE_ID, table.amount);
+                    try {
+                        await game.itempiles.API.rollItemTable(tableName, {
+                            timesToRoll: amount,
+                            targetActor: token.actor,
+                            options: {
+                                suppressWarnings: true
+                            }
+                        });
+                    } catch (error) {
+                        postConsoleAndNotification(`Error rolling loot table ${tableName}:`, error, false, true, false);
+                        continue; // Continue with next table even if this one fails
+                    }
+                }
+            }
+            
+            // Add random coins
+            await this._addRandomCoins(token.actor);
+            
+            // Play sound
+            const sound = game.settings.get(MODULE_ID, 'tokenLootSound');
+            if (sound) {
+                AudioHelper.play({src: sound, volume: 0.5, autoplay: true, loop: false}, true);
+            }
+            
+            // Send chat message if enabled
+            if (game.settings.get(MODULE_ID, 'tokenLootChatMessage')) {
+                ChatMessage.create({
+                    content: `
+                        <div class="coffee-pub-card">
+                            <h3>Loot Dropped!</h3>
+                            <p>${token.name} has been defeated and dropped their belongings!</p>
+                        </div>
+                    `
+                });
+            }
+        } catch (error) {
+            postConsoleAndNotification("Error converting token to loot:", error, false, true, false);
+        }
+    }
+
+    static async _applyTokenEffect(token) {
+        try {
+            const params = [{
+                filterType: "polymorph",
+                filterId: "tokenToLootPile",
+                type: 3,
+                padding: 70,
+                magnify: 1,
+                imagePath: game.settings.get(MODULE_ID, 'tokenLootPileImage'),
+                animated: {
+                    progress: {
+                        active: true,
+                        animType: "halfCosOscillation",
+                        val1: 0,
+                        val2: 100,
+                        loops: 1,
+                        loopDuration: 1000
+                    }
+                }
+            }];
+            
+            await token.TMFXaddUpdateFilters(params);
+        } catch (error) {
+            postConsoleAndNotification("Error applying token effect:", error, false, true, false);
+        }
+    }
+
+    static async _addRandomCoins(actor) {
+        try {
+            const roll = await new Roll("1d100").evaluate({async: true});
+            let coinRoll;
+            
+            if (roll.total <= 16) {
+                coinRoll = {pp: "0", gp: "0", sp: "0", cp: "1d4"};
+            } else if (roll.total <= 55) {
+                coinRoll = {pp: "0", gp: "0", sp: "3d4", cp: "1d8"};
+            } else if (roll.total <= 79) {
+                coinRoll = {pp: "0", gp: "0", sp: "4d4", cp: "2d8"};
+            } else if (roll.total <= 89) {
+                coinRoll = {pp: "0", gp: "0", sp: "8d4", cp: "3d8"};
+            } else if (roll.total <= 94) {
+                coinRoll = {pp: "0", gp: "1d4", sp: "4d6", cp: "4d8"};
+            } else if (roll.total <= 97) {
+                coinRoll = {pp: "0", gp: "2d4", sp: "3d6", cp: "5d8"};
+            } else if (roll.total <= 99) {
+                coinRoll = {pp: "0", gp: "3d4", sp: "2d6", cp: "6d8"};
+            } else {
+                coinRoll = {pp: "1d2", gp: "4d4", sp: "1d6", cp: "7d8"};
+            }
+            
+            const currency = actor.system.currency;
+            const rolls = {};
+            
+            for (const [key, formula] of Object.entries(coinRoll)) {
+                rolls[key] = await new Roll(formula).evaluate({async: true});
+            }
+            
+            await actor.update({
+                "system.currency.cp": currency.cp + rolls.cp.total,
+                "system.currency.sp": currency.sp + rolls.sp.total,
+                "system.currency.gp": currency.gp + rolls.gp.total,
+                "system.currency.pp": currency.pp + rolls.pp.total
+            });
+            
+            postConsoleAndNotification("Added coins:", 
+                `CP: ${rolls.cp.total}, SP: ${rolls.sp.total}, GP: ${rolls.gp.total}, PP: ${rolls.pp.total}`, 
+                false, false, false);
+                
+        } catch (error) {
+            postConsoleAndNotification("Error adding coins:", error, false, true, false);
+        }
     }
 }
