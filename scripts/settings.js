@@ -1159,6 +1159,27 @@ export const registerSettings = async () => {
 		choices: nameplateChoices,
 	});
 
+	// ---------- Dead Tokens ----------
+	game.settings.register(MODULE_ID, "headingH3TokenActions", {
+		name: 'Token Actions',
+		hint: 'Automation of token actions.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+
+	// -- Fuzzy Match --
+	game.settings.register(MODULE_ID, 'tokenConvertDeadToLoot', {
+		name: 'Convert Dead to Loot',
+		hint: 'If you have the module "Item Piles" installed, this will convert dead tokens to loot piles.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
 
 	// *** OPEN AI SETTINGS ***
 
