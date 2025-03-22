@@ -68,6 +68,12 @@ export class VoteConfig extends Application {
                     icon: 'fa-people-arrows'
                 },
                 {
+                    id: 'characters',
+                    name: 'Character Vote',
+                    description: 'Vote on characters from various sources.',
+                    icon: 'fa-users'
+                },
+                {
                     id: 'custom',
                     name: 'Custom Vote',
                     description: 'Create your own vote with custom options.',
@@ -98,6 +104,14 @@ export class VoteConfig extends Application {
             
             if (type === 'custom') {
                 this.createCustomVote();
+            } else if (type === 'characters') {
+                try {
+                    await VoteManager._showCharacterVoteDialog();
+                    this.close();
+                } catch (error) {
+                    console.error('Vote Config | Error starting character vote:', error);
+                    ui.notifications.error("Error starting character vote. Check the console for details.");
+                }
             } else {
                 try {
                     await VoteManager.startVote(type);

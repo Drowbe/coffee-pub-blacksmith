@@ -1,13 +1,9 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 <div class="vote-card">
-
-
-
-
     {{!-- HEADER --}}
     <div class="vote-header">
         <h3>
-            <i class="fas fa-check-to-slot"></i>
+            <i class="fas fa-shield-check"></i>
             {{#if (eq vote.type "leader")}}
                 Leader Election
             {{else if (eq vote.type "yesno")}}
@@ -16,16 +12,16 @@
                 End Time
             {{else if (eq vote.type "engagement")}}
                 Party Plan
+            {{else if (eq vote.type "characters")}}
+                {{vote.title}}
             {{else if (eq vote.type "custom")}}
                 {{vote.title}}
             {{/if}}
        </h3>
-
-
         {{#if vote.isActive}}
             <div class="vote-status active" {{#if currentUserIsGM}}data-tooltip="{{getVoterList vote.votes}}"{{/if}}>
                 {{#if progress}}
-                    {{progress.current}} of {{progress.total}} Voted
+                    {{progress.current}}/{{progress.total}}
                 {{/if}}
             </div>
         {{else}}
@@ -37,6 +33,11 @@
 
     <div class="vote-content">
         {{#if vote.isActive}}
+            {{#if (eq vote.type "characters")}}
+                <div class="vote-description">
+                    {{vote.description}}
+                </div>
+            {{/if}}
             <div class="vote-options">
                 {{#each vote.options}}
                     <div class="vote-option">

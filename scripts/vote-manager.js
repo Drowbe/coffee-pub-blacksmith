@@ -183,6 +183,12 @@ export class VoteManager {
             return;
         }
 
+        // If this is a character vote, show the setup dialog first
+        if (type === 'characters' && !customData) {
+            await this._showCharacterVoteDialog();
+            return;
+        }
+
         this.activeVote = {
             id: randomID(),
             type: type,
@@ -221,6 +227,10 @@ export class VoteManager {
                 { id: 'avoid', name: 'I prefer to avoid this' },
                 { id: 'flexible', name: 'I can roll with whatever' }
             ];
+        } else if (type === 'characters' && customData) {
+            this.activeVote.options = customData.options;
+            this.activeVote.title = customData.title;
+            this.activeVote.description = customData.description;
         } else if (type === 'custom' && customData) {
             this.activeVote.options = customData.options;
             this.activeVote.title = customData.title;
@@ -235,6 +245,156 @@ export class VoteManager {
             voteData: this.activeVote,
             messageId: this.activeVote.messageId
         });
+    }
+
+    /**
+     * Show dialog for setting up a character vote
+     * @private
+     * @returns {Promise} Resolves when the vote is created
+     */
+    static async _showCharacterVoteDialog() {
+        // Get available character sources
+        const sources = await this._getCharacterSources();
+
+        const dialog = new Dialog({
+            title: "Create Character Vote",
+            content: `
+                <form>
+                    <div class="form-group">
+                        <label>Vote Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Character Source:</label>
+                        <select name="source" required>
+                            ${Object.entries(sources).map(([key, source]) => 
+                                source.available ? 
+                                `<option value="${key}">${source.label}</option>` : 
+                                `<option value="${key}" disabled>${source.label} (Not Available)</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                </form>
+            `,
+            buttons: {
+                submit: {
+                    icon: '<i class="fas fa-check"></i>',
+                    label: "Create Vote",
+                    callback: async (html) => {
+                        const form = html.find('form')[0];
+                        const title = form.title.value;
+                        const description = form.description.value;
+                        const source = form.source.value;
+                        
+                        if (!title) {
+                            ui.notifications.error("Please enter a title for the vote.");
+                            return;
+                        }
+
+                        const characters = await this._getCharactersFromSource(source);
+                        if (!characters.length) {
+                            ui.notifications.error("No characters available from selected source.");
+                            return;
+                        }
+
+                        // Start the vote with the gathered data
+                        await this.startVote('characters', {
+                            title: title,
+                            description: description,
+                            options: characters.map(char => ({
+                                id: char.id,
+                                name: char.name,
+                                img: char.img
+                            }))
+                        });
+                    }
+                },
+                cancel: {
+                    icon: '<i class="fas fa-times"></i>',
+                    label: "Cancel"
+                }
+            },
+            default: "submit"
+        });
+        dialog.render(true);
+    }
+
+    /**
+     * Get available character sources and their availability
+     * @private
+     */
+    static async _getCharacterSources() {
+        const inCombat = game.combat != null;
+        return {
+            canvas: {
+                label: "Heroes on the Canvas",
+                available: canvas.tokens?.placeables?.length > 0,
+            },
+            party: {
+                label: "Heroes in the Party",
+                available: true, // Always available as we'll check for character actors
+            },
+            players: {
+                label: "Current Players",
+                available: game.users.filter(u => u.active).length > 0,
+            },
+            combat: {
+                label: "Monster Combatants",
+                available: inCombat && game.combat.combatants.filter(c => c.actor?.type === "npc").length > 0,
+            },
+        };
+    }
+
+    /**
+     * Get characters based on the selected source
+     * @private
+     */
+    static async _getCharactersFromSource(source) {
+        switch (source) {
+            case 'canvas':
+                return canvas.tokens.placeables
+                    .filter(t => t.actor?.type === "character")
+                    .map(t => ({
+                        id: t.id,
+                        name: t.name,
+                        img: t.document.texture.src
+                    }));
+
+            case 'party':
+                return game.actors
+                    .filter(a => a.type === "character" && a.hasPlayerOwner)
+                    .map(a => ({
+                        id: a.id,
+                        name: a.name,
+                        img: a.img
+                    }));
+
+            case 'players':
+                return game.users
+                    .filter(u => u.active && !u.isGM)
+                    .map(u => ({
+                        id: u.id,
+                        name: u.name,
+                        img: u.avatar
+                    }));
+
+            case 'combat':
+                if (!game.combat) return [];
+                return game.combat.combatants
+                    .filter(c => c.actor?.type === "npc")
+                    .map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        img: c.img
+                    }));
+
+            default:
+                return [];
+        }
     }
 
     /**
@@ -374,9 +534,9 @@ export class VoteManager {
                 tiedWinners = [vote];
             } else if (tally[vote].count === maxVotes) {
                 tiedWinners.push(vote);
-                // Only clear winner for non-leader votes
-                if (this.activeVote.type !== 'leader') {
-                    winner = null;
+                    // Only clear winner for non-leader votes
+                    if (this.activeVote.type !== 'leader') {
+                        winner = null;
                 }
             }
         });
@@ -425,10 +585,10 @@ export class VoteManager {
                         await ChatPanel.setNewLeader(selectedId, true);
                         this.activeVote.results.winner = selectedId;
                         await this._updateVoteMessage();
-                    }
-                }
+                    },
+                },
             },
-            default: "choose"
+            default: "choose",
         });
         dialog.render(true);
     }
@@ -476,7 +636,7 @@ export class VoteManager {
 
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
-            messageData
+            messageData,
         );
         
         // Create a single message from the GM
@@ -525,7 +685,7 @@ export class VoteManager {
 
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
-            messageData
+            messageData,
         );
 
         await message.update({ content: content });
