@@ -274,7 +274,7 @@ export class VoteManager {
                             ${Object.entries(sources).map(([key, source]) => 
                                 source.available ? 
                                 `<option value="${key}">${source.label}</option>` : 
-                                `<option value="${key}" disabled>${source.label} (Not Available)</option>`
+                                `<option value="${key}" disabled>${source.label} (${source.unavailableMessage || 'Not Available'})</option>`
                             ).join('')}
                         </select>
                     </div>
@@ -330,21 +330,35 @@ export class VoteManager {
     static async _getCharacterSources() {
         const inCombat = game.combat != null;
         return {
+            selected: {
+                label: "Selected Tokens",
+                available: canvas.tokens?.controlled?.length > 0,
+                unavailableMessage: "None Selected"
+            },
+            targeted: {
+                label: "Targeted Tokens",
+                available: game.user.targets?.size > 0,
+                unavailableMessage: "None Targeted"
+            },
             canvas: {
                 label: "Heroes on the Canvas",
                 available: canvas.tokens?.placeables?.length > 0,
+                unavailableMessage: "No Heroes Found"
             },
             party: {
                 label: "Heroes in the Party",
                 available: true, // Always available as we'll check for character actors
+                unavailableMessage: "No Heroes in Party"
             },
             players: {
                 label: "Current Players",
                 available: game.users.filter(u => u.active).length > 0,
+                unavailableMessage: "No Players Online"
             },
             combat: {
                 label: "Monster Combatants",
                 available: inCombat && game.combat.combatants.filter(c => c.actor?.type === "npc").length > 0,
+                unavailableMessage: "Not in Combat"
             },
         };
     }
@@ -355,6 +369,22 @@ export class VoteManager {
      */
     static async _getCharactersFromSource(source) {
         switch (source) {
+            case 'selected':
+                return canvas.tokens.controlled
+                    .map(t => ({
+                        id: t.id,
+                        name: t.name,
+                        img: t.document.texture.src
+                    }));
+
+            case 'targeted':
+                return Array.from(game.user.targets)
+                    .map(t => ({
+                        id: t.id,
+                        name: t.name,
+                        img: t.document.texture.src
+                    }));
+
             case 'canvas':
                 return canvas.tokens.placeables
                     .filter(t => t.actor?.type === "character")
