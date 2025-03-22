@@ -396,6 +396,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         } else if (mode === 'assistant') {
             this.workspaceId = 'assistant';
             this.showWorkspace = true; 
+            // Register token hooks only for assistant mode
+            TokenHandler.registerTokenHooks(this.workspaceId);
         } else if (mode === 'narrative') {
             this.workspaceId = 'narrative';
             this.showWorkspace = true; 
