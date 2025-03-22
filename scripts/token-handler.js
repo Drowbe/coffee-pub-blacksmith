@@ -101,7 +101,16 @@ export class TokenHandler {
         const age = actor.system.details.age || 'Unknown';
         const alignment = actor.system.details.alignment || 'Unknown';
         const background = actor.system.details.background || 'Unknown';
-        const size = CONFIG.DND5E.actorSizes[actor.system.traits?.size] || 'Unknown';
+        const size = actor.system.traits?.size || 'Unknown';
+        
+        // Get movement speeds
+        const movement = actor.system.attributes?.movement || {};
+        const speeds = [];
+        if (movement.walk) speeds.push(`Walk: ${movement.walk} ${movement.units}`);
+        if (movement.burrow) speeds.push(`Burrow: ${movement.burrow} ${movement.units}`);
+        if (movement.climb) speeds.push(`Climb: ${movement.climb} ${movement.units}`);
+        if (movement.fly) speeds.push(`Fly: ${movement.fly} ${movement.units}${movement.hover ? ' (hover)' : ''}`);
+        if (movement.swim) speeds.push(`Swim: ${movement.swim} ${movement.units}`);
         
         // Build details string
         const details = [
@@ -115,6 +124,10 @@ export class TokenHandler {
             raceAndClass,
             levelOrCR,
             `HP: ${hp}`,
+            
+            // Movement
+            speeds.length > 0 ? 'Movement:' : '',
+            ...speeds.map(speed => `  - ${speed}`),
             
             // Ability Scores
             'Ability Scores:',
