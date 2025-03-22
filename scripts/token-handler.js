@@ -100,23 +100,71 @@ export class TokenHandler {
         const gender = actor.system.details.gender || 'Unknown';
         const age = actor.system.details.age || 'Unknown';
         const alignment = actor.system.details.alignment || 'Unknown';
+        const background = actor.system.details.background || 'Unknown';
+        const size = CONFIG.DND5E.actorSizes[actor.system.traits?.size] || 'Unknown';
         
         // Build details string
         const details = [
-            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : (isNPC ? 'npc' : actor.type))}`,
+            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : 'npc')}`,
             `Token Name: ${token.name}`,
-            `Gender: ${gender}`,
-            `Age: ${age}`,
-            `Alignment: ${alignment}`,
+            `Gender: ${actor.system.details?.gender || 'Unknown'}`,
+            `Age: ${actor.system.details?.age || 'Unknown'}`,
+            `Alignment: ${actor.system.details?.alignment || 'Unknown'}`,
+            `Background: ${actor.system.details?.background || 'Unknown'}`,
+            `Size: ${size}`,
             raceAndClass,
             levelOrCR,
             `HP: ${hp}`,
-            equippedWeapons ? `Equipped Weapons: ${equippedWeapons}` : '',
-            preparedSpells ? `Prepared Spells: ${preparedSpells}` : '',
-            proficiencies ? `Proficiencies: ${proficiencies}` : '',
-            immunities.length > 0 ? `Immunities: ${immunities.join(', ')}` : '',
-            resistances.length > 0 ? `Resistances: ${resistances.join(', ')}` : '',
-            vulnerabilities.length > 0 ? `Vulnerabilities: ${vulnerabilities.join(', ')}` : ''
+            
+            // Ability Scores
+            'Ability Scores:',
+            ...Object.entries(actor.system.abilities || {}).map(([key, ability]) => 
+                `  - ${CONFIG.DND5E.abilities[key]?.label || key}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`
+            ),
+            
+            // Skills
+            'Skills:',
+            ...Object.entries(actor.system.skills || {})
+                .filter(([_, skill]) => skill.value > 0)  // Only show skills with proficiency
+                .map(([key, skill]) => {
+                    const profValue = skill.value === 0.5 ? 'Half' : 
+                                    skill.value === 1 ? 'Proficient' : 
+                                    skill.value === 2 ? 'Expert' : '';
+                    return `  - ${CONFIG.DND5E.skills[key]?.label || key}: ${profValue}`;
+                }),
+            
+            // Senses
+            'Senses:',
+            ...Object.entries(actor.system.attributes?.senses || {})
+                .filter(([key, value]) => value)
+                .map(([key, value]) => `  - ${key}: ${value}`),
+            
+            // Languages
+            actor.system.traits?.languages?.value?.length > 0 ? 
+                `Languages:\n  - ${actor.system.traits.languages.value.map(l => CONFIG.DND5E.languages[l] || l).join('\n  - ')}` : '',
+            
+            // Resistances, Immunities, Vulnerabilities
+            actor.system.traits?.dr?.value?.length > 0 ? 
+                `Damage Resistances:\n  - ${actor.system.traits.dr.value.map(r => CONFIG.DND5E.damageTypes[r] || r).join('\n  - ')}` : '',
+            actor.system.traits?.di?.value?.length > 0 ? 
+                `Damage Immunities:\n  - ${actor.system.traits.di.value.map(i => CONFIG.DND5E.damageTypes[i] || i).join('\n  - ')}` : '',
+            actor.system.traits?.dv?.value?.length > 0 ? 
+                `Damage Vulnerabilities:\n  - ${actor.system.traits.dv.value.map(v => CONFIG.DND5E.damageTypes[v] || v).join('\n  - ')}` : '',
+            
+            // Proficiencies
+            'Weapon Proficiencies:',
+            ...Object.entries(actor.system.traits?.weaponProf || {})
+                .filter(([_, prof]) => prof)
+                .map(([key, _]) => `  - ${CONFIG.DND5E.weaponProficiencies[key] || key}`),
+            
+            'Armor Proficiencies:',
+            ...Object.entries(actor.system.traits?.armorProf || {})
+                .filter(([_, prof]) => prof)
+                .map(([key, _]) => `  - ${CONFIG.DND5E.armorProficiencies[key] || key}`),
+            
+            // Equipped items
+            equippedWeapons ? `Equipped Weapons:\n  - ${equippedWeapons.split(', ').join('\n  - ')}` : '',
+            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : ''
         ].filter(Boolean).join('\n');
         
         // Common updates
