@@ -6,6 +6,7 @@ import { BLACKSMITH, MODULE_ID, MODULE_TITLE } from './const.js'
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
+import { TokenHandler } from './token-handler.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -380,7 +381,11 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     constructor(options = {}, mode = 'default') {
+        // Call the parent constructor first
         super(options);
+        
+        // Set the workspace ID
+        this.workspaceId = options.workspaceId || 'default';
         this.messages = [];
         postConsoleAndNotification("Setting the selected workspace mode...", "", false, true, false);
         
@@ -447,6 +452,19 @@ export class BlacksmithWindowQuery extends FormApplication {
     async initialize(html) {
         postConsoleAndNotification(`BlacksmithWindowQuery initialized.`, "", false, true, false);
         postConsoleAndNotification(`this.workspaceId: ${this.workspaceId}`, "", false, true, false);
+
+        // Add initialization for skill check form if in assistant workspace
+        if (this.workspaceId === 'assistant') {
+            postConsoleAndNotification("In assistant workspace, checking for selected tokens", "", false, true, false);
+            const selectedTokens = canvas.tokens.controlled;
+            postConsoleAndNotification("Selected tokens:", selectedTokens.length, false, true, false);
+            
+            if (selectedTokens.length > 0) {
+                const selectedToken = selectedTokens[0];
+                postConsoleAndNotification("Found selected token:", selectedToken.name, false, true, false);
+                await TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
+            }
+        }
 
         // Get the window element - try both jQuery and direct DOM approaches
         const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
