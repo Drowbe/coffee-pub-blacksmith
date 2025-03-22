@@ -14,11 +14,12 @@ export class TokenHandler {
         const typeSelect = document.querySelector(`#optionType-${id}`);
         const nameInput = document.querySelector(`#inputContextName-${id}`);
         const detailsInput = document.querySelector(`#inputContextDetails-${id}`);
+        const biographyInput = document.querySelector(`#inputContextBiography-${id}`);
         const skillCheck = document.querySelector(`#blnSkillRoll-${id}`);
         const skillSelect = document.querySelector(`#optionSkill-${id}`);
         const diceSelect = document.querySelector(`#optionDiceType-${id}`);
         
-        if (!typeSelect || !nameInput || !detailsInput || !skillCheck || !skillSelect || !diceSelect) {
+        if (!typeSelect || !nameInput || !detailsInput || !biographyInput || !skillCheck || !skillSelect || !diceSelect) {
             postConsoleAndNotification("Missing form elements for skill check update", "", false, true, false);
             return;
         }
@@ -103,6 +104,20 @@ export class TokenHandler {
         const background = actor.system.details.background || 'Unknown';
         const size = actor.system.traits?.size || 'Unknown';
         
+        // Get physical appearance details
+        const eyes = actor.system.details.eyes || 'Unknown';
+        const hair = actor.system.details.hair || 'Unknown';
+        const skin = actor.system.details.skin || 'Unknown';
+        const height = actor.system.details.height || 'Unknown';
+        const weight = actor.system.details.weight || 'Unknown';
+        const faith = actor.system.details.faith || 'Unknown';
+        
+        // Get personality traits
+        const trait = actor.system.details.trait?.replace(/<\/?p>/g, '') || 'Unknown';
+        const ideal = actor.system.details.ideal?.replace(/<\/?p>/g, '') || 'Unknown';
+        const bond = actor.system.details.bond?.replace(/<\/?p>/g, '') || 'Unknown';
+        const flaw = actor.system.details.flaw?.replace(/<\/?p>/g, '') || 'Unknown';
+        
         // Get movement speeds
         const movement = actor.system.attributes?.movement || {};
         const speeds = [];
@@ -116,14 +131,30 @@ export class TokenHandler {
         const details = [
             `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : 'npc')}`,
             `Token Name: ${token.name}`,
-            `Gender: ${actor.system.details?.gender || 'Unknown'}`,
-            `Age: ${actor.system.details?.age || 'Unknown'}`,
-            `Alignment: ${actor.system.details?.alignment || 'Unknown'}`,
-            `Background: ${actor.system.details?.background || 'Unknown'}`,
+            `Gender: ${gender}`,
+            `Age: ${age}`,
+            `Alignment: ${alignment}`,
+            `Background: ${background}`,
             `Size: ${size}`,
             raceAndClass,
             levelOrCR,
             `HP: ${hp}`,
+            
+            // Physical Appearance
+            'Physical Appearance:',
+            `  - Height: ${height}`,
+            `  - Weight: ${weight}`,
+            `  - Eyes: ${eyes}`,
+            `  - Hair: ${hair}`,
+            `  - Skin: ${skin}`,
+            faith !== 'Unknown' ? `  - Faith: ${faith}` : '',
+            
+            // Personality
+            'Personality:',
+            `  - Trait: ${trait}`,
+            `  - Ideal: ${ideal}`,
+            `  - Bond: ${bond}`,
+            `  - Flaw: ${flaw}`,
             
             // Movement
             speeds.length > 0 ? 'Movement:' : '',
@@ -177,12 +208,27 @@ export class TokenHandler {
             
             // Equipped items
             equippedWeapons ? `Equipped Weapons:\n  - ${equippedWeapons.split(', ').join('\n  - ')}` : '',
-            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : ''
+            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : '',
+
+            // Biography
+            'Biography:',
+            actor.system.details?.biography?.value ? 
+                actor.system.details.biography.value.replace(/<\/?[^>]+(>|$)/g, '').split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line)
+                    .map(line => `  - ${line}`)
+                    .join('\n') : 
+                '  - No biography available'
         ].filter(Boolean).join('\n');
         
         // Common updates
         nameInput.value = actor.name;
         detailsInput.value = details;
+        
+        // Set biography in the editable field, removing HTML tags but preserving newlines
+        const biography = actor.system.details?.biography?.value || '';
+        biographyInput.value = biography.replace(/<p>/g, '').replace(/<\/p>/g, '\n').replace(/<\/?[^>]+(>|$)/g, '').trim();
+        
         skillCheck.checked = true;
         diceSelect.value = '1d20';
         
