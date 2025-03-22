@@ -40,9 +40,46 @@ export class TokenHandler {
             skillSelect.value = 'History';
         }
         
+        // Get equipped weapons
+        const equippedWeapons = actor.items
+            .filter(item => item.type === 'weapon' && item.system.equipped)
+            .map(item => item.name)
+            .join(', ');
+            
+        // Get prepared spells
+        const preparedSpells = actor.items
+            .filter(item => item.type === 'spell' && item.system.preparation.prepared)
+            .map(item => item.name)
+            .join(', ');
+            
+        // Get level or CR
+        const levelOrCR = isMonster ? 
+            `CR: ${actor.system.details.cr}` : 
+            `Level: ${actor.system.details.level}`;
+            
+        // Get hit points
+        const hp = `${actor.system.attributes.hp.value}/${actor.system.attributes.hp.max}`;
+        
+        // Get proficiencies
+        const proficiencies = Object.entries(actor.system.skills)
+            .filter(([_, skill]) => skill.proficient)
+            .map(([skill]) => skill.label)
+            .join(', ');
+        
+        // Build details string
+        const details = [
+            `Actor Type: ${actor.type}`,
+            `Token Name: ${token.name}`,
+            levelOrCR,
+            `HP: ${hp}`,
+            equippedWeapons ? `Equipped Weapons: ${equippedWeapons}` : '',
+            preparedSpells ? `Prepared Spells: ${preparedSpells}` : '',
+            proficiencies ? `Proficiencies: ${proficiencies}` : ''
+        ].filter(Boolean).join('\n');
+        
         // Common updates
         nameInput.value = actor.name;
-        detailsInput.value = `Actor Type: ${actor.type}\nToken Name: ${token.name}`;
+        detailsInput.value = details;
         skillCheck.checked = true;
         diceSelect.value = '1d20';
         
