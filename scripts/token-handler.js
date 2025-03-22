@@ -36,7 +36,8 @@ export class TokenHandler {
         
         // Check actor type
         const isMonster = actor.type === 'npc' && token.document.disposition < 0;
-        const isCharacter = actor.type === 'character' || (actor.type === 'npc' && token.document.disposition >= 0);
+        const isCharacter = actor.type === 'character';
+        const isNPC = actor.type === 'npc' && token.document.disposition >= 0;
         
         // Update form based on actor type
         if (isMonster) {
@@ -44,6 +45,9 @@ export class TokenHandler {
             skillSelect.value = 'Nature';
         } else if (isCharacter) {
             typeSelect.value = 'character';
+            skillSelect.value = 'History';
+        } else if (isNPC) {
+            typeSelect.value = 'npc';
             skillSelect.value = 'History';
         }
         
@@ -99,7 +103,7 @@ export class TokenHandler {
         
         // Build details string
         const details = [
-            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : actor.type)}`,
+            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : (isNPC ? 'npc' : actor.type))}`,
             `Token Name: ${token.name}`,
             `Gender: ${gender}`,
             `Age: ${age}`,
