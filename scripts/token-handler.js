@@ -27,6 +27,13 @@ export class TokenHandler {
         const actor = token.actor;
         if (!actor) return;
         
+        // Debug logging
+        console.log('Full Token Object:', token);
+        console.log('Full Actor Object:', actor);
+        console.log('Actor System Data:', actor.system);
+        console.log('Actor Details:', actor.system.details);
+        console.log('Actor Classes:', actor.system._classes);
+        
         // Check actor type
         const isMonster = actor.type === 'npc' && token.document.disposition < 0;
         const isCharacter = actor.type === 'character' || (actor.type === 'npc' && token.document.disposition >= 0);
@@ -59,18 +66,25 @@ export class TokenHandler {
             
         // Get race and class for characters
         const raceAndClass = isCharacter ? 
-            `Race: ${actor.system.details.race || 'Unknown'}\nClass: ${actor.system.details.classes ? 
-                actor.system.details.classes.map(c => `${c.name} ${c.levels}`).join(', ') : 
-                actor.system.details.class || 'Unknown'}` : 
+            `Race: ${actor.system.details.race || 'Unknown'}\nClass: ${
+                actor.items.filter(i => i.type === "class")
+                    .map(c => c.name)
+                    .join(', ') || 'Unknown'
+            }` : 
             '';
             
         // Get hit points
         const hp = `${actor.system.attributes.hp.value}/${actor.system.attributes.hp.max}`;
         
-        // Get proficiencies
-        const proficiencies = Object.entries(actor.system.skills)
+        // Get proficiencies - using the correct path for D&D5E
+        const proficiencies = Object.entries(actor.system.skills || {})
             .filter(([_, skill]) => skill.proficient)
-            .map(([_, skill]) => skill.label)
+            .map(([_, skill]) => {
+                // Get the skill name from the CONFIG
+                const skillName = CONFIG.DND5E.skills[skill.name]?.label || skill.name;
+                return skillName;
+            })
+            .filter(Boolean)
             .join(', ');
             
         // Get immunities and resistances
@@ -78,10 +92,18 @@ export class TokenHandler {
         const resistances = actor.system.traits.dr?.value || [];
         const vulnerabilities = actor.system.traits.dv?.value || [];
         
+        // Get additional details
+        const gender = actor.system.details.gender || 'Unknown';
+        const age = actor.system.details.age || 'Unknown';
+        const alignment = actor.system.details.alignment || 'Unknown';
+        
         // Build details string
         const details = [
             `Actor Type: ${actor.type}`,
             `Token Name: ${token.name}`,
+            `Gender: ${gender}`,
+            `Age: ${age}`,
+            `Alignment: ${alignment}`,
             raceAndClass,
             levelOrCR,
             `HP: ${hp}`,
