@@ -99,7 +99,7 @@ export class TokenHandler {
         
         // Build details string
         const details = [
-            `Actor Type: ${actor.type}`,
+            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : actor.type)}`,
             `Token Name: ${token.name}`,
             `Gender: ${gender}`,
             `Age: ${age}`,
