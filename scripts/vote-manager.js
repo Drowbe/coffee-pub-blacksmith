@@ -543,30 +543,30 @@ export class VoteManager {
         let tiedWinners = [];
         const totalVotes = Object.keys(votes).length;
 
-        // First, create a map of option IDs to names
+        // First, create a map of option IDs to names and initialize all options with 0 votes
         const optionNames = {};
         this.activeVote.options.forEach(option => {
             optionNames[option.id] = option.name;
+            tally[option.id] = {
+                count: 0,
+                name: option.name
+            };
         });
 
         // Count votes and include names
         Object.values(votes).forEach(vote => {
-            if (!tally[vote]) {
-                tally[vote] = {
-                    count: 0,
-                    name: optionNames[vote]
-                };
-            }
-            tally[vote].count += 1;
-            if (tally[vote].count > maxVotes) {
-                maxVotes = tally[vote].count;
-                winner = vote;
-                tiedWinners = [vote];
-            } else if (tally[vote].count === maxVotes) {
-                tiedWinners.push(vote);
+            if (tally[vote]) {
+                tally[vote].count += 1;
+                if (tally[vote].count > maxVotes) {
+                    maxVotes = tally[vote].count;
+                    winner = vote;
+                    tiedWinners = [vote];
+                } else if (tally[vote].count === maxVotes) {
+                    tiedWinners.push(vote);
                     // Only clear winner for non-leader votes
                     if (this.activeVote.type !== 'leader') {
                         winner = null;
+                    }
                 }
             }
         });
