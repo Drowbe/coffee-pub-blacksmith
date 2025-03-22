@@ -464,7 +464,15 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (selectedTokens.length > 0) {
                 const selectedToken = selectedTokens[0];
                 postConsoleAndNotification("Found selected token:", selectedToken.name, false, true, false);
-                await TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
+                
+                // Wait for form elements to be ready
+                const checkFormReady = setInterval(() => {
+                    const form = document.querySelector(`#${this.workspaceId} form`);
+                    if (form) {
+                        clearInterval(checkFormReady);
+                        TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
+                    }
+                }, 100);
             }
         }
 
@@ -513,6 +521,14 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     activateListeners(html) {
         super.activateListeners(html);
+
+        // If in assistant mode, check for selected token
+        if (this.workspaceId === 'assistant') {
+            const selectedToken = canvas.tokens?.controlled[0];
+            if (selectedToken) {
+                TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
+            }
+        }
 
         // don't let these buttons submit the main form
         html.on('click', '.blacksmith-send-button-normal', (event) => {

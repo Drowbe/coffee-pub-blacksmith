@@ -129,6 +129,16 @@ export class TokenHandler {
     }
 
     static registerTokenHooks(workspaceId) {
+        // Check for already selected token when initialized
+        if (workspaceId === 'assistant') {
+            const selectedToken = canvas.tokens?.controlled[0];
+            if (selectedToken) {
+                postConsoleAndNotification("Found selected token, updating skill check form", "", false, true, false);
+                this.updateSkillCheckFromToken(workspaceId, selectedToken);
+            }
+        }
+
+        // Register hook for future token selections
         Hooks.on('controlToken', (token, controlled) => {
             if (controlled && workspaceId === 'assistant') {
                 postConsoleAndNotification("Token controlled, updating skill check form", "", false, true, false);
