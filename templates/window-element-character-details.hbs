@@ -1,93 +1,91 @@
 {{!-- CHARACTER SHEET  --}}
 <div class="workspace-section" id="workspace-section-character-details-{{id}}">
-    <h4>Character Sheet <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-details-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
-    <div id="workspace-section-character-details-{{id}}" class="workspace-section-content">
-        <div class="character-sheet dnd5e sheet actor character">
-            <header class="sheet-header">
-                <img class="profile" src="{{actor.img}}" title="{{actor.name}}" />
-                <div class="header-details">
-                    <h1 class="charname">{{actor.name}}</h1>
-                    <div class="character-info">
-                        {{#if isCharacter}}
-                            <span class="level">{{actor.system.details.level}}</span>
-                            <span class="class">{{className}}</span>
-                        {{/if}}
-                        <span class="race">{{actor.system.details.race}}</span>
-                        <span class="background">{{actor.system.details.background}}</span>
-                    </div>
-                </div>
-            </header>
-
-            <div class="sheet-body">
-                <div class="ability-scores">
-                    {{#each abilities}}
-                    <div class="ability" data-ability="{{@key}}">
-                        <div class="ability-name">{{this.label}}</div>
-                        <div class="ability-score">{{this.value}}</div>
-                        <div class="ability-mod">{{numberFormat this.mod sign=true}}</div>
-                    </div>
-                    {{/each}}
-                </div>
-
-                <div class="vitals">
-                    <div class="health">
-                        <h2>Hit Points</h2>
-                        <div class="hp">
-                            <span class="current">{{actor.system.attributes.hp.value}}</span>
-                            <span class="separator">/</span>
-                            <span class="max">{{actor.system.attributes.hp.max}}</span>
-                        </div>
-                    </div>
-                    <div class="movement">
-                        <h2>Movement</h2>
-                        {{#each movement}}
-                            {{#if this.value}}
-                            <div class="movement-{{@key}}">
-                                <span class="label">{{@key}}</span>
-                                <span class="value">{{this.value}} {{../movementUnits}}</span>
-                            </div>
-                            {{/if}}
-                        {{/each}}
-                    </div>
-                </div>
-
-                <div class="skills-list">
-                    <h2>Skills</h2>
-                    {{#each skills}}
-                        {{#if this.value}}
-                        <div class="skill {{this.proficiency}}">
-                            <span class="skill-name">{{this.label}}</span>
-                            <span class="skill-mod">{{numberFormat this.total sign=true}}</span>
-                        </div>
-                        {{/if}}
-                    {{/each}}
-                </div>
-
-                {{#if equippedWeapons}}
-                <div class="weapons-list">
-                    <h2>Equipped Weapons</h2>
-                    {{#each equippedWeapons}}
-                    <div class="weapon">
-                        <span class="weapon-name">{{this.name}}</span>
-                        <span class="weapon-damage">{{this.damage}}</span>
-                    </div>
-                    {{/each}}
-                </div>
+    <h4>Character Sheet <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-details-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-details-content-{{id}}" class="workspace-section-content">
+        {{!-- Header --}}
+        <div class="workspace-section-image-container">
+            <img class="workspace-section-image" src="{{actor.img}}" title="{{actor.name}}" />
+            <div class="workspace-section-image-caption">
+                <h6>{{actor.name}}</h6>
+                {{#if isCharacter}}
+                    <span>Level {{actor.system.details.level}} {{className}}</span>
                 {{/if}}
+                <span>{{actor.system.details.race}}</span>
+                <span>{{actor.system.details.background}}</span>
             </div>
+        </div>
+
+        {{!-- Stats --}}
+        <div class="workspace-section-nodivider">
+            {{!-- Abilities --}}
+            <div class="form-details">
+                {{#each abilities}}
+                <div class="form-label">
+                    <span>{{this.label}}</span>
+                    <span class="value">{{this.value}} ({{numberFormat this.mod sign=true}})</span>
+                </div>
+                {{/each}}
+            </div>
+
+            {{!-- HP --}}
+            <div class="form-details">
+                <div class="form-label">
+                    <span>Hit Points</span>
+                    <span class="value">{{actor.system.attributes.hp.value}}/{{actor.system.attributes.hp.max}}</span>
+                </div>
+            </div>
+
+            {{!-- Movement --}}
+            <div class="form-details">
+                <div class="form-label">Movement</div>
+                {{#each movement}}
+                    {{#if this.value}}
+                    <div class="form-label">
+                        <span>{{@key}}</span>
+                        <span class="value">{{this.value}} {{../movementUnits}}</span>
+                    </div>
+                    {{/if}}
+                {{/each}}
+            </div>
+
+            {{!-- Skills --}}
+            <div class="form-details">
+                <div class="form-label">Skills</div>
+                {{#each skills}}
+                    {{#if this.value}}
+                    <div class="form-label">
+                        <span>{{this.label}}</span>
+                        <span class="value">{{numberFormat this.total sign=true}}</span>
+                    </div>
+                    {{/if}}
+                {{/each}}
+            </div>
+
+            {{!-- Weapons --}}
+            {{#if equippedWeapons}}
+            <div class="form-details">
+                <div class="form-label">Equipped Weapons</div>
+                {{#each equippedWeapons}}
+                <div class="form-label">
+                    <span>{{this.name}}</span>
+                    <span class="value">{{this.damage}}</span>
+                </div>
+                {{/each}}
+            </div>
+            {{/if}}
         </div>
     </div>
 </div>
 
 {{!-- Biography  --}}
 <div class="workspace-section" id="workspace-section-character-biography-{{id}}">
-    <h4>Biography <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-biography-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
-    <div id="workspace-section-character-biography-{{id}}" class="workspace-section-content">
-        <div class="character-biography">
+    <h4>Biography <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-biography-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-biography-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
             {{#if biography}}
                 {{{biography}}}
             {{else}}
-                <p class="no-biography">No biography available for this character.</p>
+                <p class="workspace-helper-text">No biography available for this character.</p>
             {{/if}}
         </div>
     </div>

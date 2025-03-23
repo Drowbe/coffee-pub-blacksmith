@@ -151,18 +151,23 @@ export class TokenHandler {
             return;
         }
 
-        // Create the template data object
+        // Get complete token data using our existing method
+        const tokenData = this.getTokenData(token);
+        if (!tokenData) {
+            postConsoleAndNotification("CHARACTER | Failed to get token data", "", false, true, false, MODULE_TITLE);
+            return;
+        }
+
+        // Create the template data object with all necessary data
         const templateData = {
             id: id,
-            actor: token.actor,
-            isCharacter: token.actor.type === 'character',
-            biography: token.actor.system.details?.biography?.value || ''
+            ...tokenData
         };
         postConsoleAndNotification("CHARACTER | Template data prepared", JSON.stringify(templateData), false, true, false, MODULE_TITLE);
 
-        // Get the sections
-        const detailsSection = document.querySelector(`#workspace-section-character-details-${id} .workspace-section-content`);
-        const biographySection = document.querySelector(`#workspace-section-character-biography-${id} .character-biography`);
+        // Get the sections with updated IDs
+        const detailsSection = document.querySelector(`#workspace-section-character-details-content-${id}`);
+        const biographySection = document.querySelector(`#workspace-section-character-biography-content-${id} .workspace-section-nodivider`);
 
         if (!detailsSection || !biographySection) {
             postConsoleAndNotification("CHARACTER | Character sections not found", "", false, true, false, MODULE_TITLE);
@@ -173,7 +178,7 @@ export class TokenHandler {
         const template = 'modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs';
         renderTemplate(template, templateData).then(html => {
             detailsSection.innerHTML = html;
-            biographySection.innerHTML = templateData.biography || '<p class="no-biography">No biography available for this character.</p>';
+            biographySection.innerHTML = templateData.biography || '<p class="workspace-helper-text">No biography available for this character.</p>';
             postConsoleAndNotification("CHARACTER | Sections updated with new content", "", false, true, false, MODULE_TITLE);
         }).catch(error => {
             postConsoleAndNotification("CHARACTER | Error rendering template", error.message, false, true, false, MODULE_TITLE);
