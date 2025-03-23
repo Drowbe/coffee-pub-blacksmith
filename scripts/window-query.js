@@ -406,8 +406,6 @@ export class BlacksmithWindowQuery extends FormApplication {
         } else if (mode === 'assistant') {
             this.workspaceId = 'assistant';
             this.showWorkspace = true; 
-            // Register token hooks only for assistant mode
-            TokenHandler.registerTokenHooks(this.workspaceId);
         } else if (mode === 'narrative') {
             this.workspaceId = 'narrative';
             this.showWorkspace = true; 
@@ -451,10 +449,10 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ** FUNCTION close
     // ************************************
 
-    async close() {
-        const position = { top: this.position.top, left: this.position.left };
-        localStorage.setItem(MODULE_ID + "-queryWindowPosition", JSON.stringify(position)); 
-        return super.close();  
+    async close(options={}) {
+        // Clean up any registered hooks
+        TokenHandler.unregisterTokenHooks();
+        return super.close(options);
     }
 
     // ************************************
@@ -998,9 +996,18 @@ export class BlacksmithWindowQuery extends FormApplication {
         playSound(COFFEEPUB.SOUNDPOP03, COFFEEPUB.SOUNDVOLUMESOFT);
     
         // Update workspaceId and store as last active
+        const oldWorkspaceId = this.workspaceId;
         this.workspaceId = workspaceId.replace('blacksmith-query-workspace-', '');
         this.lastActiveWorkspace = this.workspaceId;
         postConsoleAndNotification('Updated active workspace ID:', this.workspaceId, false, true, false);
+
+        // First unregister any existing hooks
+        TokenHandler.unregisterTokenHooks();
+
+        // Then register new hooks if needed
+        if (this.workspaceId === 'assistant' || this.workspaceId === 'character') {
+            TokenHandler.registerTokenHooks(this.workspaceId);
+        }
     
         if (html) {
             // jQuery path

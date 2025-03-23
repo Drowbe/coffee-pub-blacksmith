@@ -4,14 +4,21 @@
 import { postConsoleAndNotification } from './global.js';
 
 // ================================================================== 
+// ===== CONSTANTS ==================================================
+// ================================================================== 
+const MODULE_TITLE = "BLACKSMITH";
+
+// ================================================================== 
 // ===== TOKEN HANDLER CLASS =========================================
 // ================================================================== 
 export class TokenHandler {
+    static hookId = null; // Store the hook ID for later unregistration
+
     static async updateSkillCheckFromToken(id, token) {
-        console.log('updateSkillCheckFromToken called with id:', id, 'token:', token);
+        postConsoleAndNotification("Updating skill check from token", `id: ${id}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
         const data = this.getTokenData(token);
         if (!data) {
-            console.log('No data returned from getTokenData');
+            postConsoleAndNotification("No data returned from getTokenData", "", false, true, false, MODULE_TITLE);
             return;
         }
 
@@ -25,7 +32,7 @@ export class TokenHandler {
         const diceSelect = document.querySelector(`#optionDiceType-${id}`);
         
         if (!typeSelect || !nameInput || !detailsInput || !biographyInput || !skillCheck || !skillSelect || !diceSelect) {
-            console.log('Missing form elements:', {
+            const missingElements = {
                 typeSelect: !!typeSelect,
                 nameInput: !!nameInput,
                 detailsInput: !!detailsInput,
@@ -33,8 +40,8 @@ export class TokenHandler {
                 skillCheck: !!skillCheck,
                 skillSelect: !!skillSelect,
                 diceSelect: !!diceSelect
-            });
-            postConsoleAndNotification("Missing form elements for skill check update", "", false, true, false);
+            };
+            postConsoleAndNotification("Missing form elements", JSON.stringify(missingElements), false, true, false, MODULE_TITLE);
             return;
         }
 
@@ -87,60 +94,90 @@ export class TokenHandler {
         skillCheck.checked = true;
         diceSelect.value = '1d20';
 
-        console.log('Form updated successfully');
-        postConsoleAndNotification("Updated skill check form for token:", token.name, false, true, false);
+        postConsoleAndNotification("Form updated successfully", `Token: ${token.name}`, false, true, false, MODULE_TITLE);
     }
 
     static registerTokenHooks(workspaceId) {
+        postConsoleAndNotification("Registering token hooks", `workspaceId: ${workspaceId}`, false, true, false, MODULE_TITLE);
+
+        // Unregister any existing hooks first
+        this.unregisterTokenHooks();
+
         // Check for already selected token when initialized
-        if (workspaceId === 'assistant') {
+        if (workspaceId === 'assistant' || workspaceId === 'character') {
             const selectedToken = canvas.tokens?.controlled[0];
             if (selectedToken) {
-                postConsoleAndNotification("Found selected token, updating skill check form", "", false, true, false);
-                this.updateSkillCheckFromToken(workspaceId, selectedToken);
-            }
-        } else if (workspaceId === 'character') {
-            const selectedToken = canvas.tokens?.controlled[0];
-            if (selectedToken) {
-                postConsoleAndNotification("Found selected token, updating character panel", "", false, true, false);
-                this.updateCharacterBiography(workspaceId, selectedToken);
+                postConsoleAndNotification(`Found selected token, updating ${workspaceId} panel`, "", false, true, false, MODULE_TITLE);
+                if (workspaceId === 'assistant') {
+                    this.updateSkillCheckFromToken(workspaceId, selectedToken);
+                } else {
+                    this.updateCharacterBiography(workspaceId, selectedToken);
+                }
             }
         }
 
-        // Register hook for future token selections
-        Hooks.on('controlToken', (token, controlled) => {
+        // Register hook for future token selections with explicit workspaceId closure
+        const workspaceIdClosure = workspaceId; // Ensure workspaceId is captured in closure
+        this.hookId = Hooks.on('controlToken', (token, controlled) => {
             if (!controlled) return;
             
-            if (workspaceId === 'assistant') {
-                postConsoleAndNotification("Token controlled, updating skill check form", "", false, true, false);
-                this.updateSkillCheckFromToken(workspaceId, token);
-            } else if (workspaceId === 'character') {
-                postConsoleAndNotification("Token controlled, updating character panel", "", false, true, false);
-                this.updateCharacterBiography(workspaceId, token);
+            postConsoleAndNotification("Token control hook fired", `workspaceId: ${workspaceIdClosure}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
+            
+            if (workspaceIdClosure === 'assistant') {
+                postConsoleAndNotification("Token controlled, updating skill check form", "", false, true, false, MODULE_TITLE);
+                this.updateSkillCheckFromToken(workspaceIdClosure, token);
+            } else if (workspaceIdClosure === 'character') {
+                postConsoleAndNotification("Token controlled, updating character panel", "", false, true, false, MODULE_TITLE);
+                this.updateCharacterBiography(workspaceIdClosure, token);
             }
         });
+
+        return this.hookId;
+    }
+
+    static unregisterTokenHooks() {
+        if (this.hookId !== null) {
+            postConsoleAndNotification("Unregistering token hooks", "", false, true, false, MODULE_TITLE);
+            Hooks.off('controlToken', this.hookId);
+            this.hookId = null;
+        }
     }
 
     static updateCharacterBiography(id, token) {
-        const data = this.getTokenData(token);
-        if (!data) return;
+        postConsoleAndNotification("CHARACTER | Updating character biography", `id: ${id}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
+        
+        if (!token?.actor) {
+            postConsoleAndNotification("CHARACTER | No actor data available", "", false, true, false, MODULE_TITLE);
+            return;
+        }
+
+        // Create the template data object
+        const templateData = {
+            id: id,
+            actor: token.actor,
+            isCharacter: token.actor.type === 'character',
+            biography: token.actor.system.details?.biography?.value || ''
+        };
+        postConsoleAndNotification("CHARACTER | Template data prepared", JSON.stringify(templateData), false, true, false, MODULE_TITLE);
 
         // Get the sections
         const detailsSection = document.querySelector(`#workspace-section-character-details-${id} .workspace-section-content`);
         const biographySection = document.querySelector(`#workspace-section-character-biography-${id} .character-biography`);
+
         if (!detailsSection || !biographySection) {
-            postConsoleAndNotification("Character sections not found", "", false, true, false);
+            postConsoleAndNotification("CHARACTER | Character sections not found", "", false, true, false, MODULE_TITLE);
             return;
         }
 
         // Update the sections using the template
         const template = 'modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs';
-        renderTemplate(template, data).then(html => {
+        renderTemplate(template, templateData).then(html => {
             detailsSection.innerHTML = html;
-            biographySection.innerHTML = data.biography || '<p class="no-biography">No biography available for this character.</p>';
+            biographySection.innerHTML = templateData.biography || '<p class="no-biography">No biography available for this character.</p>';
+            postConsoleAndNotification("CHARACTER | Sections updated with new content", "", false, true, false, MODULE_TITLE);
+        }).catch(error => {
+            postConsoleAndNotification("CHARACTER | Error rendering template", error.message, false, true, false, MODULE_TITLE);
         });
-
-        postConsoleAndNotification("Updated character panel for token:", token.name, false, true, false);
     }
 
     static getTokenData(token) {
