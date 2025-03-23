@@ -142,13 +142,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const lookupSRDRulesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-lookup-srdrules.hbs').then(response => response.text());
             Handlebars.registerPartial('window-element-lookup-srdrules', lookupSRDRulesTemplate);   
 
-            // ASSISTANT
 
-            // Quick Action Lookups
+
+            // CHARACTER
+
+            // character - details
+            const characterDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-details', characterDetailsTemplate);
+
+            // character - guidance
+            const characterGuidanceTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-guidance.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-guidance', characterGuidanceTemplate); 
+
+
+            // ASSISTANT
 
             const assistantCriteriaTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-assistant-criteria.hbs').then(response => response.text());
             Handlebars.registerPartial('window-element-assistant-criteria', assistantCriteriaTemplate);   
-
 
             // ENCOUNTER
 

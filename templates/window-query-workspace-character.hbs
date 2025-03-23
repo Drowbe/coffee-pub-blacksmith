@@ -3,17 +3,16 @@
 <div id="blacksmith-query-workspace-character" class="workspace-content hidden">
     <h3>Character Guidance</h3>
     
-    <!-- CHARACTER GUIDANCE     -->
-    <div class="workspace-section">
-        <ul>
-            <li>COMING SOON</li>
-            <li>Pull Current Character info</li>
-            <li>Recommend Weapons and Spells</li>
-            <li>Recommend leveling considerations</li>
-            <li>Optimizer</li>
-            <li>Backstory Generator</li>
-            <li>Guidance on how to use the character sheet</li>
-        </ul>
-    </div>
+    {{!-- CHARACTER DETAILS --}}
+    {{> window-element-character-details id="character"}}
+
+    {{!-- CHARACTER GUIDANCE --}}
+    {{> window-element-character-guidance id="character"}}
+
+    {{!-- GLOBAL OPTIONS --}}
+    {{> window-element-global-options id="character"}}
+
+    
 
 </div>
+    

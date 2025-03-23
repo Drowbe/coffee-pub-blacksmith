@@ -208,17 +208,7 @@ export class TokenHandler {
             
             // Equipped items
             equippedWeapons ? `Equipped Weapons:\n  - ${equippedWeapons.split(', ').join('\n  - ')}` : '',
-            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : '',
-
-            // Biography
-            'Biography:',
-            actor.system.details?.biography?.value ? 
-                actor.system.details.biography.value.replace(/<\/?[^>]+(>|$)/g, '').split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line)
-                    .map(line => `  - ${line}`)
-                    .join('\n') : 
-                '  - No biography available'
+            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : ''
         ].filter(Boolean).join('\n');
         
         // Common updates
