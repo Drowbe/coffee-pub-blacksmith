@@ -1,7 +1,13 @@
-{{!-- CHARACTER SHEET  --}}
-<div class="workspace-section" id="workspace-section-character-details-{{id}}">
-    <h4>Character Sheet <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-details-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
-    <div id="workspace-section-character-details-content-{{id}}" class="workspace-section-content">
+{{!-- CHARACTER CORE  --}}
+<div class="workspace-section" id="workspace-section-character-core-{{id}}">
+    <h4>Character Sheet <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-core-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-core-content-{{id}}" class="workspace-section-content">
+        
+        
+        
+        
+        <div class="form-label">Character Details <span class="helper">(some context here)</span></div>
+
         {{!-- Header --}}
         <div class="workspace-section-image-container">
             <img class="workspace-section-image" src="{{actor.img}}" title="{{actor.name}}" />
@@ -14,10 +20,75 @@
                 <span>{{actor.system.details.background}}</span>
             </div>
         </div>
+        {{!-- HP --}}
+        <div class="form-details">
+            <div class="form-label">
+                <span>Hit Points</span>
+                <span class="value">{{actor.system.attributes.hp.value}}/{{actor.system.attributes.hp.max}}</span>
+            </div>
+        </div>
+        {{!-- Movement --}}
+        <div class="form-details">
+            <div class="form-label">Movement</div>
+            {{#each movement}}
+                {{#if this.value}}
+                <div class="form-label">
+                    <span>{{@key}}</span>
+                    <span class="value">{{this.value}} {{../movementUnits}}</span>
+                </div>
+                {{/if}}
+            {{/each}}
+        </div>
+        <div class="form-details">
+            <div class="form-label">
+                <span>Gender</span>
+                <span class="value">{{actor.system.details.gender}}</span>
+            </div>
+            <div class="form-label">
+                <span>Age</span>
+                <span class="value">{{actor.system.details.age}}</span>
+            </div>
+            <div class="form-label">
+                <span>Alignment</span>
+                <span class="value">{{actor.system.details.alignment}}</span>
+            </div>
+            <div class="form-label">
+                <span>Size</span>
+                <span class="value">{{actor.system.details.size}}</span>
+            </div>  
+            <div class="form-label">
+                <span>Height</span>
+                <span class="value">{{actor.system.details.height}}</span>
+            </div>
+            <div class="form-label">    
+                <span>Weight</span>
+                <span class="value">{{actor.system.details.weight}}</span>
+            </div>
+            <div class="form-label">
+                <span>Hair</span>
+                <span class="value">{{actor.system.details.hair}}</span>
+            </div>
+            <div class="form-label">
+                <span>Eyes</span>   
+                <span class="value">{{actor.system.details.eyes}}</span>
+            </div>
+            <div class="form-label">
+                <span>Skin</span>
+                <span class="value">{{actor.system.details.skin}}</span>
+            </div>  
+        </div>
+    </div>
+</div>
 
-        {{!-- Stats --}}
+
+{{!-- ABILITIES  --}}
+<div class="workspace-section" id="workspace-section-character-abilities-{{id}}">
+    <h4>Ability Scores <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-abilities-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-abilities-content-{{id}}" class="workspace-section-content">
+        
+        <div class="form-label">Abilities <span class="helper">(some context here)</span></div>
         <div class="workspace-section-nodivider">
-            {{!-- Abilities --}}
+
             <div class="form-details">
                 {{#each abilities}}
                 <div class="form-label">
@@ -26,28 +97,19 @@
                 </div>
                 {{/each}}
             </div>
+        </div>
 
-            {{!-- HP --}}
-            <div class="form-details">
-                <div class="form-label">
-                    <span>Hit Points</span>
-                    <span class="value">{{actor.system.attributes.hp.value}}/{{actor.system.attributes.hp.max}}</span>
-                </div>
-            </div>
+    </div>
+</div>
 
-            {{!-- Movement --}}
-            <div class="form-details">
-                <div class="form-label">Movement</div>
-                {{#each movement}}
-                    {{#if this.value}}
-                    <div class="form-label">
-                        <span>{{@key}}</span>
-                        <span class="value">{{this.value}} {{../movementUnits}}</span>
-                    </div>
-                    {{/if}}
-                {{/each}}
-            </div>
 
+
+{{!-- Skills  --}}
+<div class="workspace-section" id="workspace-section-character-skills-{{id}}">
+    <h4>Skills <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-skills-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-skills-content-{{id}}" class="workspace-section-content">
+        
+        <div class="workspace-section-nodivider">
             {{!-- Skills --}}
             <div class="form-details">
                 <div class="form-label">Skills</div>
@@ -60,6 +122,45 @@
                     {{/if}}
                 {{/each}}
             </div>
+
+        </div>  
+    </div>
+</div>
+
+
+{{!-- features  --}}
+<div class="workspace-section" id="workspace-section-character-features-{{id}}">
+    <h4>Features <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-features-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-features-content-{{id}}" class="workspace-section-content">
+        
+        <div class="workspace-section-nodivider">
+            {{!-- features --}}
+            <div class="form-details">
+                <div class="form-label">Features</div>
+                {{#each features}}
+                    {{#if this.value}}
+                    <div class="form-label">
+                        <span>{{this.label}}</span>
+                        <span class="value">{{this.description}}</span>
+                    </div>
+                    {{/if}}
+                {{/each}}
+            </div>
+
+        </div>  
+    </div>
+</div>
+
+
+
+
+
+{{!-- Weapons  --}}
+<div class="workspace-section" id="workspace-section-character-weapons-{{id}}">
+    <h4>Weapons <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-weapons-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-weapons-content-{{id}}" class="workspace-section-content">
+        
+        <div class="workspace-section-nodivider">
 
             {{!-- Weapons --}}
             {{#if equippedWeapons}}
@@ -76,6 +177,32 @@
         </div>
     </div>
 </div>
+
+{{!-- Spells  --}}
+<div class="workspace-section" id="workspace-section-character-spells-{{id}}">
+    <h4>Spells <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-spells-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-spells-content-{{id}}" class="workspace-section-content">
+        
+    
+        <div class="form-label">Some header <span class="helper">(some context here)</span></div>
+        <div class="workspace-section-nodivider">
+            Spells Here
+
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
 
 {{!-- Biography  --}}
 <div class="workspace-section" id="workspace-section-character-biography-{{id}}">

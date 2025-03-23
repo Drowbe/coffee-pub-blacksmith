@@ -158,31 +158,29 @@ export class TokenHandler {
             return;
         }
 
-        // Create the template data object with all necessary data
+        // Update biography section directly
+        const bioSection = document.querySelector(`#workspace-section-character-biography-${id} .workspace-section-nodivider`);
+        if (bioSection) {
+            bioSection.innerHTML = token.actor.system.details?.biography?.value || '<p class="workspace-helper-text">No biography available for this character.</p>';
+        }
+
+        // Prepare template data
         const templateData = {
             id: id,
             ...tokenData
         };
-        postConsoleAndNotification("CHARACTER | Template data prepared", JSON.stringify(templateData), false, true, false, MODULE_TITLE);
 
-        // Get the sections with updated IDs
-        const detailsSection = document.querySelector(`#workspace-section-character-details-content-${id}`);
-        const biographySection = document.querySelector(`#workspace-section-character-biography-content-${id} .workspace-section-nodivider`);
-
-        if (!detailsSection || !biographySection) {
-            postConsoleAndNotification("CHARACTER | Character sections not found", "", false, true, false, MODULE_TITLE);
-            return;
-        }
-
-        // Update the sections using the template
+        // Use the template to update the character section
         const template = 'modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs';
-        renderTemplate(template, templateData).then(html => {
-            detailsSection.innerHTML = html;
-            biographySection.innerHTML = templateData.biography || '<p class="workspace-helper-text">No biography available for this character.</p>';
-            postConsoleAndNotification("CHARACTER | Sections updated with new content", "", false, true, false, MODULE_TITLE);
-        }).catch(error => {
-            postConsoleAndNotification("CHARACTER | Error rendering template", error.message, false, true, false, MODULE_TITLE);
-        });
+        const characterSection = document.querySelector(`#workspace-section-character-core-${id}`);
+        if (characterSection) {
+            renderTemplate(template, templateData).then(html => {
+                characterSection.outerHTML = html;
+                postConsoleAndNotification("CHARACTER | Sections updated with new content", "", false, true, false, MODULE_TITLE);
+            }).catch(error => {
+                postConsoleAndNotification("CHARACTER | Error rendering template", error.message, false, true, false, MODULE_TITLE);
+            });
+        }
     }
 
     static getTokenData(token) {

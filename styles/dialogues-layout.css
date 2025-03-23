@@ -2038,6 +2038,7 @@ div#blacksmith-message-content h5 {
 
 /* Workspace Images */
 .workspace-section-image-container {
+    background-color: #ffffff;
     box-shadow: 0px 0px 4px 1px rgba(0,0,0,0.1)!important;
     border: 8px solid #ffffff !important;
     border-radius: 6px;
@@ -2045,9 +2046,6 @@ div#blacksmith-message-content h5 {
     margin-bottom: 20px;
     margin-left: 0px;
     margin-right: 0px;
-}
-.workspace-section-image-container {
-    background-color: #ffffff;
 }
 
 .workspace-section-image {
