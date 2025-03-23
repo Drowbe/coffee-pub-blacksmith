@@ -8,9 +8,14 @@ import { postConsoleAndNotification } from './global.js';
 // ================================================================== 
 export class TokenHandler {
     static async updateSkillCheckFromToken(id, token) {
-        if (!token) return;
-        
-        // Get form elements
+        console.log('updateSkillCheckFromToken called with id:', id, 'token:', token);
+        const data = this.getTokenData(token);
+        if (!data) {
+            console.log('No data returned from getTokenData');
+            return;
+        }
+
+        // Get form elements - using original IDs
         const typeSelect = document.querySelector(`#optionType-${id}`);
         const nameInput = document.querySelector(`#inputContextName-${id}`);
         const detailsInput = document.querySelector(`#inputContextDetails-${id}`);
@@ -20,208 +25,69 @@ export class TokenHandler {
         const diceSelect = document.querySelector(`#optionDiceType-${id}`);
         
         if (!typeSelect || !nameInput || !detailsInput || !biographyInput || !skillCheck || !skillSelect || !diceSelect) {
+            console.log('Missing form elements:', {
+                typeSelect: !!typeSelect,
+                nameInput: !!nameInput,
+                detailsInput: !!detailsInput,
+                biographyInput: !!biographyInput,
+                skillCheck: !!skillCheck,
+                skillSelect: !!skillSelect,
+                diceSelect: !!diceSelect
+            });
             postConsoleAndNotification("Missing form elements for skill check update", "", false, true, false);
             return;
         }
-        
-        // Get actor data
-        const actor = token.actor;
-        if (!actor) return;
-        
-        // Debug logging
-        console.log('Full Token Object:', token);
-        console.log('Full Actor Object:', actor);
-        console.log('Actor System Data:', actor.system);
-        console.log('Actor Details:', actor.system.details);
-        console.log('Actor Classes:', actor.system._classes);
-        
-        // Check actor type
-        const isMonster = actor.type === 'npc' && token.document.disposition < 0;
-        const isCharacter = actor.type === 'character';
-        const isNPC = actor.type === 'npc' && token.document.disposition >= 0;
-        
+
         // Update form based on actor type
-        if (isMonster) {
+        if (data.actor.type === 'npc' && token.document.disposition < 0) {
             typeSelect.value = 'monster';
             skillSelect.value = 'Nature';
-        } else if (isCharacter) {
+        } else if (data.isCharacter) {
             typeSelect.value = 'character';
             skillSelect.value = 'History';
-        } else if (isNPC) {
+        } else {
             typeSelect.value = 'npc';
             skillSelect.value = 'History';
         }
-        
-        // Get equipped weapons
-        const equippedWeapons = actor.items
-            .filter(item => item.type === 'weapon' && item.system.equipped)
-            .map(item => item.name)
-            .join(', ');
-            
-        // Get prepared spells
-        const preparedSpells = actor.items
-            .filter(item => item.type === 'spell' && item.system.preparation.prepared)
-            .map(item => item.name)
-            .join(', ');
-            
-        // Get level or CR
-        const levelOrCR = isMonster ? 
-            `CR: ${actor.system.details.cr}` : 
-            `Level: ${actor.system.details.level}`;
-            
-        // Get race and class for characters
-        const raceAndClass = isCharacter ? 
-            `Race: ${actor.system.details.race || 'Unknown'}\nClass: ${
-                actor.items.filter(i => i.type === "class")
-                    .map(c => c.name)
-                    .join(', ') || 'Unknown'
-            }` : 
-            '';
-            
-        // Get hit points
-        const hp = `${actor.system.attributes.hp.value}/${actor.system.attributes.hp.max}`;
-        
-        // Get proficiencies - using the correct path for D&D5E
-        const proficiencies = Object.entries(actor.system.skills || {})
-            .filter(([_, skill]) => skill.proficient)
-            .map(([_, skill]) => {
-                // Get the skill name from the CONFIG
-                const skillName = CONFIG.DND5E.skills[skill.name]?.label || skill.name;
-                return skillName;
-            })
-            .filter(Boolean)
-            .join(', ');
-            
-        // Get immunities and resistances
-        const immunities = actor.system.traits.di?.value || [];
-        const resistances = actor.system.traits.dr?.value || [];
-        const vulnerabilities = actor.system.traits.dv?.value || [];
-        
-        // Get additional details
-        const gender = actor.system.details.gender || 'Unknown';
-        const age = actor.system.details.age || 'Unknown';
-        const alignment = actor.system.details.alignment || 'Unknown';
-        const background = actor.system.details.background || 'Unknown';
-        const size = actor.system.traits?.size || 'Unknown';
-        
-        // Get physical appearance details
-        const eyes = actor.system.details.eyes || 'Unknown';
-        const hair = actor.system.details.hair || 'Unknown';
-        const skin = actor.system.details.skin || 'Unknown';
-        const height = actor.system.details.height || 'Unknown';
-        const weight = actor.system.details.weight || 'Unknown';
-        const faith = actor.system.details.faith || 'Unknown';
-        
-        // Get personality traits
-        const trait = actor.system.details.trait?.replace(/<\/?p>/g, '') || 'Unknown';
-        const ideal = actor.system.details.ideal?.replace(/<\/?p>/g, '') || 'Unknown';
-        const bond = actor.system.details.bond?.replace(/<\/?p>/g, '') || 'Unknown';
-        const flaw = actor.system.details.flaw?.replace(/<\/?p>/g, '') || 'Unknown';
-        
-        // Get movement speeds
-        const movement = actor.system.attributes?.movement || {};
-        const speeds = [];
-        if (movement.walk) speeds.push(`Walk: ${movement.walk} ${movement.units}`);
-        if (movement.burrow) speeds.push(`Burrow: ${movement.burrow} ${movement.units}`);
-        if (movement.climb) speeds.push(`Climb: ${movement.climb} ${movement.units}`);
-        if (movement.fly) speeds.push(`Fly: ${movement.fly} ${movement.units}${movement.hover ? ' (hover)' : ''}`);
-        if (movement.swim) speeds.push(`Swim: ${movement.swim} ${movement.units}`);
-        
-        // Build details string
+
+        // Format details text using the data from getTokenData
         const details = [
-            `Actor Type: ${isMonster ? 'monster' : (isCharacter ? 'character' : 'npc')}`,
-            `Token Name: ${token.name}`,
-            `Gender: ${gender}`,
-            `Age: ${age}`,
-            `Alignment: ${alignment}`,
-            `Background: ${background}`,
-            `Size: ${size}`,
-            raceAndClass,
-            levelOrCR,
-            `HP: ${hp}`,
+            `Actor Type: ${typeSelect.value}`,
+            `Token Name: ${data.name}`,
+            `Gender: ${data.actor.system.details.gender || 'Unknown'}`,
+            `Age: ${data.actor.system.details.age || 'Unknown'}`,
+            `Alignment: ${data.actor.system.details.alignment || 'Unknown'}`,
+            `Background: ${data.actor.system.details.background || 'Unknown'}`,
+            `Size: ${data.actor.system.traits?.size || 'Unknown'}`,
+            data.isCharacter ? `Race: ${data.actor.system.details.race || 'Unknown'}\nClass: ${data.className || 'Unknown'}` : '',
+            data.isCharacter ? `Level: ${data.actor.system.details.level}` : `CR: ${data.actor.system.details.cr || 'Unknown'}`,
+            `HP: ${data.actor.system.attributes.hp.value}/${data.actor.system.attributes.hp.max}`,
             
-            // Physical Appearance
-            'Physical Appearance:',
-            `  - Height: ${height}`,
-            `  - Weight: ${weight}`,
-            `  - Eyes: ${eyes}`,
-            `  - Hair: ${hair}`,
-            `  - Skin: ${skin}`,
-            faith !== 'Unknown' ? `  - Faith: ${faith}` : '',
-            
-            // Personality
-            'Personality:',
-            `  - Trait: ${trait}`,
-            `  - Ideal: ${ideal}`,
-            `  - Bond: ${bond}`,
-            `  - Flaw: ${flaw}`,
-            
-            // Movement
-            speeds.length > 0 ? 'Movement:' : '',
-            ...speeds.map(speed => `  - ${speed}`),
-            
-            // Ability Scores
+            // Abilities
             'Ability Scores:',
-            ...Object.entries(actor.system.abilities || {}).map(([key, ability]) => 
-                `  - ${CONFIG.DND5E.abilities[key]?.label || key}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`
+            ...Object.entries(data.abilities).map(([key, ability]) => 
+                `  - ${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`
             ),
             
             // Skills
             'Skills:',
-            ...Object.entries(actor.system.skills || {})
-                .filter(([_, skill]) => skill.value > 0)  // Only show skills with proficiency
-                .map(([key, skill]) => {
-                    const profValue = skill.value === 0.5 ? 'Half' : 
-                                    skill.value === 1 ? 'Proficient' : 
-                                    skill.value === 2 ? 'Expert' : '';
-                    return `  - ${CONFIG.DND5E.skills[key]?.label || key}: ${profValue}`;
-                }),
+            ...Object.values(data.skills).map(skill => 
+                `  - ${skill.label}: ${skill.proficiency}`
+            ),
             
-            // Senses
-            'Senses:',
-            ...Object.entries(actor.system.attributes?.senses || {})
-                .filter(([key, value]) => value)
-                .map(([key, value]) => `  - ${key}: ${value}`),
-            
-            // Languages
-            actor.system.traits?.languages?.value?.length > 0 ? 
-                `Languages:\n  - ${actor.system.traits.languages.value.map(l => CONFIG.DND5E.languages[l] || l).join('\n  - ')}` : '',
-            
-            // Resistances, Immunities, Vulnerabilities
-            actor.system.traits?.dr?.value?.length > 0 ? 
-                `Damage Resistances:\n  - ${actor.system.traits.dr.value.map(r => CONFIG.DND5E.damageTypes[r] || r).join('\n  - ')}` : '',
-            actor.system.traits?.di?.value?.length > 0 ? 
-                `Damage Immunities:\n  - ${actor.system.traits.di.value.map(i => CONFIG.DND5E.damageTypes[i] || i).join('\n  - ')}` : '',
-            actor.system.traits?.dv?.value?.length > 0 ? 
-                `Damage Vulnerabilities:\n  - ${actor.system.traits.dv.value.map(v => CONFIG.DND5E.damageTypes[v] || v).join('\n  - ')}` : '',
-            
-            // Proficiencies
-            'Weapon Proficiencies:',
-            ...Object.entries(actor.system.traits?.weaponProf || {})
-                .filter(([_, prof]) => prof)
-                .map(([key, _]) => `  - ${CONFIG.DND5E.weaponProficiencies[key] || key}`),
-            
-            'Armor Proficiencies:',
-            ...Object.entries(actor.system.traits?.armorProf || {})
-                .filter(([_, prof]) => prof)
-                .map(([key, _]) => `  - ${CONFIG.DND5E.armorProficiencies[key] || key}`),
-            
-            // Equipped items
-            equippedWeapons ? `Equipped Weapons:\n  - ${equippedWeapons.split(', ').join('\n  - ')}` : '',
-            preparedSpells ? `Prepared Spells:\n  - ${preparedSpells.split(', ').join('\n  - ')}` : ''
+            // Equipment
+            data.equippedWeapons.length > 0 ? 
+                `Equipped Weapons:\n  - ${data.equippedWeapons.map(w => w.name).join('\n  - ')}` : ''
         ].filter(Boolean).join('\n');
-        
-        // Common updates
-        nameInput.value = actor.name;
+
+        // Update form
+        nameInput.value = data.name;
         detailsInput.value = details;
-        
-        // Set biography in the editable field, removing HTML tags but preserving newlines
-        const biography = actor.system.details?.biography?.value || '';
-        biographyInput.value = biography.replace(/<p>/g, '').replace(/<\/p>/g, '\n').replace(/<\/?[^>]+(>|$)/g, '').trim();
-        
+        biographyInput.value = data.biography || '';
         skillCheck.checked = true;
         diceSelect.value = '1d20';
-        
+
+        console.log('Form updated successfully');
         postConsoleAndNotification("Updated skill check form for token:", token.name, false, true, false);
     }
 
@@ -233,14 +99,97 @@ export class TokenHandler {
                 postConsoleAndNotification("Found selected token, updating skill check form", "", false, true, false);
                 this.updateSkillCheckFromToken(workspaceId, selectedToken);
             }
+        } else if (workspaceId === 'character') {
+            const selectedToken = canvas.tokens?.controlled[0];
+            if (selectedToken) {
+                postConsoleAndNotification("Found selected token, updating character panel", "", false, true, false);
+                this.updateCharacterBiography(workspaceId, selectedToken);
+            }
         }
 
         // Register hook for future token selections
         Hooks.on('controlToken', (token, controlled) => {
-            if (controlled && workspaceId === 'assistant') {
+            if (!controlled) return;
+            
+            if (workspaceId === 'assistant') {
                 postConsoleAndNotification("Token controlled, updating skill check form", "", false, true, false);
                 this.updateSkillCheckFromToken(workspaceId, token);
+            } else if (workspaceId === 'character') {
+                postConsoleAndNotification("Token controlled, updating character panel", "", false, true, false);
+                this.updateCharacterBiography(workspaceId, token);
             }
         });
+    }
+
+    static updateCharacterBiography(id, token) {
+        const data = this.getTokenData(token);
+        if (!data) return;
+
+        // Get the sections
+        const detailsSection = document.querySelector(`#workspace-section-character-details-${id} .workspace-section-content`);
+        const biographySection = document.querySelector(`#workspace-section-character-biography-${id} .character-biography`);
+        if (!detailsSection || !biographySection) {
+            postConsoleAndNotification("Character sections not found", "", false, true, false);
+            return;
+        }
+
+        // Update the sections using the template
+        const template = 'modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs';
+        renderTemplate(template, data).then(html => {
+            detailsSection.innerHTML = html;
+            biographySection.innerHTML = data.biography || '<p class="no-biography">No biography available for this character.</p>';
+        });
+
+        postConsoleAndNotification("Updated character panel for token:", token.name, false, true, false);
+    }
+
+    static getTokenData(token) {
+        if (!token?.actor) return null;
+        const actor = token.actor;
+
+        return {
+            id: token.id,
+            actor: actor,
+            isCharacter: actor.type === 'character',
+            name: actor.name,
+            className: actor.items.find(i => i.type === "class")?.name || '',
+            biography: actor.system.details?.biography?.value || '',
+            abilities: Object.entries(actor.system.abilities || {}).reduce((acc, [key, ability]) => {
+                acc[key] = {
+                    label: CONFIG.DND5E.abilities[key]?.label || key,
+                    value: ability.value,
+                    mod: ability.mod
+                };
+                return acc;
+            }, {}),
+            movement: Object.entries(actor.system.attributes.movement || {})
+                .filter(([key]) => key !== 'units')
+                .reduce((acc, [key, value]) => {
+                    if (value) {
+                        acc[key] = { value };
+                    }
+                    return acc;
+                }, {}),
+            movementUnits: actor.system.attributes.movement.units,
+            skills: Object.entries(actor.system.skills || {}).reduce((acc, [key, skill]) => {
+                if (skill.value > 0) {
+                    acc[key] = {
+                        label: CONFIG.DND5E.skills[key]?.label || key,
+                        total: skill.total,
+                        value: skill.value,
+                        proficiency: skill.value === 0.5 ? 'half-proficient' : 
+                                   skill.value === 1 ? 'proficient' : 
+                                   skill.value === 2 ? 'expert' : ''
+                    };
+                }
+                return acc;
+            }, {}),
+            equippedWeapons: actor.items
+                .filter(item => item.type === 'weapon' && item.system.equipped)
+                .map(weapon => ({
+                    name: weapon.name,
+                    damage: weapon.system.damage?.parts?.[0]?.[0] || ''
+                }))
+        };
     }
 } 
