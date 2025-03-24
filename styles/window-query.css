@@ -21,19 +21,23 @@
     padding: 4px 8px;
     border-radius: 4px;
     margin-bottom: 4px;
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .workspace-item-name {
     flex-grow: 1;
     margin-left: 8px;
     font-weight: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* --- Workspace Grid Layouts -------------- */
 .workspace-grid-2col {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
     width: 100%;
 }
 
@@ -41,6 +45,27 @@
 .workspace-grid-2col .form-label {
     margin: 0;
     padding: 4px;
+}
+
+/* --- Spell List Specific Styles -------------- */
+.spell-list-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.spell-list-container .workspace-item-container {
+    margin-bottom: 0;
+}
+
+.spell-list-container .workspace-item-container:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.spell-list-container .workspace-item-name i {
+    margin-left: 4px;
+    opacity: 0.7;
 }
 
 

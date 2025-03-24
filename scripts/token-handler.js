@@ -329,7 +329,38 @@ export class TokenHandler {
                     properties: weapon.system.properties,
                     proficient: weapon.system.proficient,
                     equipped: weapon.system.equipped
-                }))
+                })),
+            // Spells and Spell Slots
+            spells: actor.items
+                .filter(item => item.type === 'spell')
+                .sort((a, b) => a.system.level - b.system.level)  // Sort by level
+                .reduce((acc, spell) => {  // Group by level
+                    const level = spell.system.level;
+                    if (!acc[level]) acc[level] = [];
+                    acc[level].push({
+                        id: spell.id,
+                        name: spell.name,
+                        level: level,
+                        school: spell.system.school,
+                        description: spell.system.description.value,
+                        components: spell.system.components,
+                        ritual: spell.system.ritual,
+                        concentration: spell.system.concentration,
+                        preparation: spell.system.preparation,
+                        img: spell.img || 'icons/svg/mystery-man.svg'
+                    });
+                    return acc;
+                }, {}),
+            // Add spell slots data
+            spellSlots: Object.entries(actor.system.spells || {}).reduce((acc, [level, slotData]) => {
+                if (slotData.max > 0) {
+                    acc[level] = {
+                        value: slotData.value,
+                        max: slotData.max
+                    };
+                }
+                return acc;
+            }, {})
         };
     }
 } 

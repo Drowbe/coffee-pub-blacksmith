@@ -10,8 +10,7 @@
 @import "overrides-modules.css"; 
 
 /* --- Dialogue Boxes / Windows --- */
-@import "dialogues-layout.css";
-@import "dialogues-themes.css";
+@import "dialogues.css";
 @import "window-query.css";
 
 /* --- Toolbars ------------------- */
