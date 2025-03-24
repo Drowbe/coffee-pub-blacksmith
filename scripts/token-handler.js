@@ -202,7 +202,7 @@ export class TokenHandler {
                 <div class="workspace-section-image-container">
                     <img class="workspace-section-image" src="${token.actor.img}" title="${token.actor.name}" />
                     <div class="workspace-section-image-caption">
-                        <h2>${token.actor.name}</h2>
+                        <h6>${token.actor.name}</h6>
                     </div>
                 </div>`;
 

@@ -1,18 +1,13 @@
 {{!-- CHARACTER CORE  --}}
 <div class="workspace-section" id="workspace-section-character-core-{{id}}">
-    <h4>Character Sheet <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-core-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <h4>Character Details <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-core-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
     <div id="workspace-section-character-core-content-{{id}}" class="workspace-section-content">
-        
-        
-        
-        
-        <div class="form-label">Character Details <span class="helper">(some context here)</span></div>
-
+    
         {{!-- Header --}}
         <div class="workspace-section-image-container">
             <img class="workspace-section-image" src="{{actor.img}}" title="{{actor.name}}" />
             <div class="workspace-section-image-caption">
-                <h2>{{actor.name}}</h2>
+                <h6>{{actor.name}}</h6>
             </div>
         </div>
 
@@ -22,7 +17,9 @@
                 {{#if isCharacter}}
                     <span>Level {{actor.system.details.level}} {{className}}</span>
                 {{/if}}
+                <br>
                 <span>{{actor.system.details.race}}</span>
+                <br>
                 <span>{{actor.system.details.background}}</span>
             </div>
         </div>
@@ -96,7 +93,7 @@
         <div class="form-label">Abilities <span class="helper">(some context here)</span></div>
         <div class="workspace-section-nodivider">
 
-            <div class="form-details">
+            <div class="form-details workspace-grid-2col">
                 {{#each abilities}}
                 <div class="form-label">
                     <span>{{this.label}}</span>
