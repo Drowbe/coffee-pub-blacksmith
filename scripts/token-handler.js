@@ -64,10 +64,10 @@ export class TokenHandler {
             `Gender: ${data.actor.system.details.gender || 'Unknown'}`,
             `Age: ${data.actor.system.details.age || 'Unknown'}`,
             `Alignment: ${data.actor.system.details.alignment || 'Unknown'}`,
-            `Background: ${data.actor.system.details.background || 'Unknown'}`,
+            `Background: ${data.background}`,
             `Size: ${data.actor.system.traits?.size || 'Unknown'}`,
-            data.isCharacter ? `Race: ${data.actor.system.details.race || 'Unknown'}\nClass: ${data.className || 'Unknown'}` : '',
-            data.isCharacter ? `Level: ${data.actor.system.details.level}` : `CR: ${data.actor.system.details.cr || 'Unknown'}`,
+            data.isCharacter ? `Race: ${data.race || 'Unknown'}\nClass: ${data.className || 'Unknown'}` : '',
+            data.isCharacter ? `Level: ${data.classLevel}` : `CR: ${data.actor.system.details.cr || 'Unknown'}`,
             `HP: ${data.actor.system.attributes.hp.value}/${data.actor.system.attributes.hp.max}`,
             
             // Abilities
@@ -192,16 +192,41 @@ export class TokenHandler {
             actor: actor,
             isCharacter: actor.type === 'character',
             name: actor.name,
+            // Core character info
             className: actor.items.find(i => i.type === "class")?.name || '',
+            classLevel: actor.system.details.level,
+            background: actor.system.details.background,
+            race: actor.system.details.race,
+            experience: {
+                value: actor.system.details.xp.value,
+                max: actor.system.details.xp.max,
+                pct: actor.system.details.xp.pct
+            },
+            // Traits
+            senses: Object.entries(actor.system.attributes.senses || {}).reduce((acc, [key, value]) => {
+                if (value) acc[key] = value;
+                return acc;
+            }, {}),
+            damageResistances: actor.system.traits.dr,
+            damageImmunities: actor.system.traits.di,
+            damageVulnerabilities: actor.system.traits.dv,
+            armorProficiencies: actor.system.traits.armorProf,
+            weaponProficiencies: actor.system.traits.weaponProf,
+            languages: actor.system.traits.languages,
+            // Biography
             biography: actor.system.details?.biography?.value || '',
+            // Abilities
             abilities: Object.entries(actor.system.abilities || {}).reduce((acc, [key, ability]) => {
                 acc[key] = {
                     label: CONFIG.DND5E.abilities[key]?.label || key,
                     value: ability.value,
-                    mod: ability.mod
+                    mod: ability.mod,
+                    proficient: ability.proficient,
+                    save: ability.save
                 };
                 return acc;
             }, {}),
+            // Movement
             movement: Object.entries(actor.system.attributes.movement || {})
                 .filter(([key]) => key !== 'units')
                 .reduce((acc, [key, value]) => {
@@ -211,24 +236,40 @@ export class TokenHandler {
                     return acc;
                 }, {}),
             movementUnits: actor.system.attributes.movement.units,
+            // All skills, not just proficient ones
             skills: Object.entries(actor.system.skills || {}).reduce((acc, [key, skill]) => {
-                if (skill.value > 0) {
-                    acc[key] = {
-                        label: CONFIG.DND5E.skills[key]?.label || key,
-                        total: skill.total,
-                        value: skill.value,
-                        proficiency: skill.value === 0.5 ? 'half-proficient' : 
-                                   skill.value === 1 ? 'proficient' : 
-                                   skill.value === 2 ? 'expert' : ''
-                    };
-                }
+                acc[key] = {
+                    label: CONFIG.DND5E.skills[key]?.label || key,
+                    ability: skill.ability.toUpperCase(),  // The ability abbreviation (STR, DEX, etc.)
+                    total: (skill.total >= 0 ? '+' : '') + skill.total,  // The bonus with sign (+5, -1, etc.)
+                    baseValue: skill.value * 10 + 10,     // The gray number (15, 9, etc.)
+                    isProficient: skill.value > 0,        // Whether to show the proficiency dot
+                    mod: skill.mod,
+                    passive: skill.passive
+                };
                 return acc;
             }, {}),
+            // Features
+            features: actor.items
+                .filter(item => item.type === 'feat')
+                .map(feat => ({
+                    name: feat.name,
+                    description: feat.system.description.value,
+                    source: feat.system.source,
+                    activation: feat.system.activation,
+                    duration: feat.system.duration,
+                    requirements: feat.system.requirements
+                })),
+            // Equipped weapons
             equippedWeapons: actor.items
                 .filter(item => item.type === 'weapon' && item.system.equipped)
                 .map(weapon => ({
                     name: weapon.name,
-                    damage: weapon.system.damage?.parts?.[0]?.[0] || ''
+                    damage: weapon.system.damage?.parts?.[0]?.[0] || '',
+                    type: weapon.system.weaponType,
+                    properties: weapon.system.properties,
+                    proficient: weapon.system.proficient,
+                    equipped: weapon.system.equipped
                 }))
         };
     }
