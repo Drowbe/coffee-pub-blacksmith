@@ -102,6 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
             Handlebars.registerPartial('window-query-workspace-character', workspaceCharacterTemplate);
 
             // Register character section partials
+            const characterCoreTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-core.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-core', characterCoreTemplate);
+
             const characterAbilitiesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-abilities.hbs').then(response => response.text());
             Handlebars.registerPartial('window-element-character-abilities', characterAbilitiesTemplate);
 
