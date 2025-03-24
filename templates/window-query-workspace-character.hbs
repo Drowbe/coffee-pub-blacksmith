@@ -1,18 +1,20 @@
-
 {{!-- ----- CHARACTER WORKSPACE ----- --}}
 <div id="blacksmith-query-workspace-character" class="workspace-content hidden">
     <h3>Character Guidance</h3>
     
-        {{!-- CHARACTER GUIDANCE --}}
+    {{!-- CHARACTER GUIDANCE --}}
     {{> window-element-character-guidance id="character"}}
 
-    {{!-- CHARACTER DETAILS --}}
-    {{> window-element-character-details id="character"}}
-
+    {{!-- CHARACTER SECTIONS --}}
+    {{> window-element-character-core id="character"}}
+    {{> window-element-character-abilities id="character"}}
+    {{> window-element-character-skills id="character"}}
+    {{> window-element-character-features id="character"}}
+    {{> window-element-character-weapons id="character"}}
+    {{> window-element-character-spells id="character"}}
+    {{> window-element-character-biography id="character"}}
 
     {{!-- GLOBAL OPTIONS --}}
     {{> window-element-global-options id="character"}}
-
-    
 </div>
     

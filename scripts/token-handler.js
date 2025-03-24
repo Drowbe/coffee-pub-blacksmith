@@ -190,31 +190,31 @@ export class TokenHandler {
             // Update each section individually
             const sections = [
                 {
-                    id: `workspace-section-character-core-content-${id}`,
+                    id: `workspace-section-character-core-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-core.hbs"
                 },
                 {
-                    id: `workspace-section-character-abilities-content-${id}`,
+                    id: `workspace-section-character-abilities-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-abilities.hbs"
                 },
                 {
-                    id: `workspace-section-character-skills-content-${id}`,
+                    id: `workspace-section-character-skills-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-skills.hbs"
                 },
                 {
-                    id: `workspace-section-character-features-content-${id}`,
+                    id: `workspace-section-character-features-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-features.hbs"
                 },
                 {
-                    id: `workspace-section-character-weapons-content-${id}`,
+                    id: `workspace-section-character-weapons-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-weapons.hbs"
                 },
                 {
-                    id: `workspace-section-character-spells-content-${id}`,
+                    id: `workspace-section-character-spells-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-spells.hbs"
                 },
                 {
-                    id: `workspace-section-character-biography-content-${id}`,
+                    id: `workspace-section-character-biography-${id}`,
                     template: "modules/coffee-pub-blacksmith/templates/window-element-character-biography.hbs"
                 }
             ];
