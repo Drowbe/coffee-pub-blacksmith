@@ -554,14 +554,28 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('#blacksmith-clear-workspace').on('click', (event) => {
             event.preventDefault();
             const form = html.find('form')[0];
-            const blnClearForm = true; // Set to true to clear all form inputs
-            clearFormInputs(form, blnClearForm);
+            
+            // Only clear inputs within the active workspace
+            const workspaceSelector = `#blacksmith-query-workspace-${this.workspaceId}`;
+            const workspaceInputs = form.querySelector(workspaceSelector);
+            
+            if (workspaceInputs) {
+                const formInputs = workspaceInputs.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
+                formInputs.forEach(input => {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                });
 
-            // Clear the token worksheets
-            clearWorksheetTokens("encounter");
-            clearWorksheetTokens("narrative");
-
-
+                // Only clear worksheets for the active workspace if it's encounter or narrative
+                if (this.workspaceId === 'encounter') {
+                    clearWorksheetTokens("encounter");
+                } else if (this.workspaceId === 'narrative') {
+                    clearWorksheetTokens("narrative");
+                }
+            }
         });
 
         // Handle the Enter key press based on the checkbox state
