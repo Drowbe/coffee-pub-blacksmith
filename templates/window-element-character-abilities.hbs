@@ -1,0 +1,16 @@
+{{!-- ABILITY SCORES --}}
+<div class="workspace-section" id="workspace-section-character-abilities-{{id}}">
+    <h4>Ability Scores <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-abilities-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-abilities-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            <div class="form-details workspace-grid-2col">
+                {{#each abilities}}
+                <div class="form-label">
+                    <span>{{this.label}}</span>
+                    <span class="value">{{this.value}} ({{numberFormat this.mod sign=true}})</span>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div> 

@@ -1,0 +1,23 @@
+{{!-- WEAPONS --}}
+<div class="workspace-section" id="workspace-section-character-weapons-{{id}}">
+    <h4>Weapons <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-weapons-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-weapons-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            {{#if equippedWeapons}}
+            <div class="form-details">
+                <div class="form-label">Equipped Weapons</div>
+                {{#each equippedWeapons}}
+                <div class="form-label">
+                    <span>{{this.name}}</span>
+                    <span class="value">{{this.damage}}</span>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <div class="form-details">
+                <div class="form-label">No weapons equipped</div>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div> 

@@ -1,0 +1,20 @@
+{{!-- SPELLS --}}
+<div class="workspace-section" id="workspace-section-character-spells-{{id}}">
+    <h4>Spells <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-spells-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-spells-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            {{#if actor.system.spells}}
+                {{#each actor.system.spells as |spellLevel|}}
+                    <div class="form-details">
+                        <div class="form-label">Level {{@key}} Spell Slots:</div>
+                        <div class="form-value">{{spellLevel.value}}/{{spellLevel.max}}</div>
+                    </div>
+                {{/each}}
+            {{else}}
+                <div class="form-details">
+                    <div class="form-label">No spells available</div>
+                </div>
+            {{/if}}
+        </div>
+    </div>
+</div> 

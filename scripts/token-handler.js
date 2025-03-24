@@ -156,7 +156,7 @@ export class TokenHandler {
         }
     }
 
-    static updateCharacterBiography(id, token) {
+    static async updateCharacterBiography(id, token) {
         postConsoleAndNotification("CHARACTER | Updating character biography", `id: ${id}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
         
         if (!token?.actor) {
@@ -171,122 +171,68 @@ export class TokenHandler {
             return;
         }
 
-        // Debug log all the elements we're trying to update
-        const elements = {
-            bioSection: document.querySelector(`#workspace-section-character-biography-${id}`),
-            nameElement: document.querySelector(`#workspace-section-character-core-${id}`),
-            detailsElement: document.querySelector(`#workspace-section-character-core-${id}`),
-            abilitiesContainer: document.querySelector(`#workspace-section-character-abilities-${id}`),
-            skillsContainer: document.querySelector(`#workspace-section-character-skills-${id}`),
-            featuresContainer: document.querySelector(`#workspace-section-character-features-${id}`),
-            weaponsContainer: document.querySelector(`#workspace-section-character-weapons-${id}`)
+        // Prepare template data
+        const templateData = {
+            id: id,
+            actor: token.actor,
+            tokenData: tokenData,
+            isCharacter: tokenData.isCharacter,
+            abilities: tokenData.abilities,
+            skills: tokenData.skills,
+            features: tokenData.features,
+            equippedWeapons: tokenData.equippedWeapons,
+            movement: tokenData.movement,
+            movementUnits: tokenData.movementUnits,
+            biography: tokenData.biography
         };
 
-        // Log which elements were found
-        Object.entries(elements).forEach(([key, element]) => {
-            postConsoleAndNotification(`CHARACTER | Element check: ${key}`, element ? "Found" : "Not found", false, true, false, MODULE_TITLE);
-        });
+        try {
+            // Update each section individually
+            const sections = [
+                {
+                    id: `workspace-section-character-core-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-core.hbs"
+                },
+                {
+                    id: `workspace-section-character-abilities-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-abilities.hbs"
+                },
+                {
+                    id: `workspace-section-character-skills-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-skills.hbs"
+                },
+                {
+                    id: `workspace-section-character-features-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-features.hbs"
+                },
+                {
+                    id: `workspace-section-character-weapons-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-weapons.hbs"
+                },
+                {
+                    id: `workspace-section-character-spells-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-spells.hbs"
+                },
+                {
+                    id: `workspace-section-character-biography-content-${id}`,
+                    template: "modules/coffee-pub-blacksmith/templates/window-element-character-biography.hbs"
+                }
+            ];
 
-        // Update biography section
-        const bioContent = document.querySelector(`#workspace-section-character-biography-${id} .workspace-section-content`);
-        if (bioContent) {
-            const bioHtml = token.actor.system.details?.biography?.value || '<p class="workspace-helper-text">No biography available for this character.</p>';
-            bioContent.innerHTML = `<div class="workspace-section-nodivider">${bioHtml}</div>`;
-        }
-
-        // Update character core section
-        const coreContent = document.querySelector(`#workspace-section-character-core-${id} .workspace-section-content`);
-        if (coreContent) {
-            // Update image and name
-            const imageHtml = `
-                <div class="workspace-section-image-container">
-                    <img class="workspace-section-image" src="${token.actor.img}" title="${token.actor.name}" />
-                    <div class="workspace-section-image-caption">
-                        <h6>${token.actor.name}</h6>
-                    </div>
-                </div>`;
-
-            // Update character details
-            const detailsHtml = `
-                <div class="form-details">
-                    <div class="form-label">
-                        ${tokenData.isCharacter ? `<span>Level ${tokenData.classLevel} ${tokenData.className}</span>` : ''}
-                        <span>${tokenData.race || ''}</span>
-                        <span>${tokenData.background || ''}</span>
-                    </div>
-                </div>`;
-
-            coreContent.innerHTML = imageHtml + detailsHtml;
-        }
-
-        // Update abilities section
-        const abilitiesContent = document.querySelector(`#workspace-section-character-abilities-${id} .workspace-section-content`);
-        if (abilitiesContent) {
-            const abilitiesHtml = `
-                <div class="workspace-section-nodivider">
-                    <div class="form-details">
-                        ${Object.entries(tokenData.abilities).map(([key, ability]) => `
-                            <div class="form-label">
-                                <span>${ability.label}</span>
-                                <span class="value">${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            abilitiesContent.innerHTML = abilitiesHtml;
-        }
-
-        // Update skills section
-        const skillsContent = document.querySelector(`#workspace-section-character-skills-${id} .workspace-section-content`);
-        if (skillsContent) {
-            const skillsHtml = `
-                <div class="workspace-section-nodivider">
-                    <div class="form-details workspace-grid-2col">
-                        ${Object.entries(tokenData.skills).map(([key, skill]) => `
-                            <div class="form-label">
-                                ${skill.isProficient ? '<i class="fas fa-circle"></i>' : '<i class="far fa-circle"></i>'}
-                                <span>${skill.ability} ${skill.label}</span>
-                                <span class="value">${skill.total} <span class="base-value">${skill.baseValue}</span></span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            skillsContent.innerHTML = skillsHtml;
-        }
-
-        // Update features section
-        const featuresContent = document.querySelector(`#workspace-section-character-features-${id} .workspace-section-content`);
-        if (featuresContent) {
-            const featuresHtml = `
-                <div class="workspace-section-nodivider">
-                    <div class="form-details workspace-grid-2col">
-                        ${tokenData.features.map(feature => `
-                            <div class="workspace-item-container">
-                                <img class="workspace-item-icon" src="${feature.img}" title="${feature.name}" />
-                                <span class="workspace-item-name">${feature.name}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            featuresContent.innerHTML = featuresHtml;
-        }
-
-        // Update weapons section
-        const weaponsContent = document.querySelector(`#workspace-section-character-weapons-${id} .workspace-section-content`);
-        if (weaponsContent && tokenData.equippedWeapons.length > 0) {
-            const weaponsHtml = `
-                <div class="workspace-section-nodivider">
-                    <div class="form-details">
-                        <div class="form-label">Equipped Weapons</div>
-                        ${tokenData.equippedWeapons.map(weapon => `
-                            <div class="form-label">
-                                <span>${weapon.name}</span>
-                                <span class="value">${weapon.damage}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            weaponsContent.innerHTML = weaponsHtml;
+            // Update each section
+            for (const section of sections) {
+                const element = document.querySelector(`#${section.id}`);
+                if (element) {
+                    try {
+                        const content = await renderTemplate(section.template, templateData);
+                        element.innerHTML = content;
+                    } catch (error) {
+                        console.error(`Error rendering section ${section.id}:`, error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("CHARACTER | Error updating sections:", error);
         }
 
         postConsoleAndNotification("CHARACTER | Panel updated successfully", "", false, true, false, MODULE_TITLE);

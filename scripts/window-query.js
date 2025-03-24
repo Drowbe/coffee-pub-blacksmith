@@ -101,6 +101,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const workspaceCharacterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-character.hbs').then(response => response.text());
             Handlebars.registerPartial('window-query-workspace-character', workspaceCharacterTemplate);
 
+            // Register character section partials
+            const characterAbilitiesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-abilities.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-abilities', characterAbilitiesTemplate);
+
+            const characterSkillsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-skills.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-skills', characterSkillsTemplate);
+
+            const characterFeaturesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-features.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-features', characterFeaturesTemplate);
+
+            const characterWeaponsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-weapons.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-weapons', characterWeaponsTemplate);
+
+            const characterSpellsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-spells.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-spells', characterSpellsTemplate);
+
+            const characterBiographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-biography.hbs').then(response => response.text());
+            Handlebars.registerPartial('window-element-character-biography', characterBiographyTemplate);
+
             // Assistant        
             const workspaceAssistantTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-assistant.hbs').then(response => response.text());
             Handlebars.registerPartial('window-query-workspace-assistant', workspaceAssistantTemplate);
