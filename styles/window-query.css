@@ -36,7 +36,7 @@
 /* --- Workspace Grid Layouts -------------- */
 .workspace-grid-2col {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 4px;
     width: 100%;
 }
@@ -45,6 +45,60 @@
 .workspace-grid-2col .form-label {
     margin: 0;
     padding: 4px;
+}
+
+/* --- Character Core Specific Styles -------------- */
+.primary-info {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.primary-info-item {
+    margin-bottom: 8px;
+}
+
+.primary-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.primary-info-item .info-label {
+    font-size: 0.9em;
+    color: var(--color-text-light-highlight);
+    margin-bottom: 2px;
+}
+
+.primary-info-item .info-value {
+    font-size: 1.1em;
+    font-weight: bold;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.details-grid {
+    margin-top: 4px;
+}
+
+.details-grid .form-label,
+.movement-grid .form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.details-grid .form-label:hover,
+.movement-grid .form-label:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.details-grid .form-label span.value,
+.movement-grid .form-label span.value {
+    color: var(--color-text-light-highlight);
 }
 
 /* --- Spell List Specific Styles -------------- */

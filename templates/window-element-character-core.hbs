@@ -1,29 +1,34 @@
-{{!-- CHARACTER CORE  --}}
+{{!-- CHARACTER CORE --}}
 <div class="workspace-section" id="workspace-section-character-core-{{id}}">
     <h4>Character Details <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-core-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
     <div id="workspace-section-character-core-content-{{id}}" class="workspace-section-content">
-        {{!-- Header --}}
+        {{!-- Character Image and Name --}}
         <div class="workspace-section-image-container">
-            <img class="workspace-section-image" src="{{actor.img}}" title="{{actor.name}}" />
+            <img class="workspace-section-image" src="{{actor.img}}" title="{{actor.name}}">
             <div class="workspace-section-image-caption">
                 <h6>{{actor.name}}</h6>
             </div>
         </div>
 
-        {{!-- Class race level background --}}
-        <div class="form-details">
-            <div class="form-label">
-                {{#if isCharacter}}
-                    <span>Level {{actor.system.details.level}} {{className}}</span>                            
-                {{/if}}
-                <br>
-                <span>{{actor.system.details.race}}</span>
-                <br>
-                <span>{{actor.system.details.background}}</span>
+        {{!-- Primary Character Info --}}
+        <div class="form-details primary-info">
+            {{#if isCharacter}}
+            <div class="primary-info-item">
+                <div class="info-label">Class Level</div>
+                <div class="info-value">Level {{tokenData.classLevel}} {{tokenData.className}}</div>
+            </div>
+            {{/if}}
+            <div class="primary-info-item">
+                <div class="info-label">Race</div>
+                <div class="info-value">{{#if actor.system.details.race}}{{actor.system.details.race}}{{else}}-{{/if}}</div>
+            </div>
+            <div class="primary-info-item">
+                <div class="info-label">Background</div>
+                <div class="info-value">{{#if actor.system.details.background}}{{actor.system.details.background}}{{else}}-{{/if}}</div>
             </div>
         </div>
 
-        {{!-- HP --}}
+        {{!-- Combat Stats --}}
         <div class="form-details">
             <div class="form-label">
                 <span>Hit Points</span>
@@ -32,56 +37,62 @@
         </div>
 
         {{!-- Movement --}}
+        {{#if movement}}
         <div class="form-details">
             <div class="form-label">Movement</div>
-            {{#each movement}}
-                {{#if this.value}}
-                <div class="form-label">
-                    <span>{{@key}}</span>
-                    <span class="value">{{this.value}} {{../movementUnits}}</span>
-                </div>
-                {{/if}}
-            {{/each}}
+            <div class="workspace-grid-2col movement-grid">
+                {{#each movement}}
+                    {{#if this.value}}
+                    <div class="form-label">
+                        <span>{{@key}}</span>
+                        <span class="value">{{this.value}} {{../movementUnits}}</span>
+                    </div>
+                    {{/if}}
+                {{/each}}
+            </div>
         </div>
+        {{/if}}
 
-        {{!-- Basic Details --}}
+        {{!-- Physical Characteristics --}}
         <div class="form-details">
-            <div class="form-label">
-                <span>Gender</span>
-                <span class="value">{{actor.system.details.gender}}</span>
+            <div class="workspace-grid-2col details-grid">
+                <div class="form-label">
+                    <span>Gender</span>
+                    <span class="value">{{#if actor.system.details.gender}}{{actor.system.details.gender}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Age</span>
+                    <span class="value">{{#if actor.system.details.age}}{{actor.system.details.age}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Height</span>
+                    <span class="value">{{#if actor.system.details.height}}{{actor.system.details.height}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Weight</span>
+                    <span class="value">{{#if actor.system.details.weight}}{{actor.system.details.weight}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Hair</span>
+                    <span class="value">{{#if actor.system.details.hair}}{{actor.system.details.hair}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Eyes</span>
+                    <span class="value">{{#if actor.system.details.eyes}}{{actor.system.details.eyes}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Skin</span>
+                    <span class="value">{{#if actor.system.details.skin}}{{actor.system.details.skin}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Size</span>
+                    <span class="value">{{#if actor.system.details.size}}{{actor.system.details.size}}{{else}}-{{/if}}</span>
+                </div>
+                <div class="form-label">
+                    <span>Alignment</span>
+                    <span class="value">{{#if actor.system.details.alignment}}{{actor.system.details.alignment}}{{else}}-{{/if}}</span>
+                </div>
             </div>
-            <div class="form-label">
-                <span>Age</span>
-                <span class="value">{{actor.system.details.age}}</span>
-            </div>
-            <div class="form-label">
-                <span>Alignment</span>
-                <span class="value">{{actor.system.details.alignment}}</span>
-            </div>
-            <div class="form-label">
-                <span>Size</span>
-                <span class="value">{{actor.system.details.size}}</span>
-            </div>  
-            <div class="form-label">
-                <span>Height</span>
-                <span class="value">{{actor.system.details.height}}</span>
-            </div>
-            <div class="form-label">    
-                <span>Weight</span>
-                <span class="value">{{actor.system.details.weight}}</span>
-            </div>
-            <div class="form-label">
-                <span>Hair</span>
-                <span class="value">{{actor.system.details.hair}}</span>
-            </div>
-            <div class="form-label">
-                <span>Eyes</span>   
-                <span class="value">{{actor.system.details.eyes}}</span>
-            </div>
-            <div class="form-label">
-                <span>Skin</span>
-                <span class="value">{{actor.system.details.skin}}</span>
-            </div>  
         </div>
     </div>
 </div> 

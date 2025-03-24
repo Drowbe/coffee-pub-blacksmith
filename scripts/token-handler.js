@@ -246,13 +246,16 @@ export class TokenHandler {
         if (!token?.actor) return null;
         const actor = token.actor;
 
+        // Find the first class item
+        const classItem = actor.items.find(i => i.type === "class");
+
         return {
             id: token.id,
             actor: actor,
             isCharacter: actor.type === 'character',
             name: actor.name,
             // Core character info
-            className: actor.items.find(i => i.type === "class")?.name || '',
+            className: classItem?.name || '',
             classLevel: actor.system.details.level,
             background: actor.system.details.background,
             race: actor.system.details.race,
