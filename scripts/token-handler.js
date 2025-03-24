@@ -251,14 +251,17 @@ export class TokenHandler {
             }, {}),
             // Features
             features: actor.items
-                .filter(item => item.type === 'feat')
+                .filter(item => item.type === 'feat' || item.type === 'class' || item.type === 'background' || item.type === 'race')
                 .map(feat => ({
                     name: feat.name,
                     description: feat.system.description.value,
                     source: feat.system.source,
+                    type: feat.type,
+                    level: feat.system.level,
                     activation: feat.system.activation,
                     duration: feat.system.duration,
-                    requirements: feat.system.requirements
+                    requirements: feat.system.requirements,
+                    img: feat.img || 'icons/svg/mystery-man.svg'  // Use item's icon or default if none
                 })),
             // Equipped weapons
             equippedWeapons: actor.items

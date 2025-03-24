@@ -12,6 +12,7 @@
 /* --- Dialogue Boxes / Windows --- */
 @import "dialogues-layout.css";
 @import "dialogues-themes.css";
+@import "window-query.css";
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
@@ -42,7 +43,6 @@
 
 /* --- Latency Display ---------------------- */
 @import "latency.css";
-
 
 /* --- Combat Tracker ---------------------- */
 @import "combat-tools.css";

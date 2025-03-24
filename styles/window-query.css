@@ -1,0 +1,46 @@
+/* ------------------------------------ */
+/* --- Query Window ------------------- */
+/* ------------------------------------ */
+
+/* These styles are unique to the window and therefore not in the dialogue or common files */
+
+/* --- Workspace Items -------------- */
+.workspace-item-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border: none;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.workspace-item-container {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.workspace-item-name {
+    flex-grow: 1;
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+/* --- Workspace Grid Layouts -------------- */
+.workspace-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Ensure items in the grid maintain their layout */
+.workspace-grid-2col .form-label {
+    margin: 0;
+    padding: 4px;
+}
+
+
