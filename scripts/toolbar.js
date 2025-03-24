@@ -33,7 +33,7 @@ export function addToolbarButton() {
             name: "character",
             title: "Open Character Worksheet",
             button: true,
-            visible: game.user.isGM,
+            visible: true,
             onClick: () => buildButtonEventRegent('character')
         };
 

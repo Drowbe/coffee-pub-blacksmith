@@ -225,7 +225,11 @@ export class TokenHandler {
                 if (element) {
                     try {
                         const content = await renderTemplate(section.template, templateData);
-                        element.innerHTML = content;
+                        // Create a temporary container and set its HTML to get the DOM element
+                        const temp = document.createElement('div');
+                        temp.innerHTML = content;
+                        // Replace the entire element with the new content
+                        element.replaceWith(temp.firstElementChild);
                     } catch (error) {
                         console.error(`Error rendering section ${section.id}:`, error);
                     }

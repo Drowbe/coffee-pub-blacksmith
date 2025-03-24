@@ -1,4 +1,3 @@
-
 {{#if (or (eq id "lookup") (eq id "assistant") (eq id "character"))}}
     <div class="workspace-section" id="workspace-section-options-{{id}}">
         <h4>Response Options <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-options-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
@@ -16,14 +15,14 @@
             {{/if}}
 
             <!-- STAT BLOCK -->
-            {{#if (eq id "assistant")}}
+            {{#if (or (eq id "assistant") (eq id "character"))}}
                 <label>
                     <input type="checkbox" id="blnGenerateStats-{{id}}"> Generate Stat Block
                 </label>
             {{/if}}
 
             <!-- BACKSTORY -->
-            {{#if (or (eq id "assistant"))}}
+            {{#if (or (eq id "assistant") (eq id "character"))}}
                 <label>
                     <input type="checkbox" id="blnGenerateBackstory-{{id}}"> Generate a Backstory
                 </label>
