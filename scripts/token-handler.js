@@ -105,14 +105,27 @@ export class TokenHandler {
 
         // Check for already selected token when initialized
         if (workspaceId === 'assistant' || workspaceId === 'character') {
-            const selectedToken = canvas.tokens?.controlled[0];
-            if (selectedToken) {
-                postConsoleAndNotification(`Found selected token, updating ${workspaceId} panel`, "", false, true, false, MODULE_TITLE);
-                if (workspaceId === 'assistant') {
-                    this.updateSkillCheckFromToken(workspaceId, selectedToken);
-                } else {
-                    this.updateCharacterBiography(workspaceId, selectedToken);
-                }
+            // Wait for canvas to be ready
+            if (!canvas?.ready) {
+                postConsoleAndNotification(`Canvas not ready, skipping initial token check`, "", false, true, false, MODULE_TITLE);
+                return;
+            }
+
+            const selectedTokens = canvas.tokens?.controlled || [];
+            postConsoleAndNotification(`Checking for selected tokens: ${selectedTokens.length} found`, "", false, true, false, MODULE_TITLE);
+            
+            if (selectedTokens.length > 0) {
+                const selectedToken = selectedTokens[0];
+                postConsoleAndNotification(`Found selected token: ${selectedToken.name}`, "", false, true, false, MODULE_TITLE);
+                
+                // Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    if (workspaceId === 'assistant') {
+                        this.updateSkillCheckFromToken(workspaceId, selectedToken);
+                    } else {
+                        this.updateCharacterBiography(workspaceId, selectedToken);
+                    }
+                }, 100);
             }
         }
 
@@ -158,29 +171,125 @@ export class TokenHandler {
             return;
         }
 
-        // Update biography section directly
-        const bioSection = document.querySelector(`#workspace-section-character-biography-${id} .workspace-section-nodivider`);
-        if (bioSection) {
-            bioSection.innerHTML = token.actor.system.details?.biography?.value || '<p class="workspace-helper-text">No biography available for this character.</p>';
-        }
-
-        // Prepare template data
-        const templateData = {
-            id: id,
-            ...tokenData
+        // Debug log all the elements we're trying to update
+        const elements = {
+            bioSection: document.querySelector(`#workspace-section-character-biography-${id}`),
+            nameElement: document.querySelector(`#workspace-section-character-core-${id}`),
+            detailsElement: document.querySelector(`#workspace-section-character-core-${id}`),
+            abilitiesContainer: document.querySelector(`#workspace-section-character-abilities-${id}`),
+            skillsContainer: document.querySelector(`#workspace-section-character-skills-${id}`),
+            featuresContainer: document.querySelector(`#workspace-section-character-features-${id}`),
+            weaponsContainer: document.querySelector(`#workspace-section-character-weapons-${id}`)
         };
 
-        // Use the template to update the character section
-        const template = 'modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs';
-        const characterSection = document.querySelector(`#workspace-section-character-core-${id}`);
-        if (characterSection) {
-            renderTemplate(template, templateData).then(html => {
-                characterSection.outerHTML = html;
-                postConsoleAndNotification("CHARACTER | Sections updated with new content", "", false, true, false, MODULE_TITLE);
-            }).catch(error => {
-                postConsoleAndNotification("CHARACTER | Error rendering template", error.message, false, true, false, MODULE_TITLE);
-            });
+        // Log which elements were found
+        Object.entries(elements).forEach(([key, element]) => {
+            postConsoleAndNotification(`CHARACTER | Element check: ${key}`, element ? "Found" : "Not found", false, true, false, MODULE_TITLE);
+        });
+
+        // Update biography section
+        const bioContent = document.querySelector(`#workspace-section-character-biography-${id} .workspace-section-content`);
+        if (bioContent) {
+            const bioHtml = token.actor.system.details?.biography?.value || '<p class="workspace-helper-text">No biography available for this character.</p>';
+            bioContent.innerHTML = `<div class="workspace-section-nodivider">${bioHtml}</div>`;
         }
+
+        // Update character core section
+        const coreContent = document.querySelector(`#workspace-section-character-core-${id} .workspace-section-content`);
+        if (coreContent) {
+            // Update image and name
+            const imageHtml = `
+                <div class="workspace-section-image-container">
+                    <img class="workspace-section-image" src="${token.actor.img}" title="${token.actor.name}" />
+                    <div class="workspace-section-image-caption">
+                        <h2>${token.actor.name}</h2>
+                    </div>
+                </div>`;
+
+            // Update character details
+            const detailsHtml = `
+                <div class="form-details">
+                    <div class="form-label">
+                        ${tokenData.isCharacter ? `<span>Level ${tokenData.classLevel} ${tokenData.className}</span>` : ''}
+                        <span>${tokenData.race || ''}</span>
+                        <span>${tokenData.background || ''}</span>
+                    </div>
+                </div>`;
+
+            coreContent.innerHTML = imageHtml + detailsHtml;
+        }
+
+        // Update abilities section
+        const abilitiesContent = document.querySelector(`#workspace-section-character-abilities-${id} .workspace-section-content`);
+        if (abilitiesContent) {
+            const abilitiesHtml = `
+                <div class="workspace-section-nodivider">
+                    <div class="form-details">
+                        ${Object.entries(tokenData.abilities).map(([key, ability]) => `
+                            <div class="form-label">
+                                <span>${ability.label}</span>
+                                <span class="value">${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            abilitiesContent.innerHTML = abilitiesHtml;
+        }
+
+        // Update skills section
+        const skillsContent = document.querySelector(`#workspace-section-character-skills-${id} .workspace-section-content`);
+        if (skillsContent) {
+            const skillsHtml = `
+                <div class="workspace-section-nodivider">
+                    <div class="form-details workspace-grid-2col">
+                        ${Object.entries(tokenData.skills).map(([key, skill]) => `
+                            <div class="form-label">
+                                ${skill.isProficient ? '<i class="fas fa-circle"></i>' : '<i class="far fa-circle"></i>'}
+                                <span>${skill.ability} ${skill.label}</span>
+                                <span class="value">${skill.total} <span class="base-value">${skill.baseValue}</span></span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            skillsContent.innerHTML = skillsHtml;
+        }
+
+        // Update features section
+        const featuresContent = document.querySelector(`#workspace-section-character-features-${id} .workspace-section-content`);
+        if (featuresContent) {
+            const featuresHtml = `
+                <div class="workspace-section-nodivider">
+                    <div class="form-details workspace-grid-2col">
+                        ${tokenData.features.map(feature => `
+                            <div class="workspace-item-container">
+                                <img class="workspace-item-icon" src="${feature.img}" title="${feature.name}" />
+                                <span class="workspace-item-name">${feature.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            featuresContent.innerHTML = featuresHtml;
+        }
+
+        // Update weapons section
+        const weaponsContent = document.querySelector(`#workspace-section-character-weapons-${id} .workspace-section-content`);
+        if (weaponsContent && tokenData.equippedWeapons.length > 0) {
+            const weaponsHtml = `
+                <div class="workspace-section-nodivider">
+                    <div class="form-details">
+                        <div class="form-label">Equipped Weapons</div>
+                        ${tokenData.equippedWeapons.map(weapon => `
+                            <div class="form-label">
+                                <span>${weapon.name}</span>
+                                <span class="value">${weapon.damage}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            weaponsContent.innerHTML = weaponsHtml;
+        }
+
+        postConsoleAndNotification("CHARACTER | Panel updated successfully", "", false, true, false, MODULE_TITLE);
     }
 
     static getTokenData(token) {
@@ -258,9 +367,6 @@ export class TokenHandler {
                     source: feat.system.source,
                     type: feat.type,
                     level: feat.system.level,
-                    activation: feat.system.activation,
-                    duration: feat.system.duration,
-                    requirements: feat.system.requirements,
                     img: feat.img || 'icons/svg/mystery-man.svg'  // Use item's icon or default if none
                 })),
             // Equipped weapons
