@@ -276,9 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== FUNCTIONS ==================================================
 // ================================================================== 
 
-// ***************************************************
+// ************************************
 // ** UTILITY Workspace Toggle
-// ***************************************************
+// ************************************
 
 // Function to toggle the visibility of workspace sections
 window.toggleSection = function(sectionId, button) {
@@ -300,9 +300,9 @@ window.toggleSection = function(sectionId, button) {
     }
 };
 
-// ***************************************************
+// ************************************
 // ** UTILITY Clear Form Inputs
-// ***************************************************  
+// ************************************  
 
 function clearFormInputs(form, blnClearForm) {
     const formInputs = form.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
@@ -327,9 +327,9 @@ function clearFormInputs(form, blnClearForm) {
 }
 
 
-// ***************************************************
+// ************************************
 // ** UTILITY Clear Worksheet Tokens
-// ***************************************************  
+// ************************************  
 
 function clearWorksheetTokens(id) {
     // Clear monsters section and restore message
@@ -1591,6 +1591,17 @@ export class BlacksmithWindowQuery extends FormApplication {
         const inputFeaturesDetails = form.querySelector('#inputFeaturesDetails-' + id)?.value ?? null;
 
 
+        //  CHARACTER
+        const inputCharacterGuidance = form.querySelector('#inputFeedbackRequested-' + id)?.value ?? null;
+        let inputCharacterData = "";
+        // Get character data if a token is selected
+        const selectedToken = canvas.tokens?.controlled[0];
+        if (selectedToken) {
+            const tokenData = TokenHandler.getTokenData(selectedToken);
+            inputCharacterData = formatCharacterData(tokenData);
+        }
+
+        
         // SKILL CHECK (AKA ASSISTANT)
         // Roll
         const blnSkillRoll = form.querySelector('#blnSkillRoll-' + id)?.checked ?? null;
@@ -1695,6 +1706,10 @@ export class BlacksmithWindowQuery extends FormApplication {
             case "assistant":
                 // SKILL CHECK
                 isWorkspaceSet = blnSkillRoll || optionSkill || optionDiceType || inputDiceValue || optionType ||inputContextName;
+                break;
+            case "character":
+                // CHARACTER
+                isWorkspaceSet =  inputCharacterGuidance || inputCharacterData;
                 break;
             default:
                 // No Workspace Set
@@ -2483,6 +2498,25 @@ Key encounter requirements:`;
                         break;
                     case "character":
                         // CHARACTER GUIDANCE
+                        const expertDMPrompt = `You are a seasoned Dungeon Master and D&D character optimization expert. Review the guidance I'm requesting (provided below), along with my full character details, and offer thoughtful, strategic advice tailored to my needs.
+
+Consider both mechanical effectiveness and narrative potential. When responding, prioritize:
+
+- Context-aware spell preparation and usage, including what spells to prepare and why, based on the scenario I describe.
+- Weapon and equipment recommendations suited to different types of encounters.
+- Identification of any weaknesses or inefficiencies in my build, along with suggestions for improvement.
+- Advice on tactical roles I should play in combat (e.g. tank, support, controller), with explanations based on my class, stats, and abilities.
+- Optional: Provide roleplay or character-driven ideas that align with the scenario and my background or subclass.
+
+Please go beyond listing spells or stats—offer strategic reasoning, trade-offs, and alternative approaches. Ask clarifying questions if needed.
+
+Please format the response using h4 tags for headings, bolding keywords, lists where appropriate, and basic tables when neeeded. 
+
+Break the output into a minimum of these sections using h4 headings: Guidance Overview, Combat Readiness, Roleplay Strategies, Build Optimization Suggestions, any other sections as needed and end with Quick Reference Summary as a bulleted list or table.`;
+                        
+                        // Build the prompt using the form data we collected earlier
+                        strFinalPrompt = `${expertDMPrompt}\n\nCharacter Details:\n${inputCharacterData}\n\nGuidance Requested:\n${inputCharacterGuidance}`;
+                        
                         // Add character guidance simple context
                         strGMSimpleContext = `<p><b>Generating character guidance</b>`;
                         if (inputContextName) strGMSimpleContext += ` for "${inputContextName}"`;
@@ -2799,7 +2833,7 @@ Key encounter requirements:`;
 // ================================================================== 
 
 // ************************************
-// ** UTILITYNPC Calcuations
+// ** UTILITY NPC Calculations
 // ************************************
 
 function calculateNPCCR(actor) {
@@ -3150,6 +3184,78 @@ function updateEncountersData(id, newEncounterData) {
     encountersInput.value = JSON.stringify(encountersData);
     
     console.log('BLACKSMITH | Regent: Updated encounters data:', encountersData);
+}
+
+function formatCharacterData(tokenData) {
+    if (!tokenData) return "";
+    
+    let characterText = "";
+    
+    // Basic Info
+    characterText += `\nName: ${tokenData.name}`;
+    characterText += `\nRace: ${tokenData.race || '-'}`;
+    characterText += `\nClass: ${tokenData.className} (Level ${tokenData.classLevel})`;
+    characterText += `\nBackground: ${tokenData.background || '-'}`;
+    
+    // Biography (if available)
+    if (tokenData.biography) {
+        characterText += "\n\nBiography:";
+        characterText += `\n${tokenData.biography}`;
+    }
+    
+    // Abilities
+    characterText += "\n\nAbility Scores:";
+    for (const [key, ability] of Object.entries(tokenData.abilities)) {
+        characterText += `\n${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`;
+    }
+    
+    // Skills
+    characterText += "\n\nSkills:";
+    for (const [key, skill] of Object.entries(tokenData.skills)) {
+        characterText += `\n${skill.label} (${skill.ability}): ${skill.total}`;
+    }
+    
+    // Features
+    if (tokenData.features && tokenData.features.length > 0) {
+        characterText += "\n\nFeatures:";
+        tokenData.features.forEach(feature => {
+            characterText += `\n${feature.name}`;
+        });
+    }
+    
+    // Equipment with descriptions
+    if (tokenData.equippedWeapons && tokenData.equippedWeapons.length > 0) {
+        characterText += "\n\nEquipped Weapons:";
+        tokenData.equippedWeapons.forEach(weapon => {
+            characterText += `\n${weapon.name}`;
+            if (weapon.damage) characterText += ` (${weapon.damage} damage)`;
+            if (weapon.type) characterText += ` - ${weapon.type}`;
+            if (weapon.properties) {
+                const props = Object.entries(weapon.properties)
+                    .filter(([_, value]) => value === true)
+                    .map(([key, _]) => key);
+                if (props.length > 0) {
+                    characterText += ` [${props.join(', ')}]`;
+                }
+            }
+        });
+    }
+    
+    // Spells
+    if (tokenData.spells && Object.keys(tokenData.spells).length > 0) {
+        characterText += "\n\nSpells:";
+        for (const [level, spells] of Object.entries(tokenData.spells)) {
+            if (spells.length > 0) {
+                characterText += `\nLevel ${level}:`;
+                spells.forEach(spell => {
+                    characterText += ` ${spell.name},`;
+                });
+                characterText = characterText.slice(0, -1); // Remove trailing comma
+            }
+        }
+    }
+    
+    return characterText;
 }
 
 
