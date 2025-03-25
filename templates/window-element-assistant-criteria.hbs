@@ -1,7 +1,14 @@
-
 <div class="workspace-section" id="workspace-section-criteria-{{id}}">
     <h4>Criteria <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-criteria-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
     <div id="workspace-section-criteria-content-{{id}}" class="workspace-section-content">
+
+        {{!-- DROP ZONE --}}
+        <div id="criteria-dropzone-{{id}}" class="criteria-dropzone">
+            <div class="dropzone-content">
+                <i class="fas fa-download"></i>
+                <span>Drop a Monster, NPC, Item, or Actor here</span>
+            </div>
+        </div>
 
         {{!-- TYPE --}}
         <div class="form-label">Check Type <span class="helper">(Monster, Item, Location, etc)</span></div>
