@@ -4,7 +4,7 @@
     <div id="workspace-section-character-abilities-content-{{id}}" class="workspace-section-content">
         <div class="workspace-section-nodivider">
             <div class="form-details workspace-grid-2col">
-                {{#each abilities}}
+                {{#each tokenData.abilities}}
                 <div class="form-label">
                     <span>{{this.label}}</span>
                     <span class="value">{{this.value}} ({{numberFormat this.mod sign=true}})</span>

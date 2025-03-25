@@ -11,7 +11,7 @@
                                 Cantrips
                             {{else}}
                                 Level {{level}} Spells 
-                                {{#with (lookup ../actor.system.spells (concat "spell" level)) as |spellLevel|}}
+                                {{#with (lookup ../tokenData.spellSlots (concat "spell" level)) as |spellLevel|}}
                                     {{#if spellLevel.max}} ({{spellLevel.value}}/{{spellLevel.max}}){{/if}}
                                 {{/with}}
                             {{/if}}

@@ -4,7 +4,7 @@
     <div id="workspace-section-character-skills-content-{{id}}" class="workspace-section-content">
         <div class="workspace-section-nodivider">
             <div class="form-details workspace-grid-2col">
-                {{#each skills}}
+                {{#each tokenData.skills}}
                 <div class="form-label">
                     {{#if this.isProficient}}<i class="fas fa-circle"></i>{{else}}<i class="far fa-circle"></i>{{/if}}
                     <span>{{this.ability}} {{this.label}}</span>
