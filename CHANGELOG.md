@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Quick access to World Config and Settings
   - Smooth transition effects option
   - Changes sync to all connected clients
+  - Dark themed window with light/dark editor modes
+  - Proper handling of NPC type selection in Assistant panel
+- Added refresh browser button to GM toolbar for quick page reloads
+
+### Fixed
+- Fixed NPC type selection in Assistant panel to properly identify friendly NPCs
+- Fixed CSS Editor window styling and content overflow issues
+- Fixed minimum width handling in CSS Editor window
 
 ## [1.0.10] - 2025-03-25 - AI Tools
 

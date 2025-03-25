@@ -77,12 +77,23 @@ export function addToolbarButton() {
             }
         };
 
+        const refreshTool = {
+            icon: "fa-solid fa-sync-alt",
+            name: "refresh",
+            title: "Refresh Client",
+            button: true,
+            visible: game.user.isGM,
+            onClick: () => {
+                window.location.reload();
+            }
+        };
+
         controls.push({
             name: "blacksmith-utilities",
             title: "Blacksmith Utilities",
             icon: "fa-solid fa-mug-hot",
             layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool]
+            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, refreshTool]
         });
         postConsoleAndNotification("Toolbar buttons added to controls", "", false, true, false);
     });
