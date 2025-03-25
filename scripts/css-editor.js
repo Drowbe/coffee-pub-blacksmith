@@ -71,14 +71,14 @@ export class CSSEditor extends FormApplication {
             }
         });
 
-        // Add settings button listener
-        html.find('.settings-button').click(() => {
-            game.settings.sheet.render(true);
+        // Update world button to open World Config
+        html.find('.world-button').click(() => {
+            new WorldConfig(game.world).render(true);
         });
 
-        // Add modules button listener
-        html.find('.modules-button').click(() => {
-            game.settings.sheet.render(true, {activeMenu: 'modules'});
+        // Settings button
+        html.find('.settings-button').click(() => {
+            game.settings.sheet.render(true);
         });
 
         // Add smart indentation handlers

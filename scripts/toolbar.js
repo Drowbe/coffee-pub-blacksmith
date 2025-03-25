@@ -68,7 +68,7 @@ export function addToolbarButton() {
         const cssTool = {
             icon: "fa-solid fa-paint-brush",
             name: "css",
-            title: "Open CSS Editor",
+            title: "Open GM Tools",
             button: true,
             visible: game.user.isGM,
             onClick: () => {
