@@ -12,12 +12,11 @@
     border: none;
     border-radius: 4px;
     margin-right: 6px;
-    vertical-align: middle;
 }
 
 .workspace-item-container {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 4px 8px;
     border-radius: 4px;
     margin-bottom: 4px;
@@ -25,32 +24,31 @@
 }
 
 .workspace-item-name {
-    flex-grow: 1;
-    margin-left: 8px;
     font-weight: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-text-light-highlight);
 }
 
 .workspace-item-details {
     flex-grow: 1;
-    margin-left: 8px;
     overflow: hidden;
 }
 
 .workspace-item-description {
-    font-size: 0.85em;
-    color: var(--color-text-dark-secondary);
+    font-size: 0.9em;
+    color: var(--color-text-light-secondary);
     margin-top: 2px;
 }
 
 .workspace-item-text {
     font-size: 0.9em;
-    color: var(--color-text-dark);
+    color: var(--color-text-light);
     margin-top: 4px;
     padding-top: 4px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    line-height: 1.4;
 }
 
 .workspace-item-text p {

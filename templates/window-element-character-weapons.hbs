@@ -15,9 +15,7 @@
                             {{#if this.type}} • {{this.type}}{{/if}}
                             {{#if this.properties}} • {{#each this.properties}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
                         </div>
-                        {{#if this.description}}
-                        <div class="workspace-item-text">{{{this.description}}}</div>
-                        {{/if}}
+                        {{!-- REMOVED DESCRIPTIOSN FOR NOW --}}
                     </div>
                 </div>
                 {{/each}}
