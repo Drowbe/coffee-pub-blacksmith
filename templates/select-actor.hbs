@@ -1,0 +1,12 @@
+<form>
+    <div class="form-group">
+        <label>Select Actor:</label>
+        <select id="actor-select" name="actorId">
+            {{#each actors}}
+                {{#if this.hasOwner}}
+                    <option value="{{this.id}}">{{this.name}}</option>
+                {{/if}}
+            {{/each}}
+        </select>
+    </div>
+</form>

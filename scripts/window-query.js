@@ -1084,17 +1084,26 @@ export class BlacksmithWindowQuery extends FormApplication {
         const selectedSkill = skillSelect?.value;
         if (!selectedSkill) return;
 
-        // Create dialog to select actor
-        const actors = game.actors.filter(a => a.type === 'character' || a.type === 'npc');
-        const content = `
-            <form>
-                <div class="form-group">
-                    <label>Select Actor:</label>
-                    <select id="actor-select" name="actorId">
-                        ${actors.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
-                    </select>
-                </div>
-            </form>`;
+        // Get player tokens from the canvas
+        const playerTokens = canvas.tokens.placeables.filter(token => 
+            token.actor?.type === 'character' && 
+            token.actor?.hasPlayerOwner
+        );
+
+        if (playerTokens.length === 0) {
+            ui.notifications.warn("No player characters found on the canvas.");
+            return;
+        }
+
+        // Map tokens to actors for the template
+        const actors = playerTokens.map(token => ({
+            id: token.actor.id,
+            name: token.name,
+            hasOwner: true
+        }));
+
+        // Render the actor selection template
+        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/select-actor.hbs', { actors });
 
         const dialog = new Dialog({
             title: "Select Actor for Roll",
