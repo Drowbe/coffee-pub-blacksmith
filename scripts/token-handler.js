@@ -46,14 +46,21 @@ export class TokenHandler {
         }
 
         // Update form based on actor type
-        if (data.actor.type === 'npc' && token.document.disposition < 0) {
-            typeSelect.value = 'monster';
-            skillSelect.value = 'Nature';
+        postConsoleAndNotification("Actor type check", `Actor Type: ${data.actor.type}, Disposition: ${token.document.disposition}, isCharacter: ${data.isCharacter}`, false, true, false, MODULE_TITLE);
+
+        if (data.actor.type === 'npc') {
+            if (token.document.disposition < 0) {
+                typeSelect.value = 'monster';
+                skillSelect.value = 'Nature';
+            } else {
+                typeSelect.value = 'character';  // NPCs use the "NPC or Character" option
+                skillSelect.value = 'History';
+            }
         } else if (data.isCharacter) {
             typeSelect.value = 'character';
             skillSelect.value = 'History';
         } else {
-            typeSelect.value = 'npc';
+            typeSelect.value = 'character';  // Default to "NPC or Character" for unknown types
             skillSelect.value = 'History';
         }
 
