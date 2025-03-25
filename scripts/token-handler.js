@@ -328,11 +328,13 @@ export class TokenHandler {
                 .filter(item => item.type === 'weapon' && item.system.equipped)
                 .map(weapon => ({
                     name: weapon.name,
-                    damage: weapon.system.damage?.parts?.[0]?.[0] || '',
-                    type: weapon.system.weaponType,
-                    properties: weapon.system.properties,
+                    damage: `${weapon.system.damage?.base?.custom?.formula || weapon.system.damage?.base?.formula || ''}`,
+                    type: weapon.system.type?.baseItem || weapon.system.type?.value || '',
+                    properties: weapon.system.properties || [],
                     proficient: weapon.system.proficient,
-                    equipped: weapon.system.equipped
+                    equipped: weapon.system.equipped,
+                    description: weapon.system.description?.value || '',
+                    img: weapon.img || 'icons/svg/sword.svg'
                 })),
             // Spells and Spell Slots
             spells: actor.items
@@ -367,4 +369,79 @@ export class TokenHandler {
             }, {})
         };
     }
+}
+
+function formatCharacterData(tokenData) {
+    if (!tokenData) return "";
+    
+    let characterText = "";
+    
+    // Basic Info
+    characterText += `\nName: ${tokenData.name}`;
+    characterText += `\nRace: ${tokenData.race || '-'}`;
+    characterText += `\nClass: ${tokenData.className} (Level ${tokenData.classLevel})`;
+    characterText += `\nBackground: ${tokenData.background || '-'}`;
+    
+    // Biography (if available)
+    if (tokenData.biography) {
+        characterText += "\n\nBiography:";
+        characterText += `\n${tokenData.biography}`;
+    }
+    
+    // Abilities
+    characterText += "\n\nAbility Scores:";
+    for (const [key, ability] of Object.entries(tokenData.abilities)) {
+        characterText += `\n${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`;
+    }
+    
+    // Skills
+    characterText += "\n\nSkills:";
+    for (const [key, skill] of Object.entries(tokenData.skills)) {
+        characterText += `\n${skill.label} (${skill.ability}): ${skill.total}`;
+    }
+    
+    // Features
+    if (tokenData.features && tokenData.features.length > 0) {
+        characterText += "\n\nFeatures:";
+        tokenData.features.forEach(feature => {
+            characterText += `\n${feature.name}`;
+        });
+    }
+    
+    // Equipment with descriptions
+    if (tokenData.equippedWeapons && tokenData.equippedWeapons.length > 0) {
+        characterText += "\n\nEquipped Weapons:";
+        tokenData.equippedWeapons.forEach(weapon => {
+            characterText += `\n${weapon.name}`;
+            if (weapon.damage) characterText += ` (${weapon.damage} damage)`;
+            if (weapon.type) characterText += ` - ${weapon.type}`;
+            if (weapon.properties) {
+                const props = Object.entries(weapon.properties)
+                    .filter(([_, value]) => value === true)
+                    .map(([key, _]) => key);
+                if (props.length > 0) {
+                    characterText += ` [${props.join(', ')}]`;
+                }
+            }
+            if (weapon.description) {
+                characterText += `\nDescription: ${weapon.description}`;
+            }
+        });
+    }
+    
+    // Spells
+    if (tokenData.spells && Object.keys(tokenData.spells).length > 0) {
+        characterText += "\n\nSpells:";
+        for (const [level, spells] of Object.entries(tokenData.spells)) {
+            if (spells.length > 0) {
+                characterText += `\nLevel ${level}:`;
+                spells.forEach(spell => {
+                    characterText += ` ${spell.name},`;
+                });
+                characterText = characterText.slice(0, -1); // Remove trailing comma
+            }
+        }
+    }
+    
+    return characterText;
 } 

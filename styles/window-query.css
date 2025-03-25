@@ -33,6 +33,38 @@
     text-overflow: ellipsis;
 }
 
+.workspace-item-details {
+    flex-grow: 1;
+    margin-left: 8px;
+    overflow: hidden;
+}
+
+.workspace-item-description {
+    font-size: 0.85em;
+    color: var(--color-text-dark-secondary);
+    margin-top: 2px;
+}
+
+.workspace-item-text {
+    font-size: 0.9em;
+    color: var(--color-text-dark);
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.workspace-item-text p {
+    margin: 0 0 4px 0;
+}
+
+.workspace-item-text ul {
+    margin: 4px 0 4px 16px;
+}
+
+.workspace-item-text li {
+    margin-bottom: 2px;
+}
+
 /* --- Workspace Grid Layouts -------------- */
 .workspace-grid-2col {
     display: grid;
@@ -162,6 +194,67 @@
     flex-wrap: wrap;
     gap: 4px;
     align-items: center;
+}
+
+.weapon-entry {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.weapon-entry:last-child {
+    margin-bottom: 0;
+}
+
+.weapon-header {
+    margin-bottom: 8px;
+}
+
+.weapon-name {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--color-text-dark-primary);
+}
+
+.weapon-stats {
+    font-size: 0.9em;
+    margin-bottom: 4px;
+    color: var(--color-text-dark);
+    line-height: 1.4;
+}
+
+.weapon-stats strong {
+    color: var(--color-text-dark-primary);
+}
+
+.weapon-description {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.weapon-description h3 {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: var(--color-text-dark-primary);
+}
+
+.weapon-description p {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
+}
+
+.weapon-description ul {
+    margin: 4px 0 8px 16px;
+}
+
+.weapon-description li {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin-bottom: 4px;
 }
 
 
