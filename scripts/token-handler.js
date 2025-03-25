@@ -269,6 +269,7 @@ export class TokenHandler {
                 if (value) acc[key] = value;
                 return acc;
             }, {}),
+            // Direct trait access without transformation
             damageResistances: actor.system.traits.dr,
             damageImmunities: actor.system.traits.di,
             damageVulnerabilities: actor.system.traits.dv,

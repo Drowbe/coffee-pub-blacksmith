@@ -15,16 +15,12 @@
             {{#if tokenData.isCharacter}}
             <div class="primary-info-item">
                 <div class="info-label">Class Level</div>
-                <div class="info-value">Level {{tokenData.classLevel}} {{tokenData.className}}</div>
+                <div class="info-value">Level {{tokenData.classLevel}}  •  {{tokenData.className}}  •   {{#if tokenData.background}}{{tokenData.background}}{{else}}-{{/if}}</div>
             </div>
             {{/if}}
             <div class="primary-info-item">
                 <div class="info-label">Race</div>
                 <div class="info-value">{{#if tokenData.race}}{{tokenData.race}}{{else}}-{{/if}}</div>
-            </div>
-            <div class="primary-info-item">
-                <div class="info-label">Background</div>
-                <div class="info-value">{{#if tokenData.background}}{{tokenData.background}}{{else}}-{{/if}}</div>
             </div>
         </div>
 
@@ -94,5 +90,28 @@
                 </div>
             </div>
         </div>
+
+        {{!-- Senses --}}
+        {{#if tokenData.senses}}
+        <div class="form-details">
+            <div class="form-label">Senses</div>
+            <div class="workspace-grid-2col details-grid">
+                {{#each tokenData.senses}}
+                {{#unless (eq @key "units")}}
+                <div class="form-label">
+                    <span>{{@key}}</span>
+                    <span class="value">{{this}} ft</span>
+                </div>
+                {{/unless}}
+                {{/each}}
+            </div>
+        </div>
+        {{/if}}
+
+        {{!-- REMOVED THESE FOR NOW --}} 
+        {{!-- Resistances --}} 
+        {{!-- Armor & Weapon Proficiencies --}}
+        {{!-- Languages --}}
+
     </div>
 </div> 

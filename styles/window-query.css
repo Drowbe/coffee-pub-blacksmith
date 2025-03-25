@@ -84,8 +84,9 @@
 .details-grid .form-label,
 .movement-grid .form-label {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
+    gap: 8px;
     padding: 2px 8px;
     background-color: rgba(0, 0, 0, 0.05);
     border-radius: 4px;
@@ -96,9 +97,16 @@
     background-color: rgba(0, 0, 0, 0.1);
 }
 
+.details-grid .form-label span:first-child {
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
 .details-grid .form-label span.value,
 .movement-grid .form-label span.value {
     color: var(--color-text-light-highlight);
+    flex: 1;
+    padding-left: 4px;
 }
 
 /* --- Spell List Specific Styles -------------- */
@@ -120,6 +128,40 @@
 .spell-list-container .workspace-item-name i {
     margin-left: 4px;
     opacity: 0.7;
+}
+
+/* --- Tag Styles -------------- */
+.tag {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 2px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.tag:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.tag.custom {
+    font-style: italic;
+    border: 1px dashed rgba(0, 0, 0, 0.2);
+}
+
+.bypass, .mastery {
+    font-size: 0.8em;
+    color: var(--color-text-light-highlight);
+    margin-left: 4px;
+    font-style: italic;
+}
+
+/* Ensure the value container can wrap tags */
+.form-label .value {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
 }
 
 
