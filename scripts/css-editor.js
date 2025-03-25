@@ -34,6 +34,12 @@ export class CSSEditor extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // Add dark mode toggle listener
+        html.find('input[name="dark"]').change(async (event) => {
+            const isDark = event.target.checked;
+            this.element[0].classList.toggle('dark-mode', isDark);
+        });
+
         // Add refresh button listener
         html.find('.refresh-button').click(() => {
             window.location.reload();

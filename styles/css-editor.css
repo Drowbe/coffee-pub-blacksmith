@@ -1,5 +1,10 @@
 .blacksmith-css-editor {
     min-width: 700px !important;
+    box-sizing: border-box;
+}
+
+.blacksmith-css-editor * {
+    box-sizing: border-box;
 }
 
 .blacksmith-css-editor .css-editor-form {
@@ -8,13 +13,14 @@
     height: 100%;
     padding: 0;
     margin: 0;
-    min-width: 700px;
+    width: 100%;
 }
 
 .blacksmith-css-editor .editor-container {
     flex: 1;
     padding: 8px 8px 0 8px;
     min-height: 0; /* Required for Firefox */
+    width: 100%;
 }
 
 .blacksmith-css-editor .editor-container textarea {
@@ -30,7 +36,8 @@
 }
 
 .blacksmith-css-editor .toolbar {
-    padding: 0 8px 8px 8px;
+    padding: 8px;
+    width: 100%;
 }
 
 .blacksmith-css-editor .toolbar-controls {
@@ -39,10 +46,11 @@
     align-items: center;
     background: rgba(0, 0, 0, 0.1);
     padding: 8px;
-    margin-top: 8px;
     border: 1px solid var(--color-border-light-tertiary);
     border-radius: 3px;
     gap: 8px;
+    width: 100%;
+    flex-wrap: wrap;
 }
 
 .blacksmith-css-editor .right-controls {
@@ -134,6 +142,11 @@
     margin: 0;
 }
 
+.blacksmith-css-editor.dark-mode {
+    background: #1e1e1e;
+    color: #d4d4d4;
+}
+
 .blacksmith-css-editor.dark-mode .editor-container textarea {
     background: #2b2b2b;
     color: #f8f8f2;
@@ -141,6 +154,17 @@
 }
 
 .blacksmith-css-editor.dark-mode .toolbar-controls {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
     border-color: #3f3f3f;
+}
+
+.blacksmith-css-editor.dark-mode button {
+    background: #383838;
+    color: #d4d4d4;
+    border-color: #3f3f3f;
+}
+
+.blacksmith-css-editor.dark-mode button:hover {
+    background: #454545;
+    border-color: #505050;
 }
