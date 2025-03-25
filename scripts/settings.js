@@ -356,6 +356,61 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
+
+
+
+
+
+
+
+
+
+		// *** CSS CUSTOMIZATION ***
+		game.settings.register(MODULE_ID, "headingH2CSS", {
+			name: 'CSS CUSTOMIZATION',
+			hint: 'Customize the FoundryVTT interface with custom CSS.',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+
+		game.settings.register(MODULE_ID, 'customCSS', {
+			name: 'Custom CSS',
+			hint: 'Add custom CSS to modify the FoundryVTT interface.',
+			scope: 'world',
+			config: false,
+			type: String,
+			default: ''
+		});
+
+		game.settings.register(MODULE_ID, 'cssTransition', {
+			name: 'Enable CSS Transitions',
+			hint: 'Add smooth transitions when applying CSS changes.',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: true
+		});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		// ---------- LATENCY CHECKER ----------
 		game.settings.register(MODULE_ID, "headingH3Latency", {
 			name: MODULE_ID + '.headingH3Latency-Label',
@@ -2526,6 +2581,8 @@ export const registerSettings = async () => {
 	// --------------------------------------------------------
 	}); // END OF "Hooks.once('ready', async()"
 	// --------------------------------------------------------
+
+
 
 
 

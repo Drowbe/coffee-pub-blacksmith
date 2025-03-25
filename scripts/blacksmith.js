@@ -39,6 +39,7 @@ import { CanvasTools } from './canvas-tools.js';
 import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { CSSEditor } from './css-editor.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -75,6 +76,14 @@ Hooks.once('ready', () => {
 
     // Initialize player stats tracking
     CPBPlayerStats.initialize();
+
+    // Apply any existing custom CSS
+    const editor = new CSSEditor();
+    const css = game.settings.get(MODULE_ID, 'customCSS');
+    const transition = game.settings.get(MODULE_ID, 'cssTransition');
+    if (css) {
+        editor.applyCSS(css, transition);
+    }
 });
 
 // ***************************************************
@@ -127,6 +136,14 @@ Hooks.once('init', async function() {
     ChatPanel.initialize();
     hookCanvas();
     addToolbarButton();
+
+    // Set up socket handler for CSS updates
+    game.socket.on(`module.${MODULE_ID}`, (data) => {
+        if (data.type === 'updateCSS') {
+            const editor = new CSSEditor();
+            editor.applyCSS(data.css, data.transition);
+        }
+    });
     
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);

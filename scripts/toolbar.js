@@ -1,6 +1,7 @@
 import { MODULE_ID } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
 import { buildButtonEventRegent } from './blacksmith.js';
+import { CSSEditor } from './css-editor.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './global.js';
 
@@ -64,12 +65,24 @@ export function addToolbarButton() {
             onClick: () => buildButtonEventRegent('narrative')
         };
 
+        const cssTool = {
+            icon: "fa-solid fa-paint-brush",
+            name: "css",
+            title: "Open CSS Editor",
+            button: true,
+            visible: game.user.isGM,
+            onClick: () => {
+                const editor = new CSSEditor();
+                editor.render(true);
+            }
+        };
+
         controls.push({
             name: "blacksmith-utilities",
             title: "Blacksmith Utilities",
             icon: "fa-solid fa-mug-hot",
             layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool]
+            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool]
         });
         postConsoleAndNotification("Toolbar buttons added to controls", "", false, true, false);
     });

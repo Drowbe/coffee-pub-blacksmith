@@ -1,0 +1,15 @@
+<form>
+    <div class="form-group">
+        <label>Custom CSS</label>
+        <textarea name="css" rows="20">{{css}}</textarea>
+    </div>
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="transition" {{#if transition}}checked{{/if}}>
+            Enable Transitions
+        </label>
+    </div>
+    <div class="form-group">
+        <button type="submit">Save Changes</button>
+    </div>
+</form> 
