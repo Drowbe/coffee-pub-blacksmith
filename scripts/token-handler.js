@@ -14,8 +14,21 @@ const MODULE_TITLE = "BLACKSMITH";
 export class TokenHandler {
     static hookId = null; // Store the hook ID for later unregistration
 
-    static async updateSkillCheckFromToken(id, token) {
-        postConsoleAndNotification("Updating skill check from token", `id: ${id}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
+    static async updateSkillCheckFromToken(id, token, item = null) {
+        postConsoleAndNotification("Updating skill check", `id: ${id}, token: ${token?.name}, item: ${item?.name}`, false, true, false, MODULE_TITLE);
+        
+        // Handle item drops
+        if (item) {
+            const data = this.getItemData(item);
+            if (!data) {
+                postConsoleAndNotification("No data returned from getItemData", "", false, true, false, MODULE_TITLE);
+                return;
+            }
+            await this.updateFormFromItemData(id, data);
+            return;
+        }
+
+        // Handle token drops (existing functionality)
         const data = this.getTokenData(token);
         if (!data) {
             postConsoleAndNotification("No data returned from getTokenData", "", false, true, false, MODULE_TITLE);
@@ -375,6 +388,46 @@ export class TokenHandler {
                 return acc;
             }, {})
         };
+    }
+
+    static getItemData(item) {
+        if (!item) return null;
+
+        return {
+            name: item.name,
+            type: 'item',
+            description: item.system.description?.value || '',
+            details: [
+                `Type: ${item.type}`,
+                `Name: ${item.name}`,
+                item.system.price ? `Value: ${item.system.price.value} ${item.system.price.denomination}` : '',
+                item.system.weight ? `Weight: ${item.system.weight}` : '',
+                item.system.rarity ? `Rarity: ${item.system.rarity}` : '',
+                item.system.equipped !== undefined ? `Equipped: ${item.system.equipped}` : '',
+                item.system.attunement ? `Attunement: ${item.system.attunement}` : '',
+                item.system.damage ? `Damage: ${item.system.damage.parts.map(p => p.join(' ')).join(', ')}` : '',
+                item.system.armor ? `AC: ${item.system.armor.value}` : ''
+            ].filter(Boolean).join('\n')
+        };
+    }
+
+    static async updateFormFromItemData(id, data) {
+        // Get form elements
+        const typeSelect = document.querySelector(`#optionType-${id}`);
+        const nameInput = document.querySelector(`#inputContextName-${id}`);
+        const detailsInput = document.querySelector(`#inputContextDetails-${id}`);
+        const biographyInput = document.querySelector(`#inputContextBiography-${id}`);
+        
+        if (!typeSelect || !nameInput || !detailsInput || !biographyInput) {
+            postConsoleAndNotification("Missing form elements for item update", "", false, true, false, MODULE_TITLE);
+            return;
+        }
+
+        // Update form
+        typeSelect.value = 'item';
+        nameInput.value = data.name;
+        detailsInput.value = data.details;
+        biographyInput.value = data.description || '';
     }
 }
 

@@ -558,6 +558,55 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (selectedToken) {
                 TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
             }
+
+            // Add drag and drop handlers for the criteria dropzone
+            const dropZone = html.find(`#criteria-dropzone-${this.workspaceId}`);
+            if (dropZone.length) {
+                dropZone.on('dragover', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.addClass('dragover');
+                });
+
+                dropZone.on('dragleave', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.removeClass('dragover');
+                });
+
+                dropZone.on('drop', async (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.removeClass('dragover');
+
+                    try {
+                        const data = JSON.parse(event.originalEvent.dataTransfer.getData('text/plain'));
+                        if (!data.uuid) return;
+
+                        const document = await fromUuid(data.uuid);
+                        if (!document) return;
+
+                        if (document.documentName === 'Actor') {
+                            // Create a token-like structure for the actor
+                            const tokenData = {
+                                actor: document,
+                                name: document.name,
+                                document: {
+                                    disposition: document.prototypeToken.disposition,
+                                    texture: { src: document.img },
+                                    effects: [],
+                                    uuid: data.uuid
+                                }
+                            };
+                            await TokenHandler.updateSkillCheckFromToken(this.workspaceId, tokenData);
+                        } else if (document.documentName === 'Item') {
+                            await TokenHandler.updateSkillCheckFromToken(this.workspaceId, null, document);
+                        }
+                    } catch (error) {
+                        console.error('Error processing dropped item:', error);
+                    }
+                });
+            }
         }
 
         // don't let these buttons submit the main form
