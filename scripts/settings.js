@@ -367,30 +367,33 @@ export const registerSettings = async () => {
 
 		// *** CSS CUSTOMIZATION ***
 		game.settings.register(MODULE_ID, "headingH2CSS", {
-			name: 'CSS CUSTOMIZATION',
-			hint: 'Customize the FoundryVTT interface with custom CSS.',
+			name: "CSS Customization",
+			hint: "Customize the FoundryVTT interface with custom CSS",
 			scope: "world",
 			config: true,
-			default: "",
 			type: String,
+			default: "CSS Customization"
 		});
 
-		game.settings.register(MODULE_ID, 'customCSS', {
-			name: 'Custom CSS',
-			hint: 'Add custom CSS to modify the FoundryVTT interface.',
-			scope: 'world',
+		game.settings.register(MODULE_ID, "customCSS", {
+			scope: "world",
 			config: false,
 			type: String,
-			default: ''
+			default: ""
 		});
 
-		game.settings.register(MODULE_ID, 'cssTransition', {
-			name: 'Enable CSS Transitions',
-			hint: 'Add smooth transitions when applying CSS changes.',
-			scope: 'world',
-			config: true,
+		game.settings.register(MODULE_ID, "cssTransition", {
+			scope: "world",
+			config: false,
 			type: Boolean,
 			default: true
+		});
+
+		game.settings.register(MODULE_ID, "cssDarkMode", {
+			scope: "world",
+			config: false,
+			type: Boolean,
+			default: false
 		});
 
 

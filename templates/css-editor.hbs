@@ -1,15 +1,48 @@
-<form>
-    <div class="form-group">
-        <label>Custom CSS</label>
+<form class="css-editor-form">
+    <div class="editor-container">
         <textarea name="css" rows="20">{{css}}</textarea>
     </div>
-    <div class="form-group">
-        <label>
-            <input type="checkbox" name="transition" {{#if transition}}checked{{/if}}>
-            Enable Transitions
-        </label>
-    </div>
-    <div class="form-group">
-        <button type="submit">Save Changes</button>
+    <div class="toolbar">
+        <div class="toolbar-controls">
+            <button type="submit" class="apply-button">
+                <i class="fas fa-paint-brush"></i>
+                APPLY STYLES
+            </button>
+            <div class="right-controls">
+                <div class="toggle-controls">
+                    <label class="transition-toggle">
+                        <input type="checkbox" name="transition" {{#if transition}}checked{{/if}}>
+                        Smoothing
+                    </label>
+                    <label class="dark-toggle">
+                        <input type="checkbox" name="dark" {{#if dark}}checked{{/if}}>
+                        Dark Mode
+                    </label>
+                </div>
+                <div class="utility-buttons">
+                    <div class="button-group">
+                        <button type="button" class="copy-button" data-tooltip="Copy CSS">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button type="button" class="clear-button" data-tooltip="Clear Editor">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="settings-button" data-tooltip="Open Settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button type="button" class="modules-button" data-tooltip="Open Modules">
+                            <i class="fas fa-cube"></i>
+                        </button>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="refresh-button" data-tooltip="Refresh Browser">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </form> 
