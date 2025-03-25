@@ -1070,6 +1070,117 @@ export class BlacksmithWindowQuery extends FormApplication {
             });
         });
 
+        // Add roll dice button handler
+        html.find('.roll-dice-button').on('click', async (event) => {
+            event.preventDefault();
+            const id = event.currentTarget.id.split('-').pop();
+            await this._handleRollDiceClick(id);
+        });
+    }
+
+    async _handleRollDiceClick(id) {
+        // Get the selected skill
+        const skillSelect = document.querySelector(`#optionSkill-${id}`);
+        const selectedSkill = skillSelect?.value;
+        if (!selectedSkill) return;
+
+        // Create dialog to select actor
+        const actors = game.actors.filter(a => a.type === 'character' || a.type === 'npc');
+        const content = `
+            <form>
+                <div class="form-group">
+                    <label>Select Actor:</label>
+                    <select id="actor-select" name="actorId">
+                        ${actors.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+                    </select>
+                </div>
+            </form>`;
+
+        const dialog = new Dialog({
+            title: "Select Actor for Roll",
+            content: content,
+            buttons: {
+                roll: {
+                    icon: '<i class="fas fa-dice-d20"></i>',
+                    label: "Roll",
+                    callback: async (html) => {
+                        const actorId = html.find('[name="actorId"]').val();
+                        const actor = game.actors.get(actorId);
+                        if (!actor) return;
+
+                        // Create a chat message with the roll button using our template
+                        const skillAbbr = this._getSkillAbbreviation(selectedSkill);
+                        const messageData = {
+                            actorName: actor.name,
+                            skillName: selectedSkill,
+                            actorId: actor.id,
+                            skillAbbr: skillAbbr
+                        };
+
+                        const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+
+                        const message = await ChatMessage.create({
+                            content: messageContent,
+                            speaker: ChatMessage.getSpeaker({ actor })
+                        });
+
+                        // Set up one-time hook for the roll button
+                        Hooks.once("renderChatMessage", (message, html) => {
+                            html.find(".skill-roll").click(async (event) => {
+                                const button = event.currentTarget;
+                                const actorId = button.dataset.actorId;
+                                const skill = button.dataset.skill;
+                                const actor = game.actors.get(actorId);
+                                
+                                if (actor) {
+                                    const roll = await actor.rollSkill(skill);
+                                    if (roll) {
+                                        // Update the input value with the roll total
+                                        const inputDiceValue = document.querySelector(`#inputDiceValue-${id}`);
+                                        if (inputDiceValue) {
+                                            inputDiceValue.value = roll.total;
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    }
+                },
+                cancel: {
+                    icon: '<i class="fas fa-times"></i>',
+                    label: "Cancel"
+                }
+            },
+            default: "roll"
+        });
+        
+        dialog.render(true);
+    }
+
+    _getSkillAbbreviation(skillName) {
+        // Map of skill names to their abbreviations used by the system
+        const skillMap = {
+            'Acrobatics': 'acr',
+            'Animal Handling': 'ani',
+            'Arcana': 'arc',
+            'Athletics': 'ath',
+            'Deception': 'dec',
+            'History': 'his',
+            'Insight': 'ins',
+            'Intimidation': 'itm',
+            'Investigation': 'inv',
+            'Medicine': 'med',
+            'Nature': 'nat',
+            'Perception': 'prc',
+            'Performance': 'prf',
+            'Persuasion': 'per',
+            'Religion': 'rel',
+            'Sleight of Hand': 'slt',
+            'Stealth': 'ste',
+            'Survival': 'sur'
+        };
+        
+        return skillMap[skillName] || 'inv'; // Default to investigation if not found
     }
 
     // ************************************

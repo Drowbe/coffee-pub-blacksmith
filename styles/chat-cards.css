@@ -485,4 +485,31 @@
     border-radius: 5px;
     padding: 0.5em;
     margin-bottom: 0.5em;
+}
+
+.skill-check-roll {
+    padding: 5px;
+    text-align: center;
+}
+
+.skill-check-roll .skill-roll {
+    background: var(--color-bg-btn);
+    border: 1px solid var(--color-border-light-tertiary);
+    border-radius: 4px;
+    padding: 8px 16px;
+    color: var(--color-text-dark-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.skill-check-roll .skill-roll:hover {
+    background: var(--color-bg-btn-hover);
+    border-color: var(--color-border-highlight);
+    color: var(--color-text-highlight);
+}
+
+.skill-check-roll .skill-roll i {
+    margin-right: 8px;
 } 
