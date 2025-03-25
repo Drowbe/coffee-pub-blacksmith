@@ -393,21 +393,89 @@ export class TokenHandler {
     static getItemData(item) {
         if (!item) return null;
 
+        // Build details array with safe property access
+        const details = [];
+        
+        // Basic item info
+        details.push(`Type: ${item.type}`);
+        details.push(`Name: ${item.name}`);
+        
+        // Price
+        if (item.system.price?.value && item.system.price?.denomination) {
+            details.push(`Value: ${item.system.price.value} ${item.system.price.denomination}`);
+        }
+        
+        // Weight
+        if (item.system.weight) {
+            details.push(`Weight: ${item.system.weight}`);
+        }
+        
+        // Rarity
+        if (item.system.rarity) {
+            details.push(`Rarity: ${item.system.rarity}`);
+        }
+        
+        // Equipment specific properties
+        if (item.type === 'equipment' || item.type === 'weapon' || item.type === 'armor') {
+            if (item.system.equipped !== undefined) {
+                details.push(`Equipped: ${item.system.equipped}`);
+            }
+            if (item.system.attunement) {
+                details.push(`Attunement: ${item.system.attunement}`);
+            }
+        }
+        
+        // Weapon specific properties
+        if (item.type === 'weapon') {
+            if (item.system.damage?.parts?.length > 0) {
+                const damageStrings = item.system.damage.parts
+                    .map(part => part.join(' '))
+                    .filter(Boolean);
+                if (damageStrings.length > 0) {
+                    details.push(`Damage: ${damageStrings.join(', ')}`);
+                }
+            }
+            
+            if (item.system.properties) {
+                const properties = Object.entries(item.system.properties)
+                    .filter(([_, value]) => value === true)
+                    .map(([key, _]) => key);
+                if (properties.length > 0) {
+                    details.push(`Properties: ${properties.join(', ')}`);
+                }
+            }
+        }
+        
+        // Armor specific properties
+        if (item.type === 'armor' && item.system.armor?.value) {
+            details.push(`AC: ${item.system.armor.value}`);
+        }
+        
+        // Consumable specific properties
+        if (item.type === 'consumable') {
+            if (item.system.uses?.value !== undefined && item.system.uses?.max) {
+                details.push(`Uses: ${item.system.uses.value}/${item.system.uses.max}`);
+            }
+            if (item.system.consumableType) {
+                details.push(`Consumable Type: ${item.system.consumableType}`);
+            }
+        }
+
+        // Tool specific properties
+        if (item.type === 'tool') {
+            if (item.system.proficient) {
+                details.push(`Proficiency: ${item.system.proficient}`);
+            }
+            if (item.system.ability) {
+                details.push(`Ability: ${item.system.ability}`);
+            }
+        }
+
         return {
             name: item.name,
             type: 'item',
             description: item.system.description?.value || '',
-            details: [
-                `Type: ${item.type}`,
-                `Name: ${item.name}`,
-                item.system.price ? `Value: ${item.system.price.value} ${item.system.price.denomination}` : '',
-                item.system.weight ? `Weight: ${item.system.weight}` : '',
-                item.system.rarity ? `Rarity: ${item.system.rarity}` : '',
-                item.system.equipped !== undefined ? `Equipped: ${item.system.equipped}` : '',
-                item.system.attunement ? `Attunement: ${item.system.attunement}` : '',
-                item.system.damage ? `Damage: ${item.system.damage.parts.map(p => p.join(' ')).join(', ')}` : '',
-                item.system.armor ? `AC: ${item.system.armor.value}` : ''
-            ].filter(Boolean).join('\n')
+            details: details.filter(Boolean).join('\n')
         };
     }
 
