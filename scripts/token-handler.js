@@ -61,57 +61,85 @@ export class TokenHandler {
         // Update form based on actor type
         postConsoleAndNotification("Actor type check", `Actor Type: ${data.actor.type}, Disposition: ${token.document.disposition}, isCharacter: ${data.isCharacter}`, false, true, false, MODULE_TITLE);
 
+        // Set type based on disposition
         if (data.actor.type === 'npc') {
             if (token.document.disposition < 0) {
                 typeSelect.value = 'monster';
-                skillSelect.value = 'Nature';
             } else {
                 typeSelect.value = 'character';  // NPCs use the "NPC or Character" option
-                skillSelect.value = 'History';
             }
         } else if (data.isCharacter) {
             typeSelect.value = 'character';
-            skillSelect.value = 'History';
         } else {
             typeSelect.value = 'character';  // Default to "NPC or Character" for unknown types
-            skillSelect.value = 'History';
         }
 
-        // Format details text using the data from getTokenData
-        const details = [
-            `Actor Type: ${typeSelect.value}`,
-            `Token Name: ${data.name}`,
-            `Gender: ${data.actor.system.details.gender || 'Unknown'}`,
-            `Age: ${data.actor.system.details.age || 'Unknown'}`,
-            `Alignment: ${data.actor.system.details.alignment || 'Unknown'}`,
-            `Background: ${data.background}`,
-            `Size: ${data.actor.system.traits?.size || 'Unknown'}`,
-            data.isCharacter ? `Race: ${data.race || 'Unknown'}\nClass: ${data.className || 'Unknown'}` : '',
-            data.isCharacter ? `Level: ${data.classLevel}` : `CR: ${data.actor.system.details.cr || 'Unknown'}`,
-            `HP: ${data.actor.system.attributes.hp.value}/${data.actor.system.attributes.hp.max}`,
-            
-            // Abilities
-            'Ability Scores:',
-            ...Object.entries(data.abilities).map(([key, ability]) => 
-                `  - ${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`
-            ),
-            
-            // Skills
-            'Skills:',
-            ...Object.values(data.skills).map(skill => 
-                `  - ${skill.label}: ${skill.proficiency}`
-            ),
-            
-            // Equipment
-            data.equippedWeapons.length > 0 ? 
-                `Equipped Weapons:\n  - ${data.equippedWeapons.map(w => w.name).join('\n  - ')}` : ''
-        ].filter(Boolean).join('\n');
+        // Determine skill based on creature type
+        let selectedSkill = 'History'; // Default for characters/NPCs
+        if (typeSelect.value === 'monster') {
+            // Get creature type, accounting for possible system variations
+            const creatureType = data.actor.system.details?.type?.value || 
+                               data.actor.system.details?.race?.toLowerCase() ||
+                               data.actor.system.details?.creatureType?.toLowerCase() || 
+                               '';
 
-        // Update form
+            // Map creature type to skill
+            switch (creatureType.toLowerCase()) {
+                case 'aberration':
+                    selectedSkill = 'Arcana';
+                    break;
+                case 'beast':
+                    selectedSkill = 'Nature';
+                    break;
+                case 'celestial':
+                    selectedSkill = 'Religion';
+                    break;
+                case 'construct':
+                    selectedSkill = 'Arcana';
+                    break;
+                case 'dragon':
+                    selectedSkill = 'Arcana';
+                    break;
+                case 'elemental':
+                    selectedSkill = 'Arcana';
+                    break;
+                case 'fey':
+                    // For Fey, we'll default to Arcana, but you might want to add logic to choose between Arcana and Nature
+                    selectedSkill = 'Arcana';
+                    break;
+                case 'fiend':
+                    selectedSkill = 'Religion';
+                    break;
+                case 'giant':
+                    selectedSkill = 'History';
+                    break;
+                case 'humanoid':
+                    selectedSkill = 'History';
+                    break;
+                case 'monstrosity':
+                    selectedSkill = 'Nature';
+                    break;
+                case 'ooze':
+                    selectedSkill = 'Nature';
+                    break;
+                case 'plant':
+                    selectedSkill = 'Nature';
+                    break;
+                case 'undead':
+                    selectedSkill = 'Religion';
+                    break;
+                default:
+                    // If we can't determine the type, use Nature for monsters
+                    selectedSkill = 'Nature';
+            }
+        }
+
+        // Update form elements
         nameInput.value = data.name;
-        detailsInput.value = details;
+        detailsInput.value = this.formatCharacterData(data);
         biographyInput.value = data.biography || '';
         skillCheck.checked = true;
+        skillSelect.value = selectedSkill;
         diceSelect.value = '1d20';
 
         postConsoleAndNotification("Form updated successfully", `Token: ${token.name}`, false, true, false, MODULE_TITLE);
@@ -572,79 +600,79 @@ export class TokenHandler {
 
         skillSelect.value = selectedSkill;
     }
-}
 
-function formatCharacterData(tokenData) {
-    if (!tokenData) return "";
-    
-    let characterText = "";
-    
-    // Basic Info
-    characterText += `\nName: ${tokenData.name}`;
-    characterText += `\nRace: ${tokenData.race || '-'}`;
-    characterText += `\nClass: ${tokenData.className} (Level ${tokenData.classLevel})`;
-    characterText += `\nBackground: ${tokenData.background || '-'}`;
-    
-    // Biography (if available)
-    if (tokenData.biography) {
-        characterText += "\n\nBiography:";
-        characterText += `\n${tokenData.biography}`;
-    }
-    
-    // Abilities
-    characterText += "\n\nAbility Scores:";
-    for (const [key, ability] of Object.entries(tokenData.abilities)) {
-        characterText += `\n${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`;
-    }
-    
-    // Skills
-    characterText += "\n\nSkills:";
-    for (const [key, skill] of Object.entries(tokenData.skills)) {
-        characterText += `\n${skill.label} (${skill.ability}): ${skill.total}`;
-    }
-    
-    // Features
-    if (tokenData.features && tokenData.features.length > 0) {
-        characterText += "\n\nFeatures:";
-        tokenData.features.forEach(feature => {
-            characterText += `\n${feature.name}`;
-        });
-    }
-    
-    // Equipment with descriptions
-    if (tokenData.equippedWeapons && tokenData.equippedWeapons.length > 0) {
-        characterText += "\n\nEquipped Weapons:";
-        tokenData.equippedWeapons.forEach(weapon => {
-            characterText += `\n${weapon.name}`;
-            if (weapon.damage) characterText += ` (${weapon.damage} damage)`;
-            if (weapon.type) characterText += ` - ${weapon.type}`;
-            if (weapon.properties) {
-                const props = Object.entries(weapon.properties)
-                    .filter(([_, value]) => value === true)
-                    .map(([key, _]) => key);
-                if (props.length > 0) {
-                    characterText += ` [${props.join(', ')}]`;
+    static formatCharacterData(tokenData) {
+        if (!tokenData) return "";
+        
+        let characterText = "";
+        
+        // Basic Info
+        characterText += `\nName: ${tokenData.name}`;
+        characterText += `\nRace: ${tokenData.race || '-'}`;
+        characterText += `\nClass: ${tokenData.className} (Level ${tokenData.classLevel})`;
+        characterText += `\nBackground: ${tokenData.background || '-'}`;
+        
+        // Biography (if available)
+        if (tokenData.biography) {
+            characterText += "\n\nBiography:";
+            characterText += `\n${tokenData.biography}`;
+        }
+        
+        // Abilities
+        characterText += "\n\nAbility Scores:";
+        for (const [key, ability] of Object.entries(tokenData.abilities)) {
+            characterText += `\n${ability.label}: ${ability.value} (${ability.mod >= 0 ? '+' : ''}${ability.mod})`;
+        }
+        
+        // Skills
+        characterText += "\n\nSkills:";
+        for (const [key, skill] of Object.entries(tokenData.skills)) {
+            characterText += `\n${skill.label} (${skill.ability}): ${skill.total}`;
+        }
+        
+        // Features
+        if (tokenData.features && tokenData.features.length > 0) {
+            characterText += "\n\nFeatures:";
+            tokenData.features.forEach(feature => {
+                characterText += `\n${feature.name}`;
+            });
+        }
+        
+        // Equipment with descriptions
+        if (tokenData.equippedWeapons && tokenData.equippedWeapons.length > 0) {
+            characterText += "\n\nEquipped Weapons:";
+            tokenData.equippedWeapons.forEach(weapon => {
+                characterText += `\n${weapon.name}`;
+                if (weapon.damage) characterText += ` (${weapon.damage} damage)`;
+                if (weapon.type) characterText += ` - ${weapon.type}`;
+                if (weapon.properties) {
+                    const props = Object.entries(weapon.properties)
+                        .filter(([_, value]) => value === true)
+                        .map(([key, _]) => key);
+                    if (props.length > 0) {
+                        characterText += ` [${props.join(', ')}]`;
+                    }
+                }
+                if (weapon.description) {
+                    characterText += `\nDescription: ${weapon.description}`;
+                }
+            });
+        }
+        
+        // Spells
+        if (tokenData.spells && Object.keys(tokenData.spells).length > 0) {
+            characterText += "\n\nSpells:";
+            for (const [level, spells] of Object.entries(tokenData.spells)) {
+                if (spells.length > 0) {
+                    characterText += `\nLevel ${level}:`;
+                    spells.forEach(spell => {
+                        characterText += ` ${spell.name},`;
+                    });
+                    characterText = characterText.slice(0, -1); // Remove trailing comma
                 }
             }
-            if (weapon.description) {
-                characterText += `\nDescription: ${weapon.description}`;
-            }
-        });
-    }
-    
-    // Spells
-    if (tokenData.spells && Object.keys(tokenData.spells).length > 0) {
-        characterText += "\n\nSpells:";
-        for (const [level, spells] of Object.entries(tokenData.spells)) {
-            if (spells.length > 0) {
-                characterText += `\nLevel ${level}:`;
-                spells.forEach(spell => {
-                    characterText += ` ${spell.name},`;
-                });
-                characterText = characterText.slice(0, -1); // Remove trailing comma
-            }
         }
+        
+        return characterText;
     }
-    
-    return characterText;
 } 
