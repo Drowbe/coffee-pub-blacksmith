@@ -1,8 +1,24 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.10] - 2024-03-25
+## [1.0.11] - 2025-03-25 - GM Tools added
+
+### Added
+- CSS Editor for GMs to customize Foundry's appearance
+  - Accessible via toolbar button
+  - Live preview of CSS changes
+  - Dark/Light mode toggle for editor
+  - Smart indentation support
+  - Copy, clear, and refresh buttons
+  - Quick access to World Config and Settings
+  - Smooth transition effects option
+  - Changes sync to all connected clients
+
+## [1.0.10] - 2025-03-25 - AI Tools
 
 ### Added
 - Added character guidance into the AI tools
