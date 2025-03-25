@@ -1,5 +1,25 @@
 # Changelog
 
+
+
+## [1.0.10] - 2024-03-25
+
+### Added
+- Added character guidance into the AI tools
+- Added Skillcheck lookups for monsters, items etc.  based on the selected character
+
+### Fixed
+- Fixed weapon display in character panel to properly show equipped weapons
+- Simplified weapon display layout for better readability
+- Fixed weapon data access in template to correctly show weapon properties
+- Restored AI prompt functionality that was accidentally broken in previous update
+
+### Changed
+- Streamlined weapon display to show name and info next to image
+- Simplified text colors to use default panel text colors
+- Improved weapon information layout for better clarity
+
+
 ## [1.0.9] - Combat Tracker Enhancements
 
 ### Added
@@ -200,3 +220,5 @@
 ### Fixed
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
+
+
