@@ -405,9 +405,12 @@ export class TokenHandler {
             details.push(`Value: ${item.system.price.value} ${item.system.price.denomination}`);
         }
         
-        // Weight
+        // Weight - handle weight as an object with value and units
         if (item.system.weight) {
-            details.push(`Weight: ${item.system.weight}`);
+            const weight = typeof item.system.weight === 'object' ? 
+                `${item.system.weight.value || 0} ${item.system.weight.units || 'lbs'}` : 
+                `${item.system.weight} lbs`;
+            details.push(`Weight: ${weight}`);
         }
         
         // Rarity
@@ -475,7 +478,8 @@ export class TokenHandler {
             name: item.name,
             type: 'item',
             description: item.system.description?.value || '',
-            details: details.filter(Boolean).join('\n')
+            details: details.filter(Boolean).join('\n'),
+            originalItem: item // Pass through the original item for skill selection
         };
     }
 
@@ -485,17 +489,88 @@ export class TokenHandler {
         const nameInput = document.querySelector(`#inputContextName-${id}`);
         const detailsInput = document.querySelector(`#inputContextDetails-${id}`);
         const biographyInput = document.querySelector(`#inputContextBiography-${id}`);
+        const skillCheck = document.querySelector(`#blnSkillRoll-${id}`);
+        const skillSelect = document.querySelector(`#optionSkill-${id}`);
+        const diceSelect = document.querySelector(`#optionDiceType-${id}`);
         
-        if (!typeSelect || !nameInput || !detailsInput || !biographyInput) {
+        if (!typeSelect || !nameInput || !detailsInput || !biographyInput || !skillCheck || !skillSelect || !diceSelect) {
             postConsoleAndNotification("Missing form elements for item update", "", false, true, false, MODULE_TITLE);
             return;
         }
 
-        // Update form
+        // Update basic form fields
         typeSelect.value = 'item';
         nameInput.value = data.name;
         detailsInput.value = data.details;
         biographyInput.value = data.description || '';
+        skillCheck.checked = true;
+        diceSelect.value = '1d20';
+
+        // Determine the appropriate skill check based on item type and properties
+        let selectedSkill = 'Investigation'; // Default skill
+
+        const item = data.originalItem; // We'll need to pass this through from getItemData
+        if (item) {
+            // Magic Items (General)
+            if (item.system.rarity && item.system.rarity !== 'common') {
+                selectedSkill = 'Arcana';
+            }
+
+            // Weapons & Armor
+            if (item.type === 'weapon' || item.type === 'armor') {
+                if (item.system.rarity && item.system.rarity !== 'common') {
+                    selectedSkill = 'Arcana';
+                } else if (item.system.description?.value?.toLowerCase().includes('dwarven') ||
+                         item.system.description?.value?.toLowerCase().includes('elven') ||
+                         item.system.description?.value?.toLowerCase().includes('ancient')) {
+                    selectedSkill = 'History';
+                }
+            }
+
+            // Potions
+            if (item.type === 'consumable' && item.system.consumableType === 'potion') {
+                if (item.name.toLowerCase().includes('healing') || 
+                    item.name.toLowerCase().includes('poison')) {
+                    selectedSkill = 'Medicine';
+                } else if (item.system.description?.value?.toLowerCase().includes('herb') ||
+                         item.system.description?.value?.toLowerCase().includes('alchemical')) {
+                    selectedSkill = 'Nature';
+                } else {
+                    selectedSkill = 'Arcana';
+                }
+            }
+
+            // Scrolls & Tomes
+            if (item.type === 'consumable' && item.system.consumableType === 'scroll') {
+                selectedSkill = 'Arcana';
+            }
+            if (item.name.toLowerCase().includes('holy') || 
+                item.name.toLowerCase().includes('divine') ||
+                item.name.toLowerCase().includes('unholy')) {
+                selectedSkill = 'Religion';
+            }
+
+            // Artifacts or Wondrous Items
+            if (item.type === 'equipment' && item.system.rarity && 
+                (item.system.rarity === 'artifact' || item.system.rarity === 'legendary')) {
+                if (item.name.toLowerCase().includes('holy') || 
+                    item.name.toLowerCase().includes('divine') ||
+                    item.name.toLowerCase().includes('unholy')) {
+                    selectedSkill = 'Religion';
+                } else {
+                    selectedSkill = 'Arcana';
+                }
+            }
+
+            // Currency, Jewelry, Art Objects
+            if (item.type === 'loot' || 
+                item.name.toLowerCase().includes('jewelry') || 
+                item.name.toLowerCase().includes('gem')) {
+                selectedSkill = 'History';
+            }
+        }
+
+        skillSelect.value = selectedSkill;
     }
 }
 
