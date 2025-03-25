@@ -20,8 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dark themed window with light/dark editor modes
   - Proper handling of NPC type selection in Assistant panel
 - Added refresh browser button to GM toolbar for quick page reloads
-- Added dice roll button to global skill check rolls
-- Added drop zone UI for monsters, NPCs, and items in the Assistant panel
+- Added visual character selection for skill check rolls
+  - Card-based interface showing character portraits and details
+  - Shows character level, class, and current HP
+  - Visual selection state with hover effects
+  - Only shows characters present on the canvas
+  - Matches the visual style of other character cards in the system
 
 ### Fixed
 - Fixed NPC type selection in Assistant panel to properly identify friendly NPCs
@@ -29,10 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed minimum width handling in CSS Editor window
 - Fixed dice roll button placement in global skill check rolls section
 - Fixed drop zone styling and text in Assistant panel
+- Fixed skill check roll dialog to use proper character selection UI
 
 ### Changed
 - Moved dice roll functionality from Assistant criteria to global skill check rolls
 - Improved drop zone UI with clearer instructions and visual feedback
+- Enhanced skill check character selection with visual card-based interface
+- Streamlined character selection process for skill checks
 
 ## [1.0.10] - 2025-03-25 - AI Tools
 

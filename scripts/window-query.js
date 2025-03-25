@@ -1099,7 +1099,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         const actors = playerTokens.map(token => ({
             id: token.actor.id,
             name: token.name,
-            hasOwner: true
+            hasOwner: true,
+            actor: token.actor
         }));
 
         // Render the actor selection template
@@ -1113,7 +1114,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                     icon: '<i class="fas fa-dice-d20"></i>',
                     label: "Roll",
                     callback: async (html) => {
-                        const actorId = html.find('[name="actorId"]').val();
+                        const selectedCard = html.find('.player-card.selected');
+                        if (!selectedCard.length) {
+                            ui.notifications.warn("Please select a character first.");
+                            return;
+                        }
+                        const actorId = selectedCard.data('actorId');
                         const actor = game.actors.get(actorId);
                         if (!actor) return;
 
@@ -1160,7 +1166,14 @@ export class BlacksmithWindowQuery extends FormApplication {
                     label: "Cancel"
                 }
             },
-            default: "roll"
+            default: "roll",
+            render: html => {
+                // Add click handler for the cards
+                html.find('.player-card').click(event => {
+                    html.find('.player-card').removeClass('selected');
+                    $(event.currentTarget).addClass('selected');
+                });
+            }
         });
         
         dialog.render(true);
