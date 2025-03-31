@@ -1208,7 +1208,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 whisper: [requester.id]
                             });
 
-                            // Emit a socket event to update the GM's window
+                            // Always emit the socket event, regardless of who rolled
                             game.socket.emit(`module.${MODULE_ID}`, {
                                 type: 'updateSkillRoll',
                                 data: {
@@ -1217,6 +1217,14 @@ export class BlacksmithWindowQuery extends FormApplication {
                                     requesterId: flags.requesterId
                                 }
                             });
+
+                            // If the current user is the GM, also update their input directly
+                            if (game.user.isGM) {
+                                const inputField = document.querySelector(`#inputDiceValue-${flags.workspaceId}`);
+                                if (inputField) {
+                                    inputField.value = roll.total;
+                                }
+                            }
                         }
                     }
                 }
