@@ -1174,65 +1174,78 @@ export class BlacksmithWindowQuery extends FormApplication {
     // Add this new method to handle the chat message click
     static async handleChatMessageClick(message, html) {
         // Find any skill roll buttons
-        html.find('.skill-roll').click(async (event) => {
-            const button = event.currentTarget;
-            const actorId = button.dataset.actorId;
-            const skill = button.dataset.skill;
-            const actor = game.actors.get(actorId);
-            
-            // Check if the current user owns this actor
-            if (!actor?.isOwner) {
-                ui.notifications.warn("You don't have permission to roll for this character.");
-                return;
-            }
+        const rollButton = html.find('.skill-roll');
+        if (rollButton.length) {
+            rollButton.off('click').on('click', async (event) => {
+                const button = event.currentTarget;
+                const actorId = button.dataset.actorId;
+                const skill = button.dataset.skill;
+                const actor = game.actors.get(actorId);
+                
+                // Check if the current user owns this actor
+                if (!actor?.isOwner) {
+                    ui.notifications.warn("You don't have permission to roll for this character.");
+                    return;
+                }
 
-            try {
-                const roll = await actor.rollSkill(skill);
-                if (roll) {
-                    // Get the message flags
-                    const flags = message.flags['coffee-pub-blacksmith'];
-                    if (flags) {
-                        // If this was requested by a GM, send them a notification
-                        const requester = game.users.get(flags.requesterId);
-                        if (requester?.isGM) {
-                            // Create a chat message for the GM
-                            ChatMessage.create({
-                                content: `<div class="blacksmith-card theme-default">
-                                    <div class="section-header">
-                                        <i class="fas fa-dice-d20"></i> Roll Result
-                                    </div>
-                                    <div class="section-content">
-                                        ${actor.name} rolled a ${roll.total} for their ${flags.skillName} check.
-                                    </div>
-                                </div>`,
-                                whisper: [requester.id]
-                            });
+                try {
+                    const roll = await actor.rollSkill(skill);
+                    if (roll) {
+                        // Get the message flags
+                        const flags = message.flags['coffee-pub-blacksmith'];
+                        if (flags) {
+                            // If this was requested by a GM, send them a notification
+                            const requester = game.users.get(flags.requesterId);
+                            if (requester?.isGM) {
+                                // Create a chat message for the GM
+                                ChatMessage.create({
+                                    content: `<div class="blacksmith-card theme-default">
+                                        <div class="section-header">
+                                            <i class="fas fa-dice-d20"></i> Roll Result
+                                        </div>
+                                        <div class="section-content">
+                                            ${actor.name} rolled a ${roll.total} for their ${flags.skillName} check.
+                                        </div>
+                                    </div>`,
+                                    whisper: [requester.id]
+                                });
 
-                            // Always emit the socket event, regardless of who rolled
-                            game.socket.emit(`module.${MODULE_ID}`, {
-                                type: 'updateSkillRoll',
-                                data: {
-                                    workspaceId: flags.workspaceId,
-                                    rollTotal: roll.total,
-                                    requesterId: flags.requesterId
+                                // Get socketlib API and use it to send the message
+                                const socketlib = game.modules.get('socketlib')?.api;
+                                if (socketlib) {
+                                    socketlib.executeForUsers(MODULE_ID, 'updateSkillRoll', {
+                                        workspaceId: flags.workspaceId,
+                                        rollTotal: roll.total,
+                                        requesterId: flags.requesterId
+                                    }, [requester.id]);
+                                } else {
+                                    // Fallback to regular socket if socketlib isn't available
+                                    game.socket.emit(`module.${MODULE_ID}`, {
+                                        type: 'updateSkillRoll',
+                                        data: {
+                                            workspaceId: flags.workspaceId,
+                                            rollTotal: roll.total,
+                                            requesterId: flags.requesterId
+                                        }
+                                    });
                                 }
-                            });
 
-                            // If the current user is the GM, also update their input directly
-                            if (game.user.isGM) {
-                                const inputField = document.querySelector(`#inputDiceValue-${flags.workspaceId}`);
-                                if (inputField) {
-                                    inputField.value = roll.total;
+                                // If the current user is the GM, also update their input directly
+                                if (game.user.isGM) {
+                                    const inputField = document.querySelector(`#inputDiceValue-${flags.workspaceId}`);
+                                    if (inputField) {
+                                        inputField.value = roll.total;
+                                    }
                                 }
                             }
                         }
                     }
+                } catch (error) {
+                    console.error("Error rolling skill check:", error);
+                    ui.notifications.error("There was an error making the skill check.");
                 }
-            } catch (error) {
-                console.error("Error rolling skill check:", error);
-                ui.notifications.error("There was an error making the skill check.");
-            }
-        });
+            });
+        }
     }
 
     _getSkillAbbreviation(skillName) {

@@ -119,9 +119,46 @@ Hooks.once('init', async function() {
     // Initialize UtilsManager
     UtilsManager.initialize();
     
-    // Register chat message handler for skill checks
+    // Initialize socket handlers
+    const socketlibModule = game.modules.get('socketlib');
+    if (socketlibModule?.active) {
+        const socketlib = socketlibModule.api;
+        if (socketlib) {
+            const socket = socketlib.registerModule(MODULE_ID);
+            
+            // Register skill roll handler
+            socket.register('updateSkillRoll', (data) => {
+                if (game.user.isGM) {
+                    // Find any open BlacksmithWindowQuery instances
+                    const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                    windows.forEach(window => {
+                        // Find the input field and update it
+                        const inputField = window.element[0].querySelector(`#inputDiceValue-${data.workspaceId}`);
+                        if (inputField) {
+                            inputField.value = data.rollTotal;
+                        }
+                    });
+                }
+            });
+
+            // Register CSS update handler
+            socket.register('updateCSS', (data) => {
+                const editor = new CSSEditor();
+                editor.applyCSS(data.css, data.transition);
+            });
+
+            // Store socket for use in other parts of the module
+            game.modules.get(MODULE_ID).socket = socket;
+        } else {
+            console.warn('Blacksmith | SocketLib API not found, some features may be limited');
+        }
+    } else {
+        console.warn('Blacksmith | SocketLib module not active, some features may be limited');
+    }
+    
+    // Register chat message click handler for skill rolls
     Hooks.on('renderChatMessage', (message, html) => {
-        if (message.flags['coffee-pub-blacksmith']?.isSkillCheck) {
+        if (message.flags?.['coffee-pub-blacksmith']?.isSkillCheck) {
             BlacksmithWindowQuery.handleChatMessageClick(message, html);
         }
     });
