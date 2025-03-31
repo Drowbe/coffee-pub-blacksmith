@@ -1129,35 +1129,27 @@ export class BlacksmithWindowQuery extends FormApplication {
                             actorName: actor.name,
                             skillName: selectedSkill,
                             actorId: actor.id,
-                            skillAbbr: skillAbbr
+                            skillAbbr: skillAbbr,
+                            requesterId: game.user.id, // Add the ID of who requested the roll
+                            workspaceId: id // Add the workspace ID
                         };
 
                         const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
 
-                        const message = await ChatMessage.create({
+                        // Create the chat message
+                        await ChatMessage.create({
                             content: messageContent,
-                            speaker: ChatMessage.getSpeaker({ actor })
-                        });
-
-                        // Set up one-time hook for the roll button
-                        Hooks.once("renderChatMessage", (message, html) => {
-                            html.find(".skill-roll").click(async (event) => {
-                                const button = event.currentTarget;
-                                const actorId = button.dataset.actorId;
-                                const skill = button.dataset.skill;
-                                const actor = game.actors.get(actorId);
-                                
-                                if (actor) {
-                                    const roll = await actor.rollSkill(skill);
-                                    if (roll) {
-                                        // Update the input value with the roll total
-                                        const inputDiceValue = document.querySelector(`#inputDiceValue-${id}`);
-                                        if (inputDiceValue) {
-                                            inputDiceValue.value = roll.total;
-                                        }
-                                    }
+                            speaker: ChatMessage.getSpeaker({ actor }),
+                            flags: {
+                                'coffee-pub-blacksmith': {
+                                    isSkillCheck: true,
+                                    actorId: actor.id,
+                                    skillName: selectedSkill,
+                                    skillAbbr: skillAbbr,
+                                    requesterId: game.user.id,
+                                    workspaceId: id
                                 }
-                            });
+                            }
                         });
                     }
                 },
@@ -1177,6 +1169,57 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
         
         dialog.render(true);
+    }
+
+    // Add this new method to handle the chat message click
+    static async handleChatMessageClick(message, html) {
+        // Find any skill roll buttons
+        html.find('.skill-roll').click(async (event) => {
+            const button = event.currentTarget;
+            const actorId = button.dataset.actorId;
+            const skill = button.dataset.skill;
+            const actor = game.actors.get(actorId);
+            
+            // Check if the current user owns this actor
+            if (!actor?.isOwner) {
+                ui.notifications.warn("You don't have permission to roll for this character.");
+                return;
+            }
+
+            try {
+                const roll = await actor.rollSkill(skill);
+                if (roll) {
+                    // Get the message flags
+                    const flags = message.flags['coffee-pub-blacksmith'];
+                    if (flags) {
+                        // Find the workspace that requested this roll
+                        const workspace = document.querySelector(`#inputDiceValue-${flags.workspaceId}`);
+                        if (workspace) {
+                            workspace.value = roll.total;
+                        }
+                        
+                        // If this was requested by a GM, send them a notification
+                        const requester = game.users.get(flags.requesterId);
+                        if (requester?.isGM) {
+                            ChatMessage.create({
+                                content: `<div class="blacksmith-card theme-default">
+                                    <div class="section-header">
+                                        <i class="fas fa-dice-d20"></i> Roll Result
+                                    </div>
+                                    <div class="section-content">
+                                        ${actor.name} rolled a ${roll.total} for their ${flags.skillName} check.
+                                    </div>
+                                </div>`,
+                                whisper: [requester.id]
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error rolling skill check:", error);
+                ui.notifications.error("There was an error making the skill check.");
+            }
+        });
     }
 
     _getSkillAbbreviation(skillName) {

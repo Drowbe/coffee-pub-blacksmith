@@ -119,6 +119,13 @@ Hooks.once('init', async function() {
     // Initialize UtilsManager
     UtilsManager.initialize();
     
+    // Register chat message handler for skill checks
+    Hooks.on('renderChatMessage', (message, html) => {
+        if (message.flags['coffee-pub-blacksmith']?.isSkillCheck) {
+            BlacksmithWindowQuery.handleChatMessageClick(message, html);
+        }
+    });
+    
     // Expose our API on the module
     const module = game.modules.get(MODULE_ID);
     module.api = {
