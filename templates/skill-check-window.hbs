@@ -1,4 +1,40 @@
+<div class="request-roll-window">
+    <!-- Configuration Bar -->
+    {{#if preconfigured}}
+        <div class="roll-config-bar">
+            <div class="roll-type">{{rollType}}</div>
+            <div class="dice-type">{{diceType}}</div>
+        </div>
+    {{else}}
+        <div class="roll-config-bar">
+            <select class="roll-mode" name="rollMode">
+                <option value="publicRoll">Public Roll</option>
+                <option value="privateGM">Private GM Roll</option>
+                <option value="blindGM">Blind GM Roll</option>
+                <option value="selfRoll">Self Roll</option>
+            </select>
+            <div class="dc-config">
+                <label>
+                    <input type="checkbox" name="useDC"> Use DC
+                </label>
+                <input type="number" name="dcValue" disabled>
+            </div>
+        </div>
+    {{/if}}
 
+    <!-- Actor Selection with Quick Filters -->
+    <div class="actor-selection">
+        <div class="quick-filters">
+            <button type="button" class="filter-btn" data-filter="selected">
+                <i class="fas fa-user-check"></i> Selected
+            </button>
+            <button type="button" class="filter-btn" data-filter="canvas">
+                <i class="fas fa-users"></i> On Canvas
+            </button>
+            <button type="button" class="filter-btn" data-filter="party">
+                <i class="fas fa-flag"></i> Party
+            </button>
+        </div>
 
         <div class="actor-selector-container">
             {{#each actors}}
@@ -14,4 +50,11 @@
                 {{/if}}
             {{/each}}
         </div>
+    </div>
+
+    <!-- Placeholder for future sections -->
+    <div class="check-options" style="display: none;">
+        <!-- Will contain collapsible sections in future stages -->
+    </div>
+</div>
 
