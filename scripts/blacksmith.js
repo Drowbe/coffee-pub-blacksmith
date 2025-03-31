@@ -150,6 +150,18 @@ Hooks.once('init', async function() {
             const editor = new CSSEditor();
             editor.applyCSS(data.css, data.transition);
         }
+        // Handle skill roll updates
+        else if (data.type === 'updateSkillRoll' && game.user.isGM) {
+            // Find any open BlacksmithWindowQuery instances
+            const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+            windows.forEach(window => {
+                // Find the input field and update it
+                const inputField = window.element[0].querySelector(`#inputDiceValue-${data.data.workspaceId}`);
+                if (inputField) {
+                    inputField.value = data.data.rollTotal;
+                }
+            });
+        }
     });
     
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);

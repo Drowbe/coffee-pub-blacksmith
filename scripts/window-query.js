@@ -1192,15 +1192,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                     // Get the message flags
                     const flags = message.flags['coffee-pub-blacksmith'];
                     if (flags) {
-                        // Find the workspace that requested this roll
-                        const workspace = document.querySelector(`#inputDiceValue-${flags.workspaceId}`);
-                        if (workspace) {
-                            workspace.value = roll.total;
-                        }
-                        
                         // If this was requested by a GM, send them a notification
                         const requester = game.users.get(flags.requesterId);
                         if (requester?.isGM) {
+                            // Create a chat message for the GM
                             ChatMessage.create({
                                 content: `<div class="blacksmith-card theme-default">
                                     <div class="section-header">
@@ -1211,6 +1206,16 @@ export class BlacksmithWindowQuery extends FormApplication {
                                     </div>
                                 </div>`,
                                 whisper: [requester.id]
+                            });
+
+                            // Emit a socket event to update the GM's window
+                            game.socket.emit(`module.${MODULE_ID}`, {
+                                type: 'updateSkillRoll',
+                                data: {
+                                    workspaceId: flags.workspaceId,
+                                    rollTotal: roll.total,
+                                    requesterId: flags.requesterId
+                                }
                             });
                         }
                     }
