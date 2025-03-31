@@ -3,7 +3,7 @@ import { postConsoleAndNotification } from './global.js';
 
 export class CSSEditor extends FormApplication {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-css-editor',
             title: 'CSS Editor',
             template: `modules/${MODULE_ID}/templates/css-editor.hbs`,

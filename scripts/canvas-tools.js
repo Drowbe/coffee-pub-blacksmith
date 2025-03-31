@@ -217,6 +217,7 @@ export class CanvasTools {
                 {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
             ];
             
+            // Roll loot from each configured table
             for (const table of tables) {
                 const tableName = game.settings.get(MODULE_ID, table.setting);
                 if (tableName && tableName !== "none") {
@@ -239,8 +240,30 @@ export class CanvasTools {
             // Add random coins
             await this._addRandomCoins(token.actor);
 
-            // Convert to item pile
-            await game.itempiles.API.turnTokensIntoItemPiles([token]);
+            // Set up proper permissions before converting to item pile
+            const updates = {
+                "permission.default": CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED, // Allow players to see
+                "flags.item-piles": {
+                    "enabled": true,
+                    "interactable": true,
+                    "lootable": true
+                }
+            };
+            
+            // Update token permissions
+            await token.document.update(updates);
+            
+            // Convert to item pile with proper configuration
+            await game.itempiles.API.turnTokensIntoItemPiles([token], {
+                pileSettings: {
+                    enabled: true,
+                    interactable: true,
+                    lootable: true,
+                    closed: false,
+                    shareItemsWithPlayers: true,
+                    displayOne: false
+                }
+            });
             
             // Update the image
             const newImage = game.settings.get(MODULE_ID, 'tokenLootPileImage');
@@ -308,7 +331,7 @@ export class CanvasTools {
 
     static async _addRandomCoins(actor) {
         try {
-            const roll = await new Roll("1d100").evaluate({async: true});
+            const roll = await new Roll("1d100").evaluate();
             let coinRoll;
             
             if (roll.total <= 16) {
@@ -333,7 +356,7 @@ export class CanvasTools {
             const rolls = {};
             
             for (const [key, formula] of Object.entries(coinRoll)) {
-                rolls[key] = await new Roll(formula).evaluate({async: true});
+                rolls[key] = await new Roll(formula).evaluate();
             }
             
             await actor.update({
