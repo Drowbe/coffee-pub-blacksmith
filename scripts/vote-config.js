@@ -11,7 +11,7 @@ export class VoteConfig extends Application {
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
             id: 'vote-config',
-            template: 'modules/coffee-pub-blacksmith/templates/vote-config.hbs',
+            template: 'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             title: 'Start a Vote',
             width: 300,
             height: 'auto',

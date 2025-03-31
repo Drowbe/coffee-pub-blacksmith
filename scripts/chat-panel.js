@@ -24,7 +24,7 @@ class ChatPanel {
         loadTemplates([
             'modules/coffee-pub-blacksmith/templates/chat-panel.hbs',
             'modules/coffee-pub-blacksmith/templates/chat-cards.hbs',
-            'modules/coffee-pub-blacksmith/templates/vote-config.hbs',
+            'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
 

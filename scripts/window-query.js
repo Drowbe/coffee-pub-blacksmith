@@ -1104,7 +1104,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }));
 
         // Render the actor selection template
-        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/select-actor.hbs', { actors });
+        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-window.hbs', { actors });
 
         const dialog = new Dialog({
             title: "Select Actor for Roll",

@@ -12,6 +12,7 @@
 /* --- Dialogue Boxes / Windows --- */
 @import "dialogues.css";
 @import "window-query.css";
+@import "skill-check-window.css";
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
