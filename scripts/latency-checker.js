@@ -72,14 +72,21 @@ export class LatencyChecker {
         const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
 
         console.log(`BLACKSMITH | Latency: Starting periodic checks every ${interval/1000} seconds`);
-        // Initial check
-        this.#checkAllUsers();
         
-        // Periodic checks
-        this.#checkInterval = setInterval(() => {
-            if (this.#initialized) {
-                this.#checkAllUsers();
-            }
+        // Initial update to show "--ms" for all players
+        this.#updateLatencyDisplay();
+        
+        // Wait for the full interval before doing the first check
+        setTimeout(() => {
+            // Initial check after waiting
+            this.#checkAllUsers();
+            
+            // Periodic checks
+            this.#checkInterval = setInterval(() => {
+                if (this.#initialized) {
+                    this.#checkAllUsers();
+                }
+            }, interval);
         }, interval);
     }
 
@@ -186,14 +193,17 @@ export class LatencyChecker {
                 playerNameSpan.appendChild(latencySpan);
                 
                 if (latency !== undefined) {
-                    latencySpan.textContent = `${latency}ms`;
+                    latencySpan.textContent = `${latency} ms`;
                     latencySpan.classList.remove("good", "medium", "poor");
                     latencySpan.classList.add(this.#getLatencyClass(latency));
                     latencySpan.style.display = "inline";
                     playerNameSpan.style.paddingRight = "40px";
                 } else {
-                    latencySpan.style.display = "none";
-                    playerNameSpan.style.paddingRight = "0";
+                    // Show "--ms" for players we haven't measured yet
+                    latencySpan.textContent = "-- ms";
+                    latencySpan.classList.remove("good", "medium", "poor");
+                    latencySpan.style.display = "inline";
+                    playerNameSpan.style.paddingRight = "40px";
                 }
             });
         } catch (error) {
