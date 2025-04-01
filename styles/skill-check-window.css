@@ -11,6 +11,7 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    min-width: 800px;
 }
 
 .dialog-column {
@@ -20,6 +21,7 @@
     gap: 8px;
     min-width: 200px;
     overflow: hidden;
+    padding-right: 8px;
 }
 
 .dialog-column h2 {
@@ -106,8 +108,14 @@
     margin-top: 4px;
 }
 
+.dice-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 4px;
+}
+
 .dice-btn {
-    flex: 1;
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid #999;
     border-radius: 3px;
@@ -118,6 +126,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    aspect-ratio: 1;
 }
 
 .dice-btn:hover {
