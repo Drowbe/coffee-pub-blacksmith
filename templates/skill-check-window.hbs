@@ -2,8 +2,9 @@
     <div class="dialog-content">
         <!-- Left Column -->
         <div class="dialog-column">
-            <h2>Selected Players</h2>
+            <h2>Selected Contestants</h2>
             <div class="form-group">
+                <label>Search</label>
                 <div class="form-fields">
                     <input type="text" name="search" placeholder="Search players...">
                 </div>
@@ -35,10 +36,11 @@
             </div>
         </div>
 
-        <!-- Right Column -->
+        <!-- Middle Column -->
         <div class="dialog-column">
             <h2>Available Skills</h2>
             <div class="form-group">
+                <label>Criteria</label>
                 <div class="form-fields">
                     <input type="text" name="search" placeholder="Search skills...">
                 </div>
@@ -50,6 +52,62 @@
                         <span>{{this.name}}</span>
                     </div>
                 {{/each}}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="dialog-column">
+            <h2>Roll Configuration</h2>
+            <div class="form-group">
+                <label>DC (Optional)</label>
+                <div class="form-fields">
+                    <input type="number" name="dc" placeholder="DC">
+                    <label class="checkbox">
+                        <input type="checkbox" name="showDC" checked> Show
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Roll Mode</label>
+                <div class="form-fields">
+                    <select name="rollMode">
+                        <option value="roll">Public Roll</option>
+                        <option value="gmroll">Private Roll</option>
+                        <option value="blindroll">GM Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <div class="form-fields">
+                    <textarea name="description" rows="2" placeholder="Optional description..."></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Label</label>
+                <div class="form-fields">
+                    <input type="text" name="label" placeholder="Roll label">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Dice</label>
+                <div class="dice-buttons">
+                    <button type="button" class="dice-btn" data-dice="d4">
+                        <i class="fas fa-dice-d4"></i>
+                    </button>
+                    <button type="button" class="dice-btn" data-dice="d6">
+                        <i class="fas fa-dice-d6"></i>
+                    </button>
+                    <button type="button" class="dice-btn" data-dice="d8">
+                        <i class="fas fa-dice-d8"></i>
+                    </button>
+                    <button type="button" class="dice-btn selected" data-dice="d20">
+                        <i class="fas fa-dice-d20"></i>
+                    </button>
+                    <button type="button" class="dice-btn" data-dice="d100">
+                        <i class="fas fa-dice-d20"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
