@@ -1,14 +1,25 @@
 // Import required modules
 import { MODULE_ID } from './const.js';
 
-export class SkillCheckDialog extends Dialog {
-    static async create(data = {}, options = {}) {
-        // Store the callback and data we'll need
-        const callback = data.callback;
-        const actors = data.actors;
-        const skillName = data.skillName;
-        const workspaceId = data.workspaceId;
+export class SkillCheckDialog extends Application {
+    constructor(data = {}, options = {}) {
+        super(options);
+        this.data = data;
+        this.callback = data.callback;
+    }
 
+    static get defaultOptions() {
+        return mergeObject(super.defaultOptions, {
+            id: 'skill-check-dialog',
+            template: 'modules/coffee-pub-blacksmith/templates/skill-check-window.hbs',
+            title: 'Configure Skill Check',
+            width: 800,
+            height: 600,
+            classes: ['coffee-pub-blacksmith', 'skill-check-dialog']
+        });
+    }
+
+    getData() {
         // Get all available skills
         const skills = [
             { id: 'acr', name: 'Acrobatics', icon: 'fas fa-running' },
@@ -31,95 +42,69 @@ export class SkillCheckDialog extends Dialog {
             { id: 'sur', name: 'Survival', icon: 'fas fa-campground' }
         ];
 
-        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-window.hbs', { 
-            actors,
+        return {
+            actors: this.data.actors,
             skills,
-            selectedSkill: skillName
+            selectedSkill: this.data.skillName
+        };
+    }
+
+    activateListeners(html) {
+        super.activateListeners(html);
+
+        // Add click handler for actor selection
+        html.find('.actor-item').click(event => {
+            html.find('.actor-item').removeClass('selected');
+            $(event.currentTarget).addClass('selected');
         });
 
-        const dialog = new this({
-            title: "Configure Skill Check",
-            content,
-            buttons: {
-                roll: {
-                    icon: '<i class="fas fa-dice-d20"></i>',
-                    label: "Request Roll",
-                    callback: (html) => {
-                        const selectedActor = html.find('.actor-item.selected');
-                        const selectedSkill = html.find('.skill-item.selected');
-                        
-                        if (!selectedActor.length) {
-                            ui.notifications.warn("Please select a character first.");
-                            return;
-                        }
-                        
-                        if (!selectedSkill.length) {
-                            ui.notifications.warn("Please select a skill first.");
-                            return;
-                        }
+        // Add click handler for skill selection
+        html.find('.skill-item').click(event => {
+            html.find('.skill-item').removeClass('selected');
+            $(event.currentTarget).addClass('selected');
+        });
 
-                        const actorId = selectedActor.data('actorId');
-                        const skillId = selectedSkill.data('skill');
-                        if (callback) callback(actorId, skillId);
-                    }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
-                }
-            },
-            default: "roll",
-            render: (html) => {
-                // Add click handler for actor selection
-                html.find('.actor-item').click(event => {
-                    html.find('.actor-item').removeClass('selected');
-                    $(event.currentTarget).addClass('selected');
-                });
+        // Add filter button handlers
+        html.find('.filter-btn').click(event => {
+            const filter = event.currentTarget.dataset.filter;
+            this._handleFilterClick(html, filter);
+        });
 
-                // Add click handler for skill selection
-                html.find('.skill-item').click(event => {
-                    html.find('.skill-item').removeClass('selected');
-                    $(event.currentTarget).addClass('selected');
-                });
-
-                // Add filter button handlers
-                html.find('.filter-btn').click(event => {
-                    const filter = event.currentTarget.dataset.filter;
-                    dialog._handleFilterClick(html, filter);
-                });
-
-                // Add search handlers
-                html.find('input[name="search"]').on('input', event => {
-                    const input = event.currentTarget;
-                    const searchTerm = input.value.toLowerCase();
-                    const isActorSearch = input.closest('.dialog-column').querySelector('h2').textContent === 'Selected Players';
-                    
-                    if (isActorSearch) {
-                        dialog._filterActors(html, searchTerm);
-                    } else {
-                        dialog._filterSkills(html, searchTerm);
-                    }
-                });
-
-                // Pre-select the skill if one was provided
-                if (skillName) {
-                    const skillItem = html.find(`.skill-item[data-skill="${skillName}"]`);
-                    if (skillItem.length) skillItem.addClass('selected');
-                }
+        // Add search handlers
+        html.find('input[name="search"]').on('input', event => {
+            const input = event.currentTarget;
+            const searchTerm = input.value.toLowerCase();
+            const isActorSearch = input.closest('.dialog-column').querySelector('h2').textContent === 'Selected Players';
+            
+            if (isActorSearch) {
+                this._filterActors(html, searchTerm);
+            } else {
+                this._filterSkills(html, searchTerm);
             }
-        }, {
-            ...options,
-            width: 800,
-            height: 600,
-            classes: [...(options.classes || []), 'skill-check-dialog']
         });
 
-        // Store references we'll need
-        dialog.actors = actors;
-        dialog.skillName = skillName;
-        dialog.workspaceId = workspaceId;
+        // Add button handlers
+        html.find('.dialog-button[data-button="roll"]').click(event => {
+            const selectedActor = html.find('.actor-item.selected');
+            const selectedSkill = html.find('.skill-item.selected');
+            
+            if (!selectedActor.length) {
+                ui.notifications.warn("Please select a character first.");
+                return;
+            }
+            
+            if (!selectedSkill.length) {
+                ui.notifications.warn("Please select a skill first.");
+                return;
+            }
 
-        return dialog;
+            const actorId = selectedActor.data('actorId');
+            const skillId = selectedSkill.data('skill');
+            if (this.callback) this.callback(actorId, skillId);
+            this.close();
+        });
+
+        html.find('.dialog-button[data-button="cancel"]').click(() => this.close());
     }
 
     _handleFilterClick(html, filter) {

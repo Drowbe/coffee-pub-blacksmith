@@ -140,7 +140,7 @@ class ChatPanel {
                 }).filter(Boolean);
 
                 // Create and render the dialog
-                const dialog = await SkillCheckDialog.create({
+                const dialog = new SkillCheckDialog({
                     actors,
                     callback: async (actorId, skillId) => {
                         const actor = game.actors.get(actorId);

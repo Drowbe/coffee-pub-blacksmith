@@ -1081,31 +1081,22 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _handleRollDiceClick(id) {
         // Get the selected skill
-        const skillSelect = document.querySelector(`#optionSkill-${id}`);
-        const selectedSkill = skillSelect?.value;
-        if (!selectedSkill) return;
+        const selectedSkill = document.getElementById(`optionSkill-${id}`).value;
 
-        // Get player tokens from the canvas
-        const playerTokens = canvas.tokens.placeables.filter(token => 
-            token.actor?.type === 'character' && 
-            token.actor?.hasPlayerOwner
-        );
-
-        if (playerTokens.length === 0) {
-            ui.notifications.warn("No player characters found on the canvas.");
-            return;
-        }
-
-        // Map tokens to actors for the template
-        const actors = playerTokens.map(token => ({
-            id: token.actor.id,
-            name: token.name,
-            hasOwner: true,
-            actor: token.actor
-        }));
+        // Get all actors that have owners (players)
+        const actors = game.actors.contents.map(actor => {
+            if (actor.hasPlayerOwner) {
+                return {
+                    id: actor.id,
+                    name: actor.name,
+                    actor: actor,
+                    hasOwner: actor.hasPlayerOwner
+                };
+            }
+        }).filter(Boolean);
 
         // Create and render the dialog
-        const dialog = await SkillCheckDialog.create({
+        const dialog = new SkillCheckDialog({
             actors,
             skillName: this._getSkillAbbreviation(selectedSkill),
             workspaceId: id,
