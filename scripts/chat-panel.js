@@ -146,10 +146,14 @@ class ChatPanel {
                         const actor = game.actors.get(actorId);
                         if (!actor) return;
 
+                        // Get the skill label from the system
+                        const skillLabel = CONFIG.DND5E.skills[skillId]?.label;
+                        if (!skillLabel) return;
+
                         // Create a chat message with the roll button using our template
                         const messageData = {
                             actorName: actor.name,
-                            skillName: actor.system.skills[skillId].label,
+                            skillName: game.i18n.localize(skillLabel),
                             actorId: actor.id,
                             skillAbbr: skillId,
                             requesterId: game.user.id
@@ -163,10 +167,11 @@ class ChatPanel {
                             speaker: ChatMessage.getSpeaker({ actor }),
                             flags: {
                                 'coffee-pub-blacksmith': {
-                                    isSkillCheck: true,
-                                    actorId: actor.id,
-                                    skillName: actor.system.skills[skillId].label,
+                                    type: 'skillCheck',
+                                    skillName: game.i18n.localize(skillLabel),
                                     skillAbbr: skillId,
+                                    actorId: actor.id,
+                                    actorName: actor.name,
                                     requesterId: game.user.id
                                 }
                             }

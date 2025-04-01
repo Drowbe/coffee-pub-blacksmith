@@ -134,8 +134,12 @@ Hooks.once('init', async function() {
                     windows.forEach(window => {
                         // Find the input field and update it
                         const inputField = window.element[0].querySelector(`#inputDiceValue-${data.workspaceId}`);
+                        const skillSelect = window.element[0].querySelector(`#optionSkill-${data.workspaceId}`);
                         if (inputField) {
                             inputField.value = data.rollTotal;
+                        }
+                        if (skillSelect) {
+                            skillSelect.value = data.skillName;
                         }
                     });
                 }
@@ -158,7 +162,7 @@ Hooks.once('init', async function() {
     
     // Register chat message click handler for skill rolls
     Hooks.on('renderChatMessage', (message, html) => {
-        if (message.flags?.['coffee-pub-blacksmith']?.isSkillCheck) {
+        if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
             BlacksmithWindowQuery.handleChatMessageClick(message, html);
         }
     });
@@ -194,8 +198,12 @@ Hooks.once('init', async function() {
             windows.forEach(window => {
                 // Find the input field and update it
                 const inputField = window.element[0].querySelector(`#inputDiceValue-${data.data.workspaceId}`);
+                const skillSelect = window.element[0].querySelector(`#optionSkill-${data.data.workspaceId}`);
                 if (inputField) {
                     inputField.value = data.data.rollTotal;
+                }
+                if (skillSelect) {
+                    skillSelect.value = data.data.skillName;
                 }
             });
         }

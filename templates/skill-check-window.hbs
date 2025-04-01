@@ -45,7 +45,7 @@
             </div>
             <div class="skills-list">
                 {{#each skills}}
-                    <div class="skill-item" data-skill="{{this.id}}">
+                    <div class="skill-item {{#if this.selected}}selected{{/if}}" data-skill="{{this.id}}">
                         <i class="{{this.icon}}"></i>
                         <span>{{this.name}}</span>
                     </div>
