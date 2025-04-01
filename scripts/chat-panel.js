@@ -142,7 +142,7 @@ class ChatPanel {
                 // Create and render the dialog
                 const dialog = new SkillCheckDialog({
                     actors,
-                    callback: async (actorId, skillId) => {
+                    callback: async (actorId, skillId, config) => {
                         const actor = game.actors.get(actorId);
                         if (!actor) return;
 
@@ -156,7 +156,11 @@ class ChatPanel {
                             skillName: game.i18n.localize(skillLabel),
                             actorId: actor.id,
                             skillAbbr: skillId,
-                            requesterId: game.user.id
+                            requesterId: game.user.id,
+                            dc: config.showDC ? config.dc : null,
+                            label: config.label || game.i18n.localize(skillLabel),
+                            description: config.description,
+                            dice: config.dice?.replace('d', '') || '20'
                         };
 
                         const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
@@ -165,6 +169,8 @@ class ChatPanel {
                         await ChatMessage.create({
                             content: messageContent,
                             speaker: ChatMessage.getSpeaker({ actor }),
+                            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                            rollMode: config.rollMode || 'roll',
                             flags: {
                                 'coffee-pub-blacksmith': {
                                     type: 'skillCheck',
@@ -172,7 +178,11 @@ class ChatPanel {
                                     skillAbbr: skillId,
                                     actorId: actor.id,
                                     actorName: actor.name,
-                                    requesterId: game.user.id
+                                    requesterId: game.user.id,
+                                    dc: config.dc,
+                                    showDC: config.showDC,
+                                    description: config.description,
+                                    dice: config.dice || 'd20'
                                 }
                             }
                         });

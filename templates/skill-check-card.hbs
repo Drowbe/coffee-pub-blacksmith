@@ -1,12 +1,25 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 <div class="blacksmith-card theme-default">
     <div class="section-header">
-        <i class="fas fa-dice-d20"></i> {{actorName}} - {{skillName}} Check
+        <i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}} {{/if}}{{skillName}}
     </div>
+    {{#if label}}
+    <div class="section-label">
+        {{label}}
+    </div>
+    {{/if}}
+    {{#if description}}
+    <div class="section-description">
+        {{description}}
+    </div>
+    {{/if}}
     <div class="section-content">
         <div class="skill-check-roll">
             <button class="skill-roll" data-actor-id="{{actorId}}" data-skill="{{skillAbbr}}">
-                <i class="fas fa-dice-d20"></i> Roll {{skillName}}
+                {{#if (eq dice "2")}}<i class="fas fa-coin"></i>
+                {{else if (eq dice "100")}}<i class="fas fa-hundred-points"></i>
+                {{else}}<i class="fas fa-dice-d{{dice}}"></i>{{/if}}
+                {{actorName}}
             </button>
         </div>
     </div>

@@ -487,6 +487,23 @@
     margin-bottom: 0.5em;
 }
 
+.section-label {
+    font-weight: bold;
+    color: var(--color-text-dark-primary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+}
+
+.section-description {
+    font-style: italic;
+    color: var(--color-text-dark-secondary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+    border-left: 3px solid var(--color-border-light-tertiary);
+}
+
 .skill-check-roll {
     padding: 5px;
     text-align: center;
@@ -502,6 +519,9 @@
     transition: all 0.2s ease;
     font-size: 14px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .skill-check-roll .skill-roll:hover {
@@ -511,5 +531,5 @@
 }
 
 .skill-check-roll .skill-roll i {
-    margin-right: 8px;
+    font-size: var(--font-size-14);
 } 

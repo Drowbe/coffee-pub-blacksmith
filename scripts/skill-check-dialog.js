@@ -24,19 +24,16 @@ export class SkillCheckDialog extends Application {
 
     getData() {
         // Get all skills from the system
-        const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => {
-            return {
-                id: id,
-                name: game.i18n.localize(data.label),
-                icon: 'fas fa-check-circle',
-                selected: id === this.skillName
-            };
-        });
+        const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
+            id,
+            name: game.i18n.localize(data.label),
+            icon: "fas fa-check",
+            selected: id === this.skillName
+        }));
 
         return {
             actors: this.actors,
-            skills: skills,
-            selectedSkill: this.skillName
+            skills
         };
     }
 
@@ -54,6 +51,13 @@ export class SkillCheckDialog extends Application {
             const item = ev.currentTarget;
             html.find('.skill-item').removeClass('selected');
             item.classList.add('selected');
+        });
+
+        // Handle dice selection
+        html.find('.dice-btn').click(ev => {
+            const btn = ev.currentTarget;
+            html.find('.dice-btn').removeClass('selected');
+            btn.classList.add('selected');
         });
 
         // Handle search inputs
@@ -101,12 +105,27 @@ export class SkillCheckDialog extends Application {
                 return;
             }
 
+            // Get form data
+            const dc = html.find('input[name="dc"]').val();
+            const showDC = html.find('input[name="showDC"]').prop('checked');
+            const rollMode = html.find('select[name="rollMode"]').val();
+            const description = html.find('textarea[name="description"]').val();
+            const label = html.find('input[name="label"]').val();
+            const selectedDice = html.find('.dice-btn.selected').data('dice');
+
             selectedActors.each((i, actorItem) => {
                 const actorId = actorItem.dataset.actorId;
                 const skillId = selectedSkill[0].dataset.skill;
                 
                 if (this.callback) {
-                    this.callback(actorId, skillId);
+                    this.callback(actorId, skillId, {
+                        dc: dc || null,
+                        showDC,
+                        rollMode,
+                        description: description || null,
+                        label: label || game.i18n.localize(CONFIG.DND5E.skills[skillId].label),
+                        dice: selectedDice || 'd20'
+                    });
                 }
             });
 
