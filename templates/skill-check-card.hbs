@@ -1,26 +1,30 @@
-<span style="visibility: hidden">coffeepub-hide-header</span>
-<div class="blacksmith-card theme-default">
-    <div class="section-header">
-        <i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}} {{/if}}{{skillName}}
-    </div>
-    {{#if label}}
-    <div class="section-label">
-        {{label}}
-    </div>
-    {{/if}}
-    {{#if description}}
-    <div class="section-description">
-        {{description}}
-    </div>
-    {{/if}}
-    <div class="section-content">
-        <div class="skill-check-roll">
-            <button class="skill-roll" data-actor-id="{{actorId}}" data-skill="{{skillAbbr}}">
-                {{#if (eq dice "2")}}<i class="fas fa-coin"></i>
-                {{else if (eq dice "100")}}<i class="fas fa-hundred-points"></i>
-                {{else}}<i class="fas fa-dice-d{{dice}}"></i>{{/if}}
-                {{actorName}}
-            </button>
+{{#unless hideHeader}}
+<div class="dnd5e chat-card item-card" data-actor-id="{{actorId}}">
+    <header class="card-header flexrow">
+        <img src="icons/svg/d20-grey.svg" title="{{skillName}} Check" width="36" height="36"/>
+        <h3 class="item-name">{{skillName}} Check</h3>
+    </header>
+
+    <div class="card-content">
+        {{#if dc}}<p><strong>DC {{dc}}</strong></p>{{/if}}
+        {{#if description}}<p>{{description}}</p>{{/if}}
+        
+        <div class="skill-check-buttons">
+            {{#each actors}}
+            <div class="skill-check-actor">
+                {{#if this.result}}
+                    <div class="roll-result">
+                        <span class="actor-name">{{this.name}}</span>
+                        <span class="roll-total">{{this.result.total}}</span>
+                    </div>
+                {{else}}
+                    <button class="skill-roll" data-actor-id="{{this.id}}" data-skill="{{../skillAbbr}}" data-type="{{../rollType}}" data-value="{{../rollValue}}">
+                        <i class="fas fa-dice-d20"></i> {{this.name}}
+                    </button>
+                {{/if}}
+            </div>
+            {{/each}}
         </div>
     </div>
-</div> 
+</div>
+{{/unless}} 

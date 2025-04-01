@@ -330,3 +330,109 @@
 .dialog-buttons .dialog-button i {
     font-size: var(--font-size-14);
 }
+
+.actor-roll {
+    margin-bottom: 8px;
+}
+
+.actor-roll:last-child {
+    margin-bottom: 0;
+}
+
+.roll-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border-light-primary);
+}
+
+.roll-result.success {
+    background: rgba(45, 138, 69, 0.1);
+    border-color: #2d8a45;
+}
+
+.roll-result.failure {
+    background: rgba(193, 87, 1, 0.1);
+    border-color: #c15701;
+}
+
+.roll-result .actor-name {
+    font-weight: bold;
+    color: #594a3c;
+}
+
+.roll-result .roll-total {
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
+}
+
+.roll-result .roll-formula {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.skill-check-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.skill-check-actor {
+    margin: 2px 0;
+}
+
+.skill-check-actor button {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 5px;
+    font-size: var(--font-size-13);
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.skill-check-actor button:hover {
+    box-shadow: 0 0 5px var(--color-shadow-primary);
+    border-color: #000;
+}
+
+.skill-check-actor .dice-roll {
+    text-align: center;
+    font-family: var(--font-primary);
+}
+
+.skill-check-actor .dice-result {
+    padding: 3px 0;
+}
+
+.skill-check-actor .dice-total {
+    font-size: var(--font-size-16);
+    font-weight: bold;
+    color: #000;
+    margin: 0;
+    padding: 0;
+}
+
+.skill-check-actor .dice-total.success {
+    color: #18520b;
+}
+
+.skill-check-actor .dice-total.failure {
+    color: #aa0200;
+}
+
+.skill-check-actor .dice-formula {
+    font-size: var(--font-size-12);
+    color: #666;
+    font-style: italic;
+}

@@ -142,9 +142,8 @@ class ChatPanel {
                 // Create and render the dialog
                 const dialog = new SkillCheckDialog({
                     actors,
-                    callback: async (actorId, config) => {
-                        const actor = game.actors.get(actorId);
-                        if (!actor) return;
+                    callback: async (selectedActors, config) => {
+                        if (selectedActors.length === 0) return;
 
                         // Get the appropriate label based on type
                         let rollLabel = '';
@@ -174,7 +173,8 @@ class ChatPanel {
                                 rollAbbr = config.value;
                                 break;
                             case 'tool':
-                                const tool = actor.items.get(config.value);
+                                const actor = game.actors.get(selectedActors[0].id);
+                                const tool = actor?.items.get(config.value);
                                 rollLabel = tool?.name || 'Tool Check';
                                 rollAbbr = config.value;
                                 break;
@@ -182,9 +182,11 @@ class ChatPanel {
 
                         // Create a chat message with the roll button using our template
                         const messageData = {
-                            actorName: actor.name,
+                            actors: selectedActors.map(actorData => ({
+                                id: actorData.id,
+                                name: actorData.name
+                            })),
                             skillName: rollLabel,
-                            actorId: actor.id,
                             skillAbbr: rollAbbr,
                             requesterId: game.user.id,
                             dc: config.showDC ? config.dc : null,
@@ -200,7 +202,7 @@ class ChatPanel {
                         // Create the chat message
                         await ChatMessage.create({
                             content: messageContent,
-                            speaker: ChatMessage.getSpeaker({ actor }),
+                            speaker: ChatMessage.getSpeaker(),
                             type: CONST.CHAT_MESSAGE_TYPES.OTHER,
                             rollMode: config.rollMode || 'roll',
                             flags: {
@@ -208,8 +210,10 @@ class ChatPanel {
                                     type: 'skillCheck',
                                     skillName: rollLabel,
                                     skillAbbr: rollAbbr,
-                                    actorId: actor.id,
-                                    actorName: actor.name,
+                                    actors: selectedActors.map(actorData => ({
+                                        id: actorData.id,
+                                        name: actorData.name
+                                    })),
                                     requesterId: game.user.id,
                                     dc: config.dc,
                                     showDC: config.showDC,

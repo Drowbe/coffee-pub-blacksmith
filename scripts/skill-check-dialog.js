@@ -111,7 +111,10 @@ export class SkillCheckDialog extends Application {
 
         // Handle the roll button
         html.find('button[data-button="roll"]').click(ev => {
-            const selectedActors = html.find('.actor-item.selected');
+            const selectedActors = Array.from(html.find('.actor-item.selected')).map(item => ({
+                id: item.dataset.actorId,
+                name: item.querySelector('.actor-name').textContent
+            }));
             
             if (selectedActors.length === 0) {
                 ui.notifications.warn("Please select at least one actor.");
@@ -130,21 +133,17 @@ export class SkillCheckDialog extends Application {
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
 
-            selectedActors.each((i, actorItem) => {
-                const actorId = actorItem.dataset.actorId;
-                
-                if (this.callback) {
-                    this.callback(actorId, {
-                        type: this.selectedType,
-                        value: this.selectedValue,
-                        dc: dc || null,
-                        showDC,
-                        rollMode,
-                        description: description || null,
-                        label: label || null
-                    });
-                }
-            });
+            if (this.callback) {
+                this.callback(selectedActors, {
+                    type: this.selectedType,
+                    value: this.selectedValue,
+                    dc: dc || null,
+                    showDC,
+                    rollMode,
+                    description: description || null,
+                    label: label || null
+                });
+            }
 
             this.close();
         });

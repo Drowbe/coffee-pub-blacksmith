@@ -1294,3 +1294,64 @@ function updateMargins() {
     root.style.setProperty('--intOffsetMarginTop', cardTopOffset +'px');
     postConsoleAndNotification("Update Margins complete.", "", false, false, false);
 }
+
+class ThirdPartyManager {
+    static socket = null;
+
+    static registerSocketFunctions() {
+        postConsoleAndNotification("Third Party Manager | Registering socket functions", "", false, true, false);
+        
+        // Combat Timer
+        this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
+        this.socket.register("combatTimerAdjusted", CombatTimer.timerAdjusted);
+        
+        // Planning Timer
+        this.socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
+        this.socket.register("planningTimerAdjusted", PlanningTimer.timerAdjusted);
+        this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
+        
+        // Chat Panel
+        this.socket.register("updateLeader", ChatPanel.receiveLeaderUpdate);
+        this.socket.register("updateTimer", ChatPanel.receiveTimerUpdate);
+
+        // Vote Manager
+        this.socket.register("receiveVoteStart", VoteManager.receiveVoteStart.bind(VoteManager));
+        this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
+        this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
+
+        // Skill Check
+        this.socket.register("updateSkillRoll", async (data) => {
+            const message = game.messages.get(data.messageId);
+            if (!message) return;
+
+            const flags = message.flags['coffee-pub-blacksmith'];
+            if (!flags?.type === 'skillCheck') return;
+
+            // Update the actors array with the new result
+            const actors = flags.actors.map(a => ({
+                ...a,
+                result: a.id === data.actorId ? data.result : a.result
+            }));
+
+            // Update the message content
+            const messageData = {
+                ...flags,
+                actors
+            };
+
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+            await message.update({ content });
+
+            // If we're the GM, update any open windows
+            if (game.user.isGM) {
+                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                windows.forEach(window => {
+                    const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+                    if (inputField) {
+                        inputField.value = data.result.total;
+                    }
+                });
+            }
+        });
+    }
+}

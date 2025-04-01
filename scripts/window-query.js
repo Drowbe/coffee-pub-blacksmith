@@ -1087,63 +1087,38 @@ export class BlacksmithWindowQuery extends FormApplication {
         const skillName = skillSelect.value;
         const skillId = this._getSkillAbbreviation(skillName);
 
-        // Get all actors that have owners (players)
-        const actors = game.actors.contents.map(actor => {
-            if (actor.hasPlayerOwner) {
-                return {
-                    id: actor.id,
-                    name: actor.name,
-                    actor: actor,
-                    hasOwner: actor.hasPlayerOwner
-                };
-            }
-        }).filter(Boolean);
+        // Get all selected actors
+        const selectedActors = canvas.tokens.controlled
+            .filter(t => t.actor)
+            .map(t => ({
+                id: t.actor.id,
+                name: t.actor.name
+            }));
 
-        // Create and render the dialog
-        const dialog = new SkillCheckDialog({
-            actors,
-            skillName: skillId,
-            workspaceId: id,
-            callback: async (actorId, skillId) => {
-                        const actor = game.actors.get(actorId);
-                        if (!actor) return;
+        if (selectedActors.length === 0) {
+            ui.notifications.warn("Please select at least one token.");
+            return;
+        }
 
-                // Get the skill label from the system
-                const skillLabel = CONFIG.DND5E.skills[skillId]?.label;
-                if (!skillLabel) return;
+        // Create a chat message with the roll buttons using our template
+        const messageData = {
+            skillName: skillName,
+            skillAbbr: skillId,
+            actors: selectedActors,
+            requesterId: game.user.id,
+            type: 'skillCheck'
+        };
 
-                        // Create a chat message with the roll button using our template
-                        const messageData = {
-                            actorName: actor.name,
-                    skillName: game.i18n.localize(skillLabel),
-                            actorId: actor.id,
-                    skillAbbr: skillId,
-                    requesterId: game.user.id,
-                    workspaceId: id
-                        };
+        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
 
-                        const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-
-                // Create the chat message
-                await ChatMessage.create({
-                            content: messageContent,
-                    speaker: ChatMessage.getSpeaker({ actor }),
-                    flags: {
-                        'coffee-pub-blacksmith': {
-                            type: 'skillCheck',
-                            workspaceId: id,
-                            skillName: game.i18n.localize(skillLabel),
-                            skillAbbr: skillId,
-                            actorId: actor.id,
-                            actorName: actor.name,
-                            requesterId: game.user.id
-                        }
-                    }
-                });
+        // Create the chat message
+        await ChatMessage.create({
+            content: content,
+            speaker: ChatMessage.getSpeaker(),
+            flags: {
+                'coffee-pub-blacksmith': messageData
             }
         });
-        
-        dialog.render(true);
     }
 
     // Add this new method to handle the chat message click
@@ -1166,92 +1141,46 @@ export class BlacksmithWindowQuery extends FormApplication {
                     const flags = message.flags['coffee-pub-blacksmith'];
                     if (!flags) return;
 
-                    let roll;
-                    switch (flags.rollType) {
-                        case 'dice':
-                            roll = await new Roll(flags.rollValue).evaluate({async: true});
-                            break;
-                        case 'skill':
-                            roll = await actor.rollSkill(flags.rollValue);
-                            break;
-                        case 'ability':
-                            roll = await actor.rollAbility(flags.rollValue);
-                            break;
-                        case 'save':
-                            if (flags.rollValue === 'death') {
-                                roll = await actor.rollDeathSave();
-                            } else {
-                                roll = await actor.rollAbilitySave(flags.rollValue);
-                            }
-                            break;
-                        case 'tool':
-                            roll = await actor.rollToolCheck(flags.rollValue);
-                            break;
-                        default:
-                            ui.notifications.error("Unknown roll type.");
-                            return;
-                    }
+                    // Roll the skill check
+                    const roll = await actor.rollSkill(flags.skillAbbr);
 
-                    if (roll) {
-                        // If this was requested by a GM, send them a notification
-                        const requester = game.users.get(flags.requesterId);
-                        if (requester?.isGM) {
-                            // Create a chat message for the GM
-                            ChatMessage.create({
-                                content: `<div class="blacksmith-card theme-default">
-                                    <div class="section-header">
-                                        <i class="fas fa-dice-d20"></i> Roll Result
-                                    </div>
-                                    <div class="section-content">
-                                        ${actor.name} rolled a ${roll.total} for their ${flags.skillName}.
-                                    </div>
-                                </div>`,
-                                whisper: [requester.id]
-                            });
+                    // Get the actors array from flags and update the result for this actor
+                    const actors = flags.actors.map(a => ({
+                        ...a,
+                        result: a.id === actorId ? {
+                            total: roll.total,
+                            formula: roll.formula
+                        } : a.result
+                    }));
 
-                            // Get socketlib API and use it to send the message
-                            const socketlib = game.modules.get('socketlib')?.api;
-                            if (socketlib) {
-                                socketlib.executeForUsers(MODULE_ID, 'updateSkillRoll', {
-                                    workspaceId: flags.workspaceId,
-                                    rollTotal: roll.total,
-                                    skillName: flags.skillName,
-                                    skillAbbr: flags.skillAbbr,
-                                    requesterId: flags.requesterId
-                                }, [requester.id]);
-                            } else {
-                                // Fallback to regular socket if socketlib isn't available
-                                game.socket.emit(`module.${MODULE_ID}`, {
-                                    type: 'updateSkillRoll',
-                                    data: {
-                                        workspaceId: flags.workspaceId,
-                                        rollTotal: roll.total,
-                                        skillName: flags.skillName,
-                                        skillAbbr: flags.skillAbbr,
-                                        requesterId: flags.requesterId
-                                    }
-                                });
-                            }
+                    // Update the message content with the new results
+                    const messageData = {
+                        ...flags,
+                        actors
+                    };
 
-                            // If the current user is the GM, also update their input directly
-                            if (game.user.isGM) {
-                                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                                windows.forEach(window => {
-                                    const inputField = window.element[0].querySelector(`#inputDiceValue-${flags.workspaceId}`);
-                                    const skillSelect = window.element[0].querySelector(`#optionSkill-${flags.workspaceId}`);
-                                    if (inputField) {
-                                        inputField.value = roll.total;
-                                    }
-                                    if (skillSelect) {
-                                        skillSelect.value = flags.skillName;
-                                    }
-                                });
-                            }
+                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                    await message.update({ 
+                        content,
+                        flags: {
+                            'coffee-pub-blacksmith': messageData
                         }
+                    });
+
+                    // If this was requested by the GM, update their interface
+                    if (flags.requesterId === game.user.id && game.user.isGM) {
+                        const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                        windows.forEach(window => {
+                            const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+                            if (inputField) {
+                                inputField.value = roll.total;
+                            }
+                        });
                     }
+
                 } catch (error) {
-                    console.error("Blacksmith | Error making roll:", error);
-                    ui.notifications.error("There was an error making the roll.");
+                    console.error("Error handling skill check:", error);
+                    ui.notifications.error("There was an error processing the skill check.");
                 }
             });
         }
@@ -3087,59 +3016,90 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
     // Handle chat message click
     async handleChatMessageClick(event) {
         event.preventDefault();
-        const messageId = event.currentTarget.closest('.message').dataset.messageId;
+        const button = event.currentTarget;
+        const messageId = button.closest('.message').dataset.messageId;
         const message = game.messages.get(messageId);
-        const flags = message.getFlag('coffee-pub-blacksmith');
+        const flags = message.flags['coffee-pub-blacksmith'];
+        
+        if (!flags?.type === 'skillCheck') return;
 
-        if (flags.type === 'skillCheck') {
-            const roll = await new Roll('1d20').evaluate({async: true});
-            const rollTotal = roll.total;
+        const actorId = button.dataset.actorId;
+        const actor = game.actors.get(actorId);
+        if (!actor) return;
 
-            // If the current user is the GM, update any open BlacksmithWindowQuery instances
-            if (game.user.isGM) {
-                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                windows.forEach(window => {
-                    const inputField = window.element[0].querySelector(`#inputDiceValue-${flags.workspaceId}`);
-                    const skillSelect = window.element[0].querySelector(`#optionSkill-${flags.workspaceId}`);
-                    if (inputField) {
-                        inputField.value = rollTotal;
-                    }
-                    if (skillSelect) {
-                        skillSelect.value = flags.skillName;
+        // Check if this actor has permission to roll
+        if (!actor.isOwner) {
+            ui.notifications.warn("You don't have permission to roll for this character.");
+            return;
+        }
+
+        let roll;
+        const type = button.dataset.type;
+        const value = button.dataset.value;
+
+        try {
+            switch (type) {
+                case 'dice':
+                    roll = await new Roll(value).evaluate({async: true});
+                    break;
+                case 'skill':
+                    roll = await actor.rollSkill(value);
+                    break;
+                case 'ability':
+                    roll = await actor.rollAbility(value);
+                    break;
+                case 'save':
+                    roll = value === 'death' ? 
+                        await actor.rollDeathSave() :
+                        await actor.rollAbilitySave(value);
+                    break;
+                case 'tool':
+                    roll = await actor.rollToolCheck(value);
+                    break;
+                default:
+                    return;
+            }
+
+            // Create the roll message
+            await roll.toMessage({
+                speaker: ChatMessage.getSpeaker({actor}),
+                flavor: `${flags.skillName} Check`
+            });
+
+            // Get the actors array from flags
+            const actors = flags.actors.map(a => ({
+                ...a,
+                result: a.id === actorId ? {
+                    total: roll.total,
+                    formula: roll.formula
+                } : a.result
+            }));
+
+            // Update the original message content
+            const messageData = {
+                ...flags,
+                actors
+            };
+
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+            await message.update({ content });
+
+            // If this was requested by the GM, send the result back
+            if (flags.requesterId === game.user.id) {
+                const socket = ThirdPartyManager.getSocket();
+                await socket.executeForOthers("updateSkillRoll", {
+                    messageId,
+                    actorId,
+                    result: {
+                        total: roll.total,
+                        formula: roll.formula
                     }
                 });
             }
 
-            // Emit socket event to update the GM's interface
-            game.socket.emit('module.coffee-pub-blacksmith', {
-                type: 'updateSkillRoll',
-                data: {
-                    workspaceId: flags.workspaceId,
-                    rollTotal: rollTotal,
-                    skillName: flags.skillName,
-                    skillAbbr: flags.skillAbbr
-                }
-            });
-
-            // Create a chat message with the roll result
-            await ChatMessage.create({
-                content: `<div class="dice-roll">
-                            <div class="dice-result">
-                                <h4 class="dice-total">${rollTotal}</h4>
-                            </div>
-                        </div>`,
-                speaker: ChatMessage.getSpeaker(),
-                flavor: `Rolling for ${flags.skillName} check`,
-                flags: {
-                    'coffee-pub-blacksmith': {
-                        type: 'skillRollResult',
-                        workspaceId: flags.workspaceId,
-                        skillName: flags.skillName,
-                        skillAbbr: flags.skillAbbr,
-                        rollTotal: rollTotal
-                    }
-                }
-            });
+        } catch (error) {
+            console.error("Error handling skill check:", error);
+            ui.notifications.error("There was an error processing the skill check.");
         }
     }
 
