@@ -74,6 +74,79 @@
     min-height: 40px;
 }
 
+.checks-list {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+}
+
+.check-section {
+    margin-bottom: 12px;
+}
+
+.check-section .section-header {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 4px 8px;
+    font-weight: bold;
+    font-size: var(--font-size-12);
+    border-radius: 3px;
+    margin-bottom: 4px;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    margin-bottom: 2px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+}
+
+.check-item:hover {
+    border-color: #000;
+    box-shadow: 0 0 5px var(--color-shadow-primary);
+}
+
+.check-item.selected {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: #000;
+    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
+}
+
+.check-item i {
+    font-size: var(--font-size-14);
+    width: 16px;
+    text-align: center;
+}
+
+.check-item span {
+    flex: 1;
+    font-size: var(--font-size-12);
+}
+
+.dice-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin: 4px 0;
+}
+
+.dice-grid .check-item {
+    justify-content: center;
+    aspect-ratio: 1;
+    padding: 4px;
+}
+
+.dice-grid .check-item i {
+    font-size: var(--font-size-16);
+    margin-right: 4px;
+}
+
 .filter-buttons {
     display: flex;
     gap: 4px;
@@ -104,13 +177,6 @@
 
 .dice-buttons {
     display: flex;
-    gap: 4px;
-    margin-top: 4px;
-}
-
-.dice-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     margin-top: 4px;
 }
@@ -262,5 +328,5 @@
 }
 
 .dialog-buttons .dialog-button i {
-    font-size: var(--font-size-13);
+    font-size: var(--font-size-14);
 }

@@ -142,25 +142,57 @@ class ChatPanel {
                 // Create and render the dialog
                 const dialog = new SkillCheckDialog({
                     actors,
-                    callback: async (actorId, skillId, config) => {
+                    callback: async (actorId, config) => {
                         const actor = game.actors.get(actorId);
                         if (!actor) return;
 
-                        // Get the skill label from the system
-                        const skillLabel = CONFIG.DND5E.skills[skillId]?.label;
-                        if (!skillLabel) return;
+                        // Get the appropriate label based on type
+                        let rollLabel = '';
+                        let rollAbbr = '';
+                        let rollIcon = 'fa-dice-d20';
+
+                        switch (config.type) {
+                            case 'dice':
+                                rollLabel = `${config.value} Roll`;
+                                rollAbbr = config.value;
+                                rollIcon = config.value === 'd2' ? 'fa-coin' : 
+                                         config.value === 'd100' ? 'fa-hundred-points' : 
+                                         `fa-dice-${config.value.substring(1)}`;
+                                break;
+                            case 'skill':
+                                rollLabel = game.i18n.localize(CONFIG.DND5E.skills[config.value].label);
+                                rollAbbr = config.value;
+                                break;
+                            case 'ability':
+                                rollLabel = game.i18n.localize(CONFIG.DND5E.abilities[config.value].label);
+                                rollAbbr = config.value;
+                                break;
+                            case 'save':
+                                rollLabel = config.value === 'death' ? 
+                                    'Death Save' : 
+                                    `${game.i18n.localize(CONFIG.DND5E.abilities[config.value].label)} Save`;
+                                rollAbbr = config.value;
+                                break;
+                            case 'tool':
+                                const tool = actor.items.get(config.value);
+                                rollLabel = tool?.name || 'Tool Check';
+                                rollAbbr = config.value;
+                                break;
+                        }
 
                         // Create a chat message with the roll button using our template
                         const messageData = {
                             actorName: actor.name,
-                            skillName: game.i18n.localize(skillLabel),
+                            skillName: rollLabel,
                             actorId: actor.id,
-                            skillAbbr: skillId,
+                            skillAbbr: rollAbbr,
                             requesterId: game.user.id,
                             dc: config.showDC ? config.dc : null,
-                            label: config.label || game.i18n.localize(skillLabel),
+                            label: config.label || null,
                             description: config.description,
-                            dice: config.dice?.replace('d', '') || '20'
+                            dice: config.type === 'dice' ? config.value.substring(1) : '20',
+                            rollType: config.type,
+                            rollValue: config.value
                         };
 
                         const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
@@ -174,15 +206,16 @@ class ChatPanel {
                             flags: {
                                 'coffee-pub-blacksmith': {
                                     type: 'skillCheck',
-                                    skillName: game.i18n.localize(skillLabel),
-                                    skillAbbr: skillId,
+                                    skillName: rollLabel,
+                                    skillAbbr: rollAbbr,
                                     actorId: actor.id,
                                     actorName: actor.name,
                                     requesterId: game.user.id,
                                     dc: config.dc,
                                     showDC: config.showDC,
                                     description: config.description,
-                                    dice: config.dice || 'd20'
+                                    rollType: config.type,
+                                    rollValue: config.value
                                 }
                             }
                         });

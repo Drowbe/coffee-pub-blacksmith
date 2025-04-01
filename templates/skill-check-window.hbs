@@ -38,20 +38,96 @@
 
         <!-- Middle Column -->
         <div class="dialog-column">
-            <h2>Available Skills</h2>
+            <h2>Available Checks</h2>
             <div class="form-group">
                 <label>Criteria</label>
                 <div class="form-fields">
-                    <input type="text" name="search" placeholder="Search skills...">
+                    <input type="text" name="search" placeholder="Search...">
                 </div>
             </div>
-            <div class="skills-list">
-                {{#each skills}}
-                    <div class="skill-item {{#if this.selected}}selected{{/if}}" data-skill="{{this.id}}">
+            <div class="checks-list">
+                <!-- Dice Roll Section -->
+                <div class="check-section">
+                    <div class="section-header">Dice Roll</div>
+                    <div class="dice-grid">
+                        <div class="check-item" data-type="dice" data-value="d2">
+                            <i class="fas fa-coin"></i>
+                            <span>d2</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d4">
+                            <i class="fas fa-dice-d4"></i>
+                            <span>d4</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d6">
+                            <i class="fas fa-dice-d6"></i>
+                            <span>d6</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d8">
+                            <i class="fas fa-dice-d8"></i>
+                            <span>d8</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d10">
+                            <i class="fas fa-dice-d10"></i>
+                            <span>d10</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d12">
+                            <i class="fas fa-dice-d12"></i>
+                            <span>d12</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d20">
+                            <i class="fas fa-dice-d20"></i>
+                            <span>d20</span>
+                        </div>
+                        <div class="check-item" data-type="dice" data-value="d100">
+                            <i class="fas fa-hundred-points"></i>
+                            <span>d100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Check Section -->
+                <div class="check-section">
+                    <div class="section-header">Skill Check</div>
+                    {{#each skills}}
+                    <div class="check-item" data-type="skill" data-value="{{this.id}}">
                         <i class="{{this.icon}}"></i>
                         <span>{{this.name}}</span>
                     </div>
-                {{/each}}
+                    {{/each}}
+                </div>
+
+                <!-- Ability Check Section -->
+                <div class="check-section">
+                    <div class="section-header">Ability Check</div>
+                    {{#each abilities}}
+                    <div class="check-item" data-type="ability" data-value="{{this.id}}">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{this.name}}</span>
+                    </div>
+                    {{/each}}
+                </div>
+
+                <!-- Saving Throw Section -->
+                <div class="check-section">
+                    <div class="section-header">Saving Throw</div>
+                    {{#each saves}}
+                    <div class="check-item" data-type="save" data-value="{{this.id}}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>{{this.name}}</span>
+                    </div>
+                    {{/each}}
+                </div>
+
+                <!-- Tool Check Section -->
+                <div class="check-section">
+                    <div class="section-header">Tool Check</div>
+                    {{#each tools}}
+                    <div class="check-item" data-type="tool" data-value="{{this.id}}">
+                        <i class="fas fa-tools"></i>
+                        <span>{{this.name}}</span>
+                    </div>
+                    {{/each}}
+                </div>
             </div>
         </div>
 
@@ -87,35 +163,6 @@
                 <label>Label</label>
                 <div class="form-fields">
                     <input type="text" name="label" placeholder="Roll label">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Dice</label>
-                <div class="dice-grid">
-                    <button type="button" class="dice-btn" data-dice="d2">
-                        <i class="fas fa-coin"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d4">
-                        <i class="fas fa-dice-d4"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d6">
-                        <i class="fas fa-dice-d6"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d8">
-                        <i class="fas fa-dice-d8"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d10">
-                        <i class="fas fa-dice-d10"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d12">
-                        <i class="fas fa-dice-d12"></i>
-                    </button>
-                    <button type="button" class="dice-btn selected" data-dice="d20">
-                        <i class="fas fa-dice-d20"></i>
-                    </button>
-                    <button type="button" class="dice-btn" data-dice="d100">
-                        <i class="fas fa-hundred-points"></i>
-                    </button>
                 </div>
             </div>
         </div>

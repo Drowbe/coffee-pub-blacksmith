@@ -5,19 +5,17 @@ export class SkillCheckDialog extends Application {
     constructor(data = {}) {
         super();
         this.actors = data.actors || [];
-        this.skillName = data.skillName || 'inv'; // Default to investigation if not specified
-        this.workspaceId = data.workspaceId || null;
+        this.selectedType = null;
+        this.selectedValue = null;
         this.callback = data.callback || null;
     }
 
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
             template: "modules/coffee-pub-blacksmith/templates/skill-check-window.hbs",
-            id: "skill-check-dialog",
-            title: "Configure Skill Check",
+            classes: ["dialog", "skill-check-dialog"],
             width: 800,
             height: 600,
-            classes: ['skill-check-dialog'],
             resizable: true
         });
     }
@@ -27,14 +25,53 @@ export class SkillCheckDialog extends Application {
         const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
             id,
             name: game.i18n.localize(data.label),
-            icon: "fas fa-check",
-            selected: id === this.skillName
+            icon: "fas fa-check"
         }));
+
+        // Get all abilities
+        const abilities = Object.entries(CONFIG.DND5E.abilities).map(([id, data]) => ({
+            id,
+            name: game.i18n.localize(data.label)
+        }));
+
+        // Get all saves (same as abilities for D&D 5e)
+        const saves = Object.entries(CONFIG.DND5E.abilities).map(([id, data]) => ({
+            id,
+            name: game.i18n.localize(data.label)
+        }));
+
+        // Get tools from selected actors
+        const tools = this._getToolProficiencies();
 
         return {
             actors: this.actors,
-            skills
+            skills,
+            abilities,
+            saves,
+            tools
         };
+    }
+
+    _getToolProficiencies() {
+        const toolProfs = new Set();
+        const selectedActors = this.element?.find('.actor-item.selected') || [];
+        
+        selectedActors.each((i, el) => {
+            const actorId = el.dataset.actorId;
+            const actor = game.actors.get(actorId);
+            if (!actor) return;
+
+            // Get tool proficiencies from the actor
+            const tools = actor.items.filter(i => i.type === "tool");
+            tools.forEach(tool => {
+                toolProfs.add({
+                    id: tool.id,
+                    name: tool.name
+                });
+            });
+        });
+
+        return Array.from(toolProfs);
     }
 
     activateListeners(html) {
@@ -44,64 +81,45 @@ export class SkillCheckDialog extends Application {
         html.find('.actor-item').click(ev => {
             const item = ev.currentTarget;
             item.classList.toggle('selected');
+            // Update tool proficiencies when actor selection changes
+            this._updateToolList();
         });
 
-        // Handle skill selection
-        html.find('.skill-item').click(ev => {
+        // Handle check item selection
+        html.find('.check-item').click(ev => {
             const item = ev.currentTarget;
-            html.find('.skill-item').removeClass('selected');
+            const type = item.dataset.type;
+            const value = item.dataset.value;
+
+            // Remove selection from all items
+            html.find('.check-item').removeClass('selected');
+            // Add selection to clicked item
             item.classList.add('selected');
+
+            this.selectedType = type;
+            this.selectedValue = value;
         });
 
-        // Handle dice selection
-        html.find('.dice-btn').click(ev => {
-            const btn = ev.currentTarget;
-            html.find('.dice-btn').removeClass('selected');
-            btn.classList.add('selected');
-        });
-
-        // Handle search inputs
+        // Handle search input
         html.find('input[name="search"]').on('input', ev => {
-            const searchTerm = ev.target.value.toLowerCase();
-            const isActorSearch = ev.target.closest('.dialog-column').querySelector('.actor-list');
-            
-            if (isActorSearch) {
-                html.find('.actor-item').each((i, item) => {
-                    const name = item.querySelector('.actor-name').textContent.toLowerCase();
-                    item.style.display = name.includes(searchTerm) ? '' : 'none';
-                });
-            } else {
-                html.find('.skill-item').each((i, item) => {
-                    const name = item.querySelector('span').textContent.toLowerCase();
-                    item.style.display = name.includes(searchTerm) ? '' : 'none';
-                });
-            }
-        });
-
-        // Handle filter buttons
-        html.find('.filter-btn').click(ev => {
-            const btn = ev.currentTarget;
-            const filter = btn.dataset.filter;
-            
-            html.find('.filter-btn').removeClass('active');
-            btn.classList.add('active');
-            
-            // Implement filter logic here
-            this._filterActors(html, filter);
+            const searchTerm = ev.currentTarget.value.toLowerCase();
+            html.find('.check-item').each((i, el) => {
+                const text = el.textContent.toLowerCase();
+                el.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
 
         // Handle the roll button
         html.find('button[data-button="roll"]').click(ev => {
             const selectedActors = html.find('.actor-item.selected');
-            const selectedSkill = html.find('.skill-item.selected');
             
             if (selectedActors.length === 0) {
                 ui.notifications.warn("Please select at least one actor.");
                 return;
             }
             
-            if (selectedSkill.length === 0) {
-                ui.notifications.warn("Please select a skill.");
+            if (!this.selectedType || !this.selectedValue) {
+                ui.notifications.warn("Please select a check type.");
                 return;
             }
 
@@ -111,20 +129,19 @@ export class SkillCheckDialog extends Application {
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
-            const selectedDice = html.find('.dice-btn.selected').data('dice');
 
             selectedActors.each((i, actorItem) => {
                 const actorId = actorItem.dataset.actorId;
-                const skillId = selectedSkill[0].dataset.skill;
                 
                 if (this.callback) {
-                    this.callback(actorId, skillId, {
+                    this.callback(actorId, {
+                        type: this.selectedType,
+                        value: this.selectedValue,
                         dc: dc || null,
                         showDC,
                         rollMode,
                         description: description || null,
-                        label: label || game.i18n.localize(CONFIG.DND5E.skills[skillId].label),
-                        dice: selectedDice || 'd20'
+                        label: label || null
                     });
                 }
             });
@@ -136,31 +153,22 @@ export class SkillCheckDialog extends Application {
         html.find('button[data-button="cancel"]').click(() => this.close());
     }
 
-    _filterActors(html, filter) {
-        const actorItems = html.find('.actor-item');
+    _updateToolList() {
+        const tools = this._getToolProficiencies();
+        const toolSection = this.element.find('.check-section').last();
         
-        switch (filter) {
-            case 'selected':
-                actorItems.each((i, item) => {
-                    item.style.display = item.classList.contains('selected') ? '' : 'none';
-                });
-                break;
-            case 'canvas':
-                // Show only tokens on the canvas
-                const canvasTokenIds = canvas.tokens.placeables.map(t => t.actor?.id);
-                actorItems.each((i, item) => {
-                    item.style.display = canvasTokenIds.includes(item.dataset.actorId) ? '' : 'none';
-                });
-                break;
-            case 'party':
-                // Show actors marked as party members
-                actorItems.each((i, item) => {
-                    const actor = game.actors.get(item.dataset.actorId);
-                    item.style.display = actor?.hasPlayerOwner ? '' : 'none';
-                });
-                break;
-            default:
-                actorItems.show();
-        }
+        // Clear existing tools
+        toolSection.find('.check-item').remove();
+        
+        // Add new tools
+        tools.forEach(tool => {
+            const toolItem = $(`
+                <div class="check-item" data-type="tool" data-value="${tool.id}">
+                    <i class="fas fa-tools"></i>
+                    <span>${tool.name}</span>
+                </div>
+            `);
+            toolSection.append(toolItem);
+        });
     }
 } 
