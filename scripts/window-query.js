@@ -7,6 +7,7 @@ import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 import { TokenHandler } from './token-handler.js';
+import { SkillCheckDialog } from './skill-check-dialog.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -1103,67 +1104,41 @@ export class BlacksmithWindowQuery extends FormApplication {
             actor: token.actor
         }));
 
-        // Render the actor selection template
-        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-window.hbs', { actors });
+        // Create and render the dialog
+        const dialog = await SkillCheckDialog.create({
+            actors,
+            skillName: this._getSkillAbbreviation(selectedSkill),
+            workspaceId: id,
+            callback: async (actorId, skillId) => {
+                const actor = game.actors.get(actorId);
+                if (!actor) return;
 
-        const dialog = new Dialog({
-            title: "Select Actor for Roll",
-            content: content,
-            buttons: {
-                roll: {
-                    icon: '<i class="fas fa-dice-d20"></i>',
-                    label: "Roll",
-                    callback: async (html) => {
-                        const selectedCard = html.find('.player-card.selected');
-                        if (!selectedCard.length) {
-                            ui.notifications.warn("Please select a character first.");
-                            return;
-                        }
-                        const actorId = selectedCard.data('actorId');
-                        const actor = game.actors.get(actorId);
-                        if (!actor) return;
+                // Create a chat message with the roll button using our template
+                const messageData = {
+                    actorName: actor.name,
+                    skillName: selectedSkill,
+                    actorId: actor.id,
+                    skillAbbr: skillId,
+                    requesterId: game.user.id,
+                    workspaceId: id
+                };
 
-                        // Create a chat message with the roll button using our template
-                        const skillAbbr = this._getSkillAbbreviation(selectedSkill);
-                        const messageData = {
-                            actorName: actor.name,
-                            skillName: selectedSkill,
+                const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+
+                // Create the chat message
+                await ChatMessage.create({
+                    content: messageContent,
+                    speaker: ChatMessage.getSpeaker({ actor }),
+                    flags: {
+                        'coffee-pub-blacksmith': {
+                            isSkillCheck: true,
                             actorId: actor.id,
-                            skillAbbr: skillAbbr,
-                            requesterId: game.user.id, // Add the ID of who requested the roll
-                            workspaceId: id // Add the workspace ID
-                        };
-
-                        const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-
-                        // Create the chat message
-                        await ChatMessage.create({
-                            content: messageContent,
-                            speaker: ChatMessage.getSpeaker({ actor }),
-                            flags: {
-                                'coffee-pub-blacksmith': {
-                                    isSkillCheck: true,
-                                    actorId: actor.id,
-                                    skillName: selectedSkill,
-                                    skillAbbr: skillAbbr,
-                                    requesterId: game.user.id,
-                                    workspaceId: id
-                                }
-                            }
-                        });
+                            skillName: selectedSkill,
+                            skillAbbr: skillId,
+                            requesterId: game.user.id,
+                            workspaceId: id
+                        }
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
-                }
-            },
-            default: "roll",
-            render: html => {
-                // Add click handler for the cards
-                html.find('.player-card').click(event => {
-                    html.find('.player-card').removeClass('selected');
-                    $(event.currentTarget).addClass('selected');
                 });
             }
         });

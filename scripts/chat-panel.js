@@ -7,6 +7,7 @@ import { postConsoleAndNotification, playSound } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './module-manager.js';
+import { SkillCheckDialog } from './skill-check-dialog.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -114,6 +115,66 @@ class ChatPanel {
                 
                 postConsoleAndNotification("Chat Panel | Opening vote config", "", false, true, false);
                 new VoteConfig().render(true);
+            });
+
+            // Add skill check div click handler
+            html.find('.tool.skillcheck').click(async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (!game.user.isGM) {
+                    ui.notifications.warn("Only the GM can request skill checks.");
+                    return;
+                }
+
+                // Get all actors that have owners (players)
+                const actors = game.actors.contents.map(actor => {
+                    if (actor.hasPlayerOwner) {
+                        return {
+                            id: actor.id,
+                            name: actor.name,
+                            actor: actor,
+                            hasOwner: actor.hasPlayerOwner
+                        };
+                    }
+                }).filter(Boolean);
+
+                // Create and render the dialog
+                const dialog = await SkillCheckDialog.create({
+                    actors,
+                    callback: async (actorId, skillId) => {
+                        const actor = game.actors.get(actorId);
+                        if (!actor) return;
+
+                        // Create a chat message with the roll button using our template
+                        const messageData = {
+                            actorName: actor.name,
+                            skillName: actor.system.skills[skillId].label,
+                            actorId: actor.id,
+                            skillAbbr: skillId,
+                            requesterId: game.user.id
+                        };
+
+                        const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+
+                        // Create the chat message
+                        await ChatMessage.create({
+                            content: messageContent,
+                            speaker: ChatMessage.getSpeaker({ actor }),
+                            flags: {
+                                'coffee-pub-blacksmith': {
+                                    isSkillCheck: true,
+                                    actorId: actor.id,
+                                    skillName: actor.system.skills[skillId].label,
+                                    skillAbbr: skillId,
+                                    requesterId: game.user.id
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                dialog.render(true);
             });
 
             // Add module toolbar icons

@@ -1,60 +1,57 @@
-<div class="request-roll-window">
-    <!-- Configuration Bar -->
-    {{#if preconfigured}}
-        <div class="roll-config-bar">
-            <div class="roll-type">{{rollType}}</div>
-            <div class="dice-type">{{diceType}}</div>
-        </div>
-    {{else}}
-        <div class="roll-config-bar">
-            <select class="roll-mode" name="rollMode">
-                <option value="publicRoll">Public Roll</option>
-                <option value="privateGM">Private GM Roll</option>
-                <option value="blindGM">Blind GM Roll</option>
-                <option value="selfRoll">Self Roll</option>
-            </select>
-            <div class="dc-config">
-                <label>
-                    <input type="checkbox" name="useDC"> Use DC
-                </label>
-                <input type="number" name="dcValue" disabled>
+<form class="dnd5e skill-check-dialog">
+    <div class="dialog-content">
+        <!-- Left Column -->
+        <div class="dialog-column">
+            <h2>Selected Players</h2>
+            <div class="form-group">
+                <div class="form-fields">
+                    <input type="text" name="search" placeholder="Search players...">
+                </div>
+            </div>
+            <div class="filter-buttons">
+                <button type="button" class="filter-btn" data-filter="selected">
+                    <i class="fas fa-user"></i> Selected
+                </button>
+                <button type="button" class="filter-btn" data-filter="canvas">
+                    <i class="fas fa-users"></i> Canvas
+                </button>
+                <button type="button" class="filter-btn" data-filter="party">
+                    <i class="fas fa-flag"></i> Party
+                </button>
+            </div>
+            <div class="actor-list">
+                {{#each actors}}
+                    {{#if this.hasOwner}}
+                        <div class="actor-item" data-actor-id="{{this.id}}">
+                            <img src="{{this.actor.img}}" alt="{{this.name}}">
+                            <div class="actor-details">
+                                <div class="actor-name">{{this.name}}</div>
+                                <div class="actor-info">Level {{this.actor.system.details.level}} {{this.actor.system.details.class}}</div>
+                                <div class="actor-info">HP: {{this.actor.system.attributes.hp.value}}/{{this.actor.system.attributes.hp.max}}</div>
+                            </div>
+                        </div>
+                    {{/if}}
+                {{/each}}
             </div>
         </div>
-    {{/if}}
 
-    <!-- Actor Selection with Quick Filters -->
-    <div class="actor-selection">
-        <div class="quick-filters">
-            <button type="button" class="filter-btn" data-filter="selected">
-                <i class="fas fa-user-check"></i> Selected
-            </button>
-            <button type="button" class="filter-btn" data-filter="canvas">
-                <i class="fas fa-users"></i> On Canvas
-            </button>
-            <button type="button" class="filter-btn" data-filter="party">
-                <i class="fas fa-flag"></i> Party
-            </button>
-        </div>
-
-        <div class="actor-selector-container">
-            {{#each actors}}
-                {{#if this.hasOwner}}
-                    <div class="player-card disposition-friendly" data-actor-id="{{this.id}}">
-                        <img src="{{this.actor.img}}" alt="{{this.name}}">
-                        <div class="player-card-details">
-                            <div class="character-name">{{this.name}}</div>
-                            <div class="character-details character-rollup">Level {{this.actor.system.details.level}} {{this.actor.system.details.class}}</div>
-                            <div class="character-details character-extra">{{this.actor.system.attributes.hp.value}}/{{this.actor.system.attributes.hp.max}} HP</div>
-                        </div>
+        <!-- Right Column -->
+        <div class="dialog-column">
+            <h2>Available Skills</h2>
+            <div class="form-group">
+                <div class="form-fields">
+                    <input type="text" name="search" placeholder="Search skills...">
+                </div>
+            </div>
+            <div class="skills-list">
+                {{#each skills}}
+                    <div class="skill-item" data-skill="{{this.id}}">
+                        <i class="{{this.icon}}"></i>
+                        <span>{{this.name}}</span>
                     </div>
-                {{/if}}
-            {{/each}}
+                {{/each}}
+            </div>
         </div>
     </div>
-
-    <!-- Placeholder for future sections -->
-    <div class="check-options" style="display: none;">
-        <!-- Will contain collapsible sections in future stages -->
-    </div>
-</div>
+</form>
 
