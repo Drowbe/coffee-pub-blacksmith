@@ -1141,8 +1141,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                     const flags = message.flags['coffee-pub-blacksmith'];
                     if (!flags) return;
 
-                    // Roll the skill check
-                    const roll = await actor.rollSkill(flags.skillAbbr);
+                    // Roll the skill check but suppress the chat message
+                    const roll = await actor.rollSkill(flags.skillAbbr, {
+                        chatMessage: false
+                    });
 
                     // Get the actors array from flags and update the result for this actor
                     const actors = flags.actors.map(a => ({
