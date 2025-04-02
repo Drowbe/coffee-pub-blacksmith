@@ -69,10 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const skill = document.getElementById(`optionSkill-${workspace}`);
             const dice = document.getElementById(`optionDiceType-${workspace}`);
             const roll = document.getElementById(`inputDiceValue-${workspace}`);
+            const details = document.getElementById(`inputContextDetails-${workspace}`);
 
             if (skill && dice && roll) {
                 skill.addEventListener('change', () => {
                     postConsoleAndNotification(`Skill changed in ${workspace}:`, skill.value, false, true, false);
+                    // Get the skill description from CONFIG.DND5E.skills
+                    const skillKey = Object.entries(CONFIG.DND5E.skills).find(([k, s]) => 
+                        game.i18n.localize(s.label) === skill.value
+                    )?.[0];
+                    
+                    if (skillKey && details) {
+                        const skillData = CONFIG.DND5E.skills[skillKey];
+                        const ability = CONFIG.DND5E.abilities[skillData.ability]?.label || '';
+                        const abilityName = game.i18n.localize(ability);
+                        details.value = `${skill.value} (${abilityName}): ${game.i18n.localize(skillData.reference)}`;
+                    }
                 });
 
                 dice.addEventListener('change', () => {

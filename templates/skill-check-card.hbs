@@ -6,6 +6,7 @@
     </header>
 
     <div class="card-content">
+        {{#if label}}<h3>{{label}}</h3>{{/if}}
         {{#if dc}}<p><strong>DC {{dc}}</strong></p>{{/if}}
         {{#if description}}<p>{{description}}</p>{{/if}}
         

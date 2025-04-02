@@ -101,6 +101,23 @@ export class SkillCheckDialog extends Application {
 
             this.selectedType = type;
             this.selectedValue = value;
+
+            // If this is a skill selection, update the description
+            if (type === 'skill') {
+                const skillData = CONFIG.DND5E.skills[value];
+                if (skillData) {
+                    const ability = CONFIG.DND5E.abilities[skillData.ability]?.label || '';
+                    const abilityName = game.i18n.localize(ability);
+                    const skillName = game.i18n.localize(skillData.label);
+                    const skillDesc = game.i18n.localize(skillData.reference);
+                    const description = html.find('textarea[name="description"]');
+                    if (description.length) {
+                        const title = `${skillName} (${abilityName})`;
+                        const uuid = `${skillDesc}`;
+                        description.val(`@UUID[${uuid}]{${title}}`);
+                    }
+                }
+            }
         });
 
         // Handle search input
