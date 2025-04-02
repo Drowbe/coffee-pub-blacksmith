@@ -1152,7 +1152,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                             roll = await new Roll(value).evaluate({async: true});
                             break;
                         case 'skill':
-                            roll = await actor.rollSkill(value, {
+                            roll = await actor.rollSkill(flags.skillAbbr || value, {
                                 chatMessage: false
                             });
                             break;
