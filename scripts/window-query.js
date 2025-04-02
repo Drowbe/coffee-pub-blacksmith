@@ -1152,7 +1152,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                             roll = await new Roll(value).evaluate({async: true});
                             break;
                         case 'skill':
-                            roll = await actor.rollSkill(flags.skillAbbr || value, {
+                            roll = await actor.rollSkillV2(flags.skillAbbr || value, {
                                 chatMessage: false
                             });
                             break;
@@ -3094,7 +3094,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
                     roll = await new Roll(value).evaluate({async: true});
                     break;
                 case 'skill':
-                    roll = await actor.rollSkill(value);
+                    roll = await actor.rollSkillV2(value);
                     break;
                 case 'ability':
                     roll = await actor.rollAbility(value);
