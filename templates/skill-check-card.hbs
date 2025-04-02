@@ -15,7 +15,16 @@
                 {{#if this.result}}
                     <div class="roll-result">
                         <span class="actor-name">{{this.name}}</span>
-                        <span class="roll-total" title="{{this.result.formula}}">{{this.result.total}}</span>
+                        <span class="roll-total" title="{{this.result.formula}}">
+                            {{this.result.total}}
+                            {{#if ../dc}}
+                                {{#if (gte this.result.total ../dc)}}
+                                    <i class="fas fa-check" style="color: #18520b;"></i>
+                                {{else}}
+                                    <i class="fas fa-times" style="color: #aa0200;"></i>
+                                {{/if}}
+                            {{/if}}
+                        </span>
                     </div>
                 {{else}}
                     <button class="skill-roll" data-actor-id="{{this.id}}" data-skill="{{../skillAbbr}}" data-type="{{../rollType}}" data-value="{{../rollValue}}">
