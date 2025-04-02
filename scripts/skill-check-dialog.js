@@ -11,12 +11,15 @@ export class SkillCheckDialog extends Application {
     }
 
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
-            template: "modules/coffee-pub-blacksmith/templates/skill-check-window.hbs",
-            classes: ["dialog", "skill-check-dialog"],
+        return foundry.utils.mergeObject(super.defaultOptions, {
+            id: 'skill-check-dialog',
+            template: 'modules/coffee-pub-blacksmith/templates/skill-check-window.hbs',
+            classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
+            title: 'Skill Check',
             width: 800,
             height: 600,
             resizable: true
+            
         });
     }
 

@@ -202,9 +202,9 @@ class ChatPanel {
                         // Create the chat message
                         await ChatMessage.create({
                             content: messageContent,
-                            speaker: ChatMessage.getSpeaker(),
-                            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-                            rollMode: config.rollMode || 'roll',
+                            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                            speaker: ChatMessage.getSpeaker({ user: game.user }),
+                            whisper: [], // Empty array means visible to all
                             flags: {
                                 'coffee-pub-blacksmith': {
                                     type: 'skillCheck',
