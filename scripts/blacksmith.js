@@ -186,25 +186,52 @@ Hooks.once('init', async function() {
     addToolbarButton();
 
     // Set up socket handler for CSS updates
-    game.socket.on(`module.${MODULE_ID}`, (data) => {
+    game.socket.on(`module.${MODULE_ID}`, data => {
         if (data.type === 'updateCSS') {
             const editor = new CSSEditor();
             editor.applyCSS(data.css, data.transition);
         }
         // Handle skill roll updates
         else if (data.type === 'updateSkillRoll' && game.user.isGM) {
-            // Find any open BlacksmithWindowQuery instances
-            const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-            windows.forEach(window => {
-                // Find the input field and update it
-                const inputField = window.element[0].querySelector(`#inputDiceValue-${data.data.workspaceId}`);
-                const skillSelect = window.element[0].querySelector(`#optionSkill-${data.data.workspaceId}`);
-                if (inputField) {
-                    inputField.value = data.data.rollTotal;
+            (async () => {
+                const message = game.messages.get(data.data.messageId);
+                if (!message) return;
+
+                const flags = message.flags['coffee-pub-blacksmith'];
+                if (!flags?.type === 'skillCheck') return;
+
+                // Update the actors array with the new result
+                const actors = flags.actors.map(a => ({
+                    ...a,
+                    result: a.id === data.data.actorId ? data.data.result : a.result
+                }));
+
+                // Update the message content
+                const messageData = {
+                    ...flags,
+                    actors
+                };
+
+                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                await message.update({ 
+                    content,
+                    flags: {
+                        'coffee-pub-blacksmith': messageData
+                    }
+                });
+
+                // If this was a requested roll, update the GM's interface
+                if (flags.requesterId === game.user.id) {
+                    const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                    windows.forEach(window => {
+                        const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+                        if (inputField) {
+                            inputField.value = data.data.result.total;
+                        }
+                    });
                 }
-                if (skillSelect) {
-                    skillSelect.value = data.data.skillName;
-                }
+            })().catch(error => {
+                console.error("Error handling skill roll update:", error);
             });
         }
     });
@@ -1295,7 +1322,7 @@ function updateMargins() {
     postConsoleAndNotification("Update Margins complete.", "", false, false, false);
 }
 
-class ThirdPartyManager {
+export class ThirdPartyManager {
     static socket = null;
 
     static registerSocketFunctions() {
@@ -1321,6 +1348,9 @@ class ThirdPartyManager {
 
         // Skill Check
         this.socket.register("updateSkillRoll", async (data) => {
+            // Only the GM should process this
+            if (!game.user.isGM) return;
+
             const message = game.messages.get(data.messageId);
             if (!message) return;
 
@@ -1340,10 +1370,15 @@ class ThirdPartyManager {
             };
 
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            await message.update({ content });
+            await message.update({ 
+                content,
+                flags: {
+                    'coffee-pub-blacksmith': messageData
+                }
+            });
 
-            // If we're the GM, update any open windows
-            if (game.user.isGM) {
+            // If this was a requested roll, update the GM's interface
+            if (flags.requesterId === game.user.id) {
                 const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
                 windows.forEach(window => {
                     const inputField = window.element[0].querySelector(`input[name="diceValue"]`);

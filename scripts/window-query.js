@@ -8,6 +8,7 @@ import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 import { TokenHandler } from './token-handler.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
+import { ThirdPartyManager } from './blacksmith.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -1146,36 +1147,52 @@ export class BlacksmithWindowQuery extends FormApplication {
                         chatMessage: false
                     });
 
-                    // Get the actors array from flags and update the result for this actor
-                    const actors = flags.actors.map(a => ({
-                        ...a,
-                        result: a.id === actorId ? {
-                            total: roll.total,
-                            formula: roll.formula
-                        } : a.result
-                    }));
+                    // If we're the GM, update the message directly
+                    if (game.user.isGM) {
+                        // Get the actors array from flags and update the result for this actor
+                        const actors = flags.actors.map(a => ({
+                            ...a,
+                            result: a.id === actorId ? {
+                                total: roll.total,
+                                formula: roll.formula
+                            } : a.result
+                        }));
 
-                    // Update the message content with the new results
-                    const messageData = {
-                        ...flags,
-                        actors
-                    };
+                        // Update the message content with the new results
+                        const messageData = {
+                            ...flags,
+                            actors
+                        };
 
-                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-                    await message.update({ 
-                        content,
-                        flags: {
-                            'coffee-pub-blacksmith': messageData
+                        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                        await message.update({ 
+                            content,
+                            flags: {
+                                'coffee-pub-blacksmith': messageData
+                            }
+                        });
+
+                        // Update GM interface if this was a requested roll
+                        if (flags.requesterId === game.user.id) {
+                            const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                            windows.forEach(window => {
+                                const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+                                if (inputField) {
+                                    inputField.value = roll.total;
+                                }
+                            });
                         }
-                    });
-
-                    // If this was requested by the GM, update their interface
-                    if (flags.requesterId === game.user.id && game.user.isGM) {
-                        const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                        windows.forEach(window => {
-                            const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
-                            if (inputField) {
-                                inputField.value = roll.total;
+                    } else {
+                        // If we're a player, send the result to the GM via socket
+                        game.socket.emit(`module.coffee-pub-blacksmith`, {
+                            type: 'updateSkillRoll',
+                            data: {
+                                messageId: message.id,
+                                actorId,
+                                result: {
+                                    total: roll.total,
+                                    formula: roll.formula
+                                }
                             }
                         });
                     }
