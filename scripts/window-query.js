@@ -1142,20 +1142,55 @@ export class BlacksmithWindowQuery extends FormApplication {
                     const flags = message.flags['coffee-pub-blacksmith'];
                     if (!flags) return;
 
-                    // Roll the skill check but suppress the chat message
-                    const roll = await actor.rollSkill(flags.skillAbbr, {
-                        chatMessage: false
-                    });
+                    // Roll the check but suppress the chat message
+                    let roll;
+                    const type = button.dataset.type || 'skill';
+                    const value = button.dataset.value;
+
+                    switch (type) {
+                        case 'dice':
+                            roll = await new Roll(value).evaluate({async: true});
+                            break;
+                        case 'skill':
+                            roll = await actor.rollSkill(value, {
+                                chatMessage: false
+                            });
+                            break;
+                        case 'ability':
+                            roll = await actor.rollAbilityTest(value, {
+                                chatMessage: false
+                            });
+                            break;
+                        case 'save':
+                            roll = await actor.rollAbilitySave(value, {
+                                chatMessage: false
+                            });
+                            break;
+                        default:
+                            return;
+                    }
+
+                    // Extract roll data based on roll type
+                    let rollData;
+                    if (type === 'dice') {
+                        rollData = {
+                            total: roll.total,
+                            formula: roll.formula
+                        };
+                    } else {
+                        // For skill checks, ability checks, and saves
+                        rollData = {
+                            total: roll.total,
+                            formula: roll._formula || roll.formula
+                        };
+                    }
 
                     // If we're the GM, update the message directly
                     if (game.user.isGM) {
                         // Get the actors array from flags and update the result for this actor
                         const actors = flags.actors.map(a => ({
                             ...a,
-                            result: a.id === actorId ? {
-                                total: roll.total,
-                                formula: roll.formula
-                            } : a.result
+                            result: a.id === actorId ? rollData : a.result
                         }));
 
                         // Update the message content with the new results
@@ -1178,7 +1213,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                             windows.forEach(window => {
                                 const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
                                 if (inputField) {
-                                    inputField.value = roll.total;
+                                    inputField.value = rollData.total;
                                 }
                             });
                         }
@@ -1189,10 +1224,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                             data: {
                                 messageId: message.id,
                                 actorId,
-                                result: {
-                                    total: roll.total,
-                                    formula: roll.formula
-                                }
+                                result: rollData
                             }
                         });
                     }
