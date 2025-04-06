@@ -1093,14 +1093,10 @@ export class BlacksmithWindowQuery extends FormApplication {
     }
 
     async _handleRollDiceClick(id) {
-        // Get the selected skill
         const skillSelect = document.getElementById(`optionSkill-${id}`);
         if (!skillSelect) return;
 
         const skillName = skillSelect.value;
-        const skillId = this._getSkillAbbreviation(skillName);
-
-        // Get all selected actors
         const selectedActors = canvas.tokens.controlled
             .filter(t => t.actor)
             .map(t => ({
@@ -1108,30 +1104,43 @@ export class BlacksmithWindowQuery extends FormApplication {
                 name: t.actor.name
             }));
 
-        if (selectedActors.length === 0) {
-            ui.notifications.warn("Please select at least one token.");
-            return;
-        }
-
-        // Create a chat message with the roll buttons using our template
-        const messageData = {
-            skillName: skillName,
-            skillAbbr: skillId,
+        // Create dialog
+        const dialog = new SkillCheckDialog({
             actors: selectedActors,
-            requesterId: game.user.id,
-            type: 'skillCheck'
-        };
+            callback: async (actors, options) => {
+                // Create message data
+                const messageData = {
+                    skillName: skillName,
+                    skillAbbr: options.value,
+                    actors: actors,
+                    requesterId: game.user.id,
+                    type: 'skillCheck',
+                    dc: options.dc,
+                    showDC: options.showDC,
+                    label: options.label,
+                    description: options.description,
+                    // Make sure we're using the correct properties from skillInfo
+                    skillDescription: options.skillDescription || "",
+                    skillLink: options.skillLink || "",
+                    rollMode: options.rollMode
+                };
 
-        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                // Debug log to check the data
+                console.log("Skill Check Message Data:", messageData);
 
-        // Create the chat message
-        await ChatMessage.create({
-            content: content,
-            speaker: ChatMessage.getSpeaker(),
-            flags: {
-                'coffee-pub-blacksmith': messageData
+                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+
+                // Create the chat message
+                await ChatMessage.create({
+                    content: content,
+                    speaker: ChatMessage.getSpeaker(),
+                    flags: {
+                        'coffee-pub-blacksmith': messageData
+                    }
+                });
             }
         });
+        dialog.render(true);
     }
 
     // Add this new method to handle the chat message click

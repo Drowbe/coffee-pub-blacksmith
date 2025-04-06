@@ -24,11 +24,34 @@ export class SkillCheckDialog extends Application {
     }
 
     getData() {
+        // Create a map of skill descriptions
+        const skillDescriptions = {
+            'acr': 'Balancing, flipping, or escaping tricky physical situations with agility and finesse.',
+            'ani': 'Calming, controlling, or understanding the behavior of animals.',
+            'arc': 'Knowing about magic, spells, and arcane lore.',
+            'ath': 'Performing feats of strength like climbing, swimming, or grappling.',
+            'dec': 'Lying convincingly or hiding the truth through trickery or disguise.',
+            'his': 'Recalling facts about past events, civilizations, and important lore.',
+            'ins': 'Reading people\'s true intentions, emotions, or honesty.',
+            'itm': 'Using threats or force of personality to influence others.',
+            'inv': 'Examining clues, solving mysteries, or finding hidden details.',
+            'med': 'Treating wounds, diagnosing ailments, and stabilizing the dying.',
+            'nat': 'Understanding natural environments, animals, weather, and geography.',
+            'prc': 'Noticing hidden creatures, objects, or subtle changes in your surroundings.',
+            'prf': 'Entertaining an audience through music, acting, storytelling, or art.',
+            'per': 'Convincing others through kindness, diplomacy, or charm.',
+            'rel': 'Knowing about gods, holy rites, religious symbols, and divine lore.',
+            'slt': 'Secretly manipulating objects, like stealing or planting items unnoticed.',
+            'ste': 'Moving silently and staying hidden from view.',
+            'sur': 'Tracking creatures, navigating the wilds, and enduring harsh conditions.'
+        };
+
         // Get all skills from the system
         const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
             id,
             name: game.i18n.localize(data.label),
-            icon: "fas fa-check"
+            icon: "fas fa-check",
+            description: skillDescriptions[id]
         }));
 
         // Get all abilities
@@ -102,20 +125,25 @@ export class SkillCheckDialog extends Application {
             this.selectedType = type;
             this.selectedValue = value;
 
-            // If this is a skill selection, update the description
+            // If it's a skill, update the description
             if (type === 'skill') {
-                const skillData = CONFIG.DND5E.skills[value];
-                if (skillData) {
-                    const ability = CONFIG.DND5E.abilities[skillData.ability]?.label || '';
+                const systemSkillData = CONFIG.DND5E.skills[value];
+                const customSkillData = this.getData().skills.find(s => s.id === value);
+                
+                if (systemSkillData && customSkillData) {
+                    const ability = CONFIG.DND5E.abilities[systemSkillData.ability]?.label || '';
                     const abilityName = game.i18n.localize(ability);
-                    const skillName = game.i18n.localize(skillData.label);
-                    const skillDesc = game.i18n.localize(skillData.reference);
-                    const description = html.find('textarea[name="description"]');
-                    if (description.length) {
-                        const title = `${skillName} (${abilityName})`;
-                        const uuid = `${skillDesc}`;
-                        description.val(`@UUID[${uuid}]{${title}}`);
-                    }
+                    const skillName = game.i18n.localize(systemSkillData.label);
+                    const skillDesc = game.i18n.localize(systemSkillData.reference);
+                    
+                    const title = `${skillName} (${abilityName})`;
+                    const uuid = `${skillDesc}`;
+                    
+                    // Store the skill info in the dialog data
+                    this.skillInfo = {
+                        description: customSkillData.description,
+                        link: `@UUID[${uuid}]{${title}}`
+                    };
                 }
             }
         });
@@ -161,7 +189,9 @@ export class SkillCheckDialog extends Application {
                     showDC,
                     rollMode,
                     description: description || null,
-                    label: label || null
+                    label: label || null,
+                    skillDescription: this.skillInfo?.description,
+                    skillLink: this.skillInfo?.link
                 });
             }
 
