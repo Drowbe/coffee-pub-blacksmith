@@ -1,0 +1,30 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# JavaScript files
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+
+# Web files
+*.html text eol=lf
+*.css text eol=lf
+*.hbs text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Images should be treated as binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+
+# Font files
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary 
