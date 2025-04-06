@@ -130,21 +130,36 @@
 }
 
 .dice-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
     gap: 4px;
     margin: 4px 0;
 }
 
 .dice-grid .check-item {
     justify-content: center;
-    aspect-ratio: 1;
+    width: 28px;
+    height: 28px;
     padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .dice-grid .check-item i {
-    font-size: var(--font-size-16);
-    margin-right: 4px;
+    font-size: var(--font-size-14);
+    margin: 0;
+}
+
+.dice-grid .check-item span {
+    display: none;
+}
+
+.dice-grid .check-item:hover {
+    background: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 3px var(--color-shadow-primary);
+}
+
+.dice-grid .check-item.selected {
+    background: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 5px var(--color-shadow-primary) inset;
 }
 
 .filter-buttons {
