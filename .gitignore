@@ -19,17 +19,6 @@ Thumbs.db
 coffee-pub-blacksmith.lock
 *.zip
 
-# Foundry Database Files (always ignore)
-packs/**/*.ldb
-packs/**/LOCK
-packs/**/CURRENT
-packs/**/LOG*
-packs/**/*.log
-packs/**/*.old
-packs/**/*-journal
-packs/**/MANIFEST*
-packs/**/*MANIFEST*
-
 # OS generated files
 .DS_Store?
 ._*
