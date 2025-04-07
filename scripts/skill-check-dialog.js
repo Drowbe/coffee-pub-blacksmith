@@ -139,11 +139,12 @@ export class SkillCheckDialog extends Application {
                     const title = `${skillName} (${abilityName})`;
                     const uuid = `${skillDesc}`;
                     
-                    // Store the skill info in the dialog data
+                    // Store the skill info and log it
                     this.skillInfo = {
                         description: customSkillData.description,
                         link: `@UUID[${uuid}]{${title}}`
                     };
+                    console.log("Skill Info set:", this.skillInfo);
                 }
             }
         });
@@ -158,7 +159,7 @@ export class SkillCheckDialog extends Application {
         });
 
         // Handle the roll button
-        html.find('button[data-button="roll"]').click(ev => {
+        html.find('button[data-button="roll"]').click(async (ev) => {
             const selectedActors = Array.from(html.find('.actor-item.selected')).map(item => ({
                 id: item.dataset.actorId,
                 name: item.querySelector('.actor-name').textContent
@@ -181,19 +182,33 @@ export class SkillCheckDialog extends Application {
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
 
-            if (this.callback) {
-                this.callback(selectedActors, {
-                    type: this.selectedType,
-                    value: this.selectedValue,
-                    dc: dc || null,
-                    showDC,
-                    rollMode,
-                    description: description || null,
-                    label: label || null,
-                    skillDescription: this.skillInfo?.description,
-                    skillLink: this.skillInfo?.link
-                });
-            }
+            // Create message data
+            const messageData = {
+                skillName: this.selectedType === 'skill' ? game.i18n.localize(CONFIG.DND5E.skills[this.selectedValue]?.label) : this.selectedValue,
+                skillAbbr: this.selectedValue,
+                actors: selectedActors,
+                requesterId: game.user.id,
+                type: 'skillCheck',
+                dc: dc || null,
+                showDC,
+                label: label || null,
+                description: description || null,
+                skillDescription: this.skillInfo?.description,
+                skillLink: this.skillInfo?.link,
+                rollMode
+            };
+
+            // Create the chat message
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+            await ChatMessage.create({
+                content: content,
+                speaker: ChatMessage.getSpeaker(),
+                flags: {
+                    'coffee-pub-blacksmith': messageData
+                },
+                whisper: rollMode === 'gmroll' ? game.users.filter(u => u.isGM).map(u => u.id) : [],
+                blind: rollMode === 'blindroll'
+            });
 
             this.close();
         });

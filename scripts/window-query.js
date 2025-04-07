@@ -1097,6 +1097,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         if (!skillSelect) return;
 
         const skillName = skillSelect.value;
+        
         const selectedActors = canvas.tokens.controlled
             .filter(t => t.actor)
             .map(t => ({
@@ -1104,41 +1105,9 @@ export class BlacksmithWindowQuery extends FormApplication {
                 name: t.actor.name
             }));
 
-        // Create dialog
+        // Create and render dialog - all roll handling will be done in SkillCheckDialog
         const dialog = new SkillCheckDialog({
-            actors: selectedActors,
-            callback: async (actors, options) => {
-                // Create message data
-                const messageData = {
-                    skillName: skillName,
-                    skillAbbr: options.value,
-                    actors: actors,
-                    requesterId: game.user.id,
-                    type: 'skillCheck',
-                    dc: options.dc,
-                    showDC: options.showDC,
-                    label: options.label,
-                    description: options.description,
-                    // Make sure we're using the correct properties from skillInfo
-                    skillDescription: options.skillDescription || "",
-                    skillLink: options.skillLink || "",
-                    rollMode: options.rollMode
-                };
-
-                // Debug log to check the data
-                console.log("Skill Check Message Data:", messageData);
-
-                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-
-                // Create the chat message
-                await ChatMessage.create({
-                    content: content,
-                    speaker: ChatMessage.getSpeaker(),
-                    flags: {
-                        'coffee-pub-blacksmith': messageData
-                    }
-                });
-            }
+            actors: selectedActors
         });
         dialog.render(true);
     }

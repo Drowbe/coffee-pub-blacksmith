@@ -1,6 +1,13 @@
-2025/04/05-20:23:42.472 4cbc Log #37: 0 ops saved to Table #966 OK
-2025/04/05-20:23:42.475 4cbc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/000037.log: OK
-2025/04/05-20:23:42.476 4cbc Table #965: 115 entries OK
-2025/04/05-20:23:42.478 4cbc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/MANIFEST-000036: OK
-2025/04/05-20:23:42.479 4cbc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/MANIFEST-001530: OK
-2025/04/05-20:23:42.487 4cbc **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries; recovered 1 files; 106781 bytes. Some data may have been lost. ****
+2025/04/06-08:23:46.746 6ae8 Recovering log #968
+2025/04/06-08:23:46.752 6ae8 Delete type=0 #968
+2025/04/06-08:23:46.752 6ae8 Delete type=3 #967
+2025/04/06-10:59:38.118 57d0 Level-0 table #972: started
+2025/04/06-10:59:38.118 57d0 Level-0 table #972: 0 bytes OK
+2025/04/06-10:59:38.119 57d0 Delete type=0 #970
+2025/04/06-10:59:38.121 57d0 Manual compaction at level-0 from '!journal!AHcl2eLZo5VWNKCD' @ 72057594037927935 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 1130 : 1
+2025/04/06-10:59:38.121 57d0 Compacting 1@0 + 0@1 files
+2025/04/06-10:59:38.130 57d0 Generated table #973@0: 115 keys, 106781 bytes
+2025/04/06-10:59:38.130 57d0 Compacted 1@0 + 0@1 files => 106781 bytes
+2025/04/06-10:59:38.131 57d0 compacted to: files[ 0 1 0 0 0 0 0 ]
+2025/04/06-10:59:38.132 57d0 Delete type=2 #965
+2025/04/06-10:59:38.133 57d0 Manual compaction at level-0 from '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 1130 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at (end)
