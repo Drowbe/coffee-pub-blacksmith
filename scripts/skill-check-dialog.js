@@ -122,6 +122,11 @@ export class SkillCheckDialog extends Application {
         // Apply initial filter if there are selected tokens
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
         const initialFilter = hasSelectedTokens ? 'selected' : 'canvas';
+        
+        // Set initial active state on filter button
+        html.find(`.filter-btn[data-filter="${initialFilter}"]`).addClass('active');
+        
+        // Apply initial filter
         this._applyFilter(html, initialFilter);
 
         // Handle actor selection
@@ -135,10 +140,18 @@ export class SkillCheckDialog extends Application {
         // Handle player search - separate from criteria search
         html.find('input[name="search"]').each((i, input) => {
             const $input = $(input);
+            const $clearButton = $input.closest('.search-container').find('.clear-search-button');
             const isPlayerSearch = $input.closest('.dialog-column').find('.actor-list').length > 0;
+            
+            // Show/hide clear button based on input content
+            const updateClearButton = () => {
+                $clearButton.toggle($input.val().length > 0);
+            };
             
             $input.on('input', ev => {
                 const searchTerm = ev.currentTarget.value.toLowerCase();
+                updateClearButton();
+                
                 if (isPlayerSearch) {
                     // Search in actor list
                     html.find('.actor-list .actor-item').each((i, el) => {
@@ -153,6 +166,15 @@ export class SkillCheckDialog extends Application {
                     });
                 }
             });
+
+            // Handle clear button click
+            $clearButton.on('click', () => {
+                $input.val('').trigger('input');
+                $clearButton.hide();
+            });
+
+            // Initial state
+            updateClearButton();
         });
 
         // Handle filter buttons
@@ -164,8 +186,23 @@ export class SkillCheckDialog extends Application {
             html.find('.filter-btn').removeClass('active');
             button.classList.add('active');
             
-            // Filter actors based on type
-            this._applyFilter(html, filterType);
+            // Apply filter and respect current search term
+            const searchTerm = html.find('input[name="search"]').first().val().toLowerCase();
+            if (searchTerm) {
+                // First apply filter without updating visibility
+                this._applyFilter(html, filterType, false);
+                
+                // Then apply search within filtered results
+                html.find('.actor-list .actor-item').each((i, el) => {
+                    if (el.style.display !== 'none') {
+                        const name = el.querySelector('.actor-name').textContent.toLowerCase();
+                        el.style.display = name.includes(searchTerm) ? '' : 'none';
+                    }
+                });
+            } else {
+                // No search term, just apply filter
+                this._applyFilter(html, filterType, true);
+            }
         });
 
         // Handle check item selection
@@ -284,8 +321,8 @@ export class SkillCheckDialog extends Application {
         });
     }
 
-    // Add helper method to apply filters
-    _applyFilter(html, filterType) {
+    // Update helper method to optionally defer visibility updates
+    _applyFilter(html, filterType, updateVisibility = true) {
         html.find('.actor-list .actor-item').each((i, el) => {
             const actorId = el.dataset.actorId;
             const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
@@ -310,7 +347,16 @@ export class SkillCheckDialog extends Application {
                 default:
                     show = true;
             }
-            el.style.display = show ? '' : 'none';
+            
+            if (updateVisibility) {
+                el.style.display = show ? '' : 'none';
+            } else {
+                // Just mark the element with a data attribute for later use
+                el.dataset.filterShow = show;
+                if (!show) {
+                    el.style.display = 'none';
+                }
+            }
         });
     }
 } 

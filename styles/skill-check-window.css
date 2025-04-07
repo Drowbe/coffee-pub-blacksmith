@@ -451,3 +451,35 @@
     color: #666;
     font-style: italic;
 }
+
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-container input[type="text"] {
+    flex: 1;
+    padding-right: 24px;  /* Make room for the clear button */
+}
+
+.clear-search-button {
+    position: absolute;
+    right: 8px;  /* Increased from 4px to 8px for better alignment */
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #666;
+    display: none;  /* Hidden by default */
+    width: 16px;    /* Fixed width */
+    height: 16px;   /* Fixed height */
+    line-height: 1; /* Ensure icon is centered */
+    text-align: center;
+}
+
+.clear-search-button:hover {
+    color: #000;
+}
