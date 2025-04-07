@@ -312,7 +312,7 @@
 }
 
 /* Dialog Footer */
-.dialog-buttons {
+.skill-check-dialog .dialog-buttons {
     flex: 0 0 auto;
     margin: 0;
     padding: 8px;
@@ -322,7 +322,7 @@
     gap: 8px;
 }
 
-.dialog-buttons .dialog-button {
+.skill-check-dialog .dialog-buttons .dialog-button {
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid #999;
     border-radius: 3px;
@@ -337,12 +337,12 @@
     min-width: 0;
 }
 
-.dialog-buttons .dialog-button:hover {
+.skill-check-dialog .dialog-buttons .dialog-button:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.dialog-buttons .dialog-button i {
+.skill-check-dialog .dialog-buttons .dialog-button i {
     font-size: var(--font-size-14);
 }
 
