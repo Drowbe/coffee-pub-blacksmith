@@ -24,7 +24,7 @@ export class SkillCheckDialog extends Application {
     }
 
     getData() {
-        // Get all tokens from the canvas
+        // Get all tokens from the canvas, including NPCs and monsters
         const canvasTokens = canvas.tokens.placeables
             .filter(t => t.actor)
             .map(t => ({
@@ -32,7 +32,15 @@ export class SkillCheckDialog extends Application {
                 name: t.actor.name,
                 hasOwner: t.actor.hasPlayerOwner,
                 actor: t.actor,
-                isSelected: t.isSelected
+                isSelected: t.isSelected,
+                // Add additional info for display
+                level: t.actor.type === 'character' ? t.actor.system.details.level : null,
+                class: t.actor.type === 'character' ? t.actor.system.details.class : null,
+                type: t.actor.type,
+                hp: {
+                    value: t.actor.system.attributes.hp.value,
+                    max: t.actor.system.attributes.hp.max
+                }
             }));
 
         // Check if there are any selected tokens
@@ -333,16 +341,16 @@ export class SkillCheckDialog extends Application {
             let show = false;
             switch (filterType) {
                 case 'selected':
-                    // Show only selected tokens
+                    // Show only selected tokens on canvas
                     show = canvas.tokens.controlled.some(t => t.actor?.id === actorId);
                     break;
                 case 'canvas':
-                    // Show all tokens on canvas
+                    // Show all tokens on canvas regardless of type
                     show = token != null;
                     break;
                 case 'party':
-                    // Show only player characters
-                    show = actor.hasPlayerOwner && actor.type === 'character';
+                    // Show only player characters (type === 'character')
+                    show = actor.type === 'character' && actor.hasPlayerOwner;
                     break;
                 default:
                     show = true;
@@ -355,6 +363,8 @@ export class SkillCheckDialog extends Application {
                 el.dataset.filterShow = show;
                 if (!show) {
                     el.style.display = 'none';
+                } else {
+                    el.style.display = '';
                 }
             }
         });

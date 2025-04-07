@@ -25,16 +25,18 @@
             </div>
             <div class="actor-list">
                 {{#each actors}}
-                    {{#if this.hasOwner}}
-                        <div class="actor-item" data-actor-id="{{this.id}}">
-                            <img src="{{this.actor.img}}" alt="{{this.name}}">
-                            <div class="actor-details">
-                                <div class="actor-name">{{this.name}}</div>
-                                <div class="actor-info">Level {{this.actor.system.details.level}} {{this.actor.system.details.class}}</div>
-                                <div class="actor-info">HP: {{this.actor.system.attributes.hp.value}}/{{this.actor.system.attributes.hp.max}}</div>
-                            </div>
+                    <div class="actor-item" data-actor-id="{{this.id}}">
+                        <img src="{{this.actor.img}}" alt="{{this.name}}">
+                        <div class="actor-details">
+                            <div class="actor-name">{{this.name}}</div>
+                            {{#if (eq this.type "character")}}
+                                <div class="actor-info">Level {{this.level}} {{this.class}}</div>
+                            {{else}}
+                                <div class="actor-info">{{this.type}}</div>
+                            {{/if}}
+                            <div class="actor-info">HP: {{this.hp.value}}/{{this.hp.max}}</div>
                         </div>
-                    {{/if}}
+                    </div>
                 {{/each}}
             </div>
         </div>
