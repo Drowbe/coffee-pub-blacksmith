@@ -24,6 +24,20 @@ export class SkillCheckDialog extends Application {
     }
 
     getData() {
+        // Get all tokens from the canvas
+        const canvasTokens = canvas.tokens.placeables
+            .filter(t => t.actor)
+            .map(t => ({
+                id: t.actor.id,
+                name: t.actor.name,
+                hasOwner: t.actor.hasPlayerOwner,
+                actor: t.actor,
+                isSelected: t.isSelected
+            }));
+
+        // Check if there are any selected tokens
+        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+
         // Create a map of skill descriptions
         const skillDescriptions = {
             'acr': 'Balancing, flipping, or escaping tricky physical situations with agility and finesse.',
@@ -66,15 +80,17 @@ export class SkillCheckDialog extends Application {
             name: game.i18n.localize(data.label)
         }));
 
-        // Get tools from selected actors
+        // Get tools from all tokens
         const tools = this._getToolProficiencies();
 
         return {
-            actors: this.actors,
+            actors: canvasTokens,
             skills,
             abilities,
             saves,
-            tools
+            tools,
+            hasSelectedTokens,
+            initialFilter: hasSelectedTokens ? 'selected' : 'canvas'
         };
     }
 
@@ -102,6 +118,11 @@ export class SkillCheckDialog extends Application {
 
     activateListeners(html) {
         super.activateListeners(html);
+
+        // Apply initial filter if there are selected tokens
+        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+        const initialFilter = hasSelectedTokens ? 'selected' : 'canvas';
+        this._applyFilter(html, initialFilter);
 
         // Handle actor selection
         html.find('.actor-item').click(ev => {
@@ -144,26 +165,7 @@ export class SkillCheckDialog extends Application {
             button.classList.add('active');
             
             // Filter actors based on type
-            html.find('.actor-list .actor-item').each((i, el) => {
-                const actor = game.actors.get(el.dataset.actorId);
-                if (!actor) return;
-                
-                switch (filterType) {
-                    case 'selected':
-                        el.style.display = el.classList.contains('selected') ? '' : 'none';
-                        break;
-                    case 'canvas':
-                        const isOnCanvas = canvas.tokens.placeables.some(t => t.actor?.id === actor.id);
-                        el.style.display = isOnCanvas ? '' : 'none';
-                        break;
-                    case 'party':
-                        const isPartyMember = actor.hasPlayerOwner;
-                        el.style.display = isPartyMember ? '' : 'none';
-                        break;
-                    default:
-                        el.style.display = '';
-                }
-            });
+            this._applyFilter(html, filterType);
         });
 
         // Handle check item selection
@@ -279,6 +281,36 @@ export class SkillCheckDialog extends Application {
                 </div>
             `);
             toolSection.append(toolItem);
+        });
+    }
+
+    // Add helper method to apply filters
+    _applyFilter(html, filterType) {
+        html.find('.actor-list .actor-item').each((i, el) => {
+            const actorId = el.dataset.actorId;
+            const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
+            const actor = game.actors.get(actorId);
+            
+            if (!actor) return;
+            
+            let show = false;
+            switch (filterType) {
+                case 'selected':
+                    // Show only selected tokens
+                    show = canvas.tokens.controlled.some(t => t.actor?.id === actorId);
+                    break;
+                case 'canvas':
+                    // Show all tokens on canvas
+                    show = token != null;
+                    break;
+                case 'party':
+                    // Show only player characters
+                    show = actor.hasPlayerOwner && actor.type === 'character';
+                    break;
+                default:
+                    show = true;
+            }
+            el.style.display = show ? '' : 'none';
         });
     }
 } 

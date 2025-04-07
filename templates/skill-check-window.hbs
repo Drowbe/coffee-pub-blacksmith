@@ -10,13 +10,13 @@
                 </div>
             </div>
             <div class="filter-buttons">
-                <button type="button" class="filter-btn" data-filter="selected">
+                <button type="button" class="filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
                     <i class="fas fa-user"></i> Selected
                 </button>
-                <button type="button" class="filter-btn" data-filter="canvas">
+                <button type="button" class="filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
                     <i class="fas fa-users"></i> Canvas
                 </button>
-                <button type="button" class="filter-btn" data-filter="party">
+                <button type="button" class="filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
                     <i class="fas fa-flag"></i> Party
                 </button>
             </div>
