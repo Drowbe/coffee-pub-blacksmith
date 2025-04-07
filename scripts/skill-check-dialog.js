@@ -111,6 +111,61 @@ export class SkillCheckDialog extends Application {
             this._updateToolList();
         });
 
+        // Handle player search - separate from criteria search
+        html.find('input[name="search"]').each((i, input) => {
+            const $input = $(input);
+            const isPlayerSearch = $input.closest('.dialog-column').find('.actor-list').length > 0;
+            
+            $input.on('input', ev => {
+                const searchTerm = ev.currentTarget.value.toLowerCase();
+                if (isPlayerSearch) {
+                    // Search in actor list
+                    html.find('.actor-list .actor-item').each((i, el) => {
+                        const name = el.querySelector('.actor-name').textContent.toLowerCase();
+                        el.style.display = name.includes(searchTerm) ? '' : 'none';
+                    });
+                } else {
+                    // Search in criteria/checks list
+                    html.find('.check-item').each((i, el) => {
+                        const text = el.textContent.toLowerCase();
+                        el.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                }
+            });
+        });
+
+        // Handle filter buttons
+        html.find('.filter-btn').click(ev => {
+            const button = ev.currentTarget;
+            const filterType = button.dataset.filter;
+            
+            // Toggle active state on buttons
+            html.find('.filter-btn').removeClass('active');
+            button.classList.add('active');
+            
+            // Filter actors based on type
+            html.find('.actor-list .actor-item').each((i, el) => {
+                const actor = game.actors.get(el.dataset.actorId);
+                if (!actor) return;
+                
+                switch (filterType) {
+                    case 'selected':
+                        el.style.display = el.classList.contains('selected') ? '' : 'none';
+                        break;
+                    case 'canvas':
+                        const isOnCanvas = canvas.tokens.placeables.some(t => t.actor?.id === actor.id);
+                        el.style.display = isOnCanvas ? '' : 'none';
+                        break;
+                    case 'party':
+                        const isPartyMember = actor.hasPlayerOwner;
+                        el.style.display = isPartyMember ? '' : 'none';
+                        break;
+                    default:
+                        el.style.display = '';
+                }
+            });
+        });
+
         // Handle check item selection
         html.find('.check-item').click(ev => {
             const item = ev.currentTarget;
@@ -147,15 +202,6 @@ export class SkillCheckDialog extends Application {
                     console.log("Skill Info set:", this.skillInfo);
                 }
             }
-        });
-
-        // Handle search input
-        html.find('input[name="search"]').on('input', ev => {
-            const searchTerm = ev.currentTarget.value.toLowerCase();
-            html.find('.check-item').each((i, el) => {
-                const text = el.textContent.toLowerCase();
-                el.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
         });
 
         // Handle the roll button
