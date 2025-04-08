@@ -285,6 +285,13 @@ export class SkillCheckDialog extends Application {
                     rollDescription = this.skillInfo?.description;
                     rollLink = this.skillInfo?.link;
                     break;
+                case 'tool':
+                    const toolItem = game.actors.get(selectedActors[0].id)?.items.get(this.selectedValue);
+                    rollName = toolItem?.name;
+                    rollValue = this.selectedValue;
+                    rollDescription = toolItem?.system.description?.value || '';
+                    rollLink = '';
+                    break;
                 case 'ability':
                     const abilityData = CONFIG.DND5E.abilities[this.selectedValue];
                     rollName = game.i18n.localize(abilityData?.label) + ' Check';
