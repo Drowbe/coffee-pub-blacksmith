@@ -363,6 +363,22 @@ export class SkillCheckDialog extends Application {
                     <span>${tool.name}</span>
                 </div>
             `);
+            
+            // Attach click handler to the new tool item
+            toolItem.on('click', (ev) => {
+                const item = ev.currentTarget;
+                const type = item.dataset.type;
+                const value = item.dataset.value;
+
+                // Remove selection from all items
+                this.element.find('.check-item').removeClass('selected');
+                // Add selection to clicked item
+                item.classList.add('selected');
+
+                this.selectedType = type;
+                this.selectedValue = value;
+            });
+            
             toolSection.append(toolItem);
         });
     }

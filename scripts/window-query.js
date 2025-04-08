@@ -1061,7 +1061,6 @@ export class BlacksmithWindowQuery extends FormApplication {
                         console.log("BLACKSMITH | SKILLCHECK - Message flags:", flags);
                         roll = await (new Roll(value)).evaluate();
                         break;
-
                     case 'skill':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling SKILL");
                         roll = await actor.rollSkill(flags.skillAbbr || value, {
@@ -1082,7 +1081,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                         break;
                     case 'tool':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
-                        roll = await actor.rollToolCheck(value, {
+                        const item = actor.items.get(value);
+                        if (!item) {
+                            ui.notifications.error(`Tool not found on actor: ${value}`);
+                            return;
+                        }
+                        roll = await item.rollToolCheck({
                             chatMessage: false
                         });
                         break;
