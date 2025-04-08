@@ -275,10 +275,47 @@ export class SkillCheckDialog extends Application {
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
 
+            // Get the proper name and data based on roll type
+            let rollName, rollValue, rollDescription, rollLink;
+            switch (this.selectedType) {
+                case 'skill':
+                    const skillData = CONFIG.DND5E.skills[this.selectedValue];
+                    rollName = game.i18n.localize(skillData?.label);
+                    rollValue = this.selectedValue;
+                    rollDescription = this.skillInfo?.description;
+                    rollLink = this.skillInfo?.link;
+                    break;
+                case 'ability':
+                    const abilityData = CONFIG.DND5E.abilities[this.selectedValue];
+                    rollName = game.i18n.localize(abilityData?.label) + ' Check';
+                    rollValue = this.selectedValue;
+                    rollDescription = game.i18n.localize(abilityData?.reference || '');
+                    rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
+                    break;
+                case 'save':
+                    const saveData = CONFIG.DND5E.abilities[this.selectedValue];
+                    rollName = game.i18n.localize(saveData?.label) + ' Save';
+                    rollValue = this.selectedValue;
+                    rollDescription = game.i18n.localize(saveData?.reference || '');
+                    rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
+                    break;
+                case 'dice':
+                    rollName = `${this.selectedValue} Roll`;
+                    rollValue = this.selectedValue;
+                    rollDescription = `Rolling a ${this.selectedValue}`;
+                    rollLink = '';
+                    break;
+                default:
+                    rollName = this.selectedValue;
+                    rollValue = this.selectedValue;
+                    rollDescription = '';
+                    rollLink = '';
+            }
+
             // Create message data
             const messageData = {
-                skillName: this.selectedType === 'skill' ? game.i18n.localize(CONFIG.DND5E.skills[this.selectedValue]?.label) : this.selectedValue,
-                skillAbbr: this.selectedValue,
+                skillName: rollName,
+                skillAbbr: rollValue,
                 actors: selectedActors,
                 requesterId: game.user.id,
                 type: 'skillCheck',
@@ -286,14 +323,15 @@ export class SkillCheckDialog extends Application {
                 showDC,
                 label: label || null,
                 description: description || null,
-                skillDescription: this.skillInfo?.description,
-                skillLink: this.skillInfo?.link,
-                rollMode
+                skillDescription: rollDescription,
+                skillLink: rollLink,
+                rollMode,
+                rollType: this.selectedType
             };
 
             // Create the chat message
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            await ChatMessage.create({
+            const chatMessage = await ChatMessage.create({
                 content: content,
                 speaker: ChatMessage.getSpeaker(),
                 flags: {
@@ -302,6 +340,39 @@ export class SkillCheckDialog extends Application {
                 whisper: rollMode === 'gmroll' ? game.users.filter(u => u.isGM).map(u => u.id) : [],
                 blind: rollMode === 'blindroll'
             });
+
+            // If this is a dice roll, evaluate it immediately
+            if (this.selectedType === 'dice') {
+                try {
+                    // Create a proper roll with the dice expression
+                    const roll = await new Roll(this.selectedValue).evaluate({async: true});
+                    
+                    // Update the message with the roll result
+                    const actors = messageData.actors.map(a => ({
+                        ...a,
+                        result: {
+                            total: roll.total,
+                            formula: roll.formula
+                        }
+                    }));
+
+                    const updatedMessageData = {
+                        ...messageData,
+                        actors
+                    };
+
+                    const updatedContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
+                    await chatMessage.update({
+                        content: updatedContent,
+                        flags: {
+                            'coffee-pub-blacksmith': updatedMessageData
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error processing dice roll:", error);
+                    ui.notifications.error("There was an error processing the dice roll.");
+                }
+            }
 
             this.close();
         });

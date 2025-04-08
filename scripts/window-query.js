@@ -499,27 +499,6 @@ export class BlacksmithWindowQuery extends FormApplication {
         postConsoleAndNotification(`BlacksmithWindowQuery initialized.`, "", false, true, false);
         postConsoleAndNotification(`this.workspaceId: ${this.workspaceId}`, "", false, true, false);
 
-        // Add initialization for skill check form if in assistant workspace
-        if (this.workspaceId === 'assistant') {
-            postConsoleAndNotification("In assistant workspace, checking for selected tokens", "", false, true, false);
-            const selectedTokens = canvas.tokens.controlled;
-            postConsoleAndNotification("Selected tokens:", selectedTokens.length, false, true, false);
-            
-            if (selectedTokens.length > 0) {
-                const selectedToken = selectedTokens[0];
-                postConsoleAndNotification("Found selected token:", selectedToken.name, false, true, false);
-                
-                // Wait for form elements to be ready
-                const checkFormReady = setInterval(() => {
-                    const form = document.querySelector(`#${this.workspaceId} form`);
-                    if (form) {
-                        clearInterval(checkFormReady);
-                        TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
-                    }
-                }, 100);
-            }
-        }
-
         // Get the window element - try both jQuery and direct DOM approaches
         const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
         
@@ -565,63 +544,6 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     activateListeners(html) {
         super.activateListeners(html);
-
-        // If in assistant mode, check for selected token
-        if (this.workspaceId === 'assistant') {
-            const selectedToken = canvas.tokens?.controlled[0];
-            if (selectedToken) {
-                TokenHandler.updateSkillCheckFromToken(this.workspaceId, selectedToken);
-            }
-
-            // Add drag and drop handlers for the criteria dropzone
-            const dropZone = html.find(`#criteria-dropzone-${this.workspaceId}`);
-            if (dropZone.length) {
-                dropZone.on('dragover', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.addClass('dragover');
-                });
-
-                dropZone.on('dragleave', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.removeClass('dragover');
-                });
-
-                dropZone.on('drop', async (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.removeClass('dragover');
-
-                    try {
-                        const data = JSON.parse(event.originalEvent.dataTransfer.getData('text/plain'));
-                        if (!data.uuid) return;
-
-                        const document = await fromUuid(data.uuid);
-                        if (!document) return;
-
-                        if (document.documentName === 'Actor') {
-                            // Create a token-like structure for the actor
-                            const tokenData = {
-                                actor: document,
-                                name: document.name,
-                                document: {
-                                    disposition: document.prototypeToken.disposition,
-                                    texture: { src: document.img },
-                                    effects: [],
-                                    uuid: data.uuid
-                                }
-                            };
-                            await TokenHandler.updateSkillCheckFromToken(this.workspaceId, tokenData);
-                        } else if (document.documentName === 'Item') {
-                            await TokenHandler.updateSkillCheckFromToken(this.workspaceId, null, document);
-                        }
-                    } catch (error) {
-                        console.error('Error processing dropped item:', error);
-                    }
-                });
-            }
-        }
 
         // don't let these buttons submit the main form
         html.on('click', '.blacksmith-send-button-normal', (event) => {
@@ -690,16 +612,6 @@ export class BlacksmithWindowQuery extends FormApplication {
             event.preventDefault();
             this.toggleWorkspaceVisibility(html, true);
         });
-
-        // // Attach the event listener for workspace buttons
-        // const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
-        // workspaceButtons.on('click', (event) => {
-        //     event.preventDefault();
-        //     const clickedButton = $(event.currentTarget);
-        //     const workspaceId = clickedButton.attr('id').replace('button', 'workspace');
-        //     this.switchWorkspace(html, workspaceId);
-        // });
-
 
         // Attach the event listener for workspace buttons
         const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
@@ -1116,115 +1028,110 @@ export class BlacksmithWindowQuery extends FormApplication {
     static async handleChatMessageClick(message, html) {
         // Find any skill roll buttons
         const rollButton = html.find('.skill-roll');
-        if (rollButton.length) {
-            rollButton.off('click').on('click', async (event) => {
-                const button = event.currentTarget;
-                const actorId = button.dataset.actorId;
-                const actor = game.actors.get(actorId);
-                
-                // Check if the current user owns this actor
-                if (!actor?.isOwner) {
-                    ui.notifications.warn("You don't have permission to roll for this character.");
-                    return;
+        if (!rollButton.length) return;
+
+        rollButton.off('click').on('click', async (event) => {
+            const button = event.currentTarget;
+            const actorId = button.dataset.actorId;
+            const actor = game.actors.get(actorId);
+            
+            if (!actor?.isOwner) {
+                ui.notifications.warn("You don't have permission to roll for this character.");
+                return;
+            }
+
+            try {
+                const flags = message.flags['coffee-pub-blacksmith'];
+                if (!flags) return;
+
+                // Roll the check but suppress the chat message
+                let roll;
+                const type = button.dataset.type || 'skill';
+                const value = button.dataset.value;
+
+                switch (type) {
+                    case 'dice':
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling DICE");
+                        // roll = await new Roll(value).evaluate({async: true});
+                        // break;
+
+                        roll = await new Roll(value).evaluate({async: true});
+                        break;
+
+                    case 'skill':
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling SKILL");
+                        roll = await actor.rollSkill(flags.skillAbbr || value, {
+                            chatMessage: false
+                        });
+                        break;
+                    case 'ability':
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling ABILITY");
+                        roll = await actor.rollAbilityTest(value, {
+                            chatMessage: false
+                        });
+                        break;
+                    case 'save':
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling SAVE");
+                        roll = await actor.rollAbilitySave(value, {
+                            chatMessage: false
+                        });
+                        break;
+                    default:
+                        return;
                 }
 
-                try {
-                    const flags = message.flags['coffee-pub-blacksmith'];
-                    if (!flags) return;
+                // Extract roll data based on roll type
+                let rollData;
+                if (type === 'dice') {
+                    rollData = {
+                        total: roll.total,
+                        formula: roll.formula
+                    };
+                } else {
+                    // For skill checks, ability checks, and saves
+                    rollData = {
+                        total: roll.total,
+                        formula: roll._formula || roll.formula
+                    };
+                }
 
-                    // Roll the check but suppress the chat message
-                    let roll;
-                    const type = button.dataset.type || 'skill';
-                    const value = button.dataset.value;
+                // Update the actors array with the roll result
+                const actors = flags.actors.map(a => ({
+                    ...a,
+                    result: a.id === actorId ? rollData : a.result
+                }));
 
-                    switch (type) {
-                        case 'dice':
-                            roll = await new Roll(value).evaluate({async: true});
-                            break;
-                        case 'skill':
-                            roll = await actor.rollSkill(flags.skillAbbr || value, {
-                                chatMessage: false
-                            });
-                            break;
-                        case 'ability':
-                            roll = await actor.rollAbilityTest(value, {
-                                chatMessage: false
-                            });
-                            break;
-                        case 'save':
-                            roll = await actor.rollSavingThrow(value, {
-                                chatMessage: false
-                            });
-                            break;
-                        default:
-                            return;
+                // Update the message
+                const messageData = {
+                    ...flags,
+                    actors
+                };
+
+                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                await message.update({
+                    content,
+                    flags: {
+                        'coffee-pub-blacksmith': messageData
                     }
+                });
 
-                    // Extract roll data based on roll type
-                    let rollData;
-                    if (type === 'dice') {
-                        rollData = {
-                            total: roll.total,
-                            formula: roll.formula
-                        };
-                    } else {
-                        // For skill checks, ability checks, and saves
-                        rollData = {
-                            total: roll.total,
-                            formula: roll._formula || roll.formula
-                        };
-                    }
-
-                    // If we're the GM, update the message directly
-                    if (game.user.isGM) {
-                        // Get the actors array from flags and update the result for this actor
-                        const actors = flags.actors.map(a => ({
-                            ...a,
-                            result: a.id === actorId ? rollData : a.result
-                        }));
-
-                        // Update the message content with the new results
-                        const messageData = {
-                            ...flags,
-                            actors
-                        };
-
-                        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-                        await message.update({ 
-                            content,
-                            flags: {
-                                'coffee-pub-blacksmith': messageData
-                            }
-                        });
-
-                        // Update GM interface if this was a requested roll
-                        if (flags.requesterId === game.user.id) {
-                            const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                            windows.forEach(window => {
-                                const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
-                                if (inputField) {
-                                    inputField.value = rollData.total;
-                                }
-                            });
+                // If we're not the GM, notify them of the roll
+                if (!game.user.isGM) {
+                    game.socket.emit(`module.coffee-pub-blacksmith`, {
+                        type: 'updateSkillRoll',
+                        data: {
+                            messageId: message.id,
+                            actorId,
+                            result: rollData
                         }
-                    } else {
-                        // If we're a player, send the result to the GM via socket
-                        game.socket.emit(`module.coffee-pub-blacksmith`, {
-                            type: 'updateSkillRoll',
-                            data: {
-                                messageId: message.id,
-                                actorId,
-                                result: rollData
-                            }
-                        });
-                    }
-
-                } catch (error) {
-                    console.error("Error handling skill check:", error);
-                    ui.notifications.error("There was an error processing the skill check.");
+                    });
                 }
-            });
-        }
+
+            } catch (error) {
+                console.error("Error handling skill check:", error);
+                ui.notifications.error("There was an error processing the skill check.");
+            }
+        });
     }
 
     _getSkillAbbreviation(skillName) {
