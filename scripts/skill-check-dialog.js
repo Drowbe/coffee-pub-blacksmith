@@ -315,18 +315,20 @@ export class SkillCheckDialog extends Application {
                 case 'ability':
                     const abilityData = CONFIG.DND5E.abilities[this.selectedValue];
                     const customAbilityData = this.getData().abilities.find(a => a.id === this.selectedValue);
-                    rollName = game.i18n.localize(abilityData?.label) + ' Check';
+                    const abilityName = game.i18n.localize(abilityData?.label);
+                    rollName = abilityName + ' Check';
                     rollValue = this.selectedValue;
                     rollDescription = customAbilityData?.description || '';
-                    rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
+                    rollLink = `@UUID[${abilityData.reference}]{${abilityName} Check}`;
                     break;
                 case 'save':
                     const saveData = CONFIG.DND5E.abilities[this.selectedValue];
                     const customSaveData = this.getData().saves.find(s => s.id === this.selectedValue);
-                    rollName = game.i18n.localize(saveData?.label) + ' Save';
+                    const saveName = game.i18n.localize(saveData?.label);
+                    rollName = saveName + ' Save';
                     rollValue = this.selectedValue;
                     rollDescription = customSaveData?.description || '';
-                    rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
+                    rollLink = `@UUID[${saveData.reference}]{${saveName} Save}`;
                     break;
                 case 'dice':
                     rollName = `${this.selectedValue} Roll`;
