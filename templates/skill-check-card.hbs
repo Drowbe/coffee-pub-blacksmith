@@ -1,12 +1,9 @@
 {{#unless hideHeader}}
 <div class="dnd5e chat-card item-card" data-actor-id="{{actorId}}">
     <header class="card-header flexrow">
-        <img src="icons/svg/d20-grey.svg" title="{{skillName}} Check" width="36" height="36"/>
-        <h3 class="item-name">{{skillName}} Check</h3>
+        <h3 class="item-name"><i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}} Check</h3>
     </header>
     <div class="card-content">
-        
-        {{#if dc}}<br><p><strong>DC {{dc}}</strong></p><br>{{/if}}
         {{#if label}}<h3>{{label}}</h3>{{/if}}
         {{#if description}}
         <div class="gm-description">
