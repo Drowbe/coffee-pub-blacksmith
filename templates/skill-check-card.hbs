@@ -4,21 +4,21 @@
         <img src="icons/svg/d20-grey.svg" title="{{skillName}} Check" width="36" height="36"/>
         <h3 class="item-name">{{skillName}} Check</h3>
     </header>
-
     <div class="card-content">
+        
+        {{#if dc}}<br><p><strong>DC {{dc}}</strong></p><br>{{/if}}
         {{#if label}}<h3>{{label}}</h3>{{/if}}
-        {{#if dc}}<p><strong>DC {{dc}}</strong></p>{{/if}}
-        
-        {{#if skillDescription}}
-        <div class="skill-description">
-            <p>{{{skillDescription}}}</p>
-            <p>{{{skillLink}}}</p>
-        </div>
-        {{/if}}
-        
         {{#if description}}
         <div class="gm-description">
             <p>{{{description}}}</p>
+        </div>
+        {{/if}}
+
+        {{#if skillDescription}}
+        <h3>Details</h3>
+        <div class="skill-description">
+            <p>{{{skillDescription}}}</p>
+            <p>{{{skillLink}}}</p>
         </div>
         {{/if}}
         
