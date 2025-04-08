@@ -1059,8 +1059,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                             skill: button.dataset.skill
                         });
                         console.log("BLACKSMITH | SKILLCHECK - Message flags:", flags);
-                        roll = await new Roll(value).evaluate({async: true});
-
+                        roll = await (new Roll(value)).evaluate();
                         break;
 
                     case 'skill':
