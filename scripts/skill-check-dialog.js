@@ -301,7 +301,7 @@ export class SkillCheckDialog extends Application {
                     break;
                 case 'dice':
                     rollName = `${this.selectedValue} Roll`;
-                    rollValue = this.selectedValue;
+                    rollValue = this.selectedValue.startsWith('d') ? '1' + this.selectedValue : this.selectedValue;
                     rollDescription = `Rolling a ${this.selectedValue}`;
                     rollLink = '';
                     break;
@@ -340,39 +340,6 @@ export class SkillCheckDialog extends Application {
                 whisper: rollMode === 'gmroll' ? game.users.filter(u => u.isGM).map(u => u.id) : [],
                 blind: rollMode === 'blindroll'
             });
-
-            // If this is a dice roll, evaluate it immediately
-            if (this.selectedType === 'dice') {
-                try {
-                    // Create a proper roll with the dice expression
-                    const roll = await new Roll(this.selectedValue).evaluate({async: true});
-                    
-                    // Update the message with the roll result
-                    const actors = messageData.actors.map(a => ({
-                        ...a,
-                        result: {
-                            total: roll.total,
-                            formula: roll.formula
-                        }
-                    }));
-
-                    const updatedMessageData = {
-                        ...messageData,
-                        actors
-                    };
-
-                    const updatedContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
-                    await chatMessage.update({
-                        content: updatedContent,
-                        flags: {
-                            'coffee-pub-blacksmith': updatedMessageData
-                        }
-                    });
-                } catch (error) {
-                    console.error("Error processing dice roll:", error);
-                    ui.notifications.error("There was an error processing the dice roll.");
-                }
-            }
 
             this.close();
         });

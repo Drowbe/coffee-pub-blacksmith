@@ -1052,9 +1052,13 @@ export class BlacksmithWindowQuery extends FormApplication {
                 switch (type) {
                     case 'dice':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling DICE");
-                        // roll = await new Roll(value).evaluate({async: true});
-                        // break;
-
+                        console.log("BLACKSMITH | SKILLCHECK - Value:", value);
+                        console.log("BLACKSMITH | SKILLCHECK - Button data:", {
+                            type: button.dataset.type,
+                            value: button.dataset.value,
+                            skill: button.dataset.skill
+                        });
+                        console.log("BLACKSMITH | SKILLCHECK - Message flags:", flags);
                         roll = await new Roll(value).evaluate({async: true});
                         break;
 
