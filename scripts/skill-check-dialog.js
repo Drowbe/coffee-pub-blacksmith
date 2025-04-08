@@ -68,6 +68,24 @@ export class SkillCheckDialog extends Application {
             'sur': 'Tracking creatures, navigating the wilds, and enduring harsh conditions.'
         };
 
+        const abilityDescriptions = {
+            'str': 'Raw physical power, affecting melee attacks, lifting capacity, and athletic prowess.',
+            'dex': 'Agility and reflexes, affecting ranged attacks, armor class, and fine motor skills.',
+            'con': 'Physical toughness and stamina, affecting hit points and resistance to physical stress.',
+            'int': 'Mental acuity and knowledge, affecting spell power for wizards and general knowledge.',
+            'wis': 'Awareness and intuition, affecting spell power for clerics and perception of surroundings.',
+            'cha': 'Force of personality, affecting social interaction and spell power for sorcerers and bards.'
+        };
+
+        const saveDescriptions = {
+            'str': 'Resisting physical force, breaking free from restraints, or maintaining control against effects that would move you.',
+            'dex': 'Dodging area effects, reacting quickly to danger, or maintaining balance in precarious situations.',
+            'con': 'Enduring poison, disease, or other bodily trauma, and resisting effects that would sap your vitality.',
+            'int': 'Protecting your mind against psychic attacks, illusions, and other mental influences.',
+            'wis': 'Resisting effects that would charm, frighten, or otherwise affect your willpower.',
+            'cha': 'Maintaining your force of personality against effects that would possess or alter your being.'
+        };
+
         // Get all skills from the system
         const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
             id,
@@ -79,13 +97,15 @@ export class SkillCheckDialog extends Application {
         // Get all abilities
         const abilities = Object.entries(CONFIG.DND5E.abilities).map(([id, data]) => ({
             id,
-            name: game.i18n.localize(data.label)
+            name: game.i18n.localize(data.label),
+            description: abilityDescriptions[id]
         }));
 
         // Get all saves (same as abilities for D&D 5e)
         const saves = Object.entries(CONFIG.DND5E.abilities).map(([id, data]) => ({
             id,
-            name: game.i18n.localize(data.label)
+            name: game.i18n.localize(data.label),
+            description: saveDescriptions[id]
         }));
 
         // Get tools from all tokens
@@ -294,16 +314,18 @@ export class SkillCheckDialog extends Application {
                     break;
                 case 'ability':
                     const abilityData = CONFIG.DND5E.abilities[this.selectedValue];
+                    const customAbilityData = this.getData().abilities.find(a => a.id === this.selectedValue);
                     rollName = game.i18n.localize(abilityData?.label) + ' Check';
                     rollValue = this.selectedValue;
-                    rollDescription = game.i18n.localize(abilityData?.reference || '');
+                    rollDescription = customAbilityData?.description || '';
                     rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
                     break;
                 case 'save':
                     const saveData = CONFIG.DND5E.abilities[this.selectedValue];
+                    const customSaveData = this.getData().saves.find(s => s.id === this.selectedValue);
                     rollName = game.i18n.localize(saveData?.label) + ' Save';
                     rollValue = this.selectedValue;
-                    rollDescription = game.i18n.localize(saveData?.reference || '');
+                    rollDescription = customSaveData?.description || '';
                     rollLink = `@UUID[Compendium.dnd5e.rules.JournalEntry.PLlZqGrHwXWmTD6c.JournalEntryPage.0LgGvGMuMWMjLArg]{${rollName}}`;
                     break;
                 case 'dice':
