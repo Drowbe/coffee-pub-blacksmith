@@ -1060,6 +1060,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         });
                         console.log("BLACKSMITH | SKILLCHECK - Message flags:", flags);
                         roll = await new Roll(value).evaluate({async: true});
+
                         break;
 
                     case 'skill':
@@ -1077,6 +1078,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                     case 'save':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling SAVE");
                         roll = await actor.rollAbilitySave(value, {
+                            chatMessage: false
+                        });
+                        break;
+                    case 'tool':
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
+                        roll = await actor.rollToolCheck(value, {
                             chatMessage: false
                         });
                         break;
