@@ -45,6 +45,25 @@
             </div>
             {{/each}}
         </div>
+
+        {{log "Template Data:" this}}
+        {{#if isGroupRoll}}
+            {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
+            {{#if allRollsComplete}}
+                <div class="group-roll-result" style="margin-top: 8px; padding: 8px; border-radius: 4px; text-align: center; background: rgba(0, 0, 0, 0.05);">
+                    <h3 style="border-bottom: 1px solid #782e22; margin-bottom: 8px; padding-bottom: 4px;">Group Result</h3>
+                    {{#if groupSuccess}}
+                        <div style="color: #18520b; font-weight: bold;">
+                            <i class="fas fa-check"></i> The group succeeds! ({{successCount}}/{{totalCount}} succeeded)
+                        </div>
+                    {{else}}
+                        <div style="color: #aa0200; font-weight: bold;">
+                            <i class="fas fa-times"></i> The group fails ({{successCount}}/{{totalCount}} succeeded)
+                        </div>
+                    {{/if}}
+                </div>
+            {{/if}}
+        {{/if}}
     </div>
 </div>
 {{/unless}} 

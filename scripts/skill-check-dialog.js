@@ -291,6 +291,7 @@ export class SkillCheckDialog extends Application {
             // Get form data
             const dc = html.find('input[name="dc"]').val();
             const showDC = html.find('input[name="showDC"]').prop('checked');
+            const groupRoll = html.find('input[name="groupRoll"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
@@ -352,6 +353,7 @@ export class SkillCheckDialog extends Application {
                 type: 'skillCheck',
                 dc: dc || null,
                 showDC,
+                isGroupRoll: groupRoll,
                 label: label || null,
                 description: description || null,
                 skillDescription: rollDescription,

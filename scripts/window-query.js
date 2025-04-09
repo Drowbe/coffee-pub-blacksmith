@@ -1114,12 +1114,53 @@ export class BlacksmithWindowQuery extends FormApplication {
                     result: a.id === actorId ? roll : a.result
                 }));
 
+                // Calculate group roll results if needed
+                let groupRollData = {};
+                if (flags.isGroupRoll) {
+                    console.log("Processing group roll:", {
+                        actors,
+                        flags,
+                        dc: flags.dc
+                    });
+                    
+                    const completedRolls = actors.filter(a => a.result);
+                    const allRollsComplete = completedRolls.length === actors.length;
+                    
+                    // Always include these flags
+                    groupRollData = {
+                        isGroupRoll: true,
+                        allRollsComplete
+                    };
+                    
+                    if (allRollsComplete && flags.dc) {
+                        const successCount = actors.filter(a => a.result.total >= flags.dc).length;
+                        const totalCount = actors.length;
+                        // Group succeeds if more than half succeed
+                        const groupSuccess = successCount > (totalCount / 2);
+                        
+                        console.log("Group roll complete:", {
+                            successCount,
+                            totalCount,
+                            groupSuccess
+                        });
+                        
+                        Object.assign(groupRollData, {
+                            successCount,
+                            totalCount,
+                            groupSuccess
+                        });
+                    }
+                }
+
                 // Update the message
                 const messageData = {
                     ...flags,
+                    ...groupRollData,  // Move this before actors to ensure flags aren't overwritten
                     actors
                 };
 
+                console.log("Final message data:", messageData);
+                
                 const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
                 
                 // If we're the GM, update the message directly
