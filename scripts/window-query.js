@@ -1063,20 +1063,23 @@ export class BlacksmithWindowQuery extends FormApplication {
                         break;
                     case 'skill':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling SKILL");
-                        roll = await actor.rollSkill(flags.skillAbbr || value, {
-                            chatMessage: false
+                        roll = await actor.rollSkill(value, {
+                            chatMessage: false,
+                            createMessage: false
                         });
                         break;
                     case 'ability':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling ABILITY");
-                        roll = await actor.rollAbilityTest(value, {
-                            chatMessage: false
+                        roll = await actor.rollAbility(value, {
+                            chatMessage: false,
+                            createMessage: false
                         });
                         break;
                     case 'save':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling SAVE");
-                        roll = await actor.rollAbilitySave(value, {
-                            chatMessage: false
+                        roll = await actor.rollSavingThrow(value, {
+                            chatMessage: false,
+                            createMessage: false
                         });
                         break;
                     case 'tool':
@@ -1086,27 +1089,20 @@ export class BlacksmithWindowQuery extends FormApplication {
                             ui.notifications.error(`Tool not found on actor: ${value}`);
                             return;
                         }
-                        roll = await item.rollToolCheck({
-                            chatMessage: false,
-                            fastForward: true
-                        });
-                        
-                        // Handle array of rolls - get the first roll
-                        const toolRoll = Array.isArray(roll) ? roll[0] : roll;
-                        
-                        if (!toolRoll?.total) {
-                            console.error("Invalid tool roll result:", toolRoll);
-                            ui.notifications.error("Error processing tool check roll");
-                            return;
-                        }
-                        
-                        // Extract what we need from the roll
-                        roll = {
-                            total: toolRoll.total,
-                            formula: toolRoll.formula
-                        };
-                        
-                        console.log("Final Roll Data:", roll);
+
+                        // Manually build the tool check roll
+                        const rollData = actor.getRollData();
+                        const ability = item.system.ability || "int";
+                        const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                        const prof = item.system.proficient ? actor.system.attributes.prof : 0;
+                        const totalMod = abilityMod + prof;
+
+                        // Create and evaluate the roll
+                        const formula = `1d20 + ${totalMod}`;
+                        roll = new Roll(formula, rollData);
+                        await roll.evaluate({ async: true });
+
+                        // No need to transform the roll object as it already has the properties we need
                         break;
                     default:
                         return;
@@ -3008,16 +3004,44 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
                     roll = await new Roll(value).evaluate({async: true});
                     break;
                 case 'skill':
-                    roll = await actor.rollSkill(value);
+                    roll = await actor.rollSkill(value, {
+                        chatMessage: false,
+                        createMessage: false
+                    });
                     break;
                 case 'ability':
-                    roll = await actor.rollAbility(value);
+                    roll = await actor.rollAbility(value, {
+                        chatMessage: false,
+                        createMessage: false
+                    });
                     break;
                 case 'save':
-                    roll = await actor.rollSavingThrow(value);
+                    roll = await actor.rollSavingThrow(value, {
+                        chatMessage: false,
+                        createMessage: false
+                    });
                     break;
                 case 'tool':
-                    roll = await actor.rollToolCheck(value);
+                    console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
+                    const item = actor.items.get(value);
+                    if (!item) {
+                        ui.notifications.error(`Tool not found on actor: ${value}`);
+                        return;
+                    }
+
+                    // Manually build the tool check roll
+                    const rollData = actor.getRollData();
+                    const ability = item.system.ability || "int";
+                    const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                    const prof = item.system.proficient ? actor.system.attributes.prof : 0;
+                    const totalMod = abilityMod + prof;
+
+                    // Create and evaluate the roll
+                    const formula = `1d20 + ${totalMod}`;
+                    roll = new Roll(formula, rollData);
+                    await roll.evaluate({ async: true });
+
+                    // No need to transform the roll object as it already has the properties we need
                     break;
                 default:
                     return;
