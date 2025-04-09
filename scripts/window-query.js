@@ -1121,15 +1121,18 @@ export class BlacksmithWindowQuery extends FormApplication {
                 };
 
                 const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-                await message.update({
-                    content,
-                    flags: {
-                        'coffee-pub-blacksmith': messageData
-                    }
-                });
-
+                
+                // If we're the GM, update the message directly
+                if (game.user.isGM) {
+                    await message.update({
+                        content,
+                        flags: {
+                            'coffee-pub-blacksmith': messageData
+                        }
+                    });
+                }
                 // If we're not the GM, notify them of the roll
-                if (!game.user.isGM) {
+                else {
                     game.socket.emit(`module.coffee-pub-blacksmith`, {
                         type: 'updateSkillRoll',
                         data: {
