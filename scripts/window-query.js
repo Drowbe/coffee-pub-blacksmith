@@ -1087,32 +1087,35 @@ export class BlacksmithWindowQuery extends FormApplication {
                             return;
                         }
                         roll = await item.rollToolCheck({
-                            chatMessage: false
+                            chatMessage: false,
+                            fastForward: true
                         });
+                        
+                        // Handle array of rolls - get the first roll
+                        const toolRoll = Array.isArray(roll) ? roll[0] : roll;
+                        
+                        if (!toolRoll?.total) {
+                            console.error("Invalid tool roll result:", toolRoll);
+                            ui.notifications.error("Error processing tool check roll");
+                            return;
+                        }
+                        
+                        // Extract what we need from the roll
+                        roll = {
+                            total: toolRoll.total,
+                            formula: toolRoll.formula
+                        };
+                        
+                        console.log("Final Roll Data:", roll);
                         break;
                     default:
                         return;
                 }
 
-                // Extract roll data based on roll type
-                let rollData;
-                if (type === 'dice') {
-                    rollData = {
-                        total: roll.total,
-                        formula: roll.formula
-                    };
-                } else {
-                    // For skill checks, ability checks, and saves
-                    rollData = {
-                        total: roll.total,
-                        formula: roll._formula || roll.formula
-                    };
-                }
-
                 // Update the actors array with the roll result
                 const actors = flags.actors.map(a => ({
                     ...a,
-                    result: a.id === actorId ? rollData : a.result
+                    result: a.id === actorId ? roll : a.result
                 }));
 
                 // Update the message
@@ -1136,7 +1139,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         data: {
                             messageId: message.id,
                             actorId,
-                            result: rollData
+                            result: roll
                         }
                     });
                 }
