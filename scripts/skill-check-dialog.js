@@ -158,9 +158,37 @@ export class SkillCheckDialog extends Application {
         this._applyFilter(html, initialFilter);
 
         // Handle actor selection
-        html.find('.actor-item').click(ev => {
+        html.find('.actor-item').on('click contextmenu', (ev) => {
+            ev.preventDefault();
             const item = ev.currentTarget;
-            item.classList.toggle('selected');
+            const isRightClick = ev.type === 'contextmenu';
+            const groupIndicator = item.querySelector('.group-indicator');
+
+            // Toggle selection based on click type
+            if (isRightClick) {
+                if (groupIndicator.innerHTML.includes('fa-swords')) {
+                    // Remove from group 2
+                    groupIndicator.innerHTML = '';
+                    item.classList.remove('selected', 'group-2');
+                } else {
+                    // Add to group 2, remove from group 1 if needed
+                    groupIndicator.innerHTML = '<i class="fas fa-swords" title="Group 2"></i>';
+                    item.classList.remove('group-1');
+                    item.classList.add('selected', 'group-2');
+                }
+            } else {
+                if (groupIndicator.innerHTML.includes('fa-helmet-battle')) {
+                    // Remove from group 1
+                    groupIndicator.innerHTML = '';
+                    item.classList.remove('selected', 'group-1');
+                } else {
+                    // Add to group 1, remove from group 2 if needed
+                    groupIndicator.innerHTML = '<i class="fas fa-helmet-battle" title="Group 1"></i>';
+                    item.classList.remove('group-2');
+                    item.classList.add('selected', 'group-1');
+                }
+            }
+
             // Update tool proficiencies when actor selection changes
             this._updateToolList();
         });
