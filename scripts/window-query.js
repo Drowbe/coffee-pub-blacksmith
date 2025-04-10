@@ -1070,7 +1070,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         break;
                     case 'ability':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling ABILITY");
-                        roll = await actor.rollAbility(value, {
+                        roll = await actor.rollAbilityTest(value, {
                             chatMessage: false,
                             createMessage: false
                         });
