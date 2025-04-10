@@ -4,7 +4,7 @@
     flex-direction: column;
 }
 
-.dialog-content {
+.cpb-dialog-content {
     display: flex;
     gap: 8px;
     padding: 8px;
@@ -14,7 +14,7 @@
     min-width: 800px;
 }
 
-.dialog-column {
+.cpb-dialog-column {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -24,7 +24,7 @@
     padding-right: 8px;
 }
 
-.dialog-column h2 {
+.cpb-dialog-column h2 {
     border-bottom: 2px groove #eeede0;
     font-size: var(--font-size-14);
     line-height: 20px;
@@ -33,18 +33,18 @@
     padding: 2px 0;
 }
 
-.form-group {
+.cpb-form-group {
     margin: 0 0 8px;
 }
 
-.form-group label {
+.cpb-form-group label {
     display: block;
     font-weight: bold;
     margin-bottom: 4px;
     font-size: var(--font-size-12);
 }
 
-.form-group label.checkbox {
+.cpb-form-group label.cpb-checkbox {
     display: inline-flex;
     align-items: center;
     font-weight: normal;
@@ -52,15 +52,15 @@
     gap: 4px;
 }
 
-.form-fields {
+.cpb-form-fields {
     display: flex;
     gap: 8px;
 }
 
-.form-fields input[type="text"],
-.form-fields input[type="number"],
-.form-fields select,
-.form-fields textarea {
+.cpb-form-fields input[type="text"],
+.cpb-form-fields input[type="number"],
+.cpb-form-fields select,
+.cpb-form-fields textarea {
     width: 100%;
     background: rgba(0, 0, 0, 0.05);
     border: 1px solid var(--color-border-light-tertiary);
@@ -69,12 +69,12 @@
     font-size: var(--font-size-12);
 }
 
-.form-fields textarea {
+.cpb-form-fields textarea {
     resize: vertical;
     min-height: 40px;
 }
 
-.checks-list {
+.cpb-checks-list {
     flex: 1;
     overflow-y: auto;
     margin: 0;
@@ -82,11 +82,11 @@
     min-height: 0;
 }
 
-.check-section {
+.cpb-check-section {
     margin-bottom: 12px;
 }
 
-.check-section .section-header {
+.cpb-check-section .cpb-section-header {
     background: rgba(0, 0, 0, 0.1);
     padding: 4px 8px;
     font-weight: bold;
@@ -95,7 +95,7 @@
     margin-bottom: 4px;
 }
 
-.check-item {
+.cpb-check-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -107,35 +107,35 @@
     cursor: pointer;
 }
 
-.check-item:hover {
+.cpb-check-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.check-item.selected {
+.cpb-check-item.selected {
     background: rgba(0, 0, 0, 0.2);
     border-color: #000;
     box-shadow: 0 0 10px var(--color-shadow-primary) inset;
 }
 
-.check-item i {
+.cpb-check-item i {
     font-size: var(--font-size-14);
     width: 16px;
     text-align: center;
 }
 
-.check-item span {
+.cpb-check-item span {
     flex: 1;
     font-size: var(--font-size-12);
 }
 
-.dice-grid {
+.cpb-dice-grid {
     display: flex;
     gap: 4px;
     margin: 4px 0;
 }
 
-.dice-grid .check-item {
+.cpb-dice-grid .cpb-check-item {
     justify-content: center;
     width: 28px;
     height: 28px;
@@ -143,32 +143,32 @@
     background: rgba(0, 0, 0, 0.05);
 }
 
-.dice-grid .check-item i {
+.cpb-dice-grid .cpb-check-item i {
     font-size: var(--font-size-14);
     margin: 0;
 }
 
-.dice-grid .check-item span {
+.cpb-dice-grid .cpb-check-item span {
     display: none;
 }
 
-.dice-grid .check-item:hover {
+.cpb-dice-grid .cpb-check-item:hover {
     background: rgba(0, 0, 0, 0.1);
     box-shadow: 0 0 3px var(--color-shadow-primary);
 }
 
-.dice-grid .check-item.selected {
+.cpb-dice-grid .cpb-check-item.selected {
     background: rgba(0, 0, 0, 0.2);
     box-shadow: 0 0 5px var(--color-shadow-primary) inset;
 }
 
-.filter-buttons {
+.cpb-filter-buttons {
     display: flex;
     gap: 4px;
     margin-bottom: 8px;
 }
 
-.filter-btn {
+.cpb-filter-btn {
     flex: 1;
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid #999;
@@ -180,23 +180,23 @@
     cursor: pointer;
 }
 
-.filter-btn:hover {
+.cpb-filter-btn:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.filter-btn.active {
+.cpb-filter-btn.active {
     background: rgba(0, 0, 0, 0.2);
     border-color: #000;
     box-shadow: 0 0 10px var(--color-shadow-primary) inset;
 }
 
-.dice-buttons {
+.cpb-dice-buttons {
     display: flex;
     gap: 4px;
     margin-top: 4px;
 }
 
-.dice-btn {
+.cpb-dice-btn {
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid #999;
     border-radius: 3px;
@@ -210,22 +210,22 @@
     aspect-ratio: 1;
 }
 
-.dice-btn:hover {
+.cpb-dice-btn:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
     background: rgba(0, 0, 0, 0.15);
 }
 
-.dice-btn.selected {
+.cpb-dice-btn.selected {
     background: rgba(0, 0, 0, 0.2);
     border-color: #000;
     box-shadow: 0 0 10px var(--color-shadow-primary) inset;
 }
 
-.dice-btn i {
+.cpb-dice-btn i {
     font-size: var(--font-size-16);
 }
 
-.actor-list {
+.cpb-actor-list {
     flex: 1;
     overflow-y: auto;
     margin: 0;
@@ -234,7 +234,7 @@
     min-height: 0;
 }
 
-.actor-item {
+.cpb-actor-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -245,41 +245,41 @@
     background: rgba(0, 0, 0, 0.05);
 }
 
-.actor-item:hover {
+.cpb-actor-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.actor-item.selected {
+.cpb-actor-item.selected {
     background: rgba(0, 0, 0, 0.2);
     border-color: #000;
     box-shadow: 0 0 10px var(--color-shadow-primary) inset;
 }
 
-.actor-item img {
+.cpb-actor-item img {
     width: 36px;
     height: 36px;
     border: none;
-    border-radius: 3px;
+    object-fit: cover;
 }
 
-.actor-details {
+.cpb-actor-details {
     flex: 1;
     min-width: 0;
 }
 
-.actor-name {
+.cpb-actor-name {
     font-weight: bold;
     font-size: var(--font-size-13);
     margin-bottom: 2px;
 }
 
-.actor-info {
+.cpb-actor-info {
     font-size: var(--font-size-11);
     color: var(--color-text-dark-secondary);
 }
 
-.skills-list {
+.cpb-skills-list {
     flex: 1;
     overflow-y: auto;
     margin: 0;
@@ -288,24 +288,24 @@
     min-height: 0;
 }
 
-.skill-item {
+.cpb-skill-item {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 4px 8px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     border: 1px solid #999;
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
     cursor: pointer;
 }
 
-.skill-item:hover {
+.cpb-skill-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.skill-item.selected {
+.cpb-skill-item.selected {
     background: rgba(0, 0, 0, 0.2);
     border-color: #000;
     box-shadow: 0 0 10px var(--color-shadow-primary) inset;
@@ -536,4 +536,349 @@
 
 .actor-item.group-2 .group-indicator i {
     color: #782e22;
+}
+
+.skill-check-dialog .cpb-dialog-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #999;
+}
+
+.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button {
+    background: #782e22;
+    color: #fff;
+    border: 1px solid #782e22;
+    border-radius: 3px;
+    font-size: var(--font-size-14);
+    line-height: 32px;
+    padding: 0 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button:hover {
+    box-shadow: 0 0 5px var(--color-shadow-primary);
+    background: #8a3b2f;
+}
+
+.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button i {
+    margin-right: 4px;
+}
+
+.cpb-actor-roll {
+    margin: 0 0 4px 0;
+}
+
+.cpb-actor-roll:last-child {
+    margin-bottom: 0;
+}
+
+.cpb-roll-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    margin-bottom: 4px;
+}
+
+.cpb-roll-result.success {
+    border-color: #18520b;
+    background: rgba(24, 82, 11, 0.1);
+}
+
+.cpb-roll-result.failure {
+    border-color: #aa0200;
+    background: rgba(170, 2, 0, 0.1);
+}
+
+.cpb-roll-result .cpb-actor-name {
+    font-weight: bold;
+    margin: 0;
+}
+
+.cpb-roll-result .cpb-roll-total {
+    font-weight: bold;
+    font-size: var(--font-size-16);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cpb-roll-result .cpb-roll-total i {
+    margin-left: 4px;
+}
+
+.cpb-roll-result .cpb-roll-formula {
+    font-size: var(--font-size-11);
+    color: var(--color-text-dark-secondary);
+    margin-top: 2px;
+}
+
+.cpb-skill-check-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.cpb-skill-check-actor {
+    flex: 1;
+    min-width: 120px;
+}
+
+.cpb-skill-check-actor button {
+    width: 100%;
+    text-align: center;
+    background: #782e22;
+    color: #fff;
+    border: 1px solid #782e22;
+    border-radius: 3px;
+    font-size: var(--font-size-13);
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.cpb-skill-check-actor button:hover {
+    box-shadow: 0 0 5px var(--color-shadow-primary);
+    background: #8a3b2f;
+}
+
+.cpb-skill-check-actor .cpb-dice-roll {
+    margin-bottom: 2px;
+}
+
+.cpb-skill-check-actor .cpb-dice-result {
+    margin-top: 4px;
+}
+
+.cpb-skill-check-actor .cpb-dice-total {
+    font-weight: bold;
+    font-size: var(--font-size-14);
+    text-align: center;
+    padding: 2px 4px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.cpb-skill-check-actor .cpb-dice-total.success {
+    border-color: #18520b;
+    background: rgba(24, 82, 11, 0.1);
+}
+
+.cpb-skill-check-actor .cpb-dice-total.failure {
+    border-color: #aa0200;
+    background: rgba(170, 2, 0, 0.1);
+}
+
+.cpb-skill-check-actor .cpb-dice-formula {
+    font-size: var(--font-size-11);
+    color: var(--color-text-dark-secondary);
+    text-align: center;
+    margin-top: 2px;
+}
+
+.cpb-search-container {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+
+.cpb-search-container input[type="text"] {
+    padding-right: 24px;
+}
+
+.cpb-clear-search-button {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    font-size: var(--font-size-11);
+    color: #999;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.cpb-clear-search-button:hover {
+    color: #000;
+}
+
+.cpb-contestant-groups {
+    display: flex;
+    gap: 8px;
+}
+
+.cpb-group-section {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 4px;
+}
+
+.cpb-group-section h3 {
+    font-size: var(--font-size-13);
+    margin: 0 0 4px;
+}
+
+.cpb-actor-list.cpb-group-1, .cpb-actor-list.cpb-group-2 {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cpb-actor-list.cpb-group-1 {
+    border-left: 3px solid #1c58aa;
+}
+
+.cpb-actor-list.cpb-group-2 {
+    border-left: 3px solid #aa5a1c;
+}
+
+.cpb-actor-item .cpb-group-indicator {
+    width: 20px;
+    text-align: center;
+}
+
+.cpb-actor-item .cpb-group-indicator i {
+    font-size: var(--font-size-14);
+}
+
+.cpb-actor-item.cpb-group-1 .cpb-group-indicator i {
+    color: #1c58aa;
+}
+
+.cpb-actor-item.cpb-group-2 .cpb-group-indicator i {
+    color: #aa5a1c;
+}
+
+/* Chat card specific styles */
+.cpb-chat-card {
+    font-family: var(--font-primary);
+}
+
+.cpb-card-header {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 3px 0;
+    border-bottom: 1px solid #782e22;
+}
+
+.cpb-card-content {
+    padding: 5px;
+}
+
+.cpb-skill-roll {
+    background: #782e22;
+    color: #fff;
+    border: 1px solid #782e22;
+    border-radius: 3px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.cpb-skill-roll:hover {
+    background: #8a3b2f;
+}
+
+.cpb-success-icon {
+    color: #18520b;
+}
+
+.cpb-failure-icon {
+    color: #aa0200;
+}
+
+.cpb-group-roll-result {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.cpb-group-result-header {
+    border-bottom: 1px solid #782e22;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+}
+
+.cpb-group-success-text {
+    color: #18520b;
+    font-weight: bold;
+}
+
+.cpb-group-failure-text {
+    color: #aa0200;
+    font-weight: bold;
+}
+
+/* Styling for the pending roll buttons to match post-roll layout */
+.roll-result.pending-roll {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    margin-bottom: 4px;
+}
+
+.roll-result.pending-roll .actor-name,
+.roll-result.pending-roll .cpb-actor-name {
+    flex: 1;
+    width: 100%;
+}
+
+.roll-result.pending-roll button.skill-roll,
+.roll-result.pending-roll button.cpb-skill-roll {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    margin: 0;
+    font-size: var(--font-size-13);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: #594a3c;
+    font-weight: bold;
+}
+
+.roll-result.pending-roll button.skill-roll:hover,
+.roll-result.pending-roll button.cpb-skill-roll:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.roll-result.pending-roll button.skill-roll i,
+.roll-result.pending-roll button.cpb-skill-roll i {
+    color: #782e22;
+    margin-top: 3px;
+    margin-right: 0px;
+    flex-shrink: 0;
 }

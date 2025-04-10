@@ -506,30 +506,73 @@
 
 .skill-check-roll {
     padding: 5px;
-    text-align: center;
+    text-align: left;
 }
 
 .skill-check-roll .skill-roll {
-    background: var(--color-bg-btn);
+    background: rgba(0, 0, 0, 0.05);
     border: 1px solid var(--color-border-light-tertiary);
-    border-radius: 4px;
-    padding: 8px 16px;
-    color: var(--color-text-dark-primary);
+    border-radius: 3px;
+    padding: 8px;
+    color: #594a3c;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
     line-height: 1;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0;
+    text-align: left;
+    font-weight: bold;
+    width: 100%;
+    justify-content: flex-start;
 }
 
 .skill-check-roll .skill-roll:hover {
-    background: var(--color-bg-btn-hover);
+    background: rgba(0, 0, 0, 0.1);
     border-color: var(--color-border-highlight);
-    color: var(--color-text-highlight);
 }
 
 .skill-check-roll .skill-roll i {
     font-size: var(--font-size-14);
+    color: #782e22;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* New namespaced styles */
+.cpb-skill-check-roll {
+    padding: 5px;
+    text-align: left;
+}
+
+.cpb-skill-check-roll .cpb-skill-roll {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border-light-tertiary);
+    border-radius: 3px;
+    padding: 8px;
+    color: #594a3c;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    text-align: left;
+    font-weight: bold;
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.cpb-skill-check-roll .cpb-skill-roll:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: var(--color-border-highlight);
+}
+
+.cpb-skill-check-roll .cpb-skill-roll i {
+    font-size: var(--font-size-14);
+    color: #782e22;
+    margin-right: 8px;
+    flex-shrink: 0;
 } 

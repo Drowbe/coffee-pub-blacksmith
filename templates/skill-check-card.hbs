@@ -1,32 +1,32 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 {{#unless hideHeader}}
-<div class="dnd5e chat-card item-card" data-actor-id="{{actorId}}">
-    <header class="card-header flexrow">
+<div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
+    <header class="card-header flexrow cpb-card-header">
         <h3 class="item-name"><i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}} Check</h3>
     </header>
-    <div class="card-content">
+    <div class="card-content cpb-card-content">
         {{#if label}}<h3>{{label}}</h3>{{/if}}
         {{#if description}}
-        <div class="gm-description">
+        <div class="gm-description cpb-gm-description">
             <p>{{{description}}}</p>
         </div>
         {{/if}}
 
         {{#if skillDescription}}
         <h3>Details</h3>
-        <div class="skill-description">
+        <div class="skill-description cpb-skill-description">
             <p>{{{skillDescription}}}</p>
             <p>{{{skillLink}}}</p>
         </div>
         {{/if}}
         
-        <div class="skill-check-buttons">
+        <div class="skill-check-buttons cpb-skill-check-buttons">
             {{#each actors}}
-            <div class="skill-check-actor">
+            <div class="skill-check-actor cpb-skill-check-actor">
                 {{#if this.result}}
-                    <div class="roll-result">
-                        <span class="actor-name">{{this.name}}</span>
-                        <span class="roll-total" title="{{this.result.formula}}">
+                    <div class="roll-result cpb-roll-result">
+                        <span class="actor-name cpb-actor-name">{{this.name}}</span>
+                        <span class="roll-total cpb-roll-total" title="{{this.result.formula}}">
                             {{this.result.total}}
                             {{#if ../dc}}
                                 {{#if (gte this.result.total ../dc)}}
@@ -38,9 +38,11 @@
                         </span>
                     </div>
                 {{else}}
-                    <button class="skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
-                        <i class="fas fa-dice-d20"></i> {{this.name}}
-                    </button>
+                    <div class="roll-result pending-roll cpb-roll-result">
+                        <button class="skill-roll cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
+                            <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                        </button>
+                    </div>
                 {{/if}}
             </div>
             {{/each}}
@@ -50,7 +52,7 @@
         {{#if isGroupRoll}}
             {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
             {{#if allRollsComplete}}
-                <div class="group-roll-result" style="margin-top: 8px; padding: 8px; border-radius: 4px; text-align: center; background: rgba(0, 0, 0, 0.05);">
+                <div class="group-roll-result cpb-group-roll-result" style="margin-top: 8px; padding: 8px; border-radius: 4px; text-align: center; background: rgba(0, 0, 0, 0.05);">
                     <h3 style="border-bottom: 1px solid #782e22; margin-bottom: 8px; padding-bottom: 4px;">Group Result</h3>
                     {{#if groupSuccess}}
                         <div style="color: #18520b; font-weight: bold;">

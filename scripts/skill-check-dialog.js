@@ -124,7 +124,7 @@ export class SkillCheckDialog extends Application {
 
     _getToolProficiencies() {
         const toolProfs = new Set();
-        const selectedActors = this.element?.find('.actor-item.selected') || [];
+        const selectedActors = this.element?.find('.cpb-actor-item.selected, .actor-item.selected') || [];
         
         selectedActors.each((i, el) => {
             const actorId = el.dataset.actorId;
@@ -152,40 +152,42 @@ export class SkillCheckDialog extends Application {
         const initialFilter = hasSelectedTokens ? 'selected' : 'canvas';
         
         // Set initial active state on filter button
-        html.find(`.filter-btn[data-filter="${initialFilter}"]`).addClass('active');
+        html.find(`.cpb-filter-btn[data-filter="${initialFilter}"]`).addClass('active');
         
         // Apply initial filter
         this._applyFilter(html, initialFilter);
 
-        // Handle actor selection
-        html.find('.actor-item').on('click contextmenu', (ev) => {
+        // Handle actor selection - updated to handle both namespaced and legacy classes
+        html.find('.cpb-actor-item, .actor-item').on('click contextmenu', (ev) => {
             ev.preventDefault();
             const item = ev.currentTarget;
             const isRightClick = ev.type === 'contextmenu';
-            const groupIndicator = item.querySelector('.group-indicator');
+            const groupIndicator = item.querySelector('.cpb-group-indicator') || item.querySelector('.group-indicator');
+
+            if (!groupIndicator) return;
 
             // Toggle selection based on click type
             if (isRightClick) {
                 if (groupIndicator.innerHTML.includes('fa-swords')) {
                     // Remove from group 2
                     groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'group-2');
+                    item.classList.remove('selected', 'cpb-group-2', 'group-2');
                 } else {
                     // Add to group 2, remove from group 1 if needed
                     groupIndicator.innerHTML = '<i class="fas fa-swords" title="Group 2"></i>';
-                    item.classList.remove('group-1');
-                    item.classList.add('selected', 'group-2');
+                    item.classList.remove('cpb-group-1', 'group-1');
+                    item.classList.add('selected', 'cpb-group-2', 'group-2');
                 }
             } else {
                 if (groupIndicator.innerHTML.includes('fa-helmet-battle')) {
                     // Remove from group 1
                     groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'group-1');
+                    item.classList.remove('selected', 'cpb-group-1', 'group-1');
                 } else {
                     // Add to group 1, remove from group 2 if needed
                     groupIndicator.innerHTML = '<i class="fas fa-helmet-battle" title="Group 1"></i>';
-                    item.classList.remove('group-2');
-                    item.classList.add('selected', 'group-1');
+                    item.classList.remove('cpb-group-2', 'group-2');
+                    item.classList.add('selected', 'cpb-group-1', 'group-1');
                 }
             }
 
@@ -196,8 +198,8 @@ export class SkillCheckDialog extends Application {
         // Handle player search - separate from criteria search
         html.find('input[name="search"]').each((i, input) => {
             const $input = $(input);
-            const $clearButton = $input.closest('.search-container').find('.clear-search-button');
-            const isPlayerSearch = $input.closest('.dialog-column').find('.actor-list').length > 0;
+            const $clearButton = $input.closest('.cpb-search-container, .search-container').find('.cpb-clear-search-button, .clear-search-button');
+            const isPlayerSearch = $input.closest('.cpb-dialog-column, .dialog-column').find('.cpb-actor-list, .actor-list').length > 0;
             
             // Show/hide clear button based on input content
             const updateClearButton = () => {
@@ -209,14 +211,14 @@ export class SkillCheckDialog extends Application {
                 updateClearButton();
                 
                 if (isPlayerSearch) {
-                    // Search in actor list
-                    html.find('.actor-list .actor-item').each((i, el) => {
-                        const name = el.querySelector('.actor-name').textContent.toLowerCase();
+                    // Search in actor list - support both class naming schemes
+                    html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
+                        const name = el.querySelector('.cpb-actor-name, .actor-name').textContent.toLowerCase();
                         el.style.display = name.includes(searchTerm) ? '' : 'none';
                     });
                 } else {
                     // Search in criteria/checks list
-                    html.find('.check-item').each((i, el) => {
+                    html.find('.cpb-check-item, .check-item').each((i, el) => {
                         const text = el.textContent.toLowerCase();
                         el.style.display = text.includes(searchTerm) ? '' : 'none';
                     });
@@ -234,12 +236,12 @@ export class SkillCheckDialog extends Application {
         });
 
         // Handle filter buttons
-        html.find('.filter-btn').click(ev => {
+        html.find('.cpb-filter-btn, .filter-btn').click(ev => {
             const button = ev.currentTarget;
             const filterType = button.dataset.filter;
             
             // Toggle active state on buttons
-            html.find('.filter-btn').removeClass('active');
+            html.find('.cpb-filter-btn, .filter-btn').removeClass('active');
             button.classList.add('active');
             
             // Apply filter and respect current search term
@@ -249,9 +251,9 @@ export class SkillCheckDialog extends Application {
                 this._applyFilter(html, filterType, false);
                 
                 // Then apply search within filtered results
-                html.find('.actor-list .actor-item').each((i, el) => {
+                html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
                     if (el.style.display !== 'none') {
-                        const name = el.querySelector('.actor-name').textContent.toLowerCase();
+                        const name = el.querySelector('.cpb-actor-name, .actor-name').textContent.toLowerCase();
                         el.style.display = name.includes(searchTerm) ? '' : 'none';
                     }
                 });
@@ -262,13 +264,13 @@ export class SkillCheckDialog extends Application {
         });
 
         // Handle check item selection
-        html.find('.check-item').click(ev => {
+        html.find('.cpb-check-item, .check-item').click(ev => {
             const item = ev.currentTarget;
             const type = item.dataset.type;
             const value = item.dataset.value;
 
             // Remove selection from all items
-            html.find('.check-item').removeClass('selected');
+            html.find('.cpb-check-item, .check-item').removeClass('selected');
             // Add selection to clicked item
             item.classList.add('selected');
 
@@ -301,9 +303,9 @@ export class SkillCheckDialog extends Application {
 
         // Handle the roll button
         html.find('button[data-button="roll"]').click(async (ev) => {
-            const selectedActors = Array.from(html.find('.actor-item.selected')).map(item => ({
+            const selectedActors = Array.from(html.find('.cpb-actor-item.selected, .actor-item.selected')).map(item => ({
                 id: item.dataset.actorId,
-                name: item.querySelector('.actor-name').textContent
+                name: item.querySelector('.cpb-actor-name, .actor-name').textContent
             }));
             
             if (selectedActors.length === 0) {
@@ -411,15 +413,15 @@ export class SkillCheckDialog extends Application {
 
     _updateToolList() {
         const tools = this._getToolProficiencies();
-        const toolSection = this.element.find('.check-section').last();
+        const toolSection = this.element.find('.cpb-check-section, .check-section').last();
         
         // Clear existing tools
-        toolSection.find('.check-item').remove();
+        toolSection.find('.cpb-check-item, .check-item').remove();
         
         // Add new tools
         tools.forEach(tool => {
             const toolItem = $(`
-                <div class="check-item" data-type="tool" data-value="${tool.id}">
+                <div class="cpb-check-item check-item" data-type="tool" data-value="${tool.id}">
                     <i class="fas fa-tools"></i>
                     <span>${tool.name}</span>
                 </div>
@@ -432,7 +434,7 @@ export class SkillCheckDialog extends Application {
                 const value = item.dataset.value;
 
                 // Remove selection from all items
-                this.element.find('.check-item').removeClass('selected');
+                this.element.find('.cpb-check-item, .check-item').removeClass('selected');
                 // Add selection to clicked item
                 item.classList.add('selected');
 
@@ -446,7 +448,7 @@ export class SkillCheckDialog extends Application {
 
     // Update helper method to optionally defer visibility updates
     _applyFilter(html, filterType, updateVisibility = true) {
-        html.find('.actor-list .actor-item').each((i, el) => {
+        html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
             const actorId = el.dataset.actorId;
             const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
             const actor = game.actors.get(actorId);

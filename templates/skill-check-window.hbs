@@ -1,96 +1,96 @@
 <div class="skill-check-dialog">
-    <div class="dialog-content">
+    <div class="cpb-dialog-content">
         <!-- Left Column -->
-        <div class="dialog-column">
+        <div class="cpb-dialog-column">
             <h2>Selected Contestants</h2>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>Search</label>
-                <div class="form-fields search-container">
+                <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search players...">
-                    <button type="button" class="clear-search-button" title="Clear search">
+                    <button type="button" class="cpb-clear-search-button" title="Clear search">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
-            <div class="filter-buttons">
-                <button type="button" class="filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
+            <div class="cpb-filter-buttons">
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
                     <i class="fas fa-user"></i> Selected
                 </button>
-                <button type="button" class="filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
                     <i class="fas fa-users"></i> Canvas
                 </button>
-                <button type="button" class="filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
                     <i class="fas fa-flag"></i> Party
                 </button>
             </div>
-            <div class="actor-list">
+            <div class="cpb-actor-list">
                 {{#each actors}}
-                    <div class="actor-item" data-actor-id="{{this.id}}">
+                    <div class="cpb-actor-item" data-actor-id="{{this.id}}">
                         <img src="{{this.actor.img}}" alt="{{this.name}}">
-                        <div class="actor-details">
-                            <div class="actor-name">{{this.name}}</div>
+                        <div class="cpb-actor-details">
+                            <div class="cpb-actor-name">{{this.name}}</div>
                             {{#if (eq this.type "character")}}
-                                <div class="actor-info">Level {{this.level}} {{this.class}}</div>
+                                <div class="cpb-actor-info">Level {{this.level}} {{this.class}}</div>
                             {{else}}
-                                <div class="actor-info">{{this.type}}</div>
+                                <div class="cpb-actor-info">{{this.type}}</div>
                             {{/if}}
-                            <div class="actor-info">HP: {{this.hp.value}}/{{this.hp.max}}</div>
+                            <div class="cpb-actor-info">HP: {{this.hp.value}}/{{this.hp.max}}</div>
                         </div>
-                        <div class="group-indicator"></div>
+                        <div class="cpb-group-indicator"></div>
                     </div>
                 {{/each}}
             </div>
         </div>
 
         <!-- Middle Column -->
-        <div class="dialog-column">
+        <div class="cpb-dialog-column">
             <h2>Available Checks</h2>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>Criteria</label>
-                <div class="form-fields search-container">
+                <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search...">
-                    <button type="button" class="clear-search-button" title="Clear search">
+                    <button type="button" class="cpb-clear-search-button" title="Clear search">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
-            <div class="checks-list">
+            <div class="cpb-checks-list">
                 <!-- Dice Roll Section -->
-                <div class="check-section">
-                    <div class="section-header" style="margin-bottom: 8px;">Quick Roll</div>
-                    <div class="dice-grid">
-                        <div class="check-item" data-type="dice" data-value="d2">
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header" style="margin-bottom: 8px;">Quick Roll</div>
+                    <div class="cpb-dice-grid">
+                        <div class="cpb-check-item" data-type="dice" data-value="d2">
                             <i class="fas fa-coin" title="d2"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d4">
+                        <div class="cpb-check-item" data-type="dice" data-value="d4">
                             <i class="fas fa-dice-d4" title="d4"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d6">
+                        <div class="cpb-check-item" data-type="dice" data-value="d6">
                             <i class="fas fa-dice-d6" title="d6"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d8">
+                        <div class="cpb-check-item" data-type="dice" data-value="d8">
                             <i class="fas fa-dice-d8" title="d8"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d10">
+                        <div class="cpb-check-item" data-type="dice" data-value="d10">
                             <i class="fas fa-dice-d10" title="d10"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d12">
+                        <div class="cpb-check-item" data-type="dice" data-value="d12">
                             <i class="fas fa-dice-d12" title="d12"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d20">
+                        <div class="cpb-check-item" data-type="dice" data-value="d20">
                             <i class="fas fa-dice-d20" title="d20"></i>
                         </div>
-                        <div class="check-item" data-type="dice" data-value="d100">
+                        <div class="cpb-check-item" data-type="dice" data-value="d100">
                             <i class="fas fa-hundred-points" title="d100"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Skill Check Section -->
-                <div class="check-section">
-                    <div class="section-header">Skill Check</div>
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Skill Check</div>
                     {{#each skills}}
-                    <div class="check-item" data-type="skill" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}">
                         <i class="{{this.icon}}"></i>
                         <span>{{this.name}}</span>
                     </div>
@@ -98,10 +98,10 @@
                 </div>
 
                 <!-- Ability Check Section -->
-                <div class="check-section">
-                    <div class="section-header">Ability Check</div>
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Ability Check</div>
                     {{#each abilities}}
-                    <div class="check-item" data-type="ability" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}">
                         <i class="fas fa-user-circle"></i>
                         <span>{{this.name}}</span>
                     </div>
@@ -109,10 +109,10 @@
                 </div>
 
                 <!-- Saving Throw Section -->
-                <div class="check-section">
-                    <div class="section-header">Saving Throw</div>
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Saving Throw</div>
                     {{#each saves}}
-                    <div class="check-item" data-type="save" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="save" data-value="{{this.id}}">
                         <i class="fas fa-shield-alt"></i>
                         <span>{{this.name}}</span>
                     </div>
@@ -120,10 +120,10 @@
                 </div>
 
                 <!-- Tool Check Section -->
-                <div class="check-section">
-                    <div class="section-header">Tool Check</div>
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Tool Check</div>
                     {{#each tools}}
-                    <div class="check-item" data-type="tool" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="tool" data-value="{{this.id}}">
                         <i class="fas fa-tools"></i>
                         <span>{{this.name}}</span>
                     </div>
@@ -133,25 +133,25 @@
         </div>
 
         <!-- Right Column -->
-        <div class="dialog-column">
+        <div class="cpb-dialog-column">
             <h2>Roll Configuration</h2>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>DC (Optional)</label>
-                <div class="form-fields">
+                <div class="cpb-form-fields">
                     <input type="number" name="dc" placeholder="DC">
-                    <label class="checkbox">
+                    <label class="cpb-checkbox">
                         <input type="checkbox" name="showDC" checked> Show
                     </label>
                 </div>
-                <div class="form-fields" style="margin-top: 4px;">
-                    <label class="checkbox">
+                <div class="cpb-form-fields" style="margin-top: 4px;">
+                    <label class="cpb-checkbox">
                         <input type="checkbox" name="groupRoll"> Group Roll (assess all rolls together)
                     </label>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>Roll Mode</label>
-                <div class="form-fields">
+                <div class="cpb-form-fields">
                     <select name="rollMode">
                         <option value="roll">Public Roll</option>
                         <option value="gmroll">Private Roll</option>
@@ -159,27 +159,27 @@
                     </select>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>Label</label>
-                <div class="form-fields">
+                <div class="cpb-form-fields">
                     <input type="text" name="label" placeholder="Roll label">
                 </div>
             </div>
-            <div class="form-group">
+            <div class="cpb-form-group">
                 <label>Description</label>
-                <div class="form-fields">
+                <div class="cpb-form-fields">
                     <textarea name="description" rows="4" placeholder="Optional description..."></textarea>
                 </div>
             </div>
 
         </div>
     </div>
-    <div class="dialog-buttons">
-        <button class="dialog-button" data-button="roll">
+    <div class="cpb-dialog-buttons">
+        <button class="cpb-dialog-button" data-button="roll">
             <i class="fas fa-dice-d20"></i>
             Request Roll
         </button>
-        <button class="dialog-button" data-button="cancel">
+        <button class="cpb-dialog-button" data-button="cancel">
             <i class="fas fa-times"></i>
             Cancel
         </button>
