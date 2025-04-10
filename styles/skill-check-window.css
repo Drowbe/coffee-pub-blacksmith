@@ -488,3 +488,52 @@
 .clear-search-button:hover {
     color: #000;
 }
+
+.contestant-groups {
+    margin: 8px 0;
+}
+
+.group-section {
+    margin-bottom: 16px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.group-section h3 {
+    margin-top: 0;
+}
+
+.actor-list.group-1, .actor-list.group-2 {
+    min-height: 50px;
+    border: 1px dashed rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 4px;
+    margin-top: 4px;
+}
+
+.actor-list.group-1 {
+    background: rgba(24, 82, 11, 0.05);
+}
+
+.actor-list.group-2 {
+    background: rgba(120, 46, 34, 0.05);
+}
+
+.actor-item .group-indicator {
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: var(--font-size-14);
+}
+
+.actor-item .group-indicator i {
+    color: #782e22;
+}
+
+.actor-item.group-1 .group-indicator i {
+    color: #18520b;
+}
+
+.actor-item.group-2 .group-indicator i {
+    color: #782e22;
+}
