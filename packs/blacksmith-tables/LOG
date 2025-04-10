@@ -1,1 +1,11 @@
 2025/04/09-23:22:00.702 1f68 Delete type=3 #1
+2025/04/10-14:07:52.427 9f04 Level-0 table #1583: started
+2025/04/10-14:07:52.427 9f04 Level-0 table #1583: 0 bytes OK
+2025/04/10-14:07:52.429 9f04 Delete type=0 #1581
+2025/04/10-14:07:52.430 9f04 Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 203 : 1
+2025/04/10-14:07:52.430 9f04 Compacting 1@0 + 0@1 files
+2025/04/10-14:07:52.435 9f04 Generated table #1584@0: 205 keys, 30605 bytes
+2025/04/10-14:07:52.435 9f04 Compacted 1@0 + 0@1 files => 30605 bytes
+2025/04/10-14:07:52.438 9f04 compacted to: files[ 0 1 0 0 0 0 0 ]
+2025/04/10-14:07:52.438 9f04 Delete type=2 #1547
+2025/04/10-14:07:52.438 9f04 Manual compaction at level-0 from '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 203 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)
