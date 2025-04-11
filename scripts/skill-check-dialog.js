@@ -305,7 +305,9 @@ export class SkillCheckDialog extends Application {
         html.find('button[data-button="roll"]').click(async (ev) => {
             const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => ({
                 id: item.dataset.actorId,
-                name: item.querySelector('.cpb-actor-name, .actor-name').textContent
+                name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
+                group: item.classList.contains('cpb-group-1') ? 1 : 
+                       item.classList.contains('cpb-group-2') ? 2 : 1
             }));
             
             if (selectedActors.length === 0) {
@@ -389,7 +391,8 @@ export class SkillCheckDialog extends Application {
                 skillDescription: rollDescription,
                 skillLink: rollLink,
                 rollMode,
-                rollType: this.selectedType
+                rollType: this.selectedType,
+                hasMultipleGroups: selectedActors.some(a => a.group === 1) && selectedActors.some(a => a.group === 2)
             };
 
             // Create the chat message

@@ -1,5 +1,3 @@
-
-
 /* DIALOG STYLES */
 
 .skill-check-dialog {
@@ -584,4 +582,15 @@
     margin-top: 3px;
     margin-right: 0px;
     flex-shrink: 0;
+}
+
+.cpb-versus-separator {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin: 8px 0;
+    color: #782e22;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
 }

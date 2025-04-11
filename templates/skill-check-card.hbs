@@ -21,30 +21,67 @@
         {{/if}}
         
         <div class="cpb-skill-check-buttons">
+            {{!-- Group 1 Players --}}
             {{#each actors}}
-            <div class="cpb-skill-check-actor">
-                {{#if this.result}}
-                    <div class="cpb-roll-result">
-                        <span class="cpb-actor-name">{{this.name}}</span>
-                        <span class="cpb-roll-total" title="{{this.result.formula}}">
-                            {{this.result.total}}
-                            {{#if ../dc}}
-                                {{#if (gte this.result.total ../dc)}}
-                                    <i class="fas fa-check" style="color: #18520b;"></i>
-                                {{else}}
-                                    <i class="fas fa-times" style="color: #aa0200;"></i>
+                {{#if (eq this.group 1)}}
+                <div class="cpb-skill-check-actor">
+                    {{#if this.result}}
+                        <div class="cpb-roll-result">
+                            <span class="cpb-actor-name">{{this.name}}</span>
+                            <span class="cpb-roll-total" title="{{this.result.formula}}">
+                                {{this.result.total}}
+                                {{#if ../dc}}
+                                    {{#if (gte this.result.total ../dc)}}
+                                        <i class="fas fa-check" style="color: #18520b;"></i>
+                                    {{else}}
+                                        <i class="fas fa-times" style="color: #aa0200;"></i>
+                                    {{/if}}
                                 {{/if}}
-                            {{/if}}
-                        </span>
-                    </div>
-                {{else}}
-                    <div class="pending-roll cpb-roll-result">
-                        <button class="cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
-                            <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                        </button>
-                    </div>
+                            </span>
+                        </div>
+                    {{else}}
+                        <div class="pending-roll cpb-roll-result">
+                            <button class="cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
+                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                            </button>
+                        </div>
+                    {{/if}}
+                </div>
                 {{/if}}
-            </div>
+            {{/each}}
+
+            {{!-- VS Separator if both groups are present --}}
+            {{#if hasMultipleGroups}}
+                <div class="cpb-versus-separator">VS</div>
+            {{/if}}
+
+            {{!-- Group 2 Players --}}
+            {{#each actors}}
+                {{#if (eq this.group 2)}}
+                <div class="cpb-skill-check-actor">
+                    {{#if this.result}}
+                        <div class="cpb-roll-result">
+                            <span class="cpb-actor-name">{{this.name}}</span>
+                            <span class="cpb-roll-total" title="{{this.result.formula}}">
+                                {{this.result.total}}
+                                {{#if ../dc}}
+                                    {{#if (gte this.result.total ../dc)}}
+                                        <i class="fas fa-check" style="color: #18520b;"></i>
+                                    {{else}}
+                                        <i class="fas fa-times" style="color: #aa0200;"></i>
+                                    {{/if}}
+                                {{/if}}
+                            </span>
+                        </div>
+                    {{else}}
+                        <div class="pending-roll cpb-roll-result">
+                            <button class="cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
+                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                            </button>
+                        </div>
+                    {{/if}}
+                </div>
+                {{/if}}
             {{/each}}
         </div>
 
