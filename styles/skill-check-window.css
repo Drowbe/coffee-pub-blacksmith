@@ -7,7 +7,6 @@
     display: flex;
     flex-direction: column;
 }
-
 .cpb-dialog-content {
     display: flex;
     gap: 8px;
@@ -17,7 +16,6 @@
     overflow: hidden;
     min-width: 800px;
 }
-
 .cpb-dialog-column {
     flex: 1;
     display: flex;
@@ -27,7 +25,6 @@
     overflow: hidden;
     padding-right: 8px;
 }
-
 .cpb-dialog-column h2 {
     border-bottom: 2px groove #eeede0;
     font-size: var(--font-size-14);
@@ -37,21 +34,17 @@
     padding: 2px 0;
 }
 
-
-
 /* FORM STYLES */
 
 .cpb-form-group {
     margin: 0 0 8px;
 }
-
 .cpb-form-group label {
     display: block;
     font-weight: bold;
     margin-bottom: 4px;
     font-size: var(--font-size-12);
 }
-
 .cpb-form-group label.cpb-checkbox {
     display: inline-flex;
     align-items: center;
@@ -59,12 +52,10 @@
     margin: 0;
     gap: 4px;
 }
-
 .cpb-form-fields {
     display: flex;
     gap: 8px;
 }
-
 .cpb-form-fields input[type="text"],
 .cpb-form-fields input[type="number"],
 .cpb-form-fields select,
@@ -76,12 +67,10 @@
     padding: 4px;
     font-size: var(--font-size-12);
 }
-
 .cpb-form-fields textarea {
     resize: vertical;
     min-height: 40px;
 }
-
 
 /* FILTERS */
 
@@ -90,7 +79,6 @@
     gap: 4px;
     margin-bottom: 8px;
 }
-
 .cpb-filter-btn {
     flex: 1;
     background: rgba(0, 0, 0, 0.1);
@@ -102,17 +90,9 @@
     white-space: nowrap;
     cursor: pointer;
 }
-
 .cpb-filter-btn:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
-
-.cpb-filter-btn.active {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: #000;
-    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
-}
-
 
 
 /* ***** FIRST COLUMN ***** */
@@ -127,7 +107,6 @@
     list-style: none;
     min-height: 0;
 }
-
 .cpb-actor-item {
     display: flex;
     align-items: center;
@@ -138,16 +117,9 @@
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
 }
-
 .cpb-actor-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
-}
-
-.cpb-actor-item.selected {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: #000;
-    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
 }
 
 .cpb-actor-item img {
@@ -156,38 +128,29 @@
     border: none;
     object-fit: cover;
 }
-
 .cpb-actor-details {
     flex: 1;
     min-width: 0;
 }
-
 .cpb-actor-name {
     font-weight: bold;
     font-size: var(--font-size-13);
     margin-bottom: 2px;
 }
-
 .cpb-actor-info {
     font-size: var(--font-size-11);
     color: var(--color-text-dark-secondary);
 }
 
-
-
-
 /* ***** SECOND COLUMN ***** */
 
-
 /* DICE ROLLS */
-
 
 .cpb-dice-grid {
     display: flex;
     gap: 4px;
     margin: 4px 0;
 }
-
 .cpb-dice-grid .cpb-check-item {
     justify-content: center;
     width: 28px;
@@ -195,31 +158,22 @@
     padding: 4px;
     background: rgba(0, 0, 0, 0.05);
 }
-
 .cpb-dice-grid .cpb-check-item i {
     font-size: var(--font-size-14);
     margin: 0;
 }
-
 .cpb-dice-grid .cpb-check-item span {
     display: none;
 }
-
 .cpb-dice-grid .cpb-check-item:hover {
     background: rgba(0, 0, 0, 0.1);
     box-shadow: 0 0 3px var(--color-shadow-primary);
-}
-
-.cpb-dice-grid .cpb-check-item.selected {
-    background: rgba(0, 0, 0, 0.2);
-    box-shadow: 0 0 5px var(--color-shadow-primary) inset;
 }
 .cpb-dice-buttons {
     display: flex;
     gap: 4px;
     margin-top: 4px;
 }
-
 .cpb-dice-btn {
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid #999;
@@ -233,27 +187,13 @@
     justify-content: center;
     aspect-ratio: 1;
 }
-
 .cpb-dice-btn:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
     background: rgba(0, 0, 0, 0.15);
 }
-
-.cpb-dice-btn.selected {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: #000;
-    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
-}
-
 .cpb-dice-btn i {
     font-size: var(--font-size-16);
 }
-
-
-
-
-
-
 
 /* CHECKS LIST */
 
@@ -264,11 +204,9 @@
     padding: 0;
     min-height: 0;
 }
-
 .cpb-check-section {
     margin-bottom: 12px;
 }
-
 .cpb-check-section .cpb-section-header {
     background: rgba(0, 0, 0, 0.1);
     padding: 4px 8px;
@@ -277,7 +215,6 @@
     border-radius: 3px;
     margin-bottom: 4px;
 }
-
 .cpb-check-item {
     display: flex;
     align-items: center;
@@ -289,33 +226,21 @@
     background: rgba(0, 0, 0, 0.05);
     cursor: pointer;
 }
-
 .cpb-check-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
-
-.cpb-check-item.selected {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: #000;
-    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
-}
-
 .cpb-check-item i {
     font-size: var(--font-size-14);
     width: 16px;
     text-align: center;
 }
-
 .cpb-check-item span {
     flex: 1;
     font-size: var(--font-size-12);
 }
 
-
-
 /* SKILLS */
-
 
 .cpb-skills-list {
     flex: 1;
@@ -325,7 +250,6 @@
     list-style: none;
     min-height: 0;
 }
-
 .cpb-skill-item {
     display: flex;
     align-items: center;
@@ -337,35 +261,16 @@
     background: rgba(0, 0, 0, 0.05);
     cursor: pointer;
 }
-
 .cpb-skill-item:hover {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-.cpb-skill-item.selected {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: #000;
-    box-shadow: 0 0 10px var(--color-shadow-primary) inset;
-}
-
-
-
-
-
 /* Dialog Footer */
 
-
-
-
-
-
-
 .skill-check-dialog .cpb-dialog-buttons {
-    
     flex: 0 0 auto;
     margin: 0;
-
     display: flex;
     gap: 8px;
     justify-content: flex-end;
@@ -373,12 +278,8 @@
     background: rgba(0, 0, 0, 0.05);
     border-top: 1px solid #999;
 }
-
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button {
-
-
     height: 32px;
-
     background: #782e22;
     color: #fff;
     border: 1px solid #782e22;
@@ -393,116 +294,57 @@
     gap: 8px;
     min-width: 100px;
 }
-
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button:hover {
-    
     border-color: #000;
-    
     box-shadow: 0 0 5px var(--color-shadow-primary);
     background: #8a3b2f;
 }
-
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button i {
-    
     font-size: var(--font-size-14);
-
     margin-right: 4px;
 }
-
-
 
 .cpb-roll-result {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px;
-    border: 1px solid #999;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.05);
-    margin-bottom: 4px;
-
-
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
+    padding: 6px 8px;
+    margin-bottom: 0px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--color-border-light-primary);
+    border: 1px solid rgba(0, 0, 0, 0.2);
 }
-
-.cpb-roll-result.success {
-    border-color: #18520b;
-    background: rgba(24, 82, 11, 0.1);
-
-    background: rgba(45, 138, 69, 0.1);
-    border-color: #2d8a45;
-}
-
-.cpb-roll-result.failure {
-    border-color: #aa0200;
-    background: rgba(170, 2, 0, 0.1);
-
-    background: rgba(193, 87, 1, 0.1);
-    border-color: #c15701;
-}
-
 .cpb-roll-result .cpb-actor-name {
     font-weight: bold;
     margin: 0;
-
-    font-weight: bold;
     color: #594a3c;
 }
-
 .cpb-roll-result .cpb-roll-total {
-    font-weight: bold;
-    font-size: var(--font-size-16);
     display: flex;
     align-items: center;
     gap: 4px;
-
     font-family: var(--dnd5e-font-roboto-slab);
     font-size: 1.2em;
     font-weight: bold;
     color: #461313;
 }
-
 .cpb-roll-result .cpb-roll-total i {
     margin-left: 4px;
     margin-right: 2px;
     padding-top: 4px;
 }
-
-.cpb-roll-result .cpb-roll-formula {
-    font-size: var(--font-size-11);
-    color: var(--color-text-dark-secondary);
-    margin-top: 2px;
-
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 4px;
-    text-align: right;
-}
-
 .cpb-skill-check-buttons {
-
     flex-direction: column;
-
-    
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     margin-top: 8px;
 }
-
 .cpb-skill-check-actor {
     margin: 2px 0;
     flex: 1;
     min-width: 120px;
 }
-
 .cpb-skill-check-actor button {
     line-height: 20px;
     width: 100%;
@@ -519,22 +361,14 @@
     justify-content: center;
     gap: 4px;
 }
-
 .cpb-skill-check-actor button:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
     background: rgba(0, 0, 0, 0.4);
     border-color: #000;
 }
-
-
-
-
-
 .cpb-skill-check-actor .cpb-dice-total {
-
     color: #000;
     margin: 0;
-
     font-weight: bold;
     font-size: var(--font-size-14);
     text-align: center;
@@ -543,39 +377,29 @@
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
 }
-
 .cpb-skill-check-actor .cpb-dice-total.success {
     color: #18520b;
     border-color: #18520b;
     background: rgba(24, 82, 11, 0.1);
 }
-
 .cpb-skill-check-actor .cpb-dice-total.failure {
     color: #aa0200;
     border-color: #aa0200;
     background: rgba(170, 2, 0, 0.1);
 }
-
-
-
 .cpb-search-container {
-
     align-items: center;
     position: relative;
     display: flex;
     width: 100%;
 }
-
 .cpb-search-container input[type="text"] {
     flex: 1;
     padding-right: 24px;
 }
-
 .cpb-clear-search-button {
-
     line-height: 1; /* Ensure icon is centered */
     text-align: center;
-
     position: absolute;
     right: 4px;
     top: 50%;
@@ -593,52 +417,79 @@
     align-items: center;
     justify-content: center;
 }
-
 .cpb-clear-search-button:hover {
     color: #000;
 }
 
+/* SELECTED/ACTIVE */
+
+.cpb-filter-btn.active {
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.7);
+}
+
+.cpb-actor-item.selected {
+    border-color: rgba(0, 0, 0, 0.7);
+
+}
+.cpb-dice-grid .cpb-check-item.selected,
+.cpb-dice-btn.selected,
+.cpb-check-item.selected,
+.cpb-skill-item.selected {
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.7);
+}
+
+
 /* GROUPS */
 
 .cpb-actor-item .cpb-group-indicator {
-    width: 20px;
-    text-align: center;
-
-    margin-left: auto;
     padding-left: 8px;
     font-size: var(--font-size-14);
+    width: 20px;
+    text-align: center;
+    margin-left: auto;
+    margin-right: 10px;
 }
-
 .cpb-actor-item .cpb-group-indicator i {
-    font-size: var(--font-size-14);
+    font-size: 1.2em;
 }
-
+.cpb-actor-item.cpb-group-1 {
+    background-color: rgba(24, 82, 11, 0.1);
+}
 .cpb-actor-item.cpb-group-1 .cpb-group-indicator i {
-    color: #1c58aa;
+    color: rgba(24, 82, 11, 0.9);
 }
 
+.cpb-actor-item.cpb-group-2 {
+    background-color: rgba(170, 2, 0, 0.1);
+}
 .cpb-actor-item.cpb-group-2 .cpb-group-indicator i {
-    color: #aa5a1c;
+    color: rgba(170, 2, 0, 0.9);
 }
-
-
-
 
 /* GENERAL CHAT CARD STYLES */
+
 .cpb-chat-card {
     font-family: var(--font-primary);
 }
-
 .cpb-card-header {
     background: rgba(0, 0, 0, 0.05);
     padding: 3px 0;
     border-bottom: 1px solid #782e22;
 }
+.cpb-card-header h3 {
+    padding-left: 6px;
+}
+.cpb-card-header i {
+    padding-right: 4px;
+}
 
 .cpb-card-content {
     padding: 5px;
 }
-
 .cpb-card-section-header {
     border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
     margin-top: 12px;
@@ -648,8 +499,6 @@
     font-weight: 900;
     text-transform: uppercase;
 }
-
-
 .cpb-skill-roll {
     background: #782e22;
     color: #fff;
@@ -658,22 +507,11 @@
     padding: 5px 10px;
     cursor: pointer;
 }
-
 .cpb-skill-roll:hover {
     background: #8a3b2f;
 }
 
-.cpb-success-icon {
-    color: #18520b;
-}
-
-.cpb-failure-icon {
-    color: #aa0200;
-}
-
-
-/* GROUP ROLLS */
-
+/* CARD GROUP ROLLS */
 
 .cpb-group-roll-result-success,
 .cpb-group-roll-result-failure {
@@ -716,13 +554,11 @@
     background: rgba(0, 0, 0, 0.05);
     margin-bottom: 4px;
 }
-
 .cpb-roll-result.pending-roll .actor-name,
 .cpb-roll-result.pending-roll .cpb-actor-name {
     flex: 1;
     width: 100%;
 }
-
 .cpb-roll-result.pending-roll button.skill-roll,
 .cpb-roll-result.pending-roll button.cpb-skill-roll {
     width: 100%;
@@ -738,12 +574,10 @@
     color: #594a3c;
     font-weight: bold;
 }
-
 .cpb-roll-result.pending-roll button.skill-roll:hover,
 .cpb-roll-result.pending-roll button.cpb-skill-roll:hover {
     background: rgba(0, 0, 0, 0.1);
 }
-
 .cpb-roll-result.pending-roll button.skill-roll i,
 .cpb-roll-result.pending-roll button.cpb-skill-roll i {
     color: #782e22;
@@ -751,5 +585,3 @@
     margin-right: 0px;
     flex-shrink: 0;
 }
-
-

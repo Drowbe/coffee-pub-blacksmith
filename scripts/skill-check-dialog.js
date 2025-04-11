@@ -171,23 +171,23 @@ export class SkillCheckDialog extends Application {
                 if (groupIndicator.innerHTML.includes('fa-swords')) {
                     // Remove from group 2
                     groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'cpb-group-2', 'group-2');
+                    item.classList.remove('selected', 'cpb-group-2');
                 } else {
                     // Add to group 2, remove from group 1 if needed
                     groupIndicator.innerHTML = '<i class="fas fa-swords" title="Group 2"></i>';
-                    item.classList.remove('cpb-group-1', 'group-1');
-                    item.classList.add('selected', 'cpb-group-2', 'group-2');
+                    item.classList.remove('cpb-group-1');
+                    item.classList.add('selected', 'cpb-group-2');
                 }
             } else {
-                if (groupIndicator.innerHTML.includes('fa-helmet-battle')) {
+                if (groupIndicator.innerHTML.includes('fa-dice-d20')) {
                     // Remove from group 1
                     groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'cpb-group-1', 'group-1');
+                    item.classList.remove('selected', 'cpb-group-1');
                 } else {
-                    // Add to group 1, remove from group 2 if needed
-                    groupIndicator.innerHTML = '<i class="fas fa-helmet-battle" title="Group 1"></i>';
-                    item.classList.remove('cpb-group-2', 'group-2');
-                    item.classList.add('selected', 'cpb-group-1', 'group-1');
+                    // Add to group 1, remove from group 2 if needed  
+                    groupIndicator.innerHTML = '<i class="fas fa-dice-d20" title="Group 1"></i>';
+                    item.classList.remove('cpb-group-2');
+                    item.classList.add('selected', 'cpb-group-1');
                 }
             }
 
