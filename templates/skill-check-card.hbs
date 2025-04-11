@@ -24,7 +24,7 @@
             {{#each actors}}
             <div class="skill-check-actor cpb-skill-check-actor">
                 {{#if this.result}}
-                    <div class="roll-result cpb-roll-result">
+                    <div class="cpb-roll-result">
                         <span class="actor-name cpb-actor-name">{{this.name}}</span>
                         <span class="roll-total cpb-roll-total" title="{{this.result.formula}}">
                             {{this.result.total}}
@@ -38,7 +38,7 @@
                         </span>
                     </div>
                 {{else}}
-                    <div class="roll-result pending-roll cpb-roll-result">
+                    <div class="pending-roll cpb-roll-result">
                         <button class="skill-roll cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
                             <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
                         </button>

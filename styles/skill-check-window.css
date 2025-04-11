@@ -396,49 +396,29 @@
     margin-bottom: 0;
 }
 
-.roll-result {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--color-border-light-primary);
-}
 
-.roll-result.success {
-    background: rgba(45, 138, 69, 0.1);
-    border-color: #2d8a45;
-}
 
-.roll-result.failure {
-    background: rgba(193, 87, 1, 0.1);
-    border-color: #c15701;
-}
 
-.roll-result .actor-name {
-    font-weight: bold;
-    color: #594a3c;
-}
 
-.roll-result .roll-total {
-    font-family: var(--dnd5e-font-roboto-slab);
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #461313;
-}
+
+
+
+
+
 
 .roll-result .roll-total i {
     margin-right: 2px;
     margin-left: 8px;
 }
 
-.roll-result .roll-formula {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 4px;
-    text-align: right;
-}
+
+
+
+
+
+
+
+
 
 .skill-check-buttons {
     display: flex;
@@ -631,21 +611,38 @@
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
     margin-bottom: 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border-light-primary);
 }
 
 .cpb-roll-result.success {
     border-color: #18520b;
     background: rgba(24, 82, 11, 0.1);
+
+    background: rgba(45, 138, 69, 0.1);
+    border-color: #2d8a45;
 }
 
 .cpb-roll-result.failure {
     border-color: #aa0200;
     background: rgba(170, 2, 0, 0.1);
+
+    background: rgba(193, 87, 1, 0.1);
+    border-color: #c15701;
 }
 
 .cpb-roll-result .cpb-actor-name {
     font-weight: bold;
     margin: 0;
+
+    font-weight: bold;
+    color: #594a3c;
 }
 
 .cpb-roll-result .cpb-roll-total {
@@ -654,6 +651,11 @@
     display: flex;
     align-items: center;
     gap: 4px;
+
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
 }
 
 .cpb-roll-result .cpb-roll-total i {
@@ -664,6 +666,11 @@
     font-size: var(--font-size-11);
     color: var(--color-text-dark-secondary);
     margin-top: 2px;
+
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+    text-align: right;
 }
 
 .cpb-skill-check-buttons {
@@ -869,10 +876,9 @@
     color: #aa0200;
 }
 
+/* PENDING ROLLS (CHAT BUTTONS BEFORE ROLLS ARE COMPLETE) */
 
-
-/* Styling for the pending roll buttons to match post-roll layout */
-.roll-result.pending-roll {
+.cpb-roll-result.pending-roll {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -883,14 +889,14 @@
     margin-bottom: 4px;
 }
 
-.roll-result.pending-roll .actor-name,
-.roll-result.pending-roll .cpb-actor-name {
+.cpb-roll-result.pending-roll .actor-name,
+.cpb-roll-result.pending-roll .cpb-actor-name {
     flex: 1;
     width: 100%;
 }
 
-.roll-result.pending-roll button.skill-roll,
-.roll-result.pending-roll button.cpb-skill-roll {
+.cpb-roll-result.pending-roll button.skill-roll,
+.cpb-roll-result.pending-roll button.cpb-skill-roll {
     width: 100%;
     text-align: left;
     background: none;
@@ -905,13 +911,13 @@
     font-weight: bold;
 }
 
-.roll-result.pending-roll button.skill-roll:hover,
-.roll-result.pending-roll button.cpb-skill-roll:hover {
+.cpb-roll-result.pending-roll button.skill-roll:hover,
+.cpb-roll-result.pending-roll button.cpb-skill-roll:hover {
     background: rgba(0, 0, 0, 0.1);
 }
 
-.roll-result.pending-roll button.skill-roll i,
-.roll-result.pending-roll button.cpb-skill-roll i {
+.cpb-roll-result.pending-roll button.skill-roll i,
+.cpb-roll-result.pending-roll button.cpb-skill-roll i {
     color: #782e22;
     margin-top: 3px;
     margin-right: 0px;

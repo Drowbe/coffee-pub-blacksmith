@@ -124,7 +124,7 @@ export class SkillCheckDialog extends Application {
 
     _getToolProficiencies() {
         const toolProfs = new Set();
-        const selectedActors = this.element?.find('.cpb-actor-item.selected, .actor-item.selected') || [];
+        const selectedActors = this.element?.find('.cpb-actor-item.selected') || [];
         
         selectedActors.each((i, el) => {
             const actorId = el.dataset.actorId;
@@ -158,7 +158,7 @@ export class SkillCheckDialog extends Application {
         this._applyFilter(html, initialFilter);
 
         // Handle actor selection - updated to handle both namespaced and legacy classes
-        html.find('.cpb-actor-item, .actor-item').on('click contextmenu', (ev) => {
+        html.find('.cpb-actor-item').on('click contextmenu', (ev) => {
             ev.preventDefault();
             const item = ev.currentTarget;
             const isRightClick = ev.type === 'contextmenu';
@@ -212,8 +212,8 @@ export class SkillCheckDialog extends Application {
                 
                 if (isPlayerSearch) {
                     // Search in actor list - support both class naming schemes
-                    html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
-                        const name = el.querySelector('.cpb-actor-name, .actor-name').textContent.toLowerCase();
+                    html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
+                        const name = el.querySelector('.cpb-actor-name').textContent.toLowerCase();
                         el.style.display = name.includes(searchTerm) ? '' : 'none';
                     });
                 } else {
@@ -251,7 +251,7 @@ export class SkillCheckDialog extends Application {
                 this._applyFilter(html, filterType, false);
                 
                 // Then apply search within filtered results
-                html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
+                html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
                     if (el.style.display !== 'none') {
                         const name = el.querySelector('.cpb-actor-name, .actor-name').textContent.toLowerCase();
                         el.style.display = name.includes(searchTerm) ? '' : 'none';
@@ -303,7 +303,7 @@ export class SkillCheckDialog extends Application {
 
         // Handle the roll button
         html.find('button[data-button="roll"]').click(async (ev) => {
-            const selectedActors = Array.from(html.find('.cpb-actor-item.selected, .actor-item.selected')).map(item => ({
+            const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => ({
                 id: item.dataset.actorId,
                 name: item.querySelector('.cpb-actor-name, .actor-name').textContent
             }));
@@ -448,7 +448,7 @@ export class SkillCheckDialog extends Application {
 
     // Update helper method to optionally defer visibility updates
     _applyFilter(html, filterType, updateVisibility = true) {
-        html.find('.cpb-actor-list .cpb-actor-item, .actor-list .actor-item').each((i, el) => {
+        html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
             const actorId = el.dataset.actorId;
             const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
             const actor = game.actors.get(actorId);
