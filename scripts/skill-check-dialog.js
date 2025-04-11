@@ -15,7 +15,7 @@ export class SkillCheckDialog extends Application {
             id: 'skill-check-dialog',
             template: 'modules/coffee-pub-blacksmith/templates/skill-check-window.hbs',
             classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
-            title: 'Skill Check',
+            title: 'Checks and Saves',
             width: 800,
             height: 600,
             resizable: true
@@ -168,24 +168,24 @@ export class SkillCheckDialog extends Application {
 
             // Toggle selection based on click type
             if (isRightClick) {
-                if (groupIndicator.innerHTML.includes('fa-swords')) {
+                if (groupIndicator.innerHTML.includes('fa-shield-halved')) {
                     // Remove from group 2
                     groupIndicator.innerHTML = '';
                     item.classList.remove('selected', 'cpb-group-2');
                 } else {
-                    // Add to group 2, remove from group 1 if needed
-                    groupIndicator.innerHTML = '<i class="fas fa-swords" title="Group 2"></i>';
+                    // Add to group 2, remove from group 1 if needed 
+                    groupIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defenders"></i>';
                     item.classList.remove('cpb-group-1');
                     item.classList.add('selected', 'cpb-group-2');
                 }
             } else {
-                if (groupIndicator.innerHTML.includes('fa-dice-d20')) {
+                if (groupIndicator.innerHTML.includes('fa-swords')) {
                     // Remove from group 1
                     groupIndicator.innerHTML = '';
                     item.classList.remove('selected', 'cpb-group-1');
                 } else {
                     // Add to group 1, remove from group 2 if needed  
-                    groupIndicator.innerHTML = '<i class="fas fa-dice-d20" title="Group 1"></i>';
+                    groupIndicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
                     item.classList.remove('cpb-group-2');
                     item.classList.add('selected', 'cpb-group-1');
                 }

@@ -364,27 +364,8 @@
     background: rgba(0, 0, 0, 0.4);
     border-color: #000;
 }
-.cpb-skill-check-actor .cpb-dice-total {
-    color: #000;
-    margin: 0;
-    font-weight: bold;
-    font-size: var(--font-size-14);
-    text-align: center;
-    padding: 2px 4px;
-    border: 1px solid #999;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.05);
-}
-.cpb-skill-check-actor .cpb-dice-total.success {
-    color: #18520b;
-    border-color: #18520b;
-    background: rgba(24, 82, 11, 0.1);
-}
-.cpb-skill-check-actor .cpb-dice-total.failure {
-    color: #aa0200;
-    border-color: #aa0200;
-    background: rgba(170, 2, 0, 0.1);
-}
+
+
 .cpb-search-container {
     align-items: center;
     position: relative;
@@ -509,35 +490,61 @@
     background: #8a3b2f;
 }
 
-/* CARD GROUP ROLLS */
 
-.cpb-group-roll-result-success,
-.cpb-group-roll-result-failure {
+
+/* ----- SUCCESS / FAILURE ----- */
+
+/* roll success icons */
+
+.cpb-roll-success-icon,
+.cpb-roll-failure-icon {
+    font-weight: 900;
+    text-align: center;
+}
+.cpb-roll-success-icon {
+    color: #18520b;
+}
+.cpb-roll-failure-icon {
+    color: #aa0200;
+}
+
+/* success / failure badges */
+
+.cpb-roll-result-tie-container,
+.cpb-roll-result-success-container,
+.cpb-roll-result-failure-container {
     margin-top: 12px;
     padding: 4px;
     border-radius: 4px;
     text-align: left;
     background: rgba(0, 0, 0, 0.1);
 }
-.cpb-group-roll-result-success {
+.cpb-roll-result-success-container {
     border: 1px solid rgba(24, 82, 11, 0.6);
     background: rgba(24, 82, 11, 0.1);
 }
-.cpb-group-roll-result-failure {
+.cpb-roll-result-failure-container {
     border: 1px solid rgba(170, 2, 0, 0.6);
     background: rgba(170, 2, 0, 0.1);
 }
-.cpb-group-success-text,
-.cpb-group-failure-text {
+.cpb-roll-result-tie-container {
+    border: 1px solid rgba(3, 109, 151, 0.6);
+    background: rgba(3, 109, 151, 0.1);
+}
+.cpb-roll-result-success-text,
+.cpb-roll-result-failure-text {
     font-size: 2.0em;
     font-weight: 900;
     text-align: center;
 }
-.cpb-group-success-text {
+.cpb-roll-result-success-text {
     color: #18520b;
 }
-.cpb-group-failure-text {
+.cpb-roll-result-failure-text {
     color: #aa0200;
+}
+.cpb-roll-result-tie-text {
+    color: rgba(3, 109, 151, 0.9);
 }
 
 /* PENDING ROLLS (CHAT BUTTONS BEFORE ROLLS ARE COMPLETE) */
@@ -595,21 +602,7 @@
     border-radius: 3px;
 }
 
-.cpb-group-roll-result-tie {
-    margin-top: 12px;
-    padding: 4px;
-    border-radius: 4px;
-    text-align: left;
-    background: rgba(120, 120, 120, 0.1);
-    border: 1px solid rgba(120, 120, 120, 0.6);
-}
 
-.cpb-group-tie-text {
-    font-size: 2.0em;
-    font-weight: 900;
-    text-align: center;
-    color: #666666;
-}
 
 .cpb-group-roll-result-pending {
     margin-top: 12px;

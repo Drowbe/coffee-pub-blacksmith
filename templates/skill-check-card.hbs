@@ -22,6 +22,11 @@
         
         <div class="cpb-skill-check-buttons">
             {{!-- Group 1 Players --}}
+            {{#if hasMultipleGroups}}
+                <div class="cpb-card-section-header"><i class="fas fa-swords" title="Challengers"></i> Challengers</div>
+            {{else}}
+                <div class="cpb-card-section-header"><i class="fas fa-dice-d20"></i> Requested Rolls</div>
+            {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 1)}}
                 <div class="cpb-skill-check-actor">
@@ -32,9 +37,9 @@
                                 {{this.result.total}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}
-                                        <i class="fas fa-check" style="color: #18520b;"></i>
+                                        <i class="fas fa-check cpb-roll-success-icon"></i>
                                     {{else}}
-                                        <i class="fas fa-times" style="color: #aa0200;"></i>
+                                        <i class="fas fa-times cpb-roll-failure-icon"></i>
                                     {{/if}}
                                 {{/if}}
                             </span>
@@ -56,6 +61,9 @@
             {{/if}}
 
             {{!-- Group 2 Players --}}
+            {{#if hasMultipleGroups}}
+                <div class="cpb-card-section-header"><i class="fas fa-shield-halved" title="Defenders"></i> Defenders</div>
+            {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 2)}}
                 <div class="cpb-skill-check-actor">
@@ -66,9 +74,9 @@
                                 {{this.result.total}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}
-                                        <i class="fas fa-check" style="color: #18520b;"></i>
+                                        <i class="fas fa-check cpb-roll-success-icon"></i>
                                     {{else}}
-                                        <i class="fas fa-times" style="color: #aa0200;"></i>
+                                        <i class="fas fa-times cpb-roll-failure-icon"></i>
                                     {{/if}}
                                 {{/if}}
                             </span>
@@ -85,35 +93,42 @@
             {{/each}}
         </div>
 
+
+        {{!-- FINAL RESULTS --}}  
+        {{!-- Contested Roll --}}  
         {{#if hasMultipleGroups}}
             {{#if contestedRoll}}
                 <div class="cpb-card-section-header">Contest Results</div>
                 {{#if contestedRoll.isTie}}
-                    <div class="cpb-group-roll-result-tie">
-                        <div class="cpb-group-tie-text">TIE! ({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})</div>
+                    <div class="cpb-roll-result-tie-container" title="({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})">
+                        <div class="cpb-group-tie-text"><i class="fas fa-shield-exclamation"></i> Stalemate</div>
                     </div>
                 {{else}}
-                    <div class="cpb-group-roll-result-{{#if (eq contestedRoll.winningGroup 1)}}success{{else}}failure{{/if}}">
-                        <div class="cpb-group-{{#if (eq contestedRoll.winningGroup 1)}}success{{else}}failure{{/if}}-text">
-                            Group {{contestedRoll.winningGroup}} WINS! ({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})
+                    {{#if (eq contestedRoll.winningGroup 1)}}
+                        <div class="cpb-roll-result-success-container" title="({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})">
+                            <div class="cpb-roll-result-success-text"><i class="fas fa-swords" title="Challengers"></i> Challengers Win</div>
                         </div>
-                    </div>
+                    {{else}}
+                        <div class="cpb-roll-result-failure-container" title="({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})">
+                            <div class="cpb-roll-result-failure-text"><i class="fas fa-shield-halved" title="Challengers"></i> Defenders Win</div>
+                        </div>
+                    {{/if}}
                 {{/if}}
             {{/if}}
         {{/if}}
 
-        {{log "Template Data:" this}}
+        {{!-- Group Roll --}}  
         {{#if isGroupRoll}}
             {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
             {{#if allRollsComplete}}
                 <div class="cpb-card-section-header">Group Results</div>
                 {{#if groupSuccess}}
-                    <div class="cpb-group-roll-result-success">
-                        <div class="cpb-group-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
+                    <div class="cpb-roll-result-success-container">
+                        <div class="cpb-roll-result-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
                     </div>
                 {{else}}
-                    <div class="cpb-group-roll-result-failure">
-                        <div class="cpb-group-failure-text" title="({{successCount}}/{{totalCount}} succeeded)">FAILURE</div>
+                    <div class="cpb-roll-result-failure-container">
+                        <div class="cpb-roll-result-failure-text" title="({{successCount}}/{{totalCount}} succeeded)">FAILURE</div>
                     </div>
                 {{/if}}
             {{/if}}
