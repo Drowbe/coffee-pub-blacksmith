@@ -354,213 +354,18 @@
 
 
 /* Dialog Footer */
-.skill-check-dialog .dialog-buttons {
-    flex: 0 0 auto;
-    margin: 0;
-    padding: 8px;
-    border-top: 2px groove #eeede0;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.skill-check-dialog .dialog-buttons .dialog-button {
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid #999;
-    border-radius: 3px;
-    padding: 4px 12px;
-    font-size: var(--font-size-13);
-    line-height: 24px;
-    height: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.skill-check-dialog .dialog-buttons .dialog-button:hover {
-    border-color: #000;
-    box-shadow: 0 0 5px var(--color-shadow-primary);
-}
-
-.skill-check-dialog .dialog-buttons .dialog-button i {
-    font-size: var(--font-size-14);
-}
-
-.actor-roll {
-    margin-bottom: 8px;
-}
-
-.actor-roll:last-child {
-    margin-bottom: 0;
-}
 
 
 
 
 
 
-
-
-
-
-
-.roll-result .roll-total i {
-    margin-right: 2px;
-    margin-left: 8px;
-}
-
-
-
-
-
-
-
-
-
-
-.skill-check-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.skill-check-actor {
-    margin: 2px 0;
-}
-
-.skill-check-actor button {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid #999;
-    border-radius: 3px;
-    padding: 5px;
-    font-size: var(--font-size-13);
-    line-height: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.skill-check-actor button:hover {
-    box-shadow: 0 0 5px var(--color-shadow-primary);
-    border-color: #000;
-}
-
-.skill-check-actor .dice-roll {
-    text-align: center;
-    font-family: var(--font-primary);
-}
-
-.skill-check-actor .dice-result {
-    padding: 3px 0;
-}
-
-.skill-check-actor .dice-total {
-    font-size: var(--font-size-16);
-    font-weight: bold;
-    color: #000;
-    margin: 0;
-    padding: 0;
-}
-
-.skill-check-actor .dice-total.success {
-    color: #18520b;
-}
-
-.skill-check-actor .dice-total.failure {
-    color: #aa0200;
-}
-
-.skill-check-actor .dice-formula {
-    font-size: var(--font-size-12);
-    color: #666;
-    font-style: italic;
-}
-
-.search-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-container input[type="text"] {
-    flex: 1;
-    padding-right: 24px;  /* Make room for the clear button */
-}
-
-.clear-search-button {
-    position: absolute;
-    right: 8px;  /* Increased from 4px to 8px for better alignment */
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    color: #666;
-    display: none;  /* Hidden by default */
-    width: 16px;    /* Fixed width */
-    height: 16px;   /* Fixed height */
-    line-height: 1; /* Ensure icon is centered */
-    text-align: center;
-}
-
-.clear-search-button:hover {
-    color: #000;
-}
-
-.contestant-groups {
-    margin: 8px 0;
-}
-
-.group-section {
-    margin-bottom: 16px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-    padding: 8px;
-}
-
-.group-section h3 {
-    margin-top: 0;
-}
-
-.actor-list.group-1, .actor-list.group-2 {
-    min-height: 50px;
-    border: 1px dashed rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    padding: 4px;
-    margin-top: 4px;
-}
-
-.actor-list.group-1 {
-    background: rgba(24, 82, 11, 0.05);
-}
-
-.actor-list.group-2 {
-    background: rgba(120, 46, 34, 0.05);
-}
-
-.actor-item .group-indicator {
-    margin-left: auto;
-    padding-left: 8px;
-    font-size: var(--font-size-14);
-}
-
-.actor-item .group-indicator i {
-    color: #782e22;
-}
-
-.actor-item.group-1 .group-indicator i {
-    color: #18520b;
-}
-
-.actor-item.group-2 .group-indicator i {
-    color: #782e22;
-}
 
 .skill-check-dialog .cpb-dialog-buttons {
+    
+    flex: 0 0 auto;
+    margin: 0;
+
     display: flex;
     gap: 8px;
     justify-content: flex-end;
@@ -570,6 +375,10 @@
 }
 
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button {
+
+
+    height: 32px;
+
     background: #782e22;
     color: #fff;
     border: 1px solid #782e22;
@@ -586,21 +395,21 @@
 }
 
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button:hover {
+    
+    border-color: #000;
+    
     box-shadow: 0 0 5px var(--color-shadow-primary);
     background: #8a3b2f;
 }
 
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button i {
+    
+    font-size: var(--font-size-14);
+
     margin-right: 4px;
 }
 
-.cpb-actor-roll {
-    margin: 0 0 4px 0;
-}
 
-.cpb-actor-roll:last-child {
-    margin-bottom: 0;
-}
 
 .cpb-roll-result {
     display: flex;
@@ -611,6 +420,8 @@
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
     margin-bottom: 4px;
+
+
 
     display: flex;
     align-items: center;
@@ -660,6 +471,8 @@
 
 .cpb-roll-result .cpb-roll-total i {
     margin-left: 4px;
+    margin-right: 2px;
+    padding-top: 4px;
 }
 
 .cpb-roll-result .cpb-roll-formula {
@@ -674,6 +487,10 @@
 }
 
 .cpb-skill-check-buttons {
+
+    flex-direction: column;
+
+    
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
@@ -681,18 +498,20 @@
 }
 
 .cpb-skill-check-actor {
+    margin: 2px 0;
     flex: 1;
     min-width: 120px;
 }
 
 .cpb-skill-check-actor button {
+    line-height: 20px;
     width: 100%;
     text-align: center;
-    background: #782e22;
+    background: rgba(0, 0, 0, 0.05);
     color: #fff;
-    border: 1px solid #782e22;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 3px;
-    font-size: var(--font-size-13);
+    font-size: 1.0em;
     padding: 4px 8px;
     cursor: pointer;
     display: flex;
@@ -703,18 +522,19 @@
 
 .cpb-skill-check-actor button:hover {
     box-shadow: 0 0 5px var(--color-shadow-primary);
-    background: #8a3b2f;
+    background: rgba(0, 0, 0, 0.4);
+    border-color: #000;
 }
 
-.cpb-skill-check-actor .cpb-dice-roll {
-    margin-bottom: 2px;
-}
 
-.cpb-skill-check-actor .cpb-dice-result {
-    margin-top: 4px;
-}
+
+
 
 .cpb-skill-check-actor .cpb-dice-total {
+
+    color: #000;
+    margin: 0;
+
     font-weight: bold;
     font-size: var(--font-size-14);
     text-align: center;
@@ -725,33 +545,37 @@
 }
 
 .cpb-skill-check-actor .cpb-dice-total.success {
+    color: #18520b;
     border-color: #18520b;
     background: rgba(24, 82, 11, 0.1);
 }
 
 .cpb-skill-check-actor .cpb-dice-total.failure {
+    color: #aa0200;
     border-color: #aa0200;
     background: rgba(170, 2, 0, 0.1);
 }
 
-.cpb-skill-check-actor .cpb-dice-formula {
-    font-size: var(--font-size-11);
-    color: var(--color-text-dark-secondary);
-    text-align: center;
-    margin-top: 2px;
-}
+
 
 .cpb-search-container {
+
+    align-items: center;
     position: relative;
     display: flex;
     width: 100%;
 }
 
 .cpb-search-container input[type="text"] {
+    flex: 1;
     padding-right: 24px;
 }
 
 .cpb-clear-search-button {
+
+    line-height: 1; /* Ensure icon is centered */
+    text-align: center;
+
     position: absolute;
     right: 4px;
     top: 50%;
@@ -779,6 +603,10 @@
 .cpb-actor-item .cpb-group-indicator {
     width: 20px;
     text-align: center;
+
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: var(--font-size-14);
 }
 
 .cpb-actor-item .cpb-group-indicator i {
@@ -923,3 +751,5 @@
     margin-right: 0px;
     flex-shrink: 0;
 }
+
+

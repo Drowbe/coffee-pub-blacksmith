@@ -198,8 +198,8 @@ export class SkillCheckDialog extends Application {
         // Handle player search - separate from criteria search
         html.find('input[name="search"]').each((i, input) => {
             const $input = $(input);
-            const $clearButton = $input.closest('.cpb-search-container, .search-container').find('.cpb-clear-search-button, .clear-search-button');
-            const isPlayerSearch = $input.closest('.cpb-dialog-column, .dialog-column').find('.cpb-actor-list, .actor-list').length > 0;
+            const $clearButton = $input.closest('.cpb-search-container').find('.cpb-clear-search-button');
+            const isPlayerSearch = $input.closest('.cpb-dialog-column').find('.cpb-actor-list').length > 0;
             
             // Show/hide clear button based on input content
             const updateClearButton = () => {

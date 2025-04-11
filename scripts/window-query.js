@@ -1027,7 +1027,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     // Add this new method to handle the chat message click
     static async handleChatMessageClick(message, html) {
         // Find any skill roll buttons - target both the namespaced and legacy classes
-        const rollButton = html.find('.skill-roll, .cpb-skill-roll');
+        const rollButton = html.find('.cpb-skill-roll');
         if (!rollButton.length) return;
 
         rollButton.off('click').on('click', async (event) => {
