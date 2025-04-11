@@ -5,7 +5,7 @@
         <h3 class="item-name"><i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}} Check</h3>
     </header>
     <div class="card-content cpb-card-content">
-        {{#if label}}<h3>{{label}}</h3>{{/if}}
+        {{#if label}}<div class="cpb-card-section-header">{{label}}</div>{{/if}}
         {{#if description}}
         <div class="gm-description cpb-gm-description">
             <p>{{{description}}}</p>
@@ -13,7 +13,7 @@
         {{/if}}
 
         {{#if skillDescription}}
-        <h3>Details</h3>
+        <div class="cpb-card-section-header">Details</div>
         <div class="skill-description cpb-skill-description">
             <p>{{{skillDescription}}}</p>
             <p>{{{skillLink}}}</p>
@@ -52,18 +52,16 @@
         {{#if isGroupRoll}}
             {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
             {{#if allRollsComplete}}
-                <div class="group-roll-result cpb-group-roll-result" style="margin-top: 8px; padding: 8px; border-radius: 4px; text-align: center; background: rgba(0, 0, 0, 0.05);">
-                    <h3 style="border-bottom: 1px solid #782e22; margin-bottom: 8px; padding-bottom: 4px;">Group Result</h3>
-                    {{#if groupSuccess}}
-                        <div style="color: #18520b; font-weight: bold;">
-                            <i class="fas fa-check"></i> The group succeeds! ({{successCount}}/{{totalCount}} succeeded)
-                        </div>
-                    {{else}}
-                        <div style="color: #aa0200; font-weight: bold;">
-                            <i class="fas fa-times"></i> The group fails ({{successCount}}/{{totalCount}} succeeded)
-                        </div>
-                    {{/if}}
-                </div>
+                <div class="cpb-card-section-header">Group Results</div>
+                {{#if groupSuccess}}
+                    <div class="cpb-group-roll-result-success">
+                        <div class="cpb-group-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
+                    </div>
+                {{else}}
+                    <div class="cpb-group-roll-result-failure">
+                        <div class="cpb-group-failure-text" title="({{successCount}}/{{totalCount}} succeeded)">FAILURE</div>
+                    </div>
+                {{/if}}
             {{/if}}
         {{/if}}
     </div>
