@@ -85,6 +85,23 @@
             {{/each}}
         </div>
 
+        {{#if hasMultipleGroups}}
+            {{#if contestedRoll}}
+                <div class="cpb-card-section-header">Contest Results</div>
+                {{#if contestedRoll.isTie}}
+                    <div class="cpb-group-roll-result-tie">
+                        <div class="cpb-group-tie-text">TIE! ({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})</div>
+                    </div>
+                {{else}}
+                    <div class="cpb-group-roll-result-{{#if (eq contestedRoll.winningGroup 1)}}success{{else}}failure{{/if}}">
+                        <div class="cpb-group-{{#if (eq contestedRoll.winningGroup 1)}}success{{else}}failure{{/if}}-text">
+                            Group {{contestedRoll.winningGroup}} WINS! ({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})
+                        </div>
+                    </div>
+                {{/if}}
+            {{/if}}
+        {{/if}}
+
         {{log "Template Data:" this}}
         {{#if isGroupRoll}}
             {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}

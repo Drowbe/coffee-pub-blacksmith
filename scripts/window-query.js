@@ -1111,7 +1111,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                 // Update the actors array with the roll result
                 const actors = flags.actors.map(a => ({
                     ...a,
-                    result: a.id === actorId ? roll : a.result
+                    result: a.id === actorId ? {
+                        total: roll.total,
+                        formula: roll.formula
+                    } : a.result
                 }));
 
                 // Calculate group roll results if needed
@@ -1152,11 +1155,31 @@ export class BlacksmithWindowQuery extends FormApplication {
                     }
                 }
 
+                // Calculate contested roll results if needed
+                let contestedRoll;
+                if (flags.hasMultipleGroups && actors.every(a => a.result)) {
+                    console.log("Processing contested roll");
+                    const group1 = actors.filter(a => a.group === 1);
+                    const group2 = actors.filter(a => a.group === 2);
+                    
+                    const group1Highest = Math.max(...group1.map(a => a.result.total));
+                    const group2Highest = Math.max(...group2.map(a => a.result.total));
+
+                    contestedRoll = {
+                        winningGroup: group1Highest > group2Highest ? 1 : 2,
+                        group1Highest,
+                        group2Highest,
+                        isTie: group1Highest === group2Highest
+                    };
+                    console.log("Contested roll result:", contestedRoll);
+                }
+
                 // Update the message
                 const messageData = {
                     ...flags,
-                    ...groupRollData,  // Move this before actors to ensure flags aren't overwritten
-                    actors
+                    ...groupRollData,  // Keep group roll data
+                    actors,
+                    contestedRoll      // Add contested roll data
                 };
 
                 console.log("Final message data:", messageData);
@@ -3017,123 +3040,6 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
             }, 0);
         }
     }
-
-    // Handle chat message click
-    async handleChatMessageClick(event) {
-        event.preventDefault();
-        const button = event.currentTarget;
-        const messageId = button.closest('.message').dataset.messageId;
-        const message = game.messages.get(messageId);
-        const flags = message.flags['coffee-pub-blacksmith'];
-        
-        if (!flags?.type === 'skillCheck') return;
-
-        const actorId = button.dataset.actorId;
-        const actor = game.actors.get(actorId);
-        if (!actor) return;
-
-        // Check if this actor has permission to roll
-        if (!actor.isOwner) {
-            ui.notifications.warn("You don't have permission to roll for this character.");
-            return;
-        }
-
-        let roll;
-        const type = button.dataset.type;
-        const value = button.dataset.value;
-
-        try {
-            switch (type) {
-                case 'dice':
-                    roll = await new Roll(value).evaluate({async: true});
-                    break;
-                case 'skill':
-                    roll = await actor.rollSkill(value, {
-                        chatMessage: false,
-                        createMessage: false
-                    });
-                    break;
-                case 'ability':
-                    roll = await actor.rollAbility(value, {
-                        chatMessage: false,
-                        createMessage: false
-                    });
-                    break;
-                case 'save':
-                    roll = await actor.rollSavingThrow(value, {
-                        chatMessage: false,
-                        createMessage: false
-                    });
-                    break;
-                case 'tool':
-                    console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
-                    const item = actor.items.get(value);
-                    if (!item) {
-                        ui.notifications.error(`Tool not found on actor: ${value}`);
-                        return;
-                    }
-
-                    // Manually build the tool check roll
-                    const rollData = actor.getRollData();
-                    const ability = item.system.ability || "int";
-                    const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                    const prof = item.system.proficient ? actor.system.attributes.prof : 0;
-                    const totalMod = abilityMod + prof;
-
-                    // Create and evaluate the roll
-                    const formula = `1d20 + ${totalMod}`;
-                    roll = new Roll(formula, rollData);
-                    await roll.evaluate({ async: true });
-
-                    // No need to transform the roll object as it already has the properties we need
-                    break;
-                default:
-                    return;
-            }
-
-            // Create the roll message
-            await roll.toMessage({
-                speaker: ChatMessage.getSpeaker({actor}),
-                flavor: `${flags.skillName} Check`
-            });
-
-            // Get the actors array from flags
-            const actors = flags.actors.map(a => ({
-                ...a,
-                result: a.id === actorId ? {
-                    total: roll.total,
-                    formula: roll.formula
-                } : a.result
-            }));
-
-            // Update the original message content
-            const messageData = {
-                ...flags,
-                actors
-            };
-
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            await message.update({ content });
-
-            // If this was requested by the GM, send the result back
-            if (flags.requesterId === game.user.id) {
-                const socket = ThirdPartyManager.getSocket();
-                await socket.executeForOthers("updateSkillRoll", {
-                    messageId,
-                    actorId,
-                    result: {
-                        total: roll.total,
-                        formula: roll.formula
-                    }
-                });
-            }
-
-        } catch (error) {
-            console.error("Error handling skill check:", error);
-            ui.notifications.error("There was an error processing the skill check.");
-        }
-    }
-
 }
 
 
