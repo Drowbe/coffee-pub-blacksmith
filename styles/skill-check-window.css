@@ -171,26 +171,28 @@
 
 .cpb-dice-grid {
     display: flex;
-    gap: 4px;
-    margin: 2px 0;
+    gap: 2px;
+    margin: 0px 0;
 }
 .cpb-dice-grid .cpb-check-item {
     justify-content: center;
     width: 100%;
     height: 28px;
-    padding: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 6px;
     background: rgba(0, 0, 0, 0.05);
 }
 .cpb-dice-grid .cpb-check-item i {
     padding-top: 2px;
-    font-size: 1.3em;
+    font-size: 1.1em;
     margin: 0;
 }
 .cpb-dice-grid .cpb-check-item span {
     display: none;
 }
 .cpb-dice-grid .cpb-check-item:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.4);
     box-shadow: 0 0 3px var(--color-shadow-primary);
 }
 
