@@ -537,12 +537,15 @@ export class SkillCheckDialog extends Application {
             // Get roll information for both challenger and defender
             const getRollInfo = (type, value) => {
                 let name, desc, link;
+                const showExplanation = html.find('input[name="showRollExplanation"]').prop('checked');
+                const showLink = html.find('input[name="showRollExplanationLink"]').prop('checked');
+
                 switch (type) {
                     case 'skill':
                         const skillData = CONFIG.DND5E.skills[value];
                         name = game.i18n.localize(skillData?.label);
-                        desc = this.skillInfo?.description;
-                        link = this.skillInfo?.link;
+                        desc = showExplanation ? this.skillInfo?.description : null;
+                        link = showLink ? this.skillInfo?.link : null;
                         break;
                     case 'tool':
                         // For tools, we'll get the name from the first actor's tool
@@ -550,34 +553,34 @@ export class SkillCheckDialog extends Application {
                         const toolId = typeof value === 'function' ? value(firstActor.id) : value;
                         const toolItem = game.actors.get(firstActor.id)?.items.get(toolId);
                         name = toolItem?.name;
-                        desc = (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim();
-                        link = '';
+                        desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim() : null;
+                        link = null; // Tools don't have SRD links
                         break;
                     case 'ability':
                         const abilityData = CONFIG.DND5E.abilities[value];
                         const customAbilityData = this.getData().abilities.find(a => a.id === value);
                         const abilityName = game.i18n.localize(abilityData?.label);
                         name = abilityName + ' Check';
-                        desc = customAbilityData?.description || '';
-                        link = `@UUID[${abilityData.reference}]{${abilityName} Check}`;
+                        desc = showExplanation ? (customAbilityData?.description || '') : null;
+                        link = showLink ? `@UUID[${abilityData.reference}]{${abilityName} Check}` : null;
                         break;
                     case 'save':
                         const saveData = CONFIG.DND5E.abilities[value];
                         const customSaveData = this.getData().saves.find(s => s.id === value);
                         const saveName = game.i18n.localize(saveData?.label);
                         name = saveName + ' Save';
-                        desc = customSaveData?.description || '';
-                        link = `@UUID[${saveData.reference}]{${saveName} Save}`;
+                        desc = showExplanation ? (customSaveData?.description || '') : null;
+                        link = showLink ? `@UUID[${saveData.reference}]{${saveName} Save}` : null;
                         break;
                     case 'dice':
                         name = `${value} Roll`;
-                        desc = `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.`;
-                        link = '';
+                        desc = showExplanation ? `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.` : null;
+                        link = null; // Dice rolls don't have SRD links
                         break;
                     default:
                         name = value;
-                        desc = '';
-                        link = '';
+                        desc = null;
+                        link = null;
                 }
                 return { name, desc, link };
             };

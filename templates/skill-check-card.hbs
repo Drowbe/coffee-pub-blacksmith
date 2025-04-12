@@ -3,9 +3,9 @@
 <div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
     <header class="card-header flexrow cpb-card-header">
         {{#if hasMultipleGroups}}
-            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
+            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}} {{#if dc}}(DC {{dc}}){{/if}}</h3>
         {{else}}
-            <h3 class="item-name"><i class="fas fa-dice"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}}</h3>
+            <h3 class="item-name"><i class="fas fa-dice"></i> {{skillName}} {{#if dc}}(DC {{dc}}){{/if}}</h3>
         {{/if}}
     </header>
     <div class="card-content cpb-card-content">
@@ -62,9 +62,9 @@
             {{!-- VS Separator if both groups are present --}}
             {{#if hasMultipleGroups}}
                 <div class="cpb-versus-separator">
-                    <span class="cpb-versus-skill">{{skillName}}</span>
+                    <span class="cpb-versus-skill">{{skillName}} {{#if dc}}(DC {{dc}}){{/if}}</span>
                     VS
-                    <span class="cpb-versus-skill">{{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</span>
+                    <span class="cpb-versus-skill">{{#if defenderSkillName}}{{defenderSkillName}} {{#if dc}}(DC {{dc}}){{/if}}{{else}}{{skillName}} {{#if dc}}(DC {{dc}}){{/if}}{{/if}}</span>
                 </div>
             {{/if}}
 

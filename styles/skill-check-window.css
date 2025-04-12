@@ -509,13 +509,18 @@
     padding: 5px;
 }
 .cpb-card-section-header {
-    border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
-    margin-top: 12px;
-    margin-bottom: 0px;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+    margin-top: 8px;
+    margin-bottom: 6px;
     padding-bottom: 0px;
     font-size: 1.0em;
     font-weight: 900;
     text-transform: uppercase;
+    color: #481515;
+}
+.cpb-card-section-header i {
+    margin-right: 3px;
+    padding-top: 2px;
 }
 .cpb-skill-roll {
     background: #782e22;
