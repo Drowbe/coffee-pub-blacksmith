@@ -7,6 +7,8 @@ export class SkillCheckDialog extends Application {
         this.actors = data.actors || [];
         this.selectedType = null;
         this.selectedValue = null;
+        this.challengerRoll = { type: null, value: null };
+        this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
     }
 
@@ -277,39 +279,80 @@ export class SkillCheckDialog extends Application {
 
             if (isContestedRoll) {
                 // In contested mode, maintain two selections
+                let wasDeselected = false;
                 html.find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
                     const indicator = el.closest('.cpb-roll-type-indicator');
                     const checkItem = indicator.closest('.cpb-check-item');
-                    // Remove only the matching type (swords or shield) and its selected state
-                    if (isRightClick && el.classList.contains('fa-shield-halved')) {
-                        indicator.innerHTML = '';
-                        checkItem.classList.remove('selected');
-                    } else if (!isRightClick && el.classList.contains('fa-swords')) {
+                    
+                    // If clicking the same item, deselect it
+                    if (checkItem === item) {
+                        if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                            (!isRightClick && el.classList.contains('fa-swords'))) {
+                            indicator.innerHTML = '';
+                            checkItem.classList.remove('selected');
+                            wasDeselected = true;
+                            // Clear the appropriate roll type
+                            if (isRightClick) {
+                                this.defenderRoll = { type: null, value: null };
+                            } else {
+                                this.challengerRoll = { type: null, value: null };
+                            }
+                            return false; // Break the each loop
+                        }
+                    }
+                    // Remove other selections of the same type
+                    else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                            (!isRightClick && el.classList.contains('fa-swords'))) {
                         indicator.innerHTML = '';
                         checkItem.classList.remove('selected');
                     }
                 });
-            } else {
-                // Single selection mode - clear all
-                html.find('.cpb-check-item').removeClass('selected');
-                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
-            }
 
-            // Add the roll type indicator and selected state
-            const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
-            if (rollTypeIndicator) {
-                if (isRightClick) {
-                    rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                // Only add new selection if we didn't just deselect
+                if (!wasDeselected) {
+                    // Add the roll type indicator and selected state
+                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    if (rollTypeIndicator) {
+                        if (isRightClick) {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                            this.defenderRoll = { type, value };
+                        } else {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            this.challengerRoll = { type, value };
+                        }
+                    }
+                    // Add selected class
+                    item.classList.add('selected');
+                }
+            } else {
+                // Check if we're deselecting the current selection
+                const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
+                const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
+                
+                if (hasCurrentSelection) {
+                    // Clear selection
+                    html.find('.cpb-check-item').removeClass('selected');
+                    html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                    this.selectedType = null;
+                    this.selectedValue = null;
                 } else {
-                    rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                    // New selection
+                    html.find('.cpb-check-item').removeClass('selected');
+                    html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                    
+                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    if (rollTypeIndicator) {
+                        if (isRightClick) {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                        } else {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                        }
+                    }
+                    item.classList.add('selected');
+                    this.selectedType = type;
+                    this.selectedValue = value;
                 }
             }
-
-            // Add selected class
-            item.classList.add('selected');
-
-            this.selectedType = type;
-            this.selectedValue = value;
 
             // If it's a skill, update the description
             if (type === 'skill') {
@@ -348,10 +391,42 @@ export class SkillCheckDialog extends Application {
                 ui.notifications.warn("Please select at least one actor.");
                 return;
             }
-            
-            if (!this.selectedType || !this.selectedValue) {
-                ui.notifications.warn("Please select a check type.");
-                return;
+
+            // Determine if this is a contested roll
+            const hasChallengers = selectedActors.some(a => a.group === 1);
+            const hasDefenders = selectedActors.some(a => a.group === 2);
+            const isContestedRoll = hasChallengers && hasDefenders;
+
+            let challengerRollType, challengerRollValue;
+            let defenderRollType, defenderRollValue;
+
+            if (isContestedRoll) {
+                // Use separate rolls for challengers and defenders if both are set
+                if (this.challengerRoll.type && this.defenderRoll.type) {
+                    challengerRollType = this.challengerRoll.type;
+                    challengerRollValue = this.challengerRoll.value;
+                    defenderRollType = this.defenderRoll.type;
+                    defenderRollValue = this.defenderRoll.value;
+                } else if (this.challengerRoll.type) {
+                    // If only challenger roll is set, use it for both
+                    challengerRollType = defenderRollType = this.challengerRoll.type;
+                    challengerRollValue = defenderRollValue = this.challengerRoll.value;
+                } else if (this.defenderRoll.type) {
+                    // If only defender roll is set, use it for both
+                    challengerRollType = defenderRollType = this.defenderRoll.type;
+                    challengerRollValue = defenderRollValue = this.defenderRoll.value;
+                } else {
+                    ui.notifications.warn("Please select at least one roll type.");
+                    return;
+                }
+            } else {
+                // For non-contested rolls, use the primary selection
+                if (!this.selectedType || !this.selectedValue) {
+                    ui.notifications.warn("Please select a check type.");
+                    return;
+                }
+                challengerRollType = defenderRollType = this.selectedType;
+                challengerRollValue = defenderRollValue = this.selectedValue;
             }
 
             // Get form data
@@ -363,59 +438,63 @@ export class SkillCheckDialog extends Application {
             const label = html.find('input[name="label"]').val();
 
             // Get the proper name and data based on roll type
-            let rollName, rollValue, rollDescription, rollLink;
-            switch (this.selectedType) {
-                case 'skill':
-                    const skillData = CONFIG.DND5E.skills[this.selectedValue];
-                    rollName = game.i18n.localize(skillData?.label);
-                    rollValue = this.selectedValue;
-                    rollDescription = this.skillInfo?.description;
-                    rollLink = this.skillInfo?.link;
-                    break;
-                case 'tool':
-                    const toolItem = game.actors.get(selectedActors[0].id)?.items.get(this.selectedValue);
-                    rollName = toolItem?.name;
-                    rollValue = this.selectedValue;
-                    rollDescription = (toolItem?.system.description?.value || '')
-                        .replace(/<\/?p>/gi, '') // Remove all <p> and </p> tags
-                        .trim();
-                    rollLink = '';
-                    break;
-                case 'ability':
-                    const abilityData = CONFIG.DND5E.abilities[this.selectedValue];
-                    const customAbilityData = this.getData().abilities.find(a => a.id === this.selectedValue);
-                    const abilityName = game.i18n.localize(abilityData?.label);
-                    rollName = abilityName + ' Check';
-                    rollValue = this.selectedValue;
-                    rollDescription = customAbilityData?.description || '';
-                    rollLink = `@UUID[${abilityData.reference}]{${abilityName} Check}`;
-                    break;
-                case 'save':
-                    const saveData = CONFIG.DND5E.abilities[this.selectedValue];
-                    const customSaveData = this.getData().saves.find(s => s.id === this.selectedValue);
-                    const saveName = game.i18n.localize(saveData?.label);
-                    rollName = saveName + ' Save';
-                    rollValue = this.selectedValue;
-                    rollDescription = customSaveData?.description || '';
-                    rollLink = `@UUID[${saveData.reference}]{${saveName} Save}`;
-                    break;
-                case 'dice':
-                    rollName = `${this.selectedValue} Roll`;
-                    rollValue = this.selectedValue.startsWith('d') ? '1' + this.selectedValue : this.selectedValue;
-                    rollDescription = `This is a standard ${this.selectedValue} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.`;
-                    rollLink = '';
-                    break;
-                default:
-                    rollName = this.selectedValue;
-                    rollValue = this.selectedValue;
-                    rollDescription = '';
-                    rollLink = '';
-            }
+            let challengerRollName, defenderRollName, rollDescription, rollLink;
+
+            // Get names and descriptions for both roll types
+            const getRollInfo = (type, value) => {
+                let name, desc, link;
+                switch (type) {
+                    case 'skill':
+                        const skillData = CONFIG.DND5E.skills[value];
+                        name = game.i18n.localize(skillData?.label);
+                        desc = this.skillInfo?.description;
+                        link = this.skillInfo?.link;
+                        break;
+                    case 'tool':
+                        const toolItem = game.actors.get(selectedActors[0].id)?.items.get(value);
+                        name = toolItem?.name;
+                        desc = (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim();
+                        link = '';
+                        break;
+                    case 'ability':
+                        const abilityData = CONFIG.DND5E.abilities[value];
+                        const customAbilityData = this.getData().abilities.find(a => a.id === value);
+                        const abilityName = game.i18n.localize(abilityData?.label);
+                        name = abilityName + ' Check';
+                        desc = customAbilityData?.description || '';
+                        link = `@UUID[${abilityData.reference}]{${abilityName} Check}`;
+                        break;
+                    case 'save':
+                        const saveData = CONFIG.DND5E.abilities[value];
+                        const customSaveData = this.getData().saves.find(s => s.id === value);
+                        const saveName = game.i18n.localize(saveData?.label);
+                        name = saveName + ' Save';
+                        desc = customSaveData?.description || '';
+                        link = `@UUID[${saveData.reference}]{${saveName} Save}`;
+                        break;
+                    case 'dice':
+                        name = `${value} Roll`;
+                        desc = `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.`;
+                        link = '';
+                        break;
+                    default:
+                        name = value;
+                        desc = '';
+                        link = '';
+                }
+                return { name, desc, link };
+            };
+
+            // Get info for both roll types
+            const challengerInfo = getRollInfo(challengerRollType, challengerRollValue);
+            const defenderInfo = getRollInfo(defenderRollType, defenderRollValue);
 
             // Create message data
             const messageData = {
-                skillName: rollName,
-                skillAbbr: rollValue,
+                skillName: challengerInfo.name,
+                defenderSkillName: isContestedRoll && challengerInfo.name !== defenderInfo.name ? defenderInfo.name : null,
+                skillAbbr: challengerRollValue,
+                defenderSkillAbbr: isContestedRoll ? defenderRollValue : null,
                 actors: selectedActors,
                 requesterId: game.user.id,
                 type: 'skillCheck',
@@ -424,11 +503,14 @@ export class SkillCheckDialog extends Application {
                 isGroupRoll: groupRoll,
                 label: label || null,
                 description: description || null,
-                skillDescription: rollDescription,
-                skillLink: rollLink,
+                skillDescription: challengerInfo.desc,
+                defenderSkillDescription: isContestedRoll ? defenderInfo.desc : null,
+                skillLink: challengerInfo.link,
+                defenderSkillLink: isContestedRoll ? defenderInfo.link : null,
                 rollMode,
-                rollType: this.selectedType,
-                hasMultipleGroups: selectedActors.some(a => a.group === 1) && selectedActors.some(a => a.group === 2)
+                rollType: challengerRollType,
+                defenderRollType: isContestedRoll ? defenderRollType : null,
+                hasMultipleGroups: isContestedRoll
             };
 
             // Create the chat message

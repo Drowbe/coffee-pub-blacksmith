@@ -2,7 +2,11 @@
 {{#unless hideHeader}}
 <div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
     <header class="card-header flexrow cpb-card-header">
-        <h3 class="item-name"><i class="fas fa-dice-d20"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}}</h3>
+        {{#if hasMultipleGroups}}
+            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
+        {{else}}
+            <h3 class="item-name"><i class="fas fa-dice"></i> {{#if dc}}DC {{dc}}{{/if}} {{skillName}}</h3>
+        {{/if}}
     </header>
     <div class="card-content cpb-card-content">
         {{#if label}}<div class="cpb-card-section-header">{{label}}</div>{{/if}}
@@ -57,7 +61,11 @@
 
             {{!-- VS Separator if both groups are present --}}
             {{#if hasMultipleGroups}}
-                <div class="cpb-versus-separator"><span class="cpb-versus-skill">{{skillName}}</span> VS <span class="cpb-versus-skill">{{skillName}}</span></div>
+                <div class="cpb-versus-separator">
+                    <span class="cpb-versus-skill">{{skillName}}</span>
+                    VS
+                    <span class="cpb-versus-skill">{{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</span>
+                </div>
             {{/if}}
 
             {{!-- Group 2 Players --}}
