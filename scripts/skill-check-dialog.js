@@ -128,8 +128,7 @@ export class SkillCheckDialog extends Application {
     }
 
     _getToolProficiencies() {
-        const toolProfs = new Map(); // Use Map to track tool counts
-        const toolIds = new Map(); // Map to store a representative ID for each tool name
+        const toolProfs = new Map(); // Map of tool name to count and actor-specific IDs
         const selectedActors = this.element?.find('.cpb-actor-item.selected') || [];
         const selectedCount = selectedActors.length;
         
@@ -146,24 +145,28 @@ export class SkillCheckDialog extends Application {
             const tools = actor.items.filter(i => i.type === "tool");
             console.log(`Actor ${actor.name} tools:`, tools.map(t => t.name));
             tools.forEach(tool => {
-                const count = toolProfs.get(tool.name) || 0;
-                toolProfs.set(tool.name, count + 1);
-                // Store the first ID we encounter for this tool name
-                if (!toolIds.has(tool.name)) {
-                    toolIds.set(tool.name, tool.id);
+                if (!toolProfs.has(tool.name)) {
+                    toolProfs.set(tool.name, {
+                        count: 1,
+                        actorTools: new Map([[actorId, tool.id]])
+                    });
+                } else {
+                    const toolData = toolProfs.get(tool.name);
+                    toolData.count++;
+                    toolData.actorTools.set(actorId, tool.id);
                 }
             });
         });
 
         // Convert to array and add isCommon flag
         const result = Array.from(toolProfs.entries())
-            .map(([name, count]) => {
-                const isCommon = count === selectedCount;
-                console.log(`Tool ${name}: count=${count}, selectedCount=${selectedCount}, isCommon=${isCommon}`);
+            .map(([name, data]) => {
+                const isCommon = data.count === selectedCount;
+                console.log(`Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`);
                 return {
-                    id: toolIds.get(name),
                     name,
-                    isCommon
+                    isCommon,
+                    actorTools: data.actorTools // Map of actorId to their specific tool ID
                 };
             })
             .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
@@ -445,21 +448,47 @@ export class SkillCheckDialog extends Application {
             let challengerRollType, challengerRollValue;
             let defenderRollType, defenderRollValue;
 
+            const getActorSpecificValue = (actorId, toolMap) => {
+                if (!toolMap || !(toolMap instanceof Map)) return null;
+                return toolMap.get(actorId);
+            };
+
             if (isContestedRoll) {
                 // Use separate rolls for challengers and defenders if both are set
                 if (this.challengerRoll.type && this.defenderRoll.type) {
                     challengerRollType = this.challengerRoll.type;
-                    challengerRollValue = this.challengerRoll.value;
                     defenderRollType = this.defenderRoll.type;
-                    defenderRollValue = this.defenderRoll.value;
+                    
+                    // For tools, get actor-specific IDs
+                    if (challengerRollType === 'tool') {
+                        challengerRollValue = (actorId) => getActorSpecificValue(actorId, this.challengerRoll.value);
+                    } else {
+                        challengerRollValue = this.challengerRoll.value;
+                    }
+                    
+                    if (defenderRollType === 'tool') {
+                        defenderRollValue = (actorId) => getActorSpecificValue(actorId, this.defenderRoll.value);
+                    } else {
+                        defenderRollValue = this.defenderRoll.value;
+                    }
                 } else if (this.challengerRoll.type) {
                     // If only challenger roll is set, use it for both
                     challengerRollType = defenderRollType = this.challengerRoll.type;
-                    challengerRollValue = defenderRollValue = this.challengerRoll.value;
+                    if (challengerRollType === 'tool') {
+                        const toolMap = this.challengerRoll.value;
+                        challengerRollValue = defenderRollValue = (actorId) => getActorSpecificValue(actorId, toolMap);
+                    } else {
+                        challengerRollValue = defenderRollValue = this.challengerRoll.value;
+                    }
                 } else if (this.defenderRoll.type) {
                     // If only defender roll is set, use it for both
                     challengerRollType = defenderRollType = this.defenderRoll.type;
-                    challengerRollValue = defenderRollValue = this.defenderRoll.value;
+                    if (defenderRollType === 'tool') {
+                        const toolMap = this.defenderRoll.value;
+                        challengerRollValue = defenderRollValue = (actorId) => getActorSpecificValue(actorId, toolMap);
+                    } else {
+                        challengerRollValue = defenderRollValue = this.defenderRoll.value;
+                    }
                 } else {
                     ui.notifications.warn("Please select at least one roll type.");
                     return;
@@ -471,7 +500,12 @@ export class SkillCheckDialog extends Application {
                     return;
                 }
                 challengerRollType = defenderRollType = this.selectedType;
-                challengerRollValue = defenderRollValue = this.selectedValue;
+                if (this.selectedType === 'tool') {
+                    const toolMap = this.selectedValue;
+                    challengerRollValue = defenderRollValue = (actorId) => getActorSpecificValue(actorId, toolMap);
+                } else {
+                    challengerRollValue = defenderRollValue = this.selectedValue;
+                }
             }
 
             // Get form data
@@ -482,10 +516,18 @@ export class SkillCheckDialog extends Application {
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
 
-            // Get the proper name and data based on roll type
-            let challengerRollName, defenderRollName, rollDescription, rollLink;
+            // Process actors and their specific tool IDs if needed
+            const processedActors = selectedActors.map(actor => {
+                const result = { ...actor };
+                if (actor.group === 1 && challengerRollType === 'tool') {
+                    result.toolId = typeof challengerRollValue === 'function' ? challengerRollValue(actor.id) : challengerRollValue;
+                } else if (actor.group === 2 && defenderRollType === 'tool') {
+                    result.toolId = typeof defenderRollValue === 'function' ? defenderRollValue(actor.id) : defenderRollValue;
+                }
+                return result;
+            });
 
-            // Get names and descriptions for both roll types
+            // Get roll information for both challenger and defender
             const getRollInfo = (type, value) => {
                 let name, desc, link;
                 switch (type) {
@@ -496,7 +538,10 @@ export class SkillCheckDialog extends Application {
                         link = this.skillInfo?.link;
                         break;
                     case 'tool':
-                        const toolItem = game.actors.get(selectedActors[0].id)?.items.get(value);
+                        // For tools, we'll get the name from the first actor's tool
+                        const firstActor = processedActors[0];
+                        const toolId = typeof value === 'function' ? value(firstActor.id) : value;
+                        const toolItem = game.actors.get(firstActor.id)?.items.get(toolId);
                         name = toolItem?.name;
                         desc = (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim();
                         link = '';
@@ -532,15 +577,15 @@ export class SkillCheckDialog extends Application {
 
             // Get info for both roll types
             const challengerInfo = getRollInfo(challengerRollType, challengerRollValue);
-            const defenderInfo = getRollInfo(defenderRollType, defenderRollValue);
+            const defenderInfo = isContestedRoll ? getRollInfo(defenderRollType, defenderRollValue) : null;
 
-            // Create message data
+            // Create message data with processed actors
             const messageData = {
                 skillName: challengerInfo.name,
-                defenderSkillName: isContestedRoll && challengerInfo.name !== defenderInfo.name ? defenderInfo.name : null,
-                skillAbbr: challengerRollValue,
-                defenderSkillAbbr: isContestedRoll ? defenderRollValue : null,
-                actors: selectedActors,
+                defenderSkillName: isContestedRoll && defenderInfo ? defenderInfo.name : null,
+                skillAbbr: typeof challengerRollValue === 'function' ? 'tool' : challengerRollValue,
+                defenderSkillAbbr: isContestedRoll ? (typeof defenderRollValue === 'function' ? 'tool' : defenderRollValue) : null,
+                actors: processedActors,
                 requesterId: game.user.id,
                 type: 'skillCheck',
                 dc: dc || null,
@@ -549,9 +594,9 @@ export class SkillCheckDialog extends Application {
                 label: label || null,
                 description: description || null,
                 skillDescription: challengerInfo.desc,
-                defenderSkillDescription: isContestedRoll ? defenderInfo.desc : null,
+                defenderSkillDescription: isContestedRoll && defenderInfo ? defenderInfo.desc : null,
                 skillLink: challengerInfo.link,
-                defenderSkillLink: isContestedRoll ? defenderInfo.link : null,
+                defenderSkillLink: isContestedRoll && defenderInfo ? defenderInfo.link : null,
                 rollMode,
                 rollType: challengerRollType,
                 defenderRollType: isContestedRoll ? defenderRollType : null,
@@ -586,8 +631,15 @@ export class SkillCheckDialog extends Application {
         
         // Add new tools
         tools.forEach(tool => {
+            // Convert Map to array of [actorId, toolId] pairs for data attribute
+            const actorToolsArray = Array.from(tool.actorTools.entries());
+            
             const toolItem = $(`
-                <div class="cpb-check-item${tool.isCommon ? '' : ' cpb-tool-unavailable'}" data-type="tool" data-value="${tool.id}" data-common="${tool.isCommon}">
+                <div class="cpb-check-item${tool.isCommon ? '' : ' cpb-tool-unavailable'}" 
+                     data-type="tool" 
+                     data-tool-name="${tool.name}"
+                     data-actor-tools='${JSON.stringify(actorToolsArray).replace(/'/g, "&apos;")}'
+                     data-common="${tool.isCommon}">
                     <i class="fas fa-tools"></i>
                     <span>${tool.name}</span>
                     <div class="cpb-roll-type-indicator"></div>
@@ -598,91 +650,87 @@ export class SkillCheckDialog extends Application {
             if (tool.isCommon) {
                 toolItem.on('click contextmenu', (ev) => {
                     ev.preventDefault();
-                    const item = ev.currentTarget;
-                    const type = item.dataset.type;
-                    const value = item.dataset.value;
-                    const isRightClick = ev.type === 'contextmenu';
+                    try {
+                        const item = ev.currentTarget;
+                        const type = item.dataset.type;
+                        const toolName = item.dataset.toolName;
+                        // Parse the actor tools data back into a Map
+                        const actorToolsData = item.dataset.actorTools;
+                        console.log('Actor tools data:', actorToolsData);
+                        const actorTools = new Map(JSON.parse(actorToolsData));
+                        const isRightClick = ev.type === 'contextmenu';
 
-                    // Check if we have both challengers and defenders
-                    const hasChallengers = this.element.find('.cpb-actor-item.cpb-group-1').length > 0;
-                    const hasDefenders = this.element.find('.cpb-actor-item.cpb-group-2').length > 0;
-                    const isContestedRoll = hasChallengers && hasDefenders;
+                        // Check if we have both challengers and defenders
+                        const hasChallengers = this.element.find('.cpb-actor-item.cpb-group-1').length > 0;
+                        const hasDefenders = this.element.find('.cpb-actor-item.cpb-group-2').length > 0;
+                        const isContestedRoll = hasChallengers && hasDefenders;
 
-                    if (isContestedRoll) {
-                        // In contested mode, maintain two selections
-                        let wasDeselected = false;
-                        this.element.find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
-                            const indicator = el.closest('.cpb-roll-type-indicator');
-                            const checkItem = indicator.closest('.cpb-check-item');
-                            
-                            // If clicking the same item, deselect it
-                            if (checkItem === item) {
-                                if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                    (!isRightClick && el.classList.contains('fa-swords'))) {
-                                    indicator.innerHTML = '';
-                                    checkItem.classList.remove('selected');
-                                    wasDeselected = true;
-                                    // Clear the appropriate roll type
-                                    if (isRightClick) {
-                                        this.defenderRoll = { type: null, value: null };
-                                    } else {
-                                        this.challengerRoll = { type: null, value: null };
+                        if (isContestedRoll) {
+                            let wasDeselected = false;
+                            $(item).closest('.cpb-check-section').find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
+                                const indicator = $(el).closest('.cpb-roll-type-indicator');
+                                const checkItem = indicator.closest('.cpb-check-item')[0];
+                                
+                                if (checkItem === item) {
+                                    if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                        (!isRightClick && el.classList.contains('fa-swords'))) {
+                                        indicator.empty();
+                                        $(checkItem).removeClass('selected');
+                                        wasDeselected = true;
+                                        if (isRightClick) {
+                                            this.defenderRoll = { type: null, value: null };
+                                        } else {
+                                            this.challengerRoll = { type: null, value: null };
+                                        }
+                                        return false;
                                     }
-                                    return false; // Break the each loop
                                 }
-                            }
-                            // Remove other selections of the same type
-                            else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                    (!isRightClick && el.classList.contains('fa-swords'))) {
-                                indicator.innerHTML = '';
-                                checkItem.classList.remove('selected');
-                            }
-                        });
+                                else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                        (!isRightClick && el.classList.contains('fa-swords'))) {
+                                    indicator.empty();
+                                    $(checkItem).removeClass('selected');
+                                }
+                            });
 
-                        // Only add new selection if we didn't just deselect
-                        if (!wasDeselected) {
-                            // Add the roll type indicator and selected state
-                            const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
-                            if (rollTypeIndicator) {
-                                if (isRightClick) {
-                                    rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                                    this.defenderRoll = { type, value };
-                                } else {
-                                    rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                                    this.challengerRoll = { type, value };
+                            if (!wasDeselected) {
+                                const rollTypeIndicator = $(item).find('.cpb-roll-type-indicator');
+                                if (rollTypeIndicator.length) {
+                                    if (isRightClick) {
+                                        rollTypeIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
+                                        this.defenderRoll = { type, value: actorTools };
+                                    } else {
+                                        rollTypeIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
+                                        this.challengerRoll = { type, value: actorTools };
+                                    }
+                                    $(item).addClass('selected');
                                 }
                             }
-                            // Add selected class
-                            item.classList.add('selected');
-                        }
-                    } else {
-                        // Check if we're deselecting the current selection
-                        const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
-                        const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
-                        
-                        if (hasCurrentSelection) {
-                            // Clear selection
-                            this.element.find('.cpb-check-item').removeClass('selected');
-                            this.element.find('.cpb-check-item .cpb-roll-type-indicator').html('');
-                            this.selectedType = null;
-                            this.selectedValue = null;
                         } else {
-                            // New selection
-                            this.element.find('.cpb-check-item').removeClass('selected');
-                            this.element.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                            const currentIndicator = $(item).find('.cpb-roll-type-indicator');
+                            const hasCurrentSelection = currentIndicator.html() !== '';
                             
-                            const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
-                            if (rollTypeIndicator) {
+                            if (hasCurrentSelection) {
+                                this.element.find('.cpb-check-item').removeClass('selected');
+                                this.element.find('.cpb-check-item .cpb-roll-type-indicator').empty();
+                                this.selectedType = null;
+                                this.selectedValue = null;
+                            } else {
+                                this.element.find('.cpb-check-item').removeClass('selected');
+                                this.element.find('.cpb-check-item .cpb-roll-type-indicator').empty();
+                                
                                 if (isRightClick) {
-                                    rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                                    currentIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
                                 } else {
-                                    rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                                    currentIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
                                 }
+                                $(item).addClass('selected');
+                                this.selectedType = type;
+                                this.selectedValue = actorTools;
                             }
-                            item.classList.add('selected');
-                            this.selectedType = type;
-                            this.selectedValue = value;
                         }
+                    } catch (error) {
+                        console.error('Error in tool selection:', error);
+                        ui.notifications.error('There was an error processing the tool selection.');
                     }
                 });
             } else {
