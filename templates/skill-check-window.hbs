@@ -2,9 +2,9 @@
     <div class="cpb-dialog-content">
         <!-- Left Column -->
         <div class="cpb-dialog-column">
-            <h2>Selected Contestants</h2>
+            <h2>1. CHOOSE CONTESTANTS</h2>
+            <h3>Left-click to select. Right-click if a Defender.</h3>
             <div class="cpb-form-group">
-                <label>Actors</label>
                 <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search Actors...">
                     <button type="button" class="cpb-clear-search-button" title="Clear search">
@@ -17,7 +17,7 @@
                     <i class="fas fa-helmet-battle"></i> Party
                 </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'monster')}}active{{/if}}" data-filter="monster">
-                    <i class="fas fa-dragon"></i> Monsters
+                    <i class="fas fa-dragon"></i> NPCs
                 </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
                     <i class="fas fa-user-group-crown"></i> Canvas
@@ -47,9 +47,9 @@
 
         <!-- Middle Column -->
         <div class="cpb-dialog-column">
-            <h2>Available Checks</h2>
+            <h2>2. SET ROLL TYPE</h2>
+            <h3>Right-click to set a different defender type.</h3>
             <div class="cpb-form-group">
-                <label>Criteria</label>
                 <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search...">
                     <button type="button" class="cpb-clear-search-button" title="Clear search">
@@ -57,6 +57,7 @@
                     </button>
                 </div>
             </div>
+            
             <div class="cpb-checks-list">
                 <!-- Dice Roll Section -->
                 <div class="cpb-check-section">
@@ -141,9 +142,9 @@
         <div class="cpb-dialog-column">
 
 
-            <h2>Roll Configuration</h2>
+            <h2>3. CONFIGURE ROLL</h2>
+            <h3>Contested roll overrides group settings.</h3>
             <div class="cpb-form-group">
-                <label>Roll Mode</label>
                 <div class="cpb-form-fields">
                     <select name="rollMode">
                         <option value="roll">Public Roll</option>
@@ -152,54 +153,58 @@
                     </select>
                 </div>
             </div>
+            
+            <div class="cpb-roll-options-column">
 
-            <div class="cpb-section-header">Dice Check (Optional)</div>
+                <div class="cpb-section-header">Dice Check (Optional)</div>
 
-            <div class="cpb-form-group">
-                <label>DC to Beat</label>
-                <div class="cpb-form-fields">
-                    <input type="number" name="dc" placeholder="DC">
+                <div class="cpb-form-group">
+                    <label>DC to Beat</label>
+                    <div class="cpb-form-fields">
+                        <input type="number" name="dc" placeholder="DC">
+                    </div>
+                    <div class="cpb-form-fields">
+                        <label class="cpb-checkbox">
+                            <input type="checkbox" name="showDC" checked> Show the DC to the players
+                        </label>
+                    </div>
+                    <div class="cpb-form-fields">
+                        <label class="cpb-checkbox">
+                            <input type="checkbox" name="groupRoll"> Evaluate Group DC
+                        </label>
+                    </div>
                 </div>
-                <div class="cpb-form-fields">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="showDC" checked> Show the DC to the players
-                    </label>
-                </div>
-                <div class="cpb-form-fields">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="groupRoll"> Evaluate DC as a group
-                    </label>
-                </div>
-            </div>
 
-            <div class="cpb-section-header">Additional Context</div>
+                <div class="cpb-section-header">Additional Context</div>
 
-            <div class="cpb-form-group">
-                <div class="cpb-form-fields">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="showRollExplanation" checked> Show Roll Explanation
-                    </label>
+                <div class="cpb-form-group">
+                    <div class="cpb-form-fields">
+                        <label class="cpb-checkbox">
+                            <input type="checkbox" name="showRollExplanation" checked> Show Roll Explanation
+                        </label>
+                    </div>
+                    <div class="cpb-form-fields">
+                        <label class="cpb-checkbox">
+                            <input type="checkbox" name="showRollExplanationLink" checked> Show Link to SRD
+                        </label>
+                    </div>
                 </div>
-                <div class="cpb-form-fields">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="showRollExplanationLink" checked> Show Link to SRD
-                    </label>
-                </div>
-            </div>
 
-            <div class="cpb-section-header">Custom Roll Message (Optional)</div>
+                <div class="cpb-section-header">Custom Roll Message (Optional)</div>
 
-            <div class="cpb-form-group">
-                <label>Roll Title</label>
-                <div class="cpb-form-fields">
-                    <input type="text" name="label" placeholder="Roll label">
+                <div class="cpb-form-group">
+                    <label>Roll Title</label>
+                    <div class="cpb-form-fields">
+                        <input type="text" name="label" placeholder="Roll label">
+                    </div>
                 </div>
-            </div>
-            <div class="cpb-form-group">
-                <label>Roll Narrative</label>
-                <div class="cpb-form-fields">
-                    <textarea name="description" rows="4" placeholder="Optional description..."></textarea>
+                <div class="cpb-form-group">
+                    <label>Roll Narrative</label>
+                    <div class="cpb-form-fields">
+                        <textarea name="description" rows="4" placeholder="Optional description..."></textarea>
+                    </div>
                 </div>
+
             </div>
 
         </div>

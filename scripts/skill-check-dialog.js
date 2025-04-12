@@ -17,9 +17,8 @@ export class SkillCheckDialog extends Application {
             classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
             title: 'Checks and Saves',
             width: 800,
-            height: 600,
+            height: 650,
             resizable: true
-            
         });
     }
 
@@ -118,7 +117,7 @@ export class SkillCheckDialog extends Application {
             saves,
             tools,
             hasSelectedTokens,
-            initialFilter: hasSelectedTokens ? 'selected' : 'canvas'
+            initialFilter: hasSelectedTokens ? 'selected' : 'party'
         };
     }
 
@@ -149,7 +148,7 @@ export class SkillCheckDialog extends Application {
 
         // Apply initial filter if there are selected tokens
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
-        const initialFilter = hasSelectedTokens ? 'selected' : 'canvas';
+        const initialFilter = hasSelectedTokens ? 'selected' : 'party';
         
         // Set initial active state on filter button
         html.find(`.cpb-filter-btn[data-filter="${initialFilter}"]`).addClass('active');
@@ -473,6 +472,11 @@ export class SkillCheckDialog extends Application {
                 case 'party':
                     // Show only player characters (type === 'character')
                     show = actor.type === 'character' && actor.hasPlayerOwner;
+                    break;
+                case 'monster':
+                    // Show only non-player characters (type === 'npc')
+                    //show = token != null && (!actor.hasPlayerOwner || actor.type !== 'character');
+                    show = actor.type === 'npc';
                     break;
                 default:
                     show = true;

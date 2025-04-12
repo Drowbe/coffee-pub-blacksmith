@@ -5,6 +5,11 @@
     display: flex;
     flex-direction: column;
 }
+.skill-check-dialog.app {
+    min-width: 800px;
+    min-height: 590px;
+}
+  
 .cpb-dialog-content {
     display: flex;
     gap: 8px;
@@ -24,13 +29,26 @@
     padding-right: 8px;
 }
 .cpb-dialog-column h2 {
-    border-bottom: 2px groove #eeede0;
-    font-size: var(--font-size-14);
+    border: 2px groove #eeede0;
+    font-size: 1.3em;
     line-height: 20px;
     font-weight: bold;
-    margin: 0 0 8px;
-    padding: 2px 0;
+    margin: 0 0 0px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding-left: 6px;
 }
+.cpb-dialog-column h3 {
+    border-bottom: 0px groove #eeede0;
+    font-size: 0.8em;
+    line-height: 1.2em;
+    font-weight: 400;
+    margin: 0px;
+    padding: 2px 0;
+    text-align: center;
+}
+
 
 /* FORM STYLES */
 
@@ -40,15 +58,18 @@
 .cpb-form-group label {
     display: block;
     font-weight: bold;
+    font-size: 0.8em;
     margin-bottom: 4px;
-    font-size: var(--font-size-12);
+    margin-top: 6px;
+    margin-left: 8px;
 }
 .cpb-form-group label.cpb-checkbox {
     display: inline-flex;
     align-items: center;
     font-weight: normal;
+    font-size: 1.0em;
     margin: 0;
-    gap: 4px;
+    gap: 2px;
 }
 .cpb-form-fields {
     display: flex;
@@ -172,39 +193,6 @@
     background: rgba(0, 0, 0, 0.1);
     box-shadow: 0 0 3px var(--color-shadow-primary);
 }
-
-/* UNUSED????
-.cpb-dice-buttons {
-    display: flex;
-    gap: 4px;
-    margin-top: 4px;
-}
-
-
-
-.cpb-dice-btn {
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid #999;
-    border-radius: 3px;
-    padding: 4px;
-    font-size: var(--font-size-14);
-    line-height: 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1;
-}
-.cpb-dice-btn:hover {
-    box-shadow: 0 0 5px var(--color-shadow-primary);
-    background: rgba(0, 0, 0, 0.15);
-}
-.cpb-dice-btn i {
-    font-size: var(--font-size-16);
-}
-
-*/
-
 
 /* CHECKS LIST */
 
@@ -647,4 +635,19 @@
     text-align: center;
     color: #666666;
     font-style: italic;
+}
+
+
+
+
+
+
+/* ***** THIRD COLUMN ***** */
+
+.cpb-roll-options-column {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
 }

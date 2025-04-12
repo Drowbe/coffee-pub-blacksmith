@@ -118,21 +118,25 @@
         {{/if}}
 
         {{!-- Group Roll --}}  
-        {{#if isGroupRoll}}
-            {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
-            {{#if allRollsComplete}}
-                <div class="cpb-card-section-header">Group Results</div>
-                {{#if groupSuccess}}
-                    <div class="cpb-roll-result-success-container">
-                        <div class="cpb-roll-result-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
-                    </div>
-                {{else}}
-                    <div class="cpb-roll-result-failure-container">
-                        <div class="cpb-roll-result-failure-text" title="({{successCount}}/{{totalCount}} succeeded)">FAILURE</div>
-                    </div>
+        {{#unless hasMultipleGroups}}
+            {{#if isGroupRoll}}
+            {{#if dc}}
+                {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
+                {{#if allRollsComplete}}
+                    <div class="cpb-card-section-header">Group Results</div>
+                    {{#if groupSuccess}}
+                        <div class="cpb-roll-result-success-container">
+                            <div class="cpb-roll-result-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
+                        </div>
+                    {{else}}
+                        <div class="cpb-roll-result-failure-container">
+                            <div class="cpb-roll-result-failure-text" title="({{successCount}}/{{totalCount}} succeeded)">FAILURE</div>
+                        </div>
+                    {{/if}}
                 {{/if}}
             {{/if}}
-        {{/if}}
+            {{/if}}
+        {{/unless}}
     </div>
 </div>
 {{/unless}} 
