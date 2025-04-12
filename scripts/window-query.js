@@ -1165,13 +1165,24 @@ export class BlacksmithWindowQuery extends FormApplication {
                     const group1Highest = Math.max(...group1.map(a => a.result.total));
                     const group2Highest = Math.max(...group2.map(a => a.result.total));
 
-                    contestedRoll = {
-                        winningGroup: group1Highest > group2Highest ? 1 : 2,
-                        group1Highest,
-                        group2Highest,
-                        isTie: group1Highest === group2Highest
-                    };
-                    console.log("Contested roll result:", contestedRoll);
+                    // If there's a DC and neither group beats it, it's a tie
+                    if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
+                        contestedRoll = {
+                            winningGroup: 0,
+                            group1Highest,
+                            group2Highest,
+                            isTie: true
+                        };
+                        console.log("Contested roll: Both failed DC, forcing tie");
+                    } else {
+                        contestedRoll = {
+                            winningGroup: group1Highest > group2Highest ? 1 : 2,
+                            group1Highest,
+                            group2Highest,
+                            isTie: group1Highest === group2Highest
+                        };
+                        console.log("Contested roll result:", contestedRoll);
+                    }
                 }
 
                 // Update the message

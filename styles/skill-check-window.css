@@ -531,6 +531,7 @@
     border: 1px solid rgba(3, 109, 151, 0.6);
     background: rgba(3, 109, 151, 0.1);
 }
+.cpb-roll-result-tie-text,
 .cpb-roll-result-success-text,
 .cpb-roll-result-failure-text {
     font-size: 1.5em;
@@ -546,6 +547,30 @@
 }
 .cpb-roll-result-tie-text {
     color: rgba(3, 109, 151, 0.9);
+}
+
+/* ----- VERSUS ----- */
+
+.cpb-versus-separator {
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.2em;
+    margin-top: 8px;
+    margin-bottom: 0px;
+    color: #aa0200;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    border: 1px solid rgba(170, 2, 0, 0.2);
+    text-transform: uppercase;
+}
+.cpb-versus-skill{
+    font-weight: 600;
+    font-size: 0.8em;
+    color: #782e22;
+    padding: 4px;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
 /* PENDING ROLLS (CHAT BUTTONS BEFORE ROLLS ARE COMPLETE) */
@@ -591,18 +616,6 @@
     margin-right: 0px;
     flex-shrink: 0;
 }
-
-.cpb-versus-separator {
-    text-align: center;
-    font-weight: bold;
-    font-size: 1.2em;
-    color: #782e22;
-    padding: 4px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 3px;
-}
-
-
 
 .cpb-group-roll-result-pending {
     margin-top: 12px;
