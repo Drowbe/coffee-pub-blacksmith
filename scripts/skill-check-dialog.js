@@ -124,9 +124,13 @@ export class SkillCheckDialog extends Application {
     }
 
     _getToolProficiencies() {
-        const toolProfs = new Set();
+        const toolProfs = new Map(); // Use Map to track tool counts
+        const toolIds = new Map(); // Map to store a representative ID for each tool name
         const selectedActors = this.element?.find('.cpb-actor-item.selected') || [];
+        const selectedCount = selectedActors.length;
         
+        if (selectedCount === 0) return [];
+
         selectedActors.each((i, el) => {
             const actorId = el.dataset.actorId;
             const actor = game.actors.get(actorId);
@@ -135,14 +139,23 @@ export class SkillCheckDialog extends Application {
             // Get tool proficiencies from the actor
             const tools = actor.items.filter(i => i.type === "tool");
             tools.forEach(tool => {
-                toolProfs.add({
-                    id: tool.id,
-                    name: tool.name
-                });
+                const count = toolProfs.get(tool.name) || 0;
+                toolProfs.set(tool.name, count + 1);
+                // Store the first ID we encounter for this tool name
+                if (!toolIds.has(tool.name)) {
+                    toolIds.set(tool.name, tool.id);
+                }
             });
         });
 
-        return Array.from(toolProfs);
+        // Convert to array and add isCommon flag
+        return Array.from(toolProfs.entries())
+            .map(([name, count]) => ({
+                id: toolIds.get(name),
+                name,
+                isCommon: count === selectedCount // Tool is common if count matches selected actors
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
     }
 
     activateListeners(html) {
@@ -271,6 +284,13 @@ export class SkillCheckDialog extends Application {
             const type = item.dataset.type;
             const value = item.dataset.value;
             const isRightClick = ev.type === 'contextmenu';
+
+            // If this is a non-common tool, prevent selection and show notification
+            if (type === 'tool' && item.dataset.common === 'false') {
+                const toolName = item.querySelector('span')?.textContent || 'selected tool';
+                ui.notifications.warn(`Not all selected players have ${toolName}.`);
+                return;
+            }
 
             // Check if we have both challengers and defenders
             const hasChallengers = html.find('.cpb-actor-item.cpb-group-1').length > 0;

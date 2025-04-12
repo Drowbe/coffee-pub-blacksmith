@@ -243,6 +243,23 @@
     font-size: var(--font-size-12);
 }
 
+/* Tool unavailable state */
+.cpb-check-item.cpb-tool-unavailable {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+}
+.cpb-check-item.cpb-tool-unavailable:hover {
+    border-color: #999;
+    box-shadow: none;
+    background: rgba(0, 0, 0, 0.05);
+}
+.cpb-check-item.cpb-tool-unavailable i {
+    opacity: 0.6;
+}
+
 /* SKILLS */
 
 .cpb-skills-list {
