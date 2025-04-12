@@ -270,13 +270,32 @@ export class SkillCheckDialog extends Application {
             const value = item.dataset.value;
             const isRightClick = ev.type === 'contextmenu';
 
-            // Remove selection from all items
-            html.find('.cpb-check-item, .check-item').removeClass('selected');
-            // Add selection to clicked item
-            item.classList.add('selected');
+            // Check if we have both challengers and defenders
+            const hasChallengers = html.find('.cpb-actor-item.cpb-group-1').length > 0;
+            const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+            const isContestedRoll = hasChallengers && hasDefenders;
 
-            // Add the roll type indicator
-            html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+            if (isContestedRoll) {
+                // In contested mode, maintain two selections
+                html.find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
+                    const indicator = el.closest('.cpb-roll-type-indicator');
+                    const checkItem = indicator.closest('.cpb-check-item');
+                    // Remove only the matching type (swords or shield) and its selected state
+                    if (isRightClick && el.classList.contains('fa-shield-halved')) {
+                        indicator.innerHTML = '';
+                        checkItem.classList.remove('selected');
+                    } else if (!isRightClick && el.classList.contains('fa-swords')) {
+                        indicator.innerHTML = '';
+                        checkItem.classList.remove('selected');
+                    }
+                });
+            } else {
+                // Single selection mode - clear all
+                html.find('.cpb-check-item').removeClass('selected');
+                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+            }
+
+            // Add the roll type indicator and selected state
             const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
             if (rollTypeIndicator) {
                 if (isRightClick) {
@@ -285,6 +304,9 @@ export class SkillCheckDialog extends Application {
                     rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                 }
             }
+
+            // Add selected class
+            item.classList.add('selected');
 
             this.selectedType = type;
             this.selectedValue = value;
