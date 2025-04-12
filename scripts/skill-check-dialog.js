@@ -263,10 +263,12 @@ export class SkillCheckDialog extends Application {
         });
 
         // Handle check item selection
-        html.find('.cpb-check-item, .check-item').click(ev => {
+        html.find('.cpb-check-item, .check-item').on('click contextmenu', (ev) => {
+            ev.preventDefault();
             const item = ev.currentTarget;
             const type = item.dataset.type;
             const value = item.dataset.value;
+            const isRightClick = ev.type === 'contextmenu';
 
             // Remove selection from all items
             html.find('.cpb-check-item, .check-item').removeClass('selected');
@@ -277,7 +279,11 @@ export class SkillCheckDialog extends Application {
             html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
             const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
             if (rollTypeIndicator) {
-                rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                if (isRightClick) {
+                    rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                } else {
+                    rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                }
             }
 
             this.selectedType = type;
