@@ -342,7 +342,9 @@ export class SkillCheckDialog extends Application {
                     const toolItem = game.actors.get(selectedActors[0].id)?.items.get(this.selectedValue);
                     rollName = toolItem?.name;
                     rollValue = this.selectedValue;
-                    rollDescription = toolItem?.system.description?.value || '';
+                    rollDescription = (toolItem?.system.description?.value || '')
+                        .replace(/<\/?p>/gi, '') // Remove all <p> and </p> tags
+                        .trim();
                     rollLink = '';
                     break;
                 case 'ability':
@@ -366,7 +368,7 @@ export class SkillCheckDialog extends Application {
                 case 'dice':
                     rollName = `${this.selectedValue} Roll`;
                     rollValue = this.selectedValue.startsWith('d') ? '1' + this.selectedValue : this.selectedValue;
-                    rollDescription = `Rolling a ${this.selectedValue}`;
+                    rollDescription = `This is a standard ${this.selectedValue} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.`;
                     rollLink = '';
                     break;
                 default:

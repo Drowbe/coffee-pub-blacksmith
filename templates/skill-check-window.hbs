@@ -4,23 +4,26 @@
         <div class="cpb-dialog-column">
             <h2>Selected Contestants</h2>
             <div class="cpb-form-group">
-                <label>Search</label>
+                <label>Actors</label>
                 <div class="cpb-form-fields cpb-search-container">
-                    <input type="text" name="search" placeholder="Search players...">
+                    <input type="text" name="search" placeholder="Search Actors...">
                     <button type="button" class="cpb-clear-search-button" title="Clear search">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
             <div class="cpb-filter-buttons">
-                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
-                    <i class="fas fa-user"></i> Selected
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
+                    <i class="fas fa-helmet-battle"></i> Party
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'monster')}}active{{/if}}" data-filter="monster">
+                    <i class="fas fa-dragon"></i> Monsters
                 </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
-                    <i class="fas fa-users"></i> Canvas
+                    <i class="fas fa-user-group-crown"></i> Canvas
                 </button>
-                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
-                    <i class="fas fa-flag"></i> Party
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
+                    <i class="fas fa-square-dashed"></i> Selected
                 </button>
             </div>
             <div class="cpb-actor-list">
@@ -71,6 +74,8 @@
                         <div class="cpb-check-item" data-type="dice" data-value="d8">
                             <i class="fas fa-dice-d8" title="d8"></i>
                         </div>
+                    </div>
+                    <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d10">
                             <i class="fas fa-dice-d10" title="d10"></i>
                         </div>
@@ -134,23 +139,9 @@
 
         <!-- Right Column -->
         <div class="cpb-dialog-column">
+
+
             <h2>Roll Configuration</h2>
-            <div class="cpb-form-group">
-                <label>DC (Optional)</label>
-                <div class="cpb-form-fields">
-                    <input type="number" name="dc" placeholder="DC">
-                </div>
-                <div class="cpb-form-fields" style="margin-top: 4px;">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="showDC" checked> Show the DC
-                    </label>
-                </div>
-                <div class="cpb-form-fields" style="margin-top: 4px;">
-                    <label class="cpb-checkbox">
-                        <input type="checkbox" name="groupRoll"> Evaluate as a Group
-                    </label>
-                </div>
-            </div>
             <div class="cpb-form-group">
                 <label>Roll Mode</label>
                 <div class="cpb-form-fields">
@@ -161,14 +152,51 @@
                     </select>
                 </div>
             </div>
+
+            <div class="cpb-section-header">Dice Check (Optional)</div>
+
             <div class="cpb-form-group">
-                <label>Label</label>
+                <label>DC to Beat</label>
+                <div class="cpb-form-fields">
+                    <input type="number" name="dc" placeholder="DC">
+                </div>
+                <div class="cpb-form-fields">
+                    <label class="cpb-checkbox">
+                        <input type="checkbox" name="showDC" checked> Show the DC to the players
+                    </label>
+                </div>
+                <div class="cpb-form-fields">
+                    <label class="cpb-checkbox">
+                        <input type="checkbox" name="groupRoll"> Evaluate DC as a group
+                    </label>
+                </div>
+            </div>
+
+            <div class="cpb-section-header">Additional Context</div>
+
+            <div class="cpb-form-group">
+                <div class="cpb-form-fields">
+                    <label class="cpb-checkbox">
+                        <input type="checkbox" name="showRollExplanation" checked> Show Roll Explanation
+                    </label>
+                </div>
+                <div class="cpb-form-fields">
+                    <label class="cpb-checkbox">
+                        <input type="checkbox" name="showRollExplanationLink" checked> Show Link to SRD
+                    </label>
+                </div>
+            </div>
+
+            <div class="cpb-section-header">Custom Roll Message (Optional)</div>
+
+            <div class="cpb-form-group">
+                <label>Roll Title</label>
                 <div class="cpb-form-fields">
                     <input type="text" name="label" placeholder="Roll label">
                 </div>
             </div>
             <div class="cpb-form-group">
-                <label>Description</label>
+                <label>Roll Narrative</label>
                 <div class="cpb-form-fields">
                     <textarea name="description" rows="4" placeholder="Optional description..."></textarea>
                 </div>

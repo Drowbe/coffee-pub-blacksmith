@@ -13,10 +13,10 @@
         {{/if}}
 
         {{#if skillDescription}}
-        <div class="cpb-card-section-header">Details</div>
-        <div class="skill-description cpb-skill-description">
+        <div class="cpb-card-section-header">Skill Details</div>
+        <div class="cpb-skill-description">
             <p>{{{skillDescription}}}</p>
-            <p>{{{skillLink}}}</p>
+            {{#if skillLink}}<p>{{{skillLink}}}</p>{{/if}}
         </div>
         {{/if}}
         
