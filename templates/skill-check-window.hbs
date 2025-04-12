@@ -196,12 +196,12 @@
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="showRollExplanation" checked> Show Roll Explanation
+                            <input type="checkbox" name="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}> Show Roll Explanation
                         </label>
                     </div>
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="showRollExplanationLink" checked> Show Link to SRD
+                            <input type="checkbox" name="showRollExplanationLink" {{#if userPreferences.showRollExplanationLink}}checked{{/if}}> Show Link to SRD
                         </label>
                     </div>
                 </div>

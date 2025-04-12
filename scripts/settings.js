@@ -665,7 +665,18 @@ export const registerSettings = async () => {
 
 
 
-
+		// Skill Check 
+		game.settings.register(MODULE_ID, 'skillCheckPreferences', {
+			name: 'Skill Check Preferences',
+			hint: 'Default preferences for skill check dialog',
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {
+				showRollExplanation: true,
+				showRollExplanationLink: true
+			}
+		});
 
 
 

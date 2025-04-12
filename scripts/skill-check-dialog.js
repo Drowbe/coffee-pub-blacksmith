@@ -10,6 +10,12 @@ export class SkillCheckDialog extends Application {
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
+        
+        // Load user preferences
+        this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
+            showRollExplanation: true,
+            showRollExplanationLink: true
+        };
     }
 
     static get defaultOptions() {
@@ -120,7 +126,8 @@ export class SkillCheckDialog extends Application {
             saves,
             tools,
             hasSelectedTokens,
-            initialFilter: hasSelectedTokens ? 'selected' : 'party'
+            initialFilter: hasSelectedTokens ? 'selected' : 'party',
+            userPreferences: this.userPreferences
         };
 
         console.log('Final template data:', templateData);
@@ -600,7 +607,9 @@ export class SkillCheckDialog extends Application {
                 rollMode,
                 rollType: challengerRollType,
                 defenderRollType: isContestedRoll ? defenderRollType : null,
-                hasMultipleGroups: isContestedRoll
+                hasMultipleGroups: isContestedRoll,
+                showRollExplanation: html.find('input[name="showRollExplanation"]').prop('checked'),
+                showRollExplanationLink: html.find('input[name="showRollExplanationLink"]').prop('checked')
             };
 
             // Create the chat message
@@ -620,6 +629,17 @@ export class SkillCheckDialog extends Application {
 
         // Handle the cancel button
         html.find('button[data-button="cancel"]').click(() => this.close());
+
+        // Handle preference checkboxes
+        html.find('input[name="showRollExplanation"]').change(ev => {
+            this.userPreferences.showRollExplanation = ev.currentTarget.checked;
+            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+        });
+
+        html.find('input[name="showRollExplanationLink"]').change(ev => {
+            this.userPreferences.showRollExplanationLink = ev.currentTarget.checked;
+            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+        });
     }
 
     _updateToolList() {
