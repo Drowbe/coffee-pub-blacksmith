@@ -65,29 +65,37 @@
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d2">
                             <i class="fas fa-coin" title="d2"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d4">
                             <i class="fas fa-dice-d4" title="d4"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d6">
                             <i class="fas fa-dice-d6" title="d6"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d8">
                             <i class="fas fa-dice-d8" title="d8"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d10">
                             <i class="fas fa-dice-d10" title="d10"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d12">
                             <i class="fas fa-dice-d12" title="d12"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d20">
                             <i class="fas fa-dice-d20" title="d20"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d100">
                             <i class="fas fa-hundred-points" title="d100"></i>
+                            <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                 </div>
@@ -99,6 +107,7 @@
                     <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}">
                         <i class="{{this.icon}}"></i>
                         <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
                     </div>
                     {{/each}}
                 </div>
@@ -110,6 +119,7 @@
                     <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}">
                         <i class="fas fa-user-circle"></i>
                         <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
                     </div>
                     {{/each}}
                 </div>
@@ -121,6 +131,7 @@
                     <div class="cpb-check-item" data-type="save" data-value="{{this.id}}">
                         <i class="fas fa-shield-alt"></i>
                         <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
                     </div>
                     {{/each}}
                 </div>
@@ -132,6 +143,7 @@
                     <div class="cpb-check-item" data-type="tool" data-value="{{this.id}}">
                         <i class="fas fa-tools"></i>
                         <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
                     </div>
                     {{/each}}
                 </div>
@@ -170,7 +182,7 @@
                     </div>
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="groupRoll"> Evaluate Group DC
+                            <input type="checkbox" name="groupRoll" checked> Evaluate Group DC
                         </label>
                     </div>
                 </div>

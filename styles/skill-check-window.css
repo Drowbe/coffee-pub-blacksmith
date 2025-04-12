@@ -452,6 +452,22 @@
     color: rgba(170, 2, 0, 0.9);
 }
 
+/* ROLL TYPE INDICATORS */
+
+.cpb-check-item .cpb-roll-type-indicator {
+    padding-left: 0px;
+    font-size: 1.0em;
+    width: 12px;
+    text-align: center;
+    margin-left: auto;
+    margin-right: 6px;
+     
+}
+.cpb-check-item .cpb-roll-type-indicator i {
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
 /* GENERAL CHAT CARD STYLES */
 
 .cpb-chat-card {

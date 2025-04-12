@@ -273,6 +273,13 @@ export class SkillCheckDialog extends Application {
             // Add selection to clicked item
             item.classList.add('selected');
 
+            // Add the roll type indicator
+            html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+            const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
+            if (rollTypeIndicator) {
+                rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+            }
+
             this.selectedType = type;
             this.selectedValue = value;
 
