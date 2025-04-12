@@ -144,7 +144,7 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Tool Check</div>
                     {{#each tools}}
-                    <div class="cpb-check-item {{#unless isCommon}}cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}">
+                    <div class="cpb-check-item{{#unless isCommon}} cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}">
                         <i class="fas fa-tools"></i>
                         <span>{{name}}</span>
                         <div class="cpb-roll-type-indicator"></div>

@@ -244,20 +244,21 @@
 }
 
 /* Tool unavailable state */
-.cpb-check-item.cpb-tool-unavailable {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-    pointer-events: none;
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: rgba(0, 0, 0, 0.6) !important;
+    pointer-events: none !important;
+    filter: grayscale(100%) !important;
 }
-.cpb-check-item.cpb-tool-unavailable:hover {
-    border-color: #999;
-    box-shadow: none;
-    background: rgba(0, 0, 0, 0.05);
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable:hover {
+    border-color: #999 !important;
+    box-shadow: none !important;
+    background: rgba(0, 0, 0, 0.05) !important;
 }
-.cpb-check-item.cpb-tool-unavailable i {
-    opacity: 0.6;
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable i {
+    opacity: 0.6 !important;
 }
 
 /* SKILLS */
