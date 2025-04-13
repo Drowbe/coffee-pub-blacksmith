@@ -525,7 +525,7 @@ export class SkillCheckDialog extends Application {
             }
 
             // Get form data
-            const dc = html.find('input[name="dc"]').val();
+            const dc = html.find('input[name="dc"]').val() || null;
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const groupRoll = html.find('input[name="groupRoll"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
@@ -607,9 +607,9 @@ export class SkillCheckDialog extends Application {
                 actors: processedActors,
                 requesterId: game.user.id,
                 type: 'skillCheck',
-                dc: html.find('input[name="dc"]').val() || null,
-                showDC: html.find('input[name="showDC"]').prop('checked'),
-                isGroupRoll: html.find('input[name="groupRoll"]').prop('checked'),
+                dc: dc,
+                showDC: showDC,
+                isGroupRoll: groupRoll,
                 label: label || null,
                 description: description || null,
                 skillDescription: challengerInfo.desc,
