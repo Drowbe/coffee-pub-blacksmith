@@ -76,7 +76,7 @@ class ChatPanel {
 
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
-            let currentMovementData = { icon: 'fa-person-running', name: 'Normal Movement' };
+            let currentMovementData = { icon: 'fa-person-running', name: 'Normal' };
             
             try {
                 // Only try to get the setting if it's registered
@@ -84,9 +84,10 @@ class ChatPanel {
                     currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
                     
                     const movementTypes = {
-                        'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
-                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
-                        'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+                        'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
+                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
+                        'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
                     };
                     
                     currentMovementData = movementTypes[currentMovement] || movementTypes['normal-movement'];
@@ -813,9 +814,10 @@ class ChatPanel {
         const currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
         
         const movementTypes = {
-            'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
-            'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
-            'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+            'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
+            'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
+            'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+            'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
         };
 
         const data = {

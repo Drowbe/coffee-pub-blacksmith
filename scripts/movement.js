@@ -25,9 +25,10 @@ Hooks.once('init', () => {
                 const movementLabel = chatPanel.querySelector('.movement-label');
                 
                 const movementTypes = {
-                    'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
-                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
-                    'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+                    'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
+                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
+                    'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+                    'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
                 };
                 
                 const newType = movementTypes[message.data.movementId];
@@ -313,20 +314,31 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             return distA - distB;
         });
         
-        // Start followers on their journeys if they're not already following
+        // Process followers - add new ones or update existing ones
         followerTokens.forEach((followerToken, index) => {
             if (!tokenFollowers.has(followerToken.id)) {
-                console.log('Setting up follower:', followerToken.name);
-                // Set up initial follower state - start at position depending on their place in line
+                // New follower - set up initial state at current position in line
+                console.log('Setting up new follower:', followerToken.name);
+                
+                // New tokens start further back in the path based on their position in line
                 const pathIndex = Math.max(0, leaderMovementPath.length - 5 - (index * 2));
+                
                 tokenFollowers.set(followerToken.id, {
                     pathIndex: pathIndex,
                     moving: false
                 });
-                
-                // Start this token on its path
-                followLeaderPath(followerToken, index + 1);
+            } else {
+                // Existing follower - just make sure it's not stuck
+                const followerState = tokenFollowers.get(followerToken.id);
+                if (followerState.moving === true && Date.now() - followerState.lastMoveTime > 5000) {
+                    // If token has been "moving" for more than 5 seconds, reset it
+                    console.log('Resetting stuck follower:', followerToken.name);
+                    followerState.moving = false;
+                }
             }
+            
+            // Start/continue this token on its path
+            updateFollowerPath(followerToken, index + 1);
         });
     } catch (err) {
         console.error('Blacksmith | Error processing conga line movement:', err);
@@ -339,6 +351,7 @@ function followLeaderPath(token, position) {
     if (!followerState || followerState.moving) return;
     
     followerState.moving = true;
+    followerState.lastMoveTime = Date.now();
     
     // Get the next position to move to
     const nextStep = leaderMovementPath[followerState.pathIndex];
@@ -367,4 +380,19 @@ function followLeaderPath(token, position) {
         console.error('Error moving token in conga line:', err);
         followerState.moving = false;
     });
+}
+
+// Function to update a follower's path and ensure continuous following
+function updateFollowerPath(token, position) {
+    const followerState = tokenFollowers.get(token.id);
+    if (!followerState) return;
+    
+    // If token is already moving, don't interrupt it
+    if (followerState.moving) return;
+    
+    // Check if token is behind in the path
+    if (followerState.pathIndex < leaderMovementPath.length) {
+        // Start/resume following the path
+        followLeaderPath(token, position);
+    }
 } 
