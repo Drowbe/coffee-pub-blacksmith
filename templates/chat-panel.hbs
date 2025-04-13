@@ -2,16 +2,16 @@
     <div class="leader-section">
         <div class="leader-info">
             <i class="fas fa-crown leader-icon"></i>
-            <span class="party-leader">{{leader}}</span>
+            <span class="party-leader">{{leaderText}}</span>
         </div>
     </div>
     <div class="timer-section">
-        <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{progress}}%">
+        <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
             <i class="fas fa-eclipse"></i>
-            <span class="session-timer">{{timer}}</span>
+            <span class="session-timer">{{timerText}}</span>
         </div>
     </div>
-</div> 
+</div>
 <div class="blacksmith-chat-panel">
     <div class="toolbar-section">
         <div class="toolbar-icons">
@@ -30,10 +30,10 @@
                 </div>
             </div>
             {{!--Movement --}}
-            <div class="tool movement" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can request rolls{{/if}}">
-                <div class="skillcheck-info">
-                    <i class="fas fa-person-running movement-icon"></i>
-                    <span class="movement-label">Movement</span>
+            <div class="tool movement" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+                <div class="movement-info">
+                    <i class="fas {{currentMovement.icon}} movement-icon"></i>
+                    <span class="movement-label">{{currentMovement.name}}</span>
                 </div>
             </div>
             {{!-- More tools will be added here --}}

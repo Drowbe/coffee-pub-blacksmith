@@ -74,12 +74,34 @@ class ChatPanel {
             const chatLog = html.find('#chat-log');
             if (!chatLog.length) return;
 
+            // Check if movement type setting exists first
+            let currentMovement = 'normal-movement';
+            let currentMovementData = { icon: 'fa-person-running', name: 'Normal Movement' };
+            
+            try {
+                // Only try to get the setting if it's registered
+                if (game.settings.settings.get(`${MODULE_ID}.movementType`)) {
+                    currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
+                    
+                    const movementTypes = {
+                        'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
+                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
+                        'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+                    };
+                    
+                    currentMovementData = movementTypes[currentMovement] || movementTypes['normal-movement'];
+                }
+            } catch (err) {
+                console.warn('Blacksmith | Movement type setting not registered yet, using default');
+            }
+
             // Prepare template data
             const templateData = {
                 isGM: game.user.isGM,
                 leaderText: this.getLeaderDisplayText(),
                 timerText: this.getTimerText(),
-                timerProgress: this.getTimerProgress()
+                timerProgress: this.getTimerProgress(),
+                currentMovement: currentMovementData
             };
 
             // Render the template
@@ -784,6 +806,29 @@ class ChatPanel {
             );
             return false;
         }
+    }
+
+    async getData() {
+        const isGM = game.user.isGM;
+        const currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
+        
+        const movementTypes = {
+            'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
+            'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
+            'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+        };
+
+        const data = {
+            isGM: game.user.isGM,
+            leader: game.settings.get(MODULE_ID, 'partyLeader') || 'No Leader',
+            timer: this._formatTime(game.settings.get(MODULE_ID, 'sessionTimer') || 0),
+            progress: this._calculateProgress(),
+            isWarning: this._isWarning(),
+            isExpired: this._isExpired(),
+            currentMovement: movementTypes[currentMovement] || movementTypes['normal-movement']
+        };
+
+        return data;
     }
 }
 

@@ -6,6 +6,47 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { ChatPanel } from "./chat-panel.js";
 
+// Make sure settings are registered right away
+Hooks.once('init', () => {
+    // Register socket listeners for movement changes
+    game.socket.on(`module.${MODULE_ID}`, (message) => {
+        if (message.type === 'movementChange' && !game.user.isGM) {
+            ui.notifications.info(`Movement type changed to: ${message.data.name}`);
+            
+            // Update chat panel for players
+            const chatPanel = document.querySelector('.coffee-pub-blacksmith.chat-panel');
+            if (chatPanel) {
+                const movementIcon = chatPanel.querySelector('.movement-icon');
+                const movementLabel = chatPanel.querySelector('.movement-label');
+                
+                const movementTypes = {
+                    'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
+                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
+                    'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' }
+                };
+                
+                const newType = movementTypes[message.data.movementId];
+                if (newType) {
+                    if (movementIcon) movementIcon.className = `fas ${newType.icon} movement-icon`;
+                    if (movementLabel) movementLabel.textContent = newType.name;
+                }
+            }
+        }
+    });
+
+    // Register setting if not already registered
+    if (!game.settings.settings.has(`${MODULE_ID}.movementType`)) {
+        game.settings.register(MODULE_ID, 'movementType', {
+            name: 'Current Movement Type',
+            hint: 'The current movement restriction type for all players',
+            scope: 'world',
+            config: false,
+            type: String,
+            default: 'normal-movement'
+        });
+    }
+});
+
 export class MovementConfig extends Application {
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
@@ -28,19 +69,19 @@ export class MovementConfig extends Application {
                     id: 'normal-movement',
                     name: 'Normal Movement',
                     description: 'Players can move their tokens on the canvas at will',
-                    icon: 'fa-crown',
+                    icon: 'fa-person-running',
                 },
                 {
                     id: 'no-movement',
                     name: 'No Movement',
                     description: '{Players can not move toekns at all on the canvas.}',
-                    icon: 'fa-check-circle'
+                    icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
                     name: 'Combat Movement',
                     description: 'Players can only move their tokens during their turn in combat.',
-                    icon: 'fa-hourglass-end'
+                    icon: 'fa-swords'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
         };
@@ -67,7 +108,26 @@ export class MovementConfig extends Application {
         const movementType = this.getData().MovementTypes.find(t => t.id === movementId);
         if (!movementType) return;
 
-        // Post notification
+        // Update chat panel
+        const chatPanel = document.querySelector('.coffee-pub-blacksmith.chat-panel');
+        if (chatPanel) {
+            const movementIcon = chatPanel.querySelector('.movement-icon');
+            const movementLabel = chatPanel.querySelector('.movement-label');
+            
+            if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+            if (movementLabel) movementLabel.textContent = movementType.name;
+        }
+
+        // Notify all users
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'movementChange',
+            data: {
+                movementId,
+                name: movementType.name
+            }
+        });
+
+        // Post notification for GM
         ui.notifications.info(`Movement type changed to: ${movementType.name}`);
 
         // Close the config window
@@ -80,12 +140,20 @@ export class MovementConfig extends Application {
     }
 } 
 
-// Add hook to initialize movement restrictions
-Hooks.once('init', () => {
-    // Register hook for token movement
-    Hooks.on('preUpdateToken', (token, changes, options, userId) => {
-        // Skip if user is GM
-        if (game.user.isGM) return true;
+// Add hook for token movement restrictions
+Hooks.on('preUpdateToken', (token, changes, options, userId) => {
+    // Skip if user is GM
+    if (game.user.isGM) return true;
+
+    // Skip if no position change
+    if (!changes.x && !changes.y) return true;
+
+    // Check if movement setting exists first
+    try {
+        if (!game.settings.settings.get(`${MODULE_ID}.movementType`)) {
+            // If setting doesn't exist yet, allow movement
+            return true;
+        }
 
         const currentMovement = game.settings.get(MODULE_ID, 'movementType');
         
@@ -109,8 +177,10 @@ Hooks.once('init', () => {
                 return false;
             }
         }
-        
-        // Allow movement in all other cases
-        return true;
-    });
+    } catch (err) {
+        console.warn('Blacksmith | Movement type setting not registered yet, allowing movement');
+    }
+    
+    // Allow movement in all other cases
+    return true;
 }); 
