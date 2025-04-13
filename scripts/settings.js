@@ -548,17 +548,6 @@ export const registerSettings = async () => {
 		});
 
 
-		// Add this with your other settings registrations:
-		game.settings.register(MODULE_ID, 'partyLeader', {
-			name: "Party Leader",
-			hint: "The currently selected party leader",
-			scope: "world",
-			config: false,
-			type: String,
-			default: ""
-		});
-
-
 
 		// Session Timer Settings
 		game.settings.register(MODULE_ID, 'sessionEndTime', {
