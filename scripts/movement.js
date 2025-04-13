@@ -12,6 +12,8 @@ const leaderMovementPath = [];
 const tokenFollowers = new Map(); // token.id -> {marchPosition, pathIndex, moving, etc}
 // Track which grid positions are currently occupied
 const occupiedGridPositions = new Set(); // "x,y" strings
+// Track the current leader token ID to ensure we never move it
+let currentLeaderTokenId = null;
 
 // Make sure settings are registered right away
 Hooks.once('init', () => {
@@ -136,8 +138,18 @@ export class MovementConfig extends Application {
             if (!leader) {
                 ui.notifications.warn("No party leader set for Conga Line. Please set a party leader in the leader panel (crown icon).");
             } else {
-                ui.notifications.info(`Conga Line initiated! ${leader.name} is the party leader.`);
+                // Send notification to all players about conga mode and leader
+                ChatMessage.create({
+                    content: `<strong>Movement mode changed to Conga Line!</strong><br>Follow the party leader: <strong>${leader.name}</strong>`,
+                    type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                });
             }
+        } else {
+            // For other movement types, just send notification to everyone
+            ChatMessage.create({
+                content: `<strong>Movement mode changed to ${movementType.name}</strong>`,
+                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+            });
         }
 
         // Force refresh of the chat panel
@@ -150,7 +162,7 @@ export class MovementConfig extends Application {
         if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
         if (movementLabel) movementLabel.textContent = movementType.name;
 
-        // Notify all users
+        // Notify all users about the movement change
         game.socket.emit(`module.${MODULE_ID}`, {
             type: 'movementChange',
             data: {
@@ -158,9 +170,6 @@ export class MovementConfig extends Application {
                 name: movementType.name
             }
         });
-
-        // Post notification for GM
-        ui.notifications.info(`Movement type changed to: ${movementType.name}`);
 
         // Clear any existing path when changing modes
         if (movementId !== 'conga-movement') {
@@ -306,9 +315,13 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             return;
         }
         
-        // If token was moved by leader, add to path
+        // If token was moved by leader, add to path and update current leader token
         if (movedByLeader) {
             console.log('Party leader moved a token. Recording path.');
+            
+            // Set this as the current leader token
+            console.log(`Setting current leader token to ${token.name} (${token.id})`);
+            currentLeaderTokenId = token.id;
             
             // Get grid-aligned position
             const gridPos = getGridPositionKey(tokenDocument.x, tokenDocument.y);
@@ -427,16 +440,8 @@ function scheduleFollowerUpdate(token) {
     if (!state || state.moving) return;
 
     // Safety check - NEVER move the leader token
-    const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
-    const leaderTokens = canvas.tokens.placeables.filter(t => 
-        t.actor && t.actor.hasPlayerOwner && t.actor.ownership[partyLeaderUserId] === 3
-    );
-    
-    // If this is one of the leader's tokens that was most recently moved, don't move it
-    if (leaderTokens.some(lt => lt.id === token.id && 
-        leaderMovementPath.length > 0 && 
-        getGridPositionKey(token.x, token.y) === leaderMovementPath[leaderMovementPath.length-1].gridPos)) {
-        console.log(`Token ${token.name} appears to be the leader token, skipping movement`);
+    if (token.id === currentLeaderTokenId) {
+        console.log(`Token ${token.name} is the active leader token, skipping movement`);
         return;
     }
     
@@ -466,6 +471,15 @@ function scheduleFollowerUpdate(token) {
     const currentGridPos = getGridPositionKey(token.x, token.y);
     occupiedGridPositions.delete(currentGridPos);
     occupiedGridPositions.add(destGridPos);
+    
+    // One final safety check just in case
+    if (token.id === currentLeaderTokenId) {
+        console.log(`ABORT: Token ${token.name} is the leader token, aborting movement`);
+        occupiedGridPositions.delete(destGridPos);
+        occupiedGridPositions.add(currentGridPos);
+        state.moving = false;
+        return;
+    }
     
     // Move the token
     token.document.update({
