@@ -329,6 +329,54 @@ export class SkillCheckDialog extends Application {
             const value = item.dataset.value;
             const isRightClick = ev.type === 'contextmenu';
 
+            // Handle quick rolls
+            if (type === 'quick') {
+                const quickRollMap = {
+                    'perception': 'prc',
+                    'insight': 'ins',
+                    'investigation': 'inv',
+                    'nature': 'nat',
+                    'stealth': 'ste'
+                };
+
+                // Clear any existing selections
+                html.find('.cpb-check-item').removeClass('selected');
+                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+
+                // Select all party members (characters with player owners)
+                html.find('.cpb-actor-item').each((i, actorItem) => {
+                    const actorId = actorItem.dataset.actorId;
+                    const actor = game.actors.get(actorId);
+                    if (actor && actor.hasPlayerOwner) {
+                        actorItem.classList.add('selected');
+                        actorItem.classList.add('cpb-group-1');
+                        const indicator = actorItem.querySelector('.cpb-group-indicator');
+                        if (indicator) {
+                            indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                        }
+                    }
+                });
+
+                // Set the skill selection
+                const skillValue = quickRollMap[value];
+                if (skillValue) {
+                    const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
+                    if (skillItem.length) {
+                        skillItem.addClass('selected');
+                        const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
+                        if (indicator) {
+                            indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                        }
+                        this.selectedType = 'skill';
+                        this.selectedValue = skillValue;
+                    }
+                }
+
+                // Automatically click the roll button
+                html.find('button[data-button="roll"]').trigger('click');
+                return;
+            }
+
             // If this is a non-common tool, prevent selection and show notification
             if (type === 'tool' && item.dataset.common === 'false') {
                 const toolName = item.querySelector('span')?.textContent || 'selected tool';
@@ -551,6 +599,23 @@ export class SkillCheckDialog extends Application {
                 const showLink = html.find('input[name="showRollExplanationLink"]').prop('checked');
 
                 switch (type) {
+                    case 'quick':
+                        // Map quick roll values to their corresponding skill data
+                        const quickRollMap = {
+                            'perception': { skill: 'prc', name: 'Party Perception' },
+                            'insight': { skill: 'ins', name: 'Party Insight' },
+                            'investigation': { skill: 'inv', name: 'Party Investigation' },
+                            'nature': { skill: 'nat', name: 'Party Nature' },
+                            'stealth': { skill: 'ste', name: 'Party Stealth' }
+                        };
+                        const quickRollData = quickRollMap[value];
+                        if (quickRollData) {
+                            const skillData = CONFIG.DND5E.skills[quickRollData.skill];
+                            name = quickRollData.name;
+                            desc = showExplanation ? this.skillInfo?.description : null;
+                            link = showLink ? this.skillInfo?.link : null;
+                        }
+                        break;
                     case 'skill':
                         const skillData = CONFIG.DND5E.skills[value];
                         name = game.i18n.localize(skillData?.label);
