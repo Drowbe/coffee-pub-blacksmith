@@ -680,10 +680,15 @@ export const registerSettings = async () => {
 			}
 		});
 
-
-
-
-
+		// Movement 
+		game.settings.register(MODULE_ID, 'movementType', {
+			name: 'Current Movement Type',
+			hint: 'The current movement restriction type for all players',
+			scope: 'world',
+			config: false,
+			type: String,
+			default: 'normal-movement'
+		});
 
 		// *** CHAT SETTINGS ***
 		// ---------- SUBHEADING - CARD ADJUSTMENTS ----------

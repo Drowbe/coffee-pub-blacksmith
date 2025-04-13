@@ -1,4 +1,18 @@
 <div class="movement-config-content">
-
-
+    <div class="movement-description">Select how players can move their tokens on the canvas.</div>
+    <div class="movement-types">
+        {{#each MovementTypes}}
+            <div class="movement-type" data-movement-id="{{this.id}}">
+                <div class="movement-type-layout">
+                    <div class="movement-type-icon">
+                        <i class="fas {{this.icon}}"></i>
+                    </div>
+                    <div class="movement-type-content">
+                        <div class="movement-type-name">{{this.name}}</div>
+                        <div class="movement-type-description">{{this.description}}</div>
+                    </div>
+                </div>
+            </div>
+        {{/each}}
+    </div>
 </div> 

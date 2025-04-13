@@ -8,6 +8,7 @@ import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './module-manager.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
+import { MovementConfig } from './movement.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -216,6 +217,14 @@ class ChatPanel {
                 setTimeout(() => {
                     $(document).on('click', closeHandler);
                 }, 100);
+            });
+
+            html.find('.tool.movement').click(async (event) => {
+                event.preventDefault();
+                if (!game.user.isGM) return;
+
+                const movementConfig = new MovementConfig();
+                movementConfig.render(true);
             });
 
             // Add module toolbar icons
