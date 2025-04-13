@@ -9,7 +9,9 @@ import { ChatPanel } from "./chat-panel.js";
 // Store the leader's movement path for conga line
 const leaderMovementPath = [];
 // Track tokens following paths with their current position in the path
-const tokenFollowers = new Map(); // token.id -> {pathIndex: number, moving: boolean}
+const tokenFollowers = new Map(); // token.id -> {marchPosition, pathIndex, moving, etc}
+// Track which grid positions are currently occupied
+const occupiedGridPositions = new Set(); // "x,y" strings
 
 // Make sure settings are registered right away
 Hooks.once('init', () => {
@@ -18,25 +20,33 @@ Hooks.once('init', () => {
         if (message.type === 'movementChange' && !game.user.isGM) {
             ui.notifications.info(`Movement type changed to: ${message.data.name}`);
             
-            // Update chat panel for players
-            const chatPanel = document.querySelector('.coffee-pub-blacksmith.chat-panel');
-            if (chatPanel) {
-                const movementIcon = chatPanel.querySelector('.movement-icon');
-                const movementLabel = chatPanel.querySelector('.movement-label');
+            // Force refresh of the chat panel for consistent update
+            ui.chat.render();
+            
+            // Also try immediate update if elements exist
+            setTimeout(() => {
+                const movementIcon = document.querySelector('.movement-icon');
+                const movementLabel = document.querySelector('.movement-label');
                 
                 const movementTypes = {
-                    'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
-                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
-                    'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-                    'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
+                    'normal-movement': { icon: 'fa-person-running', name: 'Normal Movement' },
+                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'No Movement' },
+                    'combat-movement': { icon: 'fa-swords', name: 'Combat Movement' },
+                    'conga-movement': { icon: 'fa-people-line', name: 'Conga Line' }
                 };
                 
                 const newType = movementTypes[message.data.movementId];
                 if (newType) {
-                    if (movementIcon) movementIcon.className = `fas ${newType.icon} movement-icon`;
-                    if (movementLabel) movementLabel.textContent = newType.name;
+                    if (movementIcon) {
+                        movementIcon.className = `fas ${newType.icon} movement-icon`;
+                        console.log('Movement icon updated:', newType.icon);
+                    }
+                    if (movementLabel) {
+                        movementLabel.textContent = newType.name;
+                        console.log('Movement label updated:', newType.name);
+                    }
                 }
-            }
+            }, 100); // Short delay to ensure DOM is updated
         }
     });
 
@@ -93,7 +103,7 @@ export class MovementConfig extends Application {
                     id: 'conga-movement',
                     name: 'Conga Line',
                     description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
-                    icon: 'fa-people-pulling'
+                    icon: 'fa-people-line'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
         };
@@ -256,6 +266,15 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
     return true;
 });
 
+// Calculate the grid position for a token
+function getGridPositionKey(x, y) {
+    // Round to the nearest grid cell to handle potential floating point issues
+    const gridSize = canvas.grid.size;
+    const gridX = Math.round(x / gridSize) * gridSize;
+    const gridY = Math.round(y / gridSize) * gridSize;
+    return `${gridX},${gridY}`;
+}
+
 // Hook for after a token is updated - used to trigger conga line
 Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
     if (!changes.x && !changes.y) return;
@@ -270,14 +289,6 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         // Check if this is a token moved by the party leader
         const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
         
-        // Only process if this token was moved by the party leader
-        if (userId !== partyLeaderUserId) {
-            console.log('Token not moved by party leader, skipping conga line');
-            return;
-        }
-        
-        console.log('Party leader moved a token. Recording path.');
-        
         // Get the token placeable from the document
         const token = canvas.tokens.get(tokenDocument.id);
         if (!token) {
@@ -285,159 +296,214 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             return;
         }
         
-        // Calculate and store the path points
-        // We'll need the previous position to calculate direction
-        const lastPosition = leaderMovementPath.length > 0 ? 
-            leaderMovementPath[leaderMovementPath.length - 1] : 
-            { x: tokenDocument.x, y: tokenDocument.y };
-            
-        // Record the leader's new position
-        leaderMovementPath.push({
-            x: tokenDocument.x,
-            y: tokenDocument.y,
-            prevX: lastPosition.x,
-            prevY: lastPosition.y,
-            timestamp: Date.now()
-        });
+        // Only process if this token was moved by the party leader
+        // OR if it was moved by GM (to allow reordering)
+        const movedByLeader = userId === partyLeaderUserId;
+        const movedByGM = game.users.get(userId)?.isGM;
         
-        // Keep path at a reasonable length
-        if (leaderMovementPath.length > 200) {
-            leaderMovementPath.shift();
+        if (!movedByLeader && !movedByGM) {
+            console.log('Token not moved by party leader or GM, skipping conga line');
+            return;
         }
         
-        // Get all character tokens except the leader's current token
-        // This way even the leader's other tokens will follow
-        const followerTokens = canvas.tokens.placeables.filter(t => 
-            t.id !== token.id && 
-            t.actor && 
-            t.actor.hasPlayerOwner
-        );
-        
-        console.log('Found follower tokens:', followerTokens.length);
-        
-        // Sort by distance to leader (closest first)
-        followerTokens.sort((a, b) => {
-            const distA = Math.hypot(a.x - tokenDocument.x, a.y - tokenDocument.y);
-            const distB = Math.hypot(b.x - tokenDocument.x, b.y - tokenDocument.y);
-            return distA - distB;
-        });
-        
-        // Process followers - add new ones or update existing ones
-        followerTokens.forEach((followerToken, index) => {
-            if (!tokenFollowers.has(followerToken.id)) {
-                // New follower - set up initial state at current position in line
-                console.log('Setting up new follower:', followerToken.name);
-                
-                // New tokens start at the latest position
-                // We want them to line up behind the leader
-                tokenFollowers.set(followerToken.id, {
-                    index: index + 1, // Position in line (1-based)
-                    pathIndex: Math.max(0, leaderMovementPath.length - 1), // Latest recorded position
-                    moving: false
-                });
-            } else {
-                // Existing follower - just make sure it's not stuck
-                const followerState = tokenFollowers.get(followerToken.id);
-                if (followerState.moving === true && Date.now() - followerState.lastMoveTime > 5000) {
-                    // If token has been "moving" for more than 5 seconds, reset it
-                    console.log('Resetting stuck follower:', followerToken.name);
-                    followerState.moving = false;
-                }
-                
-                // Update index position in line
-                followerState.index = index + 1;
+        // If token was moved by leader, add to path
+        if (movedByLeader) {
+            console.log('Party leader moved a token. Recording path.');
+            
+            // Get grid-aligned position
+            const gridPos = getGridPositionKey(tokenDocument.x, tokenDocument.y);
+            
+            // Don't add duplicate positions
+            if (leaderMovementPath.length > 0) {
+                const lastPosition = leaderMovementPath[leaderMovementPath.length - 1];
+                if (gridPos === lastPosition.gridPos) return;
             }
-        });
-        
-        // After updating all followers, make them move
-        // We do this in a separate step to ensure all indices are correct
-        followerTokens.forEach((followerToken) => {
-            const followerState = tokenFollowers.get(followerToken.id);
-            if (followerState) {
-                // Start/continue this token on its path
-                updateFollowerPath(followerToken);
+            
+            // Record the leader's new position
+            leaderMovementPath.push({
+                x: tokenDocument.x,
+                y: tokenDocument.y,
+                gridPos: gridPos,
+                timestamp: Date.now()
+            });
+            
+            // Keep path at a reasonable length
+            if (leaderMovementPath.length > 200) {
+                leaderMovementPath.shift();
             }
-        });
+            
+            // Update occupied positions
+            occupiedGridPositions.clear();
+            occupiedGridPositions.add(gridPos);
+        }
+        
+        // Determine marching order - only if token was moved by GM or if this is first leader move
+        if (movedByGM || (movedByLeader && tokenFollowers.size === 0)) {
+            determineMarchingOrder(token);
+        }
+        
+        // Process follower movements in order
+        processCongaLineMovement();
     } catch (err) {
         console.error('Blacksmith | Error processing conga line movement:', err);
     }
 });
 
-// Function to make a token follow the leader's path
-function followLeaderPath(token) {
-    const followerState = tokenFollowers.get(token.id);
-    if (!followerState || followerState.moving) return;
+// Determine marching order based on proximity to leader
+function determineMarchingOrder(leaderToken) {
+    console.log('Determining marching order');
     
-    followerState.moving = true;
-    followerState.lastMoveTime = Date.now();
+    // Get all character tokens except the leader
+    const followerTokens = canvas.tokens.placeables.filter(t => 
+        t.id !== leaderToken.id && 
+        t.actor && 
+        t.actor.hasPlayerOwner
+    );
     
-    // Get the next position to move to
-    const nextStep = leaderMovementPath[followerState.pathIndex];
-    if (!nextStep) {
-        followerState.moving = false;
-        return;
-    }
+    // Sort by distance to leader (closest first)
+    followerTokens.sort((a, b) => {
+        const distA = Math.hypot(a.x - leaderToken.x, a.y - leaderToken.y);
+        const distB = Math.hypot(b.x - leaderToken.x, b.y - leaderToken.y);
+        return distA - distB;
+    });
     
-    // Calculate position based on index in conga line
-    // We'll position each token behind the previous one in line
-    const targetPosition = calculateCongeLinePosition(nextStep, followerState.index);
+    console.log('Marching order:', followerTokens.map(t => t.name));
     
-    // Move the token to the calculated position
-    token.document.update({
-        x: targetPosition.x,
-        y: targetPosition.y
-    }).then(() => {
-        // Update follower state
-        followerState.pathIndex++;
-        followerState.moving = false;
+    // Assign marching positions
+    followerTokens.forEach((followerToken, index) => {
+        const marchPosition = index + 1; // 1-based position (leader is 0)
         
-        // Continue following the path if there are more steps
-        if (followerState.pathIndex < leaderMovementPath.length) {
-            // Add a small delay based on position in line
-            setTimeout(() => {
-                followLeaderPath(token);
-            }, 150 * followerState.index);
+        // Create or update follower state
+        if (!tokenFollowers.has(followerToken.id)) {
+            console.log(`Setting up follower ${followerToken.name} at march position ${marchPosition}`);
+            tokenFollowers.set(followerToken.id, {
+                marchPosition: marchPosition,
+                pathIndex: 0, // Start at beginning of path
+                moving: false,
+                lastMoveTime: 0
+            });
+        } else {
+            // Update march position only
+            const state = tokenFollowers.get(followerToken.id);
+            console.log(`Updating ${followerToken.name} march position from ${state.marchPosition} to ${marchPosition}`);
+            state.marchPosition = marchPosition;
         }
-    }).catch(err => {
-        console.error('Error moving token in conga line:', err);
-        followerState.moving = false;
+        
+        // Mark current position as occupied
+        const gridPos = getGridPositionKey(followerToken.x, followerToken.y);
+        occupiedGridPositions.add(gridPos);
     });
 }
 
-// Calculate position for token in conga line
-function calculateCongeLinePosition(leaderPosition, indexInLine) {
-    // Grid size for proper spacing
-    const gridSize = canvas.grid.size;
+// Process the conga line movement in order
+function processCongaLineMovement() {
+    if (leaderMovementPath.length === 0) return;
     
-    // Calculate direction from previous position to current
-    const dx = leaderPosition.x - leaderPosition.prevX;
-    const dy = leaderPosition.y - leaderPosition.prevY;
+    console.log('Processing conga line movement');
     
-    // Normalize the direction vector
-    const length = Math.sqrt(dx*dx + dy*dy);
-    const normDx = length > 0 ? dx/length : 0;
-    const normDy = length > 0 ? dy/length : 0;
+    // Get all followers sorted by marching order
+    const followers = Array.from(tokenFollowers.entries())
+        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
     
-    // Calculate position for this follower
-    // Move in the opposite direction of leader's movement
-    // Multiply by index to space tokens out
-    return {
-        x: leaderPosition.x - (normDx * gridSize * indexInLine),
-        y: leaderPosition.y - (normDy * gridSize * indexInLine)
-    };
+    // Process each follower in order (front to back)
+    followers.forEach(([tokenId, state]) => {
+        const token = canvas.tokens.get(tokenId);
+        if (!token) {
+            console.log(`Token ${tokenId} not found, removing from followers`);
+            tokenFollowers.delete(tokenId);
+            return;
+        }
+        
+        // Schedule update if not already moving
+        if (!state.moving) {
+            scheduleFollowerUpdate(token);
+        }
+    });
 }
 
-// Function to update a follower's path and ensure continuous following
-function updateFollowerPath(token) {
-    const followerState = tokenFollowers.get(token.id);
-    if (!followerState) return;
+// Schedule a token to update its position
+function scheduleFollowerUpdate(token) {
+    const state = tokenFollowers.get(token.id);
+    if (!state || state.moving) return;
     
-    // If token is already moving, don't interrupt it
-    if (followerState.moving) return;
+    // Mark as moving to prevent multiple updates
+    state.moving = true;
+    state.lastMoveTime = Date.now();
     
-    // Check if token is behind in the path
-    if (followerState.pathIndex < leaderMovementPath.length) {
-        // Start/resume following the path
-        followLeaderPath(token);
+    // Calculate target position based on marching order
+    const targetPos = calculateTargetPosition(token);
+    if (!targetPos) {
+        // No valid target position yet
+        state.moving = false;
+        return;
     }
+    
+    console.log(`Moving ${token.name} to position ${targetPos.x},${targetPos.y} (path index ${state.pathIndex})`);
+    
+    // Check if the destination position is already occupied
+    const destGridPos = getGridPositionKey(targetPos.x, targetPos.y);
+    if (occupiedGridPositions.has(destGridPos)) {
+        console.log(`Destination ${destGridPos} is occupied, waiting...`);
+        state.moving = false;
+        return;
+    }
+    
+    // Reserve this position
+    const currentGridPos = getGridPositionKey(token.x, token.y);
+    occupiedGridPositions.delete(currentGridPos);
+    occupiedGridPositions.add(destGridPos);
+    
+    // Move the token
+    token.document.update({
+        x: targetPos.x,
+        y: targetPos.y
+    }).then(() => {
+        // Update state and schedule next movement
+        state.pathIndex++;
+        state.moving = false;
+        
+        // Schedule next update for this token
+        setTimeout(() => {
+            scheduleFollowerUpdate(token);
+        }, 100);
+        
+        // Also trigger updates for tokens behind this one
+        setTimeout(() => {
+            processCongaLineMovement();
+        }, 150);
+    }).catch(err => {
+        console.error(`Error moving token ${token.name}:`, err);
+        state.moving = false;
+        
+        // Remove reservation on failure
+        occupiedGridPositions.delete(destGridPos);
+        occupiedGridPositions.add(currentGridPos);
+    });
+}
+
+// Calculate target position for a token based on its marching order
+function calculateTargetPosition(token) {
+    const state = tokenFollowers.get(token.id);
+    if (!state) return null;
+    
+    // We want to position each follower at a point on the leader's path
+    // based on their marching order (higher = further back in path)
+    
+    // Calculate target index in the path
+    // Leader is at the newest position (path.length - 1)
+    // First follower should be one behind (path.length - 2)
+    // and so on
+    const targetIndex = Math.max(0, leaderMovementPath.length - 1 - state.marchPosition);
+    
+    // If we haven't reached our target index yet, keep moving forward
+    if (state.pathIndex < targetIndex) {
+        return leaderMovementPath[state.pathIndex];
+    }
+    
+    // Otherwise, we're at the right relative position
+    if (state.pathIndex < leaderMovementPath.length) {
+        return leaderMovementPath[state.pathIndex];
+    }
+    
+    return null;
 } 
