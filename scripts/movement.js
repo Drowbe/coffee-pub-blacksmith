@@ -67,21 +67,27 @@ export class MovementConfig extends Application {
             MovementTypes: [
                 {
                     id: 'normal-movement',
-                    name: 'Normal Movement',
+                    name: 'Normal',
                     description: 'Players can move their tokens on the canvas at will',
-                    icon: 'fa-person-running',
+                    icon: 'fa-person-walking',
                 },
                 {
                     id: 'no-movement',
-                    name: 'No Movement',
+                    name: 'None',
                     description: '{Players can not move toekns at all on the canvas.}',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
-                    name: 'Combat Movement',
+                    name: 'Combat',
                     description: 'Players can only move their tokens during their turn in combat.',
                     icon: 'fa-swords'
+                },
+                {
+                    id: 'conga-movement',
+                    name: 'Conga',
+                    description: 'Players follow the leader in a conga line.',
+                    icon: 'fa-people-pulling'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
         };
