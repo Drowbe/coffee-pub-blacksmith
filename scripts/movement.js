@@ -108,15 +108,15 @@ export class MovementConfig extends Application {
         const movementType = this.getData().MovementTypes.find(t => t.id === movementId);
         if (!movementType) return;
 
-        // Update chat panel
-        const chatPanel = document.querySelector('.coffee-pub-blacksmith.chat-panel');
-        if (chatPanel) {
-            const movementIcon = chatPanel.querySelector('.movement-icon');
-            const movementLabel = chatPanel.querySelector('.movement-label');
-            
-            if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
-            if (movementLabel) movementLabel.textContent = movementType.name;
-        }
+        // Force refresh of the chat panel
+        ui.chat.render();
+
+        // Update chat panel locally immediately for GM
+        const movementIcon = document.querySelector('.movement-icon');
+        const movementLabel = document.querySelector('.movement-label');
+        
+        if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+        if (movementLabel) movementLabel.textContent = movementType.name;
 
         // Notify all users
         game.socket.emit(`module.${MODULE_ID}`, {
