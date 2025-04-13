@@ -702,7 +702,13 @@ export class SkillCheckDialog extends Application {
                 flags: {
                     'coffee-pub-blacksmith': messageData
                 },
-                whisper: rollMode === 'gmroll' ? game.users.filter(u => u.isGM).map(u => u.id) : [],
+                whisper: rollMode === 'gmroll' ? 
+                    [...game.users.filter(u => u.isGM).map(u => u.id),
+                     ...processedActors.map(a => game.actors.get(a.id)?.ownership)
+                        .flatMap(ownership => Object.entries(ownership)
+                            .filter(([userId, level]) => level === 3)
+                            .map(([userId]) => userId))] : 
+                    [],
                 blind: rollMode === 'blindroll'
             });
 
