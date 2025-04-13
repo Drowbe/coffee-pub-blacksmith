@@ -117,117 +117,59 @@ class ChatPanel {
                 new VoteConfig().render(true);
             });
 
-            // Add skill check div click handler
-            html.find('.tool.skillcheck').click(async (event) => {
-                event.preventDefault();
-                event.stopPropagation();
+            // Track active context menu instance
+            let activeContextMenu;
 
-                if (!game.user.isGM) {
-                    ui.notifications.warn("Only the GM can request skill checks.");
-                    return;
+            html.find('.tool.skillcheck')
+            .click(async (event) => {
+                event.preventDefault();
+                if (!game.user.isGM) return;
+
+                const dialog = new SkillCheckDialog();
+                dialog.render(true);
+            })
+            .contextmenu(async (event) => {
+                event.preventDefault();
+                if (!game.user.isGM) return;
+
+                // Close any previously open context menu
+                if (activeContextMenu) {
+                activeContextMenu.close({ animate: false });
+                activeContextMenu = null;
                 }
 
-                // Get all actors that have owners (players)
-                const actors = game.actors.contents.map(actor => {
-                    if (actor.hasPlayerOwner) {
-                        return {
-                            id: actor.id,
-                            name: actor.name,
-                            actor: actor,
-                            hasOwner: actor.hasPlayerOwner
-                        };
+                // Quick roll options matching the ones in skill-check-window.hbs
+                const quickRolls = [
+                { label: 'Party Perception', value: 'perception', icon: 'fa-magnifying-glass-waveform' },
+                { label: 'Party Insight', value: 'insight', icon: 'fa-brain' },
+                { label: 'Party Investigation', value: 'investigation', icon: 'fa-magnifying-glass' },
+                { label: 'Party Nature', value: 'nature', icon: 'fa-sheep' },
+                { label: 'Party Stealth', value: 'stealth', icon: 'fa-burst' }
+                ];
+
+                // Create context menu items
+                const menuItems = quickRolls.map(roll => ({
+                name: roll.label,
+                icon: `<i class="fas ${roll.icon}"></i>`,
+                callback: () => {
+                    const dialog = new SkillCheckDialog();
+                    dialog.render(true);
+                    setTimeout(() => {
+                    const quickRollItem = dialog.element.find(`.cpb-check-item[data-type="quick"][data-value="${roll.value}"]`);
+                    if (quickRollItem.length) {
+                        quickRollItem.trigger('click');
                     }
-                }).filter(Boolean);
+                    }, 100);
+                }
+                }));
 
-                // Create and render the dialog
-                const dialog = new SkillCheckDialog({
-                    actors,
-                    callback: async (selectedActors, config) => {
-                        if (selectedActors.length === 0) return;
+                const htmlEl = $(event.currentTarget).closest('.tool.skillcheck');
+                const selector = '.tool.skillcheck';
 
-                        // Get the appropriate label based on type
-                        let rollLabel = '';
-                        let rollAbbr = '';
-                        let rollIcon = 'fa-dice-d20';
-
-                        switch (config.type) {
-                            case 'dice':
-                                rollLabel = `${config.value} Roll`;
-                                rollAbbr = config.value;
-                                rollIcon = config.value === 'd2' ? 'fa-coin' : 
-                                         config.value === 'd100' ? 'fa-hundred-points' : 
-                                         `fa-dice-${config.value.substring(1)}`;
-                                break;
-                            case 'skill':
-                                rollLabel = game.i18n.localize(CONFIG.DND5E.skills[config.value].label);
-                                rollAbbr = config.value;
-                                break;
-                            case 'ability':
-                                rollLabel = game.i18n.localize(CONFIG.DND5E.abilities[config.value].label);
-                                rollAbbr = config.value;
-                                break;
-                            case 'save':
-                                rollLabel = config.value === 'death' ? 
-                                    'Death Save' : 
-                                    `${game.i18n.localize(CONFIG.DND5E.abilities[config.value].label)} Save`;
-                                rollAbbr = config.value;
-                                break;
-                            case 'tool':
-                                const actor = game.actors.get(selectedActors[0].id);
-                                const tool = actor?.items.get(config.value);
-                                rollLabel = tool?.name || 'Tool Check';
-                                rollAbbr = config.value;
-                                break;
-                        }
-
-                        // Create a chat message with the roll button using our template
-                        const messageData = {
-                            actors: selectedActors.map(actorData => ({
-                                id: actorData.id,
-                                name: actorData.name
-                            })),
-                            skillName: rollLabel,
-                            skillAbbr: rollAbbr,
-                            requesterId: game.user.id,
-                            dc: config.showDC ? config.dc : null,
-                            label: config.label || null,
-                            description: config.description,
-                            dice: config.type === 'dice' ? config.value.substring(1) : '20',
-                            rollType: config.type,
-                            rollValue: config.value
-                        };
-
-                        const messageContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-
-                        // Create the chat message
-                        await ChatMessage.create({
-                            content: messageContent,
-                            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                            speaker: ChatMessage.getSpeaker({ user: game.user }),
-                            whisper: [], // Empty array means visible to all
-                            flags: {
-                                'coffee-pub-blacksmith': {
-                                    type: 'skillCheck',
-                                    skillName: rollLabel,
-                                    skillAbbr: rollAbbr,
-                                    actors: selectedActors.map(actorData => ({
-                                        id: actorData.id,
-                                        name: actorData.name
-                                    })),
-                                    requesterId: game.user.id,
-                                    dc: config.dc,
-                                    showDC: config.showDC,
-                                    description: config.description,
-                                    rollType: config.type,
-                                    rollValue: config.value
-                                }
-                            }
-                        });
-                    }
-                });
-                
-                dialog.render(true);
+                // Create new context menu and track it
+                activeContextMenu = new ContextMenu(htmlEl, selector, menuItems, { event });
             });
+
 
             // Add module toolbar icons
             const toolbarSection = html.find('.toolbar-icons');
