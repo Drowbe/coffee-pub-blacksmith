@@ -525,7 +525,8 @@ export class SkillCheckDialog extends Application {
             }
 
             // Get form data
-            const dc = html.find('input[name="dc"]').val() || null;
+            const dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
+                      (html.find('input[name="dc"]').val() || null);
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const groupRoll = html.find('input[name="groupRoll"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
