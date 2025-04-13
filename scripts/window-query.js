@@ -1084,9 +1084,18 @@ export class BlacksmithWindowQuery extends FormApplication {
                         break;
                     case 'tool':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
-                        const item = actor.items.get(value);
+                        // Get the correct tool ID for this actor from the message data
+                        const actorData = flags.actors.find(a => a.id === actorId);
+                        const toolId = actorData?.toolId;
+                        
+                        if (!toolId) {
+                            ui.notifications.error(`No tool ID found for actor ${actor.name}`);
+                            return;
+                        }
+                        
+                        const item = actor.items.get(toolId);
                         if (!item) {
-                            ui.notifications.error(`Tool not found on actor: ${value}`);
+                            ui.notifications.error(`Tool not found on actor: ${toolId}`);
                             return;
                         }
 
@@ -1101,8 +1110,6 @@ export class BlacksmithWindowQuery extends FormApplication {
                         const formula = `1d20 + ${totalMod}`;
                         roll = new Roll(formula, rollData);
                         await roll.evaluate({ async: true });
-
-                        // No need to transform the roll object as it already has the properties we need
                         break;
                     default:
                         return;

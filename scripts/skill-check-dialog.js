@@ -595,8 +595,8 @@ export class SkillCheckDialog extends Application {
             const messageData = {
                 skillName: challengerInfo.name,
                 defenderSkillName: isContestedRoll && defenderInfo ? defenderInfo.name : null,
-                skillAbbr: typeof challengerRollValue === 'function' ? 'tool' : challengerRollValue,
-                defenderSkillAbbr: isContestedRoll ? (typeof defenderRollValue === 'function' ? 'tool' : defenderRollValue) : null,
+                skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
+                defenderSkillAbbr: isContestedRoll ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
                 actors: processedActors,
                 requesterId: game.user.id,
                 type: 'skillCheck',
@@ -685,12 +685,10 @@ export class SkillCheckDialog extends Application {
                     ev.preventDefault();
                     try {
                         const item = ev.currentTarget;
-                        const type = item.dataset.type;
-                        const toolName = item.dataset.toolName;
+                        const type = 'tool';
                         // Parse the actor tools data back into a Map
-                        const actorToolsData = item.dataset.actorTools;
-                        console.log('Actor tools data:', actorToolsData);
-                        const actorTools = new Map(JSON.parse(actorToolsData));
+                        const actorToolsData = JSON.parse(item.dataset.actorTools);
+                        const actorTools = new Map(actorToolsData);
                         const isRightClick = ev.type === 'contextmenu';
 
                         // Check if we have both challengers and defenders
@@ -699,58 +697,60 @@ export class SkillCheckDialog extends Application {
                         const isContestedRoll = hasChallengers && hasDefenders;
 
                         if (isContestedRoll) {
-                            let wasDeselected = false;
-                            $(item).closest('.cpb-check-section').find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
-                                const indicator = $(el).closest('.cpb-roll-type-indicator');
-                                const checkItem = indicator.closest('.cpb-check-item')[0];
-                                
-                                if (checkItem === item) {
-                                    if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                        (!isRightClick && el.classList.contains('fa-swords'))) {
-                                        indicator.empty();
-                                        $(checkItem).removeClass('selected');
-                                        wasDeselected = true;
-                                        if (isRightClick) {
-                                            this.defenderRoll = { type: null, value: null };
-                                        } else {
-                                            this.challengerRoll = { type: null, value: null };
-                                        }
-                                        return false;
-                                    }
-                                }
-                                else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                        (!isRightClick && el.classList.contains('fa-swords'))) {
-                                    indicator.empty();
-                                    $(checkItem).removeClass('selected');
-                                }
-                            });
-
-                            if (!wasDeselected) {
-                                const rollTypeIndicator = $(item).find('.cpb-roll-type-indicator');
-                                if (rollTypeIndicator.length) {
-                                    if (isRightClick) {
-                                        rollTypeIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
-                                        this.defenderRoll = { type, value: actorTools };
-                                    } else {
-                                        rollTypeIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
-                                        this.challengerRoll = { type, value: actorTools };
-                                    }
+                            // Handle contested roll selection
+                            const currentIndicator = $(item).find('.cpb-roll-type-indicator');
+                            const currentIcon = currentIndicator.find('i');
+                            
+                            if (isRightClick) {
+                                // Handle defender selection
+                                if (currentIcon.hasClass('fa-shield-halved')) {
+                                    // Deselect if already selected as defender
+                                    currentIndicator.empty();
+                                    $(item).removeClass('selected');
+                                    this.defenderRoll = { type: null, value: null };
+                                } else {
+                                    // Clear other defender selections
+                                    toolSection.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().empty();
+                                    toolSection.find('.cpb-check-item').removeClass('selected');
+                                    
+                                    // Set as defender
+                                    currentIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
                                     $(item).addClass('selected');
+                                    this.defenderRoll = { type, value: actorTools };
+                                }
+                            } else {
+                                // Handle challenger selection
+                                if (currentIcon.hasClass('fa-swords')) {
+                                    // Deselect if already selected as challenger
+                                    currentIndicator.empty();
+                                    $(item).removeClass('selected');
+                                    this.challengerRoll = { type: null, value: null };
+                                } else {
+                                    // Clear other challenger selections
+                                    toolSection.find('.cpb-check-item .cpb-roll-type-indicator i.fa-swords').parent().empty();
+                                    toolSection.find('.cpb-check-item').removeClass('selected');
+                                    
+                                    // Set as challenger
+                                    currentIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
+                                    $(item).addClass('selected');
+                                    this.challengerRoll = { type, value: actorTools };
                                 }
                             }
                         } else {
+                            // Handle non-contested roll selection
                             const currentIndicator = $(item).find('.cpb-roll-type-indicator');
                             const hasCurrentSelection = currentIndicator.html() !== '';
                             
+                            // Clear all selections first
+                            toolSection.find('.cpb-check-item').removeClass('selected');
+                            toolSection.find('.cpb-check-item .cpb-roll-type-indicator').empty();
+                            
                             if (hasCurrentSelection) {
-                                this.element.find('.cpb-check-item').removeClass('selected');
-                                this.element.find('.cpb-check-item .cpb-roll-type-indicator').empty();
+                                // If clicking an already selected item, clear the selection
                                 this.selectedType = null;
                                 this.selectedValue = null;
                             } else {
-                                this.element.find('.cpb-check-item').removeClass('selected');
-                                this.element.find('.cpb-check-item .cpb-roll-type-indicator').empty();
-                                
+                                // Set new selection
                                 if (isRightClick) {
                                     currentIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
                                 } else {
