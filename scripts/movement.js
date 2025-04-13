@@ -285,35 +285,28 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             return;
         }
         
-        // Get the grid size for proper spacing
-        const gridSize = canvas.grid.size;
-        
+        // Calculate and store the path points
+        // We'll need the previous position to calculate direction
+        const lastPosition = leaderMovementPath.length > 0 ? 
+            leaderMovementPath[leaderMovementPath.length - 1] : 
+            { x: tokenDocument.x, y: tokenDocument.y };
+            
         // Record the leader's new position
-        // Ensure we're snapping to grid coordinates
-        const newPos = {
-            x: Math.round(tokenDocument.x / gridSize) * gridSize,
-            y: Math.round(tokenDocument.y / gridSize) * gridSize,
+        leaderMovementPath.push({
+            x: tokenDocument.x,
+            y: tokenDocument.y,
+            prevX: lastPosition.x,
+            prevY: lastPosition.y,
             timestamp: Date.now()
-        };
-        
-        // Check if this is a new grid position
-        const lastPos = leaderMovementPath.length > 0 ? leaderMovementPath[leaderMovementPath.length - 1] : null;
-        if (lastPos && lastPos.x === newPos.x && lastPos.y === newPos.y) {
-            // Same grid position, don't record duplicate
-            console.log('Duplicate position, not recording');
-            return;
-        }
-        
-        // Add to the path
-        leaderMovementPath.push(newPos);
-        console.log('Added new position to path:', newPos, 'Total path points:', leaderMovementPath.length);
+        });
         
         // Keep path at a reasonable length
-        if (leaderMovementPath.length > 500) {
+        if (leaderMovementPath.length > 200) {
             leaderMovementPath.shift();
         }
         
         // Get all character tokens except the leader's current token
+        // This way even the leader's other tokens will follow
         const followerTokens = canvas.tokens.placeables.filter(t => 
             t.id !== token.id && 
             t.actor && 
@@ -332,149 +325,119 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         // Process followers - add new ones or update existing ones
         followerTokens.forEach((followerToken, index) => {
             if (!tokenFollowers.has(followerToken.id)) {
-                // New follower - set up initial state
+                // New follower - set up initial state at current position in line
                 console.log('Setting up new follower:', followerToken.name);
                 
-                // The position in line determines how many grid spaces behind they are
-                const positionInLine = index + 1;
-                
-                // Calculate target index for this follower (leader's position - follower's position)
-                const targetPathIndex = Math.max(0, leaderMovementPath.length - 1 - positionInLine);
-                
-                // If we're just starting, set followers slightly behind each other
-                const startPathIndex = Math.max(0, targetPathIndex - 3);
-                
+                // New tokens start at the latest position
+                // We want them to line up behind the leader
                 tokenFollowers.set(followerToken.id, {
-                    positionInLine: positionInLine,
-                    pathIndex: startPathIndex,
-                    targetPathIndex: targetPathIndex,
-                    moving: false,
-                    lastMoveTime: 0
+                    index: index + 1, // Position in line (1-based)
+                    pathIndex: Math.max(0, leaderMovementPath.length - 1), // Latest recorded position
+                    moving: false
                 });
-                
-                console.log(`Set up follower ${followerToken.name} at position ${positionInLine}, starting at index ${startPathIndex}, target ${targetPathIndex}`);
             } else {
-                // Existing follower - update position in line
+                // Existing follower - just make sure it's not stuck
                 const followerState = tokenFollowers.get(followerToken.id);
-                followerState.positionInLine = index + 1;
-                
-                // Reset stuck followers
                 if (followerState.moving === true && Date.now() - followerState.lastMoveTime > 5000) {
+                    // If token has been "moving" for more than 5 seconds, reset it
                     console.log('Resetting stuck follower:', followerToken.name);
                     followerState.moving = false;
                 }
                 
-                console.log(`Updated follower ${followerToken.name}: position=${followerState.positionInLine}`);
+                // Update index position in line
+                followerState.index = index + 1;
             }
         });
         
-        // After processing all followers, update their movements
-        setTimeout(() => {
-            updateAllFollowers();
-        }, 100);
-        
+        // After updating all followers, make them move
+        // We do this in a separate step to ensure all indices are correct
+        followerTokens.forEach((followerToken) => {
+            const followerState = tokenFollowers.get(followerToken.id);
+            if (followerState) {
+                // Start/continue this token on its path
+                updateFollowerPath(followerToken);
+            }
+        });
     } catch (err) {
         console.error('Blacksmith | Error processing conga line movement:', err);
     }
 });
 
-// Function to update all followers' positions
-function updateAllFollowers() {
-    console.log('Updating all followers');
-    
-    // Get tokens in proper order
-    const tokenIds = Array.from(tokenFollowers.keys());
-    const tokens = tokenIds
-        .map(id => canvas.tokens.get(id))
-        .filter(t => t != null);
-    
-    if (tokens.length === 0) {
-        console.log('No follower tokens found');
-        return;
-    }
-    
-    console.log(`Found ${tokens.length} follower tokens`);
-    
-    // Sort by position in line
-    tokens.sort((a, b) => {
-        const posA = tokenFollowers.get(a.id).positionInLine;
-        const posB = tokenFollowers.get(b.id).positionInLine;
-        return posA - posB;
-    });
-    
-    // Set target path index for each token based on position
-    tokens.forEach((token, idx) => {
-        const followerState = tokenFollowers.get(token.id);
-        // Calculate each token's target position in the path
-        // First follower is 1 step behind leader, second is 2 steps behind, etc.
-        const targetIndex = Math.max(0, leaderMovementPath.length - 1 - (idx + 1));
-        followerState.targetPathIndex = targetIndex;
-        
-        console.log(`Token ${token.name}: Position=${idx+1}, Currently at=${followerState.pathIndex}, Target=${targetIndex}`);
-    });
-    
-    // Process followers from front to back
-    tokens.forEach(token => {
-        moveFollowerToNextPosition(token);
-    });
-}
-
-// Function to move a follower to its next position
-function moveFollowerToNextPosition(token) {
+// Function to make a token follow the leader's path
+function followLeaderPath(token) {
     const followerState = tokenFollowers.get(token.id);
-    if (!followerState) {
-        console.log(`No follower state for token ${token.name}`);
-        return;
-    }
+    if (!followerState || followerState.moving) return;
     
-    if (followerState.moving) {
-        console.log(`Token ${token.name} is already moving`);
-        return;
-    }
-    
-    console.log(`Checking movement for ${token.name}: pathIndex=${followerState.pathIndex}, targetIndex=${followerState.targetPathIndex}`);
-    
-    // If we've reached our target position, no need to move further
-    if (followerState.pathIndex >= followerState.targetPathIndex) {
-        console.log(`Token ${token.name} has reached its target position`);
-        return;
-    }
-    
-    // Get the next position to move to
-    const nextPos = leaderMovementPath[followerState.pathIndex];
-    if (!nextPos) {
-        console.log(`No position found for ${token.name} at index ${followerState.pathIndex}`);
-        return;
-    }
-    
-    console.log(`Moving ${token.name} to position:`, nextPos);
-    
-    // Start moving
     followerState.moving = true;
     followerState.lastMoveTime = Date.now();
     
-    // Move the token to the next position
+    // Get the next position to move to
+    const nextStep = leaderMovementPath[followerState.pathIndex];
+    if (!nextStep) {
+        followerState.moving = false;
+        return;
+    }
+    
+    // Calculate position based on index in conga line
+    // We'll position each token behind the previous one in line
+    const targetPosition = calculateCongeLinePosition(nextStep, followerState.index);
+    
+    // Move the token to the calculated position
     token.document.update({
-        x: nextPos.x,
-        y: nextPos.y
+        x: targetPosition.x,
+        y: targetPosition.y
     }).then(() => {
         // Update follower state
         followerState.pathIndex++;
         followerState.moving = false;
-        console.log(`${token.name} moved to index ${followerState.pathIndex-1}. Next index: ${followerState.pathIndex}`);
         
-        // Schedule the next movement, with faster catch-up if we're far behind
-        const distanceFromTarget = followerState.targetPathIndex - followerState.pathIndex;
-        // Speed up if we're far behind
-        const speedFactor = Math.max(1, Math.min(5, distanceFromTarget));
-        // Base delay is shorter for tokens that need to catch up
-        const delay = Math.max(50, 250 / speedFactor);
-        
-        setTimeout(() => {
-            moveFollowerToNextPosition(token);
-        }, delay);
+        // Continue following the path if there are more steps
+        if (followerState.pathIndex < leaderMovementPath.length) {
+            // Add a small delay based on position in line
+            setTimeout(() => {
+                followLeaderPath(token);
+            }, 150 * followerState.index);
+        }
     }).catch(err => {
-        console.error(`Error moving token ${token.name}:`, err);
+        console.error('Error moving token in conga line:', err);
         followerState.moving = false;
     });
+}
+
+// Calculate position for token in conga line
+function calculateCongeLinePosition(leaderPosition, indexInLine) {
+    // Grid size for proper spacing
+    const gridSize = canvas.grid.size;
+    
+    // Calculate direction from previous position to current
+    const dx = leaderPosition.x - leaderPosition.prevX;
+    const dy = leaderPosition.y - leaderPosition.prevY;
+    
+    // Normalize the direction vector
+    const length = Math.sqrt(dx*dx + dy*dy);
+    const normDx = length > 0 ? dx/length : 0;
+    const normDy = length > 0 ? dy/length : 0;
+    
+    // Calculate position for this follower
+    // Move in the opposite direction of leader's movement
+    // Multiply by index to space tokens out
+    return {
+        x: leaderPosition.x - (normDx * gridSize * indexInLine),
+        y: leaderPosition.y - (normDy * gridSize * indexInLine)
+    };
+}
+
+// Function to update a follower's path and ensure continuous following
+function updateFollowerPath(token) {
+    const followerState = tokenFollowers.get(token.id);
+    if (!followerState) return;
+    
+    // If token is already moving, don't interrupt it
+    if (followerState.moving) return;
+    
+    // Check if token is behind in the path
+    if (followerState.pathIndex < leaderMovementPath.length) {
+        // Start/resume following the path
+        followLeaderPath(token);
+    }
 } 

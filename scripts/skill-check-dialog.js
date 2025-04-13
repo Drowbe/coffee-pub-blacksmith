@@ -151,7 +151,7 @@ export class SkillCheckDialog extends Application {
         if (selectedCount === 0) return [];
 
         console.log('Selected actors count:', selectedCount);
-
+        
         selectedActors.each((i, el) => {
             const actorId = el.dataset.actorId;
             const actor = game.actors.get(actorId);
@@ -434,7 +434,7 @@ export class SkillCheckDialog extends Application {
                         }
                     }
                     // Add selected class
-                    item.classList.add('selected');
+            item.classList.add('selected');
                 }
             } else {
                 // Check if we're deselecting the current selection
@@ -461,8 +461,8 @@ export class SkillCheckDialog extends Application {
                         }
                     }
                     item.classList.add('selected');
-                    this.selectedType = type;
-                    this.selectedValue = value;
+            this.selectedType = type;
+            this.selectedValue = value;
                 }
             }
 
@@ -503,7 +503,7 @@ export class SkillCheckDialog extends Application {
                 ui.notifications.warn("Please select at least one actor.");
                 return;
             }
-
+            
             // Determine if this is a contested roll
             const hasChallengers = selectedActors.some(a => a.group === 1);
             const hasDefenders = selectedActors.some(a => a.group === 2);
@@ -559,9 +559,9 @@ export class SkillCheckDialog extends Application {
                 }
             } else {
                 // For non-contested rolls, use the primary selection
-                if (!this.selectedType || !this.selectedValue) {
-                    ui.notifications.warn("Please select a check type.");
-                    return;
+            if (!this.selectedType || !this.selectedValue) {
+                ui.notifications.warn("Please select a check type.");
+                return;
                 }
                 challengerRollType = defenderRollType = this.selectedType;
                 if (this.selectedType === 'tool') {
@@ -616,13 +616,13 @@ export class SkillCheckDialog extends Application {
                             link = showLink ? this.skillInfo?.link : null;
                         }
                         break;
-                    case 'skill':
+                case 'skill':
                         const skillData = CONFIG.DND5E.skills[value];
                         name = game.i18n.localize(skillData?.label);
                         desc = showExplanation ? this.skillInfo?.description : null;
                         link = showLink ? this.skillInfo?.link : null;
-                        break;
-                    case 'tool':
+                    break;
+                case 'tool':
                         // For tools, we'll get the name from the first actor's tool
                         const firstActor = processedActors[0];
                         const toolId = typeof value === 'function' ? value(firstActor.id) : value;
@@ -630,16 +630,16 @@ export class SkillCheckDialog extends Application {
                         name = toolItem?.name;
                         desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim() : null;
                         link = null; // Tools don't have SRD links
-                        break;
-                    case 'ability':
+                    break;
+                case 'ability':
                         const abilityData = CONFIG.DND5E.abilities[value];
                         const customAbilityData = this.getData().abilities.find(a => a.id === value);
-                        const abilityName = game.i18n.localize(abilityData?.label);
+                    const abilityName = game.i18n.localize(abilityData?.label);
                         name = abilityName + ' Check';
                         desc = showExplanation ? (customAbilityData?.description || '') : null;
                         link = showLink ? `@UUID[${abilityData.reference}]{${abilityName} Check}` : null;
-                        break;
-                    case 'save':
+                    break;
+                case 'save':
                         if (value === 'death') {
                             name = 'Death Save';
                             desc = showExplanation ? 'When you start your turn with 0 hit points, you must make a special saving throw, called a death saving throw, to determine whether you creep closer to death or hang onto life.' : null;
@@ -647,18 +647,18 @@ export class SkillCheckDialog extends Application {
                         } else {
                             const saveData = CONFIG.DND5E.abilities[value];
                             const customSaveData = this.getData().saves.find(s => s.id === value);
-                            const saveName = game.i18n.localize(saveData?.label);
+                    const saveName = game.i18n.localize(saveData?.label);
                             name = saveName + ' Save';
                             desc = showExplanation ? (customSaveData?.description || '') : null;
                             link = showLink ? `@UUID[${saveData.reference}]{${saveName} Save}` : null;
                         }
-                        break;
-                    case 'dice':
+                    break;
+                case 'dice':
                         name = `${value} Roll`;
                         desc = showExplanation ? `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.` : null;
                         link = null; // Dice rolls don't have SRD links
-                        break;
-                    default:
+                    break;
+                default:
                         name = value;
                         desc = null;
                         link = null;
@@ -769,7 +769,7 @@ export class SkillCheckDialog extends Application {
                 toolItem.on('click contextmenu', (ev) => {
                     ev.preventDefault();
                     try {
-                        const item = ev.currentTarget;
+                const item = ev.currentTarget;
                         const type = 'tool';
                         // Parse the actor tools data back into a Map
                         const actorToolsData = JSON.parse(item.dataset.actorTools);
@@ -842,7 +842,7 @@ export class SkillCheckDialog extends Application {
                                     currentIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
                                 }
                                 $(item).addClass('selected');
-                                this.selectedType = type;
+                this.selectedType = type;
                                 this.selectedValue = actorTools;
                             }
                         }
