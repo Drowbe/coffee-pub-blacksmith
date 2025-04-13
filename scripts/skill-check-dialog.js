@@ -575,12 +575,18 @@ export class SkillCheckDialog extends Application {
                         link = showLink ? `@UUID[${abilityData.reference}]{${abilityName} Check}` : null;
                         break;
                     case 'save':
-                        const saveData = CONFIG.DND5E.abilities[value];
-                        const customSaveData = this.getData().saves.find(s => s.id === value);
-                        const saveName = game.i18n.localize(saveData?.label);
-                        name = saveName + ' Save';
-                        desc = showExplanation ? (customSaveData?.description || '') : null;
-                        link = showLink ? `@UUID[${saveData.reference}]{${saveName} Save}` : null;
+                        if (value === 'death') {
+                            name = 'Death Save';
+                            desc = showExplanation ? 'When you start your turn with 0 hit points, you must make a special saving throw, called a death saving throw, to determine whether you creep closer to death or hang onto life.' : null;
+                            link = null;
+                        } else {
+                            const saveData = CONFIG.DND5E.abilities[value];
+                            const customSaveData = this.getData().saves.find(s => s.id === value);
+                            const saveName = game.i18n.localize(saveData?.label);
+                            name = saveName + ' Save';
+                            desc = showExplanation ? (customSaveData?.description || '') : null;
+                            link = showLink ? `@UUID[${saveData.reference}]{${saveName} Save}` : null;
+                        }
                         break;
                     case 'dice':
                         name = `${value} Roll`;
