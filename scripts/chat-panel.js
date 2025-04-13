@@ -19,6 +19,7 @@ class ChatPanel {
     static hasHandledWarning = false;
     static toolbarIcons = new Map();
     static previousRemainingMinutes = null;
+    static activeContextMenu = null;
 
     static initialize() {
         // Load the templates
@@ -120,56 +121,102 @@ class ChatPanel {
             // Track active context menu instance
             let activeContextMenu;
 
-            html.find('.tool.skillcheck')
-            .click(async (event) => {
+            html.find('.tool.skillcheck').click(async (event) => {
                 event.preventDefault();
                 if (!game.user.isGM) return;
 
                 const dialog = new SkillCheckDialog();
                 dialog.render(true);
-            })
-            .contextmenu(async (event) => {
+            }).contextmenu(async (event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 if (!game.user.isGM) return;
-
-                // Close any previously open context menu
-                if (activeContextMenu) {
-                activeContextMenu.close({ animate: false });
-                activeContextMenu = null;
-                }
 
                 // Quick roll options matching the ones in skill-check-window.hbs
                 const quickRolls = [
-                { label: 'Party Perception', value: 'perception', icon: 'fa-magnifying-glass-waveform' },
-                { label: 'Party Insight', value: 'insight', icon: 'fa-brain' },
-                { label: 'Party Investigation', value: 'investigation', icon: 'fa-magnifying-glass' },
-                { label: 'Party Nature', value: 'nature', icon: 'fa-sheep' },
-                { label: 'Party Stealth', value: 'stealth', icon: 'fa-burst' }
+                    { label: 'Party Perception', value: 'perception', icon: 'fa-magnifying-glass-waveform', skill: 'prc' },
+                    { label: 'Party Insight', value: 'insight', icon: 'fa-brain', skill: 'ins' },
+                    { label: 'Party Investigation', value: 'investigation', icon: 'fa-magnifying-glass', skill: 'inv' },
+                    { label: 'Party Nature', value: 'nature', icon: 'fa-sheep', skill: 'nat' },
+                    { label: 'Party Stealth', value: 'stealth', icon: 'fa-burst', skill: 'ste' }
                 ];
 
                 // Create context menu items
                 const menuItems = quickRolls.map(roll => ({
-                name: roll.label,
-                icon: `<i class="fas ${roll.icon}"></i>`,
-                callback: () => {
-                    const dialog = new SkillCheckDialog();
-                    dialog.render(true);
-                    setTimeout(() => {
-                    const quickRollItem = dialog.element.find(`.cpb-check-item[data-type="quick"][data-value="${roll.value}"]`);
-                    if (quickRollItem.length) {
-                        quickRollItem.trigger('click');
+                    name: roll.label,
+                    icon: `<i class="fas ${roll.icon}"></i>`,
+                    callback: async () => {
+                        // Get all party members (characters with player owners)
+                        const partyMembers = game.actors.filter(actor => 
+                            actor.type === 'character' && actor.hasPlayerOwner
+                        );
+
+                        if (partyMembers.length === 0) {
+                            ui.notifications.warn("No party members found.");
+                            return;
+                        }
+
+                        // Get skill data from CONFIG
+                        const skillData = CONFIG.DND5E.skills[roll.skill];
+                        if (!skillData) {
+                            ui.notifications.error(`Invalid skill: ${roll.skill}`);
+                            return;
+                        }
+
+                        // Create message data for the quick roll
+                        const messageData = {
+                            skillName: roll.label,
+                            actors: partyMembers.map(actor => ({
+                                id: actor.id,
+                                name: actor.name,
+                                group: 1 // All party members are challengers
+                            })),
+                            requesterId: game.user.id,
+                            type: 'skillCheck',
+                            rollType: 'skill',
+                            skillAbbr: roll.skill,
+                            isGroupRoll: true,
+                            rollMode: 'roll', // Default to public roll
+                            showDC: true,
+                            showRollExplanation: true,
+                            showRollExplanationLink: true,
+                            skillDescription: skillData.description,
+                            skillLink: `@UUID[${skillData.reference}]{${game.i18n.localize(skillData.label)}}`
+                        };
+
+                        // Create the chat message
+                        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                        await ChatMessage.create({
+                            content: content,
+                            speaker: ChatMessage.getSpeaker(),
+                            flags: {
+                                'coffee-pub-blacksmith': messageData
+                            }
+                        });
                     }
-                    }, 100);
-                }
                 }));
 
-                const htmlEl = $(event.currentTarget).closest('.tool.skillcheck');
-                const selector = '.tool.skillcheck';
-
-                // Create new context menu and track it
-                activeContextMenu = new ContextMenu(htmlEl, selector, menuItems, { event });
+                // Create and show the context menu
+                const menu = new ContextMenu($(event.currentTarget), '.tool.skillcheck', menuItems);
+                menu.render(true);
+                
+                // Track the active menu
+                this.activeContextMenu = menu;
+                
+                // Add event listener to close the menu when clicking outside
+                const closeHandler = (e) => {
+                    if (!$(e.target).closest('.context-menu').length && !$(e.target).closest('.tool.skillcheck').length) {
+                        menu.close();
+                        $(document).off('click', closeHandler);
+                        this.activeContextMenu = null;
+                    }
+                };
+                
+                // Add the close handler after a small delay to prevent immediate closing
+                setTimeout(() => {
+                    $(document).on('click', closeHandler);
+                }, 100);
             });
-
 
             // Add module toolbar icons
             const toolbarSection = html.find('.toolbar-icons');
