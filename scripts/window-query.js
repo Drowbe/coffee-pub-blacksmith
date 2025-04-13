@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { BLACKSMITH, MODULE_ID, MODULE_TITLE } from './const.js'
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, rollCoffeePubDice } from './global.js';
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 import { TokenHandler } from './token-handler.js';
@@ -1051,36 +1051,37 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                 switch (type) {
                     case 'dice':
-                        console.log("BLACKSMITH | SKILLCHECK - Rolling DICE");
-                        console.log("BLACKSMITH | SKILLCHECK - Value:", value);
-                        console.log("BLACKSMITH | SKILLCHECK - Button data:", {
-                            type: button.dataset.type,
-                            value: button.dataset.value,
-                            skill: button.dataset.skill
-                        });
-                        console.log("BLACKSMITH | SKILLCHECK - Message flags:", flags);
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling DICE Value:", value, flags);
                         roll = await (new Roll(value)).evaluate();
+                        rollCoffeePubDice(roll);
                         break;
                     case 'skill':
-                        console.log("BLACKSMITH | SKILLCHECK - Rolling SKILL");
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling SKILLValue:", value);
                         roll = await actor.rollSkill(value, {
                             chatMessage: false,
                             createMessage: false
                         });
                         break;
                     case 'ability':
-                        console.log("BLACKSMITH | SKILLCHECK - Rolling ABILITY");
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling ABILITYValue:", value);
                         roll = await actor.rollAbilityTest(value, {
                             chatMessage: false,
                             createMessage: false
                         });
                         break;
                     case 'save':
-                        console.log("BLACKSMITH | SKILLCHECK - Rolling SAVE");
-                        roll = await actor.rollSavingThrow(value, {
-                            chatMessage: false,
-                            createMessage: false
-                        });
+                        console.log("BLACKSMITH | SKILLCHECK - Rolling SAVE Value:", value);
+                        if (value === 'death') {
+                            roll = await actor.rollDeathSave({
+                                chatMessage: false,
+                                createMessage: false
+                            });
+                        } else {
+                            roll = await actor.rollSavingThrow(value, {
+                                chatMessage: false,
+                                createMessage: false
+                            });
+                        }
                         break;
                     case 'tool':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling TOOL");
@@ -1110,6 +1111,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         const formula = `1d20 + ${totalMod}`;
                         roll = new Roll(formula, rollData);
                         await roll.evaluate({ async: true });
+                        rollCoffeePubDice(roll);
                         break;
                     default:
                         return;

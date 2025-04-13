@@ -121,6 +121,13 @@ export class SkillCheckDialog extends Application {
             description: saveDescriptions[id]
         }));
 
+        // Add Death Save
+        saves.push({
+            id: 'death',
+            name: 'Death',
+            description: 'When you start your turn with 0 hit points, you must make a special saving throw, called a death saving throw, to determine whether you creep closer to death or hang onto life.'
+        });
+
         const templateData = {
             actors: canvasTokens,
             skills,
