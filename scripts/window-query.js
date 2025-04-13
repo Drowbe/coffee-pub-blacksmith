@@ -1120,10 +1120,16 @@ export class BlacksmithWindowQuery extends FormApplication {
                 // Update the actors array with the roll result
                 const actors = flags.actors.map(a => ({
                     ...a,
-                    result: a.id === actorId ? {
-                        total: roll.total,
-                        formula: roll.formula
-                    } : a.result
+                    result: a.id === actorId ? (
+                        roll ? {
+                            total: roll.total,
+                            formula: roll.formula
+                        } : {
+                            total: "No Roll Needed",
+                            formula: "Invalid Death Save",
+                            error: "Character is not eligible for death saves"
+                        }
+                    ) : a.result
                 }));
 
                 // Calculate group roll results if needed
