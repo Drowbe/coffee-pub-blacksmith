@@ -68,7 +68,7 @@
     color: #f0f0e0;
 }
 
-.leader-icon, .vote-icon, .skillcheck-icon {
+.leader-icon, .vote-icon, .skillcheck-icon, .movement-icon {
     color: #f0f0e0;
     font-size: 0.9em;
 }
@@ -86,13 +86,13 @@
     align-items: center;
 }
 
-.tool.vote:hover .vote-icon, .tool.skillcheck:hover .skillcheck-icon,
-.tool.vote:hover .vote-label, .tool.skillcheck:hover .skillcheck-label {
+.tool.vote:hover .vote-icon, .tool.skillcheck:hover .skillcheck-icon, .tool.movement:hover .movement-icon,
+.tool.vote:hover .vote-label, .tool.skillcheck:hover .skillcheck-label, .tool.movement:hover .movement-label {
     color: hsl(27, 99%, 38%);
 }
 
-.tool.vote[style*="not-allowed"]:hover .vote-icon, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-icon,
-.tool.vote[style*="not-allowed"]:hover .vote-label, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-label {
+.tool.vote[style*="not-allowed"]:hover .vote-icon, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-icon, .tool.movement[style*="not-allowed"]:hover .movement-icon,
+.tool.vote[style*="not-allowed"]:hover .vote-label, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-label, .tool.movement[style*="not-allowed"]:hover .movement-label {
     color: #f0f0e0;
     opacity: 0.5;
 }

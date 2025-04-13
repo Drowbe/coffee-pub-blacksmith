@@ -3,27 +3,20 @@
 <div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
     <header class="card-header flexrow cpb-card-header">
         {{#if hasMultipleGroups}}
-            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}} {{#if dc}}(DC {{dc}}){{/if}}</h3>
+            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{#if dc}}{{#if showDC}}DC {{dc}} {{/if}}{{/if}}{{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
         {{else}}
-            <h3 class="item-name"><i class="fas fa-dice"></i> {{skillName}} {{#if dc}}(DC {{dc}}){{/if}}</h3>
+            <h3 class="item-name"><i class="fas fa-dice"></i> {{#if dc}}{{#if showDC}}DC {{dc}} {{/if}}{{/if}} {{skillName}}</h3>
         {{/if}}
     </header>
     <div class="card-content cpb-card-content">
-        {{#if label}}<div class="cpb-card-section-header">{{label}}</div>{{/if}}
+        {{#if label}}<div class="cpb-card-section-header"><i class="fas fa-message" title="Skill Details"></i> {{label}}</div>{{/if}}
         {{#if description}}
         <div class="gm-description cpb-gm-description">
             <p>{{{description}}}</p>
         </div>
         {{/if}}
 
-        {{#if skillDescription}}
-        <div class="cpb-card-section-header">Skill Details</div>
-        <div class="cpb-skill-description">
-            <p>{{{skillDescription}}}</p>
-            {{#if skillLink}}<p>{{{skillLink}}}</p>{{/if}}
-        </div>
-        {{/if}}
-        
+
         <div class="cpb-skill-check-buttons">
             {{!-- Group 1 Players --}}
             {{#if hasMultipleGroups}}
@@ -62,9 +55,9 @@
             {{!-- VS Separator if both groups are present --}}
             {{#if hasMultipleGroups}}
                 <div class="cpb-versus-separator">
-                    <span class="cpb-versus-skill">{{skillName}} {{#if dc}}(DC {{dc}}){{/if}}</span>
-                    VS
-                    <span class="cpb-versus-skill">{{#if defenderSkillName}}{{defenderSkillName}} {{#if dc}}(DC {{dc}}){{/if}}{{else}}{{skillName}} {{#if dc}}(DC {{dc}}){{/if}}{{/if}}</span>
+                    <span class="cpb-versus-skill">{{#if dc}}{{#if showDC}}DC {{dc}} {{/if}}{{/if}}{{skillName}}</span>
+                    - VS -
+                    <span class="cpb-versus-skill">{{#if dc}}{{#if showDC}}DC {{dc}} {{/if}}{{/if}}{{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</span>
                 </div>
             {{/if}}
 
@@ -101,12 +94,11 @@
             {{/each}}
         </div>
 
-
         {{!-- FINAL RESULTS --}}  
         {{!-- Contested Roll --}}  
         {{#if hasMultipleGroups}}
             {{#if contestedRoll}}
-                <div class="cpb-card-section-header">Contest Results</div>
+                <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Contest Result</div>
                 {{#if contestedRoll.isTie}}
                     <div class="cpb-roll-result-tie-container" title="({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})">
                         <div class="cpb-roll-result-tie-text"><i class="fas fa-shield-exclamation"></i> Stalemate</div>
@@ -126,12 +118,12 @@
         {{/if}}
 
         {{!-- Group Roll --}}  
-        {{#unless hasMultipleGroups}}
+        {{#if (not hasMultipleGroups)}}
             {{#if isGroupRoll}}
             {{#if dc}}
                 {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
                 {{#if allRollsComplete}}
-                    <div class="cpb-card-section-header">Group Results</div>
+                    <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Group Result</div>
                     {{#if groupSuccess}}
                         <div class="cpb-roll-result-success-container">
                             <div class="cpb-roll-result-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
@@ -144,7 +136,17 @@
                 {{/if}}
             {{/if}}
             {{/if}}
-        {{/unless}}
+        {{/if}}
+
+        {{#if skillDescription}}
+        <div class="cpb-card-section-header"><i class="fas fa-book" title="Skill Details"></i> About this Roll</div>
+        <div class="cpb-skill-description">
+            <p>{{{skillDescription}}}</p>
+            {{#if skillLink}}<p>{{{skillLink}}}</p>{{/if}}
+        </div>
+        {{/if}}
+
+
     </div>
 </div>
 {{/unless}} 

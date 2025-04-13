@@ -26,7 +26,14 @@
             <div class="tool skillcheck" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
                 <div class="skillcheck-info">
                     <i class="fas fa-dice skillcheck-icon"></i>
-                    <span class="skillcheck-label">Checks and Saves</span>
+                    <span class="skillcheck-label">Rolls</span>
+                </div>
+            </div>
+            {{!--Movement --}}
+            <div class="tool movement" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can request rolls{{/if}}">
+                <div class="skillcheck-info">
+                    <i class="fas fa-person-running movement-icon"></i>
+                    <span class="movement-label">Movement</span>
                 </div>
             </div>
             {{!-- More tools will be added here --}}

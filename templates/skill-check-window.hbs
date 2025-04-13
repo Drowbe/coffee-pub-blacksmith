@@ -59,9 +59,17 @@
             </div>
             
             <div class="cpb-checks-list">
+                <!-- Quick Roll Section -->
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header" style="margin-bottom: 8px;">Quick Rolls</div>
+                    <div class="cpb-check-item" data-type="quick" data-value="party-perception">
+                        <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i> Party Perception
+                    </div>
+                </div>
+
                 <!-- Dice Roll Section -->
                 <div class="cpb-check-section">
-                    <div class="cpb-section-header" style="margin-bottom: 8px;">Quick Roll</div>
+                    <div class="cpb-section-header" style="margin-bottom: 8px;">Dice Roll</div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d2">
                             <i class="fas fa-coin" title="d2"></i> 1d2
@@ -172,21 +180,20 @@
             
             <div class="cpb-roll-options-column">
 
-                <div class="cpb-section-header">Dice Check (Optional)</div>
+                <div class="cpb-section-header">Difficulty Class</div>
 
                 <div class="cpb-form-group">
-                    <label>DC to Beat</label>
                     <div class="cpb-form-fields">
-                        <input type="number" name="dc" placeholder="DC">
+                        <input type="number" name="dc" placeholder="optional">
                     </div>
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="showDC" checked> Show the DC to the players
+                            <input type="checkbox" name="showDC" {{#if userPreferences.showDC}}checked{{/if}}> Show the DC to the players
                         </label>
                     </div>
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="groupRoll" checked> Evaluate Group DC
+                            <input type="checkbox" name="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}> Evaluate Group DC
                         </label>
                     </div>
                 </div>
@@ -196,7 +203,7 @@
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         <label class="cpb-checkbox">
-                            <input type="checkbox" name="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}> Show Roll Explanation
+                            <input type="checkbox" name="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}> Show Roll Type Details
                         </label>
                     </div>
                     <div class="cpb-form-fields">
@@ -206,18 +213,16 @@
                     </div>
                 </div>
 
-                <div class="cpb-section-header">Custom Roll Message (Optional)</div>
+                <div class="cpb-section-header">Custom Narrative</div>
 
                 <div class="cpb-form-group">
-                    <label>Roll Title</label>
                     <div class="cpb-form-fields">
-                        <input type="text" name="label" placeholder="Roll label">
+                        <input type="text" name="label" placeholder="Optional title...">
                     </div>
                 </div>
                 <div class="cpb-form-group">
-                    <label>Roll Narrative</label>
                     <div class="cpb-form-fields">
-                        <textarea name="description" rows="4" placeholder="Optional description..."></textarea>
+                        <textarea name="description" rows="4" placeholder="Optional narrative..."></textarea>
                     </div>
                 </div>
 
