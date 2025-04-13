@@ -425,6 +425,20 @@ function processCongaLineMovement() {
 function scheduleFollowerUpdate(token) {
     const state = tokenFollowers.get(token.id);
     if (!state || state.moving) return;
+
+    // Safety check - NEVER move the leader token
+    const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
+    const leaderTokens = canvas.tokens.placeables.filter(t => 
+        t.actor && t.actor.hasPlayerOwner && t.actor.ownership[partyLeaderUserId] === 3
+    );
+    
+    // If this is one of the leader's tokens that was most recently moved, don't move it
+    if (leaderTokens.some(lt => lt.id === token.id && 
+        leaderMovementPath.length > 0 && 
+        getGridPositionKey(token.x, token.y) === leaderMovementPath[leaderMovementPath.length-1].gridPos)) {
+        console.log(`Token ${token.name} appears to be the leader token, skipping movement`);
+        return;
+    }
     
     // Mark as moving to prevent multiple updates
     state.moving = true;
