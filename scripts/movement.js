@@ -32,6 +32,9 @@ const tokenOriginalPositions = new Map(); // Store original positions separately
 // Add state variable for pre-combat movement mode
 let preCombatMovementMode = null;
 
+// Add state variable for token spacing
+let tokenSpacing = 0;
+
 // ================================================================== 
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
 // ================================================================== 
@@ -155,7 +158,7 @@ Hooks.once('init', () => {
         }
     });
 
-    // Register setting if not already registered
+    // Register movement type setting if not already registered
     if (!game.settings.settings.has(`${MODULE_ID}.movementType`)) {
         game.settings.register(MODULE_ID, 'movementType', {
             name: 'Current Movement Type',
@@ -164,6 +167,18 @@ Hooks.once('init', () => {
             config: false,
             type: String,
             default: 'normal-movement'
+        });
+    }
+
+    // Register token spacing setting
+    if (!game.settings.settings.has(`${MODULE_ID}.tokenSpacing`)) {
+        game.settings.register(MODULE_ID, 'tokenSpacing', {
+            name: 'Token Spacing',
+            hint: 'Number of grid spaces to maintain between tokens in formation',
+            scope: 'world',
+            config: false,
+            type: Number,
+            default: 0
         });
     }
 });
@@ -183,19 +198,21 @@ export class MovementConfig extends Application {
     getData() {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
+        const currentSpacing = game.settings.get(MODULE_ID, 'tokenSpacing') || 0;
 
         return {
+            currentSpacing,
             MovementTypes: [
                 {
                     id: 'normal-movement',
                     name: 'Normal',
-                    description: 'Players can move their tokens on the canvas at will without any limitations. This is the default movement mode. It is important to set clear expectaions of consequences while in this mode.',
+                    description: 'Players can move their tokens on the canvas at will',
                     icon: 'fa-person-running',
                 },
                 {
                     id: 'no-movement',
                     name: 'None',
-                    description: 'Movement is locked down. Players can not move tokens at all. This mode is useful before combat begins or during narratives.',
+                    description: 'Players can not move tokens at all on the canvas.',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
@@ -216,7 +233,7 @@ export class MovementConfig extends Application {
                     description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
                     icon: 'fa-people-pulling'
                 }
-            ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
+            ].filter(type => !type.gmOnly || isGM)
         };
     }
 
@@ -227,6 +244,16 @@ export class MovementConfig extends Application {
         html.find('.movement-type').click(async (event) => {
             const movementId = event.currentTarget.dataset.movementId;
             await this._handleMovementChange(movementId);
+        });
+
+        // Add change handler for spacing slider
+        html.find('.token-spacing-slider').on('input change', async (event) => {
+            const spacing = parseInt(event.currentTarget.value);
+            await game.settings.set(MODULE_ID, 'tokenSpacing', spacing);
+            tokenSpacing = spacing; // Update the local variable
+            
+            // Update the display value
+            html.find('.spacing-value').text(spacing);
         });
     }
 
@@ -287,10 +314,14 @@ export class MovementConfig extends Application {
                             marchingOrderText += `<li><strong>Position ${state.marchPosition}:</strong> ${token.name}</li>`;
                         }
                     });
+
+                    // Get current spacing
+                    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+                    const spacingText = spacing > 0 ? `<br>Token Spacing: ${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
                     
                     // Send notification to all players about mode and marching order
                     ChatMessage.create({
-                        content: `Movement changed to <strong>${movementType.name.toUpperCase()}</strong>.<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
+                        content: `Movement changed to <strong>${movementType.name.toUpperCase()}</strong>.${spacingText}<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
                         type: CONST.CHAT_MESSAGE_TYPES.OTHER
                     });
                 } else {
@@ -532,12 +563,41 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
     }
 });
 
-// Move a token in the conga line
-function moveNextTokenInLine(sortedFollowers, index) {
+// Process follow movement - tokens follow in formation behind leader
+function processFollowMovement(sortedFollowers) {
+    // Safety check - if no path points, exit
+    if (leaderMovementPath.length < 2) {
+        console.log('BLACKSMITH | MOVEMENT | Not enough path points for follow movement');
+        return;
+    }
+    
+    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
+    
+    // Set processing flag
+    processingCongaMovement = true;
+    
+    // Get the leader token
+    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+    if (!leaderToken) {
+        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting follow movement');
+        processingCongaMovement = false;
+        return;
+    }
+    
+    // Get current spacing setting
+    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+    
+    // Move tokens one by one with spacing
+    moveNextTokenInLine(sortedFollowers, 0, spacing);
+}
+
+// Move a token in the line
+function moveNextTokenInLine(sortedFollowers, index, spacing = 0) {
     // If we're done with all followers, finish
     if (index >= sortedFollowers.length) {
         processingCongaMovement = false;
         tokenOriginalPositions.clear();
+        console.log('BLACKSMITH | MOVEMENT | Finished moving all followers');
         return;
     }
     
@@ -546,29 +606,35 @@ function moveNextTokenInLine(sortedFollowers, index) {
     
     // Skip if token doesn't exist
     if (!token) {
-        moveNextTokenInLine(sortedFollowers, index + 1);
+        console.log(`BLACKSMITH | MOVEMENT | Skipping token - doesn't exist`);
+        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
         return;
     }
 
-    // Get the target position based on marching order
-    // Leader is at 0, first follower at 1, etc.
-    const targetPosition = leaderMovementPath[state.marchPosition];
+    // Get the target position based on marching order and spacing
+    const adjustedPosition = state.marchPosition + (state.marchPosition * spacing);
+    const targetPosition = leaderMovementPath[adjustedPosition];
 
     if (!targetPosition) {
-        moveNextTokenInLine(sortedFollowers, index + 1);
+        console.log(`BLACKSMITH | MOVEMENT | No path point for position ${adjustedPosition}`);
+        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
         return;
     }
 
     const currentPos = getGridPositionKey(token.x, token.y);
     if (currentPos === targetPosition.gridPos) {
-        moveNextTokenInLine(sortedFollowers, index + 1);
+        console.log(`BLACKSMITH | MOVEMENT | ${token.name} already at position ${adjustedPosition}`);
+        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
         return;
     }
 
     // Store original position in our map before moving
     tokenOriginalPositions.set(token.id, { x: token.x, y: token.y });
     
-    // Move the token - add flag to indicate this is a conga line movement
+    // Debug info
+    console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to position ${adjustedPosition}: ${targetPosition.x},${targetPosition.y}`);
+    
+    // Move the token - add flag to indicate this is an automated movement
     token.document.update({
         x: targetPosition.x,
         y: targetPosition.y,
@@ -578,65 +644,12 @@ function moveNextTokenInLine(sortedFollowers, index) {
             }
         }
     }).then(() => {
-        moveNextTokenInLine(sortedFollowers, index + 1);
+        // Move to next token
+        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
     }).catch(err => {
         console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
-        moveNextTokenInLine(sortedFollowers, index + 1);
+        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
     });
-}
-
-// Function to make tokens follow the leader's path
-function followLeaderPath(sortedFollowers) {
-    // Process each token's path following in sequence
-    let currentIndex = 0;
-    
-    function processNextToken() {
-        if (currentIndex >= sortedFollowers.length) {
-            console.log('BLACKSMITH | MOVEMENT | Finished following path');
-            return;
-        }
-
-        const [tokenId, state] = sortedFollowers[currentIndex];
-        const token = canvas.tokens.get(tokenId);
-        
-        if (!token) {
-            currentIndex++;
-            processNextToken();
-            return;
-        }
-
-        // Get the next position in the path after their marching order position
-        const nextPathIndex = state.marchPosition + 1;
-        const targetPosition = leaderMovementPath[nextPathIndex];
-
-        if (!targetPosition) {
-            currentIndex++;
-            processNextToken();
-            return;
-        }
-
-        token.document.update({
-            x: targetPosition.x,
-            y: targetPosition.y,
-            flags: {
-                [MODULE_ID]: {
-                    congaMovement: true
-                }
-            }
-        }).then(() => {
-            // Update the token's marching position to track progress
-            state.marchPosition = nextPathIndex;
-            // Process next token after a short delay
-            setTimeout(processNextToken, 100);
-        }).catch(err => {
-            console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
-            currentIndex++;
-            processNextToken();
-        });
-    }
-
-    // Start processing tokens
-    processNextToken();
 }
 
 // Process the conga line movement
@@ -712,31 +725,6 @@ function trimPathPoints() {
     if (maxReachedPosition > 0) {
         leaderMovementPath = leaderMovementPath.slice(0, maxReachedPosition + 1);
     }
-}
-
-// Process follow movement - tokens follow in formation behind leader
-function processFollowMovement(sortedFollowers) {
-    // Safety check - if no path points, exit
-    if (leaderMovementPath.length < 2) {
-        console.log('BLACKSMITH | MOVEMENT | Not enough path points for follow movement');
-        return;
-    }
-    
-    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
-    
-    // Set processing flag
-    processingCongaMovement = true;
-    
-    // Get the leader token
-    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
-    if (!leaderToken) {
-        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting follow movement');
-        processingCongaMovement = false;
-        return;
-    }
-    
-    // Move tokens one by one
-    moveNextTokenInLine(sortedFollowers, 0);
 }
 
 // Add hooks for combat automation
