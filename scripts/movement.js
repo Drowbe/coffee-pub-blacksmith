@@ -44,7 +44,7 @@ Hooks.once('init', () => {
                     'normal-movement': { icon: 'fa-person-running', name: 'Normal' },
                     'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
                     'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-                    'conga-movement': { icon: 'fa-people-line', name: 'Conga' }
+                    'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
                 };
                 
                 const newType = movementTypes[message.data.movementId];
