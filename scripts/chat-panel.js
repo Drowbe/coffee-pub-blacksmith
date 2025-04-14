@@ -87,6 +87,7 @@ class ChatPanel {
                         'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
                         'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
                         'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+                        'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
                         'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
                     };
                     
@@ -817,6 +818,7 @@ class ChatPanel {
             'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
             'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
             'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+            'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
             'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
         };
 

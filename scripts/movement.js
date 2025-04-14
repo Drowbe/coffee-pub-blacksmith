@@ -44,6 +44,7 @@ Hooks.once('init', () => {
                     'normal-movement': { icon: 'fa-person-running', name: 'Normal' },
                     'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
                     'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+                    'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
                     'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
                 };
                 
@@ -96,25 +97,31 @@ export class MovementConfig extends Application {
                 {
                     id: 'normal-movement',
                     name: 'Normal',
-                    description: 'Players can move their tokens on the canvas at will',
+                    description: 'Players can move their tokens on the canvas at will without any limitations. This is the default movement mode. It is important to set clear expectaions of consequences while in this mode.',
                     icon: 'fa-person-running',
                 },
                 {
                     id: 'no-movement',
                     name: 'None',
-                    description: 'Players can not move tokens at all on the canvas.',
+                    description: 'Movement is locked down. Players can not move tokens at all. This mode is useful before combat begins or during narratives.',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
                     name: 'Combat',
-                    description: 'Players can only move their tokens during their turn in combat.',
+                    description: 'Movement is locked down while combat is active or manually enabled. Players can only move their tokens during their combat turn.',
                     icon: 'fa-swords'
+                },
+                {
+                    id: 'follow-movement',
+                    name: 'Follow',
+                    description: 'Only the party leader can move freely. Other player tokens will loosely follow the path in a marching order set by the distance from them to the leader when the mode is enabled.',
+                    icon: 'fa-person-walking-arrow-right'
                 },
                 {
                     id: 'conga-movement',
                     name: 'Conga',
-                    description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
+                    description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader in a marching order set by the distance from them to the leader when the mode is enabled.',
                     icon: 'fa-people-pulling'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
@@ -485,8 +492,7 @@ function moveNextTokenInLine(sortedFollowers, index) {
     // If we're done with all followers, finish
     if (index >= sortedFollowers.length) {
         processingCongaMovement = false;
-        tokenOriginalPositions.clear(); // Clear stored positions when done
-        console.log('BLACKSMITH | MOVEMENT | Finished moving all followers');
+        tokenOriginalPositions.clear();
         return;
     }
     
@@ -495,32 +501,27 @@ function moveNextTokenInLine(sortedFollowers, index) {
     
     // Skip if token doesn't exist
     if (!token) {
-        console.log(`BLACKSMITH | MOVEMENT | Skipping token - doesn't exist`);
         moveNextTokenInLine(sortedFollowers, index + 1);
         return;
     }
 
     // Get the target position based on marching order
+    // Leader is at 0, first follower at 1, etc.
     const targetPosition = leaderMovementPath[state.marchPosition];
 
     if (!targetPosition) {
-        console.log(`BLACKSMITH | MOVEMENT | No path point for position ${state.marchPosition}`);
         moveNextTokenInLine(sortedFollowers, index + 1);
         return;
     }
 
     const currentPos = getGridPositionKey(token.x, token.y);
     if (currentPos === targetPosition.gridPos) {
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} already at position ${state.marchPosition}`);
         moveNextTokenInLine(sortedFollowers, index + 1);
         return;
     }
 
     // Store original position in our map before moving
     tokenOriginalPositions.set(token.id, { x: token.x, y: token.y });
-    
-    // Debug info
-    console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to position ${state.marchPosition}: ${targetPosition.x},${targetPosition.y}`);
     
     // Move the token - add flag to indicate this is a conga line movement
     token.document.update({
@@ -532,7 +533,6 @@ function moveNextTokenInLine(sortedFollowers, index) {
             }
         }
     }).then(() => {
-        // Move to next token
         moveNextTokenInLine(sortedFollowers, index + 1);
     }).catch(err => {
         console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
@@ -598,19 +598,15 @@ function followLeaderPath(sortedFollowers) {
 function processCongaLine() {
     // Safety check - if no path points, exit
     if (leaderMovementPath.length < 2) {
-        console.log('BLACKSMITH | MOVEMENT | Not enough path points for conga movement');
         return;
     }
     
-    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
-    
-    // Even if we're already processing, start a new processing run to ensure all tokens move
+    // Even if we're already processing, start a new processing run
     processingCongaMovement = true;
     
     // Get the leader token
     const leaderToken = canvas.tokens.get(currentLeaderTokenId);
     if (!leaderToken) {
-        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting conga movement');
         processingCongaMovement = false;
         return;
     }
@@ -629,8 +625,6 @@ function processCongaLine() {
 
 // Calculate the marching order based on proximity to a leader token
 function calculateMarchingOrder(leaderToken) {
-    console.log('BLACKSMITH | MOVEMENT | Calculating initial marching order around leader token:', leaderToken.name);
-    
     // Reset marching order
     tokenFollowers.clear();
     
@@ -648,8 +642,6 @@ function calculateMarchingOrder(leaderToken) {
         return distA - distB;
     });
     
-    console.log('BLACKSMITH | MOVEMENT | Initial marching order:', followerTokens.map(t => t.name));
-    
     // Set marching order
     followerTokens.forEach((followerToken, index) => {
         tokenFollowers.set(followerToken.id, {
@@ -663,17 +655,17 @@ function calculateMarchingOrder(leaderToken) {
 // Function to prepend new points to the path array
 function prependToPath(newPoints) {
     leaderMovementPath.unshift(...newPoints);
-    console.log(`BLACKSMITH | MOVEMENT | Added ${newPoints.length} new points to path. New path length: ${leaderMovementPath.length}`);
 }
 
 // Function to trim old points from the path that are no longer needed
 function trimPathPoints() {
-    // Find the highest march position (last follower)
-    const maxPosition = Math.max(...Array.from(tokenFollowers.values()).map(f => f.marchPosition));
-    // Keep points up to that position plus one for safety
-    if (leaderMovementPath.length > maxPosition + 1) {
-        leaderMovementPath = leaderMovementPath.slice(0, maxPosition + 1);
-        console.log(`BLACKSMITH | MOVEMENT | Trimmed path to ${leaderMovementPath.length} points`);
+    // Find the highest march position that has been reached
+    const maxReachedPosition = Math.max(...Array.from(tokenFollowers.values())
+        .map(f => f.currentPathIndex || 0));
+    
+    // If we have a valid position, trim the path
+    if (maxReachedPosition > 0) {
+        leaderMovementPath = leaderMovementPath.slice(0, maxReachedPosition + 1);
     }
 } 
 
