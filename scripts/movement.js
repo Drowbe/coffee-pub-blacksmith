@@ -431,8 +431,6 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
 
             // Debug log path
             console.log(`BLACKSMITH | MOVEMENT | Leader path length: ${leaderMovementPath.length}`);
-            console.log(`BLACKSMITH | MOVEMENT | Last 5 path points:`, 
-                leaderMovementPath.slice(0, 5).map(p => `${p.x},${p.y} (${p.gridPos})`));
             
             // Important fix: Always trigger follower movement when leader moves
             console.log(`BLACKSMITH | MOVEMENT | Leader moved - triggering follower movement. Path length: ${leaderMovementPath.length}`);
@@ -473,34 +471,7 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         
         if ((isFirstTimeSetup || isGMMoveOfFollower) && !marchingOrderJustDetermined) {
             console.log('BLACKSMITH | MOVEMENT | Determining marching order - first setup or GM reordering');
-            
-            // Find all player-owned tokens except the leader
-            const followerTokens = canvas.tokens.placeables.filter(t => 
-                t.id !== currentLeaderTokenId && 
-                t.actor && 
-                t.actor.hasPlayerOwner
-            );
-            
-            // Sort by distance to leader (closest first)
-            followerTokens.sort((a, b) => {
-                const leaderToken = canvas.tokens.get(currentLeaderTokenId);
-                if (!leaderToken) return 0;
-                
-                const distA = Math.hypot(a.x - leaderToken.x, a.y - leaderToken.y);
-                const distB = Math.hypot(b.x - leaderToken.x, b.y - leaderToken.y);
-                return distA - distB;
-            });
-            
-            // Set marching order
-            followerTokens.forEach((followerToken, index) => {
-                tokenFollowers.set(followerToken.id, {
-                    marchPosition: index + 1,
-                    moving: false
-                });
-                console.log(`BLACKSMITH | MOVEMENT | Set ${followerToken.name} to position ${index + 1}`);
-            });
-            
-            // Prevent multiple calculations
+            calculateMarchingOrder(token);
             marchingOrderJustDetermined = true;
             setTimeout(() => marchingOrderJustDetermined = false, 1000);
         }
@@ -530,7 +501,6 @@ function moveNextTokenInLine(sortedFollowers, index) {
     }
 
     // Get the target position based on marching order
-    // Token 1 goes to path[1], token 2 to path[2], etc.
     const targetPosition = leaderMovementPath[state.marchPosition];
 
     if (!targetPosition) {
@@ -568,6 +538,60 @@ function moveNextTokenInLine(sortedFollowers, index) {
         console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
         moveNextTokenInLine(sortedFollowers, index + 1);
     });
+}
+
+// Function to make tokens follow the leader's path
+function followLeaderPath(sortedFollowers) {
+    // Process each token's path following in sequence
+    let currentIndex = 0;
+    
+    function processNextToken() {
+        if (currentIndex >= sortedFollowers.length) {
+            console.log('BLACKSMITH | MOVEMENT | Finished following path');
+            return;
+        }
+
+        const [tokenId, state] = sortedFollowers[currentIndex];
+        const token = canvas.tokens.get(tokenId);
+        
+        if (!token) {
+            currentIndex++;
+            processNextToken();
+            return;
+        }
+
+        // Get the next position in the path after their marching order position
+        const nextPathIndex = state.marchPosition + 1;
+        const targetPosition = leaderMovementPath[nextPathIndex];
+
+        if (!targetPosition) {
+            currentIndex++;
+            processNextToken();
+            return;
+        }
+
+        token.document.update({
+            x: targetPosition.x,
+            y: targetPosition.y,
+            flags: {
+                [MODULE_ID]: {
+                    congaMovement: true
+                }
+            }
+        }).then(() => {
+            // Update the token's marching position to track progress
+            state.marchPosition = nextPathIndex;
+            // Process next token after a short delay
+            setTimeout(processNextToken, 100);
+        }).catch(err => {
+            console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
+            currentIndex++;
+            processNextToken();
+        });
+    }
+
+    // Start processing tokens
+    processNextToken();
 }
 
 // Process the conga line movement
