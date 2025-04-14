@@ -409,10 +409,19 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                 gridPos: getGridPositionKey(tokenDocument.x, tokenDocument.y)
             };
             
-            // Don't add if this is the first point and duplicates are not allowed
+            // For first movement, use the token's previous position as the start point
             if (leaderMovementPath.length === 0) {
-                leaderMovementPath.push(position);
-                console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${position.x},${position.y}`);
+                const startPosition = {
+                    x: tokenDocument._source.x,
+                    y: tokenDocument._source.y,
+                    gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
+                };
+                leaderMovementPath.push(startPosition);
+                console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
+                
+                // Calculate path from start to current position
+                const newPathPoints = recordLeaderPathStep(startPosition, position);
+                leaderMovementPath.push(...newPathPoints);
             } else {
                 // Get the last position
                 const lastPosition = leaderMovementPath[leaderMovementPath.length - 1];
@@ -425,11 +434,6 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                 
                 // Add all the new points to the path
                 leaderMovementPath.push(...newPathPoints);
-                
-                // Debug log path
-                console.log(`BLACKSMITH | MOVEMENT | Leader path length: ${leaderMovementPath.length}`);
-                console.log(`BLACKSMITH | MOVEMENT | Last 5 path points:`, 
-                    leaderMovementPath.slice(-5).map(p => `${p.x},${p.y} (${p.gridPos})`));
             }
             
             // Keep path at a reasonable length
@@ -595,55 +599,30 @@ function moveNextTokenInLine(sortedFollowers, index) {
     const gridSize = canvas.grid.size;
 
     if (state.marchPosition === 1) {
-        // First follower - get a position that's the appropriate number of steps back in the path
-        // The leader is at the last position in the path, so we want the position before that
-        const pathIndex = Math.max(leaderMovementPath.length - 2, 0);
+        // First follower should move to the position right after where the leader started
+        const targetPathPoint = leaderMovementPath[1];  // Use second point in path
         
-        if (pathIndex < 0 || pathIndex >= leaderMovementPath.length) {
-            console.log(`BLACKSMITH | MOVEMENT | Invalid path index ${pathIndex} for first follower`);
+        if (!targetPathPoint) {
+            console.log(`BLACKSMITH | MOVEMENT | Not enough path points for first follower`);
             moveNextTokenInLine(sortedFollowers, index + 1);
             return;
         }
         
-        const targetPathPoint = leaderMovementPath[pathIndex];
-        targetPosition = {
-            x: targetPathPoint.x,
-            y: targetPathPoint.y,
-            gridPos: targetPathPoint.gridPos
-        };
-        
-        console.log(`BLACKSMITH | MOVEMENT | First follower moving to path index ${pathIndex}: ${targetPosition.x},${targetPosition.y}`);
+        targetPosition = targetPathPoint;
+        console.log(`BLACKSMITH | MOVEMENT | First follower moving to first step in path: ${targetPathPoint.x},${targetPathPoint.y}`);
     } else {
-        // For subsequent followers, we want to be one step behind the token in front of us
-        // First, find where in the path the token in front of us is moving to
-        const prevIndex = index - 1;
-        const prevFollower = sortedFollowers[prevIndex];
-        const prevToken = canvas.tokens.get(prevFollower[0]);
+        // Each subsequent follower moves to their corresponding position in the path
+        // If leader is at the end, first follower should be at position 1, second at 2, etc.
+        const targetIndex = state.marchPosition;
         
-        if (!prevToken) {
-            console.log('BLACKSMITH | MOVEMENT | Previous token not found');
+        if (targetIndex >= leaderMovementPath.length) {
+            console.log(`BLACKSMITH | MOVEMENT | Path not long enough for follower ${token.name}`);
             moveNextTokenInLine(sortedFollowers, index + 1);
             return;
         }
         
-        // Calculate the position in the path where this token should go
-        // Each follower should be positioned one grid step back in the path from the previous follower
-        const pathIndex = Math.max(leaderMovementPath.length - 1 - state.marchPosition, 0);
-        
-        if (pathIndex < 0 || pathIndex >= leaderMovementPath.length) {
-            console.log(`BLACKSMITH | MOVEMENT | Invalid path index ${pathIndex} for follower ${token.name}`);
-            moveNextTokenInLine(sortedFollowers, index + 1);
-            return;
-        }
-        
-        const targetPathPoint = leaderMovementPath[pathIndex];
-        targetPosition = {
-            x: targetPathPoint.x,
-            y: targetPathPoint.y,
-            gridPos: targetPathPoint.gridPos
-        };
-        
-        console.log(`BLACKSMITH | MOVEMENT | Follower ${token.name} moving to path index ${pathIndex}: ${targetPosition.x},${targetPosition.y}`);
+        targetPosition = leaderMovementPath[targetIndex];
+        console.log(`BLACKSMITH | MOVEMENT | Follower ${token.name} moving to path position ${targetIndex}`);
     }
 
     if (!targetPosition) {
