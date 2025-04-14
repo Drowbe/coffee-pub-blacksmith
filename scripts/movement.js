@@ -7,7 +7,7 @@ import { postConsoleAndNotification } from './global.js';
 import { ChatPanel } from "./chat-panel.js";
 
 // Store the leader's movement path for conga line
-const leaderMovementPath = [];
+let leaderMovementPath = [];
 // Track tokens following paths with their current position in the path
 const tokenFollowers = new Map(); // token.id -> {marchPosition, moving}
 // Track which grid positions are currently occupied
@@ -115,7 +115,7 @@ export class MovementConfig extends Application {
                     id: 'conga-movement',
                     name: 'Conga',
                     description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
-                    icon: 'fa-people-line'
+                    icon: 'fa-people-pulling'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
         };
@@ -175,7 +175,7 @@ export class MovementConfig extends Application {
                     calculateMarchingOrder(leaderToken);
                     
                     // Get marching order as text for the chat message
-                    let marchingOrderText = `<strong>Leader:</strong> ${leaderToken.name}<br>`;
+                    let marchingOrderText = `<li><strong>Leader:</strong> ${leaderToken.name}</li>`;
                     
                     // Sort followers by march position
                     const sortedFollowers = Array.from(tokenFollowers.entries())
@@ -185,13 +185,13 @@ export class MovementConfig extends Application {
                     sortedFollowers.forEach(([tokenId, state]) => {
                         const token = canvas.tokens.get(tokenId);
                         if (token) {
-                            marchingOrderText += `<strong>Position ${state.marchPosition}:</strong> ${token.name}<br>`;
+                            marchingOrderText += `<li><strong>Position ${state.marchPosition}:</strong> ${token.name}</li>`;
                         }
                     });
                     
                     // Send notification to all players about conga mode, leader, and marching order
                     ChatMessage.create({
-                        content: `<strong>Movement mode changed to Conga Line!</strong><br>Follow the party leader: <strong>${leader.name}</strong><br><br><strong>Marching Order:</strong><br>${marchingOrderText}`,
+                        content: `Movement changed to <strong>CONGA LINE</strong>.<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
                         type: CONST.CHAT_MESSAGE_TYPES.OTHER
                     });
                 } else {
@@ -409,32 +409,21 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                 gridPos: getGridPositionKey(tokenDocument.x, tokenDocument.y)
             };
             
-            // For first movement, use the token's previous position as the start point
-            if (leaderMovementPath.length === 0) {
-                const startPosition = {
-                    x: tokenDocument._source.x,
-                    y: tokenDocument._source.y,
-                    gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
-                };
-                leaderMovementPath.push(startPosition);
-                console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
-                
-                // Calculate path from start to current position
-                const newPathPoints = recordLeaderPathStep(startPosition, position);
-                leaderMovementPath.push(...newPathPoints);
-            } else {
-                // Get the last position
-                const lastPosition = leaderMovementPath[leaderMovementPath.length - 1];
-                
-                // If same position, skip
-                if (position.gridPos === lastPosition.gridPos) return;
-                
-                // Record path steps between last position and current position
-                const newPathPoints = recordLeaderPathStep(lastPosition, position);
-                
-                // Add all the new points to the path
-                leaderMovementPath.push(...newPathPoints);
-            }
+            // Clear the path and start fresh for each new leader movement
+            leaderMovementPath = [];
+            
+            // Add the starting position
+            const startPosition = {
+                x: tokenDocument._source.x,
+                y: tokenDocument._source.y,
+                gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
+            };
+            leaderMovementPath.push(startPosition);
+            console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
+            
+            // Calculate path from start to current position
+            const newPathPoints = recordLeaderPathStep(startPosition, position);
+            leaderMovementPath.push(...newPathPoints);
             
             // Keep path at a reasonable length
             if (leaderMovementPath.length > 200) {
