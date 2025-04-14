@@ -1,3 +1,7 @@
-2025/04/14-03:56:07.613 ae90 Recovering log #1603
-2025/04/14-03:56:07.637 ae90 Delete type=0 #1603
-2025/04/14-03:56:07.637 ae90 Delete type=3 #1602
+2025/04/14-09:18:44.018 dcfc Recovering log #1605
+2025/04/14-09:18:44.023 dcfc Delete type=0 #1605
+2025/04/14-09:18:44.024 dcfc Delete type=3 #1604
+2025/04/14-12:08:24.595 dafc Level-0 table #1609: started
+2025/04/14-12:08:24.595 dafc Level-0 table #1609: 0 bytes OK
+2025/04/14-12:08:24.597 dafc Delete type=0 #1607
+2025/04/14-12:08:24.600 dafc Manual compaction at level-0 from 'undefined' @ 72057594037927935 : 1 .. 'undefined' @ 0 : 0; will stop at (end)

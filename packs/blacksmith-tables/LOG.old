@@ -1,3 +1,7 @@
-2025/04/14-03:56:07.644 9654 Recovering log #1598
-2025/04/14-03:56:07.650 9654 Delete type=0 #1598
-2025/04/14-03:56:07.651 9654 Delete type=3 #1597
+2025/04/14-09:18:44.029 dddc Recovering log #1600
+2025/04/14-09:18:44.034 dddc Delete type=0 #1600
+2025/04/14-09:18:44.035 dddc Delete type=3 #1599
+2025/04/14-12:08:24.630 dafc Level-0 table #1604: started
+2025/04/14-12:08:24.630 dafc Level-0 table #1604: 0 bytes OK
+2025/04/14-12:08:24.631 dafc Delete type=0 #1602
+2025/04/14-12:08:24.633 dafc Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)
