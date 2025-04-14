@@ -652,3 +652,4 @@ function trimPathPoints() {
         console.log(`BLACKSMITH | MOVEMENT | Trimmed path to ${leaderMovementPath.length} points`);
     }
 } 
+
