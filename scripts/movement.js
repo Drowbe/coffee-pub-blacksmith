@@ -9,7 +9,7 @@ import { ChatPanel } from "./chat-panel.js";
 // Store the leader's movement path for conga line
 let leaderMovementPath = [];
 // Track tokens following paths with their current position in the path
-const tokenFollowers = new Map(); // token.id -> {marchPosition, moving}
+const tokenFollowers = new Map(); // token.id -> {marchPosition, moving, currentPathIndex}
 // Track which grid positions are currently occupied
 const occupiedGridPositions = new Set(); // "x,y" strings
 // Track the current leader token ID to ensure we never move it
@@ -509,64 +509,6 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
     }
 });
 
-// Process the conga line movement
-function processCongaLine() {
-    // Safety check - if no path points, exit
-    if (leaderMovementPath.length < 2) {
-        console.log('BLACKSMITH | MOVEMENT | Not enough path points for conga movement');
-        return;
-    }
-    
-    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
-    console.log("BLACKSMITH | MOVEMENT | Last 5 path points:", 
-        leaderMovementPath.slice(-5).map(p => `${p.x},${p.y} (${p.gridPos})`));
-    
-    // Even if we're already processing, start a new processing run to ensure all tokens move
-    // This prevents issues where tokens get "stuck" if a second leader move happens quickly
-    processingCongaMovement = true;
-    console.log('BLACKSMITH | MOVEMENT | Processing conga line movement');
-    
-    // Get the leader token
-    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
-    if (!leaderToken) {
-        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting conga movement');
-        processingCongaMovement = false;
-        return;
-    }
-    
-    // Sort tokens by march position
-    const sortedFollowers = Array.from(tokenFollowers.entries())
-        .filter(([tokenId]) => {
-            // Filter out tokens that no longer exist
-            const token = canvas.tokens.get(tokenId);
-            return !!token;
-        })
-        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
-    
-    console.log(`BLACKSMITH | MOVEMENT | Moving ${sortedFollowers.length} followers in order`);
-    
-    // Debug follower info
-    sortedFollowers.forEach(([tokenId, state]) => {
-        const token = canvas.tokens.get(tokenId);
-        console.log(`BLACKSMITH | MOVEMENT | Follower: ${token?.name}, Position: ${state.marchPosition}`);
-        
-        // CRITICAL FIX: Store all original positions BEFORE any tokens move
-        if (token) {
-            tokenOriginalPositions.set(tokenId, { x: token.x, y: token.y });
-            console.log(`BLACKSMITH | MOVEMENT | Stored initial position for ${token.name}: ${token.x},${token.y}`);
-        }
-    });
-    
-    // Make sure the path is long enough for all followers
-    if (leaderMovementPath.length < sortedFollowers.length + 1) {
-        console.log(`BLACKSMITH | MOVEMENT | WARNING: Path length (${leaderMovementPath.length}) is less than followers + 1 (${sortedFollowers.length + 1})`);
-        // Don't return, we'll still try to move what we can
-    }
-    
-    // Move tokens one by one
-    moveNextTokenInLine(sortedFollowers, 0);
-}
-
 // Move a token in the conga line
 function moveNextTokenInLine(sortedFollowers, index) {
     // If we're done with all followers, finish
@@ -587,46 +529,19 @@ function moveNextTokenInLine(sortedFollowers, index) {
         return;
     }
 
-    // Get the target position based on the token's position in line
-    let targetPosition;
-    const gridSize = canvas.grid.size;
-
-    if (state.marchPosition === 1) {
-        // First follower should move to the position right after where the leader started
-        const targetPathPoint = leaderMovementPath[1];  // Use second point in path
-        
-        if (!targetPathPoint) {
-            console.log(`BLACKSMITH | MOVEMENT | Not enough path points for first follower`);
-            moveNextTokenInLine(sortedFollowers, index + 1);
-            return;
-        }
-        
-        targetPosition = targetPathPoint;
-        console.log(`BLACKSMITH | MOVEMENT | First follower moving to first step in path: ${targetPathPoint.x},${targetPathPoint.y}`);
-    } else {
-        // Each subsequent follower moves to their corresponding position in the path
-        // If leader is at the end, first follower should be at position 1, second at 2, etc.
-        const targetIndex = state.marchPosition;
-        
-        if (targetIndex >= leaderMovementPath.length) {
-            console.log(`BLACKSMITH | MOVEMENT | Path not long enough for follower ${token.name}`);
-            moveNextTokenInLine(sortedFollowers, index + 1);
-            return;
-        }
-        
-        targetPosition = leaderMovementPath[targetIndex];
-        console.log(`BLACKSMITH | MOVEMENT | Follower ${token.name} moving to path position ${targetIndex}`);
-    }
+    // Get the target position based on marching order
+    // Token 1 goes to path[1], token 2 to path[2], etc.
+    const targetPosition = leaderMovementPath[state.marchPosition];
 
     if (!targetPosition) {
-        console.log(`BLACKSMITH | MOVEMENT | No target position found for ${token.name}`);
+        console.log(`BLACKSMITH | MOVEMENT | No path point for position ${state.marchPosition}`);
         moveNextTokenInLine(sortedFollowers, index + 1);
         return;
     }
 
     const currentPos = getGridPositionKey(token.x, token.y);
     if (currentPos === targetPosition.gridPos) {
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} already at target position ${targetPosition.gridPos}, moving to next token`);
+        console.log(`BLACKSMITH | MOVEMENT | ${token.name} already at position ${state.marchPosition}`);
         moveNextTokenInLine(sortedFollowers, index + 1);
         return;
     }
@@ -635,26 +550,57 @@ function moveNextTokenInLine(sortedFollowers, index) {
     tokenOriginalPositions.set(token.id, { x: token.x, y: token.y });
     
     // Debug info
-    console.log(`BLACKSMITH | MOVEMENT | Stored original position for ${token.name}: ${token.x},${token.y}`);
+    console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to position ${state.marchPosition}: ${targetPosition.x},${targetPosition.y}`);
     
     // Move the token - add flag to indicate this is a conga line movement
-    console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to position ${targetPosition.x},${targetPosition.y} (position ${state.marchPosition} in line)`);
-    
     token.document.update({
         x: targetPosition.x,
         y: targetPosition.y,
         flags: {
             [MODULE_ID]: {
-                congaMovement: true  // Add a flag to identify this as a conga movement
+                congaMovement: true
             }
         }
     }).then(() => {
-        // Move next token immediately after this one finishes
+        // Move to next token
         moveNextTokenInLine(sortedFollowers, index + 1);
     }).catch(err => {
         console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
         moveNextTokenInLine(sortedFollowers, index + 1);
     });
+}
+
+// Process the conga line movement
+function processCongaLine() {
+    // Safety check - if no path points, exit
+    if (leaderMovementPath.length < 2) {
+        console.log('BLACKSMITH | MOVEMENT | Not enough path points for conga movement');
+        return;
+    }
+    
+    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
+    
+    // Even if we're already processing, start a new processing run to ensure all tokens move
+    processingCongaMovement = true;
+    
+    // Get the leader token
+    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+    if (!leaderToken) {
+        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting conga movement');
+        processingCongaMovement = false;
+        return;
+    }
+    
+    // Sort tokens by march position
+    const sortedFollowers = Array.from(tokenFollowers.entries())
+        .filter(([tokenId]) => {
+            const token = canvas.tokens.get(tokenId);
+            return !!token;
+        })
+        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+    
+    // Move tokens one by one
+    moveNextTokenInLine(sortedFollowers, 0);
 }
 
 // Calculate the marching order based on proximity to a leader token
