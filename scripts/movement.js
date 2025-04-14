@@ -6,6 +6,10 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { ChatPanel } from "./chat-panel.js";
 
+// ================================================================== 
+// ===== STATE VARIABLES ============================================
+// ================================================================== 
+
 // Store the leader's movement path for conga line
 let leaderMovementPath = [];
 // Track tokens following paths with their current position in the path
@@ -24,6 +28,94 @@ let marchingOrderJustDetermined = false;
 let processingCongaMovement = false;
 // Add this near the top with other state variables
 const tokenOriginalPositions = new Map(); // Store original positions separately
+
+// Add state variable for pre-combat movement mode
+let preCombatMovementMode = null;
+
+// ================================================================== 
+// ===== SHARED MOVEMENT FUNCTIONS ==================================
+// ================================================================== 
+
+// Validate if token movement is allowed and return movement context
+function validateMovement(tokenDocument, changes, userId) {
+    const currentMovement = game.settings.get(MODULE_ID, 'movementType');
+    const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
+    const movedByLeader = userId === partyLeaderUserId;
+    const movedByGM = game.users.get(userId)?.isGM;
+    
+    return {
+        currentMovement,
+        partyLeaderUserId,
+        movedByLeader,
+        movedByGM,
+        isValid: (currentMovement === 'follow-movement' || currentMovement === 'conga-movement')
+    };
+}
+
+// Handle leader movement and path recording
+function handleLeaderMovement(token, tokenDocument) {
+    currentLeaderTokenId = token.id;
+    
+    const position = {
+        x: tokenDocument.x,
+        y: tokenDocument.y,
+        gridPos: getGridPositionKey(tokenDocument.x, tokenDocument.y)
+    };
+    
+    const startPosition = {
+        x: tokenDocument._source.x,
+        y: tokenDocument._source.y,
+        gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
+    };
+
+    if (leaderMovementPath.length === 0) {
+        leaderMovementPath.push(startPosition);
+        console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
+    }
+    
+    return { position, startPosition };
+}
+
+// Process follower movement based on movement mode
+function processFollowerMovement(mode, sortedFollowers) {
+    if (!sortedFollowers || sortedFollowers.length === 0) return;
+    
+    if (mode === 'follow-movement') {
+        processFollowMovement(sortedFollowers);
+    } else if (mode === 'conga-movement') {
+        processCongaLine();
+    }
+}
+
+// Get sorted followers array for movement processing
+function getSortedFollowers() {
+    return Array.from(tokenFollowers.entries())
+        .filter(([tokenId]) => {
+            const token = canvas.tokens.get(tokenId);
+            return !!token;
+        })
+        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+}
+
+// Check if a token is being moved as part of automated movement
+function isAutomatedMovement(token, changes) {
+    return tokenFollowers.has(token.id) && 
+           (processingCongaMovement || changes.flags?.[MODULE_ID]?.congaMovement);
+}
+
+// Handle initial setup or GM reordering of tokens
+function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
+    if ((isFirstTimeSetup || isGMMoveOfFollower) && !marchingOrderJustDetermined) {
+        console.log('BLACKSMITH | MOVEMENT | Determining marching order - first setup or GM reordering');
+        calculateMarchingOrder(token);
+        marchingOrderJustDetermined = true;
+        setTimeout(() => marchingOrderJustDetermined = false, 1000);
+    }
+}
+
+// ================================================================== 
+// ===== EXISTING CODE BELOW ========================================
+// ================================================================== 
 
 // Make sure settings are registered right away
 Hooks.once('init', () => {
@@ -109,19 +201,19 @@ export class MovementConfig extends Application {
                 {
                     id: 'combat-movement',
                     name: 'Combat',
-                    description: 'Movement is locked down while combat is active or manually enabled. Players can only move their tokens during their combat turn.',
+                    description: 'Players can only move their tokens during their turn in combat.',
                     icon: 'fa-swords'
                 },
                 {
                     id: 'follow-movement',
                     name: 'Follow',
-                    description: 'Only the party leader can move freely. Other player tokens will loosely follow the path in a marching order set by the distance from them to the leader when the mode is enabled.',
+                    description: 'Only the party leader can move freely. Other player tokens will follow behind the leader in formation.',
                     icon: 'fa-person-walking-arrow-right'
                 },
                 {
                     id: 'conga-movement',
                     name: 'Conga',
-                    description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader in a marching order set by the distance from them to the leader when the mode is enabled.',
+                    description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
                     icon: 'fa-people-pulling'
                 }
             ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
@@ -150,10 +242,10 @@ export class MovementConfig extends Application {
         if (!movementType) return;
 
         // Special handling for conga movement
-        if (movementId === 'conga-movement') {
+        if (movementId === 'conga-movement' || movementId === 'follow-movement') {
             const leader = checkPartyLeader();
             if (!leader) {
-                ui.notifications.warn("No party leader set for Conga Line. Please set a party leader in the leader panel (crown icon).");
+                ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
             } else {
                 // Find the leader's token(s)
                 const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
@@ -174,7 +266,7 @@ export class MovementConfig extends Application {
                     
                     console.log(`BLACKSMITH | MOVEMENT | Setting initial leader token to ${leaderToken.name} (${leaderToken.id})`);
                     
-                    // Reset state for conga line
+                    // Reset state for movement
                     lastLeaderMoveTime = Date.now();
                     marchingOrderJustDetermined = false;
                     
@@ -196,9 +288,9 @@ export class MovementConfig extends Application {
                         }
                     });
                     
-                    // Send notification to all players about conga mode, leader, and marching order
+                    // Send notification to all players about mode and marching order
                     ChatMessage.create({
-                        content: `Movement changed to <strong>CONGA LINE</strong>.<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
+                        content: `Movement changed to <strong>${movementType.name.toUpperCase()}</strong>.<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
                         type: CONST.CHAT_MESSAGE_TYPES.OTHER
                     });
                 } else {
@@ -384,106 +476,59 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
     if (!game.user.isGM) return;
     
     try {
-        const currentMovement = game.settings.get(MODULE_ID, 'movementType');
-        if (currentMovement !== 'conga-movement') return;
-        
-        // Check if this is a token moved by the party leader
-        const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
+        // Validate movement and get context
+        const movementContext = validateMovement(tokenDocument, changes, userId);
+        if (!movementContext.isValid) return;
         
         // Get the token placeable from the document
         const token = canvas.tokens.get(tokenDocument.id);
         if (!token) return;
         
-        // Only process if this token was moved by the party leader
-        // OR if it was moved by GM (to allow reordering)
-        const movedByLeader = userId === partyLeaderUserId;
-        const movedByGM = game.users.get(userId)?.isGM;
-        const isNotLeaderToken = token.id !== currentLeaderTokenId;
+        // Check if this is automated movement (e.g. part of conga line)
+        if (isAutomatedMovement(token, changes)) {
+            console.log(`BLACKSMITH | MOVEMENT | Skipping processing for automated movement of token ${token.name}`);
+            return;
+        }
         
-        if (!movedByLeader && !movedByGM) return;
-        
-        // If token was moved by leader, record the path
-        if (movedByLeader) {
+        // Handle leader movement
+        if (movementContext.movedByLeader) {
             console.log(`BLACKSMITH | MOVEMENT | Leader moved token: ${token.name}`);
             
-            // Set this as the current leader token
-            currentLeaderTokenId = token.id;
+            const { position, startPosition } = handleLeaderMovement(token, tokenDocument);
             
-            // Get the position
-            const position = {
-                x: tokenDocument.x,
-                y: tokenDocument.y,
-                gridPos: getGridPositionKey(tokenDocument.x, tokenDocument.y)
-            };
-            
-            // Get the starting position
-            const startPosition = {
-                x: tokenDocument._source.x,
-                y: tokenDocument._source.y,
-                gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
-            };
-
-            // If this is the first movement, initialize the path
-            if (leaderMovementPath.length === 0) {
-                leaderMovementPath.push(startPosition);
-                console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
-            }
-            
-            // Calculate and add new path points to the front
+            // Calculate and add new path points
             const newPathPoints = recordLeaderPathStep(startPosition, position);
             prependToPath(newPathPoints);
-            
-            // Trim any old points we don't need anymore
             trimPathPoints();
-
-            // Debug log path
-            console.log(`BLACKSMITH | MOVEMENT | Leader path length: ${leaderMovementPath.length}`);
             
-            // Important fix: Always trigger follower movement when leader moves
-            console.log(`BLACKSMITH | MOVEMENT | Leader moved - triggering follower movement. Path length: ${leaderMovementPath.length}`);
-            
-            // Critical fix: If tokenFollowers is empty, calculate the marching order first
+            // If no followers yet, calculate initial marching order
             if (tokenFollowers.size === 0) {
                 console.log('BLACKSMITH | MOVEMENT | No followers yet, calculating initial marching order');
                 calculateMarchingOrder(token);
             }
             
-            // Schedule the follower movement on a slight delay to allow the leader position to update fully
+            // Process follower movement after a short delay
             setTimeout(() => {
                 if (leaderMovementPath.length >= 2) {
-                    console.log('BLACKSMITH | MOVEMENT | Initiating conga line movement after leader moved');
-                    processCongaLine();
+                    console.log(`BLACKSMITH | MOVEMENT | Initiating ${movementContext.currentMovement} after leader moved`);
+                    const sortedFollowers = getSortedFollowers();
+                    processFollowerMovement(movementContext.currentMovement, sortedFollowers);
                 } else {
                     console.log('BLACKSMITH | MOVEMENT | Not enough path points to move followers');
                 }
             }, 100);
             
-            // CRITICAL: Never recalculate marching order after a leader move
             return;
         }
         
-        // ONLY determine marching order if:
-        // 1. Starting conga line (tokenFollowers is empty)
-        // 2. GM manually moved a NON-LEADER token for reordering
-        const isGMMoveOfFollower = movedByGM && !movedByLeader && isNotLeaderToken;
+        // Handle GM reordering or initial setup
+        const isGMMoveOfFollower = movementContext.movedByGM && !movementContext.movedByLeader && token.id !== currentLeaderTokenId;
         const isFirstTimeSetup = tokenFollowers.size === 0;
         
-        // CRITICAL FIX: Also check if this was a programmatically moved follower token in the conga line
-        // If it's a token in the followers list that wasn't moved by GM directly, skip ordering
-        const isFollowerBeingProcessed = tokenFollowers.has(token.id) && (processingCongaMovement || changes.flags?.[MODULE_ID]?.congaMovement);
-        if (isFollowerBeingProcessed) {
-            console.log(`BLACKSMITH | MOVEMENT | Skipping marching order calculation for token ${token.name} - part of conga movement`);
-            return; // Skip processing - this is a token being moved as part of the conga line
-        }
+        handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower);
         
-        if ((isFirstTimeSetup || isGMMoveOfFollower) && !marchingOrderJustDetermined) {
-            console.log('BLACKSMITH | MOVEMENT | Determining marching order - first setup or GM reordering');
-            calculateMarchingOrder(token);
-            marchingOrderJustDetermined = true;
-            setTimeout(() => marchingOrderJustDetermined = false, 1000);
-        }
     } catch (err) {
-        console.error('BLACKSMITH | MOVEMENT | Error in conga movement:', err);
+        console.error('BLACKSMITH | MOVEMENT | Error in movement processing:', err);
     }
 });
 
@@ -667,5 +712,116 @@ function trimPathPoints() {
     if (maxReachedPosition > 0) {
         leaderMovementPath = leaderMovementPath.slice(0, maxReachedPosition + 1);
     }
-} 
+}
+
+// Process follow movement - tokens follow in formation behind leader
+function processFollowMovement(sortedFollowers) {
+    // Safety check - if no path points, exit
+    if (leaderMovementPath.length < 2) {
+        console.log('BLACKSMITH | MOVEMENT | Not enough path points for follow movement');
+        return;
+    }
+    
+    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
+    
+    // Set processing flag
+    processingCongaMovement = true;
+    
+    // Get the leader token
+    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+    if (!leaderToken) {
+        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting follow movement');
+        processingCongaMovement = false;
+        return;
+    }
+    
+    // Move tokens one by one
+    moveNextTokenInLine(sortedFollowers, 0);
+}
+
+// Add hooks for combat automation
+Hooks.on('createCombat', async (combat) => {
+    try {
+        if (!game.user.isGM) return;
+        
+        // Store current movement mode
+        preCombatMovementMode = game.settings.get(MODULE_ID, 'movementType');
+        console.log(`BLACKSMITH | MOVEMENT | Combat started. Storing previous mode: ${preCombatMovementMode}`);
+        
+        // Get the previous mode's name
+        const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
+        
+        // Switch to combat movement mode
+        if (preCombatMovementMode !== 'combat-movement') {
+            await game.settings.set(MODULE_ID, 'movementType', 'combat-movement');
+            
+            // Notify players of automatic mode change
+            ChatMessage.create({
+                content: `<strong>Movement switched to Combat Mode.</strong><br>${prevModeType.name} Mode will be restored when combat ends.`,
+                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+            });
+            
+            // Update UI
+            const movementIcon = document.querySelector('.movement-icon');
+            const movementLabel = document.querySelector('.movement-label');
+            
+            if (movementIcon) movementIcon.className = 'fas fa-swords movement-icon';
+            if (movementLabel) movementLabel.textContent = 'Combat';
+            
+            // Notify other clients
+            game.socket.emit(`module.${MODULE_ID}`, {
+                type: 'movementChange',
+                data: {
+                    movementId: 'combat-movement',
+                    name: 'Combat'
+                }
+            });
+        }
+    } catch (err) {
+        console.error('BLACKSMITH | MOVEMENT | Error in combat start handling:', err);
+    }
+});
+
+Hooks.on('deleteCombat', async (combat) => {
+    try {
+        if (!game.user.isGM) return;
+        if (!preCombatMovementMode) return;
+        
+        console.log(`BLACKSMITH | MOVEMENT | Combat ended. Restoring previous mode: ${preCombatMovementMode}`);
+        
+        // Get the movement type info
+        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
+        if (!movementType) return;
+        
+        // Restore previous movement mode
+        await game.settings.set(MODULE_ID, 'movementType', preCombatMovementMode);
+        
+        // Notify players
+        ChatMessage.create({
+            content: `<strong>Combat ended - Movement restored to ${movementType.name}</strong>`,
+            type: CONST.CHAT_MESSAGE_TYPES.OTHER
+        });
+        
+        // Update UI
+        const movementIcon = document.querySelector('.movement-icon');
+        const movementLabel = document.querySelector('.movement-label');
+        
+        if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+        if (movementLabel) movementLabel.textContent = movementType.name;
+        
+        // Notify other clients
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'movementChange',
+            data: {
+                movementId: preCombatMovementMode,
+                name: movementType.name
+            }
+        });
+        
+        // Clear the stored mode
+        preCombatMovementMode = null;
+    } catch (err) {
+        console.error('BLACKSMITH | MOVEMENT | Error in combat end handling:', err);
+    }
+}); 
 
