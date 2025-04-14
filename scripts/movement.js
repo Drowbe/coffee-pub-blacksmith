@@ -409,26 +409,30 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                 gridPos: getGridPositionKey(tokenDocument.x, tokenDocument.y)
             };
             
-            // Clear the path and start fresh for each new leader movement
-            leaderMovementPath = [];
-            
-            // Add the starting position
+            // Get the starting position
             const startPosition = {
                 x: tokenDocument._source.x,
                 y: tokenDocument._source.y,
                 gridPos: getGridPositionKey(tokenDocument._source.x, tokenDocument._source.y)
             };
-            leaderMovementPath.push(startPosition);
-            console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
-            
-            // Calculate path from start to current position
-            const newPathPoints = recordLeaderPathStep(startPosition, position);
-            leaderMovementPath.push(...newPathPoints);
-            
-            // Keep path at a reasonable length
-            if (leaderMovementPath.length > 200) {
-                leaderMovementPath.splice(0, leaderMovementPath.length - 200);
+
+            // If this is the first movement, initialize the path
+            if (leaderMovementPath.length === 0) {
+                leaderMovementPath.push(startPosition);
+                console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
             }
+            
+            // Calculate and add new path points to the front
+            const newPathPoints = recordLeaderPathStep(startPosition, position);
+            prependToPath(newPathPoints);
+            
+            // Trim any old points we don't need anymore
+            trimPathPoints();
+
+            // Debug log path
+            console.log(`BLACKSMITH | MOVEMENT | Leader path length: ${leaderMovementPath.length}`);
+            console.log(`BLACKSMITH | MOVEMENT | Last 5 path points:`, 
+                leaderMovementPath.slice(0, 5).map(p => `${p.x},${p.y} (${p.gridPos})`));
             
             // Important fix: Always trigger follower movement when leader moves
             console.log(`BLACKSMITH | MOVEMENT | Leader moved - triggering follower movement. Path length: ${leaderMovementPath.length}`);
@@ -684,4 +688,21 @@ function calculateMarchingOrder(leaderToken) {
         });
         console.log(`BLACKSMITH | MOVEMENT | Set ${followerToken.name} to initial position ${index + 1}`);
     });
+}
+
+// Function to prepend new points to the path array
+function prependToPath(newPoints) {
+    leaderMovementPath.unshift(...newPoints);
+    console.log(`BLACKSMITH | MOVEMENT | Added ${newPoints.length} new points to path. New path length: ${leaderMovementPath.length}`);
+}
+
+// Function to trim old points from the path that are no longer needed
+function trimPathPoints() {
+    // Find the highest march position (last follower)
+    const maxPosition = Math.max(...Array.from(tokenFollowers.values()).map(f => f.marchPosition));
+    // Keep points up to that position plus one for safety
+    if (leaderMovementPath.length > maxPosition + 1) {
+        leaderMovementPath = leaderMovementPath.slice(0, maxPosition + 1);
+        console.log(`BLACKSMITH | MOVEMENT | Trimmed path to ${leaderMovementPath.length} points`);
+    }
 } 
