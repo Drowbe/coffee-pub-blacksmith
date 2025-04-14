@@ -521,9 +521,10 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             return;
         }
         
-        // Handle leader movement
-        if (movementContext.movedByLeader) {
-            console.log(`BLACKSMITH | MOVEMENT | Leader moved token: ${token.name}`);
+        // Handle leader movement - either by leader or GM moving leader's token
+        const isLeaderToken = token.id === currentLeaderTokenId;
+        if (movementContext.movedByLeader || (isLeaderToken && movementContext.movedByGM)) {
+            console.log(`BLACKSMITH | MOVEMENT | Leader token moved by ${movementContext.movedByLeader ? 'leader' : 'GM'}: ${token.name}`);
             
             const { position, startPosition } = handleLeaderMovement(token, tokenDocument);
             
