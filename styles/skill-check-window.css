@@ -358,11 +358,14 @@
     flex-direction: column;
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
+    gap: 2px;
+    margin-top: 6px;
 }
+
+
+
 .cpb-skill-check-actor {
-    margin: 2px 0;
+    margin: 0px 0;
     flex: 1;
     min-width: 120px;
 }
@@ -648,7 +651,7 @@
     border: 1px solid #999;
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
-    margin-bottom: 4px;
+    margin-bottom: 0px;
 }
 .cpb-roll-result.pending-roll .actor-name,
 .cpb-roll-result.pending-roll .cpb-actor-name {

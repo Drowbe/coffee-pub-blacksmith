@@ -14,19 +14,63 @@
     margin-bottom: 0.5em;
 }
 
-/* Base Card Styles */
-.round-summary, .round-mvp, .turn-details, .party-stats-section {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 5px;
-    padding: 0.5em;
-    margin-bottom: 0;
-}
-
 /* Common Icon Styles */
 .blacksmith-card .fas {
     width: 14px;
     text-align: center;
+    margin-right: 4px;
+    padding-top: 2px;
 }
+
+.blacksmith-card.theme-default {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 0px;
+}
+
+
+.blacksmith-card.theme-orange {
+    background-color: rgba(247, 140, 1, 0.1);
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 0px;
+}
+
+.blacksmith-card.theme-red {
+    background-color: rgba(118, 31, 19, 0.1);
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 0px;
+}
+
+.blacksmith-card.theme-blue {
+    background-color: rgba(0, 120, 212, 0.1);
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 0px;
+}
+
+.blacksmith-card.theme-default p,
+.blacksmith-card.theme-orange p,
+.blacksmith-card.theme-red p,
+.blacksmith-card.theme-blue p {
+    color: #594a3c;
+    text-shadow: none;
+    margin: 0;
+    padding: 0;
+}
+
+.blacksmith-card.theme-blue i,
+.blacksmith-card i {
+    margin-right: 0;
+}
+
+/* SECTIONS */
 
 /* Section Headers */
 .section-header {
@@ -74,6 +118,24 @@
     margin: 2px 0;
 }
 
+
+.section-label {
+    font-weight: bold;
+    color: var(--color-text-dark-primary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+}
+
+.section-description {
+    font-style: italic;
+    color: var(--color-text-dark-secondary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+    border-left: 3px solid var(--color-border-light-tertiary);
+}
+
 /* Collapsible Sections */
 .blacksmith-card .section-header.collapsible {
     cursor: pointer;
@@ -93,6 +155,57 @@
 .blacksmith-card .section-header .collapse-indicator {
     float: right;
 }
+
+
+/* Data Tables */
+.section-table {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.00);
+    border: 0px solid rgba(0, 0, 0, 0.07);
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.row-label {
+    font-weight: 400;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0px 0;
+    padding: 4px 6px;
+    font-size: 1.0em;
+    text-align: right;
+    border-radius: 4px 0px 0px 4px;
+}   
+
+.row-content {
+    font-style: inherit;
+    font-weight: 600;
+    font-size: 1.0em;
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0px 0;
+    padding: 4px 6px;
+    border-radius: 0px 4px 4px 0px;
+}
+
+
+/* ------------------------------------ */
+/* --- CHAT CARDS - TURNS  ------------ */
+/* ------------------------------------ */
+
+
+
+/* Base Card Styles */
+.round-summary, .round-mvp, .turn-details, .party-stats-section {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 0;
+}
+
 
 /* ------------------------------------ */
 /* --- TIMER MESSAGES ----------------- */
@@ -441,68 +554,11 @@
     color: #594a3c;
 }
 
-.blacksmith-card.theme-orange {
-    background-color: rgba(247, 140, 1, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-}
-
-.blacksmith-card.theme-red {
-    background-color: rgba(118, 31, 19, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-}
-
-.blacksmith-card.theme-blue {
-    background-color: rgba(0, 120, 212, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-}
-
-.blacksmith-card.theme-orange p,
-.blacksmith-card.theme-red p,
-.blacksmith-card.theme-blue p {
-    color: #594a3c;
-    text-shadow: none;
-    margin: 0;
-    padding: 0;
-}
-
-.blacksmith-card.theme-blue i,
-.blacksmith-card i {
-    margin-right: 0;
-}
-
-/* THEME DEFAULT */
 
 
-.blacksmith-card.theme-default {
-    background: rgba(0, 0, 0, 0.05);
-    border: 0px solid rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-    padding: 0.5em;
-    margin-bottom: 0.5em;
-}
 
-.section-label {
-    font-weight: bold;
-    color: var(--color-text-dark-primary);
-    margin: 4px 0;
-    padding: 4px 8px;
-    font-size: var(--font-size-13);
-}
 
-.section-description {
-    font-style: italic;
-    color: var(--color-text-dark-secondary);
-    margin: 4px 0;
-    padding: 4px 8px;
-    font-size: var(--font-size-13);
-    border-left: 3px solid var(--color-border-light-tertiary);
-}
+
 
 
 /* New namespaced styles */

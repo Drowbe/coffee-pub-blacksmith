@@ -98,7 +98,7 @@
         {{!-- Contested Roll --}}  
         {{#if hasMultipleGroups}}
             {{#if contestedRoll}}
-                <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Contest Result</div>
+                {{!-- <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Contest Result</div> --}} 
                 {{#if contestedRoll.isTie}}
                     <div class="cpb-roll-result-tie-container" title="({{contestedRoll.group1Highest}} vs {{contestedRoll.group2Highest}})">
                         <div class="cpb-roll-result-tie-text"><i class="fas fa-shield-exclamation"></i> Stalemate</div>
@@ -123,7 +123,7 @@
             {{#if dc}}
                 {{log "Group Roll Data:" allRollsComplete successCount totalCount groupSuccess}}
                 {{#if allRollsComplete}}
-                    <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Group Result</div>
+                    {{!-- <div class="cpb-card-section-header"><i class="fas fa-ballot"></i> Group Result</div> --}} 
                     {{#if groupSuccess}}
                         <div class="cpb-roll-result-success-container">
                             <div class="cpb-roll-result-success-text" title="({{successCount}}/{{totalCount}} succeeded)">SUCCESS</div>
@@ -139,7 +139,7 @@
         {{/if}}
 
         {{#if skillDescription}}
-        <div class="cpb-card-section-header"><i class="fas fa-book" title="Skill Details"></i> About this Roll</div>
+        <div class="cpb-card-section-header">About this Roll</div>
         <div class="cpb-skill-description">
             <p>{{{skillDescription}}}</p>
             {{#if skillLink}}<p>{{{skillLink}}}</p>{{/if}}

@@ -205,32 +205,32 @@ export class MovementConfig extends Application {
             MovementTypes: [
                 {
                     id: 'normal-movement',
-                    name: 'Normal',
-                    description: 'Players can move their tokens on the canvas at will',
-                    icon: 'fa-person-running',
+                    name: 'Free',
+                    description: 'All party members can move their tokens at will without limitations but potential consequences. Move wisely.',
+                    icon: 'fa-person-walking',
                 },
                 {
                     id: 'no-movement',
-                    name: 'None',
-                    description: 'Players can not move tokens at all on the canvas.',
+                    name: 'Locked',
+                    description: 'Movement is completly locked down for all party members.',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
                     name: 'Combat',
-                    description: 'Players can only move their tokens during their turn in combat.',
+                    description: 'Movement is locked down while combat is active or manually enabled. Players can only move their tokens during their turn in combat.',
                     icon: 'fa-swords'
                 },
                 {
                     id: 'follow-movement',
                     name: 'Follow',
-                    description: 'Only the party leader can move freely. Other player tokens will follow behind the leader in formation.',
+                    description: 'The party leader moves freely while the reamining party loosely follows them in line.',
                     icon: 'fa-person-walking-arrow-right'
                 },
                 {
                     id: 'conga-movement',
                     name: 'Conga',
-                    description: 'Only the party leader can move freely. Other player tokens will follow the exact path taken by the leader.',
+                    description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
                     icon: 'fa-people-pulling'
                 }
             ].filter(type => !type.gmOnly || isGM)
@@ -300,28 +300,53 @@ export class MovementConfig extends Application {
                     // Force calculation of initial marching order
                     calculateMarchingOrder(leaderToken);
                     
-                    // Get marching order as text for the chat message
-                    let marchingOrderText = `<li><strong>Leader:</strong> ${leaderToken.name}</li>`;
-                    
-                    // Sort followers by march position
-                    const sortedFollowers = Array.from(tokenFollowers.entries())
-                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
-                    
-                    // Add each follower to the text
-                    sortedFollowers.forEach(([tokenId, state]) => {
-                        const token = canvas.tokens.get(tokenId);
-                        if (token) {
-                            marchingOrderText += `<li><strong>Position ${state.marchPosition}:</strong> ${token.name}</li>`;
-                        }
-                    });
-
                     // Get current spacing
                     const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
-                    const spacingText = spacing > 0 ? `<br>Token Spacing: ${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
+                    const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
                     
-                    // Send notification to all players about mode and marching order
+                    // Create marching order array for chat card
+                    const marchingOrder = [{
+                        name: leaderToken.name,
+                        position: "Point"
+                    }];
+                    
+                    // Add followers to marching order
+                    Array.from(tokenFollowers.entries())
+                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition)
+                        .forEach(([tokenId, state], index, array) => {
+                            const token = canvas.tokens.get(tokenId);
+                            if (token) {
+                                let position;
+                                if (index === 0) {
+                                    position = "Vanguard";
+                                } else if (index === array.length - 1) {
+                                    position = "Rear Guard";
+                                } else {
+                                    position = "Center";
+                                }
+                                marchingOrder.push({
+                                    name: token.name,
+                                    position: position
+                                });
+                            }
+                        });
+
+                    // For conga/follow movement
+                    const templateData = {
+                        isPublic: true,
+                        isMovementChange: true,
+                        movementIcon: movementType.icon,
+                        movementLabel: movementType.name,
+                        movementDescription: movementType.description,
+                        movementMarchingOrder: marchingOrder,
+                        spacingText: spacingText    
+                    };
+
+                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
+
+                    // Send chat message
                     ChatMessage.create({
-                        content: `Movement changed to <strong>${movementType.name.toUpperCase()}</strong>.${spacingText}<br><br><strong>MARCHING ORDER</strong><br><ul>${marchingOrderText}</ul>`,
+                        content: content,
                         type: CONST.CHAT_MESSAGE_TYPES.OTHER
                     });
                 } else {
@@ -329,9 +354,20 @@ export class MovementConfig extends Application {
                 }
             }
         } else {
-            // For other movement types, just send notification to everyone
+            // For other movement types
+            const basicTemplateData = {
+                isPublic: true,
+                isMovementChange: true,
+                movementIcon: movementType.icon,
+                movementLabel: movementType.name,
+                movementDescription: movementType.description
+            };
+
+            const basicContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', basicTemplateData);
+
+            // Send chat message
             ChatMessage.create({
-                content: `<strong>Movement mode changed to ${movementType.name}</strong>`,
+                content: basicContent,
                 type: CONST.CHAT_MESSAGE_TYPES.OTHER
             });
         }
@@ -818,14 +854,26 @@ Hooks.on('createCombat', async (combat) => {
         
         // Get the previous mode's name
         const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
+        // Get the combat mode type
+        const combatModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'combat-movement');
         
         // Switch to combat movement mode
         if (preCombatMovementMode !== 'combat-movement') {
             await game.settings.set(MODULE_ID, 'movementType', 'combat-movement');
             
-            // Notify players of automatic mode change
+            // For combat start
+            const combatTemplateData = {
+                isPublic: true,
+                isMovementChange: true,
+                movementIcon: 'fa-swords',
+                movementLabel: 'Combat',
+                movementDescription: `When combat ends <strong>${prevModeType.name} Mode</strong> will be restored.<br><br>${combatModeType.description}`
+            };
+
+            const combatContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', combatTemplateData);
+
             ChatMessage.create({
-                content: `<strong>Movement switched to Combat Mode.</strong><br>${prevModeType.name} Mode will be restored when combat ends.`,
+                content: combatContent,
                 type: CONST.CHAT_MESSAGE_TYPES.OTHER
             });
             
@@ -864,9 +912,19 @@ Hooks.on('deleteCombat', async (combat) => {
         // Restore previous movement mode
         await game.settings.set(MODULE_ID, 'movementType', preCombatMovementMode);
         
-        // Notify players
+        // For combat end
+        const endCombatTemplateData = {
+            isPublic: true,
+            isMovementChange: true,
+            movementIcon: movementType.icon,
+            movementLabel: movementType.name,
+            movementDescription: `${movementType.name} Mode restored.<br><br>${movementType.description}`
+        };
+
+        const endCombatContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', endCombatTemplateData);
+
         ChatMessage.create({
-            content: `<strong>Combat ended - Movement restored to ${movementType.name}</strong>`,
+            content: endCombatContent,
             type: CONST.CHAT_MESSAGE_TYPES.OTHER
         });
         

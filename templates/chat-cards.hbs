@@ -1,5 +1,6 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 {{#if isPublic}}
+    {{!-- PUBLIC MESSAGES --}}
     {{#if isPlanningStart}}
         <div class="blacksmith-card theme-blue">
             <div class="section-header">
@@ -71,7 +72,7 @@
     {{else if isRoundAnnouncement}}
         <div class="blacksmith-card theme-default">
             <div class="section-header">
-                <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Has Started
+                <i class="fas fa-swords"></i> Round {{roundNumber}} Has Started
             </div>
             <div class="section-content">
             </div>
@@ -85,34 +86,54 @@
                 <p>{{tokenName}} has been defeated and dropped their belongings!</p>
             </div>
         </div>
+    {{else if isMovementChange}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                <i class="fas {{movementIcon}}"></i> {{movementLabel}} Mode Active
+            </div>
+            <div class="section-content">
+                <p>{{{movementDescription}}}</p>
+                {{#if movementMarchingOrder}}
+                    <div class="section-table">
+                        {{#each movementMarchingOrder}}
+                            <div class="row-label">{{this.position}}</div><div class="row-content">{{this.name}}</div>
+                        {{/each}}
+                    </div>
+                    {{#if spacingText}}
+                        <p><b>Spacing</b>: {{spacingText}}</p><br>
+                    {{/if}}
+                    <p>Marching order is determined when the {{movementLabel}} Mode is activated by the realitive distance between the leader and each party member.</p>
+                {{/if}}
+            </div>
+        </div>
     {{else}}
         <div class="blacksmith-card theme-default">
             <div class="section-header">
-                <i class="fa-solid fa-crown"></i> {{leaderName}} Appointed
+                <i class="fas fa-crown"></i> {{leaderName}} Appointed
             </div>
             <div class="section-content">
                 <p>All hail <strong>{{leaderName}}</strong>, party leader for this session!</p>
                 <ul>
-                    <li>The leader has access to leader-only tools.</li>
+                    <li>{{leaderName}} has access to leader-only tools.</li>
                     <li>They facilitate decision-making and pace.</li>
-                    <li>{{leaderName}} makes the final call.</li>
+                    <li>They are the Point when movement mode is Follow or Conga.</li>
                 </ul>
             </div>
         </div>
     {{/if}}
 {{else}}
+    {{!-- PRIVATE MESSAGES --}}
     <div class="blacksmith-card theme-default">
         <div class="section-header">
-            <i class="fa-solid fa-crown"></i> Congratulations, Party Leader!
+            <i class="fas fa-crown"></i> Congratulations, Party Leader!
         </div>
         <div class="section-content">
-            <p>The party has chosen you to be their leader. Be honored and humbled by this trust.</p>
+            <p>The party has chosen you to be their leader, hooray!</p>
             <ul>
-                <li>Help guide them through decisions.</li>
-                <li>Keep things moving when discussion stalls</li>
-                <li>Ensure everyone gets a chance to contribute, but make the final call.</li>
+                <li>Help guide them through decisions, but make the final call.</li>
+                <li>Keep things moving when discussion stalls.</li>
+                <li>You are on Point when movement mode is Follow or Conga.</li>
             </ul>
-            <p>Now is the time to decide just what kind of leader you want to be.</p>
         </div>
     </div>
 {{/if}} 
