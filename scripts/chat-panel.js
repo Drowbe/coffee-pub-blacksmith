@@ -297,7 +297,15 @@ class ChatPanel {
         if (!voteIcon) return;
 
         const isGM = game.user.isGM;
-        const isLeader = game.user.id === game.settings.get(MODULE_ID, 'partyLeader');
+        // Add a try-catch block to handle cases where the setting might not be available
+        let isLeader = false;
+        try {
+            const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+            isLeader = game.user.id === leaderId;
+        } catch (error) {
+            // If we can't access the setting, assume not leader
+            isLeader = false;
+        }
         const canVote = isGM || isLeader;
 
         if (canVote) {
@@ -391,7 +399,14 @@ class ChatPanel {
     }
 
     static async loadLeader() {
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        let leaderId = null;
+        try {
+            leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        } catch (error) {
+            // If we can't access the setting, assume no leader
+            leaderId = null;
+        }
+        
         postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
         
         if (leaderId) {
