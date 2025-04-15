@@ -1,10 +1,11 @@
 # Coffee Pub Blacksmith
 
-![Foundry v12](https://img.shields.io/badge/foundry-v12-green)
 ![Latest Release](https://img.shields.io/github/v/release/Drowbe/coffee-pub-blacksmith)
-![MIT License](https://img.shields.io/badge/license-MIT-blue)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Drowbe/coffee-pub-blacksmith/release.yml)
 ![GitHub all releases](https://img.shields.io/github/downloads/Drowbe/coffee-pub-blacksmith/total)
+![Foundry v12](https://img.shields.io/badge/foundry-v12-green)
+![MIT License](https://img.shields.io/badge/license-MIT-blue)
+
 
 ## Disclaimer
 
