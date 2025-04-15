@@ -1,3 +1,7 @@
-2025/04/14-12:08:55.011 dcfc Recovering log #1603
-2025/04/14-12:08:55.017 dcfc Delete type=0 #1603
-2025/04/14-12:08:55.018 dcfc Delete type=3 #1601
+2025/04/14-19:34:46.577 181b8 Recovering log #1606
+2025/04/14-19:34:46.582 181b8 Delete type=0 #1606
+2025/04/14-19:34:46.582 181b8 Delete type=3 #1605
+2025/04/15-09:28:59.088 1ad00 Level-0 table #1610: started
+2025/04/15-09:28:59.089 1ad00 Level-0 table #1610: 0 bytes OK
+2025/04/15-09:28:59.090 1ad00 Delete type=0 #1608
+2025/04/15-09:28:59.097 1ad00 Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)
