@@ -1,7 +1,3 @@
-2025/04/14-09:18:44.007 db70 Recovering log #1617
-2025/04/14-09:18:44.012 db70 Delete type=0 #1617
-2025/04/14-09:18:44.013 db70 Delete type=3 #1616
-2025/04/14-12:08:24.597 dafc Level-0 table #1621: started
-2025/04/14-12:08:24.597 dafc Level-0 table #1621: 0 bytes OK
-2025/04/14-12:08:24.599 dafc Delete type=0 #1619
-2025/04/14-12:08:24.600 dafc Manual compaction at level-0 from '!journal!0pyQb2FdD1sOVZYs' @ 72057594037927935 : 1 .. '!journal.pages!eyKQu99qZ7K7jLQR.o7G1ue0VK2gDrmkB' @ 0 : 0; will stop at (end)
+2025/04/14-12:08:54.988 dddc Recovering log #1620
+2025/04/14-12:08:54.994 dddc Delete type=0 #1620
+2025/04/14-12:08:54.995 dddc Delete type=3 #1618
