@@ -30,6 +30,50 @@ The Blacksmith Module serves as the foundational framework for the entire Coffee
 - **MVP System**: Identifies outstanding player performances with detailed scoring
 - **Party Performance**: Comprehensive breakdown of party-wide combat effectiveness
 
+### Skill Check System
+- **Party-Wide Rolls**:
+  - Quick skill check dialog for group rolls
+  - Support for contested rolls between groups
+  - Customizable DC display and success/failure indicators
+  - Group success tracking for multiple participants
+- **Enhanced Roll Information**:
+  - Detailed roll results with formula display
+  - Skill descriptions and rule references
+  - Quick roll context menu for common checks
+  - Visual success/failure indicators
+- **Contest System**:
+  - Group vs group contest support
+  - Stalemate detection and display
+  - Party-wide roll success tracking
+  - Visual contest result indicators
+
+### Movement Controls
+- **Movement Modes**:
+  - Normal movement
+  - No movement
+  - Combat movement
+  - Follow movement
+  - Conga line movement
+- **Control Features**:
+  - Movement configuration dialog
+  - Visual indicators for current mode
+  - GM-only movement mode control
+  - Persistent movement settings
+  - Quick access movement controls
+
+### Chat Card System
+- **Enhanced Layout**:
+  - Better visual hierarchy for roll results
+  - Improved success/failure indicators
+  - Detailed roll information tooltips
+  - Group vs group contest visualization
+  - Customizable card spacing and margins
+- **Information Display**:
+  - Clear skill check results
+  - Contest outcome visualization
+  - Party-wide success tracking
+  - Enhanced tooltips and details
+
 ### Player Statistics
 - **Individual Performance Tracking**: 
   - Attack success rates and accuracy percentages

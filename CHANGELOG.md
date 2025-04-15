@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.12] - 2025-03-25 - Rolls and Movement Controls
+
+### Added
+- **Skill Check System**
+  - New skill check dialog for quick party-wide rolls
+  - Support for contested rolls between groups
+  - Customizable DC display and success/failure indicators
+  - Quick roll context menu for common skill checks
+  - Detailed roll results with formula display
+  - Group success tracking for multiple participants
+  - Skill descriptions and rule references
+
+- **Movement Controls**
+  - New movement configuration dialog
+  - Multiple movement modes:
+    - Normal movement
+    - No movement
+    - Combat movement
+    - Follow movement
+    - Conga line movement
+  - Visual indicators for current movement mode
+  - GM-only movement mode control
+  - Persistent movement settings
+
+- **Chat Card Improvements**
+  - Enhanced skill check card layout
+  - Better visual hierarchy for roll results
+  - Improved success/failure indicators
+  - Detailed roll information tooltips
+  - Group vs group contest visualization
+  - Stalemate detection and display
+  - Party-wide roll success tracking
+
+- **UI Enhancements**
+  - New movement control icon in chat panel
+  - Quick access to skill check dialog
+  - Improved chat card spacing and margins
+  - Better visual feedback for roll results
+  - Enhanced tooltips and information display
+  - Streamlined interface for GM controls
+
+### Changed
+- Updated chat panel layout to accommodate new features
+- Improved error handling for settings access
+- Enhanced leader selection interface
+- Better synchronization of movement states
+- Optimized performance for multiple simultaneous rolls
+
+### Fixed
+- Settings access error handling
+- Leader selection synchronization
+- Movement state persistence
+- Chat card rendering issues
+- Roll result calculation accuracy
+
 ## [1.0.11] - 2025-03-25 - GM Tools added
 
 ### Added
