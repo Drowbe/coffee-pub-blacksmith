@@ -106,7 +106,7 @@
                 {{/if}}
             </div>
         </div>
-    {{else}}
+    {{else if isLeaderChange}}
         <div class="blacksmith-card theme-default">
             <div class="section-header">
                 <i class="fas fa-crown"></i> {{leaderName}} Appointed
@@ -120,20 +120,56 @@
                 </ul>
             </div>
         </div>
+    {{else}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                {{#if strCardTitle}}
+                    <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+                {{else}}
+                    Card Error
+                {{/if}}
+            </div>
+            <div class="section-content">
+                {{#if strCardContent}}
+                    {{{strCardContent}}}
+                {{else}}
+                    A public card was generated with no content. What's up with that?
+                {{/if}}
+            </div>
+        </div>
     {{/if}}
 {{else}}
     {{!-- PRIVATE MESSAGES --}}
-    <div class="blacksmith-card theme-default">
-        <div class="section-header">
-            <i class="fas fa-crown"></i> Congratulations, Party Leader!
+    {{#if isLeaderChange}}
+        <div class="blacksmith-card theme-default">
+            <div class="section-header">
+                <i class="fas fa-crown"></i> Congratulations, Party Leader!
+            </div>
+            <div class="section-content">
+                <p>The party has chosen you to be their leader, hooray!</p>
+                <ul>
+                    <li>Help guide them through decisions, but make the final call.</li>
+                    <li>Keep things moving when discussion stalls.</li>
+                    <li>You are on Point when movement mode is Follow or Conga.</li>
+                </ul>
+            </div>
         </div>
-        <div class="section-content">
-            <p>The party has chosen you to be their leader, hooray!</p>
-            <ul>
-                <li>Help guide them through decisions, but make the final call.</li>
-                <li>Keep things moving when discussion stalls.</li>
-                <li>You are on Point when movement mode is Follow or Conga.</li>
-            </ul>
+    {{else}}
+        <div class="blacksmith-card theme-default"></div>
+            <div class="section-header">
+                {{#if strCardTitle}}
+                    <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+                {{else}}
+                    <i class="fas fa-seal-exclamation"></i> Card Error
+                {{/if}}
+            </div>
+            <div class="section-content">
+                {{#if strCardContent}}
+                    {{{strCardContent}}}
+                {{else}}
+                    A private card was generated with no content. What's up with that?
+                {{/if}}
+            </div>
         </div>
-    </div>
+    {{/if}}
 {{/if}} 

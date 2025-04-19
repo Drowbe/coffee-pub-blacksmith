@@ -800,18 +800,34 @@ class ChatPanel {
 
             // Send the leader messages only if requested AND we are the GM
             if (sendMessages && game.user.isGM) {
-                const messageData = {
+                // Send public message
+                const publicData = {
                     isPublic: true,
-                    isLeader: true,
+                    isLeaderChange: true,
                     leaderName: user.name,
                     leaderId: userId
                 };
 
-                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+                const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', publicData);
                 await ChatMessage.create({
-                    content: messageHtml,
+                    content: publicHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
                     speaker: ChatMessage.getSpeaker({ user: game.user })
+                });
+
+                // Send private message to new leader
+                const privateData = {
+                    isPublic: false,
+                    isLeaderChange: true,
+                    leaderName: user.name
+                };
+
+                const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', privateData);
+                await ChatMessage.create({
+                    content: privateHtml,
+                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                    speaker: ChatMessage.getSpeaker({ user: game.user }),
+                    whisper: [userId]
                 });
             }
 
