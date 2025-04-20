@@ -179,7 +179,7 @@ Hooks.once('init', () => {
             scope: 'world',
             config: false,
             type: String,
-            default: 'normal-movement'
+            default: 'no-movement'
         });
     }
 
@@ -192,6 +192,49 @@ Hooks.once('init', () => {
             config: false,
             type: Number,
             default: 0
+        });
+    }
+});
+
+// Add hook for when client is ready
+Hooks.once('ready', async () => {
+    // Always set movement to locked on client load
+    if (game.user.isGM) {
+        console.log('BLACKSMITH | MOVEMENT | Setting default movement mode to locked');
+        await game.settings.set(MODULE_ID, 'movementType', 'no-movement');
+        
+        // Send chat message about locked movement
+        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'no-movement');
+        if (movementType) {
+            const templateData = {
+                isPublic: true,
+                isMovementChange: true,
+                movementIcon: movementType.icon,
+                movementLabel: movementType.name,
+                movementDescription: movementType.description
+            };
+
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
+            ChatMessage.create({
+                content: content,
+                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+            });
+        }
+        
+        // Update UI immediately
+        const movementIcon = document.querySelector('.movement-icon');
+        const movementLabel = document.querySelector('.movement-label');
+        
+        if (movementIcon) movementIcon.className = 'fas fa-person-circle-xmark movement-icon';
+        if (movementLabel) movementLabel.textContent = 'Locked';
+        
+        // Notify other clients
+        game.socket.emit(`module.${MODULE_ID}`, {
+            type: 'movementChange',
+            data: {
+                movementId: 'no-movement',
+                name: 'Locked'
+            }
         });
     }
 });
