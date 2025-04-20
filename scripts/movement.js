@@ -727,12 +727,14 @@ function processCongaMovement(sortedFollowers) {
         // Find where in the path the token currently is
         const currentPos = { x: token.x, y: token.y };
         let currentIndex = leaderMovementPath.length - 1;
+        let isOnPath = false;
         
         // Find the closest point in the path to the token's current position
         for (let i = 0; i < leaderMovementPath.length; i++) {
             const pathPoint = leaderMovementPath[i];
             if (Math.abs(pathPoint.x - currentPos.x) < 1 && Math.abs(pathPoint.y - currentPos.y) < 1) {
                 currentIndex = i;
+                isOnPath = true;
                 console.log(`BLACKSMITH | MOVEMENT | ${token.name} starting at path index ${currentIndex}`);
                 break;
             }
@@ -740,9 +742,10 @@ function processCongaMovement(sortedFollowers) {
         
         return {
             token,
-            currentIndex, // Start from where the token actually is in the path
+            currentIndex,
             targetIndex: state.marchPosition,
-            state
+            state,
+            isOnPath
         };
     }).filter(f => f !== null);
 
@@ -767,11 +770,26 @@ function processCongaMovement(sortedFollowers) {
             return;
         }
 
+        // Check if this is first-turn movement (any tokens not on path)
+        const isFirstTurn = followerStates.some(f => !f.isOnPath);
+        
         // Move each token that hasn't reached its target yet
-        const promises = followerStates.map(follower => {
+        const promises = followerStates.map((follower, index) => {
             // Skip if token has reached its target
             if (follower.currentIndex <= follower.targetIndex) {
                 return Promise.resolve();
+            }
+
+            // For first turn, only move if previous tokens are on path
+            if (isFirstTurn) {
+                const previousTokensOnPath = followerStates
+                    .slice(0, index)
+                    .every(f => f.isOnPath || f.currentIndex <= f.targetIndex);
+                
+                if (!previousTokensOnPath) {
+                    console.log(`BLACKSMITH | MOVEMENT | ${follower.token.name} waiting for previous tokens`);
+                    return Promise.resolve();
+                }
             }
 
             const position = leaderMovementPath[follower.currentIndex - 1];
@@ -787,6 +805,10 @@ function processCongaMovement(sortedFollowers) {
                 }
             }).then(() => {
                 follower.currentIndex--;
+                // Mark token as on path after first movement
+                if (!follower.isOnPath && follower.currentIndex < leaderMovementPath.length - 1) {
+                    follower.isOnPath = true;
+                }
             });
         });
 
