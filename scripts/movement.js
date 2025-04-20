@@ -738,6 +738,17 @@ function processCongaMovement(sortedFollowers) {
         const allDone = followerStates.every(f => f.currentIndex <= f.targetIndex);
         if (allDone) {
             console.log('BLACKSMITH | MOVEMENT | All tokens have reached their targets');
+            
+            // Find the highest index any token is at (excluding completed tokens)
+            const highestIndex = Math.max(...followerStates.map(f => f.targetIndex));
+            console.log('BLACKSMITH | MOVEMENT | Trimming path - highest token index:', highestIndex);
+            
+            // Trim the path to remove points past the last token
+            if (highestIndex < leaderMovementPath.length - 1) {
+                leaderMovementPath = leaderMovementPath.slice(0, highestIndex + 1);
+                console.log('BLACKSMITH | MOVEMENT | Path trimmed to length:', leaderMovementPath.length);
+            }
+            
             processingCongaMovement = false;
             return;
         }
