@@ -712,22 +712,16 @@ function processFollowMovement(sortedFollowers) {
 
         console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to target index ${targetIndex} (position ${state.marchPosition})`);
 
-        // Check for wall collisions using the newer API
+        // Check for wall collisions using Ray
         const ray = new Ray(token.center, targetPoint);
-        const backend = CONFIG.Canvas?.polygonBackends?.move;
-        if (!backend || typeof backend.testCollision !== "function") {
-            console.warn("BLACKSMITH | Movement | testCollision backend not available");
-            return;
-        }
+        const backend = CONFIG.Canvas.polygonBackends.move;
 
-        const collision = backend.testCollision(ray.A, ray.B, { 
-            type: "move",
-            mode: "any",
-            walls: true,
-            source: token
+        const hasCollision = backend.testCollision(token.center, targetPoint, {
+            type: 'move',
+            mode: 'any'
         });
-        
-        if (collision) {
+
+        if (hasCollision) {
             console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked by a wall`);
             ui.notifications.warn(`${token.name} is blocked by a wall and cannot reach their position.`);
             processNextFollower(index + 1);
