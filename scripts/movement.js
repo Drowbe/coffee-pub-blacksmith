@@ -241,7 +241,7 @@ Hooks.once('ready', async () => {
 
 export class MovementConfig extends Application {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'movement-config',
             template: 'modules/coffee-pub-blacksmith/templates/movement-window.hbs',
             title: 'Configure Movement',
@@ -712,9 +712,20 @@ function processFollowMovement(sortedFollowers) {
 
         console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to target index ${targetIndex} (position ${state.marchPosition})`);
 
-        // Check for wall collisions
+        // Check for wall collisions using the newer API
         const ray = new Ray(token.center, targetPoint);
-        const collision = canvas.walls.checkCollision(ray, { type: "move", mode: "any" });
+        const backend = CONFIG.Canvas?.polygonBackends?.move;
+        if (!backend || typeof backend.testCollision !== "function") {
+            console.warn("BLACKSMITH | Movement | testCollision backend not available");
+            return;
+        }
+
+        const collision = backend.testCollision(ray.A, ray.B, { 
+            type: "move",
+            mode: "any",
+            walls: true,
+            source: token
+        });
         
         if (collision) {
             console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked by a wall`);
