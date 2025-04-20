@@ -664,6 +664,179 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
     }
 });
 
+// Utility functions for grid conversion
+function worldToGrid(x, y) {
+    const { x: gx, y: gy } = canvas.grid.getOffset(x, y);
+    return [gx, gy]; // Return as array
+}
+
+function gridToWorld([gx, gy]) {
+    const point = canvas.grid.getTopLeftPoint([gx, gy]);
+    return { x: point.x, y: point.y };
+}
+
+// A* pathfinding implementation
+async function findPath(startToken, targetPoint) {
+    const startGrid = worldToGrid(startToken.x, startToken.y);
+    const endGrid = worldToGrid(targetPoint.x, targetPoint.y);
+
+    // Validate grid coordinates
+    if (!Array.isArray(startGrid) || !Array.isArray(endGrid)) {
+        console.error("BLACKSMITH | MOVEMENT | Invalid grid coordinates:", { startGrid, endGrid });
+        throw new Error("Grid coordinates must be arrays");
+    }
+
+    // Debug: Log detailed wall information
+    const walls = canvas.walls.placeables;
+    const closedDoors = walls.filter(w => w.document.ds === 0);
+    const openDoors = walls.filter(w => w.document.ds === 1);
+    const normalWalls = walls.filter(w => w.document.ds === 2);
+    
+    console.log("BLACKSMITH | MOVEMENT | Wall Information:", {
+        total: walls.length,
+        closedDoors: closedDoors.length,
+        openDoors: openDoors.length,
+        normalWalls: normalWalls.length,
+        wallStates: walls.map(w => ({
+            id: w.id,
+            ds: w.document.ds,
+            c: w.document.c,
+            move: w.document.move,
+            sight: w.document.sight
+        }))
+    });
+
+    // Try direct path first
+    const directPath = await tryDirectPath(startToken, targetPoint);
+    if (directPath) return directPath;
+
+    // If direct path fails, try A* pathfinding
+    return await findAStarPath(startToken, targetPoint);
+}
+
+// Try a direct path first, ignoring doors
+async function tryDirectPath(startToken, targetPoint) {
+    const startCenter = canvas.grid.getCenterPoint(startToken);
+    const endCenter = canvas.grid.getCenterPoint(targetPoint);
+
+    // Test collision with doors ignored
+    const blocked = CONFIG.Canvas.polygonBackends.move.testCollision(startCenter, endCenter, {
+        type: "move",
+        mode: "any",
+        walls: {
+            source: startToken,
+            target: null,
+            ignoreDoors: true // Try ignoring doors
+        }
+    });
+
+    if (!blocked) {
+        console.log("BLACKSMITH | MOVEMENT | Found direct path ignoring doors");
+        return [targetPoint];
+    }
+
+    return null;
+}
+
+// A* pathfinding with door handling
+async function findAStarPath(startToken, targetPoint) {
+    const startGrid = worldToGrid(startToken.x, startToken.y);
+    const endGrid = worldToGrid(targetPoint.x, targetPoint.y);
+
+    const openSet = new Set();
+    const cameFrom = new Map();
+    const gScore = new Map();
+    const fScore = new Map();
+
+    const key = (pos) => {
+        if (Array.isArray(pos)) return `${pos[0]},${pos[1]}`;
+        if (typeof pos === "object" && pos !== null && "x" in pos && "y" in pos) return `${pos.x},${pos.y}`;
+        throw new Error(`Invalid position for key(): ${pos}`);
+    };
+
+    const heuristic = (pos1, pos2) => {
+        const x1 = Array.isArray(pos1) ? pos1[0] : pos1.x;
+        const y1 = Array.isArray(pos1) ? pos1[1] : pos1.y;
+        const x2 = Array.isArray(pos2) ? pos2[0] : pos2.x;
+        const y2 = Array.isArray(pos2) ? pos2[1] : pos2.y;
+        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    };
+
+    openSet.add(key(startGrid));
+    gScore.set(key(startGrid), 0);
+    fScore.set(key(startGrid), heuristic(startGrid, endGrid));
+
+    const frontier = [startGrid];
+
+    while (frontier.length > 0) {
+        frontier.sort((a, b) => fScore.get(key(a)) - fScore.get(key(b)));
+        const current = frontier.shift();
+        const currentKey = key(current);
+
+        if ((Array.isArray(current) ? current[0] : current.x) === (Array.isArray(endGrid) ? endGrid[0] : endGrid.x) &&
+            (Array.isArray(current) ? current[1] : current.y) === (Array.isArray(endGrid) ? endGrid[1] : endGrid.y)) {
+            const path = [];
+            let temp = current;
+            while (cameFrom.has(key(temp))) {
+                path.unshift(gridToWorld(Array.isArray(temp) ? temp : [temp.x, temp.y]));
+                temp = cameFrom.get(key(temp));
+            }
+            return path;
+        }
+
+        const neighbors = canvas.grid.getNeighbors(current, { diagonals: true });
+        console.log("BLACKSMITH | MOVEMENT | Current:", current, "Neighbors:", neighbors);
+
+        for (const neighbor of neighbors) {
+            const nKey = key(neighbor);
+            const fromCenter = canvas.grid.getCenterPoint(current);
+            const toCenter = canvas.grid.getCenterPoint(neighbor);
+
+            // Test collision with different wall configurations
+            let blocked = false;
+            
+            // First try with normal wall settings
+            blocked = CONFIG.Canvas.polygonBackends.move.testCollision(fromCenter, toCenter, {
+                type: "move",
+                mode: "any",
+                walls: {
+                    source: startToken,
+                    target: null
+                }
+            });
+
+            // If blocked, try ignoring doors
+            if (blocked) {
+                blocked = CONFIG.Canvas.polygonBackends.move.testCollision(fromCenter, toCenter, {
+                    type: "move",
+                    mode: "any",
+                    walls: {
+                        source: startToken,
+                        target: null,
+                        ignoreDoors: true
+                    }
+                });
+            }
+
+            if (blocked) {
+                console.log("BLACKSMITH | MOVEMENT | Path blocked from", fromCenter, "to", toCenter);
+                continue;
+            }
+
+            const tentativeG = (gScore.get(currentKey) || Infinity) + 1;
+
+            if (tentativeG < (gScore.get(nKey) || Infinity)) {
+                cameFrom.set(nKey, current);
+                gScore.set(nKey, tentativeG);
+                fScore.set(nKey, tentativeG + heuristic(neighbor, endGrid));
+                if (!frontier.some(n => key(n) === nKey)) frontier.push(neighbor);
+            }
+        }
+    }
+
+    return null;
+}
+
 // Process follow movement - tokens follow in formation behind leader
 function processFollowMovement(sortedFollowers) {
     // Safety check - if no path points, exit
@@ -712,32 +885,35 @@ function processFollowMovement(sortedFollowers) {
 
         console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to target index ${targetIndex} (position ${state.marchPosition})`);
 
-        // Check for wall collisions using Ray
-        const ray = new Ray(token.center, targetPoint);
-        const backend = CONFIG.Canvas.polygonBackends.move;
-
-        const hasCollision = backend.testCollision(token.center, targetPoint, {
-            type: 'move',
-            mode: 'any'
-        });
-
-        if (hasCollision) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked by a wall`);
-            ui.notifications.warn(`${token.name} is blocked by a wall and cannot reach their position.`);
-            processNextFollower(index + 1);
-            return;
-        }
-
-        // Move the token to the target position
-        await token.document.update({
-            x: targetPoint.x,
-            y: targetPoint.y,
-            flags: {
-                [MODULE_ID]: {
-                    followMovement: true
-                }
+        try {
+            // Find a path to the target
+            const path = await findPath(token, targetPoint);
+            if (!path || path.length === 0) {
+                console.log(`BLACKSMITH | MOVEMENT | No valid path found for ${token.name}`);
+                ui.notifications.warn(`${token.name} cannot find a path to their position. They may be blocked by walls or closed doors.`);
+                processNextFollower(index + 1);
+                return;
             }
-        });
+
+            // Move the token along the path
+            for (const step of path) {
+                await token.document.update({
+                    x: step.x,
+                    y: step.y,
+                    flags: {
+                        [MODULE_ID]: {
+                            followMovement: true
+                        }
+                    }
+                });
+                // Small delay between steps for smoother movement
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+        } catch (error) {
+            console.error(`BLACKSMITH | MOVEMENT | Error moving ${token.name}:`, error);
+            ui.notifications.error(`Error moving ${token.name}: ${error.message}`);
+        }
 
         // Wait before processing next follower
         setTimeout(() => {
