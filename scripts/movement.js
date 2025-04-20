@@ -499,9 +499,9 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
 
         const currentMovement = game.settings.get(MODULE_ID, 'movementType');
         
-        // Check if this is conga mode
-        if (currentMovement === 'conga-movement') {
-            console.log('Conga movement - checking if token can move');
+        // Check if this is conga or follow mode
+        if (currentMovement === 'conga-movement' || currentMovement === 'follow-movement') {
+            console.log(`${currentMovement} - checking if token can move`);
             
             // If user is GM, always allow
             if (game.user.isGM) return true;
@@ -515,8 +515,8 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
                 return true;
             }
             
-            // Non-leader tokens can't be moved manually in conga mode
-            ui.notifications.warn("In Conga mode, only the leader can move tokens freely. Other tokens will follow automatically.");
+            // Non-leader tokens can't be moved manually in conga/follow mode
+            ui.notifications.warn(`In ${currentMovement === 'conga-movement' ? 'Conga' : 'Follow'} mode, only the leader can move tokens freely. Other tokens will follow automatically.`);
             return false;
         }
         
@@ -672,7 +672,7 @@ function processFollowMovement(sortedFollowers) {
         return;
     }
     
-    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
+    console.log("BLACKSMITH | MOVEMENT | Processing follow movement");
     
     // Set processing flag
     processingCongaMovement = true;
@@ -684,73 +684,64 @@ function processFollowMovement(sortedFollowers) {
         processingCongaMovement = false;
         return;
     }
-    
-    // Get current spacing setting
-    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
-    
-    // Move tokens one by one with spacing
-    moveNextTokenInLine(sortedFollowers, 0, spacing);
-}
 
-// Move a token in the line
-function moveNextTokenInLine(sortedFollowers, index, spacing = 0) {
-    // If we're done with all followers, finish
-    if (index >= sortedFollowers.length) {
-        processingCongaMovement = false;
-        tokenOriginalPositions.clear();
-        console.log('BLACKSMITH | MOVEMENT | Finished moving all followers');
-        return;
-    }
-    
-    const [tokenId, state] = sortedFollowers[index];
-    const token = canvas.tokens.get(tokenId);
-    
-    // Skip if token doesn't exist
-    if (!token) {
-        console.log(`BLACKSMITH | MOVEMENT | Skipping token - doesn't exist`);
-        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
-        return;
-    }
-
-    // Get the target position based on marching order and spacing
-    const adjustedPosition = state.marchPosition + (state.marchPosition * spacing);
-    const targetPosition = leaderMovementPath[adjustedPosition];
-
-    if (!targetPosition) {
-        console.log(`BLACKSMITH | MOVEMENT | No path point for position ${adjustedPosition}`);
-        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
-        return;
-    }
-
-    const currentPos = getGridPositionKey(token.x, token.y);
-    if (currentPos === targetPosition.gridPos) {
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} already at position ${adjustedPosition}`);
-        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
-        return;
-    }
-
-    // Store original position in our map before moving
-    tokenOriginalPositions.set(token.id, { x: token.x, y: token.y });
-    
-    // Debug info
-    console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to position ${adjustedPosition}: ${targetPosition.x},${targetPosition.y}`);
-    
-    // Move the token - add flag to indicate this is an automated movement
-    token.document.update({
-        x: targetPosition.x,
-        y: targetPosition.y,
-        flags: {
-            [MODULE_ID]: {
-                congaMovement: true
-            }
+    // Process followers one at a time
+    async function processNextFollower(index) {
+        if (index >= sortedFollowers.length) {
+            processingCongaMovement = false;
+            return;
         }
-    }).then(() => {
-        // Move to next token
-        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
-    }).catch(err => {
-        console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
-        moveNextTokenInLine(sortedFollowers, index + 1, spacing);
-    });
+
+        const [tokenId, state] = sortedFollowers[index];
+        const token = canvas.tokens.get(tokenId);
+        if (!token) {
+            processNextFollower(index + 1);
+            return;
+        }
+
+        // Calculate target position based on marching order
+        const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+        const targetIndex = Math.min(state.marchPosition * (spacing + 1), leaderMovementPath.length - 1);
+        const targetPoint = leaderMovementPath[targetIndex];
+        
+        if (!targetPoint) {
+            console.log(`BLACKSMITH | MOVEMENT | No target point for ${token.name}`);
+            processNextFollower(index + 1);
+            return;
+        }
+
+        console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to target index ${targetIndex} (position ${state.marchPosition})`);
+
+        // Check for wall collisions
+        const ray = new Ray(token.center, targetPoint);
+        const collision = canvas.walls.checkCollision(ray, { type: "move", mode: "any" });
+        
+        if (collision) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked by a wall`);
+            ui.notifications.warn(`${token.name} is blocked by a wall and cannot reach their position.`);
+            processNextFollower(index + 1);
+            return;
+        }
+
+        // Move the token to the target position
+        await token.document.update({
+            x: targetPoint.x,
+            y: targetPoint.y,
+            flags: {
+                [MODULE_ID]: {
+                    followMovement: true
+                }
+            }
+        });
+
+        // Wait before processing next follower
+        setTimeout(() => {
+            processNextFollower(index + 1);
+        }, 100);
+    }
+
+    // Start processing followers
+    processNextFollower(0);
 }
 
 // Process conga movement - tokens follow leader's exact path
