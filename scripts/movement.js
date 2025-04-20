@@ -724,10 +724,24 @@ function processCongaMovement(sortedFollowers) {
         const token = canvas.tokens.get(tokenId);
         if (!token) return null;
         
+        // Find where in the path the token currently is
+        const currentPos = { x: token.x, y: token.y };
+        let currentIndex = leaderMovementPath.length - 1;
+        
+        // Find the closest point in the path to the token's current position
+        for (let i = 0; i < leaderMovementPath.length; i++) {
+            const pathPoint = leaderMovementPath[i];
+            if (Math.abs(pathPoint.x - currentPos.x) < 1 && Math.abs(pathPoint.y - currentPos.y) < 1) {
+                currentIndex = i;
+                console.log(`BLACKSMITH | MOVEMENT | ${token.name} starting at path index ${currentIndex}`);
+                break;
+            }
+        }
+        
         return {
             token,
-            currentIndex: leaderMovementPath.length - 1, // Start at end of path
-            targetIndex: state.marchPosition, // Their march position is their target index
+            currentIndex, // Start from where the token actually is in the path
+            targetIndex: state.marchPosition,
             state
         };
     }).filter(f => f !== null);
