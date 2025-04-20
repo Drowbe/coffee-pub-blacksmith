@@ -35,6 +35,9 @@ let preCombatMovementMode = null;
 // Add state variable for token spacing
 let tokenSpacing = 0;
 
+// Add this near the top with other state variables
+let marchingOrderJustCalculated = false;
+
 // ================================================================== 
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
 // ================================================================== 
@@ -108,11 +111,21 @@ function isAutomatedMovement(token, changes) {
 
 // Handle initial setup or GM reordering of tokens
 function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
-    if ((isFirstTimeSetup || isGMMoveOfFollower) && !marchingOrderJustDetermined) {
-        console.log('BLACKSMITH | MOVEMENT | Determining marching order - first setup or GM reordering');
+    // Only recalculate marching order in specific cases
+    const shouldRecalculateOrder = 
+        (isFirstTimeSetup && !marchingOrderJustCalculated) || // First time setup
+        (isGMMoveOfFollower && game.user.isGM); // GM manually moved a follower
+    
+    if (shouldRecalculateOrder) {
+        console.log('BLACKSMITH | MOVEMENT | Recalculating marching order');
+        // Clear the path when recalculating order
+        leaderMovementPath = [];
         calculateMarchingOrder(token);
-        marchingOrderJustDetermined = true;
-        setTimeout(() => marchingOrderJustDetermined = false, 1000);
+        marchingOrderJustCalculated = true;
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            marchingOrderJustCalculated = false;
+        }, 1000);
     }
 }
 
@@ -261,6 +274,12 @@ export class MovementConfig extends Application {
         // Only GM can change movement
         if (!game.user.isGM) return;
 
+        // Clear path and followers when changing movement mode
+        leaderMovementPath = [];
+        tokenFollowers.clear();
+        marchingOrderJustCalculated = false;
+        processingCongaMovement = false;
+
         // Store the movement type in game settings
         await game.settings.set(MODULE_ID, 'movementType', movementId);
 
@@ -268,7 +287,7 @@ export class MovementConfig extends Application {
         const movementType = this.getData().MovementTypes.find(t => t.id === movementId);
         if (!movementType) return;
 
-        // Special handling for conga movement
+        // Special handling for conga/follow movement
         if (movementId === 'conga-movement' || movementId === 'follow-movement') {
             const leader = checkPartyLeader();
             if (!leader) {
@@ -390,12 +409,6 @@ export class MovementConfig extends Application {
                 name: movementType.name
             }
         });
-
-        // Clear any existing path when changing modes
-        if (movementId !== 'conga-movement') {
-            leaderMovementPath.length = 0;
-            tokenFollowers.clear();
-        }
 
         // Close the config window
         this.close();
