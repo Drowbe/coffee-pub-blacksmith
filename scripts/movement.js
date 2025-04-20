@@ -718,57 +718,41 @@ function processCongaMovement(sortedFollowers) {
         processingCongaMovement = false;
         return;
     }
-    
-    // Get current spacing setting
-    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
-    
-    // Process each follower's movement through the path
-    let currentFollowerIndex = 0;
-    
-    function processNextFollower() {
-        if (currentFollowerIndex >= sortedFollowers.length) {
-            processingCongaMovement = false;
-            console.log('BLACKSMITH | MOVEMENT | Finished conga line movement');
-            return;
-        }
 
-        const [tokenId, state] = sortedFollowers[currentFollowerIndex];
+    // Store all followers' current positions and their target indices
+    const followerStates = sortedFollowers.map(([tokenId, state]) => {
         const token = canvas.tokens.get(tokenId);
+        if (!token) return null;
         
-        if (!token) {
-            currentFollowerIndex++;
-            processNextFollower();
+        return {
+            token,
+            currentIndex: leaderMovementPath.length - 1, // Start at end of path
+            targetIndex: state.marchPosition, // Their march position is their target index
+            state
+        };
+    }).filter(f => f !== null);
+
+    // Move all tokens one step at a time
+    function moveAllTokensOneStep() {
+        // Check if all tokens have reached their targets
+        const allDone = followerStates.every(f => f.currentIndex <= f.targetIndex);
+        if (allDone) {
+            console.log('BLACKSMITH | MOVEMENT | All tokens have reached their targets');
+            processingCongaMovement = false;
             return;
         }
 
-        // Calculate path indices for this follower
-        const startIndex = 0;
-        const targetIndex = state.marchPosition * (spacing + 1);
-        
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} (Position ${state.marchPosition}) starting movement from index ${startIndex} to ${targetIndex}`);
-        
-        // Store original position
-        tokenOriginalPositions.set(token.id, { x: token.x, y: token.y });
-        
-        // Move through each point in the path
-        let currentPathIndex = startIndex;
-        
-        function moveAlongPath() {
-            if (currentPathIndex > targetIndex || !leaderMovementPath[currentPathIndex]) {
-                console.log(`BLACKSMITH | MOVEMENT | ${token.name} (Position ${state.marchPosition}) completed path at index ${currentPathIndex}`);
-                // Move to next follower after completing path
-                setTimeout(() => {
-                    currentFollowerIndex++;
-                    processNextFollower();
-                }, 100);
-                return;
+        // Move each token that hasn't reached its target yet
+        const promises = followerStates.map(follower => {
+            // Skip if token has reached its target
+            if (follower.currentIndex <= follower.targetIndex) {
+                return Promise.resolve();
             }
 
-            const position = leaderMovementPath[currentPathIndex];
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} (Position ${state.marchPosition}) moving to index ${currentPathIndex}:`, position);
-            
-            // Move token to next position in path
-            token.document.update({
+            const position = leaderMovementPath[follower.currentIndex - 1];
+            console.log(`BLACKSMITH | MOVEMENT | ${follower.token.name} moving to index ${follower.currentIndex - 1}`);
+
+            return follower.token.document.update({
                 x: position.x,
                 y: position.y,
                 flags: {
@@ -777,24 +761,20 @@ function processCongaMovement(sortedFollowers) {
                     }
                 }
             }).then(() => {
-                // Move to next point in path after a short delay
-                setTimeout(() => {
-                    currentPathIndex++;
-                    moveAlongPath();
-                }, 50);
-            }).catch(err => {
-                console.error(`BLACKSMITH | MOVEMENT | Error moving token ${token.name}:`, err);
-                currentFollowerIndex++;
-                processNextFollower();
+                follower.currentIndex--;
             });
-        }
+        });
 
-        // Start moving this follower along the path
-        moveAlongPath();
+        // After all tokens have moved one step, wait then move again
+        Promise.all(promises).then(() => {
+            setTimeout(() => {
+                moveAllTokensOneStep();
+            }, 100);
+        });
     }
 
-    // Start processing followers
-    processNextFollower();
+    // Start the movement
+    moveAllTokensOneStep();
 }
 
 // Calculate the marching order based on proximity to a leader token
