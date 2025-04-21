@@ -96,7 +96,7 @@
                 {{#if movementMarchingOrder}}
                     <div class="section-table">
                         {{#each movementMarchingOrder}}
-                            <div class="row-label">{{this.position}}</div><div class="row-content">{{this.name}}</div>
+                            <div class="row-label{{#if isDimmed}} label-dimmed{{/if}}">{{this.position}}</div><div class="row-content">{{this.name}}</div>
                         {{/each}}
                     </div>
                     {{#if spacingText}}
@@ -172,4 +172,4 @@
             </div>
         </div>
     {{/if}}
-{{/if}} 
+{{/if}}

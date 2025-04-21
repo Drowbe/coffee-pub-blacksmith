@@ -180,6 +180,16 @@
     border-radius: 4px 0px 0px 4px;
 }   
 
+.label-dimmed {
+    background: rgba(101, 18, 1, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+}   
+
+.label-highlighted {
+    background: rgba(64, 99, 1, 0.4);
+    color: rgba(255, 255, 255, 0.8);
+}   
+
 .row-content {
     font-style: inherit;
     font-weight: 600;

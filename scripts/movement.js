@@ -13,7 +13,7 @@ import { ChatPanel } from "./chat-panel.js";
 // Store the leader's movement path for conga line
 let leaderMovementPath = [];
 // Track tokens following paths with their current position in the path
-const tokenFollowers = new Map(); // token.id -> {marchPosition, moving, currentPathIndex}
+const tokenFollowers = new Map(); // token.id -> {marchPosition, moving, currentPathIndex, status}
 // Track which grid positions are currently occupied
 const occupiedGridPositions = new Set(); // "x,y" strings
 // Track the current leader token ID to ensure we never move it
@@ -37,6 +37,16 @@ let tokenSpacing = 0;
 
 // Add this near the top with other state variables
 let marchingOrderJustCalculated = false;
+
+// Constants for status tracking
+const STATUS = {
+    NORMAL: 'normal',
+    BLOCKED: 'blocked',
+    TOO_FAR: 'too_far'
+};
+
+// Distance threshold in grid units (60 feet = 12 grid units at 5ft/grid)
+const DISTANCE_THRESHOLD = 12;
 
 // ================================================================== 
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
@@ -368,30 +378,26 @@ export class MovementConfig extends Application {
                     
                     // Create marching order array for chat card
                     const marchingOrder = [{
+                        position: "Point",
                         name: leaderToken.name,
-                        position: "Point"
+                        isDimmed: false
                     }];
                     
-                    // Add followers to marching order
-                    Array.from(tokenFollowers.entries())
-                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition)
-                        .forEach(([tokenId, state], index, array) => {
-                            const token = canvas.tokens.get(tokenId);
-                            if (token) {
-                                let position;
-                                if (index === 0) {
-                                    position = "Vanguard";
-                                } else if (index === array.length - 1) {
-                                    position = "Rear Guard";
-                                } else {
-                                    position = "Center";
-                                }
-                                marchingOrder.push({
-                                    name: token.name,
-                                    position: position
-                                });
-                            }
-                        });
+                    // Add followers to marching order using status information
+                    const normalTokens = Array.from(tokenFollowers.entries())
+                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+                    
+                    normalTokens.forEach(([tokenId, state], index) => {
+                        const token = canvas.tokens.get(tokenId);
+                        if (token) {
+                            const position = getPositionLabel(index, normalTokens.length, state.status);
+                            marchingOrder.push({
+                                position: position,
+                                name: token.name,
+                                isDimmed: position === "Too Far" || position === "Blocked"
+                            });
+                        }
+                    });
 
                     // For conga/follow movement
                     const templateData = {
@@ -686,6 +692,21 @@ async function findPath(startToken, targetPoint) {
         throw new Error("Grid coordinates must be arrays");
     }
 
+    // Check distance from leader
+    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+    if (leaderToken) {
+        const distance = Math.hypot(startToken.x - leaderToken.x, startToken.y - leaderToken.y) / canvas.grid.size;
+        if (distance > DISTANCE_THRESHOLD) {
+            // Update status
+            const followerState = tokenFollowers.get(startToken.id);
+            if (followerState && followerState.status !== STATUS.TOO_FAR) {
+                followerState.status = STATUS.TOO_FAR;
+                postMarchingOrder();
+            }
+            return null;
+        }
+    }
+
     // Debug: Log detailed wall information
     const walls = canvas.walls.placeables;
     const closedDoors = walls.filter(w => w.document.ds === 0);
@@ -711,7 +732,15 @@ async function findPath(startToken, targetPoint) {
     if (directPath) return directPath;
 
     // If direct path fails, try A* pathfinding
-    return await findAStarPath(startToken, targetPoint);
+    const path = await findAStarPath(startToken, targetPoint);
+    if (!path) {
+        const followerState = tokenFollowers.get(startToken.id);
+        if (followerState && followerState.status !== STATUS.BLOCKED) {
+            followerState.status = STATUS.BLOCKED;
+            postMarchingOrder();
+        }
+    }
+    return path;
 }
 
 // Try a direct path first, ignoring doors
@@ -1071,14 +1100,95 @@ function calculateMarchingOrder(leaderToken) {
         return distA - distB;
     });
     
-    // Set marching order
+    // Set marching order and initial status
     followerTokens.forEach((followerToken, index) => {
+        const status = checkTokenStatus(followerToken, leaderToken);
         tokenFollowers.set(followerToken.id, {
             marchPosition: index + 1,
-            moving: false
+            moving: false,
+            status: status
         });
-        console.log(`BLACKSMITH | MOVEMENT | Set ${followerToken.name} to initial position ${index + 1}`);
+        console.log(`BLACKSMITH | MOVEMENT | Set ${followerToken.name} to position ${index + 1} with status ${status}`);
     });
+}
+
+// Function to get position label based on index and status
+function getPositionLabel(index, total, status) {
+    if (status === STATUS.BLOCKED) return "Blocked";
+    if (status === STATUS.TOO_FAR) return "Too Far";
+    
+    if (index === 0) return "Vanguard";
+    if (index === total - 1) return "Rear Guard";
+    return "Center";
+}
+
+// Function to post marching order to chat
+async function postMarchingOrder() {
+    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+    if (!leaderToken) return;
+
+    // Get current movement type
+    const currentMovement = game.settings.get(MODULE_ID, 'movementType');
+    const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === currentMovement);
+    
+    // Create marching order array
+    const marchingOrder = [{
+        position: "Point",
+        name: leaderToken.name,
+        isDimmed: false
+    }];
+
+    // Add followers in order
+    const normalTokens = Array.from(tokenFollowers.entries())
+        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+
+    normalTokens.forEach(([tokenId, state], index) => {
+        const token = canvas.tokens.get(tokenId);
+        if (token) {
+            const position = getPositionLabel(index, normalTokens.length, state.status);
+            marchingOrder.push({
+                position: position,
+                name: token.name,
+                isDimmed: position === "Too Far" || position === "Blocked"
+            });
+        }
+    });
+
+    // Get spacing text
+    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+    const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
+
+    // Create chat message
+    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+        isPublic: true,
+        isMovementChange: true,
+        movementIcon: movementType.icon,
+        movementLabel: movementType.name,
+        movementDescription: movementType.description,
+        movementMarchingOrder: marchingOrder,
+        spacingText: spacingText
+    });
+
+    ChatMessage.create({
+        content: content,
+        type: CONST.CHAT_MESSAGE_TYPES.OTHER
+    });
+}
+
+// Function to check token status
+function checkTokenStatus(token, leaderToken) {
+    // Check distance - token positions are already in grid units
+    const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
+    const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
+    const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+    
+    console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
+    
+    if (distance > DISTANCE_THRESHOLD) {
+        console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${DISTANCE_THRESHOLD})`);
+        return STATUS.TOO_FAR;
+    }
+    return STATUS.NORMAL;
 }
 
 // Function to prepend new points to the path array
