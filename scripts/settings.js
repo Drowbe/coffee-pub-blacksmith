@@ -366,7 +366,7 @@ export const registerSettings = async () => {
 
 
 		// *** CSS CUSTOMIZATION ***
-		game.settings.register(MODULE_ID, "headingH2CSS", {
+		game.settings.register(MODULE_ID, "headingH3CSS", {
 			name: "CSS Customization",
 			hint: "Customize the FoundryVTT interface with custom CSS",
 			scope: "world",
@@ -648,7 +648,7 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			type: String,
-			default: 'Time has run out in this session. It\'s a bummer, but let\'s get to a good stopping point. We can pick up here next time.'
+			default: 'Time has run out in this session. Bummer. We can pick up here next time.'
 		});
 
 
@@ -1069,6 +1069,54 @@ export const registerSettings = async () => {
 			},
 			default: 0,
 		});
+
+
+
+
+
+
+
+
+		// *** CANVAS ***
+
+		// ---------- HEADING - CANVAS  ----------
+		game.settings.register(MODULE_ID, "headingH2Canvas", {
+			name: 'Canvas',
+			hint: 'Blacksmith includes a number of tools tha tmake managing things on the canvas easier.',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
+		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
+		game.settings.register(MODULE_ID, "headingH3Movement", {
+			name: 'Movement',
+			hint: 'Configures the way tokens move around on the canvas specific to the movement modes.',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
+		// -- Scene Text Size --
+		game.settings.register(MODULE_ID, 'movementTooFarDistance', {
+			name: 'Too Far Distance',
+			hint: 'The distance a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: Number,
+			range: {
+				min: 6,
+				max: 12,
+				step: 1,
+			},
+			default: 12,
+		});
+
 
 
 		// *** TOKEN NAMEPLATES ***

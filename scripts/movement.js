@@ -46,7 +46,7 @@ const STATUS = {
 };
 
 // Distance threshold in grid units (60 feet = 12 grid units at 5ft/grid)
-const DISTANCE_THRESHOLD = 12;
+// const DISTANCE_THRESHOLD = 12;
 
 // ================================================================== 
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
@@ -652,7 +652,8 @@ async function findPath(startToken, targetPoint) {
     const leaderToken = canvas.tokens.get(currentLeaderTokenId);
     if (leaderToken) {
         const distance = Math.hypot(startToken.x - leaderToken.x, startToken.y - leaderToken.y) / canvas.grid.size;
-        if (distance > DISTANCE_THRESHOLD) {
+        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+        if (distance > distanceThreshold) {
             // Update status
             const followerState = tokenFollowers.get(startToken.id);
             if (followerState && followerState.status !== STATUS.TOO_FAR) {
@@ -717,7 +718,7 @@ async function processFollowMovement(sortedFollowers) {
         processingCongaMovement = false;
         return;
     }
-
+    
     // Process only valid followers
     const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
     let statusUpdateNeeded = false;
@@ -725,20 +726,20 @@ async function processFollowMovement(sortedFollowers) {
     // Process followers one at a time
     async function processNextFollower(index) {
         if (index >= validFollowers.length) {
-            processingCongaMovement = false;
+        processingCongaMovement = false;
             // Only check for status changes after all followers are processed
             if (statusUpdateNeeded) {
                 await calculateMarchingOrder(leaderToken, true);
             }
-            return;
-        }
-
+        return;
+    }
+    
         const [tokenId, state] = validFollowers[index];
-        const token = canvas.tokens.get(tokenId);
-        if (!token) {
+    const token = canvas.tokens.get(tokenId);
+    if (!token) {
             processNextFollower(index + 1);
-            return;
-        }
+        return;
+    }
 
         // Calculate target position based on marching order
         const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
@@ -748,8 +749,8 @@ async function processFollowMovement(sortedFollowers) {
         if (!targetPoint) {
             console.log(`BLACKSMITH | MOVEMENT | No target point for ${token.name}`);
             processNextFollower(index + 1);
-            return;
-        }
+        return;
+    }
 
         try {
             // Find a path to the target
@@ -763,16 +764,16 @@ async function processFollowMovement(sortedFollowers) {
                     statusUpdateNeeded = true;
                 }
                 processNextFollower(index + 1);
-                return;
-            }
+        return;
+    }
 
             // Move the token along the path
             for (const step of path) {
                 await token.document.update({
                     x: step.x,
                     y: step.y,
-                    flags: {
-                        [MODULE_ID]: {
+        flags: {
+            [MODULE_ID]: {
                             followMovement: true
                         }
                     }
@@ -849,7 +850,7 @@ function processCongaMovement(sortedFollowers) {
         processingCongaMovement = false;
         return;
     }
-
+    
     // Store all followers' current positions and their target indices
     const followerStates = sortedFollowers.map(([tokenId, state]) => {
         const token = canvas.tokens.get(tokenId);
@@ -945,7 +946,7 @@ function processCongaMovement(sortedFollowers) {
 
         // After all tokens have moved one step, wait then move again
         Promise.all(promises).then(() => {
-            setTimeout(() => {
+                setTimeout(() => {
                 moveAllTokensOneStep();
             }, 100);
         });
@@ -973,12 +974,13 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
         const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
         const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
         const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
         
         console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
         
         let status;
-        if (distance > DISTANCE_THRESHOLD) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${DISTANCE_THRESHOLD})`);
+        if (distance > distanceThreshold) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
             status = STATUS.TOO_FAR;
         } else {
             // Only check for blocked path if within range
@@ -1121,11 +1123,12 @@ async function checkTokenStatus(token, leaderToken) {
     const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
     const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
     const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+    const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
     
     console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
     
-    if (distance > DISTANCE_THRESHOLD) {
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${DISTANCE_THRESHOLD})`);
+    if (distance > distanceThreshold) {
+        console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
         return STATUS.TOO_FAR;
     }
 
