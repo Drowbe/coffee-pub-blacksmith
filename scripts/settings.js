@@ -374,6 +374,8 @@ export const registerSettings = async () => {
 		});
 
 		game.settings.register(MODULE_ID, "cssTransition", {
+			name: "Smooth Trasnition",
+			hint: "Ease the new css styles into place with a smooth transition",
 			scope: "world",
 			config: true,
 			type: Boolean,
@@ -381,10 +383,12 @@ export const registerSettings = async () => {
 		});
 
 		game.settings.register(MODULE_ID, "cssDarkMode", {
+			name: "Dark Mode",
+			hint: "Enable dark mode for the css editor",
 			scope: "world",
 			config: true,
 			type: Boolean,
-			default: false
+			default: true
 		});
 
 
@@ -1100,6 +1104,11 @@ export const registerSettings = async () => {
             scope: 'world',
             config: true,
             type: Number,
+			range: {
+				min: 0,
+				max: 3,
+				step: 1,
+			},
             default: 0
         });
 

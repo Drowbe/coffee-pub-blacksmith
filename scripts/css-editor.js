@@ -3,6 +3,10 @@ import { postConsoleAndNotification } from './global.js';
 
 export class CSSEditor extends FormApplication {
     static get defaultOptions() {
+        const dark = game.settings.get(MODULE_ID, 'cssDarkMode');
+        const classes = ['blacksmith-css-editor'];
+        if (dark) classes.push('dark-mode');
+
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-css-editor',
             title: 'CSS Editor',
@@ -12,7 +16,7 @@ export class CSSEditor extends FormApplication {
             minWidth: 700,
             resizable: true,
             minimizable: true,
-            classes: ['blacksmith-css-editor'],
+            classes: classes,
             closeOnSubmit: false // Prevent closing on submit
         });
     }
