@@ -356,15 +356,6 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
-
-
-
-
-
-
-
-
-
 		// *** CSS CUSTOMIZATION ***
 		game.settings.register(MODULE_ID, "headingH3CSS", {
 			name: "CSS Customization",
@@ -384,32 +375,17 @@ export const registerSettings = async () => {
 
 		game.settings.register(MODULE_ID, "cssTransition", {
 			scope: "world",
-			config: false,
+			config: true,
 			type: Boolean,
 			default: true
 		});
 
 		game.settings.register(MODULE_ID, "cssDarkMode", {
 			scope: "world",
-			config: false,
+			config: true,
 			type: Boolean,
 			default: false
 		});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -518,7 +494,7 @@ export const registerSettings = async () => {
 
 		// *** CHAT PANEL SETTINGS ***
 		// ---------- SUBHEADING - CHAT PANEL ----------
-		game.settings.register(MODULE_ID, "headingH3chatPanel", {
+		game.settings.register(MODULE_ID, "headingH3simplechatPanel", {
 			name: 'BLACKSMITH CHAT PANEL',
 			hint: 'Settings for the panel that appears in the chat log.',
 			scope: "world",
@@ -1101,21 +1077,41 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 
-		// -- Scene Text Size --
+		// -- Too Far --
 		game.settings.register(MODULE_ID, 'movementTooFarDistance', {
-			name: 'Too Far Distance',
-			hint: 'The distance a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.',
+			name: '"Too Far" Tiles',
+			hint: 'The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.',
 			scope: "world",
 			config: true,
 			requiresReload: false,
 			type: Number,
 			range: {
-				min: 6,
-				max: 12,
+				min: 8,
+				max: 20,
 				step: 1,
 			},
-			default: 12,
+			default: 10,
 		});
+
+
+        game.settings.register(MODULE_ID, 'tokenSpacing', {
+            name: 'Token Spacing',
+            hint: 'Number of grid spaces to maintain between tokens in formation',
+            scope: 'world',
+            config: true,
+            type: Number,
+            default: 0
+        });
+
+		// -- Movement Type (internal config) --
+        game.settings.register(MODULE_ID, 'movementType', {
+            name: 'Current Movement Type',
+            hint: 'The current movement restriction type for all players',
+            scope: 'world',
+            config: false,
+            type: String,
+            default: 'no-movement'
+        });
 
 
 
@@ -1953,7 +1949,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3GlobalTimer", {
+	game.settings.register(MODULE_ID, "headingH3simpleGlobalTimer", {
 		name: 'SHARED TIMER SETTINGS',
 		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
 		scope: "world",
@@ -2037,6 +2033,17 @@ export const registerSettings = async () => {
 			step: 0.1
 		}
 	});
+
+	// ---------- GLOBAL TIMER SETTINGS ----------
+	game.settings.register(MODULE_ID, "headingH3simpleGlobalTimerMessaging", {
+		name: 'TIMER NOTIFICATIONS',
+		hint: 'These settings will allow you to control the notifications that are sent to the players when the timers are running out.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
 
 	// Timer Chat Message Settings
 	game.settings.register(MODULE_ID, 'timerChatPauseUnpause', {

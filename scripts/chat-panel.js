@@ -76,7 +76,7 @@ class ChatPanel {
 
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
-            let currentMovementData = { icon: 'fa-person-running', name: 'Normal' };
+            let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
             
             try {
                 // Only try to get the setting if it's registered
@@ -84,7 +84,7 @@ class ChatPanel {
                     currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
                     
                     const movementTypes = {
-                        'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
+                        'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
                         'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
                         'combat-movement': { icon: 'fa-swords', name: 'Combat' },
                         'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
@@ -846,7 +846,7 @@ class ChatPanel {
         const currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
         
         const movementTypes = {
-            'normal-movement': { icon: 'fa-person-walking', name: 'Normal' },
+            'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
             'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
             'combat-movement': { icon: 'fa-swords', name: 'Combat' },
             'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },

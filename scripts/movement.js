@@ -143,7 +143,7 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
 // ===== EXISTING CODE BELOW ========================================
 // ================================================================== 
 
-// Make sure settings are registered right away
+// Remove or comment out the ready hook and replace with init hook for socket setup only
 Hooks.once('init', () => {
     // Register socket listeners for movement changes
     game.socket.on(`module.${MODULE_ID}`, (message) => {
@@ -159,8 +159,8 @@ Hooks.once('init', () => {
                 const movementLabel = document.querySelector('.movement-label');
                 
                 const movementTypes = {
-                    'normal-movement': { icon: 'fa-person-running', name: 'Normal' },
-                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
+                    'normal-movement': { icon: 'fa-person-running', name: 'Free' },
+                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
                     'combat-movement': { icon: 'fa-swords', name: 'Combat' },
                     'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
                     'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
@@ -177,75 +177,59 @@ Hooks.once('init', () => {
                         console.log('BLACKSMITH | MOVEMENT | Movement label updated:', newType.name);
                     }
                 }
-            }, 100); // Short delay to ensure DOM is updated
+            }, 100);
         }
     });
-
-    // Register movement type setting if not already registered
-    if (!game.settings.settings.has(`${MODULE_ID}.movementType`)) {
-        game.settings.register(MODULE_ID, 'movementType', {
-            name: 'Current Movement Type',
-            hint: 'The current movement restriction type for all players',
-            scope: 'world',
-            config: false,
-            type: String,
-            default: 'no-movement'
-        });
-    }
-
-    // Register token spacing setting
-    if (!game.settings.settings.has(`${MODULE_ID}.tokenSpacing`)) {
-        game.settings.register(MODULE_ID, 'tokenSpacing', {
-            name: 'Token Spacing',
-            hint: 'Number of grid spaces to maintain between tokens in formation',
-            scope: 'world',
-            config: false,
-            type: Number,
-            default: 0
-        });
-    }
 });
 
-// Add hook for when client is ready
-Hooks.once('ready', async () => {
-    // Always set movement to locked on client load
+// Add a new hook for initialization after settings are ready
+Hooks.on('blacksmithReady', async () => {
     if (game.user.isGM) {
-        console.log('BLACKSMITH | MOVEMENT | Setting default movement mode to locked');
-        await game.settings.set(MODULE_ID, 'movementType', 'no-movement');
-        
-        // Send chat message about locked movement
-        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'no-movement');
-        if (movementType) {
-            const templateData = {
-                isPublic: true,
-                isMovementChange: true,
-                movementIcon: movementType.icon,
-                movementLabel: movementType.name,
-                movementDescription: movementType.description
-            };
+        try {
+            console.log('BLACKSMITH | MOVEMENT | Setting default movement mode to locked');
+            const currentMovement = game.settings.get(MODULE_ID, 'movementType');
+            
+            // Only set to locked if not already set
+            if (!currentMovement || currentMovement === 'normal-movement') {
+                await game.settings.set(MODULE_ID, 'movementType', 'no-movement');
+                
+                // Send chat message about locked movement
+                const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'no-movement');
+                if (movementType) {
+                    const templateData = {
+                        isPublic: true,
+                        isMovementChange: true,
+                        movementIcon: movementType.icon,
+                        movementLabel: movementType.name,
+                        movementDescription: movementType.description
+                    };
 
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
-            ChatMessage.create({
-                content: content,
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
-            });
-        }
-        
-        // Update UI immediately
-        const movementIcon = document.querySelector('.movement-icon');
-        const movementLabel = document.querySelector('.movement-label');
-        
-        if (movementIcon) movementIcon.className = 'fas fa-person-circle-xmark movement-icon';
-        if (movementLabel) movementLabel.textContent = 'Locked';
-        
-        // Notify other clients
-        game.socket.emit(`module.${MODULE_ID}`, {
-            type: 'movementChange',
-            data: {
-                movementId: 'no-movement',
-                name: 'Locked'
+                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
+                    ChatMessage.create({
+                        content: content,
+                        type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                    });
+                }
+                
+                // Update UI immediately
+                const movementIcon = document.querySelector('.movement-icon');
+                const movementLabel = document.querySelector('.movement-label');
+                
+                if (movementIcon) movementIcon.className = 'fas fa-person-circle-xmark movement-icon';
+                if (movementLabel) movementLabel.textContent = 'Locked';
+                
+                // Notify other clients
+                game.socket.emit(`module.${MODULE_ID}`, {
+                    type: 'movementChange',
+                    data: {
+                        movementId: 'no-movement',
+                        name: 'Locked'
+                    }
+                });
             }
-        });
+        } catch (error) {
+            console.error('BLACKSMITH | MOVEMENT | Error setting initial movement mode:', error);
+        }
     }
 });
 
@@ -648,21 +632,6 @@ async function findPath(startToken, targetPoint) {
         throw new Error("Grid coordinates must be arrays");
     }
 
-    // Check distance from leader
-    const leaderToken = canvas.tokens.get(currentLeaderTokenId);
-    if (leaderToken) {
-        const distance = Math.hypot(startToken.x - leaderToken.x, startToken.y - leaderToken.y) / canvas.grid.size;
-        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
-        if (distance > distanceThreshold) {
-            // Update status
-            const followerState = tokenFollowers.get(startToken.id);
-            if (followerState && followerState.status !== STATUS.TOO_FAR) {
-                followerState.status = STATUS.TOO_FAR;
-            }
-            return null;
-        }
-    }
-
     // Debug: Log detailed wall information
     const walls = canvas.walls.placeables;
     const closedDoors = walls.filter(w => w.document.ds === 0);
@@ -726,8 +695,32 @@ async function processFollowMovement(sortedFollowers) {
     // Process followers one at a time
     async function processNextFollower(index) {
         if (index >= validFollowers.length) {
-        processingCongaMovement = false;
-            // Only check for status changes after all followers are processed
+            processingCongaMovement = false;
+            
+            // After all movement is complete, check distances for "too far" status
+            for (const [tokenId, state] of tokenFollowers.entries()) {
+                const token = canvas.tokens.get(tokenId);
+                if (!token) continue;
+
+                const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
+                const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
+                const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+                const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+
+                if (distance > distanceThreshold) {
+                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
+                    if (state.status !== STATUS.TOO_FAR) {
+                        state.status = STATUS.TOO_FAR;
+                        statusUpdateNeeded = true;
+                    }
+                } else if (state.status === STATUS.TOO_FAR) {
+                    // Reset status if token is now within range
+                    state.status = STATUS.NORMAL;
+                    statusUpdateNeeded = true;
+                }
+            }
+
+            // Only check for status changes after all followers are processed and distances checked
             if (statusUpdateNeeded) {
                 await calculateMarchingOrder(leaderToken, true);
             }
@@ -979,22 +972,23 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
         console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
         
         let status;
-        if (distance > distanceThreshold) {
+        // Only check for blocked path first
+        try {
+            const targetPoint = { x: leaderToken.x, y: leaderToken.y };
+            const path = await findPath(token, targetPoint);
+            status = path ? STATUS.NORMAL : STATUS.BLOCKED;
+            if (!path) {
+                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
+            }
+        } catch (error) {
+            console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
+            status = STATUS.BLOCKED;
+        }
+
+        // If not blocked, check distance
+        if (status === STATUS.NORMAL && distance > distanceThreshold) {
             console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
             status = STATUS.TOO_FAR;
-        } else {
-            // Only check for blocked path if within range
-            try {
-                const targetPoint = { x: leaderToken.x, y: leaderToken.y };
-                const path = await findPath(token, targetPoint);
-                status = path ? STATUS.NORMAL : STATUS.BLOCKED;
-                if (!path) {
-                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
-                }
-            } catch (error) {
-                console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
-                status = STATUS.BLOCKED;
-            }
         }
         
         return { token, status, distance };
