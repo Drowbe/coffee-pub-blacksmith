@@ -38,6 +38,9 @@ let tokenSpacing = 0;
 // Add this near the top with other state variables
 let marchingOrderJustCalculated = false;
 
+// Add this near the top with other state variables
+let previousMarchingOrder = null;
+
 // Constants for status tracking
 const STATUS = {
     NORMAL: 'normal',
@@ -1002,6 +1005,12 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
     const invalidTokens = tokenStatuses
         .filter(t => t.status !== STATUS.NORMAL);
 
+    // Create current marching order for comparison
+    const currentMarchingOrder = {
+        leader: leaderToken.name,
+        followers: []
+    };
+
     // Assign marching positions
     let position = 0;
     validTokens.forEach(({ token, status }) => {
@@ -1010,6 +1019,11 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
             moving: false,
             currentPathIndex: 0,
             status
+        });
+        currentMarchingOrder.followers.push({
+            name: token.name,
+            position: position - 1,
+            status: status
         });
     });
 
@@ -1020,11 +1034,30 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
             currentPathIndex: 0,
             status
         });
+        currentMarchingOrder.followers.push({
+            name: token.name,
+            position: position - 1,
+            status: status
+        });
     });
 
-    // Only post to chat if explicitly requested
+    // Only post to chat if explicitly requested AND there are changes
     if (postToChat) {
-        await postMarchingOrder();
+        const hasChanges = !previousMarchingOrder || 
+            previousMarchingOrder.leader !== currentMarchingOrder.leader ||
+            previousMarchingOrder.followers.length !== currentMarchingOrder.followers.length ||
+            previousMarchingOrder.followers.some((f, i) => {
+                const currentFollower = currentMarchingOrder.followers[i];
+                return !currentFollower || 
+                    f.name !== currentFollower.name || 
+                    f.position !== currentFollower.position ||
+                    f.status !== currentFollower.status;
+            });
+
+        if (hasChanges) {
+            await postMarchingOrder();
+            previousMarchingOrder = currentMarchingOrder;
+        }
     }
 }
 
