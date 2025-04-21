@@ -161,16 +161,16 @@ export class CSSEditor extends FormApplication {
         // Apply the CSS
         this.applyCSS(css, transition);
 
-        // Notify other clients using socketlib
+        // Notify other clients using built-in socket
         if (game.user.isGM) {
-            const socket = game.modules.get(MODULE_ID).socket;
-            if (socket) {
-                socket.executeForEveryone('updateCSS', {
+            game.socket.emit(`module.${MODULE_ID}`, {
+                type: 'updateCSS',
+                data: {
                     css: css,
                     transition: transition,
                     dark: dark
-                });
-            }
+                }
+            });
         }
 
         // Show a notification that changes were applied
