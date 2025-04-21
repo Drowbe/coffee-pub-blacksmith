@@ -369,72 +369,8 @@ export class MovementConfig extends Application {
                     lastLeaderMoveTime = Date.now();
                     marchingOrderJustDetermined = false;
                     
-                    // Force calculation of initial marching order
-                    calculateMarchingOrder(leaderToken);
-                    
-                    // Get current spacing
-                    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
-                    const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
-                    
-                    // Create marching order array for chat card
-                    const marchingOrder = [{
-                        name: leaderToken.name,
-                        position: "Point",
-                        isDimmed: false
-                    }];
-                    
-                    // Add followers to marching order using status information
-                    const normalTokens = Array.from(tokenFollowers.entries())
-                        .filter(([_, state]) => state.status === STATUS.NORMAL)
-                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
-                        
-                    const invalidTokens = Array.from(tokenFollowers.entries())
-                        .filter(([_, state]) => state.status !== STATUS.NORMAL)
-                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
-
-                    // Add normal tokens first
-                    normalTokens.forEach(([tokenId, state], index) => {
-                        const token = canvas.tokens.get(tokenId);
-                        if (token) {
-                            const position = getPositionLabel(index, normalTokens.length, state.status);
-                            marchingOrder.push({
-                                name: token.name,
-                                position: position,
-                                isDimmed: false
-                            });
-                        }
-                    });
-
-                    // Then add invalid tokens
-                    invalidTokens.forEach(([tokenId, state]) => {
-                        const token = canvas.tokens.get(tokenId);
-                        if (token) {
-                            marchingOrder.push({
-                                name: token.name,
-                                position: state.status === STATUS.BLOCKED ? "Blocked" : "Too Far",
-                                isDimmed: true
-                            });
-                        }
-                    });
-
-                    // For conga/follow movement
-                    const templateData = {
-                        isPublic: true,
-                        isMovementChange: true,
-                        movementIcon: movementType.icon,
-                        movementLabel: movementType.name,
-                        movementDescription: movementType.description,
-                        movementMarchingOrder: marchingOrder,
-                        spacingText: spacingText    
-                    };
-
-                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
-
-                    // Send chat message
-                    ChatMessage.create({
-                        content: content,
-                        type: CONST.CHAT_MESSAGE_TYPES.OTHER
-                    });
+                    // Calculate initial marching order and post it
+                    await calculateMarchingOrder(leaderToken, true);
                 } else {
                     ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
                 }
@@ -669,6 +605,8 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                     console.log(`BLACKSMITH | MOVEMENT | Initiating ${movementContext.currentMovement} after leader moved`);
                     const sortedFollowers = getSortedFollowers();
                     processFollowerMovement(movementContext.currentMovement, sortedFollowers);
+                    // Post marching order after movement completes
+                    calculateMarchingOrder(token, true);
                 } else {
                     console.log('BLACKSMITH | MOVEMENT | Not enough path points to move followers');
                 }
@@ -719,7 +657,6 @@ async function findPath(startToken, targetPoint) {
             const followerState = tokenFollowers.get(startToken.id);
             if (followerState && followerState.status !== STATUS.TOO_FAR) {
                 followerState.status = STATUS.TOO_FAR;
-                postMarchingOrder();
             }
             return null;
         }
@@ -735,157 +672,33 @@ async function findPath(startToken, targetPoint) {
         total: walls.length,
         closedDoors: closedDoors.length,
         openDoors: openDoors.length,
-        normalWalls: normalWalls.length,
-        wallStates: walls.map(w => ({
-            id: w.id,
-            ds: w.document.ds,
-            c: w.document.c,
-            move: w.document.move,
-            sight: w.document.sight
-        }))
+        normalWalls: normalWalls.length
     });
 
-    // Try direct path first
-    const directPath = await tryDirectPath(startToken, targetPoint);
-    if (directPath) return directPath;
-
-    // If direct path fails, try A* pathfinding
-    const path = await findAStarPath(startToken, targetPoint);
-    if (!path) {
-        const followerState = tokenFollowers.get(startToken.id);
-        if (followerState && followerState.status !== STATUS.BLOCKED) {
-            followerState.status = STATUS.BLOCKED;
-            postMarchingOrder();
-        }
-    }
-    return path;
-}
-
-// Try a direct path first, ignoring doors
-async function tryDirectPath(startToken, targetPoint) {
+    // First check if there's a direct path (considering walls and closed doors)
     const startCenter = canvas.grid.getCenterPoint(startToken);
     const endCenter = canvas.grid.getCenterPoint(targetPoint);
 
-    // Test collision with doors ignored
     const blocked = CONFIG.Canvas.polygonBackends.move.testCollision(startCenter, endCenter, {
         type: "move",
         mode: "any",
         walls: {
             source: startToken,
-            target: null,
-            ignoreDoors: true // Try ignoring doors
+            target: null
         }
     });
 
-    if (!blocked) {
-        console.log("BLACKSMITH | MOVEMENT | Found direct path ignoring doors");
-        return [targetPoint];
+    if (blocked) {
+        console.log(`BLACKSMITH | MOVEMENT | ${startToken.name} is blocked from reaching the target`);
+        return null;
     }
 
-    return null;
-}
-
-// A* pathfinding with door handling
-async function findAStarPath(startToken, targetPoint) {
-    const startGrid = worldToGrid(startToken.x, startToken.y);
-    const endGrid = worldToGrid(targetPoint.x, targetPoint.y);
-
-    const openSet = new Set();
-    const cameFrom = new Map();
-    const gScore = new Map();
-    const fScore = new Map();
-
-    const key = (pos) => {
-        if (Array.isArray(pos)) return `${pos[0]},${pos[1]}`;
-        if (typeof pos === "object" && pos !== null && "x" in pos && "y" in pos) return `${pos.x},${pos.y}`;
-        throw new Error(`Invalid position for key(): ${pos}`);
-    };
-
-    const heuristic = (pos1, pos2) => {
-        const x1 = Array.isArray(pos1) ? pos1[0] : pos1.x;
-        const y1 = Array.isArray(pos1) ? pos1[1] : pos1.y;
-        const x2 = Array.isArray(pos2) ? pos2[0] : pos2.x;
-        const y2 = Array.isArray(pos2) ? pos2[1] : pos2.y;
-        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
-    };
-
-    openSet.add(key(startGrid));
-    gScore.set(key(startGrid), 0);
-    fScore.set(key(startGrid), heuristic(startGrid, endGrid));
-
-    const frontier = [startGrid];
-
-    while (frontier.length > 0) {
-        frontier.sort((a, b) => fScore.get(key(a)) - fScore.get(key(b)));
-        const current = frontier.shift();
-        const currentKey = key(current);
-
-        if ((Array.isArray(current) ? current[0] : current.x) === (Array.isArray(endGrid) ? endGrid[0] : endGrid.x) &&
-            (Array.isArray(current) ? current[1] : current.y) === (Array.isArray(endGrid) ? endGrid[1] : endGrid.y)) {
-            const path = [];
-            let temp = current;
-            while (cameFrom.has(key(temp))) {
-                path.unshift(gridToWorld(Array.isArray(temp) ? temp : [temp.x, temp.y]));
-                temp = cameFrom.get(key(temp));
-            }
-            return path;
-        }
-
-        const neighbors = canvas.grid.getNeighbors(current, { diagonals: true });
-        console.log("BLACKSMITH | MOVEMENT | Current:", current, "Neighbors:", neighbors);
-
-        for (const neighbor of neighbors) {
-            const nKey = key(neighbor);
-            const fromCenter = canvas.grid.getCenterPoint(current);
-            const toCenter = canvas.grid.getCenterPoint(neighbor);
-
-            // Test collision with different wall configurations
-            let blocked = false;
-            
-            // First try with normal wall settings
-            blocked = CONFIG.Canvas.polygonBackends.move.testCollision(fromCenter, toCenter, {
-                type: "move",
-                mode: "any",
-                walls: {
-                    source: startToken,
-                    target: null
-                }
-            });
-
-            // If blocked, try ignoring doors
-            if (blocked) {
-                blocked = CONFIG.Canvas.polygonBackends.move.testCollision(fromCenter, toCenter, {
-                    type: "move",
-                    mode: "any",
-                    walls: {
-                        source: startToken,
-                        target: null,
-                        ignoreDoors: true
-                    }
-                });
-            }
-
-            if (blocked) {
-                console.log("BLACKSMITH | MOVEMENT | Path blocked from", fromCenter, "to", toCenter);
-                continue;
-            }
-
-            const tentativeG = (gScore.get(currentKey) || Infinity) + 1;
-
-            if (tentativeG < (gScore.get(nKey) || Infinity)) {
-                cameFrom.set(nKey, current);
-                gScore.set(nKey, tentativeG);
-                fScore.set(nKey, tentativeG + heuristic(neighbor, endGrid));
-                if (!frontier.some(n => key(n) === nKey)) frontier.push(neighbor);
-            }
-        }
-    }
-
-    return null;
+    // If not blocked, return the direct path
+    return [targetPoint];
 }
 
 // Process follow movement - tokens follow in formation behind leader
-function processFollowMovement(sortedFollowers) {
+async function processFollowMovement(sortedFollowers) {
     // Safety check - if no path points, exit
     if (leaderMovementPath.length < 2) {
         console.log('BLACKSMITH | MOVEMENT | Not enough path points for follow movement');
@@ -905,14 +718,22 @@ function processFollowMovement(sortedFollowers) {
         return;
     }
 
+    // Process only valid followers
+    const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
+    let statusUpdateNeeded = false;
+
     // Process followers one at a time
     async function processNextFollower(index) {
-        if (index >= sortedFollowers.length) {
+        if (index >= validFollowers.length) {
             processingCongaMovement = false;
+            // Only check for status changes after all followers are processed
+            if (statusUpdateNeeded) {
+                await calculateMarchingOrder(leaderToken, true);
+            }
             return;
         }
 
-        const [tokenId, state] = sortedFollowers[index];
+        const [tokenId, state] = validFollowers[index];
         const token = canvas.tokens.get(tokenId);
         if (!token) {
             processNextFollower(index + 1);
@@ -930,14 +751,17 @@ function processFollowMovement(sortedFollowers) {
             return;
         }
 
-        console.log(`BLACKSMITH | MOVEMENT | Moving ${token.name} to target index ${targetIndex} (position ${state.marchPosition})`);
-
         try {
             // Find a path to the target
             const path = await findPath(token, targetPoint);
             if (!path || path.length === 0) {
                 console.log(`BLACKSMITH | MOVEMENT | No valid path found for ${token.name}`);
-                ui.notifications.warn(`${token.name} cannot find a path to their position. They may be blocked by walls or closed doors.`);
+                // Update token status to blocked but don't recalculate yet
+                const followerState = tokenFollowers.get(tokenId);
+                if (followerState && followerState.status !== STATUS.BLOCKED) {
+                    followerState.status = STATUS.BLOCKED;
+                    statusUpdateNeeded = true;
+                }
                 processNextFollower(index + 1);
                 return;
             }
@@ -970,6 +794,38 @@ function processFollowMovement(sortedFollowers) {
 
     // Start processing followers
     processNextFollower(0);
+}
+
+// New function to check for status changes in invalid tokens
+async function checkForStatusChanges(leaderToken) {
+    let statusChanged = false;
+    
+    // Get all invalid tokens
+    const invalidTokens = Array.from(tokenFollowers.entries())
+        .filter(([_, state]) => state.status !== STATUS.NORMAL);
+    
+    // Check each invalid token
+    for (const [tokenId, state] of invalidTokens) {
+        const token = canvas.tokens.get(tokenId);
+        if (!token) continue;
+        
+        // Check new status
+        const newStatus = await checkTokenStatus(token, leaderToken);
+        
+        // If status improved to NORMAL
+        if (newStatus === STATUS.NORMAL && state.status !== STATUS.NORMAL) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} status improved to NORMAL`);
+            statusChanged = true;
+            break; // Exit early as we'll recalculate the whole marching order
+        }
+        // If status changed between TOO_FAR and BLOCKED
+        else if (newStatus !== state.status) {
+            state.status = newStatus;
+            statusChanged = true;
+        }
+    }
+    
+    return statusChanged;
 }
 
 // Process conga movement - tokens follow leader's exact path
@@ -1100,7 +956,7 @@ function processCongaMovement(sortedFollowers) {
 }
 
 // Calculate the marching order based on proximity to a leader token
-function calculateMarchingOrder(leaderToken) {
+async function calculateMarchingOrder(leaderToken, postToChat = false) {
     // Reset marching order
     tokenFollowers.clear();
     
@@ -1112,35 +968,68 @@ function calculateMarchingOrder(leaderToken) {
     );
     
     // First, check status of all tokens and sort by distance
-    const tokenStatuses = followerTokens.map(token => {
-        const status = checkTokenStatus(token, leaderToken);
-        const distance = Math.hypot(token.x - leaderToken.x, token.y - leaderToken.y);
+    const tokenStatuses = await Promise.all(followerTokens.map(async token => {
+        // Check distance first
+        const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
+        const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
+        const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+        
+        console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
+        
+        let status;
+        if (distance > DISTANCE_THRESHOLD) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${DISTANCE_THRESHOLD})`);
+            status = STATUS.TOO_FAR;
+        } else {
+            // Only check for blocked path if within range
+            try {
+                const targetPoint = { x: leaderToken.x, y: leaderToken.y };
+                const path = await findPath(token, targetPoint);
+                status = path ? STATUS.NORMAL : STATUS.BLOCKED;
+                if (!path) {
+                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
+                }
+            } catch (error) {
+                console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
+                status = STATUS.BLOCKED;
+            }
+        }
+        
         return { token, status, distance };
-    });
+    }));
 
     // Separate valid and invalid tokens
-    const validTokens = tokenStatuses.filter(t => t.status === STATUS.NORMAL)
-        .sort((a, b) => a.distance - b.distance);
-    const invalidTokens = tokenStatuses.filter(t => t.status !== STATUS.NORMAL)
+    const validTokens = tokenStatuses
+        .filter(t => t.status === STATUS.NORMAL)
         .sort((a, b) => a.distance - b.distance);
 
-    // Set marching order for valid tokens first
-    validTokens.forEach((tokenInfo, index) => {
-        tokenFollowers.set(tokenInfo.token.id, {
-            marchPosition: index + 1, // +1 because leader is position 0
+    const invalidTokens = tokenStatuses
+        .filter(t => t.status !== STATUS.NORMAL);
+
+    // Assign marching positions
+    let position = 0;
+    validTokens.forEach(({ token, status }) => {
+        tokenFollowers.set(token.id, {
+            marchPosition: position++,
             moving: false,
-            status: STATUS.NORMAL
+            currentPathIndex: 0,
+            status
         });
     });
 
-    // Then add invalid tokens at the end
-    invalidTokens.forEach((tokenInfo, index) => {
-        tokenFollowers.set(tokenInfo.token.id, {
-            marchPosition: validTokens.length + index + 1,
+    invalidTokens.forEach(({ token, status }) => {
+        tokenFollowers.set(token.id, {
+            marchPosition: position++,
             moving: false,
-            status: tokenInfo.status
+            currentPathIndex: 0,
+            status
         });
     });
+
+    // Only post to chat if explicitly requested
+    if (postToChat) {
+        await postMarchingOrder();
+    }
 }
 
 // Function to get position label based on index and status
@@ -1227,8 +1116,8 @@ async function postMarchingOrder() {
 }
 
 // Function to check token status
-function checkTokenStatus(token, leaderToken) {
-    // Check distance - token positions are already in grid units
+async function checkTokenStatus(token, leaderToken) {
+    // Check distance first
     const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
     const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
     const distance = Math.sqrt(gridX * gridX + gridY * gridY);
@@ -1239,6 +1128,21 @@ function checkTokenStatus(token, leaderToken) {
         console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${DISTANCE_THRESHOLD})`);
         return STATUS.TOO_FAR;
     }
+
+    // If within range, check if path is blocked
+    try {
+        const targetPoint = { x: leaderToken.x, y: leaderToken.y };
+        const path = await findPath(token, targetPoint);
+        
+        if (!path) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
+            return STATUS.BLOCKED;
+        }
+    } catch (error) {
+        console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
+        return STATUS.BLOCKED;
+    }
+
     return STATUS.NORMAL;
 }
 
