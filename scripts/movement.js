@@ -378,23 +378,41 @@ export class MovementConfig extends Application {
                     
                     // Create marching order array for chat card
                     const marchingOrder = [{
-                        position: "Point",
                         name: leaderToken.name,
+                        position: "Point",
                         isDimmed: false
                     }];
                     
                     // Add followers to marching order using status information
                     const normalTokens = Array.from(tokenFollowers.entries())
+                        .filter(([_, state]) => state.status === STATUS.NORMAL)
                         .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
-                    
+                        
+                    const invalidTokens = Array.from(tokenFollowers.entries())
+                        .filter(([_, state]) => state.status !== STATUS.NORMAL)
+                        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+
+                    // Add normal tokens first
                     normalTokens.forEach(([tokenId, state], index) => {
                         const token = canvas.tokens.get(tokenId);
                         if (token) {
                             const position = getPositionLabel(index, normalTokens.length, state.status);
                             marchingOrder.push({
-                                position: position,
                                 name: token.name,
-                                isDimmed: position === "Too Far" || position === "Blocked"
+                                position: position,
+                                isDimmed: false
+                            });
+                        }
+                    });
+
+                    // Then add invalid tokens
+                    invalidTokens.forEach(([tokenId, state]) => {
+                        const token = canvas.tokens.get(tokenId);
+                        if (token) {
+                            marchingOrder.push({
+                                name: token.name,
+                                position: state.status === STATUS.BLOCKED ? "Blocked" : "Too Far",
+                                isDimmed: true
                             });
                         }
                     });
@@ -1093,33 +1111,48 @@ function calculateMarchingOrder(leaderToken) {
         t.actor.hasPlayerOwner
     );
     
-    // Sort by distance to leader (closest first)
-    followerTokens.sort((a, b) => {
-        const distA = Math.hypot(a.x - leaderToken.x, a.y - leaderToken.y);
-        const distB = Math.hypot(b.x - leaderToken.x, b.y - leaderToken.y);
-        return distA - distB;
+    // First, check status of all tokens and sort by distance
+    const tokenStatuses = followerTokens.map(token => {
+        const status = checkTokenStatus(token, leaderToken);
+        const distance = Math.hypot(token.x - leaderToken.x, token.y - leaderToken.y);
+        return { token, status, distance };
     });
-    
-    // Set marching order and initial status
-    followerTokens.forEach((followerToken, index) => {
-        const status = checkTokenStatus(followerToken, leaderToken);
-        tokenFollowers.set(followerToken.id, {
-            marchPosition: index + 1,
+
+    // Separate valid and invalid tokens
+    const validTokens = tokenStatuses.filter(t => t.status === STATUS.NORMAL)
+        .sort((a, b) => a.distance - b.distance);
+    const invalidTokens = tokenStatuses.filter(t => t.status !== STATUS.NORMAL)
+        .sort((a, b) => a.distance - b.distance);
+
+    // Set marching order for valid tokens first
+    validTokens.forEach((tokenInfo, index) => {
+        tokenFollowers.set(tokenInfo.token.id, {
+            marchPosition: index + 1, // +1 because leader is position 0
             moving: false,
-            status: status
+            status: STATUS.NORMAL
         });
-        console.log(`BLACKSMITH | MOVEMENT | Set ${followerToken.name} to position ${index + 1} with status ${status}`);
+    });
+
+    // Then add invalid tokens at the end
+    invalidTokens.forEach((tokenInfo, index) => {
+        tokenFollowers.set(tokenInfo.token.id, {
+            marchPosition: validTokens.length + index + 1,
+            moving: false,
+            status: tokenInfo.status
+        });
     });
 }
 
 // Function to get position label based on index and status
 function getPositionLabel(index, total, status) {
+    // If token is blocked or too far, return that status
     if (status === STATUS.BLOCKED) return "Blocked";
     if (status === STATUS.TOO_FAR) return "Too Far";
     
-    if (index === 0) return "Vanguard";
-    if (index === total - 1) return "Rear Guard";
-    return "Center";
+    // For tokens in normal range:
+    if (index === 0) return "Vanguard";  // First follower is always Vanguard
+    if (index === total - 1) return "Rear Guard";  // Last normal follower is Rear Guard
+    return "Center";  // Everyone else in the middle is Center
 }
 
 // Function to post marching order to chat
@@ -1138,10 +1171,16 @@ async function postMarchingOrder() {
         isDimmed: false
     }];
 
-    // Add followers in order
+    // Separate and sort normal and invalid tokens
     const normalTokens = Array.from(tokenFollowers.entries())
+        .filter(([_, state]) => state.status === STATUS.NORMAL)
+        .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
+    
+    const invalidTokens = Array.from(tokenFollowers.entries())
+        .filter(([_, state]) => state.status !== STATUS.NORMAL)
         .sort((a, b) => a[1].marchPosition - b[1].marchPosition);
 
+    // Add normal tokens first
     normalTokens.forEach(([tokenId, state], index) => {
         const token = canvas.tokens.get(tokenId);
         if (token) {
@@ -1149,7 +1188,19 @@ async function postMarchingOrder() {
             marchingOrder.push({
                 position: position,
                 name: token.name,
-                isDimmed: position === "Too Far" || position === "Blocked"
+                isDimmed: false
+            });
+        }
+    });
+
+    // Then add invalid tokens
+    invalidTokens.forEach(([tokenId, state]) => {
+        const token = canvas.tokens.get(tokenId);
+        if (token) {
+            marchingOrder.push({
+                position: state.status === STATUS.BLOCKED ? "Blocked" : "Too Far",
+                name: token.name,
+                isDimmed: true
             });
         }
     });
