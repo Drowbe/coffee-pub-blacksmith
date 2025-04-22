@@ -274,7 +274,7 @@ class ChatPanel {
     }
 
     static getLeaderDisplayText() {
-        if (this.isLoading) return "Loading...";
+        if (this.isLoading) return "No Leader";
         return this.currentLeader || "Choose a Leader...";
     }
 
@@ -463,7 +463,7 @@ class ChatPanel {
     }
 
     static getTimerText() {
-        if (this.isLoading) return "Loading...";
+        if (this.isLoading) return "Not Set";
         if (!this.sessionEndTime) return "Set Time";
         
         const now = Date.now();
