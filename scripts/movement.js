@@ -28,6 +28,8 @@ let marchingOrderJustDetermined = false;
 let processingCongaMovement = false;
 // Add this near the top with other state variables
 const tokenOriginalPositions = new Map(); // Store original positions separately
+// Track if movement is currently in progress
+let isMovementInProgress = false;
 
 // Add state variable for pre-combat movement mode
 let preCombatMovementMode = null;
@@ -62,6 +64,19 @@ function validateMovement(tokenDocument, changes, userId) {
     const movedByLeader = userId === partyLeaderUserId;
     const movedByGM = game.users.get(userId)?.isGM;
     
+    // If movement is in progress and this is the leader trying to move, block it
+    if (isMovementInProgress && movedByLeader && !movedByGM) {
+        console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - Blocking leader movement`);
+        ui.notifications.warn("Please wait for all tokens to complete their movement before moving again.");
+        return {
+            currentMovement,
+            partyLeaderUserId,
+            movedByLeader,
+            movedByGM,
+            isValid: false
+        };
+    }
+    
     return {
         currentMovement,
         partyLeaderUserId,
@@ -74,6 +89,8 @@ function validateMovement(tokenDocument, changes, userId) {
 // Handle leader movement and path recording
 function handleLeaderMovement(token, tokenDocument) {
     currentLeaderTokenId = token.id;
+    isMovementInProgress = true; // Set movement in progress when leader starts moving
+    console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - Leader started moving`);
     
     const position = {
         x: tokenDocument.x,
@@ -688,6 +705,8 @@ async function processFollowMovement(sortedFollowers) {
     if (!leaderToken) {
         console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting follow movement');
         processingCongaMovement = false;
+        isMovementInProgress = false; // Reset movement in progress
+        console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - Leader token not found`);
         return;
     }
     
@@ -699,6 +718,8 @@ async function processFollowMovement(sortedFollowers) {
     async function processNextFollower(index) {
         if (index >= validFollowers.length) {
             processingCongaMovement = false;
+            isMovementInProgress = false; // Reset movement in progress when all followers are done
+            console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - All followers completed movement`);
             
             // After all movement is complete, check distances for "too far" status
             for (const [tokenId, state] of tokenFollowers.entries()) {
@@ -727,15 +748,15 @@ async function processFollowMovement(sortedFollowers) {
             if (statusUpdateNeeded) {
                 await calculateMarchingOrder(leaderToken, true);
             }
-        return;
-    }
-    
+            return;
+        }
+        
         const [tokenId, state] = validFollowers[index];
-    const token = canvas.tokens.get(tokenId);
-    if (!token) {
+        const token = canvas.tokens.get(tokenId);
+        if (!token) {
             processNextFollower(index + 1);
-        return;
-    }
+            return;
+        }
 
         // Calculate target position based on marching order
         const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
@@ -745,8 +766,8 @@ async function processFollowMovement(sortedFollowers) {
         if (!targetPoint) {
             console.log(`BLACKSMITH | MOVEMENT | No target point for ${token.name}`);
             processNextFollower(index + 1);
-        return;
-    }
+            return;
+        }
 
         try {
             // Find a path to the target
@@ -760,16 +781,16 @@ async function processFollowMovement(sortedFollowers) {
                     statusUpdateNeeded = true;
                 }
                 processNextFollower(index + 1);
-        return;
-    }
+                return;
+            }
 
             // Move the token along the path
             for (const step of path) {
                 await token.document.update({
                     x: step.x,
                     y: step.y,
-        flags: {
-            [MODULE_ID]: {
+                    flags: {
+                        [MODULE_ID]: {
                             followMovement: true
                         }
                     }
@@ -844,6 +865,8 @@ function processCongaMovement(sortedFollowers) {
     if (!leaderToken) {
         console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting conga movement');
         processingCongaMovement = false;
+        isMovementInProgress = false; // Reset movement in progress
+        console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - Leader token not found`);
         return;
     }
     
@@ -895,6 +918,8 @@ function processCongaMovement(sortedFollowers) {
             }
             
             processingCongaMovement = false;
+            isMovementInProgress = false; // Reset movement in progress when all followers are done
+            console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - All followers completed movement`);
             return;
         }
 
