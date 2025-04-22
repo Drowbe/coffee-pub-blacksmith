@@ -741,13 +741,18 @@ async function processFollowMovement(sortedFollowers) {
     // Process only valid followers
     const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
     let statusUpdateNeeded = false;
+    let firstStepComplete = false;
 
     // Process followers one at a time
     async function processNextFollower(index) {
         if (index >= validFollowers.length) {
             processingCongaMovement = false;
-            isMovementInProgress = false; // Reset movement in progress when all followers are done
-            console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - All followers completed movement`);
+            // If this is the first step completed, allow leader to move again
+            if (!firstStepComplete) {
+                firstStepComplete = true;
+                isMovementInProgress = false;
+                console.log(`BLACKSMITH | MOVEMENT | isMovementInProgress: ${isMovementInProgress} - First step complete, leader can move again`);
+            }
             
             // After all movement is complete, check distances for "too far" status
             for (const [tokenId, state] of tokenFollowers.entries()) {
