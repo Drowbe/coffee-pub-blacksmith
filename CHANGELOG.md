@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+
+## [1.0.13] - 2025-04-22 - Movement AND CLEANUP
+
+### Added
+- **Enhanced Movement System**
+  - Added proper path management for conga line movement
+  - Added token spacing configuration
+  - Added status tracking for tokens (Normal, Blocked, Too Far)
+  - Added visual indicators for token status in marching order
+  - Added automatic exclusion of blocked or too-far tokens from movement
+
+### Changed
+- **Movement Improvements**
+  - Improved path following behavior for tokens
+  - Enhanced marching order calculation
+  - Optimized path trimming logic
+  - Better handling of token spacing in formation
+
+### Fixed
+- Fixed tokens stacking on top of each other during movement
+- Fixed marching order recalculation issues
+- Fixed path following to maintain proper spacing
+- Fixed tokens skipping path points during movement
+- Fixed blocked and too-far tokens attempting to join formation
+
 ## [1.0.12] - 2025-03-25 - Rolls and Movement Controls
 
 ### Added
