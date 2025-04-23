@@ -408,6 +408,30 @@ export class MovementConfig extends Application {
     static getCurrentMovementType() {
         return game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
     }
+
+    static getLeaderToken() {
+        try {
+            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            if (!leaderData.actorId) return null;
+
+            // Find the first token for this actor in the current scene
+            return canvas.tokens.placeables.find(token => 
+                token.actor?.id === leaderData.actorId
+            );
+        } catch (error) {
+            console.error("Error getting leader token:", error);
+            return null;
+        }
+    }
+
+    static isLeaderToken(token) {
+        try {
+            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            return token.actor?.id === leaderData.actorId;
+        } catch (error) {
+            return false;
+        }
+    }
 } 
 
 // Add debug function to check the current leader

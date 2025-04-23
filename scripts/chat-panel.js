@@ -297,13 +297,11 @@ class ChatPanel {
         if (!voteIcon) return;
 
         const isGM = game.user.isGM;
-        // Add a try-catch block to handle cases where the setting might not be available
         let isLeader = false;
         try {
-            const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
-            isLeader = game.user.id === leaderId;
+            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            isLeader = game.user.id === leaderData.userId;
         } catch (error) {
-            // If we can't access the setting, assume not leader
             isLeader = false;
         }
         const canVote = isGM || isLeader;
@@ -352,15 +350,40 @@ class ChatPanel {
     }
 
     static async showLeaderDialog() {
-        // Get all connected players (excluding GM) who are online and not excluded
+        // Get all player-owned characters that aren't excluded
         const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
-        const players = game.users.filter(user => 
-            !user.isGM && 
-            user.active && 
-            !excludedUsers.includes(user.id) && 
-            !excludedUsers.includes(user.name)
-        );
         
+        // Get all character actors and their owners
+        const characterEntries = game.actors
+            .filter(actor => 
+                actor.type === 'character' && 
+                actor.hasPlayerOwner
+            )
+            .map(actor => {
+                // Find the user with highest ownership level for this actor
+                const ownerEntry = Object.entries(actor.ownership)
+                    .filter(([userId, level]) => 
+                        level === 3 && // OWNER level
+                        !excludedUsers.includes(userId) && 
+                        !excludedUsers.includes(game.users.get(userId)?.name)
+                    )
+                    .map(([userId, level]) => ({
+                        userId,
+                        user: game.users.get(userId),
+                        level
+                    }))
+                    .find(entry => entry.user && entry.user.active); // Only include active users
+
+                if (ownerEntry) {
+                    return {
+                        actor,
+                        owner: ownerEntry.user
+                    };
+                }
+                return null;
+            })
+            .filter(entry => entry !== null); // Remove any entries where we didn't find an active owner
+
         // Create the dialog content
         const content = `
             <form>
@@ -368,7 +391,12 @@ class ChatPanel {
                     <label>Select Party Leader:</label>
                     <select name="leader" id="leader-select">
                         <option value="">None</option>
-                        ${players.map(p => `<option value="${p.id}" ${this.currentLeader === p.name ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        ${characterEntries.map(entry => {
+                            const isCurrentLeader = this.currentLeader === entry.actor.name;
+                            return `<option value="${entry.actor.id}|${entry.owner.id}" ${isCurrentLeader ? 'selected' : ''}>
+                                ${entry.actor.name} (${entry.owner.name})
+                            </option>`;
+                        }).join('')}
                     </select>
                 </div>
             </form>
@@ -383,13 +411,14 @@ class ChatPanel {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Set Leader",
                     callback: async (html) => {
-                        const selectedId = html.find('#leader-select').val();
-                        if (selectedId) {
+                        const selectedValue = html.find('#leader-select').val();
+                        if (selectedValue) {
+                            const [actorId, userId] = selectedValue.split('|');
                             // Send messages when selecting from dialog
-                            await ChatPanel.setNewLeader(selectedId, true);
+                            await ChatPanel.setNewLeader({ userId, actorId }, true);
                         } else {
                             // Handle clearing the leader if none selected
-                            await game.settings.set(MODULE_ID, 'partyLeader', null);
+                            await game.settings.set(MODULE_ID, 'partyLeader', { userId: '', actorId: '' });
                             this.currentLeader = null;
                             await this.updateLeader(null);
                         }
@@ -778,28 +807,30 @@ class ChatPanel {
 
     /**
      * Set a new party leader and handle all related updates
-     * @param {string} userId - The user ID of the new leader
+     * @param {Object} leaderData - Object containing userId and actorId
      * @param {boolean} [sendMessages=false] - Whether to send chat messages about the new leader
      * @returns {Promise<boolean>} - True if successful, false if failed
      */
-    static async setNewLeader(userId, sendMessages = false) {
+    static async setNewLeader(leaderData, sendMessages = false) {
         try {
-            // Get the user
-            const user = game.users.get(userId);
-            if (!user) {
+            // Get the user and actor
+            const user = game.users.get(leaderData.userId);
+            const actor = game.actors.get(leaderData.actorId);
+            
+            if (!user || !actor) {
                 postConsoleAndNotification("Chat Panel | Error", 
-                    `Failed to set leader: User ${userId} not found`, 
+                    `Failed to set leader: User or character not found`, 
                     false, true, false
                 );
                 return false;
             }
 
             // Store in settings
-            await game.settings.set(MODULE_ID, 'partyLeader', userId);
+            await game.settings.set(MODULE_ID, 'partyLeader', leaderData);
 
             // Update the static currentLeader and display
-            ChatPanel.currentLeader = user.name;
-            await ChatPanel.updateLeader(user.name);
+            ChatPanel.currentLeader = actor.name;
+            await ChatPanel.updateLeader(actor.name);
 
             // Update vote icon permissions
             this.updateVoteIconState();
@@ -810,8 +841,8 @@ class ChatPanel {
                 const publicData = {
                     isPublic: true,
                     isLeaderChange: true,
-                    leaderName: user.name,
-                    leaderId: userId
+                    leaderName: actor.name,
+                    playerName: user.name
                 };
 
                 const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', publicData);
@@ -825,7 +856,7 @@ class ChatPanel {
                 const privateData = {
                     isPublic: false,
                     isLeaderChange: true,
-                    leaderName: user.name
+                    leaderName: actor.name
                 };
 
                 const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', privateData);
@@ -833,7 +864,7 @@ class ChatPanel {
                     content: privateHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
                     speaker: ChatMessage.getSpeaker({ user: game.user }),
-                    whisper: [userId]
+                    whisper: [leaderData.userId]
                 });
             }
 

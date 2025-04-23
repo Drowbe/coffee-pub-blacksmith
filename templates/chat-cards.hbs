@@ -109,7 +109,7 @@
     {{else if isLeaderChange}}
         <div class="blacksmith-card theme-default">
             <div class="section-header">
-                <i class="fas fa-crown"></i> {{leaderName}} Appointed
+                <i class="fas fa-crown"></i> {{leaderName}} is Party Leader
             </div>
             <div class="section-content">
                 <p>All hail <strong>{{leaderName}}</strong>, party leader for this session!</p>
@@ -118,6 +118,7 @@
                     <li>They facilitate decision-making and pace.</li>
                     <li>They are the Point when movement mode is Follow or Conga.</li>
                 </ul>
+                <p>{{leaderName}} is being played by {{playerName}}).</p>
             </div>
         </div>
     {{else}}
@@ -141,17 +142,12 @@
 {{else}}
     {{!-- PRIVATE MESSAGES --}}
     {{#if isLeaderChange}}
-        <div class="blacksmith-card theme-default">
+        <div class="blacksmith-card theme-red">
             <div class="section-header">
-                <i class="fas fa-crown"></i> Congratulations, Party Leader!
+                <i class="fas fa-crown"></i> You Are Party Leader!
             </div>
             <div class="section-content">
-                <p>The party has chosen you to be their leader, hooray!</p>
-                <ul>
-                    <li>Help guide them through decisions, but make the final call.</li>
-                    <li>Keep things moving when discussion stalls.</li>
-                    <li>You are on Point when movement mode is Follow or Conga.</li>
-                </ul>
+                <p>The party has chosen {{leaderName}} to be their leader.</p>
             </div>
         </div>
     {{else}}

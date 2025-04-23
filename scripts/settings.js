@@ -532,8 +532,8 @@ export const registerSettings = async () => {
 			hint: 'The currently selected party leader',
 			scope: 'world',
 			config: false,
-			type: String,
-			default: ''
+			type: Object,
+			default: { userId: '', actorId: '' }
 		});
 
 
