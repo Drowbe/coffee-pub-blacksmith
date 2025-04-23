@@ -846,9 +846,13 @@ function processCongaMovement(sortedFollowers) {
         processingCongaMovement = false;
         return;
     }
+
+    // Filter out tokens that are blocked or too far
+    const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
+    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} valid followers, excluding ${sortedFollowers.length - validFollowers.length} invalid followers`);
     
     // Store all followers' current positions and their target indices
-    const followerStates = sortedFollowers.map(([tokenId, state]) => {
+    const followerStates = validFollowers.map(([tokenId, state]) => {
         const token = canvas.tokens.get(tokenId);
         if (!token) return null;
         
