@@ -10,6 +10,17 @@ import { ChatPanel } from './chat-panel.js';
 export class VoteManager {
     static activeVote = null;
 
+    /**
+     * Check if a user is excluded from voting
+     * @param {string} userId - The ID of the user to check
+     * @returns {boolean} True if the user is excluded
+     */
+    static _isUserExcluded(userId) {
+        const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const user = game.users.get(userId);
+        return excludedUsers.includes(userId) || excludedUsers.includes(user?.name);
+    }
+
     static initialize() {
         postConsoleAndNotification("Vote Manager | Initializing", "", false, true, false);
 
@@ -30,8 +41,8 @@ export class VoteManager {
         Handlebars.registerHelper('getVoterList', function(votes) {
             if (!votes) return '';
 
-            // Get all active non-GM players
-            const allPlayers = game.users.filter(u => u.active && !u.isGM);
+            // Get all active non-GM players who aren't excluded
+            const allPlayers = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
             
             // Split into voted and not voted
             const votedPlayers = allPlayers.filter(u => votes[u.id]);
@@ -202,7 +213,7 @@ export class VoteManager {
         // Set options based on vote type
         if (type === 'leader') {
             this.activeVote.options = game.users
-                .filter(u => u.active && !u.isGM)
+                .filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id))
                 .map(u => ({
                     id: u.id,
                     name: u.name
@@ -405,7 +416,7 @@ export class VoteManager {
 
             case 'players':
                 return game.users
-                    .filter(u => u.active && !u.isGM)
+                    .filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id))
                     .map(u => ({
                         id: u.id,
                         name: u.name,
@@ -432,12 +443,14 @@ export class VoteManager {
      * @returns {boolean} True if all eligible players have voted
      */
     static _haveAllPlayersVoted() {
-        // Get all active non-GM players
-        const eligibleVoters = game.users.filter(u => u.active && !u.isGM);
+        // Get all active non-GM players who aren't excluded
+        const eligibleVoters = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
         const totalVoters = eligibleVoters.length;
         
-        // Count actual votes
-        const actualVotes = Object.keys(this.activeVote.votes).length;
+        // Count actual votes from eligible voters
+        const actualVotes = Object.keys(this.activeVote.votes)
+            .filter(id => !VoteManager._isUserExcluded(id))
+            .length;
         
         return actualVotes >= totalVoters;
     }
@@ -454,6 +467,12 @@ export class VoteManager {
             return;
         }
 
+        // Check if the user is excluded
+        if (this._isUserExcluded(voterId)) {
+            ui.notifications.warn("You are excluded from participating in votes.");
+            return;
+        }
+
         // Check if the vote is still active
         if (!this.activeVote.isActive) {
             ui.notifications.warn("This vote has already ended.");
@@ -461,9 +480,9 @@ export class VoteManager {
         }
 
         // Check if there are any active players to vote
-        const activePlayers = game.users.filter(u => u.active && !u.isGM);
+        const activePlayers = game.users.filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id));
         if (activePlayers.length === 0) {
-            ui.notifications.warn("There are no active players to vote.");
+            ui.notifications.warn("There are no active players eligible to vote.");
             return;
         }
 
@@ -628,9 +647,12 @@ export class VoteManager {
      * @returns {Object} Object containing current and total voter counts
      */
     static _getVotingProgress() {
-        const eligibleVoters = game.users.filter(u => u.active && !u.isGM);
+        const eligibleVoters = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
         const nonGMVotes = Object.entries(this.activeVote.votes || {})
-            .filter(([userId]) => !game.users.get(userId)?.isGM)
+            .filter(([userId]) => {
+                const user = game.users.get(userId);
+                return user && !user.isGM && !VoteManager._isUserExcluded(userId);
+            })
             .length;
         return {
             current: nonGMVotes,

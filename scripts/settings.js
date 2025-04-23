@@ -517,6 +517,15 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+		game.settings.register(MODULE_ID, 'excludedUsersChatPanel', {
+			name: 'Excluded Chat Panel Users',
+			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+		});
+
 		// -- Party Leader -- 
 		game.settings.register(MODULE_ID, 'partyLeader', {
 			name: 'Party Leader',
