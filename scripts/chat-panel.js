@@ -352,8 +352,14 @@ class ChatPanel {
     }
 
     static async showLeaderDialog() {
-        // Get all connected players (excluding GM) who are online
-        const players = game.users.filter(user => !user.isGM && user.active);
+        // Get all connected players (excluding GM) who are online and not excluded
+        const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const players = game.users.filter(user => 
+            !user.isGM && 
+            user.active && 
+            !excludedUsers.includes(user.id) && 
+            !excludedUsers.includes(user.name)
+        );
         
         // Create the dialog content
         const content = `
