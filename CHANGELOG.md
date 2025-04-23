@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.14] - 2025-04-23 - Excluded Users
+
+### Fixed
+- Fixed excluded users appearing in leader selection dialog
+- Fixed excluded users appearing in character vote options when using "Current Players" source
+- Improved consistency of user exclusion across all voting and leader selection interfaces
 
 ## [1.0.13] - 2025-04-22 - Movement AND CLEANUP
 
