@@ -434,19 +434,19 @@ class ChatPanel {
     }
 
     static async loadLeader() {
-        let leaderId = null;
+        let leaderData = null;
         try {
-            leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+            leaderData = game.settings.get(MODULE_ID, 'partyLeader');
         } catch (error) {
             // If we can't access the setting, assume no leader
-            leaderId = null;
+            leaderData = { userId: '', actorId: '' };
         }
         
-        postConsoleAndNotification("Chat Panel: Loading leader, found ID:", leaderId, false, true, false);
+        postConsoleAndNotification("Chat Panel: Loading leader, found data:", leaderData, false, true, false);
         
-        if (leaderId) {
+        if (leaderData && leaderData.actorId) {
             // Don't send messages during initialization
-            await ChatPanel.setNewLeader(leaderId, false);
+            await ChatPanel.setNewLeader(leaderData, false);
         } else {
             ChatPanel.currentLeader = null;
             await ChatPanel.updateLeader(null);
