@@ -568,8 +568,10 @@ export class VoteManager {
 
         // First, create a map of option IDs to names and initialize all options with 0 votes
         const optionNames = {};
+        const optionData = {};  // Store full option data
         this.activeVote.options.forEach(option => {
             optionNames[option.id] = option.name;
+            optionData[option.id] = option;  // Store the full option data
             tally[option.id] = {
                 count: 0,
                 name: option.name
@@ -582,7 +584,15 @@ export class VoteManager {
                 tally[vote].count += 1;
                 if (tally[vote].count > maxVotes) {
                     maxVotes = tally[vote].count;
-                    winner = vote;
+                    // For leader votes, format winner with both userId and actorId
+                    if (this.activeVote.type === 'leader') {
+                        winner = {
+                            userId: vote,
+                            actorId: optionData[vote].characterId || ''
+                        };
+                    } else {
+                        winner = vote;
+                    }
                     tiedWinners = [vote];
                 } else if (tally[vote].count === maxVotes) {
                     tiedWinners.push(vote);
@@ -625,7 +635,11 @@ export class VoteManager {
                 <h3>There was a tie for leader. Please select the winner:</h3>
                 <div class="form-group">
                     <select id="tie-breaker-select">
-                        ${tiedCandidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                        ${tiedCandidates.map(c => {
+                            const character = this._getUserCharacter(c.id);
+                            const displayName = character ? character.name : c.name;
+                            return `<option value="${c.id}|${character ? character.id : ''}">${displayName}</option>`;
+                        }).join('')}
                     </select>
                 </div>
             `,
@@ -634,9 +648,16 @@ export class VoteManager {
                     icon: '<i class="fas fa-crown"></i>',
                     label: "Choose Leader",
                     callback: async (html) => {
-                        const selectedId = html.find('#tie-breaker-select').val();
-                        await ChatPanel.setNewLeader(selectedId, true);
-                        this.activeVote.results.winner = selectedId;
+                        const selectedValue = html.find('#tie-breaker-select').val();
+                        const [userId, actorId] = selectedValue.split('|');
+                        
+                        // Initialize results if they don't exist
+                        if (!this.activeVote.results) {
+                            this.activeVote.results = {};
+                        }
+                        this.activeVote.results.winner = { userId, actorId };
+                        
+                        await ChatPanel.setNewLeader({ userId, actorId }, true);
                         await this._updateVoteMessage();
                     },
                 },
