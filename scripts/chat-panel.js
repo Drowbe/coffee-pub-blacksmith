@@ -98,8 +98,21 @@ class ChatPanel {
             }
 
             // Prepare template data
+            let leaderData = { userId: '', actorId: '' };
+            let isLeader = false;
+            try {
+                // Only try to get the setting if it's registered
+                if (game.settings.settings.get(`${MODULE_ID}.partyLeader`)) {
+                    leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+                    isLeader = game.user.id === leaderData?.userId;
+                }
+            } catch (err) {
+                console.warn('Blacksmith | Party leader setting not registered yet, using default');
+            }
+
             const templateData = {
                 isGM: game.user.isGM,
+                isLeader: isLeader,
                 leaderText: this.getLeaderDisplayText(),
                 timerText: this.getTimerText(),
                 timerProgress: this.getTimerProgress(),

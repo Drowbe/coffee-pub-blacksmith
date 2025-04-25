@@ -24,12 +24,14 @@
             </div>
             {{!-- More tools will be added here --}}
             {{!-- Vote --}}
-            <div class="tool vote" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Start a Vote{{else}}Only the GM can start votes{{/if}}">
+            {{#if (or isGM isLeader)}}
+            <div class="tool vote">
                 <div class="vote-info">
                     <i class="fas fa-check-to-slot vote-icon"></i>
                     <span class="vote-label">Vote</span>
                 </div>
             </div>
+            {{/if}}
             {{#if isGM}}
                 {{!--Skillcheck --}}
                 <div class="tool skillcheck" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
