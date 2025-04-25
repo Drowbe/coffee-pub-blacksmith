@@ -1,11 +1,11 @@
 <div class="blacksmith-chat-panel">
-    <div class="leader-section">
+    <div class="leader-section tool-active">
         <div class="leader-info">
             <i class="fas fa-crown leader-icon"></i>
             <span class="party-leader">{{leaderText}}</span>
         </div>
     </div>
-    <div class="timer-section">
+    <div class="timer-section tool-active">
         <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
             <i class="fas fa-eclipse"></i>
             <span class="session-timer">{{timerText}}</span>
@@ -16,7 +16,7 @@
     <div class="toolbar-section">
         <div class="toolbar-icons">
             {{!--Movement --}}
-            <div class="tool movement" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+            <div class="tool movement tool-active" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
                 <div class="movement-info">
                     <i class="fas {{currentMovement.icon}} movement-icon"></i>
                     <span class="movement-label">{{currentMovement.name}}</span>
@@ -25,7 +25,7 @@
             {{!-- More tools will be added here --}}
             {{!-- Vote --}}
             {{#if (or isGM isLeader)}}
-            <div class="tool vote">
+            <div class="tool vote tool-active" title="Vote">
                 <div class="vote-info">
                     <i class="fas fa-check-to-slot vote-icon"></i>
                     <span class="vote-label">Vote</span>
@@ -34,7 +34,7 @@
             {{/if}}
             {{#if isGM}}
                 {{!--Skillcheck --}}
-                <div class="tool skillcheck" style="cursor: {{#if isGM}}pointer{{else}}not-allowed{{/if}}" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
+                <div class="tool skillcheck tool-active" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
                     <div class="skillcheck-info">
                         <i class="fas fa-dice skillcheck-icon"></i>
                         <span class="skillcheck-label">Rolls</span>

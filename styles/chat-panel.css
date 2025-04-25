@@ -44,6 +44,12 @@
     font-size: 0.9em;
 }
 
+
+
+
+
+
+
 .toolbar-icons {
     display: flex;
     gap: 8px;
@@ -60,13 +66,10 @@
     --icon-opacity: 0.5;
 }
 
-.toolbar-icons i:hover {
-    color: hsl(27, 99%, 38%);
-}
 
-.toolbar-icons i[style*="not-allowed"]:hover {
-    color: #f0f0e0;
-}
+
+
+
 
 .leader-icon, .vote-icon, .skillcheck-icon, .movement-icon {
     color: #f0f0e0;
@@ -81,21 +84,38 @@
     text-overflow: ellipsis;
 }
 
+
+
+
 .tool.vote {
     display: flex;
     align-items: center;
 }
 
-.tool.vote:hover .vote-icon, .tool.skillcheck:hover .skillcheck-icon, .tool.movement:hover .movement-icon,
-.tool.vote:hover .vote-label, .tool.skillcheck:hover .skillcheck-label, .tool.movement:hover .movement-label {
-    color: hsl(27, 99%, 38%);
+
+
+/* Unified Toolbar and Hover Effect */
+
+.tool-readonly {
+    color: #eeeeed;
+    cursor: default;
 }
 
-.tool.vote[style*="not-allowed"]:hover .vote-icon, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-icon, .tool.movement[style*="not-allowed"]:hover .movement-icon,
-.tool.vote[style*="not-allowed"]:hover .vote-label, .tool.skillcheck[style*="not-allowed"]:hover .skillcheck-label, .tool.movement[style*="not-allowed"]:hover .movement-label {
-    color: #f0f0e0;
-    opacity: 0.5;
+
+.tool-active:hover, .tool-active i:hover {
+    color: hsl(27, 99%, 38%);
+    cursor: pointer;
 }
+
+
+
+
+
+
+
+
+
+
 
 /* Timer warning and expired messages */
 .chat-message.timer-warning,
@@ -126,9 +146,11 @@
     color: #eeeeed;
     white-space: nowrap;
 }
-.session-timer:hover {
-    color: #eeeeed !important;
-}
+
+
+
+
+
 .timer-info {
     display: flex;
     align-items: center;
@@ -187,13 +209,12 @@
 	background: rgba(93, 187, 4, 0.3);
 }
 
-.leader-section:hover .leader-icon,
-.leader-section:hover .party-leader,
-.timer-section:hover .session-timer {
-    color: hsl(27, 99%, 38%);
-}
 
-/* Vote Config Styles */
+/* ------------------------------------ */
+
+
+/* WINDOW: Vote Config Styles */
+
 .vote-config .vote-config-content {
     padding: 10px;
 }
@@ -246,7 +267,7 @@
     margin: 0;
 }
 
-/* ------------------------------------ */
+
 
 
 
