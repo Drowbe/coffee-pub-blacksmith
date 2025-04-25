@@ -214,10 +214,14 @@ export class VoteManager {
         if (type === 'leader') {
             this.activeVote.options = game.users
                 .filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id))
-                .map(u => ({
-                    id: u.id,
-                    name: u.name
-                }));
+                .map(u => {
+                    const character = this._getUserCharacter(u.id);
+                    return {
+                        id: u.id,
+                        name: character ? character.name : u.name,
+                        characterId: character?.id || null
+                    };
+                });
         } else if (type === 'yesno') {
             this.activeVote.options = [
                 { id: 'yes', name: 'Yes' },
@@ -810,5 +814,22 @@ export class VoteManager {
 
         // Clear the active vote
         this.activeVote = null;
+    }
+
+    /**
+     * Get the primary character for a user
+     * @param {string} userId - The ID of the user
+     * @returns {Actor|null} The user's primary character or null if none found
+     * @private
+     */
+    static _getUserCharacter(userId) {
+        // Find all characters owned by this user
+        const userCharacters = game.actors.filter(actor => 
+            actor.type === 'character' && 
+            actor.ownership[userId] === 3 // OWNER level
+        );
+        
+        // Return the first character or null if none found
+        return userCharacters[0] || null;
     }
 } 
