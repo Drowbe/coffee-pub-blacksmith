@@ -284,25 +284,16 @@ export class MovementConfig extends Application {
 
         // Special handling for conga/follow movement
         if (movementId === 'conga-movement' || movementId === 'follow-movement') {
-            const leader = checkPartyLeader();
-            if (!leader) {
+            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            if (!leaderData?.actorId) {
                 ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
             } else {
-                // Find the leader's token(s)
-                const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
-                // Find all leader's characters
-                const leaderCharacters = game.actors.filter(a => 
-                    a.hasPlayerOwner && a.ownership[partyLeaderUserId] === 3
+                // Find the leader's token on the canvas
+                const leaderToken = canvas.tokens.placeables.find(token => 
+                    token.actor?.id === leaderData.actorId
                 );
                 
-                // Find a token on the canvas owned by the leader
-                const leaderTokens = canvas.tokens.placeables.filter(t => 
-                    t.actor && leaderCharacters.some(a => a.id === t.actor.id)
-                );
-                
-                if (leaderTokens.length > 0) {
-                    // Use the first leader token for now
-                    const leaderToken = leaderTokens[0];
+                if (leaderToken) {
                     currentLeaderTokenId = leaderToken.id;
                     
                     console.log(`BLACKSMITH | MOVEMENT | Setting initial leader token to ${leaderToken.name} (${leaderToken.id})`);
@@ -367,7 +358,7 @@ export class MovementConfig extends Application {
     static getLeaderToken() {
         try {
             const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
-            if (!leaderData.actorId) return null;
+            if (!leaderData?.actorId) return null;
 
             // Find the first token for this actor in the current scene
             return canvas.tokens.placeables.find(token => 
@@ -382,7 +373,7 @@ export class MovementConfig extends Application {
     static isLeaderToken(token) {
         try {
             const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
-            return token.actor?.id === leaderData.actorId;
+            return token.actor?.id === leaderData?.actorId;
         } catch (error) {
             return false;
         }
@@ -391,25 +382,27 @@ export class MovementConfig extends Application {
 
 // Add debug function to check the current leader
 function checkPartyLeader() {
-    const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
-    const leaderPlayer = game.users.get(partyLeaderUserId);
+    const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
     
-    if (!leaderPlayer) {
+    if (!leaderData?.actorId) {
         ui.notifications.warn("No party leader set. Please set a party leader in settings.");
         return null;
     }
     
-    console.log("Current party leader user:", leaderPlayer.name);
-    console.log("Leader User ID:", partyLeaderUserId);
-    
-    // Find tokens owned by this player
-    const leaderCharacters = game.actors.filter(a => 
-        a.hasPlayerOwner && a.ownership[partyLeaderUserId] === 3
+    // Find the leader's token on the canvas
+    const leaderToken = canvas.tokens.placeables.find(token => 
+        token.actor?.id === leaderData.actorId
     );
     
-    console.log("Leader's characters:", leaderCharacters.map(a => a.name));
+    if (!leaderToken) {
+        ui.notifications.warn("Could not find leader's token on the canvas.");
+        return null;
+    }
     
-    return leaderPlayer;
+    console.log("Current party leader:", leaderToken.name);
+    console.log("Leader Actor ID:", leaderData.actorId);
+    
+    return leaderToken;
 }
 
 // Add hook for token movement restrictions
