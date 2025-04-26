@@ -220,6 +220,9 @@ Hooks.once('init', async function() {
                     }
                 });
 
+                // Play button sound when roll result is added
+                playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+
                 // If this was a requested roll, update the GM's interface
                 if (flags.requesterId === game.user.id) {
                     const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
@@ -1376,6 +1379,9 @@ export class ThirdPartyManager {
                     'coffee-pub-blacksmith': messageData
                 }
             });
+
+            // Play button sound when roll result is added
+            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
 
             // If this was a requested roll, update the GM's interface
             if (flags.requesterId === game.user.id) {

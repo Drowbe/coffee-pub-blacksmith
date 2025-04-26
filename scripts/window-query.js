@@ -1223,6 +1223,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                             'coffee-pub-blacksmith': messageData
                         }
                     });
+                    // Play button sound when roll result is added
+                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                 }
                 // If we're not the GM, notify them of the roll
                 else {
