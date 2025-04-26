@@ -186,56 +186,7 @@ Hooks.once('init', () => {
     });
 });
 
-// Add a new hook for initialization after settings are ready
-Hooks.on('blacksmithReady', async () => {
-    if (game.user.isGM) {
-        try {
-            console.log('BLACKSMITH | MOVEMENT | Setting default movement mode to locked');
-            const currentMovement = game.settings.get(MODULE_ID, 'movementType');
-            
-            // Only set to locked if not already set
-            if (!currentMovement || currentMovement === 'normal-movement') {
-                await game.settings.set(MODULE_ID, 'movementType', 'no-movement');
-                
-                // Send chat message about locked movement
-                const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'no-movement');
-                if (movementType) {
-                    const templateData = {
-                        isPublic: true,
-                        isMovementChange: true,
-                        movementIcon: movementType.icon,
-                        movementLabel: movementType.name,
-                        movementDescription: movementType.description
-                    };
 
-                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', templateData);
-                    ChatMessage.create({
-                        content: content,
-                        type: CONST.CHAT_MESSAGE_TYPES.OTHER
-                    });
-                }
-                
-                // Update UI immediately
-                const movementIcon = document.querySelector('.movement-icon');
-                const movementLabel = document.querySelector('.movement-label');
-                
-                if (movementIcon) movementIcon.className = 'fas fa-person-circle-xmark movement-icon';
-                if (movementLabel) movementLabel.textContent = 'Locked';
-                
-                // Notify other clients
-                game.socket.emit(`module.${MODULE_ID}`, {
-                    type: 'movementChange',
-                    data: {
-                        movementId: 'no-movement',
-                        name: 'Locked'
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('BLACKSMITH | MOVEMENT | Error setting initial movement mode:', error);
-        }
-    }
-});
 
 export class MovementConfig extends Application {
     static get defaultOptions() {

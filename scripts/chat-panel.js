@@ -93,7 +93,7 @@ class ChatPanel {
                     
                     const movementTypes = {
                         'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
-                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
+                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
                         'combat-movement': { icon: 'fa-swords', name: 'Combat' },
                         'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
                         'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
