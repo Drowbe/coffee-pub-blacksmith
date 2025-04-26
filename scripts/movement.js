@@ -821,9 +821,9 @@ function processCongaMovement(sortedFollowers) {
         return;
     }
 
-    // In conga mode, we don't filter out tokens based on status
-    const validFollowers = sortedFollowers;
-    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} followers in conga mode`);
+    // Only move tokens with status NORMAL
+    const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
+    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} valid followers in conga mode, excluding ${sortedFollowers.length - validFollowers.length} invalid followers`);
     
     // Store all followers' current positions and their target indices
     const followerStates = validFollowers.map(([tokenId, state]) => {
