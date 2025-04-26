@@ -297,21 +297,29 @@ class ChatPanel {
             });
 
             // Add UI toggle handler
-            html.find('.tool.interface').on('click', function() {
+            html.find('.tool.interface').on('click', async function() {
                 const uiLeft = document.getElementById('ui-left');
                 const uiBottom = document.getElementById('ui-bottom');
                 const label = this.querySelector('.interface-label');
-                const isHidden = uiLeft.style.display === 'none';
 
-                if (isHidden) {
+                // Check if either UI element that can be hidden is currently hidden
+                const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
+                const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
+                const isEitherHidden = isLeftHidden || isBottomHidden;
+
+                // Get the settings
+                const hideLeftUI = game.settings.get(MODULE_ID, 'canvasToolsHideLeftUI');
+                const hideBottomUI = game.settings.get(MODULE_ID, 'canvasToolsHideBottomUI');
+
+                if (isEitherHidden) {
                     ui.notifications.info("Showing the Interface...");
-                    uiLeft.style.display = 'inherit';
-                    uiBottom.style.display = 'inherit';
+                    if (hideLeftUI && isLeftHidden) uiLeft.style.display = 'inherit';
+                    if (hideBottomUI && isBottomHidden) uiBottom.style.display = 'inherit';
                     label.textContent = 'Hide UI';
                 } else {
                     ui.notifications.info("Hiding the Interface...");
-                    uiLeft.style.display = 'none';
-                    uiBottom.style.display = 'none';
+                    if (hideLeftUI) uiLeft.style.display = 'none';
+                    if (hideBottomUI) uiBottom.style.display = 'none';
                     label.textContent = 'Show UI';
                 }
             });

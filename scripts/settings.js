@@ -1059,25 +1059,53 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 
-
-
-
-
-
-
-
 		// *** CANVAS ***
 
 		// ---------- HEADING - CANVAS  ----------
 		game.settings.register(MODULE_ID, "headingH2Canvas", {
 			name: 'Canvas',
-			hint: 'Blacksmith includes a number of tools tha tmake managing things on the canvas easier.',
-			scope: "world",
+			hint: 'Blacksmith includes a number of tools that make managing things on the canvas easier.',
+			scope: "client",
 			config: true,
 			default: "",
 			type: String,
 		});
 		// -------------------------------------
+
+
+		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
+		game.settings.register(MODULE_ID, "headingH3CanvasTools", {
+			name: 'Canvas Tools',
+			hint: 'Control which bits of the interface hide and show when toggled.',
+			scope: "client",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
+
+		// -- Left UI --
+		game.settings.register(MODULE_ID, 'canvasToolsHideLeftUI', {
+			name: 'Hide Left UI',
+			hint: 'When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'client',
+			default: true,
+		});
+
+		// -- Bottom UI --
+		game.settings.register(MODULE_ID, 'canvasToolsHideBottomUI', {
+			name: 'Hide Bottom UI',
+			hint: 'When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'client',
+			default: true,
+		});
 
 		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
 		game.settings.register(MODULE_ID, "headingH3Movement", {
