@@ -942,40 +942,38 @@ async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMo
         t.actor.hasPlayerOwner
     );
     
-    // Only check status if not in conga mode
-    const tokenStatuses = isCongaMode ? 
-        followerTokens.map(token => ({ token, status: STATUS.NORMAL, distance: 0 })) :
-        await Promise.all(followerTokens.map(async token => {
-            // Check distance first
-            const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
-            const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
-            const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-            const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
-            
-            console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
-            
-            let status;
-            // Only check for blocked path first
-            try {
-                const targetPoint = { x: leaderToken.x, y: leaderToken.y };
-                const path = await findPath(token, targetPoint);
-                status = path ? STATUS.NORMAL : STATUS.BLOCKED;
-                if (!path) {
-                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
-                }
-            } catch (error) {
-                console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
-                status = STATUS.BLOCKED;
+    // Always check status for all modes (including Conga)
+    const tokenStatuses = await Promise.all(followerTokens.map(async token => {
+        // Check distance first
+        const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
+        const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
+        const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+        
+        console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
+        
+        let status;
+        // Only check for blocked path first
+        try {
+            const targetPoint = { x: leaderToken.x, y: leaderToken.y };
+            const path = await findPath(token, targetPoint);
+            status = path ? STATUS.NORMAL : STATUS.BLOCKED;
+            if (!path) {
+                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
             }
+        } catch (error) {
+            console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
+            status = STATUS.BLOCKED;
+        }
 
-            // If not blocked, check distance
-            if (status === STATUS.NORMAL && distance > distanceThreshold) {
-                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
-                status = STATUS.TOO_FAR;
-            }
-            
-            return { token, status, distance };
-        }));
+        // If not blocked, check distance
+        if (status === STATUS.NORMAL && distance > distanceThreshold) {
+            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
+            status = STATUS.TOO_FAR;
+        }
+        
+        return { token, status, distance };
+    }));
 
     // Separate valid and invalid tokens
     const validTokens = tokenStatuses
