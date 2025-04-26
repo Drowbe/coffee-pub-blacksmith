@@ -1165,6 +1165,13 @@ export class BlacksmithWindowQuery extends FormApplication {
                             groupSuccess
                         });
                         
+                        // Play success or failure sound based on group result
+                        if (groupSuccess) {
+                            playSound(COFFEEPUB.SOUNDERROR09, COFFEEPUB.SOUNDVOLUMENORMAL);
+                        } else {
+                            playSound(COFFEEPUB.SOUNDERROR07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                        }
+                        
                         Object.assign(groupRollData, {
                             successCount,
                             totalCount,
@@ -1193,12 +1200,25 @@ export class BlacksmithWindowQuery extends FormApplication {
                         };
                         console.log("Contested roll: Both failed DC, forcing tie");
                     } else {
+                        const isGroup1Winner = group1Highest > group2Highest;
                         contestedRoll = {
-                            winningGroup: group1Highest > group2Highest ? 1 : 2,
+                            winningGroup: isGroup1Winner ? 1 : 2,
                             group1Highest,
                             group2Highest,
                             isTie: group1Highest === group2Highest
                         };
+                        
+                        // Play sound based on which group wins (Group 1 = Challengers, Group 2 = Defenders)
+                        if (!contestedRoll.isTie) {
+                            if (isGroup1Winner) {
+                                // Challengers (Group 1) win
+                                playSound(COFFEEPUB.SOUNDERROR09, COFFEEPUB.SOUNDVOLUMENORMAL);
+                            } else {
+                                // Defenders (Group 2) win
+                                playSound(COFFEEPUB.SOUNDERROR07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                            }
+                        }
+                        
                         console.log("Contested roll result:", contestedRoll);
                     }
                 }
