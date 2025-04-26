@@ -295,6 +295,26 @@ class ChatPanel {
 
                 toolbarSection.append(icon);
             });
+
+            // Add UI toggle handler
+            html.find('.tool.interface').on('click', function() {
+                const uiLeft = document.getElementById('ui-left');
+                const uiBottom = document.getElementById('ui-bottom');
+                const label = this.querySelector('.interface-label');
+                const isHidden = uiLeft.style.display === 'none';
+
+                if (isHidden) {
+                    ui.notifications.info("Showing the Interface...");
+                    uiLeft.style.display = 'inherit';
+                    uiBottom.style.display = 'inherit';
+                    label.textContent = 'Hide UI';
+                } else {
+                    ui.notifications.info("Hiding the Interface...");
+                    uiLeft.style.display = 'none';
+                    uiBottom.style.display = 'none';
+                    label.textContent = 'Show UI';
+                }
+            });
             
         } catch (error) {
             console.error("Blacksmith | Chat Panel: Error rendering panel:", error);
