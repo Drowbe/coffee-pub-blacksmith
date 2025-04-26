@@ -134,7 +134,7 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
         console.log('BLACKSMITH | MOVEMENT | Recalculating marching order');
         // Clear the path when recalculating order
         leaderMovementPath = [];
-        calculateMarchingOrder(token);
+        calculateMarchingOrder(token, true, false);
         marchingOrderJustCalculated = true;
         // Reset the flag after a short delay
         setTimeout(() => {
@@ -303,7 +303,7 @@ export class MovementConfig extends Application {
                     marchingOrderJustDetermined = false;
                     
                     // Calculate initial marching order and post it
-                    await calculateMarchingOrder(leaderToken, true);
+                    await calculateMarchingOrder(leaderToken, true, movementId === 'conga-movement');
                 } else {
                     ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
                 }
@@ -555,7 +555,7 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             // If no followers yet, calculate initial marching order
             if (tokenFollowers.size === 0) {
                 console.log('BLACKSMITH | MOVEMENT | No followers yet, calculating initial marching order');
-                calculateMarchingOrder(token);
+                calculateMarchingOrder(token, true, false);
             }
             
             // Process follower movement after a short delay
@@ -564,8 +564,10 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
                     console.log(`BLACKSMITH | MOVEMENT | Initiating ${movementContext.currentMovement} after leader moved`);
                     const sortedFollowers = getSortedFollowers();
                     processFollowerMovement(movementContext.currentMovement, sortedFollowers);
-                    // Post marching order after movement completes
-                    calculateMarchingOrder(token, true);
+                    // Post marching order after movement completes (but NOT for conga mode)
+                    if (movementContext.currentMovement !== 'conga-movement') {
+                        calculateMarchingOrder(token, true, false);
+                    }
                 } else {
                     console.log('BLACKSMITH | MOVEMENT | Not enough path points to move followers');
                 }
@@ -697,7 +699,7 @@ async function processFollowMovement(sortedFollowers) {
 
             // Only check for status changes after all followers are processed and distances checked
             if (statusUpdateNeeded) {
-                await calculateMarchingOrder(leaderToken, true);
+                await calculateMarchingOrder(leaderToken, true, false);
             }
         return;
     }
@@ -819,9 +821,9 @@ function processCongaMovement(sortedFollowers) {
         return;
     }
 
-    // Filter out tokens that are blocked or too far
-    const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
-    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} valid followers, excluding ${sortedFollowers.length - validFollowers.length} invalid followers`);
+    // In conga mode, we don't filter out tokens based on status
+    const validFollowers = sortedFollowers;
+    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} followers in conga mode`);
     
     // Store all followers' current positions and their target indices
     const followerStates = validFollowers.map(([tokenId, state]) => {
@@ -929,7 +931,7 @@ function processCongaMovement(sortedFollowers) {
 }
 
 // Calculate the marching order based on proximity to a leader token
-async function calculateMarchingOrder(leaderToken, postToChat = false) {
+async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMode = false) {
     // Reset marching order
     tokenFollowers.clear();
     
@@ -940,38 +942,40 @@ async function calculateMarchingOrder(leaderToken, postToChat = false) {
         t.actor.hasPlayerOwner
     );
     
-    // First, check status of all tokens and sort by distance
-    const tokenStatuses = await Promise.all(followerTokens.map(async token => {
-        // Check distance first
-        const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
-        const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
-        const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
-        
-        console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
-        
-        let status;
-        // Only check for blocked path first
-        try {
-            const targetPoint = { x: leaderToken.x, y: leaderToken.y };
-            const path = await findPath(token, targetPoint);
-            status = path ? STATUS.NORMAL : STATUS.BLOCKED;
-            if (!path) {
-                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
+    // Only check status if not in conga mode
+    const tokenStatuses = isCongaMode ? 
+        followerTokens.map(token => ({ token, status: STATUS.NORMAL, distance: 0 })) :
+        await Promise.all(followerTokens.map(async token => {
+            // Check distance first
+            const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
+            const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
+            const distance = Math.sqrt(gridX * gridX + gridY * gridY);
+            const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+            
+            console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
+            
+            let status;
+            // Only check for blocked path first
+            try {
+                const targetPoint = { x: leaderToken.x, y: leaderToken.y };
+                const path = await findPath(token, targetPoint);
+                status = path ? STATUS.NORMAL : STATUS.BLOCKED;
+                if (!path) {
+                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
+                }
+            } catch (error) {
+                console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
+                status = STATUS.BLOCKED;
             }
-        } catch (error) {
-            console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
-            status = STATUS.BLOCKED;
-        }
 
-        // If not blocked, check distance
-        if (status === STATUS.NORMAL && distance > distanceThreshold) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
-            status = STATUS.TOO_FAR;
-        }
-        
-        return { token, status, distance };
-    }));
+            // If not blocked, check distance
+            if (status === STATUS.NORMAL && distance > distanceThreshold) {
+                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
+                status = STATUS.TOO_FAR;
+            }
+            
+            return { token, status, distance };
+        }));
 
     // Separate valid and invalid tokens
     const validTokens = tokenStatuses
