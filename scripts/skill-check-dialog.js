@@ -1,5 +1,6 @@
 // Import required modules
 import { MODULE_ID } from './const.js';
+import { playSound, COFFEEPUB } from './global.js';
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
@@ -711,6 +712,9 @@ export class SkillCheckDialog extends Application {
                     [],
                 blind: rollMode === 'blindroll'
             });
+
+            // Play notification sound for roll request
+            playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
 
             this.close();
         });

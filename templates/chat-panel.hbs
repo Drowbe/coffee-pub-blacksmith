@@ -1,14 +1,18 @@
 <div class="blacksmith-chat-panel">
-    <div class="leader-section tool-active">
-        <div class="leader-info">
-            <i class="fas fa-crown leader-icon"></i>
-            <span class="party-leader">{{leaderText}}</span>
+    <div class="leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
+        <div class="toolbar-icons">
+            <div class="leader-info">
+                <i class="fas fa-crown leader-icon"></i>
+                <span class="party-leader">{{leaderText}}</span>
+            </div>
         </div>
     </div>
-    <div class="timer-section tool-active">
-        <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
-            <i class="fas fa-eclipse"></i>
-            <span class="session-timer">{{timerText}}</span>
+    <div class="timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
+        <div class="toolbar-icons">
+            <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
+                <i class="fas fa-eclipse"></i>
+                <span class="session-timer">{{timerText}}</span>
+            </div>
         </div>
     </div>
 </div>
@@ -16,13 +20,20 @@
     <div class="toolbar-section">
         <div class="toolbar-icons">
             {{!--Movement --}}
-            <div class="tool movement tool-active" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+            <div class="tool movement {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
                 <div class="movement-info">
                     <i class="fas {{currentMovement.icon}} movement-icon"></i>
                     <span class="movement-label">{{currentMovement.name}}</span>
                 </div>
             </div>
-            {{!-- More tools will be added here --}}
+            {{!--Interfac:  ui-left and ui-bottom, display none/inherit --}}
+            <div class="tool interface tool-active" title="Toggle Core Interface including toolbars, party window, and macros">
+                <div class="interface-info">
+                    <i class="fas fa-sidebar interface-icon"></i>
+                    <span class="interface-label">Toggle Interface</span>
+                </div>
+            </div>
+            
             {{!-- Vote --}}
             {{#if (or isGM isLeader)}}
             <div class="tool vote tool-active" title="Vote">
@@ -41,7 +52,7 @@
                     </div>
                 </div>
             {{/if}}
-            
+            {{!-- More tools will be added here --}}
         </div>
     </div>
 </div> 

@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { postConsoleAndNotification, playSound } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './module-manager.js';
@@ -295,7 +295,7 @@ class ChatPanel {
 
                 toolbarSection.append(icon);
             });
-
+            
         } catch (error) {
             console.error("Blacksmith | Chat Panel: Error rendering panel:", error);
         }
@@ -920,6 +920,10 @@ class ChatPanel {
             // Send the leader messages only if requested AND we are the GM
             if (sendMessages && game.user.isGM) {
                 console.log('BLACKSMITH | CHAT | Sending leader change messages');
+                
+                // Play notification sound
+                playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
+
                 // Send public message
                 const publicData = {
                     isPublic: true,

@@ -23,12 +23,10 @@
 
 .leader-section {
     flex: 0 1 auto;
-    cursor: pointer;
 }
 
 .timer-section {
     flex: 0 1 auto;
-    cursor: pointer;
 }
 
 .toolbar-section {
@@ -37,87 +35,128 @@
     gap: 8px;
 }
 
-.leader-info, .timer-info, .vote-info, .skillcheck-info, .movement-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9em;
-}
+/* ------------------------------------ */
 
-
-
-
-
-
+/* TOOLBAR: Base styles and hover effects */
 
 .toolbar-icons {
     display: flex;
     gap: 8px;
     align-items: center;
-}
-
-.toolbar-icons i {
-    color: #f0f0e0;
-    font-size: 0.9em;
-    opacity: var(--icon-opacity, 1);
-}
-
-.toolbar-icons i[style*="not-allowed"] {
-    --icon-opacity: 0.5;
-}
-
-
-
-
-
-
-.leader-icon, .vote-icon, .skillcheck-icon, .movement-icon {
-    color: #f0f0e0;
     font-size: 0.9em;
 }
 
-.party-leader, .vote-label, .skillcheck-label {
-    color: #eeeeed;
-    font-size: 0.9em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-
-
-
-.tool.vote {
-    display: flex;
-    align-items: center;
-}
-
-
-
-/* Unified Toolbar and Hover Effect */
-
-.tool-readonly {
+/* Base styles for all tools */
+.tool-active, .tool-readonly {
     color: #eeeeed;
     cursor: default;
 }
 
+.tool-active i , .tool-readonly i{
+    color: #f0f0e0;
+    font-size: 0.9em;
+}
 
-.tool-active:hover, .tool-active i:hover {
+.tool-active span, .tool-readonly span {
+    color: #eeeeed;
+    font-size: 1.0em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-left: 4px;
+}
+
+/* Hover states for active tools */
+.tool-active:hover,
+.tool-active:hover i,
+.tool-active:hover span {
     color: hsl(27, 99%, 38%);
     cursor: pointer;
 }
 
 
 
+/* ------------------------------------ */
+
+/* Timer Styles */
+
+/* TIMERS TEMPORARILY IN THE CSS CLIENT */
+
+/* Timer Styles */
+.session-timer {
+    white-space: nowrap;
+}
+.timer-info {
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    padding-left: 6px;
+    padding-right: 6px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background-clip: padding-box;
+}
+.timer-info:hover {
+    border: 1px solid rgba(93, 187, 4, 0.05);
+    background: rgba(93, 187, 4, 0.3);
+    color: #eeeeed;
+}
+.timer-info:hover,
+.timer-info:hover i,
+.timer-info:hover span {
+    color: #eeeeed;
+}
+
+/* TIMER ICON */
+.timer-info i {
+    padding-top: 2px;
+    padding-right: 3px;
+}
+
+/* TIMER PROGRESS */
+
+.timer-info::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    bottom: -1px;
+    left: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        var(--progress-color, #c1bfb5) var(--progress),
+        var(--background-color, #74736d) var(--progress)
+    );
+}
+
+/* TIMER STATES*/
+
+.timer-info.warning {
+    animation: borderPulse 2s ease-in-out infinite;
+    border-color: rgba(230, 170, 5, 0.1);
+    background: rgba(230, 170, 5, 0.3);
+}
+.timer-info.expired {
+    border-color: rgba(243, 0, 0, 0.1);
+	background: rgba(243, 0, 0, 0.3);
+}
+
+.timer-info.expired::before {
+    background: rgba(157, 6, 6, 0.0);
+}
 
 
 
 
+/* ------------------------------------ */
 
+/* CHAT: Timer warning and expired messages */
 
-
-
-/* Timer warning and expired messages */
 .chat-message.timer-warning,
 .chat-message.timer-expired {
     padding: 10px;
@@ -139,74 +178,6 @@
 .chat-message.timer-expired p {
     margin: 0;
     color: #461313;
-}
-
-/* Timer Styles */
-.session-timer {
-    color: #eeeeed;
-    white-space: nowrap;
-}
-
-
-
-
-
-.timer-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85em;
-    border-radius: 4px;
-    padding-top: 2px;
-	padding-bottom: 2px;
-	padding-left: 6px;
-	padding-right: 6px;
-    position: relative;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background-clip: padding-box;
-}
-
-.timer-info i {
-    font-size: 1.0em;
-    padding-top: 1px;
-    margin-right: 0px;
-}
-
-.timer-info.warning {
-    animation: borderPulse 2s ease-in-out infinite;
-    border-color: rgba(230, 170, 5, 0.1);
-	background: rgba(230, 170, 5, 0.3);
-}
-
-.timer-info::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    right: -1px;
-    bottom: -1px;
-    left: -1px;
-    z-index: -1;
-    border-radius: inherit;
-    background: linear-gradient(
-        90deg,
-        var(--progress-color, #c1bfb5) var(--progress),
-        var(--background-color, #74736d) var(--progress)
-    );
-}
-
-.timer-info.expired {
-    border-color: rgba(243, 0, 0, 0.1);
-	background: rgba(243, 0, 0, 0.3);
-}
-
-.timer-info.expired::before {
-    background: rgba(157, 6, 6, 0.0);
-}
-
-.timer-info:hover {
-    border: 1px solid rgba(93, 187, 4, 0.1);
-	background: rgba(93, 187, 4, 0.3);
 }
 
 
@@ -266,9 +237,4 @@
     font-size: 0.9em;
     margin: 0;
 }
-
-
-
-
-
 

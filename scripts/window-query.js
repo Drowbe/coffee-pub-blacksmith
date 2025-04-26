@@ -2,13 +2,14 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { BLACKSMITH, MODULE_ID, MODULE_TITLE } from './const.js'
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, rollCoffeePubDice } from './global.js';
+import { MODULE_TITLE, MODULE_ID } from './const.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { ThirdPartyManager } from './third-party.js';
+import { SkillCheckDialog } from './skill-check-dialog.js';
+
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
 import { TokenHandler } from './token-handler.js';
-import { SkillCheckDialog } from './skill-check-dialog.js';
-import { ThirdPartyManager } from './blacksmith.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -1054,6 +1055,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                         console.log("BLACKSMITH | SKILLCHECK - Rolling DICE Value:", value, flags);
                         roll = await (new Roll(value)).evaluate();
                         rollCoffeePubDice(roll);
+                        // Play button sound
+                        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                         break;
                     case 'skill':
                         console.log("BLACKSMITH | SKILLCHECK - Rolling SKILLValue:", value);
