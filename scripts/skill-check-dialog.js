@@ -11,6 +11,7 @@ export class SkillCheckDialog extends Application {
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
+        this._isQuickPartyRoll = false; // Track if the current roll is a quick party roll
         
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -373,6 +374,9 @@ export class SkillCheckDialog extends Application {
                     }
                 }
 
+                // Set quick party roll flag
+                this._isQuickPartyRoll = true;
+
                 // Automatically click the roll button
                 html.find('button[data-button="roll"]').trigger('click');
                 return;
@@ -574,10 +578,18 @@ export class SkillCheckDialog extends Application {
             }
 
             // Get form data
-            const dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
+            let dc;
+            if (this._isQuickPartyRoll) {
+                // If quick party roll, use DC from input or 15 if blank
+                const dcInput = html.find('input[name="dc"]');
+                dc = dcInput.val() ? dcInput.val() : 15;
+            } else {
+                dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
                       (html.find('input[name="dc"]').val() || null);
+            }
             const showDC = html.find('input[name="showDC"]').prop('checked');
-            const groupRoll = html.find('input[name="groupRoll"]').prop('checked');
+            // For quick party roll, always treat as group roll
+            const groupRoll = this._isQuickPartyRoll ? true : html.find('input[name="groupRoll"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
@@ -715,6 +727,9 @@ export class SkillCheckDialog extends Application {
 
             // Play notification sound for roll request
             playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
+
+            // Reset quick party roll flag after roll
+            this._isQuickPartyRoll = false;
 
             this.close();
         });

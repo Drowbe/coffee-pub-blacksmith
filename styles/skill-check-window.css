@@ -217,7 +217,21 @@
     font-size: var(--font-size-12);
     border-radius: 3px;
     margin-bottom: 4px;
+    text-transform: uppercase;
 }
+
+.cpb-section-subheader,
+.cpb-check-section .cpb-section-subheader {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px 8px;
+    font-weight: bold;
+    font-size: var(--font-size-12);
+    border-radius: 3px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+
 .cpb-check-item {
     display: flex;
     align-items: center;
