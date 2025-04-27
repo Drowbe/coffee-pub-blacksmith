@@ -1027,6 +1027,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     // Add this new method to handle the chat message click
     static async handleChatMessageClick(message, html) {
+
+        console.log("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in window-query.js and in static async handleChatMessageClick...");
+
+
         // Find any skill roll buttons - target both the namespaced and legacy classes
         const rollButton = html.find('.cpb-skill-roll');
         if (!rollButton.length) return;
@@ -1243,8 +1247,29 @@ export class BlacksmithWindowQuery extends FormApplication {
                             'coffee-pub-blacksmith': messageData
                         }
                     });
-                    // Play button sound when roll result is added
-                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                    // Play sound for individual rolls (not group rolls)
+                    const isGroupRoll = messageData.isGroupRoll;
+                    const dc = messageData.dc;
+                    // Find the actor who just rolled (if possible)
+                    let actorResult = null;
+                    if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
+                        // Try to find the actor whose result was just updated (has a result object with total)
+                        actorResult = messageData.actors.find(a => a.result && typeof a.result.total === 'number');
+                    }
+                    if (!isGroupRoll) {
+                        if (dc && actorResult && typeof actorResult.result.total === 'number') {
+                            if (actorResult.result.total >= Number(dc)) {
+                                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
+                            } else {
+                                playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
+                            }
+                        } else {
+                            playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
+                        }
+                    } else {
+                        // Existing group roll sound logic (unchanged)
+                        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                    }
                 }
                 // If we're not the GM, notify them of the roll
                 else {

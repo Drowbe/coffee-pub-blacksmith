@@ -197,6 +197,8 @@ export class SkillCheckDialog extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+        console.log("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...");
+
         // Debug: Check if classes are being applied
         console.log('Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length);
         html.find('.cpb-check-item[data-type="tool"]').each((i, el) => {
