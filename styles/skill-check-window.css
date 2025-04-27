@@ -222,10 +222,10 @@
 
 .cpb-section-subheader,
 .cpb-check-section .cpb-section-subheader {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.0);
     padding: 4px 8px;
     font-weight: bold;
-    font-size: var(--font-size-12);
+    font-size: 0.85em;
     border-radius: 3px;
     margin-bottom: 4px;
     text-transform: uppercase;
@@ -545,7 +545,7 @@
 .cpb-card-section-header {
     border-top: 0px dotted rgba(0, 0, 0, 0.2);
     border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
-    margin-top: 16px;
+    margin-top: 10px;
     margin-bottom: 6px;
     padding-top: 0px;
     padding-bottom: 3px;
@@ -554,6 +554,22 @@
     text-transform: uppercase;
     color: #481515;
 }
+
+.cpb-card-section-subheader {
+    color: #481515;
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.3em;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 0px solid rgba(170, 2, 0, 0.4);
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.cpb-card-section-subheader i,
 .cpb-card-section-header i {
     margin-right: 3px;
     padding-top: 2px;

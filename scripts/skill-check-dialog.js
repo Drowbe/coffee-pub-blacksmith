@@ -12,6 +12,7 @@ export class SkillCheckDialog extends Application {
         this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
         this._isQuickPartyRoll = false; // Track if the current roll is a quick party roll
+        this._quickRollOverrides = undefined; // Track quick roll overrides
         
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -333,6 +334,37 @@ export class SkillCheckDialog extends Application {
 
             // Handle quick rolls
             if (type === 'quick') {
+                // Read new data attributes
+                const rollType = item.dataset.rollType || null;
+                const groupAttr = item.dataset.group;
+                const dcAttr = item.dataset.dc;
+                let isGroupRoll = null;
+                if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
+                let dcOverride = dcAttr !== undefined ? dcAttr : null;
+
+                // Clear any existing selections
+                html.find('.cpb-check-item').removeClass('selected');
+                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+
+                // Party roll: select all party members
+                if (rollType === 'party') {
+                    html.find('.cpb-actor-item').each((i, actorItem) => {
+                        const actorId = actorItem.dataset.actorId;
+                        const actor = game.actors.get(actorId);
+                        if (actor && actor.hasPlayerOwner) {
+                            actorItem.classList.add('selected');
+                            actorItem.classList.add('cpb-group-1');
+                            const indicator = actorItem.querySelector('.cpb-group-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            }
+                        }
+                    });
+                } else if (rollType === 'common') {
+                    // Common roll: use only selected tokens (do nothing extra)
+                }
+
+                // Set the skill selection
                 const quickRollMap = {
                     'perception': 'prc',
                     'insight': 'ins',
@@ -340,27 +372,7 @@ export class SkillCheckDialog extends Application {
                     'nature': 'nat',
                     'stealth': 'ste'
                 };
-
-                // Clear any existing selections
-                html.find('.cpb-check-item').removeClass('selected');
-                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
-
-                // Select all party members (characters with player owners)
-                html.find('.cpb-actor-item').each((i, actorItem) => {
-                    const actorId = actorItem.dataset.actorId;
-                    const actor = game.actors.get(actorId);
-                    if (actor && actor.hasPlayerOwner) {
-                        actorItem.classList.add('selected');
-                        actorItem.classList.add('cpb-group-1');
-                        const indicator = actorItem.querySelector('.cpb-group-indicator');
-                        if (indicator) {
-                            indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                        }
-                    }
-                });
-
-                // Set the skill selection
-                const skillValue = quickRollMap[value];
+                const skillValue = quickRollMap[value] || value;
                 if (skillValue) {
                     const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
                     if (skillItem.length) {
@@ -374,8 +386,12 @@ export class SkillCheckDialog extends Application {
                     }
                 }
 
-                // Set quick party roll flag
+                // Set quick party/common roll flag and store overrides
                 this._isQuickPartyRoll = true;
+                this._quickRollOverrides = {
+                    isGroupRoll,
+                    dcOverride
+                };
 
                 // Automatically click the roll button
                 html.find('button[data-button="roll"]').trigger('click');
@@ -579,17 +595,26 @@ export class SkillCheckDialog extends Application {
 
             // Get form data
             let dc;
-            if (this._isQuickPartyRoll) {
-                // If quick party roll, use DC from input or 15 if blank
-                const dcInput = html.find('input[name="dc"]');
-                dc = dcInput.val() ? dcInput.val() : 15;
+            let groupRoll;
+            if (this._isQuickPartyRoll && this._quickRollOverrides) {
+                // Use overrides from quick roll
+                if (this._quickRollOverrides.dcOverride !== null) {
+                    dc = this._quickRollOverrides.dcOverride;
+                } else {
+                    const dcInput = html.find('input[name="dc"]');
+                    dc = dcInput.val() ? dcInput.val() : 15;
+                }
+                if (this._quickRollOverrides.isGroupRoll !== null) {
+                    groupRoll = this._quickRollOverrides.isGroupRoll;
+                } else {
+                    groupRoll = html.find('input[name="groupRoll"]').prop('checked');
+                }
             } else {
                 dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
                       (html.find('input[name="dc"]').val() || null);
+                groupRoll = html.find('input[name="groupRoll"]').prop('checked');
             }
             const showDC = html.find('input[name="showDC"]').prop('checked');
-            // For quick party roll, always treat as group roll
-            const groupRoll = this._isQuickPartyRoll ? true : html.find('input[name="groupRoll"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
             const label = html.find('input[name="label"]').val();
@@ -728,9 +753,9 @@ export class SkillCheckDialog extends Application {
             // Play notification sound for roll request
             playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
 
-            // Reset quick party roll flag after roll
+            // Reset quick party/common roll flag after roll
             this._isQuickPartyRoll = false;
-
+            this._quickRollOverrides = undefined;
             this.close();
         });
 
