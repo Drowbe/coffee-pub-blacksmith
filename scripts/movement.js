@@ -132,9 +132,16 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
     
     if (shouldRecalculateOrder) {
         console.log('BLACKSMITH | MOVEMENT | Recalculating marching order');
+        // Get the actual leader token
+        const leaderToken = canvas.tokens.get(currentLeaderTokenId);
+        if (!leaderToken) {
+            console.log('BLACKSMITH | MOVEMENT | No leader token found, cannot recalculate marching order');
+            return;
+        }
+        
         // Clear the path when recalculating order
         leaderMovementPath = [];
-        calculateMarchingOrder(token, true, false);
+        calculateMarchingOrder(leaderToken, true, false);
         marchingOrderJustCalculated = true;
         // Reset the flag after a short delay
         setTimeout(() => {
