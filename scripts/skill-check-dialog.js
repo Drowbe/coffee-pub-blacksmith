@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE_ID } from './const.js';
-import { playSound, COFFEEPUB } from './global.js';
+import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
