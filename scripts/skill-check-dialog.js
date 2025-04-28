@@ -736,7 +736,7 @@ export class SkillCheckDialog extends Application {
 
             // Create the chat message
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            const chatMessage = await ChatMessage.create({
+            await ChatMessage.create({
                 content: content,
                 speaker: ChatMessage.getSpeaker(),
                 flags: {
@@ -751,9 +751,6 @@ export class SkillCheckDialog extends Application {
                     [],
                 blind: rollMode === 'blindroll'
             });
-
-            // Play notification sound for roll request
-            playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
 
             // Reset quick party/common roll flag after roll
             this._isQuickPartyRoll = false;
@@ -951,6 +948,377 @@ export class SkillCheckDialog extends Application {
                     el.style.display = '';
                 }
             }
+        });
+    }
+
+    /**
+     * Centralized skill check result processing for use by other modules.
+     * @param {object} messageData - The chat message data (flags) for the skill check.
+     * @param {string} actorId - The actor ID whose result is being updated.
+     * @param {object} result - The roll result object to apply.
+     * @returns {object} Updated messageData with the new result.
+     */
+    static processRollResult(messageData, actorId, result) {
+        // Update the actors array with the new result
+        const actors = (messageData.actors || []).map(a => ({
+            ...a,
+            result: a.id === actorId ? result : a.result
+        }));
+        return {
+            ...messageData,
+            actors
+        };
+    }
+
+    /**
+     * Centralized logic to determine which sound to play for a skill check result.
+     * @param {object} messageData - The chat message data (flags) for the skill check.
+     * @param {string} actorId - The actor ID whose result was just posted.
+     * @returns {string} The COFFEEPUB sound constant to play.
+     */
+    static getResultSound(messageData, actorId) {
+        const isGroupRoll = messageData.isGroupRoll;
+        const dc = messageData.dc;
+        let actorResult = null;
+        if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
+            actorResult = messageData.actors.find(a => a.id === actorId && a.result && typeof a.result.total === 'number');
+        }
+        if (!isGroupRoll) {
+            if (dc && actorResult && typeof actorResult.result.total === 'number') {
+                if (actorResult.result.total >= Number(dc)) {
+                    return COFFEEPUB.SOUNDBUTTON08; // Success
+                } else {
+                    return COFFEEPUB.SOUNDBUTTON07; // Failure
+                }
+            } else {
+                return COFFEEPUB.SOUNDBUTTON08; // Default to success sound
+            }
+        } else {
+            // Existing group roll sound logic (unchanged)
+            return COFFEEPUB.SOUNDBUTTON07;
+        }
+    }
+
+    /**
+     * Centralized chat message formatting for skill check results.
+     * @param {object} messageData - The chat message data (flags) for the skill check.
+     * @returns {Promise<string>} The rendered chat message content.
+     */
+    static async formatChatMessage(messageData) {
+        return renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+    }
+
+    /**
+     * Centralized handler for processing a skill check roll button click from chat.
+     * @param {object} message - The chat message object.
+     * @param {string} actorId - The actor ID whose button was clicked.
+     * @param {string} type - The type of roll (skill, save, ability, tool, dice).
+     * @param {string} value - The value for the roll (skill id, save id, etc).
+     * @returns {Promise<{content: string, updatedMessageData: object, sound: string}>}
+     */
+    static async handleRollButtonClick(message, actorId, type, value) {
+        const flags = message.flags['coffee-pub-blacksmith'];
+        if (!flags) return null;
+        const actor = game.actors.get(actorId);
+        if (!actor?.isOwner) {
+            ui.notifications.warn("You don't have permission to roll for this character.");
+            return null;
+        }
+        let roll;
+        switch (type) {
+            case 'dice':
+                roll = await (new Roll(value)).evaluate();
+                rollCoffeePubDice(roll);
+                break;
+            case 'skill':
+                roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                break;
+            case 'ability':
+                roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
+                break;
+            case 'save':
+                if (value === 'death') {
+                    roll = await actor.rollDeathSave({ chatMessage: false, createMessage: false });
+                } else {
+                    roll = await actor.rollSavingThrow(value, { chatMessage: false, createMessage: false });
+                }
+                break;
+            case 'tool': {
+                const actorData = flags.actors.find(a => a.id === actorId);
+                const toolId = actorData?.toolId;
+                if (!toolId) {
+                    ui.notifications.error(`No tool ID found for actor ${actor.name}`);
+                    return null;
+                }
+                const item = actor.items.get(toolId);
+                if (!item) {
+                    ui.notifications.error(`Tool not found on actor: ${toolId}`);
+                    return null;
+                }
+                const rollData = actor.getRollData();
+                const ability = item.system.ability || "int";
+                const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                const prof = item.system.proficient ? actor.system.attributes.prof : 0;
+                const totalMod = abilityMod + prof;
+                const formula = `1d20 + ${totalMod}`;
+                roll = new Roll(formula, rollData);
+                await roll.evaluate({ async: true });
+                rollCoffeePubDice(roll);
+                break;
+            }
+            default:
+                return null;
+        }
+        // Update the actors array with the roll result
+        const actors = flags.actors.map(a => ({
+            ...a,
+            result: a.id === actorId ? (
+                roll ? {
+                    total: roll.total,
+                    formula: roll.formula
+                } : {
+                    total: "No Roll Needed",
+                    formula: "Invalid Death Save",
+                    error: "Character is not eligible for death saves"
+                }
+            ) : a.result
+        }));
+        // Calculate group roll results if needed
+        let groupRollData = {};
+        if (flags.isGroupRoll) {
+            const completedRolls = actors.filter(a => a.result);
+            const allRollsComplete = completedRolls.length === actors.length;
+            groupRollData = {
+                isGroupRoll: true,
+                allRollsComplete
+            };
+            if (allRollsComplete && flags.dc) {
+                const successCount = actors.filter(a => a.result.total >= flags.dc).length;
+                const totalCount = actors.length;
+                const groupSuccess = successCount > (totalCount / 2);
+                Object.assign(groupRollData, {
+                    successCount,
+                    totalCount,
+                    groupSuccess
+                });
+            }
+        }
+        // Calculate contested roll results if needed
+        let contestedRoll;
+        if (flags.hasMultipleGroups && actors.every(a => a.result)) {
+            const group1 = actors.filter(a => a.group === 1);
+            const group2 = actors.filter(a => a.group === 2);
+            const group1Highest = Math.max(...group1.map(a => a.result.total));
+            const group2Highest = Math.max(...group2.map(a => a.result.total));
+            if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
+                contestedRoll = {
+                    winningGroup: 0,
+                    group1Highest,
+                    group2Highest,
+                    isTie: true
+                };
+            } else {
+                const isGroup1Winner = group1Highest > group2Highest;
+                contestedRoll = {
+                    winningGroup: isGroup1Winner ? 1 : 2,
+                    group1Highest,
+                    group2Highest,
+                    isTie: group1Highest === group2Highest
+                };
+            }
+        }
+        // Update the message data
+        const updatedMessageData = {
+            ...flags,
+            ...groupRollData,
+            actors,
+            contestedRoll
+        };
+        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
+        const sound = SkillCheckDialog.getResultSound(updatedMessageData, actorId);
+        return { content, updatedMessageData, sound };
+    }
+
+    /**
+     * Attach listeners to chat card roll buttons and handle roll logic.
+     * @param {object} message - The chat message object.
+     * @param {object} html - The jQuery-wrapped HTML of the chat card.
+     */
+    static handleChatMessageClick(message, html) {
+        console.log('[SkillCheckDialog] handleChatMessageClick called');
+        console.log('[SkillCheckDialog] html:', html.html());
+        console.log('[SkillCheckDialog] .cpb-skill-roll count:', html.find('.cpb-skill-roll').length);
+        html.find('.cpb-skill-roll').each((_, btn) => {
+            $(btn).off('click').on('click', async (event) => {
+                console.log('Handler attached, message:', message);
+                const button = event.currentTarget;
+                const actorId = button.dataset.actorId;
+                const actor = game.actors.get(actorId);
+                if (!actor?.isOwner) {
+                    ui.notifications.warn("You don't have permission to roll for this character.");
+                    return;
+                }
+                try {
+                    const flags = message.flags['coffee-pub-blacksmith'];
+                    if (!flags) return;
+                    // Roll the check but suppress the chat message
+                    let roll;
+                    const type = button.dataset.type || 'skill';
+                    const value = button.dataset.value;
+                    switch (type) {
+                        case 'dice':
+                            roll = await (new Roll(value)).evaluate();
+                            rollCoffeePubDice(roll);
+                            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                            break;
+                        case 'skill':
+                            roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                            break;
+                        case 'ability':
+                            roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
+                            break;
+                        case 'save':
+                            if (value === 'death') {
+                                roll = await actor.rollDeathSave({ chatMessage: false, createMessage: false });
+                            } else {
+                                roll = await actor.rollSavingThrow(value, { chatMessage: false, createMessage: false });
+                            }
+                            break;
+                        case 'tool': {
+                            const actorData = flags.actors.find(a => a.id === actorId);
+                            const toolId = actorData?.toolId;
+                            if (!toolId) {
+                                ui.notifications.error(`No tool ID found for actor ${actor.name}`);
+                                return;
+                            }
+                            const item = actor.items.get(toolId);
+                            if (!item) {
+                                ui.notifications.error(`Tool not found on actor: ${toolId}`);
+                                return;
+                            }
+                            const rollData = actor.getRollData();
+                            const ability = item.system.ability || "int";
+                            const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                            const prof = item.system.proficient ? actor.system.attributes.prof : 0;
+                            const totalMod = abilityMod + prof;
+                            const formula = `1d20 + ${totalMod}`;
+                            roll = new Roll(formula, rollData);
+                            await roll.evaluate({ async: true });
+                            rollCoffeePubDice(roll);
+                            break;
+                        }
+                        default:
+                            return;
+                    }
+                    // Update the actors array with the roll result
+                    const actors = flags.actors.map(a => ({
+                        ...a,
+                        result: a.id === actorId ? (
+                            roll ? {
+                                total: roll.total,
+                                formula: roll.formula
+                            } : {
+                                total: "No Roll Needed",
+                                formula: "Invalid Death Save",
+                                error: "Character is not eligible for death saves"
+                            }
+                        ) : a.result
+                    }));
+                    // Calculate group roll results if needed
+                    let groupRollData = {};
+                    if (flags.isGroupRoll) {
+                        const completedRolls = actors.filter(a => a.result);
+                        const allRollsComplete = completedRolls.length === actors.length;
+                        groupRollData = {
+                            isGroupRoll: true,
+                            allRollsComplete
+                        };
+                        if (allRollsComplete && flags.dc) {
+                            const successCount = actors.filter(a => a.result.total >= flags.dc).length;
+                            const totalCount = actors.length;
+                            const groupSuccess = successCount > (totalCount / 2);
+                            Object.assign(groupRollData, {
+                                successCount,
+                                totalCount,
+                                groupSuccess
+                            });
+                        }
+                    }
+                    // Calculate contested roll results if needed
+                    let contestedRoll;
+                    if (flags.hasMultipleGroups && actors.every(a => a.result)) {
+                        const group1 = actors.filter(a => a.group === 1);
+                        const group2 = actors.filter(a => a.group === 2);
+                        const group1Highest = Math.max(...group1.map(a => a.result.total));
+                        const group2Highest = Math.max(...group2.map(a => a.result.total));
+                        if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
+                            contestedRoll = {
+                                winningGroup: 0,
+                                group1Highest,
+                                group2Highest,
+                                isTie: true
+                            };
+                        } else {
+                            const isGroup1Winner = group1Highest > group2Highest;
+                            contestedRoll = {
+                                winningGroup: isGroup1Winner ? 1 : 2,
+                                group1Highest,
+                                group2Highest,
+                                isTie: group1Highest === group2Highest
+                            };
+                        }
+                    }
+                    // Update the message
+                    const messageData = {
+                        ...flags,
+                        ...groupRollData,
+                        actors,
+                        contestedRoll
+                    };
+                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                    if (game.user.isGM) {
+                        console.log('About to update message:', message);
+                        await message.update({
+                            content,
+                            flags: {
+                                'coffee-pub-blacksmith': messageData
+                            }
+                        });
+                        // Play sound for individual rolls (not group rolls)
+                        const isGroupRoll = messageData.isGroupRoll;
+                        const dc = messageData.dc;
+                        let actorResult = null;
+                        if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
+                            actorResult = messageData.actors.find(a => a.result && typeof a.result.total === 'number');
+                        }
+                        if (!isGroupRoll) {
+                            if (dc && actorResult && typeof actorResult.result.total === 'number') {
+                                if (actorResult.result.total >= Number(dc)) {
+                                    playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
+                                } else {
+                                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
+                                }
+                            } else {
+                                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
+                            }
+                        } else {
+                            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                        }
+                    } else {
+                        game.socket.emit('module.coffee-pub-blacksmith', {
+                            type: 'updateSkillRoll',
+                            data: {
+                                messageId: message.id,
+                                actorId,
+                                result: roll
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error handling skill check:", error);
+                    ui.notifications.error("There was an error processing the skill check.");
+                }
+            });
         });
     }
 } 

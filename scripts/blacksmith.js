@@ -40,6 +40,7 @@ import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { CSSEditor } from './css-editor.js';
+import { SkillCheckDialog } from './skill-check-dialog.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -163,7 +164,7 @@ Hooks.once('init', async function() {
     // Register chat message click handler for skill rolls
     Hooks.on('renderChatMessage', (message, html) => {
         if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
-            BlacksmithWindowQuery.handleChatMessageClick(message, html);
+            SkillCheckDialog.handleChatMessageClick(message, html);
         }
     });
     
@@ -203,49 +204,19 @@ Hooks.once('init', async function() {
                 const flags = message.flags['coffee-pub-blacksmith'];
                 if (!flags?.type === 'skillCheck') return;
 
-                // Update the actors array with the new result
-                const actors = flags.actors.map(a => ({
-                    ...a,
-                    result: a.id === data.data.actorId ? data.data.result : a.result
-                }));
-
-                // Update the message content
-                const messageData = {
-                    ...flags,
-                    actors
-                };
-
-                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+                // Use centralized logic from SkillCheckDialog
+                const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.actorId, data.data.result);
+                const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
                 await message.update({ 
                     content,
                     flags: {
-                        'coffee-pub-blacksmith': messageData
+                        'coffee-pub-blacksmith': updatedMessageData
                     }
                 });
 
-                // Play sound for individual rolls (not group rolls)
-                const isGroupRoll = messageData.isGroupRoll;
-                const dc = messageData.dc;
-                // Find the actor who just rolled (if possible)
-                let actorResult = null;
-                if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
-                    // Try to find the actor whose result was just updated (has a result object with total)
-                    actorResult = messageData.actors.find(a => a.result && typeof a.result.total === 'number');
-                }
-                if (!isGroupRoll) {
-                    if (dc && actorResult && typeof actorResult.result.total === 'number') {
-                        if (actorResult.result.total >= Number(dc)) {
-                            playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
-                        } else {
-                            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
-                        }
-                    } else {
-                        playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
-                    }
-                } else {
-                    // Existing group roll sound logic (unchanged)
-                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-                }
+                // Play the correct sound
+                const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.actorId);
+                playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
 
                 // If this was a requested roll, update the GM's interface
                 if (flags.requesterId === game.user.id) {
@@ -1384,49 +1355,19 @@ export class ThirdPartyManager {
             const flags = message.flags['coffee-pub-blacksmith'];
             if (!flags?.type === 'skillCheck') return;
 
-            // Update the actors array with the new result
-            const actors = flags.actors.map(a => ({
-                ...a,
-                result: a.id === data.actorId ? data.result : a.result
-            }));
-
-            // Update the message content
-            const messageData = {
-                ...flags,
-                actors
-            };
-
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+            // Use centralized logic from SkillCheckDialog
+            const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.actorId, data.data.result);
+            const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
             await message.update({ 
                 content,
                 flags: {
-                    'coffee-pub-blacksmith': messageData
+                    'coffee-pub-blacksmith': updatedMessageData
                 }
             });
 
-            // Play sound for individual rolls (not group rolls)
-            const isGroupRoll = messageData.isGroupRoll;
-            const dc = messageData.dc;
-            // Find the actor who just rolled (if possible)
-            let actorResult = null;
-            if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
-                // Try to find the actor whose result was just updated (has a result object with total)
-                actorResult = messageData.actors.find(a => a.result && typeof a.result.total === 'number');
-            }
-            if (!isGroupRoll) {
-                if (dc && actorResult && typeof actorResult.result.total === 'number') {
-                    if (actorResult.result.total >= Number(dc)) {
-                        playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
-                    } else {
-                        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
-                    }
-                } else {
-                    playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
-                }
-            } else {
-                // Existing group roll sound logic (unchanged)
-                playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-            }
+            // Play the correct sound
+            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.actorId);
+            playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
 
             // If this was a requested roll, update the GM's interface
             if (flags.requesterId === game.user.id) {
@@ -1434,7 +1375,7 @@ export class ThirdPartyManager {
                 windows.forEach(window => {
                     const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
                     if (inputField) {
-                        inputField.value = data.result.total;
+                        inputField.value = data.data.result.total;
                     }
                 });
             }
