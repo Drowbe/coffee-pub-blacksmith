@@ -61,7 +61,7 @@
             <div class="cpb-checks-list">
                 <!-- Quick Roll Section -->
                 <div class="cpb-check-section">
-                    <div class="cpb-section-header" style="margin-bottom: 8px;">Quick Rolls</div>
+                    <div class="cpb-section-header" style="margin-bottom: 8px;">quick ROLLS</div>
                     <div class="cpb-section-subheader" style="margin-bottom: 8px;">Party Rolls (Auto-selects Party)</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="perception" data-group="true">
                         <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i> Party Perception
@@ -83,26 +83,86 @@
                         <i class="fas fa-burst" title="Party Stealth"></i> Party Stealth
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div> 
                     </div>
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">Common Rolls (For Selected Character)</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="10" data-group="false">
-                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Perception"></i> DC 10 Perception (Easy)
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
-                    </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="15" data-group="false">
-                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Perception"></i> DC 15 Perception (Moderate)
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
-                    </div>
+                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">COMMON ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="10" data-group="true">
-                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i> DC 10 Group Perception (Easy)
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i> DC 10 Perception
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="15" data-group="true">
-                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i> DC 15 Group Perception (Moderate)
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i> DC 15 Perception
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="10" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Insight"></i> DC 10 Insight
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="15" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Insight"></i> DC 15 Insight
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="10" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Insight"></i> DC 10 Insight
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="15" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Insight"></i> DC 15 Insight
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="investigation" data-dc="10" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Investigation"></i> DC 10 Investigation
+                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                    </div>
+
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="investigation" data-dc="15" data-group="true">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Investigation"></i> DC 15 Investigation
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                 </div>
 
-                <!-- Dice Roll Section -->
+                <!-- Skill Check Section -->
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Skill Check</div>
+                    {{#each skills}}
+                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}">
+                        <i class="{{this.icon}}"></i>
+                        <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
+                    </div>
+                    {{/each}}
+                </div>
+
+                <!-- Ability Check Section -->
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Ability Check</div>
+                    {{#each abilities}}
+                    <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
+                    </div>
+                    {{/each}}
+                </div>
+
+                <!-- Saving Throw Section -->
+                <div class="cpb-check-section">
+                    <div class="cpb-section-header">Saving Throw</div>
+                    {{#each saves}}
+                    <div class="cpb-check-item" data-type="save" data-value="{{this.id}}">
+                        <i class="fas fa-shield-heart"></i>
+                        <span>{{this.name}}</span>
+                        <div class="cpb-roll-type-indicator"></div>
+                    </div>
+                    {{/each}}
+                </div>
+
+
+
+<!-- Dice Roll Section -->
                 <div class="cpb-check-section">
                     <div class="cpb-section-header" style="margin-bottom: 8px;">Dice Roll</div>
                     <div class="cpb-dice-grid">
@@ -147,42 +207,6 @@
                     </div>
                 </div>
 
-                <!-- Skill Check Section -->
-                <div class="cpb-check-section">
-                    <div class="cpb-section-header">Skill Check</div>
-                    {{#each skills}}
-                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}">
-                        <i class="{{this.icon}}"></i>
-                        <span>{{this.name}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
-                    </div>
-                    {{/each}}
-                </div>
-
-                <!-- Ability Check Section -->
-                <div class="cpb-check-section">
-                    <div class="cpb-section-header">Ability Check</div>
-                    {{#each abilities}}
-                    <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}">
-                        <i class="fas fa-user-circle"></i>
-                        <span>{{this.name}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
-                    </div>
-                    {{/each}}
-                </div>
-
-                <!-- Saving Throw Section -->
-                <div class="cpb-check-section">
-                    <div class="cpb-section-header">Saving Throw</div>
-                    {{#each saves}}
-                    <div class="cpb-check-item" data-type="save" data-value="{{this.id}}">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>{{this.name}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
-                    </div>
-                    {{/each}}
-                </div>
-
                 <!-- Tool Check Section -->
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Tool Check</div>
@@ -194,6 +218,9 @@
                     </div>
                     {{/each}}
                 </div>
+
+            
+
             </div>
         </div>
 

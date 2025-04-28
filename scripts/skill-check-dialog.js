@@ -107,7 +107,7 @@ export class SkillCheckDialog extends Application {
         const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
             id,
             name: game.i18n.localize(data.label),
-            icon: "fas fa-check",
+            icon: "fas fa-toolbox",
             description: skillDescriptions[id]
         }));
 
