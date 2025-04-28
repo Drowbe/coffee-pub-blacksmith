@@ -1007,6 +1007,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _handleRollDiceClick(id) {
         const skillSelect = document.getElementById(`optionSkill-${id}`);
+        const diceValueInput = document.getElementById(`inputDiceValue-${id}`);
         if (!skillSelect) return;
 
         const skillName = skillSelect.value;
@@ -1018,9 +1019,25 @@ export class BlacksmithWindowQuery extends FormApplication {
                 name: t.actor.name
             }));
 
-        // Create and render dialog - all roll handling will be done in SkillCheckDialog
+        // Find the skill ID from the skill name
+        const skillId = Object.entries(CONFIG.DND5E.skills).find(([id, data]) => 
+            game.i18n.localize(data.label) === skillName
+        )?.[0];
+
+        if (!skillId) {
+            ui.notifications.warn("Could not find matching skill ID for " + skillName);
+            return;
+        }
+
+        // Create and render dialog with initial skill and callback
         const dialog = new SkillCheckDialog({
-            actors: selectedActors
+            actors: selectedActors,
+            initialSkill: skillId,
+            onRollComplete: (result) => {
+                if (diceValueInput) {
+                    diceValueInput.value = result;
+                }
+            }
         });
         dialog.render(true);
     }

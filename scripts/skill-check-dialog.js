@@ -6,11 +6,12 @@ export class SkillCheckDialog extends Application {
     constructor(data = {}) {
         super();
         this.actors = data.actors || [];
-        this.selectedType = null;
-        this.selectedValue = null;
+        this.selectedType = data.initialSkill ? 'skill' : null;
+        this.selectedValue = data.initialSkill || null;
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
+        this.onRollComplete = data.onRollComplete || null;
         this._isQuickPartyRoll = false; // Track if the current roll is a quick party roll
         this._quickRollOverrides = undefined; // Track quick roll overrides
         
@@ -198,6 +199,18 @@ export class SkillCheckDialog extends Application {
         super.activateListeners(html);
 
         console.log("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...");
+
+        // If we have an initial skill selection, trigger a click on it
+        if (this.selectedType === 'skill' && this.selectedValue) {
+            const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${this.selectedValue}"]`);
+            if (skillItem.length) {
+                skillItem.addClass('selected');
+                const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
+                if (indicator) {
+                    indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                }
+            }
+        }
 
         // Debug: Check if classes are being applied
         console.log('Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length);
@@ -456,8 +469,7 @@ export class SkillCheckDialog extends Application {
                             this.challengerRoll = { type, value };
                         }
                     }
-                    // Add selected class
-            item.classList.add('selected');
+                    item.classList.add('selected');
                 }
             } else {
                 // Check if we're deselecting the current selection
@@ -484,8 +496,8 @@ export class SkillCheckDialog extends Application {
                         }
                     }
                     item.classList.add('selected');
-            this.selectedType = type;
-            this.selectedValue = value;
+                    this.selectedType = type;
+                    this.selectedValue = value;
                 }
             }
 
@@ -582,9 +594,9 @@ export class SkillCheckDialog extends Application {
                 }
             } else {
                 // For non-contested rolls, use the primary selection
-            if (!this.selectedType || !this.selectedValue) {
-                ui.notifications.warn("Please select a check type.");
-                return;
+                if (!this.selectedType || !this.selectedValue) {
+                    ui.notifications.warn("Please select a check type.");
+                    return;
                 }
                 challengerRollType = defenderRollType = this.selectedType;
                 if (this.selectedType === 'tool') {
@@ -656,13 +668,13 @@ export class SkillCheckDialog extends Application {
                             link = showLink ? this.skillInfo?.link : null;
                         }
                         break;
-                case 'skill':
+                    case 'skill':
                         const skillData = CONFIG.DND5E.skills[value];
                         name = game.i18n.localize(skillData?.label);
                         desc = showExplanation ? this.skillInfo?.description : null;
                         link = showLink ? this.skillInfo?.link : null;
-                    break;
-                case 'tool':
+                        break;
+                    case 'tool':
                         // For tools, we'll get the name from the first actor's tool
                         const firstActor = processedActors[0];
                         const toolId = typeof value === 'function' ? value(firstActor.id) : value;
@@ -670,16 +682,16 @@ export class SkillCheckDialog extends Application {
                         name = toolItem?.name;
                         desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim() : null;
                         link = null; // Tools don't have SRD links
-                    break;
-                case 'ability':
+                        break;
+                    case 'ability':
                         const abilityData = CONFIG.DND5E.abilities[value];
                         const customAbilityData = this.getData().abilities.find(a => a.id === value);
-                    const abilityName = game.i18n.localize(abilityData?.label);
+                        const abilityName = game.i18n.localize(abilityData?.label);
                         name = abilityName + ' Check';
                         desc = showExplanation ? (customAbilityData?.description || '') : null;
                         link = showLink ? `@UUID[${abilityData.reference}]{${abilityName} Check}` : null;
-                    break;
-                case 'save':
+                        break;
+                    case 'save':
                         if (value === 'death') {
                             name = 'Death Save';
                             desc = showExplanation ? 'When you start your turn with 0 hit points, you must make a special saving throw, called a death saving throw, to determine whether you creep closer to death or hang onto life.' : null;
@@ -687,18 +699,18 @@ export class SkillCheckDialog extends Application {
                         } else {
                             const saveData = CONFIG.DND5E.abilities[value];
                             const customSaveData = this.getData().saves.find(s => s.id === value);
-                    const saveName = game.i18n.localize(saveData?.label);
+                            const saveName = game.i18n.localize(saveData?.label);
                             name = saveName + ' Save';
                             desc = showExplanation ? (customSaveData?.description || '') : null;
                             link = showLink ? `@UUID[${saveData.reference}]{${saveName} Save}` : null;
                         }
-                    break;
-                case 'dice':
+                        break;
+                    case 'dice':
                         name = `${value} Roll`;
                         desc = showExplanation ? `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.` : null;
                         link = null; // Dice rolls don't have SRD links
-                    break;
-                default:
+                        break;
+                    default:
                         name = value;
                         desc = null;
                         link = null;
@@ -736,7 +748,7 @@ export class SkillCheckDialog extends Application {
 
             // Create the chat message
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            await ChatMessage.create({
+            const chatMessage = await ChatMessage.create({
                 content: content,
                 speaker: ChatMessage.getSpeaker(),
                 flags: {
@@ -751,6 +763,11 @@ export class SkillCheckDialog extends Application {
                     [],
                 blind: rollMode === 'blindroll'
             });
+
+            // Store the callback on the message app
+            if (chatMessage && this.onRollComplete) {
+                chatMessage.app = { onRollComplete: this.onRollComplete };
+            }
 
             // Reset quick party/common roll flag after roll
             this._isQuickPartyRoll = false;
@@ -1069,13 +1086,27 @@ export class SkillCheckDialog extends Application {
             default:
                 return null;
         }
+
+        // Get the DC from the message flags
+        const dc = flags.dc ? parseInt(flags.dc) : null;
+        
+        // Format the roll result string
+        let rollResultStr = "";
+        if (dc) {
+            const success = roll.total >= dc;
+            rollResultStr = `DC ${dc} Check with a roll of ${roll.total} (${success ? 'success' : 'failure'})`;
+        } else {
+            rollResultStr = `Roll Result: ${roll.total}`;
+        }
+
         // Update the actors array with the roll result
         const actors = flags.actors.map(a => ({
             ...a,
             result: a.id === actorId ? (
                 roll ? {
                     total: roll.total,
-                    formula: roll.formula
+                    formula: roll.formula,
+                    resultString: rollResultStr
                 } : {
                     total: "No Roll Needed",
                     formula: "Invalid Death Save",
@@ -1083,6 +1114,7 @@ export class SkillCheckDialog extends Application {
                 }
             ) : a.result
         }));
+
         // Calculate group roll results if needed
         let groupRollData = {};
         if (flags.isGroupRoll) {
@@ -1103,6 +1135,7 @@ export class SkillCheckDialog extends Application {
                 });
             }
         }
+
         // Calculate contested roll results if needed
         let contestedRoll;
         if (flags.hasMultipleGroups && actors.every(a => a.result)) {
@@ -1127,6 +1160,7 @@ export class SkillCheckDialog extends Application {
                 };
             }
         }
+
         // Update the message data
         const updatedMessageData = {
             ...flags,
@@ -1134,8 +1168,15 @@ export class SkillCheckDialog extends Application {
             actors,
             contestedRoll
         };
+
         const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
         const sound = SkillCheckDialog.getResultSound(updatedMessageData, actorId);
+
+        // If there's a callback registered, call it with the roll result
+        if (message.app?.onRollComplete) {
+            message.app.onRollComplete(rollResultStr);
+        }
+
         return { content, updatedMessageData, sound };
     }
 
@@ -1145,9 +1186,6 @@ export class SkillCheckDialog extends Application {
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
      */
     static handleChatMessageClick(message, html) {
-        console.log('[SkillCheckDialog] handleChatMessageClick called');
-        console.log('[SkillCheckDialog] html:', html.html());
-        console.log('[SkillCheckDialog] .cpb-skill-roll count:', html.find('.cpb-skill-roll').length);
         html.find('.cpb-skill-roll').each((_, btn) => {
             $(btn).off('click').on('click', async (event) => {
                 console.log('Handler attached, message:', message);
@@ -1210,13 +1248,25 @@ export class SkillCheckDialog extends Application {
                         default:
                             return;
                     }
+
+                    // Format the roll result string
+                    let rollResultStr = "";
+                    const dc = flags.dc ? parseInt(flags.dc) : null;
+                    if (dc) {
+                        const success = roll.total >= dc;
+                        rollResultStr = `DC ${dc} Check with a roll of ${roll.total} (${success ? 'success' : 'failure'})`;
+                    } else {
+                        rollResultStr = `Roll Result: ${roll.total}`;
+                    }
+
                     // Update the actors array with the roll result
                     const actors = flags.actors.map(a => ({
                         ...a,
                         result: a.id === actorId ? (
                             roll ? {
                                 total: roll.total,
-                                formula: roll.formula
+                                formula: roll.formula,
+                                resultString: rollResultStr
                             } : {
                                 total: "No Roll Needed",
                                 formula: "Invalid Death Save",
@@ -1224,6 +1274,7 @@ export class SkillCheckDialog extends Application {
                             }
                         ) : a.result
                     }));
+
                     // Calculate group roll results if needed
                     let groupRollData = {};
                     if (flags.isGroupRoll) {
@@ -1244,6 +1295,7 @@ export class SkillCheckDialog extends Application {
                             });
                         }
                     }
+
                     // Calculate contested roll results if needed
                     let contestedRoll;
                     if (flags.hasMultipleGroups && actors.every(a => a.result)) {
@@ -1268,14 +1320,17 @@ export class SkillCheckDialog extends Application {
                             };
                         }
                     }
-                    // Update the message
+
+                    // Update the message data
                     const messageData = {
                         ...flags,
                         ...groupRollData,
                         actors,
                         contestedRoll
                     };
+
                     const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+
                     if (game.user.isGM) {
                         console.log('About to update message:', message);
                         await message.update({
@@ -1284,6 +1339,12 @@ export class SkillCheckDialog extends Application {
                                 'coffee-pub-blacksmith': messageData
                             }
                         });
+
+                        // Call the callback if it exists
+                        if (message.app?.onRollComplete) {
+                            message.app.onRollComplete(rollResultStr);
+                        }
+
                         // Play sound for individual rolls (not group rolls)
                         const isGroupRoll = messageData.isGroupRoll;
                         const dc = messageData.dc;
