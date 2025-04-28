@@ -764,9 +764,9 @@ export class SkillCheckDialog extends Application {
                 blind: rollMode === 'blindroll'
             });
 
-            // Store the callback on the message app
-            if (chatMessage && this.onRollComplete) {
-                chatMessage.app = { onRollComplete: this.onRollComplete };
+            // Store this dialog instance on the message
+            if (chatMessage) {
+                chatMessage.app = this;
             }
 
             // Reset quick party/common roll flag after roll
@@ -1173,7 +1173,7 @@ export class SkillCheckDialog extends Application {
         const sound = SkillCheckDialog.getResultSound(updatedMessageData, actorId);
 
         // If there's a callback registered, call it with the roll result
-        if (message.app?.onRollComplete) {
+        if (message.app instanceof SkillCheckDialog && message.app.onRollComplete) {
             message.app.onRollComplete(rollResultStr);
         }
 

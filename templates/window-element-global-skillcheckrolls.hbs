@@ -35,13 +35,12 @@
                 <option value="1d20" selected>1d20</option>
                 <option value="1d100">1d100</option>
             </select>
-            <input type="number" id="inputDiceValue-{{id}}" size="4" min="1" max="999" value="">
-            <button type="button" id="rollDiceButton-{{id}}" class="roll-dice-button">
+            <button type="button" id="rollDiceButton-{{id}}" class="roll-dice-button"  title="Request roll for look-up">
                 <i class="fas fa-dice-d20"></i>
             </button>
         </div>
         <div class="form-options">
-            <input type="number" id="inputDiceValue-{{id}}" size="4" min="1" max="999" value="">
+            <input type="text" id="inputDiceValue-{{id}}" placeholder="Result of roll" size="4" min="1" max="999" value="">
         </div>
 
     </div>
