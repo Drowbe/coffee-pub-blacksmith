@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.14] - 2025-04-23 - Excluded Users and Character Leadership
+## [1.0.14] - 2025-04-28 - Excluded Users and Character Leadership
 
 ### Added
 - Implemented character-based leadership system
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed excluded users appearing in leader selection dialog
 - Fixed excluded users appearing in character vote options when using "Current Players" source
 - Improved consistency of user exclusion across all voting and leader selection interfaces
+
+### Changed
+- Refactored skill check dialog and skill selection logic for improved reliability and maintainability
+- Updated skill check integration to support direct result passing and input field updates
+- Improved UI hiding logic for skill check and movement panels to reduce clutter when not in use
+- Refactored and improved code for token following and conga line movement, ensuring smoother and more consistent pathing
 
 ## [1.0.13] - 2025-04-22 - Movement AND CLEANUP
 
@@ -42,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed path following to maintain proper spacing
 - Fixed tokens skipping path points during movement
 - Fixed blocked and too-far tokens attempting to join formation
+- Fixed conga line movement bugs causing tokens to stack or lose formation
+- Fixed follow mode issues where tokens would not properly follow the leader or would desync
+- Fixed skill check dialog not updating input fields after roll
+- Fixed UI elements not hiding correctly when toggled or when not relevant to the current mode
 
 ## [1.0.12] - 2025-03-25 - Rolls and Movement Controls
 
