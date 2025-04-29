@@ -1,171 +1,333 @@
-<span style="visibility: hidden">coffeepub-hide-header</span>
+<span style="visibility: none">coffeepub-hide-header</span>
 {{#if isPublic}}
-    {{!-- PUBLIC MESSAGES --}}
-    {{#if isPlanningStart}}
-        <div class="blacksmith-card theme-blue">
-            <div class="section-header">
-                <i class="fas fa-hourglass-start"></i> Planning Phase Started
-            </div>
-            <div class="section-content">
-                <p>The planning phase has begun! You have {{duration}} to strategize, make plans, and decide what you'll do.</p>
-            </div>
-        </div>
-    {{else if isPlanningPaused}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas fa-pause"></i> Planning Phase Paused
-            </div>
-            <div class="section-content">
-                <p>The planning timer has been paused with {{timeRemaining}} remaining.</p>
-            </div>
-        </div>
-    {{else if isPlanningResumed}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas fa-play"></i> Planning Phase Resumed
-            </div>
-            <div class="section-content">
-                <p>The planning timer has resumed with {{timeRemaining}} remaining.</p>
-            </div>
-        </div>
-    {{else if isTimer}}
-        <div class="blacksmith-card {{#if theme}}theme-{{theme}}{{else}}theme-default{{/if}}">
-            <div class="section-header">
-                {{#if isTimerSet}}
-                    <i class="fas fa-clock"></i> {{timerLabel}} Timer Updated
-                {{else if isTimerStart}}
-                    <i class="fas fa-hourglass-start"></i> {{timerLabel}} Started
-                {{else if isTimerPaused}}
-                    <i class="fas fa-pause"></i> {{timerLabel}} Paused
-                {{else if isTimerResumed}}
-                    <i class="fas fa-play"></i> {{timerLabel}} Resumed
-                {{else if isTimerWarning}}
-                    <i class="fas fa-exclamation-triangle"></i> {{timerLabel}} Warning
-                {{else if isTimerExpiringSoon}}
-                    <i class="fas fa-exclamation-circle"></i> {{timerLabel}} Ending Soon
-                {{else if isTimerExpired}}
-                    <i class="fas fa-stopwatch"></i> {{timerLabel}} Ended
-                {{/if}}
-            </div>
-            <div class="section-content">
-                {{#if isTimerSet}}
-                    <p>{{timerLabel}} timer has been set to {{timeString}}.</p>
-                {{else if isTimerStart}}
-                    {{#if duration}}
-                        <p>The {{timerLabel}} phase has begun! You have {{duration}} to make your moves and take your actions.</p>
-                    {{else}}
-                        <p>The {{timerLabel}} phase has begun!</p>
-                    {{/if}}
-                {{else if isTimerPaused}}
-                    <p>The {{timerLabel}} timer has been paused with {{timeRemaining}} remaining in your turn.</p>
-                {{else if isTimerResumed}}
-                    <p>The {{timerLabel}} timer has resumed with {{timeRemaining}} remaining in your turn.</p>
-                {{else if isTimerWarning}}
-                    <p>{{warningMessage}}</p>
-                {{else if isTimerExpiringSoon}}
-                    <p>{{expiringSoonMessage}}</p>
-                {{else if isTimerExpired}}
-                    <p>{{expiredMessage}}</p>
-                {{/if}}
-            </div>
-        </div>
-    {{else if isRoundAnnouncement}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas fa-swords"></i> Round {{roundNumber}} Has Started
-            </div>
-            <div class="section-content">
-            </div>
-        </div>
-    {{else if isLootDrop}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas fa-coins"></i> Loot Dropped!
-            </div>
-            <div class="section-content">
-                <p>{{tokenName}} has been defeated and dropped their belongings!</p>
-            </div>
-        </div>
-    {{else if isMovementChange}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas {{movementIcon}}"></i> {{movementLabel}} Mode Active
-            </div>
-            <div class="section-content">
-                <p>{{{movementDescription}}}</p>
-                {{#if movementMarchingOrder}}
-                    <div class="section-table">
-                        {{#each movementMarchingOrder}}
-                            <div class="row-label{{#if isDimmed}} label-dimmed{{/if}}">{{this.position}}</div><div class="row-content">{{this.name}}</div>
-                        {{/each}}
-                    </div>
-                    {{#if spacingText}}
-                        <p><b>Spacing</b>: {{spacingText}}</p><br>
-                    {{/if}}
-                    <p>Marching order is determined when the {{movementLabel}} Mode is activated by the realitive distance between the leader and each party member.</p>
-                {{/if}}
-            </div>
-        </div>
-    {{else if isLeaderChange}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                <i class="fas fa-crown"></i> {{leaderName}} is Party Leader
-            </div>
-            <div class="section-content">
-                <p>All hail <strong>{{leaderName}}</strong>, party leader for this session!</p>
-                <ul>
-                    <li>{{leaderName}} has access to leader-only tools.</li>
-                    <li>They facilitate decision-making and pace.</li>
-                    <li>They are the Point when movement mode is Follow or Conga.</li>
-                </ul>
-                <p>{{leaderName}} is being played by {{playerName}}).</p>
-            </div>
-        </div>
-    {{else}}
-        <div class="blacksmith-card theme-default">
-            <div class="section-header">
-                {{#if strCardTitle}}
-                    <i class="{{strCardIcon}}"></i> {{strCardTitle}}
-                {{else}}
-                    Card Error
-                {{/if}}
-            </div>
-            <div class="section-content">
-                {{#if strCardContent}}
-                    {{{strCardContent}}}
-                {{else}}
-                    A public card was generated with no content. What's up with that?
-                {{/if}}
-            </div>
-        </div>
-    {{/if}}
+  {{!-- PUBLIC MESSAGES --}}
+
+  {{!-- PLANNING START --}}
+  {{#if isPlanningStart}}
+    <div class="blacksmith-card theme-blue">
+      <div class="section-header">
+        <i class="fas fa-hourglass-start"></i> Planning Phase Started
+      </div>
+      <div class="section-content">
+        <p>The planning phase has begun! You have {{duration}} to strategize, make plans, and decide what you'll do.</p>
+      </div>
+    </div>
+
+  {{!-- PLANNING PAUSED --}}
+  {{else if isPlanningPaused}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="fas fa-pause"></i> Planning Phase Paused
+      </div>
+      <div class="section-content">
+        <p>The planning timer has been paused with {{timeRemaining}} remaining.</p>
+      </div>
+    </div>
+
+  {{!-- PLANNING RESUMED --}}
+  {{else if isPlanningResumed}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="fas fa-play"></i> Planning Phase Resumed
+      </div>
+      <div class="section-content">
+        <p>The planning timer has resumed with {{timeRemaining}} remaining.</p>
+      </div>
+    </div>
+
+  {{!-- COMBAT TIMER --}}
+  {{else if isTimer}}
+    <div class="blacksmith-card {{#if theme}}theme-{{theme}}{{else}}theme-default{{/if}}">
+      <div class="section-header">
+        {{#if isTimerSet}}
+          <i class="fas fa-clock"></i> {{timerLabel}} Timer Updated
+        {{else if isTimerStart}}
+          <i class="fas fa-hourglass-start"></i> {{timerLabel}} Started
+        {{else if isTimerPaused}}
+          <i class="fas fa-pause"></i> {{timerLabel}} Paused
+        {{else if isTimerResumed}}
+          <i class="fas fa-play"></i> {{timerLabel}} Resumed
+        {{else if isTimerWarning}}
+          <i class="fas fa-exclamation-triangle"></i> {{timerLabel}} Warning
+        {{else if isTimerExpiringSoon}}
+          <i class="fas fa-exclamation-circle"></i> {{timerLabel}} Ending Soon
+        {{else if isTimerExpired}}
+          <i class="fas fa-stopwatch"></i> {{timerLabel}} Ended
+        {{/if}}
+      </div>
+      <div class="section-content">
+        {{#if isTimerSet}}
+          <p>{{timerLabel}} timer has been set to {{timeString}}.</p>
+        {{else if isTimerStart}}
+          {{#if duration}}
+            <p>The {{timerLabel}} phase has begun! You have {{duration}} to make your moves and take your actions.</p>
+          {{else}}
+            <p>The {{timerLabel}} phase has begun!</p>
+          {{/if}}
+        {{else if isTimerPaused}}
+          <p>The {{timerLabel}} timer has been paused with {{timeRemaining}} remaining in your turn.</p>
+        {{else if isTimerResumed}}
+          <p>The {{timerLabel}} timer has resumed with {{timeRemaining}} remaining in your turn.</p>
+        {{else if isTimerWarning}}
+          <p>{{warningMessage}}</p>
+        {{else if isTimerExpiringSoon}}
+          <p>{{expiringSoonMessage}}</p>
+        {{else if isTimerExpired}}
+          <p>{{expiredMessage}}</p>
+        {{/if}}
+      </div>
+    </div>
+
+  {{!-- ROUND ANNOUNCEMENT --}}
+  {{else if isRoundAnnouncement}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="fas fa-swords"></i> Round {{roundNumber}} Has Started
+      </div>
+      <div class="section-content"></div>
+    </div>
+
+  {{!-- LOOT DROP --}}
+  {{else if isLootDrop}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="fas fa-coins"></i> Loot Dropped!
+      </div>
+      <div class="section-content">
+        <p>{{tokenName}} has been defeated and dropped their belongings!</p>
+      </div>
+    </div>
+
+  {{!-- MOVEMENT CHANGE --}}
+  {{else if isMovementChange}}
+      <div class="blacksmith-card theme-default">
+          <div class="section-header">
+              <i class="fas {{movementIcon}}"></i> {{movementLabel}} Mode Active
+          </div>
+          <div class="section-content">
+              <p>{{{movementDescription}}}</p>
+              {{#if movementMarchingOrder}}
+                  <div class="section-table">
+                      {{#each movementMarchingOrder}}
+                          <div class="row-label{{#if isDimmed}} label-dimmed{{/if}}">{{this.position}}</div><div class="row-content">{{this.name}}</div>
+                      {{/each}}
+                  </div>
+                  {{#if spacingText}}
+                      <p><b>Spacing</b>: {{spacingText}}</p><br>
+                  {{/if}}
+                  <p>Marching order is determined when the {{movementLabel}} Mode is activated by the realitive distance between the leader and each party member.</p>
+              {{/if}}
+          </div>
+      </div>
+
+  {{!-- LEADER CHANGE --}}
+  {{else if isLeaderChange}}
+      <div class="blacksmith-card theme-default">
+          <div class="section-header">
+              <i class="fas fa-crown"></i> {{leaderName}} is Party Leader
+          </div>
+          <div class="section-content">
+              <p>All hail <strong>{{leaderName}}</strong>, party leader for this session!</p>
+              <ul>
+                  <li>{{leaderName}} has access to leader-only tools.</li>
+                  <li>They facilitate decision-making and pace.</li>
+                  <li>They are the Point when movement mode is Follow or Conga.</li>
+              </ul>
+              <p>{{leaderName}} is being played by {{playerName}}).</p>
+          </div>
+      </div>
+
+  {{!-- TRANSFER REQUEST --}}
+  {{else if (eq cardType "transfer-request")}}
+    <div class="blacksmith-card theme-green">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        {{#if isTransferSender}}
+          <p>The request to send {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong>.</p> to <strong>{{targetActorName}}</strong> has been sent.</p>
+        {{else if isTransferReceiver}}
+          <p><strong>{{sourceActorName}}</strong> wants to send you {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong>.</p>
+          <div class="transfer-request-buttons">
+            <button class="transfer-request-button accept" data-transfer-id="{{transferId}}">Accept</button>
+            <button class="transfer-request-button reject" data-transfer-id="{{transferId}}">Reject</button>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
+  {{!-- TRANSFER COMPLETE --}}
+  {{else if (eq cardType "transfer-complete")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>
+          {{#if isTransferSender}}
+            You have sent {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> to <strong>{{targetActorName}}</strong>.
+          {{else if isTransferReceiver}}
+            You have received {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> from <strong>{{sourceActorName}}</strong>.
+          {{else if isGMNotification}}
+            GM Notification: The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> has been completed between <strong>{{sourceActorName}}</strong> and <strong>{{targetActorName}}</strong>.
+          {{else}}
+            The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> has been completed between <strong>{{sourceActorName}}</strong> and <strong>{{targetActorName}}</strong>.
+          {{/if}}
+        </p>
+      </div>
+    </div>
+
+  {{!-- TRANSFER REJECTED --}}
+  {{else if (eq cardType "transfer-rejected")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>
+          {{#if isTransferSender}}
+            Your transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> to <strong>{{targetActorName}}</strong> was rejected.
+          {{else if isTransferReceiver}}
+            You rejected the transfer of{{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> from <strong>{{sourceActorName}}</strong>.
+          {{else}}
+            The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> was rejected.
+          {{/if}}
+        </p>
+      </div>
+    </div>
+
+  {{!-- TRANSFER GM --}}
+  {{else if (eq cardType "transfer-gm")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>The GM added <strong>{{itemName}}</strong> to <strong>{{targetActorName}}'s inventory</strong>.</p>
+      </div>
+    </div>
+
+  {{!-- GENERAL & ERROR CONDITION --}}
+  {{else}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        {{#if strCardTitle}}
+          <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+        {{else}}
+          <i class="fas fa-seal-exclamation"></i> Card Error
+        {{/if}}
+      </div>
+      <div class="section-content">
+        {{#if strCardContent}}
+          {{{strCardContent}}}
+        {{else}}
+          A public card was generated with no content. What's up with that?
+        {{/if}}
+      </div>
+    </div>
+  {{/if}}
+
 {{else}}
-    {{!-- PRIVATE MESSAGES --}}
-    {{#if isLeaderChange}}
-        <div class="blacksmith-card theme-red">
-            <div class="section-header">
-                <i class="fas fa-crown"></i> You Are Party Leader!
-            </div>
-            <div class="section-content">
-                <p>The party has chosen {{leaderName}} to be their leader.</p>
-            </div>
-        </div>
-    {{else}}
-        <div class="blacksmith-card theme-default"></div>
-            <div class="section-header">
-                {{#if strCardTitle}}
-                    <i class="{{strCardIcon}}"></i> {{strCardTitle}}
-                {{else}}
-                    <i class="fas fa-seal-exclamation"></i> Card Error
-                {{/if}}
-            </div>
-            <div class="section-content">
-                {{#if strCardContent}}
-                    {{{strCardContent}}}
-                {{else}}
-                    A private card was generated with no content. What's up with that?
-                {{/if}}
-            </div>
-        </div>
-    {{/if}}
+  {{!-- PRIVATE MESSAGES --}}
+
+  {{!-- LEADER CHANGE --}}
+  {{#if isLeaderChange}}
+      <div class="blacksmith-card theme-red">
+          <div class="section-header">
+              <i class="fas fa-crown"></i> You Are Party Leader!
+          </div>
+          <div class="section-content">
+              <p>The party has chosen {{leaderName}} to be their leader.</p>
+          </div>
+      </div>
+
+  {{!-- TRANSFER REQUEST --}}
+  {{else if (eq cardType "transfer-request")}}
+    <div class="blacksmith-card theme-green">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}} 
+      </div>
+      <div class="section-content">
+        {{#if isTransferSender}}
+          <p>The request to send {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong>.</p> to <strong>{{targetActorName}}</strong> has been sent.</p>
+        {{else if isTransferReceiver}}
+          <p><strong>{{sourceActorName}}</strong> wants to send you {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong>.</p>
+          <div class="transfer-request-buttons blacksmith-chat-buttons">
+            <button class="transfer-request-button chat-button accept" data-transfer-id="{{transferId}}"><i class="fas fa-circle-check"></i> Accept</button>
+            <button class="transfer-request-button chat-button reject" data-transfer-id="{{transferId}}"><i class="fas fa-circle-xmark"></i> Reject</button>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
+  {{!-- TRANSFER COMPLETE --}}
+  {{else if (eq cardType "transfer-complete")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>
+          {{#if isTransferSender}}
+            You have sent {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> to <strong>{{targetActorName}}</strong>.
+          {{else if isTransferReceiver}}
+            You have received {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> from <strong>{{sourceActorName}}</strong>.
+          {{else if isGMNotification}}
+            GM Notification: The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> has been completed between <strong>{{sourceActorName}}</strong> and <strong>{{targetActorName}}</strong>.
+          {{else}}
+            The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> has been completed between <strong>{{sourceActorName}}</strong> and <strong>{{targetActorName}}</strong>.
+          {{/if}}
+        </p>
+      </div>
+    </div>
+
+  {{!-- TRANSFER REJECTED --}}
+  {{else if (eq cardType "transfer-rejected")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>
+          {{#if isTransferSender}}
+            Your transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> to <strong>{{targetActorName}}</strong> was rejected.
+          {{else if isTransferReceiver}}
+            You rejected the transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> from <strong>{{sourceActorName}}</strong>.
+          {{else}}
+            The transfer of {{#if hasQuantity}}{{quantity}} {{/if}} <strong>{{itemName}}{{#if isPlural}}s{{/if}}</strong> was rejected.
+          {{/if}}
+        </p>
+      </div>
+    </div>
+
+  {{!-- TRANSFER GM --}}
+  {{else if (eq cardType "transfer-gm")}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+      </div>
+      <div class="section-content">
+        <p>The GM added <strong>{{itemName}}</strong> to <strong>{{targetActorName}}'s inventory</strong>.</p>
+      </div>
+    </div>
+
+  {{!-- GENERAL & ERROR CONDITION --}}  
+  {{else}}
+    <div class="blacksmith-card theme-default">
+      <div class="section-header">
+        {{#if strCardTitle}}
+          <i class="{{strCardIcon}}"></i> {{strCardTitle}}
+        {{else}}
+          <i class="fas fa-seal-exclamation"></i> Card Error
+        {{/if}}
+      </div>
+      <div class="section-content">
+        {{#if strCardContent}}
+          {{{strCardContent}}}
+        {{else}}
+          A private card was generated with no content. What's up with that?
+        {{/if}}
+      </div>
+    </div>
+  {{/if}}
 {{/if}}

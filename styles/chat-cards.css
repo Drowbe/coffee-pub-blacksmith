@@ -2,6 +2,19 @@
 /* --- CHAT CARDS - COMMON ------------ */
 /* ------------------------------------ */
 
+/* 
+    This is the new, clean, simplified card structure. 
+    It's used for all the new cards, and the old cards are being converted to match it.
+    The new SPECIFIC cards are:
+    - Round Summary
+    - Turn Details
+    - Party Stats
+    - Skill Rolls    
+*/
+
+
+/* COMMON STYLES */
+
 /* Base Container */
 .blacksmith-card {
     padding: 0;
@@ -22,65 +35,68 @@
     padding-top: 2px;
 }
 
+/* THEMES */
 .blacksmith-card.theme-default {
     background: rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(0, 0, 0, 0.07);
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 0px;
 }
-
-
 .blacksmith-card.theme-orange {
     background-color: rgba(247, 140, 1, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 0px;
+    border: 1px solid rgba(247, 140, 1, 0.07);
 }
-
 .blacksmith-card.theme-red {
     background-color: rgba(118, 31, 19, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 0px;
+    border: 1px solid rgba(118, 31, 19, 0.07);
 }
-
 .blacksmith-card.theme-blue {
     background-color: rgba(0, 120, 212, 0.1);
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
+    border: 1px solid rgba(0, 120, 212, 0.07);
+}
+.blacksmith-card.theme-green {
+    background-color: rgba(0, 212, 64, 0.1);
+    border: 1px solid rgba(0, 212, 64, 0.07);
+}
+.blacksmith-card.theme-default,
+.blacksmith-card.theme-orange,
+.blacksmith-card.theme-red,
+.blacksmith-card.theme-blue,
+.blacksmith-card.theme-green {
+    border-radius: 4px;
+    padding: 6px;
     margin-bottom: 0px;
 }
 
 .blacksmith-card.theme-default p,
 .blacksmith-card.theme-orange p,
 .blacksmith-card.theme-red p,
-.blacksmith-card.theme-blue p {
+.blacksmith-card.theme-blue p,
+.blacksmith-card.theme-green p {
     color: #594a3c;
     text-shadow: none;
     margin: 0;
     padding: 0;
 }
 
+.blacksmith-card.theme-default i,
 .blacksmith-card.theme-blue i,
+.blacksmith-card.theme-green i, 
+.blacksmith-card.theme-red i,
+.blacksmith-card.theme-orange i,
 .blacksmith-card i {
-    margin-right: 0;
+    margin-right: 3px;
 }
 
 /* SECTIONS */
 
 /* Section Headers */
 .section-header {
-    font-family: var(--dnd5e-font-roboto-slab); 
-    font-size: 1.2em;
-    font-weight: bold;
+    font-family: "Modesto Condensed"; 
+    font-size: 1.5em;
+    font-weight: 900;
     color: #594a3c;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 /* Only add margin when section is not collapsed */
@@ -200,6 +216,58 @@
     padding: 4px 6px;
     border-radius: 0px 4px 4px 0px;
 }
+
+
+
+/* GLOBAL BUTTONS */
+
+
+.blacksmith-chat-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    border: 0px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+    gap: 2px;
+}
+.blacksmith-chat-buttons button.chat-button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 1px solid #999;
+    padding: 1px 6px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+    margin-right: 2px;
+    font-size: var(--font-size-13);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: #594a3c;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.blacksmith-chat-buttons button.chat-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+.blacksmith-chat-buttons button.chat-button i {
+    color: #594a3c;
+    margin-top: 0px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+
+
+
+
 
 
 /* ------------------------------------ */
@@ -565,10 +633,9 @@
 }
 
 
-
-
-
-
+/* ------------------------------------ */
+/* --- CHAT CARDS - SKILL ROLLS ------- */
+/* ------------------------------------ */
 
 
 /* New namespaced styles */
