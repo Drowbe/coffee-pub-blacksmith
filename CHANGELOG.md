@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.15] - 2025-04-29 - Minor Card Update
+
+### Changed
+- Updated unified cards
+- Updated card css to be cleaner and take up less room in chat
+
 ## [1.0.14] - 2025-04-28 - Excluded Users and Character Leadership
 
 ### Added
