@@ -673,14 +673,15 @@
     border-radius: 3px;
     border: 0px solid rgba(170, 2, 0, 0.2);
     text-transform: uppercase;
+    vertical-align: middle;
 }
 .cpb-versus-skill{
     font-weight: 600;
-    font-size: 0.7em;
-    color: rgba(72, 21, 21, 0.7);
-    padding: 4px;
-    margin-left: 6px;
-    margin-right: 6px;
+    font-size: 0.65em;
+    color: rgba(72, 21, 21, 0.9);
+    padding: 2px;
+    margin-left: 2px;
+    margin-right: 2px;
 }
 
 /* PENDING ROLLS (CHAT BUTTONS BEFORE ROLLS ARE COMPLETE) */
