@@ -1075,9 +1075,11 @@ export class SkillCheckDialog extends Application {
                 rollCoffeePubDice(roll);
                 break;
             case 'skill':
-                if (typeof actor.rollSkillV2 === 'function') {
+                if (typeof actor?.rollSkillV2 === 'function')  {
+                    postConsoleAndNotification("Rolling using rollSkillV2", "", false, true, false, "BLACKSMITH")
                     roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
                 } else {
+                    postConsoleAndNotification("Rolling using rollSkill", "", false, true, false, "BLACKSMITH")
                     roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
                 }
                 break;
@@ -1122,7 +1124,8 @@ export class SkillCheckDialog extends Application {
         if (typeof roll === 'undefined') return;
 
         // Get the DC from the message flags
-        const dc = flags.dc ? parseInt(flags.dc) : null;
+        const dc = Number.isFinite(flags.dc) ? flags.dc : parseInt(flags.dc) || null;
+
         
         // Format the roll result string
         let rollResultStr = "";
@@ -1275,7 +1278,8 @@ export class SkillCheckDialog extends Application {
                             playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                             break;
                         case 'skill':
-                            if (typeof actor.rollSkillV2 === 'function') {
+                            if (typeof actor?.rollSkillV2 === 'function') {
+
                                 roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
                             } else {
                                 roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
