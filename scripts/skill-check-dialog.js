@@ -1125,7 +1125,7 @@ export class SkillCheckDialog extends Application {
                 allRollsComplete
             };
             if (allRollsComplete && flags.dc) {
-                const successCount = actors.filter(a => a.result.total >= flags.dc).length;
+                const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
                 const totalCount = actors.length;
                 const groupSuccess = successCount > (totalCount / 2);
                 Object.assign(groupRollData, {
@@ -1285,7 +1285,7 @@ export class SkillCheckDialog extends Application {
                             allRollsComplete
                         };
                         if (allRollsComplete && flags.dc) {
-                            const successCount = actors.filter(a => a.result.total >= flags.dc).length;
+                            const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
                             const totalCount = actors.length;
                             const groupSuccess = successCount > (totalCount / 2);
                             Object.assign(groupRollData, {
@@ -1331,49 +1331,36 @@ export class SkillCheckDialog extends Application {
 
                     const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
 
-                    if (game.user.isGM) {
-                        console.log('About to update message:', message);
-                        await message.update({
-                            content,
-                            flags: {
-                                'coffee-pub-blacksmith': messageData
-                            }
-                        });
-
-                        // Call the callback if it exists
-                        if (message.app?.onRollComplete) {
-                            message.app.onRollComplete(rollResultStr);
+                    // Emit the update to the GM
+                    game.socket.emit('module.coffee-pub-blacksmith', {
+                        type: 'updateSkillRoll',
+                        data: {
+                            messageId: message.id,
+                            actorId,
+                            result: roll,
+                            messageData: messageData // Include the full message data
                         }
+                    });
 
-                        // Play sound for individual rolls (not group rolls)
-                        const isGroupRoll = messageData.isGroupRoll;
-                        const dc = messageData.dc;
-                        let actorResult = null;
-                        if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
-                            actorResult = messageData.actors.find(a => a.result && typeof a.result.total === 'number');
-                        }
-                        if (!isGroupRoll) {
-                            if (dc && actorResult && typeof actorResult.result.total === 'number') {
-                                if (actorResult.result.total >= Number(dc)) {
-                                    playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
-                                } else {
-                                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
-                                }
+                    // Call the callback if it exists
+                    if (message.app?.onRollComplete) {
+                        message.app.onRollComplete(rollResultStr);
+                    }
+
+                    // Play sound for individual rolls (not group rolls)
+                    const isGroupRoll = messageData.isGroupRoll;
+                    if (!isGroupRoll) {
+                        if (dc && roll) {
+                            if (roll.total >= dc) {
+                                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
                             } else {
-                                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
+                                playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
                             }
                         } else {
-                            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+                            playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
                         }
                     } else {
-                        game.socket.emit('module.coffee-pub-blacksmith', {
-                            type: 'updateSkillRoll',
-                            data: {
-                                messageId: message.id,
-                                actorId,
-                                result: roll
-                            }
-                        });
+                        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                     }
                 } catch (error) {
                     console.error("Error handling skill check:", error);
