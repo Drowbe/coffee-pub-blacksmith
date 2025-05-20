@@ -27,29 +27,36 @@
     min-width: 200px;
     overflow: hidden;
     padding-right: 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 .cpb-dialog-column h2 {
-    border: 2px groove #eeede0;
+    border: 2px solid rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.9);
     font-size: 1.3em;
     line-height: 20px;
     font-weight: bold;
     margin: 0 0 0px;
     padding: 4px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 4px;
     padding-left: 6px;
-}
-.cpb-dialog-column h3 {
-    border-bottom: 0px groove #eeede0;
-    font-size: 0.8em;
-    line-height: 1.2em;
-    font-weight: 400;
-    margin: 0px;
-    padding: 2px 0;
     text-align: center;
 }
-
-
+.cpb-dialog-column h3 {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.1);
+    font-size: 0.8em;
+    font-weight: 400;
+    margin: 0px 0px 0px 0px;
+    padding: 2px 0px 2px 0px;
+    text-align: center;
+}
 /* FORM STYLES */
 
 .cpb-form-group {
@@ -305,8 +312,6 @@
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 
-/* Dialog Footer */
-
 .skill-check-dialog .cpb-dialog-buttons {
     flex: 0 0 auto;
     margin: 0;
@@ -314,15 +319,16 @@
     gap: 8px;
     justify-content: flex-end;
     padding: 8px;
-    background: rgba(0, 0, 0, 0.05);
-    border-top: 1px solid #999;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
 }
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button {
     height: 32px;
-    background: #782e22;
-    color: #fff;
-    border: 1px solid #782e22;
-    border-radius: 3px;
+    background: rgba(95, 95, 95, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
     font-size: var(--font-size-14);
     line-height: 32px;
     padding: 0 16px;
@@ -330,8 +336,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 2px;
     min-width: 100px;
+    text-transform: uppercase;
 }
 .skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button:hover {
     border-color: #000;

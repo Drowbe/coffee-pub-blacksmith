@@ -3,7 +3,6 @@
         <!-- Left Column -->
         <div class="cpb-dialog-column">
             <h2>CHOOSE CONTESTANTS</h2>
-            <h3>Left-click to select. Right-click if a Defender.</h3>
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search actors, monsters, and npcs...">
@@ -43,12 +42,13 @@
                     </div>
                 {{/each}}
             </div>
+            <h3>Left-click to select. Right-click if a Defender.</h3>
         </div>
 
         <!-- Middle Column -->
         <div class="cpb-dialog-column">
             <h2>SET ROLL TYPE</h2>
-            <h3>Right-click to set a different defender type.</h3>
+            
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search roll types...">
@@ -160,9 +160,7 @@
                     {{/each}}
                 </div>
 
-
-
-<!-- Dice Roll Section -->
+                <!-- Dice Roll Section -->
                 <div class="cpb-check-section">
                     <div class="cpb-section-header" style="margin-bottom: 8px;">Dice Roll</div>
                     <div class="cpb-dice-grid">
@@ -218,18 +216,13 @@
                     </div>
                     {{/each}}
                 </div>
-
-            
-
             </div>
+            <h3>Right-click to set a different defender type.</h3>
         </div>
 
         <!-- Right Column -->
         <div class="cpb-dialog-column">
-
-
             <h2>CONFIGURE ROLL</h2>
-            <h3>Contested roll overrides group settings.</h3>
             <div class="cpb-form-group">
                 <div class="cpb-form-fields">
                     <select name="rollMode">
@@ -274,9 +267,7 @@
                         </label>
                     </div>
                 </div>
-
                 <div class="cpb-section-header">Custom Narrative</div>
-
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         <input type="text" name="label" placeholder="Optional title...">
@@ -287,20 +278,19 @@
                         <textarea name="description" rows="4" placeholder="Optional narrative..."></textarea>
                     </div>
                 </div>
-
             </div>
-
+            <h3>Contested roll overrides group settings.</h3>
         </div>
     </div>
     <!-- BUTTONS -->
     <div class="cpb-dialog-buttons">
-        <button class="cpb-dialog-button" data-button="roll">
-            <i class="fas fa-dice-d20"></i>
-            Request Roll
-        </button>
         <button class="cpb-dialog-button" data-button="cancel">
             <i class="fas fa-times"></i>
             Cancel
+        </button>
+        <button class="cpb-dialog-button" data-button="roll">
+            <i class="fas fa-dice-d20"></i>
+            Request Roll
         </button>
     </div>
 </div>
