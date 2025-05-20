@@ -234,16 +234,16 @@ export class MovementConfig extends Application {
                     icon: 'fa-swords'
                 },
                 {
-                    id: 'follow-movement',
-                    name: 'Follow',
-                    description: 'The party leader moves freely while the reamining party loosely follows them in line.',
-                    icon: 'fa-person-walking-arrow-right'
-                },
-                {
                     id: 'conga-movement',
                     name: 'Conga',
                     description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
                     icon: 'fa-people-pulling'
+                },
+                {
+                    id: 'follow-movement',
+                    name: 'Follow (Experimental)',
+                    description: 'The party leader moves freely while the reamining party loosely follows them in line.',
+                    icon: 'fa-person-walking-arrow-right'
                 }
             ].filter(type => !type.gmOnly || isGM)
         };
