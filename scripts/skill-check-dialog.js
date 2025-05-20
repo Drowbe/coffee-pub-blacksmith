@@ -528,12 +528,18 @@ export class SkillCheckDialog extends Application {
 
         // Handle the roll button
         html.find('button[data-button="roll"]').click(async (ev) => {
+            // Guard clause: Only proceed if the current user is the owner of at least one selected actor or is GM
             const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => ({
                 id: item.dataset.actorId,
                 name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
                 group: item.classList.contains('cpb-group-1') ? 1 : 
                        item.classList.contains('cpb-group-2') ? 2 : 1
             }));
+            const isRoller = selectedActors.some(a => {
+                const actor = game.actors.get(a.id);
+                return actor && (actor.isOwner || game.user.isGM);
+            });
+            if (!isRoller) return;
             
             if (selectedActors.length === 0) {
                 ui.notifications.warn("Please select at least one actor.");
@@ -775,6 +781,8 @@ export class SkillCheckDialog extends Application {
             this._quickRollOverrides = undefined;
             this.close();
 
+            // Immediately after the switch, check if roll is defined
+            if (typeof roll === 'undefined') return;
             // Always emit the update to the GM (even if GM is rolling)
             game.socket.emit('module.coffee-pub-blacksmith', {
                 type: 'updateSkillRoll',
@@ -1106,6 +1114,9 @@ export class SkillCheckDialog extends Application {
                 return null;
         }
 
+        // Immediately after the switch, check if roll is defined
+        if (typeof roll === 'undefined') return;
+
         // Get the DC from the message flags
         const dc = flags.dc ? parseInt(flags.dc) : null;
         
@@ -1298,6 +1309,9 @@ export class SkillCheckDialog extends Application {
                         default:
                             return;
                     }
+
+                    // Immediately after the switch, check if roll is defined
+                    if (typeof roll === 'undefined') return;
 
                     // Format the roll result string
                     let rollResultStr = "";
