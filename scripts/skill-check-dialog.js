@@ -1,6 +1,7 @@
 // Import required modules
 import { MODULE_ID } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
+import { handleSkillRollUpdate } from './blacksmith.js';
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
@@ -773,6 +774,24 @@ export class SkillCheckDialog extends Application {
             this._isQuickPartyRoll = false;
             this._quickRollOverrides = undefined;
             this.close();
+
+            // Always emit the update to the GM (even if GM is rolling)
+            game.socket.emit('module.coffee-pub-blacksmith', {
+                type: 'updateSkillRoll',
+                data: {
+                    messageId: chatMessage.id,
+                    actorId: processedActors[0].id,
+                    result: roll
+                }
+            });
+            // If GM, call the handler directly as well
+            if (game.user.isGM) {
+                await handleSkillRollUpdate({
+                    messageId: chatMessage.id,
+                    actorId: processedActors[0].id,
+                    result: roll
+                });
+            }
         });
 
         // Handle the cancel button
@@ -1169,15 +1188,46 @@ export class SkillCheckDialog extends Application {
             contestedRoll
         };
 
-        const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
-        const sound = SkillCheckDialog.getResultSound(updatedMessageData, actorId);
+        // Always emit the update to the GM (even if GM is rolling)
+        game.socket.emit('module.coffee-pub-blacksmith', {
+            type: 'updateSkillRoll',
+            data: {
+                messageId: message.id,
+                actorId,
+                result: roll
+            }
+        });
+        // If GM, call the handler directly as well
+        if (game.user.isGM) {
+            await handleSkillRollUpdate({
+                messageId: message.id,
+                actorId,
+                result: roll
+            });
+        }
 
         // If there's a callback registered, call it with the roll result
         if (message.app instanceof SkillCheckDialog && message.app.onRollComplete) {
             message.app.onRollComplete(rollResultStr);
         }
 
-        return { content, updatedMessageData, sound };
+        // Play sound for individual rolls (not group rolls)
+        const isGroupRoll = updatedMessageData.isGroupRoll;
+        if (!isGroupRoll) {
+            if (dc && roll) {
+                if (roll.total >= dc) {
+                    playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
+                } else {
+                    playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
+                }
+            } else {
+                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
+            }
+        } else {
+            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+        }
+
+        return { content: null, updatedMessageData: null, sound: null }; // No direct update
     }
 
     /**
@@ -1329,18 +1379,23 @@ export class SkillCheckDialog extends Application {
                         contestedRoll
                     };
 
-                    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-
-                    // Emit the update to the GM
+                    // Always emit the update to the GM (even if GM is rolling)
                     game.socket.emit('module.coffee-pub-blacksmith', {
                         type: 'updateSkillRoll',
                         data: {
                             messageId: message.id,
                             actorId,
-                            result: roll,
-                            messageData: messageData // Include the full message data
+                            result: roll
                         }
                     });
+                    // If GM, call the handler directly as well
+                    if (game.user.isGM) {
+                        await handleSkillRollUpdate({
+                            messageId: message.id,
+                            actorId,
+                            result: roll
+                        });
+                    }
 
                     // Call the callback if it exists
                     if (message.app?.onRollComplete) {

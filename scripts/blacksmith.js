@@ -194,99 +194,7 @@ Hooks.once('init', async function() {
         }
         // Handle skill roll updates
         else if (data.type === 'updateSkillRoll' && game.user.isGM) {
-            console.log("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in blacksmith.js and in game.socket.on...");
-
-            (async () => {
-                const message = game.messages.get(data.data.messageId);
-                if (!message) return;
-
-                const flags = message.flags['coffee-pub-blacksmith'];
-                if (!flags?.type === 'skillCheck') return;
-
-                // --- Always recalculate group roll summary on the GM side ---
-                // 1. Update the correct actor's result
-                const actors = (flags.actors || []).map(a => ({
-                    ...a,
-                    result: a.id === data.data.actorId ? data.data.result : a.result
-                }));
-
-                // 2. Recalculate group roll summary
-                let groupRollData = {};
-                if (flags.isGroupRoll) {
-                    const completedRolls = actors.filter(a => a.result);
-                    const allRollsComplete = completedRolls.length === actors.length;
-                    groupRollData = {
-                        isGroupRoll: true,
-                        allRollsComplete
-                    };
-                    if (allRollsComplete && flags.dc) {
-                        const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
-                        const totalCount = actors.length;
-                        const groupSuccess = successCount > (totalCount / 2);
-                        Object.assign(groupRollData, {
-                            successCount,
-                            totalCount,
-                            groupSuccess
-                        });
-                    }
-                }
-
-                // 3. Recalculate contested roll results if needed
-                let contestedRoll;
-                if (flags.hasMultipleGroups && actors.every(a => a.result)) {
-                    const group1 = actors.filter(a => a.group === 1);
-                    const group2 = actors.filter(a => a.group === 2);
-                    const group1Highest = Math.max(...group1.map(a => a.result.total));
-                    const group2Highest = Math.max(...group2.map(a => a.result.total));
-                    if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
-                        contestedRoll = {
-                            winningGroup: 0,
-                            group1Highest,
-                            group2Highest,
-                            isTie: true
-                        };
-                    } else {
-                        const isGroup1Winner = group1Highest > group2Highest;
-                        contestedRoll = {
-                            winningGroup: isGroup1Winner ? 1 : 2,
-                            group1Highest,
-                            group2Highest,
-                            isTie: group1Highest === group2Highest
-                        };
-                    }
-                }
-
-                // 4. Update the message data
-                const updatedMessageData = {
-                    ...flags,
-                    ...groupRollData,
-                    actors,
-                    contestedRoll
-                };
-
-                const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
-                await message.update({ 
-                    content,
-                    flags: {
-                        'coffee-pub-blacksmith': updatedMessageData
-                    }
-                });
-
-                // Play the correct sound
-                const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.actorId);
-                playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
-
-                // If this was a requested roll, update the GM's interface
-                if (flags.requesterId === game.user.id) {
-                    const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                    windows.forEach(window => {
-                        const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
-                        if (inputField) {
-                            inputField.value = data.data.result.total;
-                        }
-                    });
-                }
-            })();
+            handleSkillRollUpdate(data.data);
         }
     });
     
@@ -1434,6 +1342,98 @@ export class ThirdPartyManager {
                         inputField.value = data.data.result.total;
                     }
                 });
+            }
+        });
+    }
+}
+
+export async function handleSkillRollUpdate(data) {
+    const message = game.messages.get(data.messageId);
+    if (!message) return;
+
+    const flags = message.flags['coffee-pub-blacksmith'];
+    if (!flags?.type === 'skillCheck') return;
+
+    // --- Always recalculate group roll summary on the GM side ---
+    // 1. Update the correct actor's result
+    const actors = (flags.actors || []).map(a => ({
+        ...a,
+        result: a.id === data.actorId ? data.result : a.result
+    }));
+
+    // 2. Recalculate group roll summary
+    let groupRollData = {};
+    if (flags.isGroupRoll) {
+        const completedRolls = actors.filter(a => a.result);
+        const allRollsComplete = completedRolls.length === actors.length;
+        groupRollData = {
+            isGroupRoll: true,
+            allRollsComplete
+        };
+        if (allRollsComplete && flags.dc) {
+            const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
+            const totalCount = actors.length;
+            const groupSuccess = successCount > (totalCount / 2);
+            Object.assign(groupRollData, {
+                successCount,
+                totalCount,
+                groupSuccess
+            });
+        }
+    }
+
+    // 3. Recalculate contested roll results if needed
+    let contestedRoll;
+    if (flags.hasMultipleGroups && actors.every(a => a.result)) {
+        const group1 = actors.filter(a => a.group === 1);
+        const group2 = actors.filter(a => a.group === 2);
+        const group1Highest = Math.max(...group1.map(a => a.result.total));
+        const group2Highest = Math.max(...group2.map(a => a.result.total));
+        if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
+            contestedRoll = {
+                winningGroup: 0,
+                group1Highest,
+                group2Highest,
+                isTie: true
+            };
+        } else {
+            const isGroup1Winner = group1Highest > group2Highest;
+            contestedRoll = {
+                winningGroup: isGroup1Winner ? 1 : 2,
+                group1Highest,
+                group2Highest,
+                isTie: group1Highest === group2Highest
+            };
+        }
+    }
+
+    // 4. Update the message data
+    const updatedMessageData = {
+        ...flags,
+        ...groupRollData,
+        actors,
+        contestedRoll
+    };
+
+    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
+    await message.update({ 
+        content,
+        flags: {
+            'coffee-pub-blacksmith': updatedMessageData
+        }
+    });
+
+    // Play the correct sound
+    const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.actorId);
+    playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
+
+    // If this was a requested roll, update the GM's interface
+    if (flags.requesterId === game.user.id) {
+        const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+        windows.forEach(window => {
+            const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+            if (inputField) {
+                inputField.value = data.result.total;
             }
         });
     }
