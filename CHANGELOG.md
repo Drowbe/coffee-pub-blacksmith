@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.16] - Optimizations
+
+### Fixed
+- Group roll summary (success/failure) now displays correctly after all players or the GM have rolled, regardless of who initiates the roll.
+- Fixed issue where GM-initiated rolls did not update the chat card for all users.
+- Prevented ReferenceError when requesting rolls (no roll performed yet).
+- Fixed error when roll is not defined in the roll handler.
+- Improved error handling and guard clauses to prevent undefined roll errors in all roll scenarios.
+
+### Changed
+- Updated all skill roll logic to use `rollSkillV2` if available, with fallback to `rollSkill` for backward compatibility with older DnD5e versions.
+- Added robust compatibility checks for DnD5e 4.1+ and future 4.5+ removal of deprecated methods.
+- Refactored socket and chat update logic for unified handling of both player and GM rolls.
+- Improved code clarity and maintainability in skill check dialog and group roll logic.
+
+### Compatibility
+- Fully compatible with DnD5e 4.1+ and future-proofed for 4.5+ removal of deprecated APIs.
+- No longer triggers deprecation warnings for skill rolls.
+
 ## [1.0.15] - 2025-04-29 - Minor Card Update
 
 ### Changed
