@@ -1075,7 +1075,11 @@ export class SkillCheckDialog extends Application {
                 rollCoffeePubDice(roll);
                 break;
             case 'skill':
-                roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                if (typeof actor.rollSkillV2 === 'function') {
+                    roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
+                } else {
+                    roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                }
                 break;
             case 'ability':
                 roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
@@ -1271,7 +1275,11 @@ export class SkillCheckDialog extends Application {
                             playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                             break;
                         case 'skill':
-                            roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                            if (typeof actor.rollSkillV2 === 'function') {
+                                roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
+                            } else {
+                                roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                            }
                             break;
                         case 'ability':
                             roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
