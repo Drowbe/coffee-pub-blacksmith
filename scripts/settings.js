@@ -105,7 +105,7 @@ function getCompendiumChoices() {
         const identifier = compendium.id;
         choices[identifier] = compendium.label;
         return choices;
-    }, {"none": "-- Choose a Compendium --"});
+    }, {"none": "-- None --"});
 
     // BLACKSMITH UPDATER - Make the Compendium Array available to ALL Coffee Pub modules
     postConsoleAndNotification("choices:", choices, false, true, false);
@@ -1754,43 +1754,6 @@ export const registerSettings = async () => {
 	});
 
 
-    // -- Search World Actors First --
-    game.settings.register(MODULE_ID, 'searchWorldActorsFirst', {
-        name: 'Search World Actors First',
-        hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-        type: Boolean,
-        config: true,
-        scope: 'world',
-        default: false,
-    });
-
-	// -- Default PRIMARY Monster Compendium --
-	game.settings.register(MODULE_ID,'monsterCompendiumPrimary', {
-		name: MODULE_ID + '.monsterCompendiumPrimary-Label',
-		hint: MODULE_ID + '.monsterCompendiumPrimary-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: '-- Choose the Primary Monster Compendium --',
-		choices: COFFEEPUB.arrCOMPENDIUMCHOICES
-	});
-
-	// -- Default SECONDARY Monster Compendium --
-	game.settings.register(MODULE_ID,'monsterCompendiumSecondary', {
-		name: MODULE_ID + '.monsterCompendiumSecondary-Label',
-		hint: MODULE_ID + '.monsterCompendiumSecondary-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: '-- Choose the Secondary Monster Compendium --',
-		choices: COFFEEPUB.arrCOMPENDIUMCHOICES
-	});
-
-
-
-
-
-
 	// -- Include Treasure by Default --
 	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeTreasure', {
 		name: MODULE_ID + '.narrativeDefaultIncludeTreasure-Label',
@@ -1824,6 +1787,50 @@ export const registerSettings = async () => {
 		default: ''
 	});
 
+
+
+	// *** COMPENDIUM MAPPING ***
+
+	// ---------- HEADING - TOKENS  ----------
+	game.settings.register(MODULE_ID, "headingH2CompendiumMapping", {
+		name: 'Compendium Mapping',
+		hint: 'These settings will allow you to map the compendiums to be leveraged by automatic linking.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+	// -- Search World Actors First --
+	game.settings.register(MODULE_ID, 'searchWorldActorsFirst', {
+		name: 'Search World Actors First',
+		hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Default PRIMARY Monster Compendium --
+	// (Removed old monsterCompendiumPrimary setting)
+
+	// -- Default SECONDARY Monster Compendium --
+	// (Removed old monsterCompendiumSecondary setting)
+
+
+	// -- Monster Lookup Compendiums (up to 5) --
+	for (let i = 1; i <= 5; i++) {
+		game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
+			name: `Monster Lookup ${i}`,
+			hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
+		});
+	}
 
 
 
@@ -2697,6 +2704,8 @@ export const registerSettings = async () => {
 	// --------------------------------------------------------
 	}); // END OF "Hooks.once('ready', async()"
 	// --------------------------------------------------------
+
+
 
 
 

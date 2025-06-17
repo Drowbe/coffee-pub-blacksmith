@@ -371,105 +371,57 @@ export async function createHTMLList(monsterString) {
 export async function buildCompendiumLinkActor(monsterData) {
     // If we're passed a string, use the legacy behavior
     if (typeof monsterData === 'string') {
-        const primaryCompendium = game.settings.get(MODULE_ID, 'monsterCompendiumPrimary');
-        const secondaryCompendium = game.settings.get(MODULE_ID, 'monsterCompendiumSecondary');
         const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldActorsFirst');
-        
         // Extract the count if it exists (matches the last parenthetical number)
         const countMatch = monsterData.match(/\((\d+)\)[^(]*$/);
         const count = countMatch ? countMatch[1] : null;
-        
         // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
         const originalName = monsterData;
-        // This regex matches:
-        // 1. Parentheses containing numbers or symbols: \s*\([^a-zA-Z]*[0-9]+[^)]*\)
-        // 2. Parentheses containing CR followed by any number/fraction: \s*\(CR\s*[0-9/]+\)
         const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
-        
         let strActorID;
-        let strCompendiumLink = "";
-
-        console.log(`BLACKSMITH | REGENT: Original monster name: ${originalName}`);
-        console.log(`BLACKSMITH | REGENT: Cleaned monster name for search: ${strActorName}`);
-        console.log(`BLACKSMITH | REGENT: Count found: ${count}`);
-        console.log(`BLACKSMITH | REGENT: Search world first: ${searchWorldFirst}`);
-        console.log(`BLACKSMITH | REGENT: Primary compendium: ${primaryCompendium}`);
-        console.log(`BLACKSMITH | REGENT: Secondary compendium: ${secondaryCompendium}`);
-
         // Function to format the final link with count
         const formatLink = (uuid, name) => {
             const baseLink = `@UUID[${uuid}]{${name}}`;
             return count ? `${baseLink} x ${count}` : baseLink;
         };
-
         // Only check world actors if the setting is enabled
         if (searchWorldFirst) {
-            console.log(`BLACKSMITH | REGENT: Searching world actors...`);
             let foundActor;
             try {
                 foundActor = game.actors.getName(strActorName);
-                console.log(`BLACKSMITH | REGENT: World actor search result:`, foundActor);
             } catch (error) {
-                console.log(`BLACKSMITH | REGENT: Error searching world actors:`, error);
                 foundActor = null;
             }
-
             if (foundActor) {
                 strActorID = foundActor.system._id;
-                console.log(`BLACKSMITH | REGENT: Found in world actors, returning link with ID: ${strActorID}`);
                 return formatLink(`Actor.${strActorID}`, strActorName);
             }
         }
-
-        // Check primary compendium
-        console.log(`BLACKSMITH | REGENT: Searching primary compendium...`);
-        let compendium = game.packs.get(primaryCompendium);
-        if (compendium) {
-            console.log(`BLACKSMITH | REGENT: Found primary compendium:`, compendium);
-            let index = await compendium.getIndex();
-            let entry = index.find(e => e.name === strActorName);
-            console.log(`BLACKSMITH | REGENT: Primary compendium search result:`, entry);
-            if (entry) {
-                strActorID = entry._id;
-                console.log(`BLACKSMITH | REGENT: Found in primary compendium, returning link with ID: ${strActorID}`);
-                return formatLink(`Compendium.${primaryCompendium}.Actor.${strActorID}`, strActorName);
+        // Check up to 5 compendium settings in order
+        let found = false;
+        for (let i = 1; i <= 5; i++) {
+            const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
+            if (!compendiumSetting || compendiumSetting === 'none') continue;
+            const compendium = game.packs.get(compendiumSetting);
+            if (compendium) {
+                let index = await compendium.getIndex();
+                let entry = index.find(e => e.name === strActorName);
+                if (entry) {
+                    strActorID = entry._id;
+                    return formatLink(`Compendium.${compendiumSetting}.Actor.${strActorID}`, strActorName);
+                }
             }
-        } else {
-            console.log(`BLACKSMITH | REGENT: Primary compendium not found`);
         }
-
-        // If not found in primary, check secondary compendium
-        console.log(`BLACKSMITH | REGENT: Searching secondary compendium...`);
-        compendium = game.packs.get(secondaryCompendium);
-        if (compendium) {
-            console.log(`BLACKSMITH | REGENT: Found secondary compendium:`, compendium);
-            let index = await compendium.getIndex();
-            let entry = index.find(e => e.name === strActorName);
-            console.log(`BLACKSMITH | REGENT: Secondary compendium search result:`, entry);
-            if (entry) {
-                strActorID = entry._id;
-                console.log(`BLACKSMITH | REGENT: Found in secondary compendium, returning link with ID: ${strActorID}`);
-                return formatLink(`Compendium.${secondaryCompendium}.Actor.${strActorID}`, strActorName);
-            }
-        } else {
-            console.log(`BLACKSMITH | REGENT: Secondary compendium not found`);
-        }
-
-        // If not found in either compendium, return unlinked name
-        console.log(`BLACKSMITH | REGENT: Monster not found anywhere, returning unlinked name`);
+        // If not found in any compendium, return unlinked name
         return `${strActorName}${count ? ` x ${count}` : ''} (Link Manually)`;
     }
-
     // If we have UUID data, use that
     if (monsterData.actorUuid) {
-        console.log(`BLACKSMITH | REGENT: Using provided UUID:`, monsterData.actorUuid);
-        // Extract count if it exists in the name
         const countMatch = monsterData.name.match(/\((\d+)\)[^(]*$/);
         const count = countMatch ? ` x ${countMatch[1]}` : '';
         const cleanName = monsterData.name.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)/g, '').trim();
         return `@UUID[${monsterData.actorUuid}]{${cleanName}}${count}`;
     }
-
     // If we have the actor name but no UUID, fall back to the legacy behavior
     return buildCompendiumLinkActor(monsterData.actorName || monsterData.name);
 }
