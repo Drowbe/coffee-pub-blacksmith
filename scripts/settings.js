@@ -86,9 +86,15 @@ function getCompendiumChoices() {
     postConsoleAndNotification("Building Compendium List...", "", false, false, false);
 
     const choicesArray = Array.from(game.packs.values()).map(compendium => {
-        return { 
-            id: compendium.metadata.id, 
-            label: compendium.metadata.label 
+        // Try to get a human-readable package label, fallback to package name
+        let packageLabel = compendium.metadata.packageLabel || compendium.metadata.package || compendium.metadata.packageName || compendium.metadata.system || compendium.metadata.id.split('.')[0] || "Unknown Source";
+        // If the label is the system id, try to make it more readable
+        if (packageLabel === "world") packageLabel = "World";
+        // Compose the label
+        const label = `${packageLabel}: ${compendium.metadata.label}`;
+        return {
+            id: compendium.metadata.id,
+            label: label
         };
     });
 
@@ -1779,7 +1785,6 @@ export const registerSettings = async () => {
 		default: '-- Choose the Secondary Monster Compendium --',
 		choices: COFFEEPUB.arrCOMPENDIUMCHOICES
 	});
-
 
 
 
