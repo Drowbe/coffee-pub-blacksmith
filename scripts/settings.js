@@ -1832,6 +1832,29 @@ export const registerSettings = async () => {
 		});
 	}
 
+	// -- Item Lookup Compendiums (up to 5) --
+	for (let i = 1; i <= 5; i++) {
+		game.settings.register(MODULE_ID, `itemCompendium${i}` , {
+			name: `Item Lookup ${i}`,
+			hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
+		});
+	}
+
+    // -- Search World Items First --
+    game.settings.register(MODULE_ID, 'searchWorldItemsFirst', {
+        name: 'Search World Items First',
+        hint: 'When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+        type: Boolean,
+        config: true,
+        scope: 'world',
+        default: false,
+    });
+
 
 
 

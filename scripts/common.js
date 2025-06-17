@@ -66,12 +66,38 @@ export async function createJournalEntry(journalData) {
     var template = Handlebars.compile(templateText);
 
     // Convert any object fields to HTML
-    const convertObjectToHtml = (obj) => {
-        if (typeof obj === 'string') return obj;
+    const convertObjectToHtml = async (obj) => {
+        if (typeof obj === 'string') {
+            // Try to parse as a list of items (comma or <li> separated)
+            let items = [];
+            if (obj.includes('<li>')) {
+                // HTML list
+                const matches = obj.match(/<li>(.*?)<\/li>/g);
+                if (matches) {
+                    items = matches.map(li => li.replace(/<li>|<\/li>/g, '').trim());
+                }
+            } else if (obj.includes(',')) {
+                // Comma-separated
+                items = obj.split(',').map(s => s.trim());
+            } else {
+                items = [obj.trim()];
+            }
+            // Link each item
+            const linkedItems = await Promise.all(items.map(async item => {
+                if (!item || item.toLowerCase() === 'none') return item;
+                return await buildCompendiumLinkItem(item);
+            }));
+            // Return as HTML list
+            return `<ul>${linkedItems.map(i => `<li>${i}</li>`).join('')}</ul>`;
+        }
         if (typeof obj === 'object' && obj !== null) {
             let html = '<ul>';
             for (const [key, value] of Object.entries(obj)) {
-                html += `<li><b>${key}:</b> ${value}</li>`;
+                let linked = value;
+                if (typeof value === 'string') {
+                    linked = await buildCompendiumLinkItem(value);
+                }
+                html += `<li><b>${key}:</b> ${linked}</li>`;
             }
             html += '</ul>';
             return html;
@@ -112,7 +138,7 @@ export async function createJournalEntry(journalData) {
     let strContextIntro = journalData.contextintro;
     let strPrepEncounter = await formatMonsterList(journalData.prepencounter);
     let strPrepEncounterDetails = journalData.prepencounterdetails;
-    let strPrepRewards = convertObjectToHtml(journalData.preprewards);
+    let strPrepRewards = await convertObjectToHtml(journalData.preprewards);
     let strPrepSetup = journalData.prepsetup;
     let strCardTitle = toSentenceCase(journalData.cardtitle);
     let strCardDescriptionPrimary = journalData.carddescriptionprimary;
@@ -424,4 +450,54 @@ export async function buildCompendiumLinkActor(monsterData) {
     }
     // If we have the actor name but no UUID, fall back to the legacy behavior
     return buildCompendiumLinkActor(monsterData.actorName || monsterData.name);
+}
+
+// ***************************************************
+// ** UTILITY Build Item Compendium Links
+// ***************************************************
+
+export async function buildCompendiumLinkItem(itemData) {
+    if (typeof itemData === 'string') {
+        const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldItemsFirst');
+        const originalName = itemData;
+        const strItemName = itemData.trim();
+        let strItemID;
+        const formatLink = (uuid, name) => `@UUID[${uuid}]{${name}}`;
+        // Only check world items if the setting is enabled
+        if (searchWorldFirst) {
+            let foundItem;
+            try {
+                foundItem = game.items.getName(strItemName);
+            } catch (error) {
+                foundItem = null;
+            }
+            if (foundItem) {
+                strItemID = foundItem.id;
+                return formatLink(`Item.${strItemID}`, strItemName);
+            }
+        }
+        // Check up to 5 compendium settings in order
+        for (let i = 1; i <= 5; i++) {
+            const compendiumSetting = game.settings.get(MODULE_ID, `itemCompendium${i}`);
+            if (!compendiumSetting || compendiumSetting === 'none') continue;
+            const compendium = game.packs.get(compendiumSetting);
+            if (compendium) {
+                let index = await compendium.getIndex();
+                let entry = index.find(e => e.name === strItemName);
+                if (entry) {
+                    strItemID = entry._id;
+                    return formatLink(`Compendium.${compendiumSetting}.Item.${strItemID}`, strItemName);
+                }
+            }
+        }
+        // If not found in any compendium, return unlinked name
+        return `${strItemName} (Link Manually)`;
+    }
+    // If we have UUID data, use that
+    if (itemData.itemUuid) {
+        const cleanName = itemData.name.trim();
+        return `@UUID[${itemData.itemUuid}]{${cleanName}}`;
+    }
+    // If we have the item name but no UUID, fall back to the legacy behavior
+    return buildCompendiumLinkItem(itemData.itemName || itemData.name);
 }
