@@ -1832,6 +1832,17 @@ export const registerSettings = async () => {
 		});
 	}
 
+
+	// -- Search World Items First --
+	game.settings.register(MODULE_ID, 'searchWorldItemsFirst', {
+		name: 'Search World Items First',
+		hint: 'When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
 	// -- Item Lookup Compendiums (up to 5) --
 	for (let i = 1; i <= 5; i++) {
 		game.settings.register(MODULE_ID, `itemCompendium${i}` , {
