@@ -439,7 +439,7 @@ export async function buildCompendiumLinkActor(monsterData) {
             }
         }
         // If not found in any compendium, return unlinked name
-        return `${strActorName}${count ? ` x ${count}` : ''} (Link Manually)`;
+        return `${strActorName}${count ? ` x ${count}` : ''}`;
     }
     // If we have UUID data, use that
     if (monsterData.actorUuid) {
@@ -483,7 +483,7 @@ export async function buildCompendiumLinkItem(itemData) {
             const compendium = game.packs.get(compendiumSetting);
             if (compendium) {
                 let index = await compendium.getIndex();
-                let entry = index.find(e => e.name === strItemName);
+                let entry = index.find(e => e.name.toLowerCase().includes(strItemName.toLowerCase()));
                 if (entry) {
                     strItemID = entry._id;
                     return formatLink(`Compendium.${compendiumSetting}.Item.${strItemID}`, strItemName);
@@ -491,7 +491,7 @@ export async function buildCompendiumLinkItem(itemData) {
             }
         }
         // If not found in any compendium, return unlinked name
-        return `${strItemName} (Link Manually)`;
+        return `${strItemName}`;
     }
     // If we have UUID data, use that
     if (itemData.itemUuid) {
