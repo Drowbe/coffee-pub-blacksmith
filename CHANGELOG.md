@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.17] - Compendiums
+
+### Added
+- **Enhanced Compendium Mapping System**
+  - Added support for up to 5 monster lookup compendiums (replacing the old primary/secondary system)
+  - Added support for up to 5 item lookup compendiums
+  - Added "Search World Items First" setting to prioritize world items over compendium items
+  - Added automatic item linking in narrative JSON imports (similar to monster linking)
+  - Added fuzzy matching for item names with exact match priority
+
+### Changed
+- **Improved Compendium Labels**
+  - Updated compendium dropdown labels to show source and name (e.g., "Dungeons & Dragons 5th Edition: Actors")
+  - Enhanced clarity when multiple compendiums share the same name
+- **Enhanced Item Linking**
+  - Items in rewards and other narrative fields are now automatically linked to compendium entries
+  - Item linking follows the same priority system as monster linking (world first, then compendiums 1-5)
+  - Improved item name matching with exact match priority over partial matches
+
+### Fixed
+- Removed legacy monster compendium primary/secondary settings
+- Cleaned up unlinked item/monster display by removing "(Link Manually)" suffix
+- Fixed item name matching to handle variations like "Bedroll (used for sleeping)" matching "Bedroll"
+
+### Removed
+- Removed old `monsterCompendiumPrimary` and `monsterCompendiumSecondary` settings
+- Removed legacy compendium lookup code
+
 ## [1.0.16] - Optimizations
 
 ### Fixed
