@@ -5,7 +5,7 @@
 console.log('XP Manager: Script file loaded');
 
 import { MODULE_ID } from './const.js';
-import { postConsoleAndNotification } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping
@@ -290,26 +290,80 @@ export class XpManager {
      * Post XP distribution results to chat
      */
     static async postXpResults(xpData, results) {
-        const content = await this.generateXpChatMessage(xpData, results);
-        
-        const isShared = game.settings.get(MODULE_ID, 'shareXpResults');
-        await ChatMessage.create({
-            content: content,
-            whisper: isShared ? [] : [game.user.id],
-            speaker: { alias: "Game Master", user: game.user.id }
-        });
+        try {
+            console.log('XP Manager: Generating chat message', { xpData, results });
+            
+            const content = await this.generateXpChatMessage(xpData, results);
+            
+            console.log('XP Manager: Chat message generated', { content: content.substring(0, 100) + '...' });
+            
+            // Play notification sound
+            playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+            
+            // Get the GM user for the speaker (messages always appear from GM)
+            const gmUser = game.users.find(u => u.isGM);
+            if (!gmUser) {
+                console.error('XP Manager: No GM user found');
+                return;
+            }
+            
+            const isShared = game.settings.get(MODULE_ID, 'shareXpResults');
+            
+            // Create chat message using the same pattern as other systems
+            await ChatMessage.create({
+                content: content,
+                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                speaker: ChatMessage.getSpeaker({ user: gmUser }),
+                whisper: isShared ? [] : [game.user.id], // Empty array means visible to all
+                flags: {
+                    'coffee-pub-blacksmith': {
+                        type: 'xpDistribution',
+                        xpData: xpData,
+                        results: results
+                    }
+                }
+            });
+            
+            console.log('XP Manager: Chat message posted successfully');
+        } catch (error) {
+            console.error('XP Manager: Error posting XP results', error);
+            
+            // Fallback: post a simple text message instead
+            const fallbackMessage = `XP Distribution Complete!\nTotal XP: ${xpData.adjustedTotalXp}\nPlayers: ${results.map(r => `${r.name}: +${r.xpGained} XP`).join(', ')}`;
+            
+            const gmUser = game.users.find(u => u.isGM);
+            if (gmUser) {
+                await ChatMessage.create({
+                    content: fallbackMessage,
+                    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                    speaker: ChatMessage.getSpeaker({ user: gmUser }),
+                    whisper: [game.user.id]
+                });
+            }
+        }
     }
 
     /**
      * Generate XP distribution chat message
      */
     static async generateXpChatMessage(xpData, results) {
-        const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
-            xpData: xpData,
-            results: results
-        });
-        
-        return template;
+        try {
+            console.log('XP Manager: Rendering template with data', { 
+                xpDataKeys: Object.keys(xpData),
+                resultsLength: results.length 
+            });
+            
+            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
+                xpData: xpData,
+                results: results
+            });
+            
+            console.log('XP Manager: Template rendered successfully');
+            return template;
+        } catch (error) {
+            console.error('XP Manager: Error rendering template', error);
+            throw error;
+        }
     }
 
     /**
@@ -389,45 +443,67 @@ class XpDistributionWindow extends FormApplication {
     }
 
     async _updateObject(event, formData) {
-        // Handle form submission
-        const playerAdjustments = {};
-        
-        // Get player adjustments
-        for (const player of this.xpData.players) {
-            const adjustment = formData[`player-adjustment-${player.actorId}`];
-            if (adjustment) {
-                playerAdjustments[player.actorId] = parseInt(adjustment) || 0;
+        try {
+            console.log('XP Manager: Processing form submission', { formData });
+            
+            // Handle form submission
+            const playerAdjustments = {};
+            
+            // Get player adjustments
+            for (const player of this.xpData.players) {
+                const adjustment = formData[`player-adjustment-${player.actorId}`];
+                if (adjustment) {
+                    playerAdjustments[player.actorId] = parseInt(adjustment) || 0;
+                }
             }
-        }
 
-        // Update monster resolution types
-        for (const monster of this.xpData.monsters) {
-            const newResolution = formData[`monster-resolution-${monster.id}`];
-            if (newResolution && newResolution !== monster.resolutionType) {
-                const resolutionMultipliers = XpManager.getResolutionMultipliers();
-                monster.resolutionType = newResolution;
-                monster.multiplier = resolutionMultipliers[newResolution] || 0;
-                monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+            // Update monster resolution types
+            for (const monster of this.xpData.monsters) {
+                const newResolution = formData[`monster-resolution-${monster.id}`];
+                if (newResolution && newResolution !== monster.resolutionType) {
+                    const resolutionMultipliers = XpManager.getResolutionMultipliers();
+                    monster.resolutionType = newResolution;
+                    monster.multiplier = resolutionMultipliers[newResolution] || 0;
+                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+                }
             }
+
+            // Recalculate totals
+            this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+            this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
+            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
+                Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
+
+            console.log('XP Manager: Applying XP to players', { 
+                totalXp: this.xpData.totalXp, 
+                adjustedTotalXp: this.xpData.adjustedTotalXp,
+                xpPerPlayer: this.xpData.xpPerPlayer,
+                playerAdjustments 
+            });
+
+            // Apply XP to players
+            const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
+            
+            console.log('XP Manager: XP applied successfully', { results });
+            
+            // Post results to chat
+            await XpManager.postXpResults(this.xpData, results);
+            
+            // Close window
+            this.close();
+            
+            // Show success notification
+            ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
+            
+        } catch (error) {
+            console.error('XP Manager: Error in _updateObject', error);
+            
+            // Show error notification instead of crashing
+            ui.notifications.error(`Error distributing XP: ${error.message}`);
+            
+            // Don't close the window so the user can try again
+            // this.close();
         }
-
-        // Recalculate totals
-        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
-        this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-        this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
-            Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
-
-        // Apply XP to players
-        const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
-        
-        // Post results to chat
-        await XpManager.postXpResults(this.xpData, results);
-        
-        // Close window
-        this.close();
-        
-        // Show success notification
-        ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
     }
 
     activateListeners(html) {
@@ -469,12 +545,75 @@ class XpDistributionWindow extends FormApplication {
         this._updateXpDisplay();
     }
 
-    _onApplyXp(event) {
-        // Trigger form submission
-        this.form.submit();
+    async _onApplyXp(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        try {
+            console.log('XP Manager: Apply XP button clicked');
+            
+            // Get form data manually
+            const formData = new FormData(this.element.find('form')[0]);
+            const playerAdjustments = {};
+            
+            // Get player adjustments
+            for (const player of this.xpData.players) {
+                const adjustment = formData.get(`player-adjustment-${player.actorId}`);
+                if (adjustment) {
+                    playerAdjustments[player.actorId] = parseInt(adjustment) || 0;
+                }
+            }
+
+            // Update monster resolution types
+            for (const monster of this.xpData.monsters) {
+                const newResolution = formData.get(`monster-resolution-${monster.id}`);
+                if (newResolution && newResolution !== monster.resolutionType) {
+                    const resolutionMultipliers = XpManager.getResolutionMultipliers();
+                    monster.resolutionType = newResolution;
+                    monster.multiplier = resolutionMultipliers[newResolution] || 0;
+                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+                }
+            }
+
+            // Recalculate totals
+            this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+            this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
+            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
+                Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
+
+            console.log('XP Manager: Applying XP to players', { 
+                totalXp: this.xpData.totalXp, 
+                adjustedTotalXp: this.xpData.adjustedTotalXp,
+                xpPerPlayer: this.xpData.xpPerPlayer,
+                playerAdjustments 
+            });
+
+            // Apply XP to players
+            const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
+            
+            console.log('XP Manager: XP applied successfully', { results });
+            
+            // Post results to chat
+            await XpManager.postXpResults(this.xpData, results);
+            
+            // Close window
+            this.close();
+            
+            // Show success notification
+            ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
+            
+        } catch (error) {
+            console.error('XP Manager: Error applying XP', error);
+            
+            // Show error notification instead of crashing
+            ui.notifications.error(`Error distributing XP: ${error.message}`);
+        }
     }
 
     _onCancelXp(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
         // Close the window without applying XP
         this.close();
     }
