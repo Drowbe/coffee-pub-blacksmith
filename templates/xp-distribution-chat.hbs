@@ -1,11 +1,11 @@
 <span style="visibility: none">coffeepub-hide-header</span>
 {{!-- XP Distribution Chat Message Template --}}
-<div class="blacksmith-card theme-green">
-    <div class="section-header">
-        <i class="fas fa-star"></i> Combat XP Distribution
-    </div>
-    <div class="section-content">
-        {{!-- XP Summary --}}
+<div class="dnd5e chat-card cpb-chat-card">
+    <header class="card-header flexrow cpb-card-header">
+        <h3 class="item-name"><i class="fas fa-star"></i> XP Distribution</h3>
+    </header>
+    <div class="card-content cpb-card-content">
+        <div class="cpb-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
         <div class="xp-totals">
             <p><strong>Total Encounter XP:</strong> {{xpData.totalXp}}</p>
             <p><strong>Party Size:</strong> {{xpData.partySize}} (×{{xpData.partyMultiplier}} multiplier)</p>
@@ -15,50 +15,44 @@
 
         {{!-- Monster Breakdown --}}
         {{#if xpData.monsters.length}}
-        <div class="monster-breakdown-section">
-            <h4><i class="fas fa-dragon"></i> Monster Resolutions</h4>
-            <div class="monster-list">
-                {{#each xpData.monsters}}
-                <div class="monster-item">
-                    <span class="monster-name">{{name}}</span>
-                    <span class="monster-cr">(CR {{cr}})</span>
-                    <span class="resolution-type">{{resolutionType}}</span>
-                    <span class="monster-xp">{{finalXp}} XP</span>
-                </div>
-                {{/each}}
+        <div class="cpb-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
+        <div class="monster-list">
+            {{#each xpData.monsters}}
+            <div class="monster-item flexrow">
+                <span class="monster-name">{{name}}</span>
+                <span class="monster-cr">(CR {{cr}})</span>
+                <span class="resolution-type">{{resolutionType}}</span>
+                <span class="monster-xp">{{finalXp}} XP</span>
             </div>
+            {{/each}}
         </div>
         {{/if}}
 
         {{!-- Player Results --}}
         {{#if results.length}}
-        <div class="player-results-section">
-            <h4><i class="fas fa-users"></i> XP Awarded</h4>
-            <div class="player-list">
-                {{#each results}}
-                <div class="player-item">
-                    <span class="player-name">{{name}}</span>
-                    <span class="xp-gained">+{{xpGained}} XP</span>
-                    <span class="total-xp">(Total: {{totalXp}})</span>
-                    {{#if leveledUp}}
-                    <span class="level-up">🎉 LEVEL UP! 🎉</span>
-                    {{/if}}
-                </div>
-                {{/each}}
+        <div class="cpb-card-section-header"><i class="fas fa-users"></i> Player Results</div>
+        <div class="player-list">
+            {{#each results}}
+            <div class="player-item flexrow">
+                <span class="cpb-actor-name">{{name}}</span>
+                <span class="xp-gained">+{{xpGained}} XP</span>
+                <span class="total-xp">(Total: {{totalXp}})</span>
+                {{#if leveledUp}}
+                <span class="level-up">🎉 LEVEL UP! 🎉</span>
+                {{/if}}
             </div>
+            {{/each}}
         </div>
         {{/if}}
 
         {{!-- Resolution Types Legend --}}
-        <div class="resolution-legend">
-            <h4><i class="fas fa-info-circle"></i> Resolution Types</h4>
-            <div class="legend-items">
-                <span class="legend-item"><strong>DEFEATED:</strong> Full XP (combat victory)</span>
-                <span class="legend-item"><strong>NEGOTIATED:</strong> Full XP (diplomatic success)</span>
-                <span class="legend-item"><strong>FLED:</strong> Half XP (monster retreated)</span>
-                <span class="legend-item"><strong>BYPASSED:</strong> No XP (avoided entirely)</span>
-                <span class="legend-item"><strong>CAPTURED:</strong> Full XP (tactical success)</span>
-            </div>
+        <div class="cpb-card-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
+        <div class="legend-items">
+            <span class="legend-item"><strong>DEFEATED:</strong> Full XP (combat victory)</span>
+            <span class="legend-item"><strong>NEGOTIATED:</strong> Full XP (diplomatic success)</span>
+            <span class="legend-item"><strong>FLED:</strong> Half XP (monster retreated)</span>
+            <span class="legend-item"><strong>BYPASSED:</strong> No XP (avoided entirely)</span>
+            <span class="legend-item"><strong>CAPTURED:</strong> Full XP (tactical success)</span>
         </div>
     </div>
 </div> 

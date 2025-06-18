@@ -1,76 +1,65 @@
 {{!-- XP Distribution Window Template --}}
-<form class="xp-distribution-form">
-    <div class="xp-distribution-header">
-        <h2><i class="fas fa-star"></i> XP Distribution</h2>
-        <p class="xp-summary">
-            Total XP: <span class="total-xp">{{xpData.totalXp}}</span> | 
-            Party Size: {{xpData.partySize}} | 
-            Multiplier: {{xpData.partyMultiplier}}x | 
-            Adjusted Total: <span class="adjusted-total-xp">{{xpData.adjustedTotalXp}}</span> | 
-            Per Player: <span class="xp-per-player">{{xpData.xpPerPlayer}}</span>
-        </p>
+<div class="xp-distribution foundry-style-window">
+  <div class="xp-header">
+    <i class="fas fa-star"></i>
+    <span>XP Distribution</span>
+  </div>
+  <div class="xp-body">
+    <div class="xp-summary-row">
+      <div class="xp-summary-item"><span class="label">Total XP</span><span>{{xpData.totalXp}}</span></div>
+      <div class="xp-summary-item"><span class="label">Party Size</span><span>{{xpData.partySize}}</span></div>
+      <div class="xp-summary-item"><span class="label">Multiplier</span><span>{{xpData.partyMultiplier}}x</span></div>
+      <div class="xp-summary-item"><span class="label">Adjusted</span><span>{{xpData.adjustedTotalXp}}</span></div>
+      <div class="xp-summary-item highlight"><span class="label">Per Player</span><span>{{xpData.xpPerPlayer}}</span></div>
     </div>
 
-    {{!-- Monster Resolution Matrix --}}
-    <div class="monster-resolution-section">
-        <h3><i class="fas fa-dragon"></i> Monster Resolutions</h3>
-        <div class="monster-resolution-matrix">
-            {{#each xpData.monsters}}
-            <div class="monster-row" data-monster-id="{{id}}">
-                <div class="monster-info">
-                    <span class="monster-name">{{name}}</span>
-                    <span class="monster-cr">CR {{cr}}</span>
-                </div>
-                <div class="resolution-status">
-                    <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
-                        {{#each ../resolutionTypes}}
-                        <option value="{{this}}">{{this}}</option>
-                        {{/each}}
-                    </select>
-                </div>
-                <div class="xp-breakdown">
-                    <span class="base-xp">Base: {{baseXp}}</span>
-                    <span class="multiplier">×{{multiplier}}</span>
-                    <span class="final-xp">= {{finalXp}}</span>
-                </div>
-            </div>
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
+      <div class="xp-monster-list">
+        {{#each xpData.monsters}}
+        <div class="xp-monster-row">
+          <span class="monster-name">{{name}}</span>
+          <span class="monster-cr">CR {{cr}}</span>
+          <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
+            {{#each ../resolutionTypes}}
+            <option value="{{this}}" {{#if (eq ../resolutionType this)}}selected{{/if}}>{{prettifyResolution this}}</option>
             {{/each}}
+          </select>
+          <span class="monster-xp-calc">{{baseXp}} ×{{multiplier}} = <strong>{{finalXp}}</strong></span>
         </div>
+        {{/each}}
+      </div>
     </div>
 
-    {{!-- Player Adjustments --}}
-    <div class="player-adjustments-section">
-        <h3><i class="fas fa-users"></i> Player Adjustments</h3>
-        <div class="player-adjustments-matrix">
-            {{#each xpData.players}}
-            <div class="player-row" data-player-id="{{actorId}}">
-                <div class="player-info">
-                    <span class="player-name">{{actor.name}}</span>
-                </div>
-                <div class="player-xp">
-                    <span class="base-player-xp">{{../xpData.xpPerPlayer}}</span>
-                    <span class="adjustment-symbol">+</span>
-                    <input type="number" 
-                           class="player-adjustment" 
-                           name="player-adjustment-{{actorId}}" 
-                           value="0" 
-                           min="-1000" 
-                           max="10000"
-                           placeholder="0">
-                    <span class="total-player-xp">= <span class="calculated-total">{{../xpData.xpPerPlayer}}</span></span>
-                </div>
-            </div>
-            {{/each}}
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-users"></i> Player Adjustments</div>
+      <div class="xp-player-list">
+        {{#each xpData.players}}
+        <div class="xp-player-row">
+          <span class="player-name">{{actor.name}}</span>
+          <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
+          <span class="plus">+</span>
+          <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="-1000" max="10000" placeholder="0">
+          <span class="equals">=</span>
+          <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
         </div>
+        {{/each}}
+      </div>
     </div>
 
-    {{!-- Action Buttons --}}
-    <div class="xp-distribution-actions">
-        <button type="button" class="apply-xp">
-            <i class="fas fa-check"></i> Apply XP Distribution
-        </button>
-        <button type="button" class="cancel-xp">
-            <i class="fas fa-times"></i> Cancel
-        </button>
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
+      <div class="xp-legend-list">
+        <div class="xp-legend-row"><i class="fas fa-sword"></i> <span class="legend-label">Defeated:</span> <span class="legend-desc">Full XP (combat victory)</span></div>
+        <div class="xp-legend-row"><i class="fas fa-handshake"></i> <span class="legend-label">Negotiated:</span> <span class="legend-desc">Full XP (diplomatic success)</span></div>
+        <div class="xp-legend-row"><i class="fas fa-running"></i> <span class="legend-label">Fled:</span> <span class="legend-desc">Half XP (monster retreated)</span></div>
+        <div class="xp-legend-row"><i class="fas fa-eye-slash"></i> <span class="legend-label">Bypassed:</span> <span class="legend-desc">No XP (avoided entirely)</span></div>
+        <div class="xp-legend-row"><i class="fas fa-cage"></i> <span class="legend-label">Captured:</span> <span class="legend-desc">Full XP (tactical success)</span></div>
+      </div>
     </div>
-</form> 
+  </div>
+  <div class="xp-footer">
+    <button type="button" class="xp-btn cancel-xp"><i class="fas fa-times"></i> Cancel</button>
+    <button type="button" class="xp-btn apply-xp"><i class="fas fa-check"></i> Apply XP</button>
+  </div>
+</div> 

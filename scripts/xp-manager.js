@@ -42,6 +42,14 @@ export class XpManager {
         
         postConsoleAndNotification('XP Manager: Hook registered for deleteCombat', '', false, true, false);
         postConsoleAndNotification('XP Manager initialized', '', false, true, false);
+
+        // Register Handlebars helper for prettifying resolution types
+        if (typeof Handlebars !== 'undefined') {
+            Handlebars.registerHelper('prettifyResolution', function(resolution) {
+                if (!resolution || typeof resolution !== 'string') return resolution;
+                return resolution.charAt(0).toUpperCase() + resolution.slice(1).toLowerCase();
+            });
+        }
     }
 
     /**
@@ -435,9 +443,10 @@ class XpDistributionWindow extends FormApplication {
 
     getData() {
         const resolutionMultipliers = XpManager.getResolutionMultipliers();
+        const resolutionTypes = ["DEFEATED", "NEGOTIATED", "FLED", "BYPASSED", "CAPTURED"];
         return {
             xpData: this.xpData,
-            resolutionTypes: Object.keys(resolutionMultipliers),
+            resolutionTypes,
             multipliers: resolutionMultipliers
         };
     }
