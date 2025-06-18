@@ -483,7 +483,12 @@ export async function buildCompendiumLinkItem(itemData) {
             const compendium = game.packs.get(compendiumSetting);
             if (compendium) {
                 let index = await compendium.getIndex();
-                let entry = index.find(e => e.name.toLowerCase().includes(strItemName.toLowerCase()));
+                // First try for exact match
+                let entry = index.find(e => e.name.toLowerCase() === strItemName.toLowerCase());
+                // If no exact match, try startsWith
+                if (!entry) {
+                    entry = index.find(e => e.name.toLowerCase().startsWith(strItemName.toLowerCase()));
+                }
                 if (entry) {
                     strItemID = entry._id;
                     return formatLink(`Compendium.${compendiumSetting}.Item.${strItemID}`, strItemName);
