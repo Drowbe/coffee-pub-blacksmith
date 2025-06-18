@@ -2,13 +2,28 @@
    ===== XP DISTRIBUTION STYLES =====================================
    ================================================================== */
 
+/* Main Window */
+div#xp-distribution-window {
+  min-height: 500px;
+  min-width: 500px;
+}
+
+/* Window Content */
+div#xp-distribution-window .window-content {
+  opacity: var(--container-opacity);
+  padding: 10px;
+  background: #222222;
+  color: #ffffff;
+  padding: 0px;
+}
+
 /* XP Distribution - Compact, Clean, Foundry Style */
 .xp-distribution.foundry-style-window {
   background: var(--color-bg-primary, #232323);
   border: 1px solid var(--color-border, #444);
   border-radius: 8px;
-  max-width: 520px;
-  max-height: 600px;
+  max-width: 100%;
+  max-height: 100%;
   min-width: 340px;
   display: flex;
   flex-direction: column;

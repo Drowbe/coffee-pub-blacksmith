@@ -528,7 +528,7 @@ class XpDistributionWindow extends FormApplication {
         
         // Add event listeners for dynamic updates
         html.find('.monster-resolution-select').change(this._onResolutionChange.bind(this));
-        html.find('.player-adjustment').change(this._onPlayerAdjustmentChange.bind(this));
+        html.find('.player-adjustment').on('input', this._onPlayerAdjustmentChange.bind(this));
         html.find('.apply-xp').click(this._onApplyXp.bind(this));
         html.find('.cancel-xp').click(this._onCancelXp.bind(this));
     }
@@ -537,16 +537,13 @@ class XpDistributionWindow extends FormApplication {
         const monsterId = event.target.dataset.monsterId;
         const newResolution = event.target.value;
         const monster = this.xpData.monsters.find(m => m.id === monsterId);
-        
         if (monster) {
             const resolutionMultipliers = XpManager.getResolutionMultipliers();
             monster.resolutionType = newResolution;
             monster.multiplier = resolutionMultipliers[newResolution] || 0;
             monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-            
-            // Update display
-            this._updateXpDisplay();
         }
+        this._updateXpDisplay();
     }
 
     _onPlayerAdjustmentChange(event) {
@@ -628,15 +625,36 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _updateXpDisplay() {
-        // Recalculate and update XP display
+        // Recalculate totals
         this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-        this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
-            Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
-        
-        // Update the display elements
-        this.element.find('.total-xp').text(this.xpData.totalXp);
-        this.element.find('.adjusted-total-xp').text(this.xpData.adjustedTotalXp);
-        this.element.find('.xp-per-player').text(this.xpData.xpPerPlayer);
+        this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
+
+        // Update summary
+        const html = this.element;
+        html.find('.xp-summary-item').eq(0).find('span').last().text(this.xpData.totalXp);
+        html.find('.xp-summary-item').eq(1).find('span').last().text(this.xpData.partySize);
+        html.find('.xp-summary-item').eq(2).find('span').last().text(this.xpData.partyMultiplier + 'x');
+        html.find('.xp-summary-item').eq(3).find('span').last().text(this.xpData.adjustedTotalXp);
+        html.find('.xp-summary-item').eq(4).find('span').last().text(this.xpData.xpPerPlayer);
+
+        // Update monster rows
+        this.xpData.monsters.forEach((monster, i) => {
+            const row = html.find('.xp-monster-row').eq(i);
+            row.find('.monster-xp-calc').html(`${monster.baseXp} ×${monster.multiplier} = <strong>${monster.finalXp}</strong>`);
+        });
+
+        // Update player rows
+        this.xpData.players.forEach((player, i) => {
+            const row = html.find('.xp-player-row').eq(i);
+            // Get adjustment value from input
+            const adjInput = row.find('.player-adjustment');
+            let adjustment = parseInt(adjInput.val(), 10);
+            if (isNaN(adjustment)) adjustment = 0;
+            // Calculate total for this player
+            const total = this.xpData.xpPerPlayer + adjustment;
+            row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
+            row.find('.calculated-total').text(total);
+        });
     }
 } 
