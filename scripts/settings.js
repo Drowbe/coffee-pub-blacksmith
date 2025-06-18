@@ -2658,7 +2658,150 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
+// *** XP DISTRIBUTION SETTINGS ***
 
+	// ---------- SUBHEADING ----------
+	game.settings.register(MODULE_ID, "headingH2XpDistribution", {
+		name: 'XP DISTRIBUTION',
+		hint: 'These settings control the automatic XP distribution system that triggers when combat ends.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+	// -- Enable XP Distribution --
+	game.settings.register(MODULE_ID, 'enableXpDistribution', {
+		name: 'Enable XP Distribution',
+		hint: 'When enabled, automatically show XP distribution window when combat ends',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Auto-distribute XP --
+	game.settings.register(MODULE_ID, 'autoDistributeXp', {
+		name: 'Auto-distribute XP',
+		hint: 'When enabled, automatically distribute XP without showing the distribution window',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// -- XP Calculation Method --
+	game.settings.register(MODULE_ID, 'xpCalculationMethod', {
+		name: 'XP Calculation Method',
+		hint: 'Choose the method for calculating XP from monster CR',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'dnd5e',
+		choices: {
+			'dnd5e': 'D&D 5e Standard',
+			'custom': 'Custom (Coming Soon)'
+		}
+	});
+
+	// -- Resolution Type XP Multipliers --
+	game.settings.register(MODULE_ID, 'xpMultiplierDefeated', {
+		name: 'Defeated XP Multiplier',
+		hint: 'XP multiplier for defeated monsters (1.0 = full XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'xpMultiplierNegotiated', {
+		name: 'Negotiated XP Multiplier',
+		hint: 'XP multiplier for negotiated monsters (1.0 = full XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'xpMultiplierFled', {
+		name: 'Fled XP Multiplier',
+		hint: 'XP multiplier for monsters that fled (0.5 = half XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.5,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'xpMultiplierBypassed', {
+		name: 'Bypassed XP Multiplier',
+		hint: 'XP multiplier for bypassed monsters (0.0 = no XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.0,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'xpMultiplierCaptured', {
+		name: 'Captured XP Multiplier',
+		hint: 'XP multiplier for captured monsters (1.0 = full XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	// -- Party Size Handling --
+	game.settings.register(MODULE_ID, 'xpPartySizeHandling', {
+		name: 'Party Size Handling',
+		hint: 'How to handle XP distribution with varying party sizes',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'dnd5e',
+		choices: {
+			'dnd5e': 'D&D 5e Standard Multipliers',
+			'equal': 'Equal Division (No Multipliers)',
+			'custom': 'Custom Multipliers (Coming Soon)'
+		}
+	});
+
+	// -- Share XP Results --
+	game.settings.register(MODULE_ID, 'shareXpResults', {
+		name: 'Share XP Results',
+		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// *** DEBUG SETTINGS ***
 
 
 
@@ -2739,6 +2882,7 @@ export const registerSettings = async () => {
 	}); // END OF "Hooks.once('ready', async()"
 	// --------------------------------------------------------
 
+	
 
 
 

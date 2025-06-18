@@ -1,0 +1,405 @@
+/* ================================================================== 
+   ===== XP DISTRIBUTION STYLES =====================================
+   ================================================================== */
+
+.xp-distribution-form {
+    padding: 1rem;
+    background: var(--color-bg-primary);
+    border-radius: 8px;
+    font-family: var(--font-primary);
+}
+
+/* Header Section */
+.xp-distribution-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.xp-distribution-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.xp-distribution-header h2 i {
+    margin-right: 0.5rem;
+    color: var(--color-accent);
+}
+
+.xp-summary {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.xp-summary span {
+    font-weight: bold;
+    color: var(--color-accent);
+}
+
+/* Monster Resolution Section */
+.monster-resolution-section {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.monster-resolution-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.monster-resolution-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.monster-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-light);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.monster-row:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.monster-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.monster-name {
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+
+.monster-cr {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.resolution-status select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+.resolution-status select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.xp-breakdown {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.base-xp {
+    color: var(--color-text-secondary);
+}
+
+.multiplier {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.final-xp {
+    color: var(--color-accent);
+    font-weight: bold;
+}
+
+/* Player Adjustments Section */
+.player-adjustments-section {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.player-adjustments-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.player-adjustments-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.player-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-light);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.player-row:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+}
+
+.player-name {
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+
+.player-xp {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.base-player-xp {
+    color: var(--color-text-secondary);
+}
+
+.adjustment-symbol {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.player-adjustment {
+    width: 80px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.player-adjustment:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.total-player-xp {
+    color: var(--color-text-secondary);
+}
+
+.calculated-total {
+    color: var(--color-accent);
+    font-weight: bold;
+}
+
+/* Action Buttons */
+.xp-distribution-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.apply-xp, .cancel-xp {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.apply-xp {
+    background: var(--color-success);
+    color: white;
+}
+
+.apply-xp:hover {
+    background: var(--color-success-dark);
+    transform: translateY(-1px);
+}
+
+.cancel-xp {
+    background: var(--color-danger);
+    color: white;
+}
+
+.cancel-xp:hover {
+    background: var(--color-danger-dark);
+    transform: translateY(-1px);
+}
+
+/* Chat Message Styles */
+.xp-distribution-chat {
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.xp-distribution-chat h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.xp-summary-section, .monster-breakdown-section, .player-results-section, .resolution-legend {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--color-bg-secondary);
+    border-radius: 6px;
+}
+
+.xp-summary-section h4, .monster-breakdown-section h4, .player-results-section h4, .resolution-legend h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--color-primary);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.xp-totals p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+.monster-list, .player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.monster-item, .player-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--color-bg-primary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.monster-name, .player-name {
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+
+.monster-cr {
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+}
+
+.resolution-type {
+    background: var(--color-primary);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.monster-xp, .xp-gained {
+    color: var(--color-accent);
+    font-weight: bold;
+}
+
+.total-xp {
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+}
+
+.level-up {
+    color: var(--color-success);
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.legend-item {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .monster-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .player-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .xp-distribution-actions {
+        flex-direction: column;
+    }
+    
+    .monster-item, .player-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+} 

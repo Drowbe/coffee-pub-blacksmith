@@ -1,0 +1,76 @@
+{{!-- XP Distribution Window Template --}}
+<form class="xp-distribution-form">
+    <div class="xp-distribution-header">
+        <h2><i class="fas fa-star"></i> XP Distribution</h2>
+        <p class="xp-summary">
+            Total XP: <span class="total-xp">{{xpData.totalXp}}</span> | 
+            Party Size: {{xpData.partySize}} | 
+            Multiplier: {{xpData.partyMultiplier}}x | 
+            Adjusted Total: <span class="adjusted-total-xp">{{xpData.adjustedTotalXp}}</span> | 
+            Per Player: <span class="xp-per-player">{{xpData.xpPerPlayer}}</span>
+        </p>
+    </div>
+
+    {{!-- Monster Resolution Matrix --}}
+    <div class="monster-resolution-section">
+        <h3><i class="fas fa-dragon"></i> Monster Resolutions</h3>
+        <div class="monster-resolution-matrix">
+            {{#each xpData.monsters}}
+            <div class="monster-row" data-monster-id="{{id}}">
+                <div class="monster-info">
+                    <span class="monster-name">{{name}}</span>
+                    <span class="monster-cr">CR {{cr}}</span>
+                </div>
+                <div class="resolution-status">
+                    <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
+                        {{#each ../resolutionTypes}}
+                        <option value="{{this}}">{{this}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                <div class="xp-breakdown">
+                    <span class="base-xp">Base: {{baseXp}}</span>
+                    <span class="multiplier">×{{multiplier}}</span>
+                    <span class="final-xp">= {{finalXp}}</span>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+
+    {{!-- Player Adjustments --}}
+    <div class="player-adjustments-section">
+        <h3><i class="fas fa-users"></i> Player Adjustments</h3>
+        <div class="player-adjustments-matrix">
+            {{#each xpData.players}}
+            <div class="player-row" data-player-id="{{actorId}}">
+                <div class="player-info">
+                    <span class="player-name">{{actor.name}}</span>
+                </div>
+                <div class="player-xp">
+                    <span class="base-player-xp">{{../xpData.xpPerPlayer}}</span>
+                    <span class="adjustment-symbol">+</span>
+                    <input type="number" 
+                           class="player-adjustment" 
+                           name="player-adjustment-{{actorId}}" 
+                           value="0" 
+                           min="-1000" 
+                           max="10000"
+                           placeholder="0">
+                    <span class="total-player-xp">= <span class="calculated-total">{{../xpData.xpPerPlayer}}</span></span>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+
+    {{!-- Action Buttons --}}
+    <div class="xp-distribution-actions">
+        <button type="button" class="apply-xp">
+            <i class="fas fa-check"></i> Apply XP Distribution
+        </button>
+        <button type="button" class="cancel-xp">
+            <i class="fas fa-times"></i> Cancel
+        </button>
+    </div>
+</form> 

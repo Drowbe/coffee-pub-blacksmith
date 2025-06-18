@@ -271,7 +271,40 @@
 		"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 
 		"globalConsoleDebugStyle-Label": "Debug Style",
-		"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants."
+		"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
+
+		"headingH2XpDistribution-Label": "XP DISTRIBUTION",
+		"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
+
+		"enableXpDistribution-Label": "Enable XP Distribution",
+		"enableXpDistribution-Hint": "When enabled, automatically show XP distribution window when combat ends",
+
+		"autoDistributeXp-Label": "Auto-distribute XP",
+		"autoDistributeXp-Hint": "When enabled, automatically distribute XP without showing the distribution window",
+
+		"xpCalculationMethod-Label": "XP Calculation Method",
+		"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
+
+		"xpMultiplierDefeated-Label": "Defeated XP Multiplier",
+		"xpMultiplierDefeated-Hint": "XP multiplier for defeated monsters (1.0 = full XP)",
+
+		"xpMultiplierNegotiated-Label": "Negotiated XP Multiplier",
+		"xpMultiplierNegotiated-Hint": "XP multiplier for negotiated monsters (1.0 = full XP)",
+
+		"xpMultiplierFled-Label": "Fled XP Multiplier",
+		"xpMultiplierFled-Hint": "XP multiplier for monsters that fled (0.5 = half XP)",
+
+		"xpMultiplierBypassed-Label": "Bypassed XP Multiplier",
+		"xpMultiplierBypassed-Hint": "XP multiplier for bypassed monsters (0.0 = no XP)",
+
+		"xpMultiplierCaptured-Label": "Captured XP Multiplier",
+		"xpMultiplierCaptured-Hint": "XP multiplier for captured monsters (1.0 = full XP)",
+
+		"xpPartySizeHandling-Label": "Party Size Handling",
+		"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
+
+		"shareXpResults-Label": "Share XP Results",
+		"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them."
 
 		
 	}

@@ -41,6 +41,7 @@ import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { CSSEditor } from './css-editor.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
+import { XpManager } from './xp-manager.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -77,6 +78,9 @@ Hooks.once('ready', () => {
 
     // Initialize player stats tracking
     CPBPlayerStats.initialize();
+
+    // Initialize XP manager
+    XpManager.initialize();
 
     // Apply any existing custom CSS
     const editor = new CSSEditor();

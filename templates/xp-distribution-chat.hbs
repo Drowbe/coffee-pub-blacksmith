@@ -1,0 +1,64 @@
+{{!-- XP Distribution Chat Message Template --}}
+<div class="xp-distribution-chat">
+    <div class="xp-distribution-header">
+        <h3><i class="fas fa-star"></i> Combat XP Distribution</h3>
+    </div>
+
+    {{!-- XP Summary --}}
+    <div class="xp-summary-section">
+        <div class="xp-totals">
+            <p><strong>Total Encounter XP:</strong> {{xpData.totalXp}}</p>
+            <p><strong>Party Size:</strong> {{xpData.partySize}} (×{{xpData.partyMultiplier}} multiplier)</p>
+            <p><strong>Adjusted Total XP:</strong> {{xpData.adjustedTotalXp}}</p>
+            <p><strong>Base XP per Player:</strong> {{xpData.xpPerPlayer}}</p>
+        </div>
+    </div>
+
+    {{!-- Monster Breakdown --}}
+    {{#if xpData.monsters.length}}
+    <div class="monster-breakdown-section">
+        <h4><i class="fas fa-dragon"></i> Monster Resolutions</h4>
+        <div class="monster-list">
+            {{#each xpData.monsters}}
+            <div class="monster-item">
+                <span class="monster-name">{{name}}</span>
+                <span class="monster-cr">(CR {{cr}})</span>
+                <span class="resolution-type">{{resolutionType}}</span>
+                <span class="monster-xp">{{finalXp}} XP</span>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{/if}}
+
+    {{!-- Player Results --}}
+    {{#if results.length}}
+    <div class="player-results-section">
+        <h4><i class="fas fa-users"></i> XP Awarded</h4>
+        <div class="player-list">
+            {{#each results}}
+            <div class="player-item">
+                <span class="player-name">{{name}}</span>
+                <span class="xp-gained">+{{xpGained}} XP</span>
+                <span class="total-xp">(Total: {{totalXp}})</span>
+                {{#if leveledUp}}
+                <span class="level-up">🎉 LEVEL UP! 🎉</span>
+                {{/if}}
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{/if}}
+
+    {{!-- Resolution Types Legend --}}
+    <div class="resolution-legend">
+        <h4><i class="fas fa-info-circle"></i> Resolution Types</h4>
+        <div class="legend-items">
+            <span class="legend-item"><strong>DEFEATED:</strong> Full XP (combat victory)</span>
+            <span class="legend-item"><strong>NEGOTIATED:</strong> Full XP (diplomatic success)</span>
+            <span class="legend-item"><strong>FLED:</strong> Half XP (monster retreated)</span>
+            <span class="legend-item"><strong>BYPASSED:</strong> No XP (avoided entirely)</span>
+            <span class="legend-item"><strong>CAPTURED:</strong> Full XP (tactical success)</span>
+        </div>
+    </div>
+</div> 
