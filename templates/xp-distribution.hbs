@@ -46,11 +46,22 @@
             <span class="monster-col-name monster-name">{{name}}</span>
             <span class="monster-col-cr monster-cr">CR {{cr}}</span>
             <span class="monster-col-resolution">
-              <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
+              <div class="monster-resolution-icons" role="group" aria-label="Monster Resolution">
                 {{#each ../resolutionTypes}}
-                <option value="{{this}}" {{#if (eq ../resolutionType this)}}selected{{/if}}>{{prettifyResolution this}}</option>
+                  <span class="monster-resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
+                        data-monster-id="{{../id}}"
+                        data-resolution="{{this}}"
+                        title="{{prettifyResolution this}}"
+                        aria-label="{{prettifyResolution this}}"
+                        tabindex="0">
+                    {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
+                    {{#if (eq this "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
+                    {{#if (eq this "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
+                    {{#if (eq this "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+                    {{#if (eq this "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                  </span>
                 {{/each}}
-              </select>
+              </div>
             </span>
             <span class="monster-col-xp monster-xp-calc">{{baseXp}} ×{{multiplier}} = <strong>{{finalXp}}</strong></span>
           </div>
@@ -86,7 +97,7 @@
           {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
           {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
           <span class="legend-label">{{label}}:</span>
-          <span class="legend-desc">{{desc}} <span style="color:var(--color-accent,#ffd700);font-weight:700;">({{multiplier}}x)</span></span>
+          <span class="legend-desc">{{desc}} <span class="legend-multiplier">({{multiplier}}x)</span></span>
         </div>
         {{/each}}
       </div>

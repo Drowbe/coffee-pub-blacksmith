@@ -542,15 +542,8 @@ class XpDistributionWindow extends FormApplication {
 
     activateListeners(html) {
         super.activateListeners(html);
-        // Set initial selected values for monster resolution dropdowns
-        this.xpData.monsters.forEach(monster => {
-            const select = html.find(`select[name="monster-resolution-${monster.id}"]`);
-            if (select.length) {
-                select.val(monster.resolutionType);
-            }
-        });
+        // Set initial selected values for monster resolution dropdowns (remove old dropdown logic)
         // Add event listeners for dynamic updates
-        html.find('.monster-resolution-select').change(this._onResolutionChange.bind(this));
         html.find('.player-adjustment').on('input', this._onPlayerAdjustmentChange.bind(this));
         html.find('.apply-xp').click(this._onApplyXp.bind(this));
         html.find('.cancel-xp').click(this._onCancelXp.bind(this));
@@ -558,19 +551,13 @@ class XpDistributionWindow extends FormApplication {
         if (this.xpData.narrativeMode) {
             html.find('.player-narrative-xp').on('input', this._onNarrativeXpChange.bind(this));
         }
-    }
-
-    _onResolutionChange(event) {
-        const monsterId = event.target.dataset.monsterId;
-        const newResolution = event.target.value;
-        const monster = this.xpData.monsters.find(m => m.id === monsterId);
-        if (monster) {
-            const resolutionMultipliers = XpManager.getResolutionMultipliers();
-            monster.resolutionType = newResolution;
-            monster.multiplier = resolutionMultipliers[newResolution] || 0;
-            monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-        }
-        this._updateXpDisplay();
+        // Add event listeners for monster resolution icons
+        html.find('.monster-resolution-icon').on('click', this._onMonsterResolutionIconClick.bind(this));
+        html.find('.monster-resolution-icon').on('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                this._onMonsterResolutionIconClick(event);
+            }
+        });
     }
 
     _onPlayerAdjustmentChange(event) {
@@ -687,5 +674,20 @@ class XpDistributionWindow extends FormApplication {
         
         // Update the total XP display
         this.element.find('#xp-total-display').text(totalXp);
+    }
+
+    _onMonsterResolutionIconClick(event) {
+        event.preventDefault();
+        const icon = $(event.currentTarget);
+        const monsterId = icon.data('monster-id');
+        const resolution = icon.data('resolution');
+        const monster = this.xpData.monsters.find(m => m.id === monsterId);
+        if (monster && resolution) {
+            const resolutionMultipliers = XpManager.getResolutionMultipliers();
+            monster.resolutionType = resolution;
+            monster.multiplier = resolutionMultipliers[resolution] || 0;
+            monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+            this.render(false); // Re-render to update UI
+        }
     }
 } 
