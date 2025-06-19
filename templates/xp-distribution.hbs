@@ -52,11 +52,17 @@
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
       <div class="xp-legend-list">
-        <div class="xp-legend-row"><i class="fas fa-skull"></i> <span class="legend-label">Defeated:</span> <span class="legend-desc">Full XP (combat victory)</span></div>
-        <div class="xp-legend-row"><i class="fas fa-people-arrows"></i> <span class="legend-label">Negotiated:</span> <span class="legend-desc">Full XP (diplomatic success)</span></div>
-        <div class="xp-legend-row"><i class="fas fa-running"></i> <span class="legend-label">Fled:</span> <span class="legend-desc">Half XP (monster retreated)</span></div>
-        <div class="xp-legend-row"><i class="fas fa-person-walking-arrow-loop-left"></i> <span class="legend-label">Bypassed:</span> <span class="legend-desc">No XP (avoided entirely)</span></div>
-        <div class="xp-legend-row"><i class="fas fa-person-praying"></i> <span class="legend-label">Captured:</span> <span class="legend-desc">Full XP (tactical success)</span></div>
+        {{#each legendTypes}}
+        <div class="xp-legend-row">
+          {{#if (eq key "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
+          {{#if (eq key "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
+          {{#if (eq key "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
+          {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+          {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+          <span class="legend-label">{{label}}:</span>
+          <span class="legend-desc">{{desc}} <span style="color:var(--color-accent,#ffd700);font-weight:700;">({{multiplier}}x)</span></span>
+        </div>
+        {{/each}}
       </div>
     </div>
   </div>

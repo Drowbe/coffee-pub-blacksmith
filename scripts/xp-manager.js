@@ -21,9 +21,9 @@ export class XpManager {
     static RESOLUTION_XP_MULTIPLIERS = {
         DEFEATED: 1.0,      // Full XP
         NEGOTIATED: 1.0,    // Full XP for diplomatic success
-        FLED: 0.5,          // Half XP
-        BYPASSED: 0.0,      // No XP
-        CAPTURED: 1.0       // Full XP for tactical success
+        ESCAPED: 0.5,        // Half XP
+        IGNORED: 0.0,        // No XP
+        CAPTURED: 1.0        // Full XP for tactical success
     };
 
     // Party size multipliers (D&D 5e standard)
@@ -243,7 +243,7 @@ export class XpManager {
         }
 
         // Monster was removed from combat but not defeated - likely fled
-        return 'FLED';
+        return 'ESCAPED';
     }
 
     /**
@@ -381,8 +381,8 @@ export class XpManager {
         return {
             DEFEATED: game.settings.get(MODULE_ID, 'xpMultiplierDefeated'),
             NEGOTIATED: game.settings.get(MODULE_ID, 'xpMultiplierNegotiated'),
-            FLED: game.settings.get(MODULE_ID, 'xpMultiplierFled'),
-            BYPASSED: game.settings.get(MODULE_ID, 'xpMultiplierBypassed'),
+            ESCAPED: game.settings.get(MODULE_ID, 'xpMultiplierEscaped'),
+            IGNORED: game.settings.get(MODULE_ID, 'xpMultiplierIgnored'),
             CAPTURED: game.settings.get(MODULE_ID, 'xpMultiplierCaptured')
         };
     }
@@ -442,12 +442,31 @@ class XpDistributionWindow extends FormApplication {
     }
 
     getData() {
-        const resolutionMultipliers = XpManager.getResolutionMultipliers();
-        const resolutionTypes = ["DEFEATED", "NEGOTIATED", "FLED", "BYPASSED", "CAPTURED"];
+        const multipliers = XpManager.getResolutionMultipliers();
+        // New labels and legend descriptions
+        const resolutionTypeLabels = {
+            DEFEATED: { label: "Defeated", desc: "Full XP (combat victory)" },
+            NEGOTIATED: { label: "Negotiated", desc: "Full XP (diplomatic success)" },
+            ESCAPED: { label: "Escaped", desc: "Half XP (monster retreated)" },
+            IGNORED: { label: "Ignored", desc: "No XP (avoided entirely)" },
+            CAPTURED: { label: "Captured", desc: "Full XP (tactical success)" }
+        };
+        // Order for dropdowns and legend
+        const resolutionTypes = ["DEFEATED", "NEGOTIATED", "ESCAPED", "IGNORED", "CAPTURED"];
+        // For dropdowns
+        const dropdownTypes = resolutionTypes;
+        // For legend
+        const legendTypes = resolutionTypes.map(key => ({
+            key,
+            label: resolutionTypeLabels[key].label,
+            desc: resolutionTypeLabels[key].desc,
+            multiplier: multipliers[key]
+        }));
         return {
             xpData: this.xpData,
-            resolutionTypes,
-            multipliers: resolutionMultipliers
+            resolutionTypes: dropdownTypes,
+            legendTypes,
+            multipliers
         };
     }
 

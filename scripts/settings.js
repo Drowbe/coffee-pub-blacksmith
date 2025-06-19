@@ -2748,9 +2748,23 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierBypassed', {
-		name: 'Bypassed XP Multiplier',
-		hint: 'XP multiplier for bypassed monsters (0.0 = no XP)',
+	game.settings.register(MODULE_ID, 'xpMultiplierEscaped', {
+		name: 'Escaped XP Multiplier',
+		hint: 'XP multiplier for monsters that escaped (0.5 = half XP)',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.5,
+		range: {
+			min: 0,
+			max: 2,
+			step: 0.1
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'xpMultiplierIgnored', {
+		name: 'Ignored XP Multiplier',
+		hint: 'XP multiplier for ignored monsters (0.0 = no XP)',
 		scope: 'world',
 		config: true,
 		type: Number,
