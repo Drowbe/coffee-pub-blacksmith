@@ -36,10 +36,10 @@
       <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
       <div class="xp-monster-table">
         <div class="xp-monster-table-header">
-          <span class="monster-col-name">Name</span>
-          <span class="monster-col-cr">CR</span>
-          <span class="monster-col-resolution">Resolution</span>
-          <span class="monster-col-xp">XP</span>
+          <span class="monster-col-name monster-col-header">Name</span>
+          <span class="monster-col-cr monster-col-header">CR</span>
+          <span class="monster-col-resolution monster-col-header">Resolution</span>
+          <span class="monster-col-xp monster-col-header">XP</span>
         </div>
         <div class="xp-monster-list">
           {{#each xpData.monsters}}
@@ -52,7 +52,7 @@
                   <span class="monster-resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
                         data-monster-id="{{../id}}"
                         data-resolution="{{this}}"
-                        title="{{prettifyResolution this}}"
+                        data-tooltip="{{prettifyResolution this}}"
                         aria-label="{{prettifyResolution this}}"
                         tabindex="0">
                     {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
@@ -64,7 +64,7 @@
                 {{/each}}
               </div>
             </span>
-            <span class="monster-col-xp monster-xp-calc">{{baseXp}} ×{{multiplier}} = <strong>{{finalXp}}</strong></span>
+            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{multiplier}} = <strong>{{finalXp}}</strong></span>
           </div>
           {{/each}}
         </div>
@@ -107,7 +107,7 @@
     </div>
   </div>
   <div class="xp-footer">
-    <button type="button" class="xp-btn cancel-xp"><i class="fas fa-times"></i> Cancel</button>
-    <button type="button" class="xp-btn apply-xp"><i class="fas fa-check"></i> Apply XP</button>
+    <button type="button" class="xp-btn cancel-xp"><i class="fas fa-times"></i> Cancel Distribution</button>
+    <button type="button" class="xp-btn apply-xp"><i class="fas fa-check"></i> Distribute XP to Party</button>
   </div>
 </div>
