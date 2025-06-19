@@ -23,6 +23,7 @@
       <div class="xp-player-list">
         {{#each xpData.players}}
         <div class="xp-player-row">
+          <img class="player-portrait" src="{{actor.img}}" alt="{{actor.name}}" />
           <span class="player-name">{{actor.name}}</span>
           <span class="plus">XP:</span>
           <input type="number" class="player-narrative-xp" name="player-narrative-xp-{{actorId}}" value="0" min="0" max="100000" placeholder="0">
@@ -74,6 +75,7 @@
       <div class="xp-player-list">
         {{#each xpData.players}}
         <div class="xp-player-row">
+          <img class="player-portrait" src="{{actor.img}}" alt="{{actor.name}}" />
           <span class="player-name">{{actor.name}}</span>
           <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
           <span class="plus">+</span>
@@ -88,7 +90,7 @@
 
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
-      <div class="xp-legend-list">
+      <div class="xp-legend-grid">
         {{#each legendTypes}}
         <div class="xp-legend-row">
           {{#if (eq key "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
@@ -97,7 +99,8 @@
           {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
           {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
           <span class="legend-label">{{label}}:</span>
-          <span class="legend-desc">{{desc}} <span class="legend-multiplier">({{multiplier}}x)</span></span>
+          <span class="legend-multiplier">{{multiplier}} XP</span>
+          <span class="legend-desc">{{desc}} </span>
         </div>
         {{/each}}
       </div>

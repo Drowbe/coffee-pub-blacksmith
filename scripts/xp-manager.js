@@ -291,6 +291,7 @@ export class XpManager {
 
                 results.push({
                     name: actor.name,
+                    img: actor.img,
                     xpGained: playerXp,
                     totalXp: newXp,
                     leveledUp: this.checkLevelUp(actor, currentXp, newXp)
@@ -461,11 +462,11 @@ class XpDistributionWindow extends FormApplication {
         const multipliers = XpManager.getResolutionMultipliers();
         // New labels and legend descriptions
         const resolutionTypeLabels = {
-            DEFEATED: { label: "Defeated", desc: "Full XP (combat victory)" },
-            NEGOTIATED: { label: "Negotiated", desc: "Full XP (diplomatic success)" },
-            ESCAPED: { label: "Escaped", desc: "Half XP (monster retreated)" },
-            IGNORED: { label: "Ignored", desc: "No XP (avoided entirely)" },
-            CAPTURED: { label: "Captured", desc: "Full XP (tactical success)" }
+            DEFEATED: { label: "Defeated", desc: "Combat Victory" },
+            NEGOTIATED: { label: "Negotiated", desc: "Diplomatic Success" },
+            ESCAPED: { label: "Escaped", desc: "Monster Retreated" },
+            IGNORED: { label: "Ignored", desc: "Avoided Entirely" },
+            CAPTURED: { label: "Captured", desc: "Tactical Success" }
         };
         // Order for dropdowns and legend
         const resolutionTypes = ["DEFEATED", "NEGOTIATED", "ESCAPED", "IGNORED", "CAPTURED"];
