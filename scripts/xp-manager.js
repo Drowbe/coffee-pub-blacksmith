@@ -684,11 +684,19 @@ class XpDistributionWindow extends FormApplication {
         const resolution = icon.data('resolution');
         const monster = this.xpData.monsters.find(m => m.id === monsterId);
         if (monster && resolution) {
+            // Update monster resolution and XP
             const resolutionMultipliers = XpManager.getResolutionMultipliers();
             monster.resolutionType = resolution;
             monster.multiplier = resolutionMultipliers[resolution] || 0;
             monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-            this.render(false); // Re-render to update UI
+            
+            // Update the UI to show active state for clicked icon
+            const monsterRow = icon.closest('.xp-monster-row');
+            monsterRow.find('.monster-resolution-icon').removeClass('active');
+            icon.addClass('active');
+            
+            // Update all XP calculations and display
+            this._updateXpDisplay();
         }
     }
 } 
