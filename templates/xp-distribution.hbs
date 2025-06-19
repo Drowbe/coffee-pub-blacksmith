@@ -1,12 +1,10 @@
-
 {{!-- XP Distribution Window Template --}}
 <div class="xp-distribution foundry-style-window">
-  <div class="xp-header">
-    <i class="fas fa-swords"></i>
-    <span>XP Overview</span>
-  </div>
-  <div class="xp-body">
-    
+  <div class="xp-header-sticky">
+    <div class="xp-header">
+      <i class="fas fa-swords"></i>
+      <span>XP Overview</span>
+    </div>
     <div class="xp-summary-row">
       <div class="xp-summary-item"><span class="label">Total XP</span><span>{{xpData.totalXp}}</span></div>
       <div class="xp-summary-item"><span class="label">Party Size</span><span>{{xpData.partySize}}</span></div>
@@ -14,22 +12,33 @@
       <div class="xp-summary-item"><span class="label">Adjusted</span><span>{{xpData.adjustedTotalXp}}</span></div>
       <div class="xp-summary-item highlight"><span class="label">Per Player</span><span>{{xpData.xpPerPlayer}}</span></div>
     </div>
-
+  </div>
+  <div class="xp-body-scroll">
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
-      <div class="xp-monster-list">
-        {{#each xpData.monsters}}
-        <div class="xp-monster-row">
-          <span class="monster-name">{{name}}</span>
-          <span class="monster-cr">CR {{cr}}</span>
-          <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
-            {{#each ../resolutionTypes}}
-            <option value="{{this}}" {{#if (eq ../resolutionType this)}}selected{{/if}}>{{prettifyResolution this}}</option>
-            {{/each}}
-          </select>
-          <span class="monster-xp-calc">{{baseXp}} ×{{multiplier}} = <strong>{{finalXp}}</strong></span>
+      <div class="xp-monster-table">
+        <div class="xp-monster-table-header">
+          <span class="monster-col-name">Name</span>
+          <span class="monster-col-cr">CR</span>
+          <span class="monster-col-resolution">Resolution</span>
+          <span class="monster-col-xp">XP</span>
         </div>
-        {{/each}}
+        <div class="xp-monster-list">
+          {{#each xpData.monsters}}
+          <div class="xp-monster-row">
+            <span class="monster-col-name monster-name">{{name}}</span>
+            <span class="monster-col-cr monster-cr">CR {{cr}}</span>
+            <span class="monster-col-resolution">
+              <select class="monster-resolution-select" name="monster-resolution-{{id}}" data-monster-id="{{id}}">
+                {{#each ../resolutionTypes}}
+                <option value="{{this}}" {{#if (eq ../resolutionType this)}}selected{{/if}}>{{prettifyResolution this}}</option>
+                {{/each}}
+              </select>
+            </span>
+            <span class="monster-col-xp monster-xp-calc">{{baseXp}} ×{{multiplier}} = <strong>{{finalXp}}</strong></span>
+          </div>
+          {{/each}}
+        </div>
       </div>
     </div>
 

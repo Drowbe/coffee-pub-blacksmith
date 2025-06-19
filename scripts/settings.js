@@ -2705,6 +2705,30 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// -- Party Size Handling --
+	game.settings.register(MODULE_ID, 'xpPartySizeHandling', {
+		name: 'Party Size Handling',
+		hint: 'Choose how XP is divided among the party. "D&D 5e RAW (No Multipliers)" divides total base XP among players (official rules). "House Rules (Scale for Party Size)" applies a party size multiplier to XP awarded (not RAW).',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'dnd5e',
+		choices: {
+			'dnd5e': 'D&D 5e RAW (No Multipliers)',
+			'multipliers': 'House Rules (Scale for Party Size)'
+		}
+	});
+
+	// -- Share XP Results --
+	game.settings.register(MODULE_ID, 'shareXpResults', {
+		name: 'Share XP Results',
+		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
 	// -- Resolution Type XP Multipliers --
 	game.settings.register(MODULE_ID, 'xpMultiplierDefeated', {
 		name: 'Defeated XP Multiplier',
@@ -2734,23 +2758,9 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierFled', {
-		name: 'Fled XP Multiplier',
-		hint: 'XP multiplier for monsters that fled (0.5 = half XP)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.5,
-		range: {
-			min: 0,
-			max: 2,
-			step: 0.1
-		}
-	});
-
 	game.settings.register(MODULE_ID, 'xpMultiplierEscaped', {
 		name: 'Escaped XP Multiplier',
-		hint: 'XP multiplier for monsters that escaped (0.5 = half XP)',
+		hint: 'Multiplier for monsters that escaped (0.5 = half XP)',
 		scope: 'world',
 		config: true,
 		type: Number,
@@ -2790,30 +2800,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	// -- Party Size Handling --
-	game.settings.register(MODULE_ID, 'xpPartySizeHandling', {
-		name: 'Party Size Handling',
-		hint: 'How to handle XP distribution with varying party sizes',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'dnd5e',
-		choices: {
-			'dnd5e': 'D&D 5e Standard Multipliers',
-			'equal': 'Equal Division (No Multipliers)',
-			'custom': 'Custom Multipliers (Coming Soon)'
-		}
-	});
 
-	// -- Share XP Results --
-	game.settings.register(MODULE_ID, 'shareXpResults', {
-		name: 'Share XP Results',
-		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
 
 	// *** DEBUG SETTINGS ***
 

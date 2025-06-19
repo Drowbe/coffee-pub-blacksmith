@@ -135,6 +135,7 @@ export class XpManager {
         // Get dynamic multipliers from settings
         const resolutionMultipliers = this.getResolutionMultipliers();
         const partySizeMultipliers = this.getPartySizeMultipliers();
+        const partySizeHandling = game.settings.get(MODULE_ID, 'xpPartySizeHandling');
         
         // Calculate base XP for each monster
         const monsterXpData = monsters.map(monster => {
@@ -160,8 +161,14 @@ export class XpManager {
         
         // Calculate XP per player
         const partySize = players.length;
-        const partyMultiplier = partySizeMultipliers[partySize] || 1;
-        const adjustedTotalXp = Math.floor(totalXp * partyMultiplier);
+        let adjustedTotalXp;
+        if (partySizeHandling === 'multipliers') {
+            const partyMultiplier = partySizeMultipliers[partySize] || 1;
+            adjustedTotalXp = Math.floor(totalXp * partyMultiplier);
+        } else {
+            // D&D 5e RAW: no multiplier
+            adjustedTotalXp = totalXp;
+        }
         const xpPerPlayer = partySize > 0 ? Math.floor(adjustedTotalXp / partySize) : 0;
 
         return {
@@ -172,7 +179,7 @@ export class XpManager {
             adjustedTotalXp: adjustedTotalXp,
             xpPerPlayer: xpPerPlayer,
             partySize: partySize,
-            partyMultiplier: partyMultiplier
+            partyMultiplier: partySizeHandling === 'multipliers' ? (partySizeMultipliers[partySize] || 1) : 1
         };
     }
 
@@ -445,11 +452,11 @@ class XpDistributionWindow extends FormApplication {
         const multipliers = XpManager.getResolutionMultipliers();
         // New labels and legend descriptions
         const resolutionTypeLabels = {
-            DEFEATED: { label: "Defeated", desc: "Full XP (combat victory)" },
-            NEGOTIATED: { label: "Negotiated", desc: "Full XP (diplomatic success)" },
-            ESCAPED: { label: "Escaped", desc: "Half XP (monster retreated)" },
-            IGNORED: { label: "Ignored", desc: "No XP (avoided entirely)" },
-            CAPTURED: { label: "Captured", desc: "Full XP (tactical success)" }
+            DEFEATED: { label: "Defeated", desc: "Combat Victory" },
+            NEGOTIATED: { label: "Negotiated", desc: "Diplomatic Success" },
+            ESCAPED: { label: "Escaped", desc: "Monster Retreated" },
+            IGNORED: { label: "Ignored", desc: "Not Engaged" },
+            CAPTURED: { label: "Captured", desc: "Tactical Success" }
         };
         // Order for dropdowns and legend
         const resolutionTypes = ["DEFEATED", "NEGOTIATED", "ESCAPED", "IGNORED", "CAPTURED"];
