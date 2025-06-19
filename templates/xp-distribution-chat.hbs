@@ -18,10 +18,16 @@
         <div class="cpb-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
         <div class="monster-list">
             {{#each xpData.monsters}}
-            <div class="monster-item flexrow">
+            <div class="monster-item">
                 <span class="monster-name">{{name}}</span>
                 <span class="monster-cr">(CR {{cr}})</span>
-                <span class="resolution-type">{{resolutionType}}</span>
+                <span class="resolution-type">
+                    {{#if (eq resolutionType "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
+                    {{#if (eq resolutionType "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
+                    {{#if (eq resolutionType "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
+                    {{#if (eq resolutionType "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+                    {{#if (eq resolutionType "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                </span>
                 <span class="monster-xp">{{finalXp}} XP</span>
             </div>
             {{/each}}

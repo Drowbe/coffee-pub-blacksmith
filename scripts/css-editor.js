@@ -24,6 +24,11 @@ export class CSSEditor extends FormApplication {
     constructor(options = {}) {
         super(options);
         this.registerSettingsHandler();
+        
+        // Search functionality properties
+        this.searchResults = [];
+        this.currentSearchIndex = -1;
+        this.lastSearchTerm = '';
     }
 
     registerSettingsHandler() {
@@ -88,6 +93,9 @@ export class CSSEditor extends FormApplication {
         // Add smart indentation handlers
         const textarea = html.find('textarea[name="css"]')[0];
         textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
+        
+        // Search functionality listeners
+        this._setupSearchListeners(html);
     }
 
     _handleEditorKeydown(event) {
@@ -212,5 +220,165 @@ export class CSSEditor extends FormApplication {
         }
         
         return result;
+    }
+
+    _setupSearchListeners(html) {
+        const textarea = html.find('textarea[name="css"]')[0];
+        const searchInput = html.find('.search-input')[0];
+        const replaceInput = html.find('.replace-input')[0];
+        
+        // Search input listeners
+        searchInput.addEventListener('input', () => {
+            this._performSearch(html);
+        });
+        
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                    this._findPrevious(html);
+                } else {
+                    this._findNext(html);
+                }
+            }
+        });
+        
+        // Search button listeners
+        html.find('.find-next-button').click(() => {
+            this._findNext(html);
+        });
+        
+        html.find('.find-prev-button').click(() => {
+            this._findPrevious(html);
+        });
+        
+        html.find('.replace-button').click(() => {
+            this._replaceCurrent(html);
+        });
+        
+        html.find('.replace-all-button').click(() => {
+            this._replaceAll(html);
+        });
+        
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey && event.key === 'f') {
+                event.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            } else if (event.ctrlKey && event.key === 'h') {
+                event.preventDefault();
+                replaceInput.focus();
+                replaceInput.select();
+            }
+        });
+    }
+
+    // Search functionality methods
+    _performSearch(html) {
+        const textarea = html.find('textarea[name="css"]')[0];
+        const searchInput = html.find('.search-input')[0];
+        const searchTerm = searchInput.value;
+        
+        if (searchTerm === '') {
+            this.searchResults = [];
+            this.currentSearchIndex = -1;
+            this.lastSearchTerm = '';
+            return;
+        }
+        
+        if (searchTerm !== this.lastSearchTerm) {
+            this.searchResults = [];
+            this.currentSearchIndex = -1;
+            this.lastSearchTerm = searchTerm;
+            
+            // Find all occurrences
+            const text = textarea.value;
+            let index = 0;
+            while ((index = text.indexOf(searchTerm, index)) !== -1) {
+                this.searchResults.push(index);
+                index += searchTerm.length;
+            }
+        }
+        
+        if (this.searchResults.length > 0) {
+            this._highlightCurrentMatch(html);
+        }
+    }
+    
+    _findNext(html) {
+        if (this.searchResults.length === 0) return;
+        
+        this.currentSearchIndex = (this.currentSearchIndex + 1) % this.searchResults.length;
+        this._highlightCurrentMatch(html);
+    }
+    
+    _findPrevious(html) {
+        if (this.searchResults.length === 0) return;
+        
+        this.currentSearchIndex = this.currentSearchIndex <= 0 ? 
+            this.searchResults.length - 1 : this.currentSearchIndex - 1;
+        this._highlightCurrentMatch(html);
+    }
+    
+    _highlightCurrentMatch(html) {
+        const textarea = html.find('textarea[name="css"]')[0];
+        const searchInput = html.find('.search-input')[0];
+        const searchTerm = searchInput.value;
+        
+        if (this.currentSearchIndex >= 0 && this.currentSearchIndex < this.searchResults.length) {
+            const start = this.searchResults[this.currentSearchIndex];
+            const end = start + searchTerm.length;
+            
+            textarea.focus();
+            textarea.setSelectionRange(start, end);
+            
+            // Scroll to the match
+            const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+            const lines = textarea.value.substring(0, start).split('\n').length - 1;
+            textarea.scrollTop = lines * lineHeight - textarea.clientHeight / 2;
+        }
+    }
+    
+    _replaceCurrent(html) {
+        const textarea = html.find('textarea[name="css"]')[0];
+        const searchInput = html.find('.search-input')[0];
+        const replaceInput = html.find('.replace-input')[0];
+        const searchTerm = searchInput.value;
+        const replaceTerm = replaceInput.value;
+        
+        if (this.currentSearchIndex >= 0 && this.currentSearchIndex < this.searchResults.length) {
+            const start = this.searchResults[this.currentSearchIndex];
+            const end = start + searchTerm.length;
+            
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + replaceTerm + after;
+            
+            // Update search results after replacement
+            this._performSearch(html);
+        }
+    }
+    
+    _replaceAll(html) {
+        const textarea = html.find('textarea[name="css"]')[0];
+        const searchInput = html.find('.search-input')[0];
+        const replaceInput = html.find('.replace-input')[0];
+        const searchTerm = searchInput.value;
+        const replaceTerm = replaceInput.value;
+        
+        if (searchTerm === '') return;
+        
+        const newValue = textarea.value.replaceAll(searchTerm, replaceTerm);
+        textarea.value = newValue;
+        
+        // Clear search results after replace all
+        this.searchResults = [];
+        this.currentSearchIndex = -1;
+        this.lastSearchTerm = '';
+        searchInput.value = '';
+        replaceInput.value = '';
+        
+        ui.notifications.info(`Replaced ${(textarea.value.match(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length} occurrences`);
     }
 } 

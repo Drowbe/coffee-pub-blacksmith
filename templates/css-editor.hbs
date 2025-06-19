@@ -1,6 +1,28 @@
 {{!-- ----- WRAPPER ----- --}}
 
 <form class="css-editor-form">
+    <div class="search-toolbar">
+        <div class="search-controls">
+            <div class="search-input-group">
+                <input type="text" class="search-input" placeholder="Find..." data-tooltip="Ctrl+F">
+                <input type="text" class="replace-input" placeholder="Replace..." data-tooltip="Ctrl+H">
+            </div>
+            <div class="search-buttons">
+                <button type="button" class="find-prev-button" data-tooltip="Find Previous (Shift+Enter)">
+                    <i class="fas fa-caret-left"></i>
+                </button>
+                <button type="button" class="find-next-button" data-tooltip="Find Next (Enter)">
+                    <i class="fas fa-caret-right"></i>
+                </button>
+                <button type="button" class="replace-button" data-tooltip="Replace">
+                    <i class="fas fa-arrows-repeat-1"></i>
+                </button>
+                <button type="button" class="replace-all-button" data-tooltip="Replace All">
+                    <i class="fas fa-arrows-repeat"></i>
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="editor-container">
         <textarea name="css" rows="20">{{css}}</textarea>
     </div>

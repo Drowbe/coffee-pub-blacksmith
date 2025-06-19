@@ -673,4 +673,11 @@
     color: #782e22;
     margin-right: 8px;
     flex-shrink: 0;
+}
+
+.resolution-type i {
+    color: rgba(71, 125, 198, 1.00);
+    min-width: 18px;
+    text-align: center;
+    font-size: 1.1em;
 } 
