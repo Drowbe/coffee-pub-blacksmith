@@ -242,19 +242,23 @@ export class XpManager {
         const actor = monster.actor;
         if (!actor) return 'UNKNOWN';
 
-        // Check if monster is defeated (HP <= 0)
+        // 1. Defeated: If dead (HP <= 0)
         if (actor.system.attributes.hp.value <= 0) {
             return 'DEFEATED';
         }
 
-        // Check if monster is still in combat
-        const stillInCombat = combat.combatants.find(c => c.actorId === actor.id);
-        if (stillInCombat) {
-            // Monster is still alive and in combat - likely negotiated
-            return 'NEGOTIATED';
+        // 2. Escaped: If not dead and lost any HP
+        if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
+            return 'ESCAPED';
         }
 
-        // Monster was removed from combat but not defeated - likely fled
+        // 3. Ignored: If not dead and took no damage
+        if (actor.system.attributes.hp.value === actor.system.attributes.hp.max) {
+            return 'IGNORED';
+        }
+
+        // Never auto-assign NEGOTIATED or CAPTURED
+        // Default for non-dead monsters is ESCAPED (should not reach here)
         return 'ESCAPED';
     }
 
