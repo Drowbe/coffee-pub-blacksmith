@@ -2691,17 +2691,27 @@ export const registerSettings = async () => {
 		default: false
 	});
 
+	// -- Share XP Results --
+	game.settings.register(MODULE_ID, 'shareXpResults', {
+		name: 'Share XP Results',
+		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+	
 	// -- XP Calculation Method --
 	game.settings.register(MODULE_ID, 'xpCalculationMethod', {
 		name: 'XP Calculation Method',
-		hint: 'Choose the method for calculating XP from monster CR',
+		hint: 'Choose the method for calculating XP from monster CR. "Narrative/Goal-Based XP" allows you to enter XP for each player directly.',
 		scope: 'world',
 		config: true,
 		type: String,
 		default: 'dnd5e',
 		choices: {
-			'dnd5e': 'D&D 5e Standard',
-			'custom': 'Custom (Coming Soon)'
+			'dnd5e': 'D&D 5e RAW (CR-based XP Calculations)',
+			'narrative': 'Narrative/Goal-Based XP (Manual Entry)',
 		}
 	});
 
@@ -2719,92 +2729,77 @@ export const registerSettings = async () => {
 		}
 	});
 
-	// -- Share XP Results --
-	game.settings.register(MODULE_ID, 'shareXpResults', {
-		name: 'Share XP Results',
-		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
 
 	// -- Resolution Type XP Multipliers --
 	game.settings.register(MODULE_ID, 'xpMultiplierDefeated', {
 		name: 'Defeated XP Multiplier',
-		hint: 'XP multiplier for defeated monsters (1.0 = full XP)',
+		hint: 'Multiplier for defeated monsters (Default: 1.0)',
 		scope: 'world',
 		config: true,
 		type: Number,
 		default: 1.0,
 		range: {
 			min: 0,
-			max: 2,
-			step: 0.1
+			max: 3,
+			step: 0.05
 		}
 	});
 
 	game.settings.register(MODULE_ID, 'xpMultiplierNegotiated', {
 		name: 'Negotiated XP Multiplier',
-		hint: 'XP multiplier for negotiated monsters (1.0 = full XP)',
+		hint: 'Multiplier for negotiated monsters (Default: 1.0)',
 		scope: 'world',
 		config: true,
 		type: Number,
 		default: 1.0,
 		range: {
 			min: 0,
-			max: 2,
-			step: 0.1
+			max: 3,
+			step: 0.05
 		}
 	});
 
 	game.settings.register(MODULE_ID, 'xpMultiplierEscaped', {
 		name: 'Escaped XP Multiplier',
-		hint: 'Multiplier for monsters that escaped (0.5 = half XP)',
+		hint: 'Multiplier for monsters that escaped (Default: 1.0)',
 		scope: 'world',
 		config: true,
 		type: Number,
 		default: 0.5,
 		range: {
 			min: 0,
-			max: 2,
-			step: 0.1
+			max: 3,
+			step: 0.05
 		}
 	});
 
 	game.settings.register(MODULE_ID, 'xpMultiplierIgnored', {
 		name: 'Ignored XP Multiplier',
-		hint: 'XP multiplier for ignored monsters (0.0 = no XP)',
+		hint: 'Multiplier for ignored monsters (Default: 0.0)',
 		scope: 'world',
 		config: true,
 		type: Number,
 		default: 0.0,
 		range: {
 			min: 0,
-			max: 2,
-			step: 0.1
+			max: 3,
+			step: 0.05
 		}
 	});
 
 	game.settings.register(MODULE_ID, 'xpMultiplierCaptured', {
 		name: 'Captured XP Multiplier',
-		hint: 'XP multiplier for captured monsters (1.0 = full XP)',
+		hint: 'Multiplier for captured monsters (Default: 1.0)',
 		scope: 'world',
 		config: true,
 		type: Number,
 		default: 1.0,
 		range: {
 			min: 0,
-			max: 2,
-			step: 0.1
+			max: 3,
+			step: 0.05
 		}
 	});
-
-
-
-	// *** DEBUG SETTINGS ***
-
-
 
 	// *** DEBUG SETTINGS ***
 

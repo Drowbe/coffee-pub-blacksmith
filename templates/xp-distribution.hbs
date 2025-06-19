@@ -10,10 +10,27 @@
       <div class="xp-summary-item"><span class="label">Party Size</span><span>{{xpData.partySize}}</span></div>
       <div class="xp-summary-item"><span class="label">Multiplier</span><span>{{xpData.partyMultiplier}}x</span></div>
       <div class="xp-summary-item"><span class="label">Adjusted</span><span>{{xpData.adjustedTotalXp}}</span></div>
-      <div class="xp-summary-item highlight"><span class="label">Per Player</span><span>{{xpData.xpPerPlayer}}</span></div>
+      <div class="xp-summary-item">
+        <span class="label">{{#if narrativeMode}}Total XP{{else}}Per Player{{/if}}</span>
+        <span class="calculated-total" id="xp-total-display">{{#if narrativeMode}}0{{else}}{{xpData.xpPerPlayer}}{{/if}}</span>
+      </div>
     </div>
   </div>
   <div class="xp-body-scroll">
+    {{#if narrativeMode}}
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-users"></i> Narrative/Goal-Based XP</div>
+      <div class="xp-player-list">
+        {{#each xpData.players}}
+        <div class="xp-player-row">
+          <span class="player-name">{{actor.name}}</span>
+          <span class="plus">XP:</span>
+          <input type="number" class="player-narrative-xp" name="player-narrative-xp-{{actorId}}" value="0" min="0" max="100000" placeholder="0">
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{else}}
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
       <div class="xp-monster-table">
@@ -41,7 +58,6 @@
         </div>
       </div>
     </div>
-
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-users"></i> Player Adjustments</div>
       <div class="xp-player-list">
@@ -57,6 +73,7 @@
         {{/each}}
       </div>
     </div>
+    {{/if}}
 
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
