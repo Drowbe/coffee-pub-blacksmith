@@ -24,6 +24,7 @@
 @import "cards-layout.css";
 @import "cards-themes.css";
 @import "chat-cards.css";
+@import "cards-xp.css";
 
 /* --- Chat Panel ---------------------- */
 @import "chat-panel.css";
