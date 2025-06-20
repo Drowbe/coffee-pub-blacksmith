@@ -42,23 +42,67 @@
     margin-right: 6px;
 }
 
-.cpb-xp-card .xp-totals p {
-    margin: 4px 0;
+.cpb-xp-card .xp-totals {
+    margin-top: 8px;
+    margin-bottom: 20px;
+    
 }
 
-.cpb-xp-card .monster-list,
+.cpb-xp-card .xp-totals p {
+    margin: 4px 0;
+    
+}
+
+
+
+.cpb-xp-card .monster-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 20px;
+}
+
+.cpb-xp-card .cpb-xp-monster-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.cpb-xp-card .cpb-xp-monster-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.cpb-xp-card .cpb-xp-resolution-icon {
+    flex-shrink: 0;
+}
+.cpb-xp-card .cpb-xp-resolution-icon i {
+    font-size: 1.0em;
+    color: rgba(178, 32, 32, 0.9);
+}
+
+.cpb-xp-card .cpb-xp-monster-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 900;
+}
+
+.cpb-xp-card .cpb-xp-monster-points {
+    flex-shrink: 0;
+    color: rgba(178, 32, 32, 0.9);
+}
+
 .cpb-xp-card .player-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
     margin-top: 8px;
-}
-
-.cpb-xp-card .monster-item {
-    display: grid;
-    grid-template-columns: 1fr auto auto auto;
-    gap: 8px;
-    align-items: center;
+    margin-bottom: 20px;
 }
 
 .cpb-xp-card .player-item {

@@ -18,18 +18,18 @@
         <div class="cpb-xp-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
         <div class="monster-list">
             {{#each xpData.monsters}}
-            <div class="monster-item">
-                <span class="resolution-type">
-                    {{#if (eq resolutionType "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
-                    {{#if (eq resolutionType "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
-                    {{#if (eq resolutionType "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
-                    {{#if (eq resolutionType "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
-                    {{#if (eq resolutionType "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
-                </span>
-                <span class="monster-name">{{name}}</span>
-                <span class="monster-cr">CR {{cr}}</span>
-
-                <span class="monster-xp">{{finalXp}} XP</span>
+            <div class="cpb-xp-monster-item">
+                <div class="cpb-xp-monster-info">
+                    <span class="cpb-xp-resolution-icon">
+                        {{#if (eq resolutionType "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
+                        {{#if (eq resolutionType "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
+                        {{#if (eq resolutionType "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
+                        {{#if (eq resolutionType "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+                        {{#if (eq resolutionType "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                    </span>
+                    <span class="cpb-xp-monster-name" title="{{name}}">{{name}}</span>
+                </div>
+                <span class="cpb-xp-monster-points">{{finalXp}} XP</span>
             </div>
             {{/each}}
         </div>
@@ -53,14 +53,5 @@
         </div>
         {{/if}}
 
-        {{!-- Resolution Types Legend --}}
-        <div class="cpb-xp-card-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
-        <div class="legend-items">
-            <span class="legend-item"><strong>DEFEATED:</strong> Full XP (combat victory)</span>
-            <span class="legend-item"><strong>NEGOTIATED:</strong> Full XP (diplomatic success)</span>
-            <span class="legend-item"><strong>FLED:</strong> Half XP (monster retreated)</span>
-            <span class="legend-item"><strong>BYPASSED:</strong> No XP (avoided entirely)</span>
-            <span class="legend-item"><strong>CAPTURED:</strong> Full XP (tactical success)</span>
-        </div>
     </div>
 </div> 
