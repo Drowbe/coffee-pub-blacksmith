@@ -1190,7 +1190,15 @@ export class SkillCheckDialog extends Application {
                 const messageData = message.flags['coffee-pub-blacksmith'];
                 console.log('CPB | Cinematic Mode flag read as:', messageData.isCinematic, 'from message flags:', messageData);
 
-                if (messageData.isCinematic) {
+                // Check if the click is coming from the cinematic UI
+                const isCinematicClick = $('#cpb-cinematic-overlay').length > 0;
+                const rollOptions = { 
+                    chatMessage: false, 
+                    createMessage: false, 
+                    fastForward: isCinematicClick 
+                };
+
+                if (messageData.isCinematic && !isCinematicClick) {
                     this._showCinematicDisplay(messageData, message.id);
                 }
 
@@ -1233,20 +1241,19 @@ export class SkillCheckDialog extends Application {
                             break;
                         case 'skill':
                             if (typeof actor?.rollSkillV2 === 'function') {
-
-                                roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
+                                roll = await actor.rollSkillV2(value, rollOptions);
                             } else {
-                                roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
+                                roll = await actor.rollSkill(value, rollOptions);
                             }
                             break;
                         case 'ability':
-                            roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
+                            roll = await actor.rollAbilityTest(value, rollOptions);
                             break;
                         case 'save':
                             if (value === 'death') {
-                                roll = await actor.rollDeathSave({ chatMessage: false, createMessage: false });
+                                roll = await actor.rollDeathSave(rollOptions);
                             } else {
-                                roll = await actor.rollSavingThrow(value, { chatMessage: false, createMessage: false });
+                                roll = await actor.rollSavingThrow(value, rollOptions);
                             }
                             break;
                         case 'tool': {
