@@ -797,9 +797,41 @@
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
 
     display: flex;
+    flex-direction: column; /* <-- This line is the important one */
     gap: 16px;
     justify-content: center;
     align-items: center;
+}
+
+.cpb-cinematic-actors-container {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.cpb-cinematic-roll-details {
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    margin-bottom: 12px;
+}
+.cpb-cinematic-roll-title {
+    font-family: var(--font-primary);
+    font-size: 2.5em;
+    font-weight: 900;
+    margin: 0;
+    padding: 0;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+.cpb-cinematic-roll-subtext {
+    font-size: 1.3em;
+    margin: 0;
+    padding: 0;
+    opacity: 0.9;
+    font-weight: 500;
+    margin-top: -5px;
 }
 
 .cpb-cinematic-card {

@@ -21,7 +21,8 @@ export class SkillCheckDialog extends Application {
             showRollExplanation: true,
             showRollExplanationLink: true,
             showDC: true,
-            groupRoll: true
+            groupRoll: true,
+            isCinematic: false
         };
     }
 
@@ -821,6 +822,11 @@ export class SkillCheckDialog extends Application {
             this.userPreferences.groupRoll = ev.currentTarget.checked;
             game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
         });
+
+        html.find('input[name="isCinematic"]').change(ev => {
+            this.userPreferences.isCinematic = ev.currentTarget.checked;
+            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+        });
     }
 
     _updateToolList() {
@@ -1066,7 +1072,6 @@ export class SkillCheckDialog extends Application {
 
             // Check for ownership to apply disabled style and correct icon
             const hasPermission = game.user.isGM || actorDocument?.isOwner;
-            const permissionClass = hasPermission ? '' : 'no-permission';
 
             let rollAreaHtml;
             if (hasPermission) {
@@ -1101,11 +1106,32 @@ export class SkillCheckDialog extends Application {
             `;
         }).join('');
 
+        // Create roll details text
+        let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
+        rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName}</h2>`;
+        
+        const subtextParts = [];
+        if (messageData.showDC && messageData.dc) {
+            subtextParts.push(`DC ${messageData.dc}`);
+        }
+        if (messageData.isGroupRoll) {
+            subtextParts.push(`Group Roll`);
+        }
+        
+        if (subtextParts.length > 0) {
+            rollDetailsHtml += `<p class="cpb-cinematic-roll-subtext">${subtextParts.join(' &bull; ')}</p>`;
+        }
+        
+        rollDetailsHtml += `</div>`;
+
         const overlay = $(`
             <div id="cpb-cinematic-overlay">
                 <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
                 <div id="cpb-cinematic-bar">
-                    ${actorCards}
+                    ${rollDetailsHtml}
+                    <div class="cpb-cinematic-actors-container">
+                        ${actorCards}
+                    </div>
                 </div>
             </div>
         `);
