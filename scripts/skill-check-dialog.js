@@ -763,56 +763,39 @@ export class SkillCheckDialog extends Application {
                 rollMode,
                 rollType: challengerRollType,
                 defenderRollType: isContestedRoll ? defenderRollType : null,
-                hasMultipleGroups: isContestedRoll
+                hasMultipleGroups: isContestedRoll,
+                showRollExplanation: html.find('input[name="showRollExplanation"]').is(':checked'),
+                showRollExplanationLink: html.find('input[name="showRollExplanationLink"]').is(':checked'),
+                isCinematic: html.find('input[name="isCinematic"]').is(':checked')
             };
 
+            console.log('CPB | Cinematic Mode flag set to:', messageData.isCinematic);
+
             // Create the chat message
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
-            const chatMessage = await ChatMessage.create({
-                content: content,
+            ChatMessage.create({
+                user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
-                flags: {
-                    'coffee-pub-blacksmith': messageData
-                },
-                whisper: rollMode === 'gmroll' ? 
-                    [...game.users.filter(u => u.isGM).map(u => u.id),
-                     ...processedActors.map(a => game.actors.get(a.id)?.ownership)
-                        .flatMap(ownership => Object.entries(ownership)
-                            .filter(([userId, level]) => level === 3)
-                            .map(([userId]) => userId))] : 
-                    [],
-                blind: rollMode === 'blindroll'
-            });
-
-            // Store this dialog instance on the message
-            if (chatMessage) {
-                chatMessage.app = this;
-            }
-
-            // Reset quick party/common roll flag after roll
-            this._isQuickPartyRoll = false;
-            this._quickRollOverrides = undefined;
-            this.close();
-
-            // Immediately after the switch, check if roll is defined
-            if (typeof roll === 'undefined') return;
-            // Always emit the update to the GM (even if GM is rolling) - use token ID for the update
-            game.socket.emit('module.coffee-pub-blacksmith', {
-                type: 'updateSkillRoll',
-                data: {
-                    messageId: chatMessage.id,
-                    tokenId: processedActors[0].tokenId, // Use token ID for the update
-                    result: roll
+                content: await SkillCheckDialog.formatChatMessage(messageData),
+                flags: { 'coffee-pub-blacksmith': messageData }
+            }).then(message => {
+                // If cinematic mode is enabled, show the display for the current user and emit to others
+                if (messageData.isCinematic) {
+                    // Show for the current user who initiated the roll
+                    SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+                    
+                    // Emit to other users
+                    game.socket.emit('module.coffee-pub-blacksmith', {
+                        type: 'showCinematicRoll',
+                        data: {
+                            messageId: message.id,
+                            messageData: messageData
+                        }
+                    });
                 }
             });
-            // If GM, call the handler directly as well
-            if (game.user.isGM) {
-                await handleSkillRollUpdate({
-                    messageId: chatMessage.id,
-                    tokenId: processedActors[0].tokenId, // Use token ID for the update
-                    result: roll
-                });
-            }
+
+            // Close the dialog
+            this.close();
         });
 
         // Handle the cancel button
@@ -1066,6 +1049,146 @@ export class SkillCheckDialog extends Application {
     }
 
     /**
+     * Shows a cinematic display for the skill check.
+     * @param {object} messageData - The chat message data (flags) for the skill check.
+     * @param {string} messageId - The ID of the chat message.
+     */
+    static _showCinematicDisplay(messageData, messageId) {
+        // Remove any existing overlay
+        $('#cpb-cinematic-overlay').remove();
+
+        const actorCards = messageData.actors.map(actor => {
+            const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
+            const actorImg = token?.actor?.img || 'icons/svg/mystery-man.svg';
+            const actorName = actor.name;
+            const result = actor.result;
+
+            let rollAreaHtml = `
+                <div class="cpb-cinematic-roll-area">
+                    <button class="cpb-cinematic-roll-btn" data-token-id="${actor.id}" data-actor-id="${actor.actorId}">
+                        <i class="fas fa-dice-d20"></i>
+                    </button>
+                </div>
+            `;
+
+            if (result) {
+                const successClass = result.total >= messageData.dc ? 'success' : 'failure';
+                rollAreaHtml = `<div class="cpb-cinematic-roll-area"><div class="cpb-cinematic-roll-result ${successClass}">${result.total}</div></div>`;
+            }
+
+            return `
+                <div class="cpb-cinematic-card" data-token-id="${actor.id}">
+                    <img src="${actorImg}" alt="${actorName}">
+                    <div class="cpb-cinematic-actor-name">${actorName}</div>
+                    ${rollAreaHtml}
+                </div>
+            `;
+        }).join('');
+
+        const overlay = $(`
+            <div id="cpb-cinematic-overlay">
+                <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
+                <div id="cpb-cinematic-bar">
+                    ${actorCards}
+                </div>
+            </div>
+        `);
+
+        $('body').append(overlay);
+
+        // Attach click handler for the close button
+        overlay.find('.cpb-cinematic-close-btn').on('click', () => this._hideCinematicDisplay());
+
+        // Attach click handlers to the new roll buttons
+        overlay.find('.cpb-cinematic-roll-btn').on('click', async (event) => {
+            const button = event.currentTarget;
+            button.disabled = true; // Prevent double clicks
+            $(button).find('i').addClass('fa-spin'); // Add spin animation
+
+            const tokenId = button.dataset.tokenId;
+            const actorId = button.dataset.actorId;
+            const message = game.messages.get(messageId);
+            const flags = message.flags['coffee-pub-blacksmith'];
+
+            let token = canvas.tokens.get(tokenId);
+            if (!token) {
+                token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
+            }
+            const actor = token?.actor || game.actors.get(actorId);
+
+            if (!game.user.isGM && !actor?.isOwner) {
+                ui.notifications.warn("You don't have permission to roll for this character.");
+                button.disabled = false;
+                $(button).find('i').removeClass('fa-spin');
+                return;
+            }
+
+            const rollType = flags.challenger.type;
+            const skillAbbr = flags.challenger.value;
+
+            try {
+                const roll = await actor.rollSkill(skillAbbr);
+                
+                game.socket.emit('module.coffee-pub-blacksmith', {
+                    type: 'updateSkillRoll',
+                    data: {
+                        messageId: messageId,
+                        tokenId: tokenId,
+                        result: roll
+                    }
+                });
+            } catch (err) {
+                console.error("Error handling cinematic skill roll:", err);
+                button.disabled = false;
+                $(button).find('i').removeClass('fa-spin');
+            }
+        });
+
+        // Use a timeout to allow the element to be added to the DOM before adding the class for transition
+        setTimeout(() => overlay.addClass('visible'), 50);
+    }
+
+    /**
+     * Updates a single actor's card in the cinematic display.
+     * @param {string} tokenId - The ID of the token to update.
+     * @param {object} result - The roll result object.
+     * @param {object} messageData - The full message data.
+     */
+    static _updateCinematicDisplay(tokenId, result, messageData) {
+        const overlay = $('#cpb-cinematic-overlay');
+        if (!overlay.length) return;
+
+        const card = overlay.find(`.cpb-cinematic-card[data-token-id="${tokenId}"]`);
+        if (!card.length) return;
+
+        const rollArea = card.find('.cpb-cinematic-roll-area');
+        rollArea.empty(); // Clear the button or pending icon
+
+        const successClass = result.total >= messageData.dc ? 'success' : 'failure';
+        const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass}">${result.total}</div>`;
+        rollArea.append(resultHtml);
+
+        // Check if all rolls are complete to hide the overlay
+        const allComplete = messageData.actors.every(a => {
+            const actorCard = overlay.find(`.cpb-cinematic-card[data-token-id="${a.id}"]`);
+            return actorCard.find('.cpb-cinematic-roll-result').length > 0;
+        });
+        
+        if (allComplete) {
+            setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
+        }
+    }
+
+    /**
+     * Hides the cinematic display.
+     */
+    static _hideCinematicDisplay() {
+        const overlay = $('#cpb-cinematic-overlay');
+        overlay.removeClass('visible');
+        setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
+    }
+
+    /**
      * Attach listeners to chat card roll buttons and handle roll logic.
      * @param {object} message - The chat message object.
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
@@ -1080,8 +1203,15 @@ export class SkillCheckDialog extends Application {
                 
                 console.log('Debug - tokenId:', tokenId, 'actorId:', actorId);
                 
+                const messageData = message.flags['coffee-pub-blacksmith'];
+                console.log('CPB | Cinematic Mode flag read as:', messageData.isCinematic, 'from message flags:', messageData);
+
+                if (messageData.isCinematic) {
+                    this._showCinematicDisplay(messageData, message.id);
+                }
+
                 // Get the token and actor
-                const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                let token = canvas.tokens.get(tokenId);
                 console.log('Debug - found token:', token);
                 
                 let actor = null;
@@ -1094,8 +1224,8 @@ export class SkillCheckDialog extends Application {
                 }
                 
                 if (!actor) {
-                    ui.notifications.error(`Could not find actor for token ${tokenId} or actor ${actorId}`);
-                    console.error('Debug - No actor found for tokenId:', tokenId, 'actorId:', actorId);
+                    console.error('Debug - Could not find actor for tokenId:', tokenId, 'or actorId:', actorId);
+                    ui.notifications.error("Could not find the actor for this roll.");
                     return;
                 }
                 
@@ -1284,9 +1414,12 @@ export class SkillCheckDialog extends Application {
                     } else {
                         playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                     }
-                } catch (error) {
-                    console.error("Error handling skill check:", error);
-                    ui.notifications.error("There was an error processing the skill check.");
+
+                    if (messageData.isCinematic) {
+                        this._updateCinematicDisplay(tokenId, roll, messageData);
+                    }
+                } catch (err) {
+                    console.error("Error handling skill roll:", err);
                 }
             });
         });

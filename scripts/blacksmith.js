@@ -1328,25 +1328,45 @@ export class ThirdPartyManager {
             const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
             await message.update({ 
                 content,
-                flags: {
-                    'coffee-pub-blacksmith': updatedMessageData
-                }
+                flags: { 'coffee-pub-blacksmith': updatedMessageData }
             });
 
-            // Play the correct sound - now expects token ID
-            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.tokenId);
-            playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            // Emit the final result to all clients
+            this.socket.emit("skillRollUpdated", { 
+                messageId: data.messageId,
+                content: content,
+                flags: updatedMessageData,
+                rollData: data.data // Pass along the specific roll data
+            });
+        });
 
-            // If this was a requested roll, update the GM's interface
-            if (flags.requesterId === game.user.id) {
-                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
-                windows.forEach(window => {
-                    const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
-                    if (inputField) {
-                        inputField.value = data.data.result.total;
-                    }
-                });
+        // This is received by all clients to update the chat card
+        this.socket.on("skillRollUpdated", (data) => {
+            const message = game.messages.get(data.messageId);
+            if (message) {
+                // We update the content directly to avoid re-rendering chat log
+                const messageElement = $(`#chat-log .message[data-message-id="${data.messageId}"] .message-content`);
+                if (messageElement.length) {
+                    messageElement.html(data.content);
+                }
+                // Update message flags silently in the background
+                message.flags['coffee-pub-blacksmith'] = data.flags;
+
+                // Handle cinematic update
+                if (data.flags.isCinematic && data.rollData) {
+                    SkillCheckDialog._updateCinematicDisplay(data.rollData.tokenId, data.rollData.result, data.flags);
+                }
             }
+        });
+
+        // Latency checker
+        this.socket.register("checkLatency", (data) => {
+            // Implementation of checkLatency function
+        });
+
+        // Show cinematic roll display
+        this.socket.register("showCinematicRoll", (data) => {
+            SkillCheckDialog._showCinematicDisplay(data.messageData, data.messageId);
         });
     }
 }

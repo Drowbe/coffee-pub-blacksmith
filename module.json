@@ -52,7 +52,11 @@
     "scripts/xp-manager.js"
   ],
   "styles": [
-    "styles/default.css"
+    "styles/default.css",
+    "styles/overrides-foundry.css",
+    "styles/overrides-modules.css",
+    "styles/css-editor.css",
+    "styles/cinematic.css"
   ],
   "url": "https://github.com/Drowbe/coffee-pub-blacksmith",
   "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
