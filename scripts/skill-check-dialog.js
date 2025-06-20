@@ -778,8 +778,12 @@ export class SkillCheckDialog extends Application {
                 content: await SkillCheckDialog.formatChatMessage(messageData),
                 flags: { 'coffee-pub-blacksmith': messageData }
             }).then(message => {
-                // If cinematic mode is enabled, emit to all clients to show the overlay
+                // If cinematic mode is enabled, show for the GM and broadcast to players
                 if (messageData.isCinematic) {
+                    // Show for the current user who initiated the roll
+                    SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+
+                    // Emit to other users to show the overlay
                     game.socket.emit(`module.${MODULE_ID}`, {
                         type: 'showCinematicOverlay',
                         data: {
