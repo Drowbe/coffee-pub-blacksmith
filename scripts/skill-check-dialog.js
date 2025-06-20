@@ -1059,17 +1059,33 @@ export class SkillCheckDialog extends Application {
 
         const actorCards = messageData.actors.map(actor => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
-            const actorImg = token?.actor?.img || 'icons/svg/mystery-man.svg';
+            const actorDocument = token?.actor;
+            const actorImg = actorDocument?.img || 'icons/svg/mystery-man.svg';
             const actorName = actor.name;
             const result = actor.result;
 
-            let rollAreaHtml = `
-                <div class="cpb-cinematic-roll-area">
-                    <button class="cpb-cinematic-roll-btn" data-token-id="${actor.id}" data-actor-id="${actor.actorId}">
-                        <i class="fas fa-dice-d20"></i>
-                    </button>
-                </div>
-            `;
+            // Check for ownership to apply disabled style and correct icon
+            const hasPermission = game.user.isGM || actorDocument?.isOwner;
+            const permissionClass = hasPermission ? '' : 'no-permission';
+
+            let rollAreaHtml;
+            if (hasPermission) {
+                rollAreaHtml = `
+                    <div class="cpb-cinematic-roll-area">
+                        <button class="cpb-cinematic-roll-btn" data-token-id="${actor.id}" data-actor-id="${actor.actorId}">
+                            <i class="fas fa-dice-d20"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                rollAreaHtml = `
+                    <div class="cpb-cinematic-roll-area">
+                        <div class="cpb-cinematic-wait-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                    </div>
+                `;
+            }
 
             if (result) {
                 const successClass = result.total >= messageData.dc ? 'success' : 'failure';
