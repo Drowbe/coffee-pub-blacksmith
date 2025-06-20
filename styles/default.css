@@ -14,6 +14,7 @@
 @import "window-query.css";
 @import "skill-check-window.css";
 @import "movement.css";
+@import "xp-distribution.css";
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
@@ -53,3 +54,4 @@
 
 /* --- Panel Assistant ---------------------- */
 @import "panel-assistant.css";
+

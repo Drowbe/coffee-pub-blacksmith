@@ -52,8 +52,7 @@
     "scripts/xp-manager.js"
   ],
   "styles": [
-    "styles/default.css",
-    "styles/xp-distribution.css"
+    "styles/default.css"
   ],
   "url": "https://github.com/Drowbe/coffee-pub-blacksmith",
   "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
