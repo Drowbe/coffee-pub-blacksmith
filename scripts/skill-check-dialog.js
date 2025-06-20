@@ -1145,22 +1145,25 @@ export class SkillCheckDialog extends Application {
         const card = overlay.find(`.cpb-cinematic-card[data-token-id="${tokenId}"]`);
         if (!card.length) return;
 
-        const rollArea = card.find('.cpb-cinematic-roll-area');
-        rollArea.empty(); // Clear the button or pending icon
+        // Use a timeout to create a delay for the reveal
+        setTimeout(() => {
+            const rollArea = card.find('.cpb-cinematic-roll-area');
+            rollArea.empty(); // Clear the button or pending icon
 
-        const successClass = result.total >= messageData.dc ? 'success' : 'failure';
-        const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass}">${result.total}</div>`;
-        rollArea.append(resultHtml);
+            const successClass = result.total >= messageData.dc ? 'success' : 'failure';
+            const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass}">${result.total}</div>`;
+            rollArea.append(resultHtml);
 
-        // Check if all rolls are complete to hide the overlay
-        const allComplete = messageData.actors.every(a => {
-            const actorCard = overlay.find(`.cpb-cinematic-card[data-token-id="${a.id}"]`);
-            return actorCard.find('.cpb-cinematic-roll-result').length > 0;
-        });
-        
-        if (allComplete) {
-            setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
-        }
+            // Check if all rolls are complete to hide the overlay
+            const allComplete = messageData.actors.every(a => {
+                const actorCard = overlay.find(`.cpb-cinematic-card[data-token-id="${a.id}"]`);
+                return actorCard.find('.cpb-cinematic-roll-result').length > 0;
+            });
+            
+            if (allComplete) {
+                setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
+            }
+        }, 2000); // 2-second delay for animation
     }
 
     /**
