@@ -64,7 +64,7 @@
                 {{/each}}
               </div>
             </span>
-            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{multiplier}} = <strong>{{finalXp}}</strong></span>
+            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{formatMultiplier multiplier}} = <strong>{{finalXp}}</strong></span>
           </div>
           {{/each}}
         </div>
@@ -99,7 +99,7 @@
           {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
           {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
           <span class="legend-label">{{label}}:</span>
-          <span class="legend-multiplier">{{multiplier}} XP</span>
+          <span class="legend-multiplier">{{formatMultiplier multiplier}} XP</span>
           <span class="legend-desc">{{desc}} </span>
         </div>
         {{/each}}

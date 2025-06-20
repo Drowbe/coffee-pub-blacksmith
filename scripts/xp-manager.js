@@ -50,6 +50,12 @@ export class XpManager {
                 return resolution.charAt(0).toUpperCase() + resolution.slice(1).toLowerCase();
             });
         }
+
+        // Register Handlebars helper for formatting XP multipliers
+        Handlebars.registerHelper('formatMultiplier', function(multiplier) {
+            if (typeof multiplier !== 'number') return '0.00';
+            return multiplier.toFixed(2);
+        });
     }
 
     /**
@@ -648,7 +654,7 @@ class XpDistributionWindow extends FormApplication {
         // Update monster rows
         this.xpData.monsters.forEach((monster, i) => {
             const row = html.find('.xp-monster-row').eq(i);
-            row.find('.monster-xp-calc').html(`${monster.baseXp} ×${monster.multiplier} = <strong>${monster.finalXp}</strong>`);
+            row.find('.monster-xp-calc').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
         });
 
         // Update player rows
