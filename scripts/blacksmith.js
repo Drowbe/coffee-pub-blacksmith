@@ -1323,8 +1323,8 @@ export class ThirdPartyManager {
             const flags = message.flags['coffee-pub-blacksmith'];
             if (!flags?.type === 'skillCheck') return;
 
-            // Use centralized logic from SkillCheckDialog
-            const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.actorId, data.data.result);
+            // Use centralized logic from SkillCheckDialog - now expects token ID
+            const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.tokenId, data.data.result);
             const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
             await message.update({ 
                 content,
@@ -1333,8 +1333,8 @@ export class ThirdPartyManager {
                 }
             });
 
-            // Play the correct sound
-            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.actorId);
+            // Play the correct sound - now expects token ID
+            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.data.tokenId);
             playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
 
             // If this was a requested roll, update the GM's interface
@@ -1359,10 +1359,10 @@ export async function handleSkillRollUpdate(data) {
     if (!flags?.type === 'skillCheck') return;
 
     // --- Always recalculate group roll summary on the GM side ---
-    // 1. Update the correct actor's result
+    // 1. Update the correct actor's result - now using token ID
     const actors = (flags.actors || []).map(a => ({
         ...a,
-        result: a.id === data.actorId ? data.result : a.result
+        result: a.id === data.tokenId ? data.result : a.result // Match by token ID
     }));
 
     // 2. Recalculate group roll summary
@@ -1427,8 +1427,8 @@ export async function handleSkillRollUpdate(data) {
         }
     });
 
-    // Play the correct sound
-    const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.actorId);
+    // Play the correct sound - now expects token ID
+    const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
     playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
 
     // If this was a requested roll, update the GM's interface

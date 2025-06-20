@@ -95,7 +95,7 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            <button class="cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
+                            <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
                                 <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
                             </button>
                         </div>
@@ -136,7 +136,7 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            <button class="cpb-skill-roll" data-actor-id="{{this.id}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}">
+                            <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}">
                                 <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
                             </button>
                         </div>

@@ -42,7 +42,7 @@ export class SkillCheckDialog extends Application {
         const canvasTokens = canvas.tokens.placeables
             .filter(t => t.actor)
             .map(t => ({
-                id: t.actor.id,
+                id: t.id,
                 name: t.actor.name,
                 hasOwner: t.actor.hasPlayerOwner,
                 actor: t.actor,
@@ -158,8 +158,9 @@ export class SkillCheckDialog extends Application {
         console.log('Selected actors count:', selectedCount);
         
         selectedActors.each((i, el) => {
-            const actorId = el.dataset.actorId;
-            const actor = game.actors.get(actorId);
+            const tokenId = el.dataset.tokenId; // Updated to use new data attribute name
+            const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+            const actor = token?.actor;
             if (!actor) return;
 
             // Get tool proficiencies from the actor
@@ -169,12 +170,12 @@ export class SkillCheckDialog extends Application {
                 if (!toolProfs.has(tool.name)) {
                     toolProfs.set(tool.name, {
                         count: 1,
-                        actorTools: new Map([[actorId, tool.id]])
+                        actorTools: new Map([[actor.id, tool.id]]) // Use actor.id for tool mapping
                     });
                 } else {
                     const toolData = toolProfs.get(tool.name);
                     toolData.count++;
-                    toolData.actorTools.set(actorId, tool.id);
+                    toolData.actorTools.set(actor.id, tool.id); // Use actor.id for tool mapping
                 }
             });
         });
@@ -365,8 +366,9 @@ export class SkillCheckDialog extends Application {
                 // Party roll: select all party members
                 if (rollType === 'party') {
                     html.find('.cpb-actor-item').each((i, actorItem) => {
-                        const actorId = actorItem.dataset.actorId;
-                        const actor = game.actors.get(actorId);
+                        const tokenId = actorItem.dataset.tokenId; // This is now a token ID
+                        const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                        const actor = token?.actor;
                         if (actor && actor.hasPlayerOwner) {
                             actorItem.classList.add('selected');
                             actorItem.classList.add('cpb-group-1');
@@ -529,15 +531,21 @@ export class SkillCheckDialog extends Application {
         // Handle the roll button
         html.find('button[data-button="roll"]').click(async (ev) => {
             // Guard clause: Only proceed if the current user is the owner of at least one selected actor or is GM
-            const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => ({
-                id: item.dataset.actorId,
-                name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
-                group: item.classList.contains('cpb-group-1') ? 1 : 
-                       item.classList.contains('cpb-group-2') ? 2 : 1
-            }));
+            const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => {
+                const tokenId = item.dataset.tokenId; // This is now a token ID
+                const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                const actor = token?.actor;
+                return {
+                    tokenId: tokenId,
+                    actorId: actor?.id, // Get the actual actor ID for roll operations
+                    name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
+                    group: item.classList.contains('cpb-group-1') ? 1 : 
+                           item.classList.contains('cpb-group-2') ? 2 : 1,
+                    actor: actor // Store the actor object for convenience
+                };
+            });
             const isRoller = selectedActors.some(a => {
-                const actor = game.actors.get(a.id);
-                return actor && (actor.isOwner || game.user.isGM);
+                return a.actor && (a.actor.isOwner || game.user.isGM);
             });
             if (!isRoller) return;
             
@@ -642,11 +650,16 @@ export class SkillCheckDialog extends Application {
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
-                const result = { ...actor };
+                const result = { 
+                    id: actor.tokenId, // Use token ID as the primary id (for template matching)
+                    actorId: actor.actorId, // Store actor ID for roll operations
+                    name: actor.name,
+                    group: actor.group
+                };
                 if (actor.group === 1 && challengerRollType === 'tool') {
-                    result.toolId = typeof challengerRollValue === 'function' ? challengerRollValue(actor.id) : challengerRollValue;
+                    result.toolId = typeof challengerRollValue === 'function' ? challengerRollValue(actor.actorId) : challengerRollValue;
                 } else if (actor.group === 2 && defenderRollType === 'tool') {
-                    result.toolId = typeof defenderRollValue === 'function' ? defenderRollValue(actor.id) : defenderRollValue;
+                    result.toolId = typeof defenderRollValue === 'function' ? defenderRollValue(actor.actorId) : defenderRollValue;
                 }
                 return result;
             });
@@ -783,12 +796,12 @@ export class SkillCheckDialog extends Application {
 
             // Immediately after the switch, check if roll is defined
             if (typeof roll === 'undefined') return;
-            // Always emit the update to the GM (even if GM is rolling)
+            // Always emit the update to the GM (even if GM is rolling) - use token ID for the update
             game.socket.emit('module.coffee-pub-blacksmith', {
                 type: 'updateSkillRoll',
                 data: {
                     messageId: chatMessage.id,
-                    actorId: processedActors[0].id,
+                    tokenId: processedActors[0].tokenId, // Use token ID for the update
                     result: roll
                 }
             });
@@ -796,7 +809,7 @@ export class SkillCheckDialog extends Application {
             if (game.user.isGM) {
                 await handleSkillRollUpdate({
                     messageId: chatMessage.id,
-                    actorId: processedActors[0].id,
+                    tokenId: processedActors[0].tokenId, // Use token ID for the update
                     result: roll
                 });
             }
@@ -952,9 +965,9 @@ export class SkillCheckDialog extends Application {
     // Update helper method to optionally defer visibility updates
     _applyFilter(html, filterType, updateVisibility = true) {
         html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
-            const actorId = el.dataset.actorId;
-            const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
-            const actor = game.actors.get(actorId);
+            const tokenId = el.dataset.tokenId; // This is now a token ID
+            const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+            const actor = token?.actor;
             
             if (!actor) return;
             
@@ -962,7 +975,7 @@ export class SkillCheckDialog extends Application {
             switch (filterType) {
                 case 'selected':
                     // Show only selected tokens on canvas
-                    show = canvas.tokens.controlled.some(t => t.actor?.id === actorId);
+                    show = canvas.tokens.controlled.some(t => t.id === tokenId);
                     break;
                 case 'canvas':
                     // Show all tokens on canvas regardless of type
@@ -998,15 +1011,15 @@ export class SkillCheckDialog extends Application {
     /**
      * Centralized skill check result processing for use by other modules.
      * @param {object} messageData - The chat message data (flags) for the skill check.
-     * @param {string} actorId - The actor ID whose result is being updated.
+     * @param {string} tokenId - The token ID whose result is being updated.
      * @param {object} result - The roll result object to apply.
      * @returns {object} Updated messageData with the new result.
      */
-    static processRollResult(messageData, actorId, result) {
-        // Update the actors array with the new result
+    static processRollResult(messageData, tokenId, result) {
+        // Update the actors array with the new result - match by token ID
         const actors = (messageData.actors || []).map(a => ({
             ...a,
-            result: a.id === actorId ? result : a.result
+            result: a.id === tokenId ? result : a.result
         }));
         return {
             ...messageData,
@@ -1017,15 +1030,15 @@ export class SkillCheckDialog extends Application {
     /**
      * Centralized logic to determine which sound to play for a skill check result.
      * @param {object} messageData - The chat message data (flags) for the skill check.
-     * @param {string} actorId - The actor ID whose result was just posted.
+     * @param {string} tokenId - The token ID whose result was just posted.
      * @returns {string} The COFFEEPUB sound constant to play.
      */
-    static getResultSound(messageData, actorId) {
+    static getResultSound(messageData, tokenId) {
         const isGroupRoll = messageData.isGroupRoll;
         const dc = messageData.dc;
         let actorResult = null;
         if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
-            actorResult = messageData.actors.find(a => a.id === actorId && a.result && typeof a.result.total === 'number');
+            actorResult = messageData.actors.find(a => a.id === tokenId && a.result && typeof a.result.total === 'number');
         }
         if (!isGroupRoll) {
             if (dc && actorResult && typeof actorResult.result.total === 'number') {
@@ -1052,243 +1065,6 @@ export class SkillCheckDialog extends Application {
         return renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
     }
 
-
-
-
-
-
-
-
-
-/**
- * Centralized handler for processing a skill check roll button click from chat.
- * @param {object} message - The chat message object.
- * @param {string} actorId - The actor ID whose button was clicked.
- * @param {string} type - The type of roll (skill, save, ability, tool, dice).
- * @param {string} value - The value for the roll (skill id, save id, etc).
- * @returns {Promise<{content: string, updatedMessageData: object, sound: string}>}
- */
-static async handleRollButtonClick(message, actorId, type, value) {
-    const flags = message.flags['coffee-pub-blacksmith'];
-    if (!flags) return { content: null, updatedMessageData: null, sound: null };
-  
-    const actor = game.actors.get(actorId);
-    if (!actor?.isOwner) {
-      ui.notifications.warn("You don't have permission to roll for this character.");
-      return { content: null, updatedMessageData: null, sound: null };
-    }
-  
-    let roll;
-    try {
-      switch (type) {
-        case 'dice':
-          try {
-            roll = new Roll(value);
-            await roll.evaluate({ async: true });
-            rollCoffeePubDice(roll);
-          } catch (err) {
-            ui.notifications.error(`Invalid roll formula: ${value}`);
-            console.error("Dice roll error:", err);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-          break;
-  
-        case 'skill':
-          if (!CONFIG.DND5E.skills[value]) {
-            ui.notifications.warn(`Unknown skill ID: ${value}`);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-          if (typeof actor?.rollSkillV2 === 'function') {
-            postConsoleAndNotification("Rolling using rollSkillV2", "", false, true, false, "BLACKSMITH");
-            roll = await actor.rollSkillV2(value, { chatMessage: false, createMessage: false });
-          } else {
-            postConsoleAndNotification("Rolling using rollSkill", "", false, true, false, "BLACKSMITH");
-            roll = await actor.rollSkill(value, { chatMessage: false, createMessage: false });
-          }
-          break;
-  
-        case 'ability':
-          if (!CONFIG.DND5E.abilities[value]) {
-            ui.notifications.warn(`Unknown ability ID: ${value}`);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-          roll = await actor.rollAbilityTest(value, { chatMessage: false, createMessage: false });
-          break;
-  
-        case 'save':
-          if (value !== 'death' && !CONFIG.DND5E.abilities[value]) {
-            ui.notifications.warn(`Unknown saving throw ability: ${value}`);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-          if (value === 'death') {
-            roll = await actor.rollDeathSave({ chatMessage: false, createMessage: false });
-          } else {
-            roll = await actor.rollSavingThrow(value, { chatMessage: false, createMessage: false });
-          }
-          break;
-  
-        case 'tool': {
-          const actorData = flags.actors.find(a => a.id === actorId);
-          const toolId = actorData?.toolId;
-          if (!toolId) {
-            ui.notifications.error(`No tool ID found for actor ${actor.name}`);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-          const item = actor.items.get(toolId);
-          if (!item) {
-            ui.notifications.error(`Tool not found on actor: ${toolId}`);
-            return { content: null, updatedMessageData: null, sound: null };
-          }
-  
-          const rollData = actor.getRollData();
-          const ability = item.system.ability || "int";
-          const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-          const prof = item.system.proficient ? actor.system.attributes.prof : 0;
-          const totalMod = abilityMod + prof;
-          const formula = `1d20 + ${totalMod}`;
-  
-          roll = new Roll(formula, rollData);
-          await roll.evaluate({ async: true });
-          rollCoffeePubDice(roll);
-          break;
-        }
-  
-        default:
-          ui.notifications.warn(`Unsupported roll type: ${type}`);
-          return { content: null, updatedMessageData: null, sound: null };
-      }
-  
-      if (typeof roll === 'undefined') return { content: null, updatedMessageData: null, sound: null };
-  
-      const dc = Number.isFinite(flags.dc) ? flags.dc : parseInt(flags.dc) || null;
-      let rollResultStr = "";
-      if (dc) {
-        const success = roll.total >= dc;
-        rollResultStr = `DC ${dc} Check with a roll of ${roll.total} (${success ? 'success' : 'failure'})`;
-      } else {
-        rollResultStr = `Roll Result: ${roll.total}`;
-      }
-  
-      const actors = flags.actors.map(a => ({
-        ...a,
-        result: a.id === actorId ? (
-          roll ? {
-            total: roll.total,
-            formula: roll.formula,
-            resultString: rollResultStr
-          } : {
-            total: "No Roll Needed",
-            formula: "Invalid Death Save",
-            error: "Character is not eligible for death saves"
-          }
-        ) : a.result
-      }));
-  
-      let groupRollData = {};
-      if (flags.isGroupRoll) {
-        const completedRolls = actors.filter(a => a.result);
-        const allRollsComplete = completedRolls.length === actors.length;
-        groupRollData = {
-          isGroupRoll: true,
-          allRollsComplete
-        };
-        if (allRollsComplete && flags.dc) {
-          const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
-          const totalCount = actors.length;
-          const groupSuccess = successCount > (totalCount / 2);
-          Object.assign(groupRollData, {
-            successCount,
-            totalCount,
-            groupSuccess
-          });
-        }
-      }
-  
-      let contestedRoll;
-      if (flags.hasMultipleGroups && actors.every(a => a.result)) {
-        const group1 = actors.filter(a => a.group === 1);
-        const group2 = actors.filter(a => a.group === 2);
-        const group1Highest = Math.max(...group1.map(a => a.result.total));
-        const group2Highest = Math.max(...group2.map(a => a.result.total));
-        if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
-          contestedRoll = {
-            winningGroup: 0,
-            group1Highest,
-            group2Highest,
-            isTie: true
-          };
-        } else {
-          const isGroup1Winner = group1Highest > group2Highest;
-          contestedRoll = {
-            winningGroup: isGroup1Winner ? 1 : 2,
-            group1Highest,
-            group2Highest,
-            isTie: group1Highest === group2Highest
-          };
-        }
-      }
-  
-      const updatedMessageData = {
-        ...flags,
-        ...groupRollData,
-        actors,
-        contestedRoll
-      };
-  
-      game.socket.emit('module.coffee-pub-blacksmith', {
-        type: 'updateSkillRoll',
-        data: {
-          messageId: message.id,
-          actorId,
-          result: roll
-        }
-      });
-  
-      if (game.user.isGM) {
-        await handleSkillRollUpdate({
-          messageId: message.id,
-          actorId,
-          result: roll
-        });
-      }
-  
-      if (message.app instanceof SkillCheckDialog && message.app.onRollComplete) {
-        message.app.onRollComplete(rollResultStr);
-      }
-  
-      const isGroupRoll = updatedMessageData.isGroupRoll;
-      if (!isGroupRoll) {
-        if (dc && roll) {
-          if (roll.total >= dc) {
-            playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL);
-          } else {
-            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-          }
-        } else {
-          playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL);
-        }
-      } else {
-        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-      }
-  
-      return { content: null, updatedMessageData, sound: null };
-    } catch (err) {
-      console.error("Blacksmith roll handler error:", err);
-      ui.notifications.error("There was a problem processing this roll.");
-      return { content: null, updatedMessageData: null, sound: null };
-    }
-  }
-  
-
-
-
-
-
-
-
-
-
-
     /**
      * Attach listeners to chat card roll buttons and handle roll logic.
      * @param {object} message - The chat message object.
@@ -1299,9 +1075,32 @@ static async handleRollButtonClick(message, actorId, type, value) {
             $(btn).off('click').on('click', async (event) => {
                 console.log('Handler attached, message:', message);
                 const button = event.currentTarget;
-                const actorId = button.dataset.actorId;
-                const actor = game.actors.get(actorId);
-                if (!actor?.isOwner) {
+                const tokenId = button.dataset.tokenId; // Get token ID
+                const actorId = button.dataset.actorId; // Get actor ID for roll operations
+                
+                console.log('Debug - tokenId:', tokenId, 'actorId:', actorId);
+                
+                // Get the token and actor
+                const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                console.log('Debug - found token:', token);
+                
+                let actor = null;
+                if (token?.actor) {
+                    actor = token.actor;
+                    console.log('Debug - got actor from token:', actor);
+                } else if (actorId) {
+                    actor = game.actors.get(actorId);
+                    console.log('Debug - got actor from actorId:', actor);
+                }
+                
+                if (!actor) {
+                    ui.notifications.error(`Could not find actor for token ${tokenId} or actor ${actorId}`);
+                    console.error('Debug - No actor found for tokenId:', tokenId, 'actorId:', actorId);
+                    return;
+                }
+                
+                // Check permissions: GMs can roll for any token, others need ownership
+                if (!game.user.isGM && !actor?.isOwner) {
                     ui.notifications.warn("You don't have permission to roll for this character.");
                     return;
                 }
@@ -1337,7 +1136,7 @@ static async handleRollButtonClick(message, actorId, type, value) {
                             }
                             break;
                         case 'tool': {
-                            const actorData = flags.actors.find(a => a.id === actorId);
+                            const actorData = flags.actors.find(a => a.id === tokenId); // Find by token ID
                             const toolId = actorData?.toolId;
                             if (!toolId) {
                                 ui.notifications.error(`No tool ID found for actor ${actor.name}`);
@@ -1348,6 +1147,7 @@ static async handleRollButtonClick(message, actorId, type, value) {
                                 ui.notifications.error(`Tool not found on actor: ${toolId}`);
                                 return;
                             }
+  
                             const rollData = actor.getRollData();
                             const ability = item.system.ability || "int";
                             const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
@@ -1376,10 +1176,10 @@ static async handleRollButtonClick(message, actorId, type, value) {
                         rollResultStr = `Roll Result: ${roll.total}`;
                     }
 
-                    // Update the actors array with the roll result
+                    // Update the actors array with the roll result - use token ID for matching
                     const actors = flags.actors.map(a => ({
                         ...a,
-                        result: a.id === actorId ? (
+                        result: a.id === tokenId ? ( // Match by token ID
                             roll ? {
                                 total: roll.total,
                                 formula: roll.formula,
@@ -1446,12 +1246,12 @@ static async handleRollButtonClick(message, actorId, type, value) {
                         contestedRoll
                     };
 
-                    // Always emit the update to the GM (even if GM is rolling)
+                    // Always emit the update to the GM (even if GM is rolling) - use token ID for the update
                     game.socket.emit('module.coffee-pub-blacksmith', {
                         type: 'updateSkillRoll',
                         data: {
                             messageId: message.id,
-                            actorId,
+                            tokenId: tokenId, // Use token ID for the update
                             result: roll
                         }
                     });
@@ -1459,7 +1259,7 @@ static async handleRollButtonClick(message, actorId, type, value) {
                     if (game.user.isGM) {
                         await handleSkillRollUpdate({
                             messageId: message.id,
-                            actorId,
+                            tokenId: tokenId, // Use token ID for the update
                             result: roll
                         });
                     }
