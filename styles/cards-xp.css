@@ -43,17 +43,40 @@
 }
 
 .cpb-xp-card .xp-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     margin-top: 8px;
     margin-bottom: 20px;
-    
+}
+
+.cpb-xp-card .xp-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(145, 133, 107, 0.2);
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 6px;
+    padding-right: 6px;
+    border-radius: 3px;
+}
+
+.cpb-xp-card .xp-total-row .xp-total-label {
+    font-size: 1.0em;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.cpb-xp-card .xp-total-row .xp-total-value {
+    font-size: 1.2em;
+    font-weight: 900;
+    color: rgba(20, 20, 20, 0.9);
 }
 
 .cpb-xp-card .xp-totals p {
     margin: 4px 0;
     
 }
-
-
 
 .cpb-xp-card .monster-list {
     display: flex;

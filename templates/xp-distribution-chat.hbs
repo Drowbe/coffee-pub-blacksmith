@@ -7,10 +7,22 @@
     <div class="card-content">
         <div class="cpb-xp-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
         <div class="xp-totals">
-            <p><strong>Total Encounter XP:</strong> {{xpData.totalXp}}</p>
-            <p><strong>Party Size:</strong> {{xpData.partySize}} (×{{formatMultiplier xpData.partyMultiplier}} multiplier)</p>
-            <p><strong>Adjusted Total XP:</strong> {{xpData.adjustedTotalXp}}</p>
-            <p><strong>Base XP per Player:</strong> {{xpData.xpPerPlayer}}</p>
+            <div class="xp-total-row">
+                <span class="xp-total-label">Party Size</span>
+                <span class="xp-total-value">{{xpData.partySize}} x {{formatMultiplier xpData.partyMultiplier}} Multiplier</span>
+            </div>
+            <div class="xp-total-row">
+                <span class="xp-total-label">Encounter XP</span>
+                <span class="xp-total-value">{{xpData.totalXp}}</span>
+            </div>
+            <div class="xp-total-row">
+                <span class="xp-total-label">Adjusted XP</span>
+                <span class="xp-total-value">{{xpData.adjustedTotalXp}}</span>
+            </div>
+            <div class="xp-total-row">
+                <span class="xp-total-label">Base Player XP</span>
+                <span class="xp-total-value">{{xpData.xpPerPlayer}}</span>
+            </div>
         </div>
 
         {{!-- Player Results --}}
