@@ -13,6 +13,30 @@
             <p><strong>Base XP per Player:</strong> {{xpData.xpPerPlayer}}</p>
         </div>
 
+        {{!-- Player Results --}}
+        {{#if results.length}}
+        <div class="cpb-xp-card-section-header"><i class="fas fa-users"></i> Experience Allocations</div>
+        <div class="player-list">
+            {{#each results}}
+            <div class="player-item">
+                <div class="cpb-xp-player-info">
+                    <img class="player-portrait" src="{{img}}" alt="{{name}}" />
+                    <div class="cpb-xp-player-details">
+                        <span class="cpb-actor-name">{{name}}</span>
+                        <span class="total-xp">NEW XP: {{totalXp}}</span>
+                    </div>
+                </div>
+                <div class="cpb-xp-player-awards">
+                    <span class="xp-gained">+{{xpGained}} XP</span>
+                    {{#if leveledUp}}
+                    <span class="level-up">LEVEL UP!</span>
+                    {{/if}}
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        {{/if}}
+
         {{!-- Monster Breakdown --}}
         {{#if xpData.monsters.length}}
         <div class="cpb-xp-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
@@ -30,24 +54,6 @@
                     <span class="cpb-xp-monster-name" title="{{name}}">{{name}}</span>
                 </div>
                 <span class="cpb-xp-monster-points">{{finalXp}} XP</span>
-            </div>
-            {{/each}}
-        </div>
-        {{/if}}
-
-        {{!-- Player Results --}}
-        {{#if results.length}}
-        <div class="cpb-xp-card-section-header"><i class="fas fa-users"></i> Player Results</div>
-        <div class="player-list">
-            {{#each results}}
-            <div class="player-item flexrow">
-                <img class="player-portrait" src="{{img}}" alt="{{name}}" />
-                <span class="cpb-actor-name">{{name}}</span>
-                <span class="xp-gained">+{{xpGained}} XP</span>
-                <span class="total-xp">(Total: {{totalXp}})</span>
-                {{#if leveledUp}}
-                <span class="level-up">🎉 LEVEL UP! 🎉</span>
-                {{/if}}
             </div>
             {{/each}}
         </div>

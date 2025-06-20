@@ -79,6 +79,8 @@
 
 .cpb-xp-card .cpb-xp-resolution-icon {
     flex-shrink: 0;
+    width: 20px;
+    text-align: center;
 }
 .cpb-xp-card .cpb-xp-resolution-icon i {
     font-size: 1.0em;
@@ -106,13 +108,25 @@
 }
 
 .cpb-xp-card .player-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 8px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding: 4px;
     background: rgba(0,0,0,0.03);
     border-radius: 3px;
+}
+
+.cpb-xp-card .cpb-xp-player-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.cpb-xp-card .cpb-xp-player-details {
+    display: flex;
+    flex-direction: column;
 }
 
 .cpb-xp-card .monster-name {
@@ -128,12 +142,15 @@
 }
 
 .cpb-xp-card .cpb-actor-name {
-    font-weight: bold;
+    font-size: 1.2em;
+    font-weight: 900;
 }
 
 .cpb-xp-card .xp-gained {
-    font-weight: bold;
+    font-weight: 900;
+    font-size: 1.4em;
     color: #18520b;
+    flex-shrink: 0;
 }
 
 .cpb-xp-card .total-xp {
