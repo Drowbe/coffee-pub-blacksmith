@@ -1093,6 +1093,7 @@ export class SkillCheckDialog extends Application {
                 </div>
             </div>
         `);
+        overlay.data('messageId', messageId);
 
         $('body').append(overlay);
 
@@ -1102,44 +1103,27 @@ export class SkillCheckDialog extends Application {
         // Attach click handlers to the new roll buttons
         overlay.find('.cpb-cinematic-roll-btn').on('click', async (event) => {
             const button = event.currentTarget;
-            button.disabled = true; // Prevent double clicks
-            $(button).find('i').addClass('fa-spin'); // Add spin animation
-
             const tokenId = button.dataset.tokenId;
-            const actorId = button.dataset.actorId;
-            const message = game.messages.get(messageId);
-            const flags = message.flags['coffee-pub-blacksmith'];
 
-            let token = canvas.tokens.get(tokenId);
-            if (!token) {
-                token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
-            }
-            const actor = token?.actor || game.actors.get(actorId);
-
-            if (!game.user.isGM && !actor?.isOwner) {
-                ui.notifications.warn("You don't have permission to roll for this character.");
-                button.disabled = false;
-                $(button).find('i').removeClass('fa-spin');
-                return;
-            }
-
-            const rollType = flags.challenger.type;
-            const skillAbbr = flags.challenger.value;
-
-            try {
-                const roll = await actor.rollSkill(skillAbbr);
-                
-                game.socket.emit('module.coffee-pub-blacksmith', {
-                    type: 'updateSkillRoll',
-                    data: {
-                        messageId: messageId,
-                        tokenId: tokenId,
-                        result: roll
-                    }
-                });
-            } catch (err) {
-                console.error("Error handling cinematic skill roll:", err);
-                button.disabled = false;
+            // Find the corresponding button in the chat log and click it.
+            const chatMessageElement = $(`#chat-log .message[data-message-id="${messageId}"]`);
+            if (chatMessageElement.length) {
+                const targetButton = chatMessageElement.find(`.cpb-skill-roll[data-token-id="${tokenId}"]`);
+                if (targetButton.length) {
+                    button.disabled = true; // Prevent double clicks on overlay
+                    $(button).find('i').addClass('fa-spin'); // Add spin animation
+                    
+                    targetButton.click(); // Trigger the click on the actual chat card button
+                } else {
+                    console.warn(`Blacksmith | Cinematic: Could not find roll button for token ${tokenId} in message ${messageId}`);
+                    ui.notifications.warn("Could not find the corresponding roll button in the chat log.");
+                    button.disabled = false; // Re-enable the button if the target wasn't found
+                    $(button).find('i').removeClass('fa-spin');
+                }
+            } else {
+                console.warn(`Blacksmith | Cinematic: Could not find chat message ${messageId}`);
+                ui.notifications.warn("Could not find the corresponding chat message for this roll.");
+                button.disabled = false; // Re-enable the button if the target wasn't found
                 $(button).find('i').removeClass('fa-spin');
             }
         });

@@ -200,6 +200,15 @@ Hooks.once('init', async function() {
         else if (data.type === 'updateSkillRoll' && game.user.isGM) {
             handleSkillRollUpdate(data.data);
         }
+        // Listen for finalized skill roll to update cinematic UI
+        else if (data.type === 'skillRollFinalized') {
+            const { messageId, flags, rollData } = data.data;
+            // Check if cinematic display is active for this message
+            const cinematicOverlay = $('#cpb-cinematic-overlay');
+            if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
+                SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
+            }
+        }
     });
     
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
@@ -1331,13 +1340,30 @@ export class ThirdPartyManager {
                 flags: { 'coffee-pub-blacksmith': updatedMessageData }
             });
 
-            // Emit the final result to all clients
-            this.socket.emit("skillRollUpdated", { 
-                messageId: data.messageId,
-                content: content,
-                flags: updatedMessageData,
-                rollData: data.data // Pass along the specific roll data
+            // Broadcast the final result to all clients for UI updates (like cinematic mode)
+            game.socket.emit(`module.${MODULE_ID}`, {
+                type: 'skillRollFinalized',
+                data: {
+                    messageId: message.id,
+                    flags: updatedMessageData,
+                    rollData: data // Pass along the specific roll data (tokenId, result)
+                }
             });
+
+            // Play the correct sound - now expects token ID
+            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
+            playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
+
+            // If this was a requested roll, update the GM's interface
+            if (flags.requesterId === game.user.id) {
+                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                windows.forEach(window => {
+                    const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+                    if (inputField) {
+                        inputField.value = data.result.total;
+                    }
+                });
+            }
         });
 
         // This is received by all clients to update the chat card
@@ -1444,6 +1470,16 @@ export async function handleSkillRollUpdate(data) {
         content,
         flags: {
             'coffee-pub-blacksmith': updatedMessageData
+        }
+    });
+
+    // Broadcast the final result to all clients for UI updates (like cinematic mode)
+    game.socket.emit(`module.${MODULE_ID}`, {
+        type: 'skillRollFinalized',
+        data: {
+            messageId: message.id,
+            flags: updatedMessageData,
+            rollData: data // Pass along the specific roll data (tokenId, result)
         }
     });
 

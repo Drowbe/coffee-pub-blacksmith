@@ -95,15 +95,9 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            {{#unless ../isCinematic}}
                             <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
                                 <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
                             </button>
-                            {{else}}
-                                <div class="cpb-pending-cinematic-roll">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </div>
-                            {{/unless}}
                         </div>
                     {{/if}}
                 </div>
@@ -142,15 +136,9 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            {{#unless ../isCinematic}}
                             <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}">
                                 <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
                             </button>
-                            {{else}}
-                                <div class="cpb-pending-cinematic-roll">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </div>
-                            {{/unless}}
                         </div>
                     {{/if}}
                 </div>
