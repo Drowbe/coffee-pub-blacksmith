@@ -1,26 +1,24 @@
 <span style="visibility: none">coffeepub-hide-header</span>
 {{!-- XP Distribution Chat Message Template --}}
-<div class="dnd5e chat-card cpb-chat-card">
-    <header class="card-header flexrow cpb-card-header">
+<div class="dnd5e chat-card cpb-xp-card">
+    <header class="card-header flexrow">
         <h3 class="item-name"><i class="fas fa-star"></i> XP Distribution</h3>
     </header>
-    <div class="card-content cpb-card-content">
-        <div class="cpb-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
+    <div class="card-content">
+        <div class="cpb-xp-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
         <div class="xp-totals">
             <p><strong>Total Encounter XP:</strong> {{xpData.totalXp}}</p>
-            <p><strong>Party Size:</strong> {{xpData.partySize}} (×{{xpData.partyMultiplier}} multiplier)</p>
+            <p><strong>Party Size:</strong> {{xpData.partySize}} (×{{formatMultiplier xpData.partyMultiplier}} multiplier)</p>
             <p><strong>Adjusted Total XP:</strong> {{xpData.adjustedTotalXp}}</p>
             <p><strong>Base XP per Player:</strong> {{xpData.xpPerPlayer}}</p>
         </div>
 
         {{!-- Monster Breakdown --}}
         {{#if xpData.monsters.length}}
-        <div class="cpb-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
+        <div class="cpb-xp-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
         <div class="monster-list">
             {{#each xpData.monsters}}
             <div class="monster-item">
-                <span class="monster-name">{{name}}</span>
-                <span class="monster-cr">(CR {{cr}})</span>
                 <span class="resolution-type">
                     {{#if (eq resolutionType "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
                     {{#if (eq resolutionType "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
@@ -28,6 +26,9 @@
                     {{#if (eq resolutionType "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
                     {{#if (eq resolutionType "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
                 </span>
+                <span class="monster-name">{{name}}</span>
+                <span class="monster-cr">CR {{cr}}</span>
+
                 <span class="monster-xp">{{finalXp}} XP</span>
             </div>
             {{/each}}
@@ -36,7 +37,7 @@
 
         {{!-- Player Results --}}
         {{#if results.length}}
-        <div class="cpb-card-section-header"><i class="fas fa-users"></i> Player Results</div>
+        <div class="cpb-xp-card-section-header"><i class="fas fa-users"></i> Player Results</div>
         <div class="player-list">
             {{#each results}}
             <div class="player-item flexrow">
@@ -53,7 +54,7 @@
         {{/if}}
 
         {{!-- Resolution Types Legend --}}
-        <div class="cpb-card-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
+        <div class="cpb-xp-card-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
         <div class="legend-items">
             <span class="legend-item"><strong>DEFEATED:</strong> Full XP (combat victory)</span>
             <span class="legend-item"><strong>NEGOTIATED:</strong> Full XP (diplomatic success)</span>

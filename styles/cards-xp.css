@@ -2,3 +2,121 @@
 /* --- XP CARDS ----------------------- */
 /* ------------------------------------ */
 
+.cpb-xp-card {
+    font-family: var(--font-primary);
+}
+
+.cpb-xp-card .card-header {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 3px 5px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.cpb-xp-card .card-header h3 {
+    padding-left: 8px;
+    margin: 0;
+}
+
+.cpb-xp-card .card-header i {
+    padding-right: 4px;
+}
+
+.cpb-xp-card .card-content {
+    padding: 8px;
+}
+
+.cpb-xp-card-section-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 3px;
+    font-size: 1.0em;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #481515;
+    display: flex;
+    align-items: center;
+}
+
+.cpb-xp-card-section-header i {
+    margin-right: 6px;
+}
+
+.cpb-xp-card .xp-totals p {
+    margin: 4px 0;
+}
+
+.cpb-xp-card .monster-list,
+.cpb-xp-card .player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.cpb-xp-card .monster-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.cpb-xp-card .player-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 4px;
+    background: rgba(0,0,0,0.03);
+    border-radius: 3px;
+}
+
+.cpb-xp-card .monster-name {
+    font-weight: bold;
+}
+
+.cpb-xp-card .player-portrait {
+    width: 36px;
+    height: 36px;
+    border: none;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.cpb-xp-card .cpb-actor-name {
+    font-weight: bold;
+}
+
+.cpb-xp-card .xp-gained {
+    font-weight: bold;
+    color: #18520b;
+}
+
+.cpb-xp-card .total-xp {
+    color: #555;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.cpb-xp-card .level-up {
+    font-weight: bold;
+    color: #c35206;
+}
+
+.cpb-xp-card .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9em;
+    margin-top: 8px;
+}
+
+.cpb-xp-card .resolution-type {
+    min-width: 20px;
+}
+
+.cpb-xp-card .monster-xp {
+    min-width: 60px;
+    text-align: right;
+}
+
