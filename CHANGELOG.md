@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.18] - Experience Points
+
+### Added
+- **XP Distribution Chat Card:** Introduced a new, visually distinct chat card to display XP distribution results, separate from the main XP window.
+- **Dedicated CSS for XP Card:** Created a new stylesheet (`cards-xp.css`) and namespaced all classes to ensure consistent styling and prevent conflicts.
+
+### Changed
+- **XP Chat Card Layout:** Completely redesigned the chat card for improved clarity and aesthetics:
+  - The **XP Summary** section now uses a clean, two-column layout.
+  - The **Player Results** section has been updated to feature the character portrait, name, and new total XP on the left, with the XP gained aligned to the right.
+  - The **Monster Resolutions** section now aligns all monster names and icons for a tidier list, with XP values aligned to the right.
+- **Improved Data Formatting:** XP multipliers are now consistently formatted to two decimal places (e.g., 1.00) on all displays.
+
+### Removed
+- **Removed CR from Chat Card:** The monster Challenge Rating is no longer displayed on the XP chat card to reduce clutter.
+- **Removed Legend from Chat Card:** The resolution types legend was removed from the chat card for a more streamlined look.
 
 ## [1.0.17] - Compendiums
 
