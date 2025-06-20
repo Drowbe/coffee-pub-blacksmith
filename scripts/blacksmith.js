@@ -209,6 +209,10 @@ Hooks.once('init', async function() {
                 SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
             }
         }
+        // Listen for the instruction to show the cinematic overlay
+        else if (data.type === 'showCinematicOverlay') {
+            SkillCheckDialog._showCinematicDisplay(data.data.messageData, data.data.messageId);
+        }
     });
     
     postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
