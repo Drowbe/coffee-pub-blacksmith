@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.18] - Experience Points
+## [1.0.18] - Multiple Token Bug Fix
+
+### Fixed
+- **Multiple Token Roll Bug:** Fixed critical issue where multiple tokens of the same actor (e.g., multiple copies of the same monster) would all roll together when one was selected for a skill check
+- **Token ID System:** Completely refactored skill check system to use token IDs instead of actor IDs for unique identification
+- **Chat Card Roll Buttons:** Updated chat card roll buttons to work with individual token instances
+- **Permission Handling:** Fixed permission checks to allow GMs to roll for any token while maintaining proper ownership checks for players
+- **Actor Lookup:** Improved actor lookup logic with better error handling and debugging for token-to-actor resolution
+
+### Changed
+- **Data Structure:** Updated skill check message data to store both token ID (for unique identification) and actor ID (for roll operations)
+- **Template Attributes:** Changed data attributes from `data-actor-id` to `data-token-id` for clarity
+- **Socket Communication:** Updated socket handlers to work with token IDs for proper multi-token support
+
+### Technical Details
+- Changed `getData()` method to use `t.id` (token ID) instead of `t.actor.id` (actor ID)
+- Updated all JavaScript methods to handle token ID to actor ID resolution
+- Fixed chat card template to store both token and actor IDs
+- Improved error handling for cases where tokens or actors might not be found
+
+## [1.0.17] - Experience Points
 
 ### Added
 - **XP Distribution Chat Card:** Introduced a new, visually distinct chat card to display XP distribution results, separate from the main XP window.
@@ -22,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed CR from Chat Card:** The monster Challenge Rating is no longer displayed on the XP chat card to reduce clutter.
 - **Removed Legend from Chat Card:** The resolution types legend was removed from the chat card for a more streamlined look.
 
-## [1.0.17] - Compendiums
+## [1.0.16] - Compendiums
 
 ### Added
 - **Enhanced Compendium Mapping System**
@@ -50,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed old `monsterCompendiumPrimary` and `monsterCompendiumSecondary` settings
 - Removed legacy compendium lookup code
 
-## [1.0.16] - Optimizations
+## [1.0.15] - Optimizations
 
 ### Fixed
 - Group roll summary (success/failure) now displays correctly after all players or the GM have rolled, regardless of who initiates the roll.
@@ -68,12 +88,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Compatibility
 - Fully compatible with DnD5e 4.1+ and future-proofed for 4.5+ removal of deprecated APIs.
 - No longer triggers deprecation warnings for skill rolls.
-
-## [1.0.15] - 2025-04-29 - Minor Card Update
-
-### Changed
-- Updated unified cards
-- Updated card css to be cleaner and take up less room in chat
 
 ## [1.0.14] - 2025-04-28 - Excluded Users and Character Leadership
 
@@ -229,7 +243,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Streamlined weapon display to show name and info next to image
 - Simplified text colors to use default panel text colors
 - Improved weapon information layout for better clarity
-
 
 ## [1.0.9] - Combat Tracker Enhancements
 
