@@ -770,8 +770,8 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
-    align-items: flex-end; /* Align bar to the bottom */
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-end;
     z-index: 90;
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -784,12 +784,18 @@
 
 #cpb-cinematic-bar {
     width: 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+    align-self: stretch;
+    flex: 0 0 auto;
+
     background-image: url('../../images/banners/banners-damage-fire-1.webp');
     background-size: cover;
     background-position: center;
     padding: 20px;
     border-top: 4px solid #4f120c;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+
     display: flex;
     gap: 16px;
     justify-content: center;
