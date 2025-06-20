@@ -1408,10 +1408,6 @@ export class SkillCheckDialog extends Application {
                     } else {
                         playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
                     }
-
-                    if (messageData.isCinematic) {
-                        this._updateCinematicDisplay(tokenId, roll, messageData);
-                    }
                 } catch (err) {
                     console.error("Error handling skill roll:", err);
                 }

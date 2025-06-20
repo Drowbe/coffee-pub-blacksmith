@@ -1354,6 +1354,14 @@ export class ThirdPartyManager {
                 }
             });
 
+            // Directly update the GM's cinematic UI if it's open
+            if (flags.isCinematic) {
+                const cinematicOverlay = $('#cpb-cinematic-overlay');
+                if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
+                    SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
+                }
+            }
+
             // Play the correct sound - now expects token ID
             const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
             playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -1486,6 +1494,14 @@ export async function handleSkillRollUpdate(data) {
             rollData: data // Pass along the specific roll data (tokenId, result)
         }
     });
+
+    // Directly update the GM's cinematic UI if it's open
+    if (flags.isCinematic) {
+        const cinematicOverlay = $('#cpb-cinematic-overlay');
+        if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
+            SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
+        }
+    }
 
     // Play the correct sound - now expects token ID
     const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
