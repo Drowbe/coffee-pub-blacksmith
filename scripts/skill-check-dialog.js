@@ -1203,6 +1203,24 @@ export class SkillCheckDialog extends Application {
             });
             
             if (allComplete) {
+                // If it is a group roll, display the result
+                if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess')) {
+                    const { groupSuccess, successCount, totalCount } = messageData;
+                    const resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
+                    const detailText = `(${successCount} of ${totalCount} passed)`;
+                    const resultClass = groupSuccess ? 'success' : 'failure';
+
+                    const groupResultHtml = `
+                        <div class="cpb-cinematic-group-result ${resultClass}">
+                            <div class="cpb-cinematic-group-result-text">${resultText}</div>
+                            <div class="cpb-cinematic-group-result-detail">${detailText}</div>
+                        </div>
+                    `;
+                    
+                    // Insert after the main roll details
+                    overlay.find('.cpb-cinematic-roll-details').after(groupResultHtml);
+                }
+
                 setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
             }
         }, 2000); // 2-second delay for animation
@@ -1213,6 +1231,9 @@ export class SkillCheckDialog extends Application {
      */
     static _hideCinematicDisplay() {
         const overlay = $('#cpb-cinematic-overlay');
+        if (game.user.isGM) {
+            game.socket.emit(`module.${MODULE_ID}`, { type: 'closeCinematicOverlay' });
+        }
         overlay.removeClass('visible');
         setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
     }

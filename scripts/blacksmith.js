@@ -192,26 +192,32 @@ Hooks.once('init', async function() {
 
     // Set up socket handler for CSS updates
     game.socket.on(`module.${MODULE_ID}`, data => {
-        if (data.type === 'updateCSS') {
-            const editor = new CSSEditor();
-            editor.applyCSS(data.css, data.transition);
-        }
-        // Handle skill roll updates
-        else if (data.type === 'updateSkillRoll' && game.user.isGM) {
-            handleSkillRollUpdate(data.data);
-        }
-        // Listen for finalized skill roll to update cinematic UI
-        else if (data.type === 'skillRollFinalized') {
-            const { messageId, flags, rollData } = data.data;
-            // Check if cinematic display is active for this message
-            const cinematicOverlay = $('#cpb-cinematic-overlay');
-            if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
-                SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
-            }
-        }
-        // Listen for the instruction to show the cinematic overlay
-        else if (data.type === 'showCinematicOverlay') {
-            SkillCheckDialog._showCinematicDisplay(data.data.messageData, data.data.messageId);
+        switch (data.type) {
+            case 'updateCSS':
+                const editor = new CSSEditor();
+                editor.applyCSS(data.css, data.transition);
+                break;
+            case 'updateSkillRoll':
+                if (game.user.isGM) {
+                    handleSkillRollUpdate(data.data);
+                }
+                break;
+            case 'skillRollFinalized':
+                const { messageId, flags, rollData } = data.data;
+                // Check if cinematic display is active for this message
+                if (flags.isCinematic) {
+                    const cinematicOverlay = $('#cpb-cinematic-overlay');
+                    if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
+                        SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
+                    }
+                }
+                break;
+            case 'showCinematicOverlay':
+                SkillCheckDialog._showCinematicDisplay(data.data.messageData, data.data.messageId);
+                break;
+            case 'closeCinematicOverlay':
+                SkillCheckDialog._hideCinematicDisplay();
+                break;
         }
     });
     
@@ -1355,7 +1361,7 @@ export class ThirdPartyManager {
             });
 
             // Directly update the GM's cinematic UI if it's open
-            if (flags.isCinematic) {
+            if (updatedMessageData.isCinematic) {
                 const cinematicOverlay = $('#cpb-cinematic-overlay');
                 if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
                     SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
@@ -1496,7 +1502,7 @@ export async function handleSkillRollUpdate(data) {
     });
 
     // Directly update the GM's cinematic UI if it's open
-    if (flags.isCinematic) {
+    if (updatedMessageData.isCinematic) {
         const cinematicOverlay = $('#cpb-cinematic-overlay');
         if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
             SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);

@@ -1,4 +1,3 @@
-
 /* OVERLAY */
 
 #cpb-cinematic-overlay {
@@ -93,6 +92,44 @@
     align-items: center;
 }
 
+/* CINEMATIC GROUP RESULT */
+
+.cpb-cinematic-group-result {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #fff;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 2px solid;
+    background: rgba(0,0,0,0.5);
+    width: fit-content;
+}
+
+.cpb-cinematic-group-result.success {
+    border-color: #4CAF50;
+    box-shadow: 0 0 10px #4CAF50;
+    color: #8eff8e;
+}
+
+.cpb-cinematic-group-result.failure {
+    border-color: #F44336;
+    box-shadow: 0 0 10px #F44336;
+    color: #ff8e8e;
+}
+
+.cpb-cinematic-group-result-text {
+    letter-spacing: 1px;
+}
+
+.cpb-cinematic-group-result-detail {
+    font-size: 0.6em;
+    font-weight: normal;
+    text-transform: none;
+    opacity: 0.8;
+}
 
 .cpb-cinematic-card {
     position: relative;
@@ -278,5 +315,5 @@
 .cpb-cinematic-close-btn:hover {
     background: #fff;
     color: #000;
-} 
+}
 
