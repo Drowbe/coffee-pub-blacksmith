@@ -236,6 +236,22 @@ export class SkillCheckDialog extends Application {
         // Apply initial filter
         this._applyFilter(html, initialFilter);
 
+        // If tokens are selected on the canvas, pre-select them in the dialog
+        if (hasSelectedTokens) {
+            canvas.tokens.controlled.forEach(token => {
+                const actorItem = html.find(`.cpb-actor-item[data-token-id="${token.id}"]`);
+                if (actorItem.length) {
+                    actorItem.addClass('selected cpb-group-1');
+                    const indicator = actorItem.find('.cpb-group-indicator');
+                    if (indicator.length) {
+                        indicator.html('<i class="fas fa-swords" title="Challengers"></i>');
+                    }
+                }
+            });
+            // Update the tool list based on the pre-selected actors
+            this._updateToolList();
+        }
+
         // Handle actor selection - updated to handle both namespaced and legacy classes
         html.find('.cpb-actor-item').on('click contextmenu', (ev) => {
             ev.preventDefault();

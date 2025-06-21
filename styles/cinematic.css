@@ -306,25 +306,21 @@
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.success {
-    border-color: #4CAF50;
-    box-shadow: 0 0 10px #4CAF50;
-
-
-    color: #8eff8e;
+    border-color: #ffc107;
+    color: #ffdf85;
+    box-shadow: 0 0 15px #ffc107;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.failure {
     border-color: #F44336;
     box-shadow: 0 0 10px #F44336;
-
-
     color: #ff8e8e;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.critical {
-    border-color: #ffc107;
-    color: #ffdf85;
-    box-shadow: 0 0 15px #ffc107;
+    border-color: #4CAF50;
+    color: #8eff8e;
+    box-shadow: 0 0 10px #4CAF50;
     animation: cpb-pulse 1.5s infinite;
 }
 
