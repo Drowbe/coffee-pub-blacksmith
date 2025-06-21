@@ -1207,18 +1207,20 @@ export class SkillCheckDialog extends Application {
                 if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess')) {
                     const { groupSuccess, successCount, totalCount } = messageData;
                     const resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
-                    const detailText = `(${successCount} of ${totalCount} passed)`;
+                    const detailText = `${successCount} of ${totalCount} Succeeded`;
                     const resultClass = groupSuccess ? 'success' : 'failure';
 
-                    const groupResultHtml = `
-                        <div class="cpb-cinematic-group-result ${resultClass}">
-                            <div class="cpb-cinematic-group-result-text">${resultText}</div>
-                            <div class="cpb-cinematic-group-result-detail">${detailText}</div>
+                    const resultsBarHtml = `
+                        <div id="cpb-cinematic-results-bar">
+                            <div class="cpb-cinematic-group-result ${resultClass}">
+                                <div class="cpb-cinematic-group-result-text">${resultText}</div>
+                                <div class="cpb-cinematic-group-result-detail">${detailText}</div>
+                            </div>
                         </div>
                     `;
                     
-                    // Insert after the main roll details
-                    overlay.find('.cpb-cinematic-roll-details').after(groupResultHtml);
+                    // Append the new results bar to the main cinematic bar
+                    overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
                 }
 
                 setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
