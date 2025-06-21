@@ -1078,8 +1078,14 @@ export class SkillCheckDialog extends Application {
             if (hasPermission && !result) {
                 rollAreaHtml = `
                     <div class="cpb-cinematic-roll-area">
-                        <button class="cpb-cinematic-roll-btn" data-token-id="${actor.id}" data-actor-id="${actor.actorId}">
+                        <button class="cpb-cinematic-roll-mod-btn" data-roll-type="disadvantage" title="Roll with Disadvantage">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="cpb-cinematic-roll-btn" data-roll-type="normal" title="Roll Normal">
                             <i class="fas fa-dice-d20"></i>
+                        </button>
+                        <button class="cpb-cinematic-roll-mod-btn" data-roll-type="advantage" title="Roll with Advantage">
+                            <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 `;
@@ -1172,30 +1178,26 @@ export class SkillCheckDialog extends Application {
         overlay.find('.cpb-cinematic-close-btn').on('click', () => this._hideCinematicDisplay());
 
         // Attach click handlers to the new roll buttons
-        overlay.find('.cpb-cinematic-roll-btn').on('click', async (event) => {
+        overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
             const button = event.currentTarget;
-            const tokenId = button.dataset.tokenId;
+            const card = button.closest('.cpb-cinematic-card');
+            const tokenId = card.dataset.tokenId;
+            const actorData = messageData.actors.find(a => a.id === tokenId);
+            if (!actorData) return;
+            
+            const rollType = button.dataset.rollType;
+            const options = {
+                advantage: rollType === 'advantage',
+                disadvantage: rollType === 'disadvantage'
+            };
 
-            // Find the corresponding button in the chat log and click it.
-            const chatMessageElement = $(`#chat-log .message[data-message-id="${messageId}"]`);
-            if (chatMessageElement.length) {
-                const targetButton = chatMessageElement.find(`.cpb-skill-roll[data-token-id="${tokenId}"]`);
-                if (targetButton.length) {
-                    button.disabled = true; // Prevent double clicks on overlay
-                    $(button).find('i').addClass('fa-spin'); // Add spin animation
-                    
-                    targetButton.click(); // Trigger the click on the actual chat card button
-                } else {
-                    console.warn(`Blacksmith | Cinematic: Could not find roll button for token ${tokenId} in message ${messageId}`);
-                    ui.notifications.warn("Could not find the corresponding roll button in the chat log.");
-                    button.disabled = false; // Re-enable the button if the target wasn't found
-                    $(button).find('i').removeClass('fa-spin');
-                }
-            } else {
-                console.warn(`Blacksmith | Cinematic: Could not find chat message ${messageId}`);
-                ui.notifications.warn("Could not find the corresponding chat message for this roll.");
-                button.disabled = false; // Re-enable the button if the target wasn't found
-                $(button).find('i').removeClass('fa-spin');
+            // Visually disable the card's roll area after a choice is made
+            const rollArea = $(card).find('.cpb-cinematic-roll-area');
+            rollArea.empty().append('<div class="cpb-cinematic-wait-icon"><i class="fas fa-hourglass-half fa-spin"></i></div>');
+
+            const chatMessage = game.messages.get(messageId);
+            if (chatMessage) {
+                await SkillCheckDialog._executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, options);
             }
         });
 
@@ -1297,6 +1299,108 @@ export class SkillCheckDialog extends Application {
     }
 
     /**
+     * Executes the roll for a given actor and updates the message.
+     * @param {object} message - The chat message object.
+     * @param {string} tokenId - The ID of the token being rolled for.
+     * @param {string} actorId - The ID of the actor being rolled for.
+     * @param {object} [options={}] - Roll options (e.g., { advantage: true }).
+     */
+    static async _executeRollAndUpdate(message, tokenId, actorId, options = {}) {
+        try {
+            const flags = message.flags['coffee-pub-blacksmith'];
+            if (!flags) return;
+
+            // Get the token and actor
+            const actor = game.actors.get(actorId);
+            if (!actor) {
+                ui.notifications.error(`Could not find the actor (ID: ${actorId}) for this roll.`);
+                return;
+            }
+            
+            // Check permissions
+            if (!game.user.isGM && !actor.isOwner) {
+                ui.notifications.warn("You don't have permission to roll for this character.");
+                return;
+            }
+
+            // Determine which roll type to use (challenger or defender)
+            const actorData = flags.actors.find(a => a.id === tokenId);
+            const isDefender = actorData?.group === 2 && flags.hasMultipleGroups;
+            const type = isDefender ? flags.defenderRollType : flags.rollType;
+            const value = isDefender ? flags.defenderSkillAbbr : flags.skillAbbr;
+
+            const rollOptions = { chatMessage: false, createMessage: false, fastForward: true, ...options };
+            let roll;
+
+            switch (type) {
+                case 'skill':
+                    roll = await actor.rollSkill(value, rollOptions);
+                    break;
+                case 'ability':
+                    roll = await actor.rollAbilityTest(value, rollOptions);
+                    break;
+                case 'save':
+                    roll = (value === 'death') 
+                        ? await actor.rollDeathSave(rollOptions) 
+                        : await actor.rollSavingThrow(value, rollOptions);
+                    break;
+                case 'tool': {
+                    const toolId = actorData?.toolId;
+                    if (!toolId) throw new Error(`No tool ID found for actor ${actor.name}`);
+                    
+                    // Use the dnd5e actor method for tool checks
+                    if (typeof actor.rollToolCheck === 'function') {
+                        roll = await actor.rollToolCheck(toolId, rollOptions);
+                    } else {
+                        // Fallback for systems that might not have rollToolCheck
+                        const item = actor.items.get(toolId);
+                        if (!item) throw new Error(`Tool not found on actor: ${toolId}`);
+                        const rollData = actor.getRollData();
+                        const ability = item.system.ability || "int";
+                        const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                        const prof = item.system.proficient ? actor.system.attributes.prof : 0;
+                        const totalMod = abilityMod + prof;
+                        let formula = `1d20 + ${totalMod}`;
+                        if (options.advantage) formula = `2d20kh + ${totalMod}`;
+                        else if (options.disadvantage) formula = `2d20kl + ${totalMod}`;
+                        roll = new Roll(formula, rollData);
+                        await roll.evaluate({ async: true });
+                        rollCoffeePubDice(roll);
+                    }
+                    break;
+                }
+                default:
+                    return;
+            }
+
+            if (!roll) return;
+
+            // Emit the update to the GM
+            game.socket.emit('module.coffee-pub-blacksmith', {
+                type: 'updateSkillRoll',
+                data: {
+                    messageId: message.id,
+                    tokenId: tokenId,
+                    result: roll
+                }
+            });
+
+            // If GM, call the handler directly
+            if (game.user.isGM) {
+                await handleSkillRollUpdate({
+                    messageId: message.id,
+                    tokenId: tokenId,
+                    result: roll
+                });
+            }
+
+        } catch (err) {
+            console.error("Blacksmith | Error handling skill roll:", err);
+            ui.notifications.error("An error occurred while processing the roll. See the console for details.");
+        }
+    }
+
+    /**
      * Attach listeners to chat card roll buttons and handle roll logic.
      * @param {object} message - The chat message object.
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
@@ -1304,234 +1408,11 @@ export class SkillCheckDialog extends Application {
     static handleChatMessageClick(message, html) {
         html.find('.cpb-skill-roll').each((_, btn) => {
             $(btn).off('click').on('click', async (event) => {
-                console.log('Handler attached, message:', message);
                 const button = event.currentTarget;
-                const tokenId = button.dataset.tokenId; // Get token ID
-                const actorId = button.dataset.actorId; // Get actor ID for roll operations
+                const tokenId = button.dataset.tokenId;
+                const actorId = button.dataset.actorId;
                 
-                console.log('Debug - tokenId:', tokenId, 'actorId:', actorId);
-                
-                const messageData = message.flags['coffee-pub-blacksmith'];
-                console.log('CPB | Cinematic Mode flag read as:', messageData.isCinematic, 'from message flags:', messageData);
-
-                // Check if the click is coming from the cinematic UI
-                const isCinematicClick = $('#cpb-cinematic-overlay').length > 0;
-                const rollOptions = { 
-                    chatMessage: false, 
-                    createMessage: false, 
-                    fastForward: isCinematicClick 
-                };
-
-                if (messageData.isCinematic && !isCinematicClick) {
-                    this._showCinematicDisplay(messageData, message.id);
-                }
-
-                // Get the token and actor
-                let token = canvas.tokens.get(tokenId);
-                console.log('Debug - found token:', token);
-                
-                let actor = null;
-                if (token?.actor) {
-                    actor = token.actor;
-                    console.log('Debug - got actor from token:', actor);
-                } else if (actorId) {
-                    actor = game.actors.get(actorId);
-                    console.log('Debug - got actor from actorId:', actor);
-                }
-                
-                if (!actor) {
-                    console.error('Debug - Could not find actor for tokenId:', tokenId, 'or actorId:', actorId);
-                    ui.notifications.error("Could not find the actor for this roll.");
-                    return;
-                }
-                
-                // Check permissions: GMs can roll for any token, others need ownership
-                if (!game.user.isGM && !actor?.isOwner) {
-                    ui.notifications.warn("You don't have permission to roll for this character.");
-                    return;
-                }
-                try {
-                    const flags = message.flags['coffee-pub-blacksmith'];
-                    if (!flags) return;
-                    // Roll the check but suppress the chat message
-                    let roll;
-                    const type = button.dataset.type || 'skill';
-                    const value = button.dataset.value;
-                    switch (type) {
-                        case 'dice':
-                            roll = await (new Roll(value)).evaluate();
-                            rollCoffeePubDice(roll);
-                            playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-                            break;
-                        case 'skill':
-                            if (typeof actor?.rollSkillV2 === 'function') {
-                                roll = await actor.rollSkillV2(value, rollOptions);
-                            } else {
-                                roll = await actor.rollSkill(value, rollOptions);
-                            }
-                            break;
-                        case 'ability':
-                            roll = await actor.rollAbilityTest(value, rollOptions);
-                            break;
-                        case 'save':
-                            if (value === 'death') {
-                                roll = await actor.rollDeathSave(rollOptions);
-                            } else {
-                                roll = await actor.rollSavingThrow(value, rollOptions);
-                            }
-                            break;
-                        case 'tool': {
-                            const actorData = flags.actors.find(a => a.id === tokenId); // Find by token ID
-                            const toolId = actorData?.toolId;
-                            if (!toolId) {
-                                ui.notifications.error(`No tool ID found for actor ${actor.name}`);
-                                return;
-                            }
-                            const item = actor.items.get(toolId);
-                            if (!item) {
-                                ui.notifications.error(`Tool not found on actor: ${toolId}`);
-                                return;
-                            }
-  
-                            const rollData = actor.getRollData();
-                            const ability = item.system.ability || "int";
-                            const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                            const prof = item.system.proficient ? actor.system.attributes.prof : 0;
-                            const totalMod = abilityMod + prof;
-                            const formula = `1d20 + ${totalMod}`;
-                            roll = new Roll(formula, rollData);
-                            await roll.evaluate({ async: true });
-                            rollCoffeePubDice(roll);
-                            break;
-                        }
-                        default:
-                            return;
-                    }
-
-                    // Immediately after the switch, check if roll is defined
-                    if (typeof roll === 'undefined') return;
-
-                    // Format the roll result string
-                    let rollResultStr = "";
-                    const dc = flags.dc ? parseInt(flags.dc) : null;
-                    if (dc) {
-                        const success = roll.total >= dc;
-                        rollResultStr = `DC ${dc} Check with a roll of ${roll.total} (${success ? 'success' : 'failure'})`;
-                    } else {
-                        rollResultStr = `Roll Result: ${roll.total}`;
-                    }
-
-                    // Update the actors array with the roll result - use token ID for matching
-                    const actors = flags.actors.map(a => ({
-                        ...a,
-                        result: a.id === tokenId ? ( // Match by token ID
-                            roll ? {
-                                total: roll.total,
-                                formula: roll.formula,
-                                resultString: rollResultStr
-                            } : {
-                                total: "No Roll Needed",
-                                formula: "Invalid Death Save",
-                                error: "Character is not eligible for death saves"
-                            }
-                        ) : a.result
-                    }));
-
-                    // Calculate group roll results if needed
-                    let groupRollData = {};
-                    if (flags.isGroupRoll) {
-                        const completedRolls = actors.filter(a => a.result);
-                        const allRollsComplete = completedRolls.length === actors.length;
-                        groupRollData = {
-                            isGroupRoll: true,
-                            allRollsComplete
-                        };
-                        if (allRollsComplete && flags.dc) {
-                            const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
-                            const totalCount = actors.length;
-                            const groupSuccess = successCount > (totalCount / 2);
-                            Object.assign(groupRollData, {
-                                successCount,
-                                totalCount,
-                                groupSuccess
-                            });
-                        }
-                    }
-
-                    // Calculate contested roll results if needed
-                    let contestedRoll;
-                    if (flags.hasMultipleGroups && actors.every(a => a.result)) {
-                        const group1 = actors.filter(a => a.group === 1);
-                        const group2 = actors.filter(a => a.group === 2);
-                        const group1Highest = Math.max(...group1.map(a => a.result.total));
-                        const group2Highest = Math.max(...group2.map(a => a.result.total));
-                        if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
-                            contestedRoll = {
-                                winningGroup: 0,
-                                group1Highest,
-                                group2Highest,
-                                isTie: true
-                            };
-                        } else {
-                            const isGroup1Winner = group1Highest > group2Highest;
-                            contestedRoll = {
-                                winningGroup: isGroup1Winner ? 1 : 2,
-                                group1Highest,
-                                group2Highest,
-                                isTie: group1Highest === group2Highest
-                            };
-                        }
-                    }
-
-                    // Update the message data
-                    const messageData = {
-                        ...flags,
-                        ...groupRollData,
-                        actors,
-                        contestedRoll
-                    };
-
-                    // Always emit the update to the GM (even if GM is rolling) - use token ID for the update
-                    game.socket.emit('module.coffee-pub-blacksmith', {
-                        type: 'updateSkillRoll',
-                        data: {
-                            messageId: message.id,
-                            tokenId: tokenId, // Use token ID for the update
-                            result: roll
-                        }
-                    });
-                    // If GM, call the handler directly as well
-                    if (game.user.isGM) {
-                        await handleSkillRollUpdate({
-                            messageId: message.id,
-                            tokenId: tokenId, // Use token ID for the update
-                            result: roll
-                        });
-                    }
-
-                    // Call the callback if it exists
-                    if (message.app?.onRollComplete) {
-                        message.app.onRollComplete(rollResultStr);
-                    }
-
-                    // Play sound for individual rolls (not group rolls)
-                    const isGroupRoll = messageData.isGroupRoll;
-                    if (!isGroupRoll) {
-                        if (dc && roll) {
-                            if (roll.total >= dc) {
-                                playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Success
-                            } else {
-                                playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL); // Failure
-                            }
-                        } else {
-                            playSound(COFFEEPUB.SOUNDBUTTON08, COFFEEPUB.SOUNDVOLUMENORMAL); // Default to success sound
-                        }
-                    } else {
-                        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
-                    }
-                } catch (err) {
-                    console.error("Error handling skill roll:", err);
-                }
+                await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, {});
             });
         });
     }

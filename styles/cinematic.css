@@ -284,6 +284,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
+    gap: 10px;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result {
@@ -358,14 +359,31 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-shrink: 0;
 }
 
-.cpb-cinematic-roll-btn:hover {
+.cpb-cinematic-roll-mod-btn {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #aaa;
+    color: #ddd;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.cpb-cinematic-roll-btn:hover,
+.cpb-cinematic-roll-mod-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     border-color: #ffc107;
     box-shadow: 0 0 15px #ffc107;
-
-    transform: scale(1.2);
+    transform: scale(1.1);
 }
 
 .cpb-cinematic-roll-btn:disabled {
