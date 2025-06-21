@@ -1063,12 +1063,13 @@ export class SkillCheckDialog extends Application {
         // Remove any existing overlay
         $('#cpb-cinematic-overlay').remove();
 
-        const actorCards = messageData.actors.map(actor => {
+        const actorCards = messageData.actors.map((actor, index) => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
             const actorDocument = token?.actor;
             const actorImg = actorDocument?.img || 'icons/svg/mystery-man.svg';
             const actorName = actor.name;
             const result = actor.result;
+            const animationDelay = (index * 0.1) + 0.3; // Staggered delay, starting after overlay animates in
 
             // Check for ownership to apply disabled style and correct icon
             const hasPermission = game.user.isGM || actorDocument?.isOwner;
@@ -1098,7 +1099,7 @@ export class SkillCheckDialog extends Application {
             }
 
             return `
-                <div class="cpb-cinematic-card" data-token-id="${actor.id}">
+                <div class="cpb-cinematic-card" data-token-id="${actor.id}" style="animation-delay: ${animationDelay}s;">
                     <img src="${actorImg}" alt="${actorName}">
                     <div class="cpb-cinematic-actor-name">${actorName}</div>
                     ${rollAreaHtml}
