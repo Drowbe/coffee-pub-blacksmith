@@ -234,6 +234,19 @@ export const COFFEEPUB = {
     TILEPAPER01: "modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp",
     TILEPAPER02: "modules/coffee-pub-blacksmith/images/tiles/tile-parchment.webp",
 
+    // Skill Check Specific Sounds
+    SOUNDCINEMATICOPEN: "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
+    SOUNDDICEROLL: "modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3",
+    SOUNDSUCCESS: "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
+    SOUNDFAILURE: "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
+    SOUNDVERSUS: "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
+    SOUNDROLLCOMPLETE: "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
+    SOUNDROLLCRITICAL: "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
+    SOUNDROLLFUMBLE: "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
+
+    // Define sound volume levels
+    SOUNDVOLUMEMAX: 1.0,
+    SOUNDVOLUMENORMAL: 0.8,
 }
 
 // ================================================================== 

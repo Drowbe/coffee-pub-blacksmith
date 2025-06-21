@@ -1032,16 +1032,16 @@ export class SkillCheckDialog extends Application {
         if (!isGroupRoll) {
             if (dc && actorResult && typeof actorResult.result.total === 'number') {
                 if (actorResult.result.total >= Number(dc)) {
-                    return COFFEEPUB.SOUNDBUTTON08; // Success
+                    return COFFEEPUB.SOUNDSUCCESS; // Success
                 } else {
-                    return COFFEEPUB.SOUNDBUTTON07; // Failure
+                    return COFFEEPUB.SOUNDFAILURE; // Failure
                 }
             } else {
-                return COFFEEPUB.SOUNDBUTTON08; // Default to success sound
+                return COFFEEPUB.SOUNDSUCCESS; // Default to success sound
             }
         } else {
             // Existing group roll sound logic (unchanged)
-            return COFFEEPUB.SOUNDBUTTON07;
+            return COFFEEPUB.SOUNDFAILURE;
         }
     }
 
@@ -1060,6 +1060,7 @@ export class SkillCheckDialog extends Application {
      * @param {string} messageId - The ID of the chat message.
      */
     static _showCinematicDisplay(messageData, messageId) {
+        playSound(COFFEEPUB.SOUNDCINEMATICOPEN, COFFEEPUB.SOUNDVOLUMENORMAL);
         // Remove any existing overlay
         $('#cpb-cinematic-overlay').remove();
 
@@ -1179,6 +1180,7 @@ export class SkillCheckDialog extends Application {
 
         // Attach click handlers to the new roll buttons
         overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
+            playSound(COFFEEPUB.SOUNDDICEROLL, COFFEEPUB.SOUNDVOLUMENORMAL);
             const button = event.currentTarget;
             const card = button.closest('.cpb-cinematic-card');
             const tokenId = card.dataset.tokenId;
@@ -1220,6 +1222,16 @@ export class SkillCheckDialog extends Application {
 
         // Use a timeout to create a delay for the reveal
         setTimeout(() => {
+            // Determine the sound to play based on the roll result
+            const d20Roll = result?.dice[0]?.results[0]?.result;
+            if (d20Roll === 20) {
+                playSound(COFFEEPUB.SOUNDROLLCRITICAL, COFFEEPUB.SOUNDVOLUMENORMAL);
+            } else if (d20Roll === 1) {
+                playSound(COFFEEPUB.SOUNDROLLFUMBLE, COFFEEPUB.SOUNDVOLUMENORMAL);
+            } else {
+                playSound(COFFEEPUB.SOUNDROLLCOMPLETE, COFFEEPUB.SOUNDVOLUMENORMAL);
+            }
+
             const rollArea = card.find('.cpb-cinematic-roll-area');
             rollArea.empty(); // Clear the button or pending icon
 
@@ -1238,8 +1250,10 @@ export class SkillCheckDialog extends Application {
                 if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess') && !messageData.hasMultipleGroups) {
                     const { groupSuccess, successCount, totalCount } = messageData;
                     const resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
-                    const detailText = `(${successCount} of ${totalCount} passed)`;
+                    const detailText = `${successCount} of ${totalCount} Succeeded`;
                     const resultClass = groupSuccess ? 'success' : 'failure';
+                    
+                    playSound(groupSuccess ? COFFEEPUB.SOUNDSUCCESS : COFFEEPUB.SOUNDFAILURE, COFFEEPUB.SOUNDVOLUMENORMAL);
 
                     const resultsBarHtml = `
                         <div id="cpb-cinematic-results-bar">
@@ -1255,6 +1269,7 @@ export class SkillCheckDialog extends Application {
                 }
                 // If it is a contested roll, display the winner
                 else if (messageData.hasMultipleGroups && messageData.contestedRoll) {
+                    playSound(COFFEEPUB.SOUNDVERSUS, COFFEEPUB.SOUNDVOLUMENORMAL);
                     const { winningGroup, isTie } = messageData.contestedRoll;
                     let resultText, resultClass, detailText = '';
 

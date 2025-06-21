@@ -1368,10 +1368,6 @@ export class ThirdPartyManager {
                 }
             }
 
-            // Play the correct sound - now expects token ID
-            const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
-            playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
-
             // If this was a requested roll, update the GM's interface
             if (flags.requesterId === game.user.id) {
                 const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
@@ -1508,10 +1504,6 @@ export async function handleSkillRollUpdate(data) {
             SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
         }
     }
-
-    // Play the correct sound - now expects token ID
-    const sound = SkillCheckDialog.getResultSound(updatedMessageData, data.tokenId);
-    playSound(sound, COFFEEPUB.SOUNDVOLUMENORMAL);
 
     // If this was a requested roll, update the GM's interface
     if (flags.requesterId === game.user.id) {
