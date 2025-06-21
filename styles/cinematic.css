@@ -321,6 +321,20 @@
     color: #ff8e8e;
 }
 
+.cpb-cinematic-card .cpb-cinematic-roll-result.critical {
+    border-color: #ffc107;
+    color: #ffdf85;
+    box-shadow: 0 0 15px #ffc107;
+    animation: cpb-pulse 1.5s infinite;
+}
+
+.cpb-cinematic-card .cpb-cinematic-roll-result.fumble {
+    border-color: #8B0000;
+    color: #ff8e8e;
+    box-shadow: 0 0 10px #8B0000;
+    animation: cpb-shake 0.5s;
+}
+
 .cpb-cinematic-card .cpb-cinematic-roll-pending {
     position: absolute;
     top: 0;
@@ -337,6 +351,18 @@
     font-size: 2em;
     color: rgba(255, 255, 255, 0.8);
     animation: cpb-spin 1.5s linear infinite;
+}
+
+@keyframes cpb-pulse {
+    0% { transform: scale(1) translateX(-50%); }
+    50% { transform: scale(1.05) translateX(-50%); }
+    100% { transform: scale(1) translateX(-50%); }
+}
+
+@keyframes cpb-shake {
+    0%, 100% { transform: translateX(-50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-53%); }
+    20%, 40%, 60%, 80% { transform: translateX(-47%); }
 }
 
 @keyframes cpb-spin {
@@ -401,11 +427,6 @@
 
 .cpb-cinematic-roll-btn .fa-spin {
     animation: cpb-spin 1.5s linear infinite;
-}
-
-@keyframes cpb-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 }
 
 /* WAITING ON ROLL ICON */

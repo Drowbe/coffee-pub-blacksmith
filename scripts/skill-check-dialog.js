@@ -1235,8 +1235,12 @@ export class SkillCheckDialog extends Application {
             const rollArea = card.find('.cpb-cinematic-roll-area');
             rollArea.empty(); // Clear the button or pending icon
 
+            let specialClass = '';
+            if (d20Roll === 20) specialClass = 'critical';
+            else if (d20Roll === 1) specialClass = 'fumble';
+
             const successClass = result.total >= messageData.dc ? 'success' : 'failure';
-            const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass}">${result.total}</div>`;
+            const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${result.total}</div>`;
             rollArea.append(resultHtml);
 
             // Check if all rolls are complete to hide the overlay
