@@ -31,28 +31,26 @@
 #cpb-cinematic-bar {
     display: flex;
     flex-direction: column;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
     gap: 1rem;
     padding: 1rem;
+    box-sizing: border-box;
+
+    width: 100%;
+
+    min-height: 300px;
+
     background-image: url('../images/banners/banners-damage-fire-1.webp');
     background-size: cover;
     background-position: center;
     border-top: 3px solid #702020;
     border-bottom: 3px solid #702020;
     box-shadow: 0 0 30px rgba(0,0,0,0.8);
-    width: 90%;
-    max-width: 1400px;
-    height: 300px;
-    align-items: center;
-    justify-content: center;
+
     transform: translateY(20px);
     transition: transform 0.5s ease-in-out;
-
-
-    min-width: 100%;
-    box-sizing: border-box;
-    align-self: stretch;
-    flex: 0 0 auto;
-
 }
 #cpb-cinematic-overlay.visible #cpb-cinematic-bar {
     transform: translateY(0);
@@ -68,20 +66,22 @@
 }
 .cpb-cinematic-roll-title {
     font-family: var(--font-primary);
-    font-size: 2.5em;
+    font-size: 3.5em;
     font-weight: 900;
     margin: 0;
     padding: 0;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+    border-bottom: 3px solid rgba(245, 245, 245, 0.9);
 }
+
 .cpb-cinematic-roll-subtext {
-    font-size: 1.3em;
+    font-size: 1.5em;
     margin: 0;
-    padding: 0;
+    padding: 0px 0px 0px 0px ;
     opacity: 0.9;
-    font-weight: 500;
-    margin-top: -5px;
+    font-weight: 900;
+    margin-top: 10px;
 }
 
 /* CINEMATIC ACTORS CONTAINER */
