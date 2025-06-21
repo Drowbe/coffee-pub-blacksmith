@@ -1152,12 +1152,13 @@ export class SkillCheckDialog extends Application {
         
         rollDetailsHtml += `</div>`;
 
+        const containerClass = `cpb-cinematic-actors-container ${messageData.hasMultipleGroups ? 'contested' : ''}`;
         const overlay = $(`
             <div id="cpb-cinematic-overlay">
                 <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
                 <div id="cpb-cinematic-bar">
                     ${rollDetailsHtml}
-                    <div class="cpb-cinematic-actors-container">
+                    <div class="${containerClass}">
                         ${actorCardsHtml}
                     </div>
                 </div>

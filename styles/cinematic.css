@@ -130,9 +130,16 @@
     gap: 16px;
     justify-content: center;
     align-items: center;
+    width: 100%;
+}
+
+.cpb-cinematic-actors-container.contested {
+    flex-wrap: nowrap;
+    align-items: stretch;
 }
 
 .cpb-cinematic-actor-group {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
