@@ -132,6 +132,40 @@
     align-items: center;
 }
 
+.cpb-cinematic-actor-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cpb-cinematic-group-title {
+    color: #fff;
+    text-transform: uppercase;
+    font-size: 1.2em;
+    letter-spacing: 1px;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    border-bottom: 2px solid rgba(255,255,255,0.5);
+    padding-bottom: 4px;
+}
+
+.cpb-cinematic-card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+
+.cpb-cinematic-vs-divider {
+    font-size: 2.5em;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px #ff5555;
+    align-self: center;
+    margin: 0 1rem;
+}
+
 /* CINEMATIC GROUP RESULT */
 
 .cpb-cinematic-group-result {
@@ -146,6 +180,12 @@
     background: transparent;
     opacity: 0;
     animation: cpb-result-pop-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+.cpb-cinematic-group-result.tie {
+    border-color: #ffc107;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.01);
+    color: rgba(255, 223, 131, 0.9);
 }
 
 .cpb-cinematic-group-result.success {

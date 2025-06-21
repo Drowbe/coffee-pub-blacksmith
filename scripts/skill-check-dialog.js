@@ -1063,19 +1063,19 @@ export class SkillCheckDialog extends Application {
         // Remove any existing overlay
         $('#cpb-cinematic-overlay').remove();
 
-        const actorCards = messageData.actors.map((actor, index) => {
+        const createActorCardHtml = (actor, index) => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
             const actorDocument = token?.actor;
             const actorImg = actorDocument?.img || 'icons/svg/mystery-man.svg';
             const actorName = actor.name;
             const result = actor.result;
-            const animationDelay = (index * 0.1) + 0.3; // Staggered delay, starting after overlay animates in
+            const animationDelay = (index * 0.1) + 0.3; // Staggered delay
 
             // Check for ownership to apply disabled style and correct icon
             const hasPermission = game.user.isGM || actorDocument?.isOwner;
 
             let rollAreaHtml;
-            if (hasPermission) {
+            if (hasPermission && !result) {
                 rollAreaHtml = `
                     <div class="cpb-cinematic-roll-area">
                         <button class="cpb-cinematic-roll-btn" data-token-id="${actor.id}" data-actor-id="${actor.actorId}">
@@ -1083,7 +1083,7 @@ export class SkillCheckDialog extends Application {
                         </button>
                     </div>
                 `;
-            } else {
+            } else if (!hasPermission && !result) {
                 rollAreaHtml = `
                     <div class="cpb-cinematic-roll-area">
                         <div class="cpb-cinematic-wait-icon">
@@ -1105,17 +1105,44 @@ export class SkillCheckDialog extends Application {
                     ${rollAreaHtml}
                 </div>
             `;
-        }).join('');
+        };
+
+        let actorCardsHtml;
+        if (messageData.hasMultipleGroups) {
+            const challengers = messageData.actors.filter(a => a.group === 1);
+            const defenders = messageData.actors.filter(a => a.group === 2);
+
+            const challengerCards = challengers.map(createActorCardHtml).join('');
+            const defenderCards = defenders.map(createActorCardHtml).join('');
+
+            actorCardsHtml = `
+                <div class="cpb-cinematic-actor-group">
+                    <h3 class="cpb-cinematic-group-title">Challengers</h3>
+                    <div class="cpb-cinematic-card-grid">${challengerCards}</div>
+                </div>
+                <div class="cpb-cinematic-vs-divider">VS</div>
+                <div class="cpb-cinematic-actor-group">
+                    <h3 class="cpb-cinematic-group-title">Defenders</h3>
+                    <div class="cpb-cinematic-card-grid">${defenderCards}</div>
+                </div>
+            `;
+        } else {
+            actorCardsHtml = messageData.actors.map(createActorCardHtml).join('');
+        }
 
         // Create roll details text
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
-        rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName}</h2>`;
+        if (messageData.hasMultipleGroups) {
+            rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName} vs ${messageData.defenderSkillName}</h2>`;
+        } else {
+            rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName}</h2>`;
+        }
         
         const subtextParts = [];
         if (messageData.showDC && messageData.dc) {
             subtextParts.push(`DC ${messageData.dc}`);
         }
-        if (messageData.isGroupRoll) {
+        if (messageData.isGroupRoll && !messageData.hasMultipleGroups) {
             subtextParts.push(`Group Roll`);
         }
         
@@ -1131,7 +1158,7 @@ export class SkillCheckDialog extends Application {
                 <div id="cpb-cinematic-bar">
                     ${rollDetailsHtml}
                     <div class="cpb-cinematic-actors-container">
-                        ${actorCards}
+                        ${actorCardsHtml}
                     </div>
                 </div>
             </div>
@@ -1205,10 +1232,10 @@ export class SkillCheckDialog extends Application {
             
             if (allComplete) {
                 // If it is a group roll, display the result
-                if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess')) {
+                if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess') && !messageData.hasMultipleGroups) {
                     const { groupSuccess, successCount, totalCount } = messageData;
                     const resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
-                    const detailText = `${successCount} of ${totalCount} Succeeded`;
+                    const detailText = `(${successCount} of ${totalCount} passed)`;
                     const resultClass = groupSuccess ? 'success' : 'failure';
 
                     const resultsBarHtml = `
@@ -1221,6 +1248,33 @@ export class SkillCheckDialog extends Application {
                     `;
                     
                     // Append the new results bar to the main cinematic bar
+                    overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
+                }
+                // If it is a contested roll, display the winner
+                else if (messageData.hasMultipleGroups && messageData.contestedRoll) {
+                    const { winningGroup, isTie } = messageData.contestedRoll;
+                    let resultText, resultClass, detailText = '';
+
+                    if (isTie) {
+                        resultText = 'TIE';
+                        resultClass = 'tie';
+                        detailText = 'Both sides are evenly matched';
+                    } else if (winningGroup === 1) {
+                        resultText = 'CHALLENGERS WIN';
+                        resultClass = 'success';
+                    } else {
+                        resultText = 'DEFENDERS WIN';
+                        resultClass = 'failure';
+                    }
+
+                    const resultsBarHtml = `
+                        <div id="cpb-cinematic-results-bar">
+                            <div class="cpb-cinematic-group-result ${resultClass}">
+                                <div class="cpb-cinematic-group-result-text">${resultText}</div>
+                                ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
                     overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
                 }
 
