@@ -1153,6 +1153,32 @@ export class SkillCheckDialog extends Application {
             actorCardsHtml = messageData.actors.map(createActorCardHtml).join('');
         }
 
+        // Determine the background image based on the roll type
+        let backgroundImage;
+        if (messageData.hasMultipleGroups) {
+            backgroundImage = COFFEEPUB.BACKCONTESTEDROLL;
+        } else {
+            switch (messageData.rollType) {
+                case 'skill':
+                    backgroundImage = COFFEEPUB.BACKSKILLCHECK;
+                    break;
+                case 'ability':
+                    backgroundImage = COFFEEPUB.BACKABILITYCHECK;
+                    break;
+                case 'save':
+                    backgroundImage = COFFEEPUB.BACKSAVINGTHROW;
+                    break;
+                case 'tool':
+                    backgroundImage = COFFEEPUB.BACKTOOLCHECK;
+                    break;
+                case 'dice':
+                    backgroundImage = COFFEEPUB.BACKDICEROLL;
+                    break;
+                default:
+                    backgroundImage = COFFEEPUB.BACKCONTESTEDROLL; // Default fallback
+            }
+        }
+
         // Create roll details text
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
         if (messageData.hasMultipleGroups) {
@@ -1179,7 +1205,7 @@ export class SkillCheckDialog extends Application {
         const overlay = $(`
             <div id="cpb-cinematic-overlay">
                 <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
-                <div id="cpb-cinematic-bar">
+                <div id="cpb-cinematic-bar" style="background-image: url('${backgroundImage}');">
                     ${rollDetailsHtml}
                     <div class="${containerClass}">
                         ${actorCardsHtml}
