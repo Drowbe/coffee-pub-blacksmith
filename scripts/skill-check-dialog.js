@@ -164,10 +164,16 @@ export class SkillCheckDialog extends Application {
             const actor = token?.actor;
             if (!actor) return;
 
+            // Keep track of tool names processed for this actor to avoid double-counting
+            const processedTools = new Set();
+
             // Get tool proficiencies from the actor
             const tools = actor.items.filter(i => i.type === "tool");
             console.log(`Actor ${actor.name} tools:`, tools.map(t => t.name));
             tools.forEach(tool => {
+                // If we've already processed a tool with this name for this actor, skip it
+                if (processedTools.has(tool.name)) return;
+
                 const toolIdentifier = tool.system.baseItem || tool.id; // Use baseItem if available, fallback to id
                 if (!toolProfs.has(tool.name)) {
                     toolProfs.set(tool.name, {
@@ -179,6 +185,8 @@ export class SkillCheckDialog extends Application {
                     toolData.count++;
                     toolData.actorTools.set(actor.id, toolIdentifier); // Use actor.id for tool mapping
                 }
+                
+                processedTools.add(tool.name);
             });
         });
 
@@ -364,6 +372,10 @@ export class SkillCheckDialog extends Application {
             ev.preventDefault();
             const item = ev.currentTarget;
             const type = item.dataset.type;
+
+            // This handler should not manage tool selections as they have a dedicated handler.
+            if (type === 'tool') return;
+            
             const value = item.dataset.value;
             const isRightClick = ev.type === 'contextmenu';
 
@@ -1469,14 +1481,14 @@ export class SkillCheckDialog extends Application {
                         
                         // Check for tool proficiency from the dnd5e actor data model
                         const baseItem = item.system.baseItem;
-                        if (baseItem) {
+                        if (item.system.prof?.hasProficiency) { // Primary check - tool item proficiency
+                            parts.push(actor.system.attributes.prof || 0);
+                        } else if (baseItem) { // Fallback to actor's tools data if available
                             const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
                             if (toolProf > 0) {
                                 const profBonus = Math.floor(toolProf * (actor.system.attributes.prof || 0));
                                 parts.push(profBonus);
                             }
-                        } else if (item.system.prof?.hasProficiency) { // Fallback for older items/systems
-                             parts.push(actor.system.attributes.prof || 0);
                         }
 
                         const formula = parts.join(" + ");
