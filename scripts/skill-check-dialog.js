@@ -168,15 +168,16 @@ export class SkillCheckDialog extends Application {
             const tools = actor.items.filter(i => i.type === "tool");
             console.log(`Actor ${actor.name} tools:`, tools.map(t => t.name));
             tools.forEach(tool => {
+                const toolIdentifier = tool.system.baseItem || tool.id; // Use baseItem if available, fallback to id
                 if (!toolProfs.has(tool.name)) {
                     toolProfs.set(tool.name, {
                         count: 1,
-                        actorTools: new Map([[actor.id, tool.id]]) // Use actor.id for tool mapping
+                        actorTools: new Map([[actor.id, toolIdentifier]]) // Use actor.id for tool mapping
                     });
                 } else {
                     const toolData = toolProfs.get(tool.name);
                     toolData.count++;
-                    toolData.actorTools.set(actor.id, tool.id); // Use actor.id for tool mapping
+                    toolData.actorTools.set(actor.id, toolIdentifier); // Use actor.id for tool mapping
                 }
             });
         });
@@ -714,10 +715,12 @@ export class SkillCheckDialog extends Application {
                     case 'tool':
                         // For tools, we'll get the name from the first actor's tool
                         const firstActor = processedActors[0];
-                        const toolId = typeof value === 'function' ? value(firstActor.id) : value;
-                        const toolItem = game.actors.get(firstActor.id)?.items.get(toolId);
+                        const actor = game.actors.get(firstActor.actorId);
+                        const toolIdentifier = typeof value === 'function' ? value(firstActor.actorId) : value;
+                        const toolItem = actor?.items.get(toolIdentifier) || actor?.items.find(i => i.system.baseItem === toolIdentifier);
+                        
                         name = toolItem?.name;
-                        desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/?p>/gi, '').trim() : null;
+                        desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/p>/gi, '').trim() : null;
                         link = null; // Tools don't have SRD links
                         break;
                     case 'ability':
@@ -1239,7 +1242,13 @@ export class SkillCheckDialog extends Application {
             // Determine which roll type to use (challenger or defender)
             const isDefender = actorData.group === 2 && messageData.hasMultipleGroups;
             const type = isDefender ? messageData.defenderRollType : messageData.rollType;
-            const value = isDefender ? messageData.defenderSkillAbbr : messageData.skillAbbr;
+            let value;
+
+            if (type === 'tool') {
+                value = actorData.toolId;
+            } else {
+                value = isDefender ? messageData.defenderSkillAbbr : messageData.skillAbbr;
+            }
 
             // Visually disable the card's roll area after a choice is made
             const rollArea = $(card).find('.cpb-cinematic-roll-area');
@@ -1420,24 +1429,51 @@ export class SkillCheckDialog extends Application {
                         : await actor.rollSavingThrow(value, rollOptions);
                     break;
                 case 'tool': {
-                    const toolId = flags.actors.find(a => a.id === tokenId)?.toolId;
-                    if (!toolId) throw new Error(`No tool ID found for actor ${actor.name}`);
+                    const toolIdentifier = value; // Use the value passed from the click handler
+                    if (!toolIdentifier) throw new Error(`No tool identifier provided for actor ${actor.name}`);
                     
-                    // Use the dnd5e actor method for tool checks
+                    // Attempt to use the modern dnd5e API for tool checks
                     if (typeof actor.rollToolCheck === 'function') {
-                        roll = await actor.rollToolCheck(toolId, rollOptions);
-                    } else {
-                        // Fallback for systems that might not have rollToolCheck
-                        const item = actor.items.get(toolId);
-                        if (!item) throw new Error(`Tool not found on actor: ${toolId}`);
+                        try {
+                            console.log(`Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`);
+                            roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
+                        } catch (err) {
+                            console.warn(`COFFEEPUB | actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err);
+                            roll = undefined; // Ensure roll is undefined for the next check
+                        }
+                    }
+
+                    // If rollToolCheck is not available or failed, construct the roll manually.
+                    if (!roll) {
+                        console.log(`Constructing manual roll for tool '${toolIdentifier}'.`);
+                        // The toolIdentifier might be a baseItem string or an item ID. Find the item either way.
+                        const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
+                        if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
+                        
                         const rollData = actor.getRollData();
                         const ability = item.system.ability || "int";
+                        
+                        const parts = [];
+                        if (options.advantage) parts.push('2d20kh');
+                        else if (options.disadvantage) parts.push('2d20kl');
+                        else parts.push("1d20");
+
                         const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                        const prof = item.system.proficient ? actor.system.attributes.prof : 0;
-                        const totalMod = abilityMod + prof;
-                        let formula = `1d20 + ${totalMod}`;
-                        if (options.advantage) formula = `2d20kh + ${totalMod}`;
-                        else if (options.disadvantage) formula = `2d20kl + ${totalMod}`;
+                        parts.push(abilityMod);
+                        
+                        // Check for tool proficiency from the dnd5e actor data model
+                        const baseItem = item.system.baseItem;
+                        if (baseItem) {
+                            const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
+                            if (toolProf > 0) {
+                                const profBonus = Math.floor(toolProf * (actor.system.attributes.prof || 0));
+                                parts.push(profBonus);
+                            }
+                        } else if (item.system.prof?.hasProficiency) { // Fallback for older items/systems
+                             parts.push(actor.system.attributes.prof || 0);
+                        }
+
+                        const formula = parts.join(" + ");
                         roll = new Roll(formula, rollData);
                         await roll.evaluate({ async: true });
                         rollCoffeePubDice(roll);
@@ -1484,11 +1520,20 @@ export class SkillCheckDialog extends Application {
         html.find('.cpb-skill-roll').each((_, btn) => {
             $(btn).off('click').on('click', async (event) => {
                 const button = event.currentTarget;
-                const tokenId = button.dataset.tokenId;
                 const actorId = button.dataset.actorId;
                 const type = button.dataset.type || 'skill';
                 const value = button.dataset.value;
-                
+
+                // Find the corresponding actor data in the message flags to get the token ID
+                const flags = message.flags['coffee-pub-blacksmith'];
+                if (!flags) return;
+                const actorData = flags.actors.find(a => a.actorId === actorId);
+                if (!actorData) {
+                    ui.notifications.error(`Could not find actor data for ID ${actorId} in the chat message.`);
+                    return;
+                }
+                const tokenId = actorData.id; // The 'id' in the flag is the token ID
+
                 await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, type, value, {});
             });
         });
