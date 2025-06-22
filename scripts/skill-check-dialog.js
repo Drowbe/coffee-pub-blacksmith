@@ -1405,7 +1405,11 @@ export class SkillCheckDialog extends Application {
                     rollCoffeePubDice(roll);
                     break;
                 case 'skill':
-                    roll = await actor.rollSkill(value, rollOptions);
+                    if (typeof actor.rollSkillV2 === 'function') {
+                        roll = await actor.rollSkillV2(value, rollOptions);
+                    } else {
+                        roll = await actor.rollSkill(value, rollOptions);
+                    }
                     break;
                 case 'ability':
                     roll = await actor.rollAbilityTest(value, rollOptions);
