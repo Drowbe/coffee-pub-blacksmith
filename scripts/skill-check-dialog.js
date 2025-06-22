@@ -661,6 +661,12 @@ export class SkillCheckDialog extends Application {
                       (html.find('input[name="dc"]').val() || null);
                 groupRoll = html.find('input[name="groupRoll"]').prop('checked');
             }
+
+            // If only one actor is selected, it cannot be a group roll.
+            if (selectedActors.length <= 1) {
+                groupRoll = false;
+            }
+
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
