@@ -235,22 +235,22 @@ export const COFFEEPUB = {
     TILEPAPER02: "modules/coffee-pub-blacksmith/images/tiles/tile-parchment.webp",
 
     // Skill Check Specific Sounds
-    SOUNDCINEMATICOPEN: "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
+    SOUNDCINEMATICOPEN: "modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3",
     SOUNDDICEROLL: "modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3",
-    SOUNDSUCCESS: "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
-    SOUNDFAILURE: "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
-    SOUNDVERSUS: "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
+    SOUNDSUCCESS: "modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3",
+    SOUNDFAILURE: "modules/coffee-pub-blacksmith/sounds/fanfare-failure-1.mp3",
+    SOUNDVERSUS: "modules/coffee-pub-blacksmith/sounds/fanfare-intro-2.mp3",
     SOUNDROLLCOMPLETE: "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
-    SOUNDROLLCRITICAL: `modules/${MODULE_ID}/sounds/reaction-oooooh.mp3`,
-    SOUNDROLLFUMBLE: `modules/${MODULE_ID}/sounds/sadtrombone.mp3`,
+    SOUNDROLLCRITICAL: "modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3",
+    SOUNDROLLFUMBLE: "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
 
     // Cinematic Backgrounds
-    BACKSKILLCHECK: `modules/${MODULE_ID}/images/banners/banners-damage-radiant-2.webp`,
-    BACKABILITYCHECK: `modules/${MODULE_ID}/images/banners/banners-damage-cold-3.webp`,
-    BACKSAVINGTHROW: `modules/${MODULE_ID}/images/banners/banners-damage-bludgeoning-4.webp`,
-    BACKDICEROLL: `modules/${MODULE_ID}/images/banners/banners-damage-psychic-2.webp`,
-    BACKTOOLCHECK: `modules/${MODULE_ID}/images/banners/banners-damage-poison-3.webp`,
-    BACKCONTESTEDROLL: `modules/${MODULE_ID}/images/banners/banners-damage-fire-6.webp`,
+    BACKSKILLCHECK: "modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp",
+    BACKABILITYCHECK: "modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp",
+    BACKSAVINGTHROW: "modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp",
+    BACKDICEROLL: "modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp",
+    BACKTOOLCHECK: "modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp",
+    BACKCONTESTEDROLL: `modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp`,
 
     // Define sound volume levels
     SOUNDVOLUMEMAX: 1.0,
