@@ -1229,11 +1229,16 @@ export class SkillCheckDialog extends Application {
             const actorData = messageData.actors.find(a => a.id === tokenId);
             if (!actorData) return;
             
-            const rollType = button.dataset.rollType;
+            const rollButtonType = button.dataset.rollType;
             const options = {
-                advantage: rollType === 'advantage',
-                disadvantage: rollType === 'disadvantage'
+                advantage: rollButtonType === 'advantage',
+                disadvantage: rollButtonType === 'disadvantage'
             };
+
+            // Determine which roll type to use (challenger or defender)
+            const isDefender = actorData.group === 2 && messageData.hasMultipleGroups;
+            const type = isDefender ? messageData.defenderRollType : messageData.rollType;
+            const value = isDefender ? messageData.defenderSkillAbbr : messageData.skillAbbr;
 
             // Visually disable the card's roll area after a choice is made
             const rollArea = $(card).find('.cpb-cinematic-roll-area');
@@ -1241,7 +1246,7 @@ export class SkillCheckDialog extends Application {
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
-                await SkillCheckDialog._executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, options);
+                await SkillCheckDialog._executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, type, value, options);
             }
         });
 
@@ -1364,9 +1369,11 @@ export class SkillCheckDialog extends Application {
      * @param {object} message - The chat message object.
      * @param {string} tokenId - The ID of the token being rolled for.
      * @param {string} actorId - The ID of the actor being rolled for.
+     * @param {string} type - The type of roll being executed.
+     * @param {string} value - The value being rolled.
      * @param {object} [options={}] - Roll options (e.g., { advantage: true }).
      */
-    static async _executeRollAndUpdate(message, tokenId, actorId, options = {}) {
+    static async _executeRollAndUpdate(message, tokenId, actorId, type, value, options = {}) {
         try {
             const flags = message.flags['coffee-pub-blacksmith'];
             if (!flags) return;
@@ -1384,16 +1391,18 @@ export class SkillCheckDialog extends Application {
                 return;
             }
 
-            // Determine which roll type to use (challenger or defender)
-            const actorData = flags.actors.find(a => a.id === tokenId);
-            const isDefender = actorData?.group === 2 && flags.hasMultipleGroups;
-            const type = isDefender ? flags.defenderRollType : flags.rollType;
-            const value = isDefender ? flags.defenderSkillAbbr : flags.skillAbbr;
-
             const rollOptions = { chatMessage: false, createMessage: false, fastForward: true, ...options };
             let roll;
 
             switch (type) {
+                case 'dice':
+                    let formula = value;
+                    if (options.advantage) formula = `2d20kh`;
+                    else if (options.disadvantage) formula = `2d20kl`;
+                    roll = new Roll(formula, actor.getRollData());
+                    await roll.evaluate({ async: true });
+                    rollCoffeePubDice(roll);
+                    break;
                 case 'skill':
                     roll = await actor.rollSkill(value, rollOptions);
                     break;
@@ -1406,7 +1415,7 @@ export class SkillCheckDialog extends Application {
                         : await actor.rollSavingThrow(value, rollOptions);
                     break;
                 case 'tool': {
-                    const toolId = actorData?.toolId;
+                    const toolId = flags.actors.find(a => a.id === tokenId)?.toolId;
                     if (!toolId) throw new Error(`No tool ID found for actor ${actor.name}`);
                     
                     // Use the dnd5e actor method for tool checks
@@ -1472,8 +1481,10 @@ export class SkillCheckDialog extends Application {
                 const button = event.currentTarget;
                 const tokenId = button.dataset.tokenId;
                 const actorId = button.dataset.actorId;
+                const type = button.dataset.type || 'skill';
+                const value = button.dataset.value;
                 
-                await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, {});
+                await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, type, value, {});
             });
         });
     }
