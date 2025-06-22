@@ -1232,7 +1232,8 @@ export class SkillCheckDialog extends Application {
             const rollButtonType = button.dataset.rollType;
             const options = {
                 advantage: rollButtonType === 'advantage',
-                disadvantage: rollButtonType === 'disadvantage'
+                disadvantage: rollButtonType === 'disadvantage',
+                fastForward: true
             };
 
             // Determine which roll type to use (challenger or defender)
@@ -1391,7 +1392,7 @@ export class SkillCheckDialog extends Application {
                 return;
             }
 
-            const rollOptions = { chatMessage: false, createMessage: false, fastForward: true, ...options };
+            const rollOptions = { chatMessage: false, createMessage: false, ...options };
             let roll;
 
             switch (type) {
