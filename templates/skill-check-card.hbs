@@ -82,7 +82,7 @@
                     {{#if this.result}}
                         <div class="cpb-roll-result">
                             <span class="cpb-actor-name">{{this.name}}</span>
-                            <span class="cpb-roll-total" data-tooltip="{{this.result.formula}}">
+                            <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
                                 {{this.result.total}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}
@@ -123,7 +123,7 @@
                     {{#if this.result}}
                         <div class="cpb-roll-result">
                             <span class="cpb-actor-name">{{this.name}}</span>
-                            <span class="cpb-roll-total" data-tooltip="{{this.result.formula}}">
+                            <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
                                 {{this.result.total}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}

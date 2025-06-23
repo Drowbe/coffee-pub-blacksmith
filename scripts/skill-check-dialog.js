@@ -1463,14 +1463,10 @@ export class SkillCheckDialog extends Application {
 
                     // If rollToolCheck is not available or failed, construct the roll manually.
                     if (!roll) {
-                        console.log(`COFFEEPUB | Constructing manual roll for tool '${toolIdentifier}'.`);
                         // The toolIdentifier might be a baseItem string or an item ID. Find the item either way.
                         const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
                         if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
                         
-                        console.log('COFFEEPUB | Found tool item:', item);
-                        console.log('COFFEEPUB | Tool item.system.proficient:', item.system.proficient);
-
                         const rollData = actor.getRollData();
                         const ability = item.system.ability || "int";
                         
@@ -1482,35 +1478,46 @@ export class SkillCheckDialog extends Application {
                         const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
                         parts.push(abilityMod);
                         
-                        console.log('COFFEEPUB | Roll parts before proficiency:', JSON.parse(JSON.stringify(parts)));
-                        console.log('COFFEEPUB | Actor proficiency bonus:', actor.system.attributes.prof);
+                        const profBonus = actor.system.attributes.prof || 0;
+                        let actualProfBonus = 0;
                         
-                        // Check for tool proficiency from the dnd5e actor data model
-                        const baseItem = item.system.type?.baseItem; // Correctly access nested baseItem
                         // In dnd5e, proficiency is a number (0=No, 1=Prof, 2=Expert). Check must be > 0.
                         if (item.system.proficient > 0) {
-                            console.log('COFFEEPUB | item.system.proficient > 0. Adding proficiency bonus.');
                             // For now, we just add the standard proficiency bonus.
                             // In the future, this could be expanded to handle expertise (item.system.proficient === 2).
-                            parts.push(actor.system.attributes.prof || 0);
-                        } else if (baseItem) { // Fallback to actor's tools data if available
-                            console.log('COFFEEPUB | item.system.proficient is 0. Checking fallback for baseItem:', baseItem);
-                            const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
-                            if (toolProf > 0) {
-                                const profBonus = Math.floor(toolProf * (actor.system.attributes.prof || 0));
-                                parts.push(profBonus);
+                            actualProfBonus = profBonus;
+                        } else { // Fallback to actor's tools data if available
+                            const baseItem = item.system.type?.baseItem; 
+                            if (baseItem) {
+                                const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
+                                if (toolProf > 0) {
+                                    actualProfBonus = Math.floor(toolProf * profBonus);
+                                }
                             }
-                        } else {
-                            console.log('COFFEEPUB | No proficiency found for this tool.');
                         }
 
-                        console.log('COFFEEPUB | Roll parts after proficiency:', JSON.parse(JSON.stringify(parts)));
+                        if (actualProfBonus > 0) {
+                            parts.push(actualProfBonus);
+                        }
 
                         const formula = parts.join(" + ");
-                        console.log('COFFEEPUB | Final roll formula:', formula);
                         roll = new Roll(formula, rollData);
                         await roll.evaluate({ async: true });
                         rollCoffeePubDice(roll);
+
+                        // Build a more descriptive formula for the tooltip
+                        const d20Result = roll.dice[0].results[0].result;
+                        const abilityAbbr = ability.toUpperCase();
+                        
+                        const tooltipParts = [`${d20Result} (ROLL)`, `${abilityMod} (${abilityAbbr})`];
+                        if (actualProfBonus > 0) {
+                            tooltipParts.push(`${actualProfBonus} (PROF)`);
+                        }
+                        
+                        const finalTooltip = `${tooltipParts.join(' + ')} = ${roll.total}`;
+                        
+                        // Add the verbose formula to the roll object for the tooltip
+                        roll.verboseFormula = finalTooltip;
                     }
                     break;
                 }
