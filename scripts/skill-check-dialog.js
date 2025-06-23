@@ -1430,6 +1430,7 @@ export class SkillCheckDialog extends Application {
                     roll = new Roll(formula, actor.getRollData());
                     await roll.evaluate({ async: true });
                     rollCoffeePubDice(roll);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll);
                     break;
                 case 'skill':
                     if (typeof actor.rollSkillV2 === 'function') {
@@ -1437,14 +1438,17 @@ export class SkillCheckDialog extends Application {
                     } else {
                         roll = await actor.rollSkill(value, rollOptions);
                     }
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, CONFIG.DND5E.skills[value]?.ability);
                     break;
                 case 'ability':
                     roll = await actor.rollAbilityTest(value, rollOptions);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, value);
                     break;
                 case 'save':
                     roll = (value === 'death') 
                         ? await actor.rollDeathSave(rollOptions) 
                         : await actor.rollSavingThrow(value, rollOptions);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, value);
                     break;
                 case 'tool': {
                     const toolIdentifier = value; // Use the value passed from the click handler
@@ -1505,19 +1509,7 @@ export class SkillCheckDialog extends Application {
                         await roll.evaluate({ async: true });
                         rollCoffeePubDice(roll);
 
-                        // Build a more descriptive formula for the tooltip
-                        const d20Result = roll.dice[0].results[0].result;
-                        const abilityAbbr = ability.toUpperCase();
-                        
-                        const tooltipParts = [`${d20Result} (ROLL)`, `${abilityMod} (${abilityAbbr})`];
-                        if (actualProfBonus > 0) {
-                            tooltipParts.push(`${actualProfBonus} (PROF)`);
-                        }
-                        
-                        const finalTooltip = `${tooltipParts.join(' + ')} = ${roll.total}`;
-                        
-                        // Add the verbose formula to the roll object for the tooltip
-                        roll.verboseFormula = finalTooltip;
+                        roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, ability);
                     }
                     break;
                 }
@@ -1527,23 +1519,26 @@ export class SkillCheckDialog extends Application {
 
             if (!roll) return;
 
+            // Create a plain object for the socket to prevent data loss
+            const resultForSocket = roll.toJSON();
+            resultForSocket.verboseFormula = roll.verboseFormula;
+            delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
+
+            const rollData = {
+                messageId: message.id,
+                tokenId: tokenId,
+                result: resultForSocket
+            };
+
             // Emit the update to the GM
             game.socket.emit('module.coffee-pub-blacksmith', {
                 type: 'updateSkillRoll',
-                data: {
-                    messageId: message.id,
-                    tokenId: tokenId,
-                    result: roll
-                }
+                data: rollData
             });
 
-            // If GM, call the handler directly
+            // If GM, call the handler directly with the same prepared data
             if (game.user.isGM) {
-                await handleSkillRollUpdate({
-                    messageId: message.id,
-                    tokenId: tokenId,
-                    result: roll
-                });
+                await handleSkillRollUpdate(rollData);
             }
 
         } catch (err) {
@@ -1578,5 +1573,48 @@ export class SkillCheckDialog extends Application {
                 await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, type, value, {});
             });
         });
+    }
+
+    /**
+     * Builds a verbose formula string for tooltips from a Roll object.
+     * Example: "12 (Roll) + 3 (Dexterity) + 2 (Proficiency) = 17"
+     * @param {Roll} roll - The Roll object to parse.
+     * @param {string|null} abilityKey - The key for the ability score used (e.g., 'dex').
+     * @returns {string} The verbose formula string.
+     * @private
+     */
+    static _buildVerboseFormula(roll, abilityKey = null) {
+        if (!roll || !roll.dice || !roll.dice[0] || !roll.dice[0].results) return roll.formula;
+
+        const d20Result = roll.dice[0].results[0].result;
+        let tooltip = `${d20Result} (ROLL)`;
+
+        // Handle ability modifier part
+        const abilityMod = roll.terms.find(t => t.options?.flavor?.toLowerCase() === "ability");
+        if (abilityMod && abilityKey) {
+            const abilityName = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey.toUpperCase();
+            tooltip += ` + ${abilityMod.total} (${abilityName})`;
+        } else if (abilityMod) {
+             tooltip += ` + ${abilityMod.total} (MOD)`;
+        }
+
+        // Handle proficiency bonus part
+        const prof = roll.terms.find(t => t.options?.flavor?.toLowerCase() === "proficiency");
+        if (prof) {
+            tooltip += ` + ${prof.total} (PROF)`;
+        }
+        
+        // Handle other numeric bonuses
+        const otherBonuses = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm && !t.options?.flavor);
+        otherBonuses.forEach(b => {
+             if (b.total > 0) tooltip += ` + ${b.total}`;
+             else if (b.total < 0) tooltip += ` - ${Math.abs(b.total)}`;
+        });
+        
+        tooltip += ` = ${roll.total}`;
+
+        console.log(`COFFEEPUB | Verbose formula: ${tooltip}`);
+
+        return tooltip;
     }
 } 

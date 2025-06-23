@@ -1412,17 +1412,18 @@ export class ThirdPartyManager {
 }
 
 export async function handleSkillRollUpdate(data) {
-    const message = game.messages.get(data.messageId);
+    const { messageId, tokenId, result } = data;
+    const message = game.messages.get(messageId);
     if (!message) return;
 
-    const flags = message.flags['coffee-pub-blacksmith'];
+    const flags = message.flags['coffee-pub-blacksmith'] || {};
     if (!flags?.type === 'skillCheck') return;
 
     // --- Always recalculate group roll summary on the GM side ---
-    // 1. Update the correct actor's result - now using token ID
+    // 1. Update the correct actor's result with the new, plain result object
     const actors = (flags.actors || []).map(a => ({
         ...a,
-        result: a.id === data.tokenId ? data.result : a.result // Match by token ID
+        result: a.id === tokenId ? result : a.result 
     }));
 
     // 2. Recalculate group roll summary
@@ -1501,7 +1502,7 @@ export async function handleSkillRollUpdate(data) {
     if (updatedMessageData.isCinematic) {
         const cinematicOverlay = $('#cpb-cinematic-overlay');
         if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
-            SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
+            SkillCheckDialog._updateCinematicDisplay(tokenId, result, updatedMessageData);
         }
     }
 
@@ -1511,7 +1512,7 @@ export async function handleSkillRollUpdate(data) {
         windows.forEach(window => {
             const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
             if (inputField) {
-                inputField.value = data.result.total;
+                inputField.value = result.total;
             }
         });
     }
