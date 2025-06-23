@@ -318,17 +318,17 @@
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.critical {
-    border-color: #4CAF50;
-    color: #8eff8e;
-    box-shadow: 0 0 10px #4CAF50;
-    animation: cpb-pulse 1.5s infinite;
+    border-color: #4CAF50 !important;
+    color: #8eff8e !important;
+    box-shadow: 0 0 10px #4CAF50 !important;
+    animation: cpb-pulse 1.5s infinite !important;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.fumble {
-    border-color: #8B0000;
-    color: #ff8e8e;
-    box-shadow: 0 0 10px #8B0000;
-    animation: cpb-shake 0.5s;
+    border-color: #8B0000 !important;
+    color: #ff8e8e !important;
+    box-shadow: 0 0 10px #8B0000 !important;
+    animation: cpb-shake 0.5s !important;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-pending {

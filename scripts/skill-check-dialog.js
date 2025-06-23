@@ -1309,10 +1309,53 @@ export class SkillCheckDialog extends Application {
         // Use a timeout to create a delay for the reveal
         setTimeout(() => {
             // Determine the sound to play based on the roll result
-            const d20Roll = result?.dice[0]?.results[0]?.result;
+            // Improved d20 roll detection to handle different roll types
+            let d20Roll = null;
+            
+            // First try the terms structure (newer Foundry format)
+            if (result?.terms) {
+                for (const term of result.terms) {
+                    if (term.class === 'D20Die' && term.results && term.results.length > 0) {
+                        // For advantage/disadvantage, use the final result (highest or lowest)
+                        if (term.results.length === 2) {
+                            // This is advantage/disadvantage - use the final result
+                            d20Roll = term.results[term.results.length - 1].result;
+                        } else {
+                            // Single d20 roll
+                            d20Roll = term.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback to dice structure (older format)
+            if (d20Roll === null && result?.dice) {
+                for (const die of result.dice) {
+                    if (die.faces === 20 && die.results && die.results.length > 0) {
+                        // For advantage/disadvantage, use the final result (highest or lowest)
+                        if (die.results.length === 2) {
+                            // This is advantage/disadvantage - use the final result
+                            d20Roll = die.results[die.results.length - 1].result;
+                        } else {
+                            // Single d20 roll
+                            d20Roll = die.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            console.log('CPB | Cinematic Display - Roll result:', result);
+            console.log('CPB | Cinematic Display - d20Roll value:', d20Roll);
+            console.log('CPB | Cinematic Display - Terms structure:', result?.terms);
+            console.log('CPB | Cinematic Display - Dice structure:', result?.dice);
+            
             if (d20Roll === 20) {
+                console.log('CPB | Cinematic Display - CRITICAL DETECTED!');
                 playSound(COFFEEPUB.SOUNDROLLCRITICAL, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else if (d20Roll === 1) {
+                console.log('CPB | Cinematic Display - FUMBLE DETECTED!');
                 playSound(COFFEEPUB.SOUNDROLLFUMBLE, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else {
                 playSound(COFFEEPUB.SOUNDROLLCOMPLETE, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -1327,6 +1370,8 @@ export class SkillCheckDialog extends Application {
 
             const successClass = result.total >= messageData.dc ? 'success' : 'failure';
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${result.total}</div>`;
+            console.log('CPB | Cinematic Display - Applied classes:', { successClass, specialClass });
+            console.log('CPB | Cinematic Display - Final HTML:', resultHtml);
             rollArea.append(resultHtml);
 
             // Check if all rolls are complete to hide the overlay
