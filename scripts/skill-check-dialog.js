@@ -250,10 +250,21 @@ export class SkillCheckDialog extends Application {
             canvas.tokens.controlled.forEach(token => {
                 const actorItem = html.find(`.cpb-actor-item[data-token-id="${token.id}"]`);
                 if (actorItem.length) {
-                    actorItem.addClass('selected cpb-group-1');
+                    const actor = token.actor;
                     const indicator = actorItem.find('.cpb-group-indicator');
-                    if (indicator.length) {
-                        indicator.html('<i class="fas fa-swords" title="Challengers"></i>');
+
+                    if (actor && actor.type !== 'character') {
+                        // NPCs and Monsters default to Defenders
+                        actorItem.removeClass('cpb-group-1').addClass('selected cpb-group-2');
+                        if (indicator.length) {
+                            indicator.html('<i class="fas fa-shield-halved" title="Defenders"></i>');
+                        }
+                    } else {
+                        // Players default to Challengers
+                        actorItem.removeClass('cpb-group-2').addClass('selected cpb-group-1');
+                        if (indicator.length) {
+                            indicator.html('<i class="fas fa-swords" title="Challengers"></i>');
+                        }
                     }
                 }
             });
