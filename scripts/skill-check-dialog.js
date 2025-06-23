@@ -401,6 +401,15 @@ export class SkillCheckDialog extends Application {
                 if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
                 let dcOverride = dcAttr !== undefined ? dcAttr : null;
 
+                // Check if defenders are selected for non-contested rolls
+                if (rollType !== 'contested' && rollType !== 'party') {
+                    const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+                    if (hasDefenders) {
+                        ui.notifications.warn("You have defenders selected, but this is not a contested roll type. Please deselect defenders or choose a contested roll.");
+                        return;
+                    }
+                }
+
                 // Clear any existing selections
                 html.find('.cpb-check-item').removeClass('selected');
                 html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
