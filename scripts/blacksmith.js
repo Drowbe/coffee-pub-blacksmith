@@ -1412,78 +1412,33 @@ export class ThirdPartyManager {
 }
 
 export async function handleSkillRollUpdate(data) {
-    const message = game.messages.get(data.messageId);
+    const { messageId, tokenId, result } = data;
+    const message = game.messages.get(messageId);
     if (!message) return;
 
-    const flags = message.flags['coffee-pub-blacksmith'];
-    if (!flags?.type === 'skillCheck') return;
+    // Ensure the result is a plain object for serialization if needed
+    const rollResult = result instanceof Roll ? result.toJSON() : result;
 
-    // --- Always recalculate group roll summary on the GM side ---
-    // 1. Update the correct actor's result - now using token ID
-    const actors = (flags.actors || []).map(a => ({
-        ...a,
-        result: a.id === data.tokenId ? data.result : a.result // Match by token ID
-    }));
-
-    // 2. Recalculate group roll summary
-    let groupRollData = {};
-    if (flags.isGroupRoll) {
-        const completedRolls = actors.filter(a => a.result);
-        const allRollsComplete = completedRolls.length === actors.length;
-        groupRollData = {
-            isGroupRoll: true,
-            allRollsComplete
-        };
-        if (allRollsComplete && flags.dc) {
-            const successCount = actors.filter(a => a.result && a.result.total >= flags.dc).length;
-            const totalCount = actors.length;
-            const groupSuccess = successCount > (totalCount / 2);
-            Object.assign(groupRollData, {
-                successCount,
-                totalCount,
-                groupSuccess
-            });
-        }
+    // Manually preserve the verboseFormula if it exists on the original Roll object
+    if (result.verboseFormula) {
+        rollResult.verboseFormula = result.verboseFormula;
     }
 
-    // 3. Recalculate contested roll results if needed
-    let contestedRoll;
-    if (flags.hasMultipleGroups && actors.every(a => a.result)) {
-        const group1 = actors.filter(a => a.group === 1);
-        const group2 = actors.filter(a => a.group === 2);
-        const group1Highest = Math.max(...group1.map(a => a.result.total));
-        const group2Highest = Math.max(...group2.map(a => a.result.total));
-        if (flags.dc && group1Highest < flags.dc && group2Highest < flags.dc) {
-            contestedRoll = {
-                winningGroup: 0,
-                group1Highest,
-                group2Highest,
-                isTie: true
-            };
-        } else {
-            const isGroup1Winner = group1Highest > group2Highest;
-            contestedRoll = {
-                winningGroup: isGroup1Winner ? 1 : 2,
-                group1Highest,
-                group2Highest,
-                isTie: group1Highest === group2Highest
-            };
-        }
-    }
+    // Get current flags and process the new result
+    const currentFlags = message.flags['coffee-pub-blacksmith'] || {};
+    const updatedFlags = SkillCheckDialog.processRollResult(currentFlags, tokenId, rollResult);
 
-    // 4. Update the message data
+    // Update the message data
     const updatedMessageData = {
-        ...flags,
-        ...groupRollData,
-        actors,
-        contestedRoll
+        ...updatedFlags,
+        ...rollResult
     };
 
     const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
     await message.update({ 
         content,
         flags: {
-            'coffee-pub-blacksmith': updatedMessageData
+            'coffee-pub-blacksmith': updatedFlags
         }
     });
 
@@ -1492,26 +1447,26 @@ export async function handleSkillRollUpdate(data) {
         type: 'skillRollFinalized',
         data: {
             messageId: message.id,
-            flags: updatedMessageData,
+            flags: updatedFlags,
             rollData: data // Pass along the specific roll data (tokenId, result)
         }
     });
 
     // Directly update the GM's cinematic UI if it's open
-    if (updatedMessageData.isCinematic) {
+    if (updatedFlags.isCinematic) {
         const cinematicOverlay = $('#cpb-cinematic-overlay');
         if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
-            SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
+            SkillCheckDialog._updateCinematicDisplay(tokenId, result, updatedFlags);
         }
     }
 
     // If this was a requested roll, update the GM's interface
-    if (flags.requesterId === game.user.id) {
+    if (updatedFlags.requesterId === game.user.id) {
         const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
         windows.forEach(window => {
             const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
             if (inputField) {
-                inputField.value = data.result.total;
+                inputField.value = result.total;
             }
         });
     }
