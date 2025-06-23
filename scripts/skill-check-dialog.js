@@ -396,6 +396,7 @@ export class SkillCheckDialog extends Application {
                 const rollType = item.dataset.rollType || null;
                 const groupAttr = item.dataset.group;
                 const dcAttr = item.dataset.dc;
+                const defenderSkillAttr = item.dataset.defenderSkill;
                 let isGroupRoll = null;
                 if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
                 let dcOverride = dcAttr !== undefined ? dcAttr : null;
@@ -419,6 +420,61 @@ export class SkillCheckDialog extends Application {
                             }
                         }
                     });
+                } else if (rollType === 'contested') {
+                    // Contested roll: set up both challenger and defender skills
+                    console.log('CPB | Setting up contested roll:', { value, defenderSkillAttr });
+                    
+                    // Set the challenger skill selection
+                    const quickRollMap = {
+                        'perception': 'prc',
+                        'insight': 'ins',
+                        'investigation': 'inv',
+                        'nature': 'nat',
+                        'stealth': 'ste',
+                        'athletics': 'ath',
+                        'acrobatics': 'acr',
+                        'deception': 'dec',
+                        'persuasion': 'per',
+                        'intimidation': 'itm'
+                    };
+                    const challengerSkillValue = quickRollMap[value] || value;
+                    if (challengerSkillValue) {
+                        const challengerSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
+                        if (challengerSkillItem.length) {
+                            challengerSkillItem.addClass('selected');
+                            const indicator = challengerSkillItem[0].querySelector('.cpb-roll-type-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            }
+                            this.challengerRoll = { type: 'skill', value: challengerSkillValue };
+                        }
+                    }
+
+                    // Set the defender skill selection
+                    if (defenderSkillAttr) {
+                        const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
+                        const defenderSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
+                        if (defenderSkillItem.length) {
+                            defenderSkillItem.addClass('selected');
+                            const indicator = defenderSkillItem[0].querySelector('.cpb-roll-type-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                            }
+                            this.defenderRoll = { type: 'skill', value: defenderSkillValue };
+                        }
+                    }
+
+                    // Set quick contested roll flag and store overrides
+                    this._isQuickPartyRoll = true;
+                    this._quickRollOverrides = {
+                        isGroupRoll: false, // Contested rolls are never group rolls
+                        dcOverride: null, // Contested rolls don't use DC
+                        isContested: true
+                    };
+
+                    // Automatically click the roll button
+                    html.find('button[data-button="roll"]').trigger('click');
+                    return;
                 } else if (rollType === 'common') {
                     // Common roll: use only selected tokens (do nothing extra)
                 }
@@ -598,7 +654,7 @@ export class SkillCheckDialog extends Application {
             // Determine if this is a contested roll
             const hasChallengers = selectedActors.some(a => a.group === 1);
             const hasDefenders = selectedActors.some(a => a.group === 2);
-            const isContestedRoll = hasChallengers && hasDefenders;
+            let isContestedRoll = hasChallengers && hasDefenders;
 
             let challengerRollType, challengerRollValue;
             let defenderRollType, defenderRollValue;
@@ -679,6 +735,14 @@ export class SkillCheckDialog extends Application {
                 } else {
                     groupRoll = html.find('input[name="groupRoll"]').prop('checked');
                 }
+                
+                // Handle contested roll overrides
+                if (this._quickRollOverrides.isContested) {
+                    // For contested rolls, force certain settings
+                    dc = null; // Contested rolls don't use DC
+                    groupRoll = false; // Contested rolls are individual
+                    isContestedRoll = true; // Force contested mode
+                }
             } else {
                 dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
                       (html.find('input[name="dc"]').val() || null);
@@ -725,7 +789,12 @@ export class SkillCheckDialog extends Application {
                             'insight': { skill: 'ins', name: 'Party Insight' },
                             'investigation': { skill: 'inv', name: 'Party Investigation' },
                             'nature': { skill: 'nat', name: 'Party Nature' },
-                            'stealth': { skill: 'ste', name: 'Party Stealth' }
+                            'stealth': { skill: 'ste', name: 'Party Stealth' },
+                            'athletics': { skill: 'ath', name: 'Athletics' },
+                            'acrobatics': { skill: 'acr', name: 'Acrobatics' },
+                            'deception': { skill: 'dec', name: 'Deception' },
+                            'persuasion': { skill: 'per', name: 'Persuasion' },
+                            'intimidation': { skill: 'itm', name: 'Intimidation' }
                         };
                         const quickRollData = quickRollMap[value];
                         if (quickRollData) {
