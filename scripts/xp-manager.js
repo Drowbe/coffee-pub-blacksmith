@@ -593,31 +593,25 @@ class XpDistributionWindow extends FormApplication {
                 ui.notifications.info(`XP distributed successfully! (Narrative Mode)`);
                 return;
             }
-            // Get form data manually
-            const formData = new FormData(this.element.find('form')[0]);
+
+            // Get player adjustments directly from the input fields
+            const html = this.element;
             const playerAdjustments = {};
-            // Get player adjustments
             for (const player of this.xpData.players) {
-                const adjustment = formData.get(`player-adjustment-${player.actorId}`);
+                const adjustmentInput = html.find(`input[name="player-adjustment-${player.actorId}"]`);
+                const adjustment = adjustmentInput.val();
                 if (adjustment) {
-                    playerAdjustments[player.actorId] = parseInt(adjustment) || 0;
+                    playerAdjustments[player.actorId] = parseInt(adjustment, 10) || 0;
                 }
             }
-            // Update monster resolution types
-            for (const monster of this.xpData.monsters) {
-                const newResolution = formData.get(`monster-resolution-${monster.id}`);
-                if (newResolution && newResolution !== monster.resolutionType) {
-                    const resolutionMultipliers = XpManager.getResolutionMultipliers();
-                    monster.resolutionType = newResolution;
-                    monster.multiplier = resolutionMultipliers[newResolution] || 0;
-                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-                }
-            }
-            // Recalculate totals
+
+            // The monster resolutions are already updated in this.xpData by the click handlers.
+            // No need to re-read from the form. Recalculate totals using the latest data.
             this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
             this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
+            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ?
                 Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
+
             // Apply XP to players
             const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
             await XpManager.postXpResults(this.xpData, results);
