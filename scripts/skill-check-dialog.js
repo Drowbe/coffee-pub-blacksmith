@@ -469,7 +469,8 @@ export class SkillCheckDialog extends Application {
                     this._quickRollOverrides = {
                         isGroupRoll: false, // Contested rolls are never group rolls
                         dcOverride: null, // Contested rolls don't use DC
-                        isContested: true
+                        isContested: true,
+                        rollType: rollType // Store the roll type for consistency
                     };
 
                     // Automatically click the roll button
@@ -505,7 +506,8 @@ export class SkillCheckDialog extends Application {
                 this._isQuickPartyRoll = true;
                 this._quickRollOverrides = {
                     isGroupRoll,
-                    dcOverride
+                    dcOverride,
+                    rollType: rollType // Store the roll type to distinguish party vs other quick rolls
                 };
 
                 // Automatically click the roll button
@@ -628,19 +630,44 @@ export class SkillCheckDialog extends Application {
         // Handle the roll button
         html.find('button[data-button="roll"]').click(async (ev) => {
             // Guard clause: Only proceed if the current user is the owner of at least one selected actor or is GM
-            const selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => {
-                const tokenId = item.dataset.tokenId; // This is now a token ID
-                const token = canvas.tokens.placeables.find(t => t.id === tokenId);
-                const actor = token?.actor;
-                return {
-                    tokenId: tokenId,
-                    actorId: actor?.id, // Get the actual actor ID for roll operations
-                    name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
-                    group: item.classList.contains('cpb-group-1') ? 1 : 
-                           item.classList.contains('cpb-group-2') ? 2 : 1,
-                    actor: actor // Store the actor object for convenience
-                };
-            });
+            
+            // Check if this is a quick party roll and get all party members if so
+            let selectedActors;
+            if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollType === 'party') {
+                // For party rolls, include all party members regardless of UI selection
+                selectedActors = Array.from(html.find('.cpb-actor-item')).map(item => {
+                    const tokenId = item.dataset.tokenId;
+                    const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                    const actor = token?.actor;
+                    // Only include party members (characters with player owners)
+                    if (actor && actor.hasPlayerOwner) {
+                        return {
+                            tokenId: tokenId,
+                            actorId: actor?.id,
+                            name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
+                            group: 1, // Party rolls are always group 1 (challengers)
+                            actor: actor
+                        };
+                    }
+                    return null;
+                }).filter(actor => actor !== null);
+            } else {
+                // For non-party rolls, use the currently selected actors
+                selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => {
+                    const tokenId = item.dataset.tokenId; // This is now a token ID
+                    const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+                    const actor = token?.actor;
+                    return {
+                        tokenId: tokenId,
+                        actorId: actor?.id, // Get the actual actor ID for roll operations
+                        name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
+                        group: item.classList.contains('cpb-group-1') ? 1 : 
+                               item.classList.contains('cpb-group-2') ? 2 : 1,
+                        actor: actor // Store the actor object for convenience
+                    };
+                });
+            }
+            
             const isRoller = selectedActors.some(a => {
                 return a.actor && (a.actor.isOwner || game.user.isGM);
             });
