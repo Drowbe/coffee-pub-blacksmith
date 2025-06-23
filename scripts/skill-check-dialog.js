@@ -1316,10 +1316,17 @@ export class SkillCheckDialog extends Application {
             if (result?.terms) {
                 for (const term of result.terms) {
                     if (term.class === 'D20Die' && term.results && term.results.length > 0) {
-                        // For advantage/disadvantage, use the final result (highest or lowest)
+                        // For advantage/disadvantage, find the active result
                         if (term.results.length === 2) {
-                            // This is advantage/disadvantage - use the final result
-                            d20Roll = term.results[term.results.length - 1].result;
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = term.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
+                            }
                         } else {
                             // Single d20 roll
                             d20Roll = term.results[0].result;
@@ -1333,10 +1340,17 @@ export class SkillCheckDialog extends Application {
             if (d20Roll === null && result?.dice) {
                 for (const die of result.dice) {
                     if (die.faces === 20 && die.results && die.results.length > 0) {
-                        // For advantage/disadvantage, use the final result (highest or lowest)
+                        // For advantage/disadvantage, find the active result
                         if (die.results.length === 2) {
-                            // This is advantage/disadvantage - use the final result
-                            d20Roll = die.results[die.results.length - 1].result;
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = die.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
+                            }
                         } else {
                             // Single d20 roll
                             d20Roll = die.results[0].result;
