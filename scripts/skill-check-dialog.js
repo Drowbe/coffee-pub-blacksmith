@@ -1430,7 +1430,7 @@ export class SkillCheckDialog extends Application {
                     roll = new Roll(formula, actor.getRollData());
                     await roll.evaluate({ async: true });
                     rollCoffeePubDice(roll);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor);
                     break;
                 case 'skill':
                     if (typeof actor.rollSkillV2 === 'function') {
@@ -1438,17 +1438,17 @@ export class SkillCheckDialog extends Application {
                     } else {
                         roll = await actor.rollSkill(value, rollOptions);
                     }
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, CONFIG.DND5E.skills[value]?.ability);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
                     break;
                 case 'ability':
                     roll = await actor.rollAbilityTest(value, rollOptions);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, value);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, value);
                     break;
                 case 'save':
                     roll = (value === 'death') 
                         ? await actor.rollDeathSave(rollOptions) 
                         : await actor.rollSavingThrow(value, rollOptions);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, value);
+                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, value);
                     break;
                 case 'tool': {
                     const toolIdentifier = value; // Use the value passed from the click handler
@@ -1509,7 +1509,7 @@ export class SkillCheckDialog extends Application {
                         await roll.evaluate({ async: true });
                         rollCoffeePubDice(roll);
 
-                        roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, ability);
+                        roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, ability);
                     }
                     break;
                 }
@@ -1579,44 +1579,48 @@ export class SkillCheckDialog extends Application {
      * Builds a verbose formula string for tooltips from a Roll object.
      * Example: "12 (Roll) + 3 (Dexterity) + 2 (Proficiency) = 17"
      * @param {Roll} roll - The Roll object to parse.
+     * @param {Actor} actor - The Actor performing the roll.
      * @param {string|null} abilityKey - The key for the ability score used (e.g., 'dex').
      * @returns {string} The verbose formula string.
      * @private
      */
-    static _buildVerboseFormula(roll, abilityKey = null) {
+    static _buildVerboseFormula(roll, actor, abilityKey = null) {
         if (!roll || !roll.dice || !roll.dice[0] || !roll.dice[0].results) return roll.formula;
 
         const d20Result = roll.dice[0].results[0].result;
-        const tooltipParts = [`${d20Result} (ROLL)`];
+        const tooltipParts = [`${d20Result} (Dice Roll)`];
+        
+        const terms = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm);
+        
+        if (!actor) {
+             terms.forEach(term => {
+                tooltipParts.push(term.number > 0 ? `+ ${term.number}` : `- ${Math.abs(term.number)}`);
+            });
+            tooltipParts.push(`= ${roll.total}`);
+            return tooltipParts.join(' ');
+        }
+        
+        const abilityMod = abilityKey ? foundry.utils.getProperty(actor.system.abilities, `${abilityKey}.mod`) : null;
+        const profBonus = foundry.utils.getProperty(actor.system, `attributes.prof`);
+        
+        let abilityModUsed = false;
+        let profBonusUsed = false;
 
-        // Find all numeric terms
-        const bonusTerms = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm);
-
-        for (const term of bonusTerms) {
-            if (term.number === 0) continue;
-
-            const sign = term.number > 0 ? "+" : "-";
+        for (const term of terms) {
+            const sign = term.number >= 0 ? "+" : "-";
             const number = Math.abs(term.number);
-            let label = "";
+            let label = term.options.flavor || null;
 
-            const flavor = term.options?.flavor?.toLowerCase();
-
-
-            console.log("COFFEEPUB | flavor: ", flavor);
-
-            if (flavor === "ability") {
-                label = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey?.toUpperCase() || "MOD";
-            } else if (flavor === "proficiency") {
-                label = "PROF";
-            } else if (flavor === "bonus") {
-                 label = "BONUS";
-            } else if (term.options.flavor) { // use original case if not a known lowercase one
-                label = term.options.flavor;
+            if (!label) {
+                if (abilityMod !== null && !abilityModUsed && number === Math.abs(abilityMod)) {
+                    label = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey?.toUpperCase() || "MOD";
+                    abilityModUsed = true;
+                } else if (profBonus !== null && !profBonusUsed && number === Math.abs(profBonus)) {
+                    label = "Proficiency";
+                    profBonusUsed = true;
+                }
             }
-            
-            console.log("COFFEEPUB | label: ", label);
 
-            
             if (label) {
                 tooltipParts.push(`${sign} ${number} (${label})`);
             } else {
