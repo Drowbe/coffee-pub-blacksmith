@@ -1480,7 +1480,7 @@ export class SkillCheckDialog extends Application {
                         else parts.push("1d20");
 
                         const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                        if (abilityMod !== 0) parts.push(`${abilityMod}[Ability]`);
+                        if (abilityMod !== 0) parts.push(abilityMod);
                         
                         const profBonus = actor.system.attributes.prof || 0;
                         let actualProfBonus = 0;
@@ -1501,7 +1501,7 @@ export class SkillCheckDialog extends Application {
                         }
 
                         if (actualProfBonus > 0) {
-                            parts.push(`${actualProfBonus}[Proficiency]`);
+                            parts.push(actualProfBonus);
                         }
 
                         const formula = parts.join(" + ");
