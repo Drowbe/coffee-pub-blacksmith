@@ -1480,7 +1480,7 @@ export class SkillCheckDialog extends Application {
                         else parts.push("1d20");
 
                         const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                        parts.push(abilityMod);
+                        if (abilityMod !== 0) parts.push(`${abilityMod}[Ability]`);
                         
                         const profBonus = actor.system.attributes.prof || 0;
                         let actualProfBonus = 0;
@@ -1501,7 +1501,7 @@ export class SkillCheckDialog extends Application {
                         }
 
                         if (actualProfBonus > 0) {
-                            parts.push(actualProfBonus);
+                            parts.push(`${actualProfBonus}[Proficiency]`);
                         }
 
                         const formula = parts.join(" + ");
@@ -1587,34 +1587,45 @@ export class SkillCheckDialog extends Application {
         if (!roll || !roll.dice || !roll.dice[0] || !roll.dice[0].results) return roll.formula;
 
         const d20Result = roll.dice[0].results[0].result;
-        let tooltip = `${d20Result} (ROLL)`;
+        const tooltipParts = [`${d20Result} (ROLL)`];
 
-        // Handle ability modifier part
-        const abilityMod = roll.terms.find(t => t.options?.flavor?.toLowerCase() === "ability");
-        if (abilityMod && abilityKey) {
-            const abilityName = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey.toUpperCase();
-            tooltip += ` + ${abilityMod.total} (${abilityName})`;
-        } else if (abilityMod) {
-             tooltip += ` + ${abilityMod.total} (MOD)`;
-        }
+        // Find all numeric terms
+        const bonusTerms = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm);
 
-        // Handle proficiency bonus part
-        const prof = roll.terms.find(t => t.options?.flavor?.toLowerCase() === "proficiency");
-        if (prof) {
-            tooltip += ` + ${prof.total} (PROF)`;
+        for (const term of bonusTerms) {
+            if (term.number === 0) continue;
+
+            const sign = term.number > 0 ? "+" : "-";
+            const number = Math.abs(term.number);
+            let label = "";
+
+            const flavor = term.options?.flavor?.toLowerCase();
+
+
+            console.log("COFFEEPUB | flavor: ", flavor);
+
+            if (flavor === "ability") {
+                label = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey?.toUpperCase() || "MOD";
+            } else if (flavor === "proficiency") {
+                label = "PROF";
+            } else if (flavor === "bonus") {
+                 label = "BONUS";
+            } else if (term.options.flavor) { // use original case if not a known lowercase one
+                label = term.options.flavor;
+            }
+            
+            console.log("COFFEEPUB | label: ", label);
+
+            
+            if (label) {
+                tooltipParts.push(`${sign} ${number} (${label})`);
+            } else {
+                tooltipParts.push(`${sign} ${number}`);
+            }
         }
         
-        // Handle other numeric bonuses
-        const otherBonuses = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm && !t.options?.flavor);
-        otherBonuses.forEach(b => {
-             if (b.total > 0) tooltip += ` + ${b.total}`;
-             else if (b.total < 0) tooltip += ` - ${Math.abs(b.total)}`;
-        });
-        
-        tooltip += ` = ${roll.total}`;
+        tooltipParts.push(`= ${roll.total}`);
 
-        console.log(`COFFEEPUB | Verbose formula: ${tooltip}`);
-
-        return tooltip;
+        return tooltipParts.join(" ");
     }
 } 
