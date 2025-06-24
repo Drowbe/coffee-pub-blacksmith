@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.18] - Multiple Token Bug Fix
 
 ### Fixed
-- **Multiple Token Roll Bug:** Fixed critical issue where multiple tokens of the same actor (e.g., multiple copies of the same monster) would all roll together when one was selected for a skill check
+- **Token Name Display:** Skill check dialog and chat cards now use the token's name (e.g., "Sinolax (Troll)") instead of the actor's name (e.g., "Troll") for all contestant and result displays, making it easier to distinguish between multiple tokens of the same actor.
+- **Multiple Token Roll Support:** Chat card roll buttons now correctly support rolling for multiple tokens of the same actor by matching both tokenId and actorId, ensuring each token instance is handled independently.
+- **Improved User Clarity:** All skill check UI and chat card displays now reflect the actual token name, improving clarity for GMs and players when multiple similar tokens are present.
 - **Token ID System:** Completely refactored skill check system to use token IDs instead of actor IDs for unique identification
 - **Chat Card Roll Buttons:** Updated chat card roll buttons to work with individual token instances
 - **Permission Handling:** Fixed permission checks to allow GMs to roll for any token while maintaining proper ownership checks for players

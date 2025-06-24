@@ -2,7 +2,7 @@
   "id": "coffee-pub-blacksmith",
   "title": "Coffee Pub Blacksmith",
   "description": "Quality of life and aesthetic improvements",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "library": true,
   "compatibility": {
     "minimum": "12",
