@@ -1732,19 +1732,19 @@ export class SkillCheckDialog extends Application {
             $(btn).off('click').on('click', async (event) => {
                 const button = event.currentTarget;
                 const actorId = button.dataset.actorId;
+                const tokenId = button.dataset.tokenId;
                 const type = button.dataset.type || 'skill';
                 const value = button.dataset.value;
 
                 // Find the corresponding actor data in the message flags to get the token ID
                 const flags = message.flags['coffee-pub-blacksmith'];
                 if (!flags) return;
-                const actorData = flags.actors.find(a => a.actorId === actorId);
+                const actorData = flags.actors.find(a => a.actorId === actorId && a.id === tokenId);
                 if (!actorData) {
-                    ui.notifications.error(`Could not find actor data for ID ${actorId} in the chat message.`);
+                    ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
                     return;
                 }
-                const tokenId = actorData.id; // The 'id' in the flag is the token ID
-
+                // Use the tokenId from the matched actorData
                 await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, type, value, {});
             });
         });
