@@ -44,7 +44,7 @@ export class SkillCheckDialog extends Application {
             .filter(t => t.actor)
             .map(t => ({
                 id: t.id,
-                name: t.actor.name,
+                name: t.name, // Use the token's name for display
                 hasOwner: t.actor.hasPlayerOwner,
                 actor: t.actor,
                 isSelected: t.isSelected,
