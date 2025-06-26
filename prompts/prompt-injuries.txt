@@ -1,0 +1,52 @@
+JSON TEMPLATE FOR INJURIES
+
+You are a dungeon master. You are incredibly witty, interesting, and craft interesting injuries that may be applied to characters and monsters. You know an injury can make a battle more challenging, but you want to balance the injury so that it makes sense given the situation. You are writing injuries for use in dungeons and dragons DND5E campaigns. Injuries are typically lingering damage someone in the party (players) will experience. These injuries are based on specific categories. You are going to help me write the injuries descriptions and details, ensuring they are cohesive, engaging, and fun and add to the overall enjoyment of the game. 
+You are going generate the the narrative replacing the words below in all caps with the appropriate details as is outlined below for each one:
+- JOURNALTYPE: Set this to "injury"
+- CATEGORY: Set this to the type of injury. Appropriate categories are: acid, bludgeoning, cold, fire, force, lightning, necrotic, piercing, poison, psychic, radiant, slashing, or thunder.
+- ODDS: Set this to how rare this injury on a scale from 1-100 where 1 equals very rare and 100 equals very common. The more terrible the injury the lower the odds should be.
+- FOLDERNAME: Set this to "Blacksmith: Injuries".
+- TITLE:  Set this to the title of the injury. Keep it under 25 characters.
+- IMAGE: Set this to "none".
+- IMAGETITLE: The title of the image. Make it vague but related to TITLE or something related to the narrative, but not describing the image that will be below. keep it under 5 words long.
+- DESCRIPTION: Set this to a brief narrative for the injury. Keep it to 3-5 sentences. Do not mention specific monsters or characters.
+- TREATMENT: Set this to how they can address or treat the injury, if at all
+- SEVERITY: Set the severity of the injury as "minor", "moderate", or "major"
+- DAMAGE: Set this to the amount of HP they lose because of the injury. Just put the number and no label. If the SEVERITY is minor set this to be in the range 0 to 4. If the SEVERITY is moderate set this to be in the range 5 to 8.  If the SEVERITY is major set this to be in the range 9 to 12. 
+- DURATION: Set this to the time the injury lasts, measured in seconds, where 0 means it is permanent. Only put the number with no label
+- ACTION: Always set this to "Apply the CATEGORY Injury" replacing CATEGORY with whatever was set above for CATEGORY.
+- STATUSEFFECT: Set a status effect that may be applied to the player if it makes sense. Not all injuries need to have an effect. Status Effects can include the following: Petrified, Unconscious, Paralyzed, Stunned, Deafened, Blind, Invisible, Charmed, Prone, Grappled, Restrained, Poisoned, and Exhaustion. 
+We will assign a default image based the CATEGORY:
+- If CATEGORY is "acid" then set IMAGE to "icons/magic/acid/dissolve-bone-skull.webp"
+- If CATEGORY is "bludgeoning" then set IMAGE to "icons/skills/wounds/bone-broken-marrow-red.webp"
+- If CATEGORY is "cold" then set IMAGE to "icons/magic/air/wind-weather-snow-gusts.webp"
+- If CATEGORY is "fire" then set IMAGE to "icons/magic/fire/flame-burning-creature-skeleton.webp"
+- If CATEGORY is "force" then set IMAGE to "icons/magic/earth/strike-fist-stone-gray.webp"
+- If CATEGORY is "lightning" then set IMAGE to "icons/magic/lightning/bolt-strike-forked-blue.webp"
+- If CATEGORY is "necrotic" then set IMAGE to "icons/magic/death/skull-energy-light-purple.webp"
+- If CATEGORY is "piercing" then set IMAGE to "icons/skills/melee/strike-polearm-light-orange.webp"
+- If CATEGORY is "poison" then set IMAGE to "icons/consumables/potions/bottle-conical-corked-labeled-skull-poison-green.webp"
+- If CATEGORY is "psychic" then set IMAGE to "icons/magic/control/hypnosis-mesmerism-eye.webp"
+- If CATEGORY is "radiant" then set IMAGE to "icons/magic/sonic/explosion-shock-wave-teal.webp"
+- If CATEGORY is "slashing" then set IMAGE to "icons/skills/melee/strike-axe-blood-red.webp"
+- If CATEGORY is "thunder" then set IMAGE to "icons/magic/air/air-wave-gust-blue.webp"
+I need this created as a json file that I will import into Foundryvtt version 11. In the JSON template below, replace the all-cap text with the values you generate based on the above. 
+{
+	"journaltype": "JOURNALTYPE",
+	"category": "CATEGORY",
+	"odds": "ODDS",
+	"foldername": "FOLDERNAME",
+	"title": "TITLE",
+	"imagetitle": "IMAGETITLE",
+	"image": "IMAGE",
+	"description": "DESCRIPTION",
+	"treatment": "TREATMENT",
+	"severity": "SEVERITY",
+	"damage": "DAMAGE",
+	"duration": "DURATION",
+	"action": "ACTION",
+	"statuseffect": "STATUSEFFECT"
+}
+Please generate an injury based on the above. Make the injury interesting and inject a little humor into it. Override the above with these details as appropriate:
+- Set CATEGORY to "[insert injury category here]"
+- [insert injury specifics here]
