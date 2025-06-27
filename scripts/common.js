@@ -506,3 +506,54 @@ export async function buildCompendiumLinkItem(itemData) {
     // If we have the item name but no UUID, fall back to the legacy behavior
     return buildCompendiumLinkItem(itemData.itemName || itemData.name);
 }
+
+/**
+ * Copy text to clipboard with multiple fallback methods
+ * @param {string} text - The text to copy
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+export async function copyToClipboard(text) {
+    // Method 1: Try modern clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            ui.notifications.info('Copied to clipboard!');
+            return true;
+        } catch (error) {
+            console.warn('Modern clipboard API failed:', error);
+        }
+    }
+    // Method 2: Try legacy execCommand approach
+    try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+            ui.notifications.info('Copied to clipboard!');
+            return true;
+        }
+    } catch (error) {
+        console.warn('Legacy clipboard method failed:', error);
+    }
+    // Method 3: Show dialog with text for manual copying
+    new Dialog({
+        title: 'Copy to Clipboard',
+        content: `
+            <p>Automatic clipboard copy failed. Please manually copy the text below:</p>
+            <textarea style="width: 100%; height: 200px; margin-top: 10px;" readonly>${text}</textarea>
+        `,
+        buttons: {
+            close: {
+                label: 'Close'
+            }
+        }
+    }).render(true);
+    return false;
+}

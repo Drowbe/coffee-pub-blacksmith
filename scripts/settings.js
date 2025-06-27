@@ -1606,6 +1606,85 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
+
+	// -- Default Campaign Name --
+	game.settings.register(MODULE_ID, 'defaultCampaignName', {
+		name:'Default Campaign Name',
+		hint: 'The default campaign name to use when creating new narratives.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Party Name --
+	game.settings.register(MODULE_ID, 'defaultPartyName', {
+		name:'Default Party Name',
+		hint: 'The default party name to use when creating new narratives.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Party Size --
+	game.settings.register(MODULE_ID, 'defaultPartySize', {
+		name:'Default Party Size',
+		hint: 'The default party size to use when creating new narratives.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		default: 4,
+		range: {
+			min: 1,
+			max: 10,
+			step: 1,
+		},
+	});
+
+
+	// -- Default Party Makeup --
+	game.settings.register(MODULE_ID, 'defaultPartyMakeup', {
+		name:'Default Party Makeup',
+		hint: 'The default party makeup to use when creating new narratives. (e.g. 1 Fighter, 1 Rogue, 1 Wizard, 1 Cleric)',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Party Level --
+	game.settings.register(MODULE_ID, 'defaultPartyLevel', {
+		name:'Default Party Level',
+		hint: 'The default party level to use when creating new narratives.',
+		scope: "world",
+		config: true,
+		requiresReload: false,	
+		type: Number,
+		default: 1,
+		range: {
+			min: 1,
+			max: 20,
+			step: 1,		
+		},
+	});
+
+	// -- Default Rulebooks Folder --
+	game.settings.register(MODULE_ID, 'defaultRulebooks', {
+		name:'Default Rulebooks',
+		hint: 'A comma separated list of default rule books to use when creating new narratives. (e.g. 2024 Monster Manual, 2024 Player\'s Handbook, etc.)',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+
 	// -- Default Narrative Folder --
 	game.settings.register(MODULE_ID, 'defaultNarrativeFolder', {
 		name: MODULE_ID + '.defaultNarrativeFolder-Label',

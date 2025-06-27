@@ -16,7 +16,7 @@ import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, g
 // *** END: GLOBAL IMPORTS ***
 
 // -- COMMON Imports --
-import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
+import { createJournalEntry, createHTMLList, buildCompendiumLinkActor, copyToClipboard } from './common.js';
 
 // -- Import special page variables --
 // Register settings so they can be loaded below.
@@ -731,13 +731,27 @@ Hooks.on('renderChatMessage', (message, html, data) => {
 // and wait for clicks to import the JSON
 
 Hooks.on("renderJournalDirectory", async (app, html, data) => {
-    // Look for a click on the "Import" button
+    // Fetch template files at runtime
+    const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
+    const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
+
+    // Build dialog content with dropdown and button
+    const dialogContent = `
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <select id="template-type" style="flex: 0 0 auto;">
+          <option value="narrative">Narrative</option>
+          <option value="injury">Injury</option>
+        </select>
+        <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
+      </div>
+      <textarea id="json-input" style="width:100%;height:400px;"></textarea>
+    `;
+
     const button = $(`<button><i class="fa-solid fa-masks-theater"></i> Import JSON to Journal</button>`);
     button.click(() => {
       new Dialog({
         title: "Paste JSON",
-        content:
-          '<textarea id="json-input" style="width:100%;height:400px;"></textarea>',
+        content: dialogContent,
         buttons: {
             cancel: {
                 icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
@@ -775,12 +789,18 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
                 console.error(e);
                 ui.notifications.error("Failed to parse JSON!");
                 postConsoleAndNotification("Failed to parse JSON!", e + ".", false, true, true);
-
               }
             },
           },
         },
         default: "ok",
+        render: (htmlDialog) => {
+          // Attach event listeners for template copy
+          htmlDialog.find("#copy-template-btn").click(() => {
+            const type = htmlDialog.find("#template-type").val();
+            copyToClipboard(type === "injury" ? injuryTemplate : narrativeTemplate);
+          });
+        }
       }).render(true);
     });
     $(html).find(".header-actions.action-buttons").prepend(button);
