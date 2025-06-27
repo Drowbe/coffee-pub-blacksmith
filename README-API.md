@@ -530,3 +530,70 @@ For AI assistants integrating with the Stats API:
    - Clean up subscriptions on module disable/unload
 
 This documentation should help both human developers and AI assistants effectively integrate with the Blacksmith Stats API.
+
+## Enhanced Image Guessing
+
+The Blacksmith module now includes an advanced image guessing system that automatically selects appropriate images for imported items based on their names and descriptions.
+
+### How It Works
+
+The system uses a comprehensive synonym-to-folder mapping (`resources/item-mapping.json`) that maps keywords to relevant icon folders. When importing items, the system:
+
+1. **Exact Keyword Matching**: Searches for exact synonyms in item names and descriptions
+2. **Partial Word Matching**: Handles plurals and compound words (e.g., "swords" matches "sword")
+3. **Loot Type Matching**: Uses the item's loot type as a fallback
+4. **Filename Matching**: Searches for synonyms in actual image filenames
+5. **Fallback Selection**: Uses treasure/misc folders if no specific matches found
+
+### Settings
+
+- **Enhanced Image Guessing**: Enable/disable the advanced synonym mapping (default: enabled)
+- **Image Guessing Debug Mode**: Show detailed console logs about image selection process
+
+### Usage Examples
+
+```javascript
+// Test image guessing for a specific item
+await testImageGuessing("Ancient Ring", "A mysterious ring with arcane symbols");
+
+// Get all available synonyms
+const synonyms = await getAvailableSynonyms();
+console.log("Available synonyms:", synonyms);
+```
+
+### Synonym Categories
+
+The mapping includes synonyms for:
+
+- **Weapons**: swords, axes, bows, crossbows, daggers, etc.
+- **Equipment**: armor, shields, tools, instruments, etc.
+- **Commodities**: gems, metals, currency, materials, etc.
+- **Containers**: bags, barrels, boxes, chests, etc.
+- **Consumables**: potions, food, plants, mushrooms, etc.
+- **Sundries**: books, documents, scrolls, gaming items, etc.
+
+### Customization
+
+You can modify `resources/item-mapping.json` to:
+- Add new synonyms
+- Change folder mappings
+- Create custom categories
+
+The file structure is:
+```json
+{
+  "synonym": ["folder1", "folder2"],
+  "sword": ["weapons/swords", "weapons/melee"],
+  "gem": ["commodities/gems", "commodities/treasure"]
+}
+```
+
+### Debugging
+
+Enable debug mode to see detailed logs about:
+- Which synonyms were matched
+- Which folders were searched
+- Which images were selected
+- Fallback decisions
+
+This helps understand why specific images are chosen and troubleshoot any issues.

@@ -304,7 +304,13 @@
 		"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
 
 		"shareXpResults-Label": "Share XP Results",
-		"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them."
+		"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.",
+
+		"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
+		"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
+
+		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
+		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process."
 
 		
 	}

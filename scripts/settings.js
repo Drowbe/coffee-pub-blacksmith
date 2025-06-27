@@ -1870,6 +1870,8 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+
+
 	// -- Default XP --
 	game.settings.register(MODULE_ID, 'narrativeDefaultXP', {
 		name: MODULE_ID + '.narrativeDefaultXP-Label',
@@ -1891,6 +1893,31 @@ export const registerSettings = async () => {
 		type: String,
 		default: ''
 	});
+	
+	// ---------- ITEM IMPORT ----------
+	game.settings.register(MODULE_ID, "headingH3ItemImport", {
+		name: 'Item Import',
+		hint: 'These settings control how you to import items into the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+
+	// -- Enhanced Image Guessing --
+	game.settings.register(MODULE_ID, 'enableEnhancedImageGuessing', {
+		name: MODULE_ID + '.enableEnhancedImageGuessing-Label',
+		hint: MODULE_ID + '.enableEnhancedImageGuessing-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+
 
 
 

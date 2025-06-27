@@ -1612,7 +1612,7 @@ async function getIconPaths() {
   return iconPaths;
 }
 
-// Heuristic image guesser
+// Heuristic image guesser using comprehensive synonym mapping
 async function guessIconPath(item) {
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
@@ -1620,69 +1620,145 @@ async function guessIconPath(item) {
   const lootType = (item.itemLootType || '').toLowerCase();
   const searchText = name + ' ' + description;
 
-  // Minimal folder mapping for common keywords
-  const keywordFolders = {
-    ring: [
-      'commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'
-    ],
-    key: [
-      'tools/hand', 'commodities/metal', 'commodities/misc'
-    ],
-    gem: [
-      'commodities/gems', 'commodities/treasure'
-    ],
-    book: [
-      'sundries/books'
-    ],
-    potion: [
-      'consumables/potions'
-    ],
-    scroll: [
-      'sundries/scrolls'
-    ],
-    mask: [
-      'commodities/treasure', 'commodities/misc'
-    ],
-    cube: [
-      'commodities/treasure', 'commodities/misc'
-    ]
-    // Add more as you discover new needs
-  };
+  // Check if enhanced image guessing is enabled
+  const enhancedEnabled = game.settings.get(MODULE_ID, 'enableEnhancedImageGuessing');
 
-  // 1. Try any image in mapped folders for keywords (regardless of filename)
-  for (const [keyword, folders] of Object.entries(keywordFolders)) {
-    if (searchText.includes(keyword)) {
+  // Load the comprehensive synonym mapping
+  let synonymMapping = {};
+  if (enhancedEnabled) {
+    try {
+      const response = await fetch('modules/coffee-pub-blacksmith/resources/item-mapping.json');
+      synonymMapping = await response.json();
+      console.log('BLACKSMITH | Item Import | Loaded comprehensive synonym mapping with', Object.keys(synonymMapping).length, 'entries');
+    } catch (error) {
+      console.warn('BLACKSMITH | Item Import | Could not load item-mapping.json, falling back to basic mapping');
+      // Fallback to basic mapping if file can't be loaded
+      synonymMapping = {
+        ring: ['commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'],
+        key: ['tools/hand', 'commodities/metal', 'commodities/misc'],
+        gem: ['commodities/gems', 'commodities/treasure'],
+        book: ['sundries/books'],
+        potion: ['consumables/potions'],
+        scroll: ['sundries/scrolls'],
+        mask: ['commodities/treasure', 'commodities/misc'],
+        cube: ['commodities/treasure', 'commodities/misc']
+      };
+    }
+  } else {
+    // Use basic mapping when enhanced mode is disabled
+    synonymMapping = {
+      ring: ['commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'],
+      key: ['tools/hand', 'commodities/metal', 'commodities/misc'],
+      gem: ['commodities/gems', 'commodities/treasure'],
+      book: ['sundries/books'],
+      potion: ['consumables/potions'],
+      scroll: ['sundries/scrolls'],
+      mask: ['commodities/treasure', 'commodities/misc'],
+      cube: ['commodities/treasure', 'commodities/misc']
+    };
+  }
+
+  // 1. Try synonym mapping for exact keyword matches
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    if (searchText.includes(synonym)) {
       for (const folder of folders) {
         const folderImages = paths.filter(path =>
           path.toLowerCase().includes(`/${folder}/`)
         );
         if (folderImages.length > 0) {
           const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`[Blacksmith] Matched folder for '${keyword}': '${folder}' -> '${chosen}'`);
+          console.log(`BLACKSMITH | Item Import | Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
           return chosen;
         }
       }
     }
   }
 
-  // 2. Try filename match for keyword in any folder
-  for (const keyword of Object.keys(keywordFolders)) {
-    if (searchText.includes(keyword)) {
-      const fileMatch = paths.find(path =>
-        path.toLowerCase().match(new RegExp(`(^|/|_|-)${keyword}(-|_|\.|$)`, 'i'))
-      );
-      if (fileMatch) return fileMatch;
+  // 2. Try partial word matching for synonyms (handles plurals, compound words)
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    // Check if any word in the search text contains the synonym
+    const words = searchText.split(/\s+/);
+    for (const word of words) {
+      if (word.includes(synonym) || synonym.includes(word)) {
+        for (const folder of folders) {
+          const folderImages = paths.filter(path =>
+            path.toLowerCase().includes(`/${folder}/`)
+          );
+          if (folderImages.length > 0) {
+            const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+            console.log(`BLACKSMITH | Item Import | Matched partial word '${word}' (synonym: '${synonym}') to folder '${folder}' -> '${chosen}'`);
+            return chosen;
+          }
+        }
+      }
     }
   }
 
   // 3. Try loot type as folder
   if (lootType) {
     const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
-    if (lootTypeMatch) return lootTypeMatch;
+    if (lootTypeMatch) {
+      console.log(`BLACKSMITH | Item Import | Matched loot type '${lootType}' -> '${lootTypeMatch}'`);
+      return lootTypeMatch;
+    }
   }
 
-  // 4. Fallback
+  // 4. Try filename match for any synonym in any folder
+  for (const synonym of Object.keys(synonymMapping)) {
+    const fileMatch = paths.find(path =>
+      path.toLowerCase().match(new RegExp(`(^|/|_|-)${synonym}(-|_|\.|$)`, 'i'))
+    );
+    if (fileMatch) {
+      console.log(`BLACKSMITH | Item Import | Matched filename for synonym '${synonym}' -> '${fileMatch}'`);
+      return fileMatch;
+    }
+  }
+
+  // 5. Fallback to treasure/misc images
+  const fallbackFolders = ['commodities/treasure', 'commodities/misc', 'sundries/misc'];
+  for (const folder of fallbackFolders) {
+    const folderImages = paths.filter(path =>
+      path.toLowerCase().includes(`/${folder}/`)
+    );
+    if (folderImages.length > 0) {
+      const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+      console.log(`BLACKSMITH | Item Import | Using fallback folder '${folder}' -> '${chosen}'`);
+      return chosen;
+    }
+  }
+
+  // 6. Ultimate fallback
+  console.log('BLACKSMITH | Item Import | No suitable image found, using default');
   return "icons/commodities/treasure/mask-jeweled-gold.webp";
+}
+
+// Utility function to get available synonyms for debugging
+async function getAvailableSynonyms() {
+  try {
+    const response = await fetch('modules/coffee-pub-blacksmith/resources/item-mapping.json');
+    const mapping = await response.json();
+    return Object.keys(mapping).sort();
+  } catch (error) {
+    console.warn('BLACKSMITH | Item Import | Could not load synonym mapping for debugging');
+    return [];
+  }
+}
+
+// Utility function to test image guessing for a specific item
+async function testImageGuessing(itemName, itemDescription = '') {
+  const testItem = {
+    itemName: itemName,
+    itemDescription: itemDescription,
+    itemLootType: 'treasure'
+  };
+  
+  console.log(`BLACKSMITH | Item Import | Testing image guessing for: "${itemName}"`);
+  console.log(`BLACKSMITH | Item Import | Description: "${itemDescription}"`);
+  
+  const result = await guessIconPath(testItem);
+  console.log(`BLACKSMITH | Item Import | Result: ${result}`);
+  
+  return result;
 }
 
 /**
