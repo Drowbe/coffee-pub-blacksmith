@@ -68,6 +68,6 @@ Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "Why 
 
 Additional settings and details:
 
-- ITEMSOURCE: set to [ADD-ITEM-SOURCE-HERE]
+- ITEMSOURCE: set to "[ADD-ITEM-SOURCE-HERE]"
 - Ask clarifying questions if something is ambiguous.
 

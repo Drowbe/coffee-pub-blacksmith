@@ -1590,6 +1590,45 @@ async function getItemPromptWithDefaults(itemPrompt) {
   return itemPrompt;
 }
 
+/**
+ * Parse a flat item JSON (from prompt) into FoundryVTT D&D5E item data.
+ * @param {object} flat - The flat item JSON from the prompt.
+ * @returns {object} - The FoundryVTT item data object.
+ */
+function parseFlatItemToFoundry(flat) {
+  const type = flat.itemType?.toLowerCase() || "loot";
+  let data = {};
+  if (type === "loot") {
+    data = {
+      type: "loot",
+      name: flat.itemName,
+      img: flat.itemImagePath,
+      system: {
+        description: {
+          value: flat.itemDescription || "",
+          unidentified: flat.itemDescriptionUnidentified || "",
+          chat: flat.itemDescriptionChat || ""
+        },
+        rarity: flat.itemRarity,
+        weight: flat.itemWeight,
+        price: flat.itemPrice,
+        type: { value: flat.itemLootType },
+        properties: { magical: flat.itemIsMagical },
+        source: { custom: flat.itemSource },
+        quantity: flat.itemQuantity,
+        identified: flat.itemIdentified
+      },
+      flags: {
+        "coffee-pub": {
+          source: flat.itemSource
+        }
+      }
+    };
+  }
+  // Future: Add more item type mappings here
+  return data;
+}
+
 // ITEM IMPORT TOOL
 Hooks.on("renderItemDirectory", async (app, html, data) => {
     // Fetch the loot item prompt template at runtime
@@ -1627,9 +1666,9 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
                     try {
                         let parsed = JSON.parse(jsonData);
                         if (Array.isArray(parsed)) {
-                            itemsToImport = parsed;
+                            itemsToImport = parsed.map(parseFlatItemToFoundry);
                         } else if (typeof parsed === 'object' && parsed !== null) {
-                            itemsToImport = [parsed];
+                            itemsToImport = [parseFlatItemToFoundry(parsed)];
                         } else {
                             throw new Error("JSON must be an array or object");
                         }
