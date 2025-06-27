@@ -730,6 +730,40 @@ Hooks.on('renderChatMessage', (message, html, data) => {
 // This will add the import button to the journal directory
 // and wait for clicks to import the JSON
 
+// Helper to replace placeholders in the narrative template with settings values
+async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
+    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'defaultNarrativeFolder' },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultSceneArea' },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultSceneEnvironment' },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultSceneLocation' },
+    { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'narrativeDefaultCardImage' }
+  ];
+  let result = narrativeTemplate;
+  for (const { placeholder, key } of settings) {
+    let value = undefined;
+    try {
+      value = game.settings.get(MODULE_ID, key);
+    } catch (e) {}
+    // Special logic for image path
+    if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
+      if (value === 'custom') {
+        try {
+          value = game.settings.get(MODULE_ID, 'narrativeDefaultImagePath');
+        } catch (e) {}
+      }
+    }
+    if (!value) continue; // leave placeholder if not set
+    result = result.split(placeholder).join(value);
+  }
+  return result;
+}
+
 Hooks.on("renderJournalDirectory", async (app, html, data) => {
     // Fetch template files at runtime
     const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
@@ -751,6 +785,7 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
     button.click(() => {
       new Dialog({
         title: "Paste JSON",
+        width: 800,
         content: dialogContent,
         buttons: {
             cancel: {
@@ -796,9 +831,14 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
         default: "ok",
         render: (htmlDialog) => {
           // Attach event listeners for template copy
-          htmlDialog.find("#copy-template-btn").click(() => {
+          htmlDialog.find("#copy-template-btn").click(async () => {
             const type = htmlDialog.find("#template-type").val();
-            copyToClipboard(type === "injury" ? injuryTemplate : narrativeTemplate);
+            if (type === "injury") {
+              copyToClipboard(injuryTemplate);
+            } else {
+              const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
+              copyToClipboard(templateWithDefaults);
+            }
           });
         }
       }).render(true);

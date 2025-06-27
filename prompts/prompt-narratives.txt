@@ -111,7 +111,7 @@ When I ask you to generate narration for a scene and then give you context for t
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - This narrative will be for [ADD-PARTY-SIZE-HERE] level [ADD-PARTY-LEVEL-HERE] characters.
-- Assume the party includes th efollowing characters: [ADD-PARTY-MAKEUP-HERE].
+- Assume the party includes the following characters: [ADD-PARTY-MAKEUP-HERE].
 
 Set these specific values for this narration:
 
