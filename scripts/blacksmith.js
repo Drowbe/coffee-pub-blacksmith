@@ -1617,25 +1617,70 @@ async function guessIconPath(item) {
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
   const lootType = (item.itemLootType || '').toLowerCase();
-  // Try by loot type
-  if (lootType) {
-    const match = paths.find(path => path.includes(lootType));
-    if (match) return match;
-  }
-  // Try by keywords in name
-  const keywords = ["key", "book", "gem", "ring", "potion", "scroll", "cube", "mask"];
-  for (const word of keywords) {
-    if (name.includes(word)) {
-      const match = paths.find(path => path.includes(word));
-      if (match) return match;
+
+  // Minimal folder mapping for common keywords
+  const keywordFolders = {
+    ring: [
+      'commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'
+    ],
+    key: [
+      'tools/hand', 'commodities/metal', 'commodities/misc'
+    ],
+    gem: [
+      'commodities/gems', 'commodities/treasure'
+    ],
+    book: [
+      'sundries/books'
+    ],
+    potion: [
+      'consumables/potions'
+    ],
+    scroll: [
+      'sundries/scrolls'
+    ],
+    mask: [
+      'commodities/treasure', 'commodities/misc'
+    ],
+    cube: [
+      'commodities/treasure', 'commodities/misc'
+    ]
+    // Add more as you discover new needs
+  };
+
+  // 1. Try mapped folders for keywords
+  for (const [keyword, folders] of Object.entries(keywordFolders)) {
+    if (name.includes(keyword)) {
+      for (const folder of folders) {
+        const folderMatch = paths.find(path =>
+          path.toLowerCase().includes(`/${folder}/`) && path.toLowerCase().includes(keyword)
+        );
+        if (folderMatch) return folderMatch;
+      }
     }
   }
-  // Try by magic
+
+  // 2. Try loot type as folder
+  if (lootType) {
+    const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
+    if (lootTypeMatch) return lootTypeMatch;
+  }
+
+  // 3. Try filename match for keyword in any folder
+  for (const keyword of Object.keys(keywordFolders)) {
+    if (name.includes(keyword)) {
+      const fileMatch = paths.find(path =>
+        path.toLowerCase().match(new RegExp(`(^|/|_|-)${keyword}(-|_|\.|$)`, 'i'))
+      );
+      if (fileMatch) return fileMatch;
+    }
+  }
+
+  // 4. Try by magic
   if (item.itemIsMagical) {
     const match = paths.find(path => path.includes("magic") || path.includes("arcane"));
     if (match) return match;
   }
-  // Fallback
+  // 5. Fallback
   return "icons/commodities/treasure/mask-jeweled-gold.webp";
 }
 
