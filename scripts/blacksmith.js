@@ -1577,3 +1577,72 @@ export async function handleSkillRollUpdate(data) {
         });
     }
 }
+
+// ITEM IMPORT TOOL
+Hooks.on("renderItemDirectory", async (app, html, data) => {
+    // Fetch the loot item prompt template at runtime
+    const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
+
+    // Build dialog content with dropdown and button
+    const dialogContent = `
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <select id="item-template-type" style="flex: 0 0 auto;">
+          <option value="loot">Loot Item</option>
+        </select>
+        <button id="copy-item-template-btn" type="button">Copy Template to Clipboard</button>
+      </div>
+      <textarea id="item-json-input" style="width:100%;height:400px;"></textarea>
+    `;
+
+    const button = $(`<button><i class="fa-solid fa-boxes-stacked"></i> Import JSON to Items</button>`);
+    button.click(() => {
+      new Dialog({
+        title: "Paste JSON for Items",
+        content: dialogContent,
+        width: 800,
+        height: 800,
+        buttons: {
+            cancel: {
+                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
+                label: "Cancel",
+            },
+            ok: {
+                icon: "<i class='fa-solid fa-boxes-stacked'></i>",
+                label: "Import JSON",
+                callback: async (html) => {
+                    const jsonData = html.find("#item-json-input").val();
+                    let itemsToImport = [];
+                    try {
+                        let parsed = JSON.parse(jsonData);
+                        if (Array.isArray(parsed)) {
+                            itemsToImport = parsed;
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            itemsToImport = [parsed];
+                        } else {
+                            throw new Error("JSON must be an array or object");
+                        }
+                        // Validate and create items
+                        const created = await Item.createDocuments(itemsToImport, {keepId: false});
+                        ui.notifications.info(`Imported ${created.length} item(s) successfully.`);
+                    } catch (e) {
+                        console.error(e);
+                        ui.notifications.error("Failed to import items: " + e.message);
+                    }
+                }
+            }
+        },
+        default: "ok",
+        render: (htmlDialog) => {
+          // Attach event listeners for template copy
+          htmlDialog.find("#copy-item-template-btn").click(() => {
+            const type = htmlDialog.find("#item-template-type").val();
+            // Only loot for now, but extensible
+            if (type === "loot") {
+              copyToClipboard(lootPrompt);
+            }
+          });
+        }
+      }).render(true);
+    });
+    $(html).find(".header-actions.action-buttons").prepend(button);
+});
