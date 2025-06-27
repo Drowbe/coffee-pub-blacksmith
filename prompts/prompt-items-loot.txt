@@ -23,7 +23,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - ITEMWEIGHT: (number) Always set to a number between 0 and 5 (decimals OK). Never leave blank.
 - ITEMPRICE: (string) Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
 - ITEMIDENTIFIED: (boolean) the value should be true or false (not a string). Set to true.
-- ITEMIMAGEPATH: (string) set to "icons/commodities/treasure/mask-jeweled-gold.webp"
+- ITEMIMAGEPATH: (string) set to ""
 - ITEMDESCRIPTION: (string) An HTML-flavored narrative describing the item's look, purpose, and history. Use paragraph, bulleted lists, bold text, and heading tags as needed.
 - ITEMDESCRIPTIONUNIDENTIFIED: (string) An HTML-flavored narrative describing the item with vague details.
 - ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item t can be sent to the chat.

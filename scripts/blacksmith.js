@@ -1590,19 +1590,72 @@ async function getItemPromptWithDefaults(itemPrompt) {
   return itemPrompt;
 }
 
+// Cache for icon paths
+let iconPaths = null;
+
+// Recursively collect all image files in icons/ and subdirectories
+async function getIconPaths() {
+  if (iconPaths) return iconPaths;
+  iconPaths = [];
+  async function collect(dir) {
+    const result = await FilePicker.browse('public', dir);
+    for (const file of result.files) {
+      if (file.endsWith('.webp') || file.endsWith('.png') || file.endsWith('.jpg')) {
+        iconPaths.push(file);
+      }
+    }
+    for (const subdir of result.dirs) {
+      await collect(subdir);
+    }
+  }
+  await collect('icons/');
+  return iconPaths;
+}
+
+// Heuristic image guesser
+async function guessIconPath(item) {
+  const paths = await getIconPaths();
+  const name = (item.itemName || '').toLowerCase();
+  const lootType = (item.itemLootType || '').toLowerCase();
+  // Try by loot type
+  if (lootType) {
+    const match = paths.find(path => path.includes(lootType));
+    if (match) return match;
+  }
+  // Try by keywords in name
+  const keywords = ["key", "book", "gem", "ring", "potion", "scroll", "cube", "mask"];
+  for (const word of keywords) {
+    if (name.includes(word)) {
+      const match = paths.find(path => path.includes(word));
+      if (match) return match;
+    }
+  }
+  // Try by magic
+  if (item.itemIsMagical) {
+    const match = paths.find(path => path.includes("magic") || path.includes("arcane"));
+    if (match) return match;
+  }
+  // Fallback
+  return "icons/commodities/treasure/mask-jeweled-gold.webp";
+}
+
 /**
  * Parse a flat item JSON (from prompt) into FoundryVTT D&D5E item data.
  * @param {object} flat - The flat item JSON from the prompt.
  * @returns {object} - The FoundryVTT item data object.
  */
-function parseFlatItemToFoundry(flat) {
+async function parseFlatItemToFoundry(flat) {
   const type = flat.itemType?.toLowerCase() || "loot";
+  let img = flat.itemImagePath;
+  if (!img) {
+    img = await guessIconPath(flat);
+  }
   let data = {};
   if (type === "loot") {
     data = {
       type: "loot",
       name: flat.itemName,
-      img: flat.itemImagePath,
+      img: img,
       system: {
         description: {
           value: flat.itemDescription || "",
@@ -1666,9 +1719,9 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
                     try {
                         let parsed = JSON.parse(jsonData);
                         if (Array.isArray(parsed)) {
-                            itemsToImport = parsed.map(parseFlatItemToFoundry);
+                            itemsToImport = await Promise.all(parsed.map(parseFlatItemToFoundry));
                         } else if (typeof parsed === 'object' && parsed !== null) {
-                            itemsToImport = [parseFlatItemToFoundry(parsed)];
+                            itemsToImport = [await parseFlatItemToFoundry(parsed)];
                         } else {
                             throw new Error("JSON must be an array or object");
                         }
