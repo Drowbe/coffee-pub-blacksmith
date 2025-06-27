@@ -1616,7 +1616,9 @@ async function getIconPaths() {
 async function guessIconPath(item) {
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
+  const description = (item.itemDescription || '').toLowerCase();
   const lootType = (item.itemLootType || '').toLowerCase();
+  const searchText = name + ' ' + description;
 
   // Minimal folder mapping for common keywords
   const keywordFolders = {
@@ -1647,27 +1649,25 @@ async function guessIconPath(item) {
     // Add more as you discover new needs
   };
 
-  // 1. Try mapped folders for keywords
+  // 1. Try any image in mapped folders for keywords (regardless of filename)
   for (const [keyword, folders] of Object.entries(keywordFolders)) {
-    if (name.includes(keyword)) {
+    if (searchText.includes(keyword)) {
       for (const folder of folders) {
-        const folderMatch = paths.find(path =>
-          path.toLowerCase().includes(`/${folder}/`) && path.toLowerCase().includes(keyword)
+        const folderImages = paths.filter(path =>
+          path.toLowerCase().includes(`/${folder}/`)
         );
-        if (folderMatch) return folderMatch;
+        if (folderImages.length > 0) {
+          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+          console.log(`[Blacksmith] Matched folder for '${keyword}': '${folder}' -> '${chosen}'`);
+          return chosen;
+        }
       }
     }
   }
 
-  // 2. Try loot type as folder
-  if (lootType) {
-    const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
-    if (lootTypeMatch) return lootTypeMatch;
-  }
-
-  // 3. Try filename match for keyword in any folder
+  // 2. Try filename match for keyword in any folder
   for (const keyword of Object.keys(keywordFolders)) {
-    if (name.includes(keyword)) {
+    if (searchText.includes(keyword)) {
       const fileMatch = paths.find(path =>
         path.toLowerCase().match(new RegExp(`(^|/|_|-)${keyword}(-|_|\.|$)`, 'i'))
       );
@@ -1675,12 +1675,13 @@ async function guessIconPath(item) {
     }
   }
 
-  // 4. Try by magic
-  if (item.itemIsMagical) {
-    const match = paths.find(path => path.includes("magic") || path.includes("arcane"));
-    if (match) return match;
+  // 3. Try loot type as folder
+  if (lootType) {
+    const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
+    if (lootTypeMatch) return lootTypeMatch;
   }
-  // 5. Fallback
+
+  // 4. Fallback
   return "icons/commodities/treasure/mask-jeweled-gold.webp";
 }
 
