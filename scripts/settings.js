@@ -1594,11 +1594,11 @@ export const registerSettings = async () => {
 		default: 1,
 	});
 
-
-	// ---------- Narratvie Generator ----------
-	game.settings.register(MODULE_ID, "headingH3simpleheadingH2NarrativeGenerator", {
-		name: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Label',
-		hint: MODULE_ID + '.headingH3simpleheadingH2NarrativeGenerator-Hint',
+	
+	// ---------- SUBHEADING ----------
+	game.settings.register(MODULE_ID, "headingH2CampaignSettings", {
+		name: 'Campaign Settings',
+		hint: 'These settings are used to power both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1606,6 +1606,31 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
+
+
+	
+	// ---------- CAMPAIGN COMMON ----------
+	game.settings.register(MODULE_ID, "headingH3CampaignCommon", {
+		name: 'Campaign Common',
+		hint: 'General campaign settings that are common to all narratives.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+
+	// -- Use Cookies --
+	game.settings.register(MODULE_ID, 'narrativeUseCookies', {
+		name: MODULE_ID + '.narrativeUseCookies-Label',
+		hint: MODULE_ID + '.narrativeUseCookies-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
 
 	// -- Default Campaign Name --
 	game.settings.register(MODULE_ID, 'defaultCampaignName', {
@@ -1684,6 +1709,16 @@ export const registerSettings = async () => {
 		default: ''
 	});
 
+	// ---------- Narratvie Generator ----------
+	game.settings.register(MODULE_ID, "headingH3NarrativeGenerator", {
+		name: MODULE_ID + '.headingH3NarrativeGenerator-Label',
+		hint: MODULE_ID + '.headingH3NarrativeGenerator-Hint',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
 
 	// -- Default Narrative Folder --
 	game.settings.register(MODULE_ID, 'defaultNarrativeFolder', {
@@ -1751,16 +1786,7 @@ export const registerSettings = async () => {
 		default: ''
 	});	
 
-	// -- Use Cookies --
-	game.settings.register(MODULE_ID, 'narrativeUseCookies', {
-		name: MODULE_ID + '.narrativeUseCookies-Label',
-		hint: MODULE_ID + '.narrativeUseCookies-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
+	
 
 	// -- Default Card Image Selection --
 	game.settings.register(MODULE_ID, 'narrativeDefaultCardImage', {

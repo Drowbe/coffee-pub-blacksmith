@@ -1578,6 +1578,18 @@ export async function handleSkillRollUpdate(data) {
     }
 }
 
+// Helper to replace placeholders in the item prompt with settings values
+async function getItemPromptWithDefaults(itemPrompt) {
+  let value = '';
+  try {
+    value = game.settings.get(MODULE_ID, 'defaultCampaignName');
+  } catch (e) {}
+  if (value) {
+    return itemPrompt.split('[ADD-ITEM-SOURCE-HERE]').join(value);
+  }
+  return itemPrompt;
+}
+
 // ITEM IMPORT TOOL
 Hooks.on("renderItemDirectory", async (app, html, data) => {
     // Fetch the loot item prompt template at runtime
@@ -1634,11 +1646,12 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
         default: "ok",
         render: (htmlDialog) => {
           // Attach event listeners for template copy
-          htmlDialog.find("#copy-item-template-btn").click(() => {
+          htmlDialog.find("#copy-item-template-btn").click(async () => {
             const type = htmlDialog.find("#item-template-type").val();
             // Only loot for now, but extensible
             if (type === "loot") {
-              copyToClipboard(lootPrompt);
+              const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
+              copyToClipboard(promptWithDefaults);
             }
           });
         }

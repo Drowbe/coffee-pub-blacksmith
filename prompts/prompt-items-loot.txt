@@ -22,10 +22,10 @@ CORE FIELDS
 
 ITEM BASICS
 - "name": The full item name (max 50 characters)
-- "rarity": Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
+- "system.rarity": Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
 - "quantity": Set to 1
-- "weight": Always set to a number between 0 and 5 (decimals OK). Never leave blank.
-- "price": Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
+- "system.weight": Always set to a number between 0 and 5 (decimals OK). Never leave blank.
+- "system.price": Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
 - "equipped": Set to false
 - "identified": Set to true
 - "img": Relative path to Foundry or custom asset (e.g., "icons/tools/hand/locksmith-key-worn-brass.webp")
@@ -39,6 +39,10 @@ ITEM SYSTEM DATA (under "system")
 - "type.value": One of the following loot types:
   - "art", "gear", "gem", "junk", "material", "resource", or "treasure"
 - "properties.magical": true or false
+- "rarity": Place here as "system.rarity" (not at the top level)
+- "weight": Place here as "system.weight" (not at the top level)
+- "price": Place here as "system.price" (not at the top level)
+- "source.custom": Always set "system.source.custom" to the same value as the item source/campaign name. This will appear as the Source label in the FoundryVTT item sheet.
 
 METADATA & FLAGS
 - "flags": Optional module-specific flags. Include tags, source attribution, quest IDs, or hidden info.
@@ -59,10 +63,7 @@ JSON TEMPLATE
   "journaltype": "loot",
   "foldername": "FOLDERNAME",
   "name": "ITEMNAME",
-  "rarity": "RARITY",
   "quantity": 1,
-  "weight": ITEMWEIGHT,
-  "price": "ITEMPRICE",
   "equipped": false,
   "identified": true,
   "img": "IMAGEPATH",
@@ -106,14 +107,21 @@ JSON TEMPLATE
     },
     "properties": {
       "magical": ISMAGICAL
+    },
+    "weight": ITEMWEIGHT,
+    "price": "ITEMPRICE",
+    "rarity": "RARITY",
+    "source": {
+      "custom": "[ADD-ITEM-SOURCE-HERE]"
     }
   },
   "flags": {
     "coffee-pub": {
-      "source": "ITEMSOURCE",
+      "source": "[ADD-ITEM-SOURCE-HERE]",
       "tags": ["ITEMTAGS"]
     }
   },
+  // "folder": "FOLDER_ID", // Optional: Only include if assigning a valid Foundry folder ID
   "effects": [],
   "ownership": {
     "default": 0
@@ -133,11 +141,11 @@ When I ask you to generate a loot item, use the template and guidance above. Unl
 
 Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "Why does this exist?"
 
-Always provide a meaningful value for "source", "rarity", "weight", and "price". Never leave these blank or omit them.
+Always provide a meaningful value for "source", "system.rarity", "system.weight", "system.price", and "system.source.custom". Never leave these blank or omit them.
 
 I may provide overrides like:
 
-- ITEMSOURCE: [ADD-ITEM-SOURCE-HERE]
+- [ADD-ITEM-SOURCE-HERE]: The campaign name or item source (used for both system.source.custom and flags.coffee-pub.source)
 - ITEMNAME: [ADD-ITEM-NAME-HERE]
 - RARITY: [ADD-RARITY-HERE]
 - IMAGEPATH: "icons/commodities/treasure/mask-jeweled-gold.webp"
