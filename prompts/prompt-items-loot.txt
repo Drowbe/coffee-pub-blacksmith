@@ -13,119 +13,42 @@ You will generate well-structured JSON for a single loot item using the template
 JSON FIELD RULES & EXPECTATIONS
 -------------------
 
-Replace the ALL-CAPS placeholders below using the rules that follow.
+Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
-CORE FIELDS
-- "type": The D&D5E item type. For loot items, always set "type": "loot" at the top level of the JSON.
-- "journaltype": Always "loot"
-- "foldername": Folder the item will live in, e.g., "Blacksmith: Loot Items"
-
-ITEM BASICS
-- "name": The full item name (max 50 characters)
-- "system.rarity": Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
-- "quantity": Set to 1
-- "system.weight": Always set to a number between 0 and 5 (decimals OK). Never leave blank.
-- "system.price": Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
-- "equipped": Set to false
-- "identified": Set to true
-- "img": Relative path to Foundry or custom asset (e.g., "icons/tools/hand/locksmith-key-worn-brass.webp")
-
-ITEM SYSTEM DATA (under "system")
-- "description.value": A short 3–5 sentence HTML-flavored paragraph describing the item's look, purpose, and history. Use <p> tags.
-- "activation": Set all fields to empty unless the item triggers an action
-- "duration", "range", "target": Set all subfields to null or ""
-- "uses": Set all to null or "" unless the item has consumable charges
-- "consume": Set all fields to "" or null
-- "type.value": One of the following loot types:
-  - "art", "gear", "gem", "junk", "material", "resource", or "treasure"
-- "properties.magical": true or false
-- "rarity": Place here as "system.rarity" (not at the top level)
-- "weight": Place here as "system.weight" (not at the top level)
-- "price": Place here as "system.price" (not at the top level)
-- "source.custom": Always set "system.source.custom" to the same value as the item source/campaign name. This will appear as the Source label in the FoundryVTT item sheet.
-
-METADATA & FLAGS
-- "flags": Optional module-specific flags. Include tags, source attribution, quest IDs, or hidden info.
-- "flags.coffee-pub.source": Always set to a meaningful string describing the item's origin, location, or narrative source. Never leave blank.
-
-OPTIONAL FIELDS
-- "effects": Leave empty unless there's a reason for passive effects
-- "ownership": Leave as { "default": 0 }
-- "folder": Only include this field if you are assigning a valid Foundry folder ID (a 16-character alphanumeric string). Omit this field if not assigning a folder.
-- "imgtitle": A poetic or mysterious image label, e.g. "What It Unlocks" or "Pages Forgotten"
+- ITEMSOURCE: (string) The sourcebook or hombrew source name. 
+- ITEMTYPE: (string) The D&D5E item type. For loot items, always set "type": "loot" at the top level of the JSON.
+- ITEMNAME: (string) The full item name (max 50 characters)
+- ITEMRARITY: (string) Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
+- ITEMQUANTITY: (number) Set to 1
+- ITEMWEIGHT: (number) Always set to a number between 0 and 5 (decimals OK). Never leave blank.
+- ITEMPRICE: (string) Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
+- ITEMIDENTIFIED: (boolean) the value should be true or false (not a string). Set to true.
+- ITEMIMAGEPATH: (string) set to "icons/commodities/treasure/mask-jeweled-gold.webp"
+- ITEMDESCRIPTION: (string) An HTML-flavored narrative describing the item's look, purpose, and history. Use paragraph, bulleted lists, bold text, and heading tags as needed.
+- ITEMDESCRIPTIONUNIDENTIFIED: (string) An HTML-flavored narrative describing the item with vague details.
+- ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item t can be sent to the chat.
+- LOOTTYPE: (string) One of the following loot types: "art", "gear", "gem", "junk", "material", "resource", or "treasure"
+- ITEMISMAGICAL: (boolean) Identifies if the item has magical properties. The value should be true or false (not a string).
 
 -------------------
 JSON TEMPLATE
 -------------------
 
 {
-  "type": "loot",
-  "journaltype": "loot",
-  "foldername": "FOLDERNAME",
-  "name": "ITEMNAME",
-  "quantity": 1,
-  "equipped": false,
-  "identified": true,
-  "img": "IMAGEPATH",
-  "imgtitle": "IMAGETITLE",
-  "system": {
-    "description": {
-      "value": "<p>ITEMDESCRIPTION</p>"
-    },
-    "activation": {
-      "type": "",
-      "cost": 0,
-      "condition": ""
-    },
-    "duration": {
-      "value": null,
-      "units": ""
-    },
-    "target": {
-      "value": null,
-      "width": null,
-      "units": "",
-      "type": ""
-    },
-    "range": {
-      "value": null,
-      "long": null,
-      "units": ""
-    },
-    "uses": {
-      "value": null,
-      "max": null,
-      "per": ""
-    },
-    "consume": {
-      "type": "",
-      "target": "",
-      "amount": null
-    },
-    "type": {
-      "value": "LOOTTYPE"
-    },
-    "properties": {
-      "magical": ISMAGICAL
-    },
-    "weight": ITEMWEIGHT,
-    "price": "ITEMPRICE",
-    "rarity": "RARITY",
-    "source": {
-      "custom": "[ADD-ITEM-SOURCE-HERE]"
-    }
-  },
-  "flags": {
-    "coffee-pub": {
-      "source": "[ADD-ITEM-SOURCE-HERE]",
-      "tags": ["ITEMTAGS"]
-    }
-  },
-  // "folder": "FOLDER_ID", // Optional: Only include if assigning a valid Foundry folder ID
-  "effects": [],
-  "ownership": {
-    "default": 0
-  }
+  "itemSource": "ITEMSOURCE",
+  "itemType": "ITEMTYPE",
+  "itemName": "ITEMNAME",
+  "itemRarity": "ITEMRARITY",
+  "itemQuantity": ITEMQUANTITY,
+  "itemWeight": ITEMWEIGHT,
+  "itemPrice": "ITEMPRICE",
+  "itemIdentified": ITEMIDENTIFIED,
+  "itemImagePath": "ITEMIMAGEPATH",
+  "itemDescription": "ITEMDESCRIPTION",
+  "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
+  "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
+  "itemLootType": "LOOTTYPE",
+  "itemIsMagical": ITEMISMAGICAL   
 }
 
 -------------------
@@ -138,23 +61,13 @@ When I ask you to generate a loot item, use the template and guidance above. Unl
 - Inscribed relics
 - Puzzle objects
 - Mundane-but-unique trinkets
+- Interesting treasure
+- Art, books, other artifacts
 
-Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "Why does this exist?"
+Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "Why does this exist?" 
 
-Always provide a meaningful value for "source", "system.rarity", "system.weight", "system.price", and "system.source.custom". Never leave these blank or omit them.
+Additional settings and details:
 
-I may provide overrides like:
+- ITEMSOURCE: set to [ADD-ITEM-SOURCE-HERE]
+- Ask clarifying questions if something is ambiguous.
 
-- [ADD-ITEM-SOURCE-HERE]: The campaign name or item source (used for both system.source.custom and flags.coffee-pub.source)
-- ITEMNAME: [ADD-ITEM-NAME-HERE]
-- RARITY: [ADD-RARITY-HERE]
-- IMAGEPATH: "icons/commodities/treasure/mask-jeweled-gold.webp"
-- ITEMDESCRIPTION: [ADD-DESCRIPTION-HERE]
-- ITEMPRICE: [ADD-ITEM-PRICE-HERE]
-- ITEMWEIGHT: [ADD-ITEM-WEIGHT-HERE]
-- LOOTTYPE: [ADD-LOOT-TYPE-HERE]
-- ISMAGICAL: [ADD-TRUE-OR-FALSE-HERE]
-- FOLDERNAME: "New Loot"
-- FOLDER_ID: (a valid 16-character Foundry folder ID)
-
-Ask clarifying questions if something is ambiguous.
