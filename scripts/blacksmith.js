@@ -1612,13 +1612,12 @@ async function getIconPaths() {
   return iconPaths;
 }
 
-// Heuristic image guesser using comprehensive synonym mapping
+// Heuristic image guesser using prioritized synonym matching and itemImageTerms support
 async function guessIconPath(item) {
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
   const description = (item.itemDescription || '').toLowerCase();
   const lootType = (item.itemLootType || '').toLowerCase();
-  const searchText = name + ' ' + description;
 
   // Check if enhanced image guessing is enabled
   const enhancedEnabled = game.settings.get(MODULE_ID, 'enableEnhancedImageGuessing');
@@ -1632,7 +1631,6 @@ async function guessIconPath(item) {
       console.log('BLACKSMITH | Item Import | Loaded comprehensive synonym mapping with', Object.keys(synonymMapping).length, 'entries');
     } catch (error) {
       console.warn('BLACKSMITH | Item Import | Could not load item-mapping.json, falling back to basic mapping');
-      // Fallback to basic mapping if file can't be loaded
       synonymMapping = {
         ring: ['commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'],
         key: ['tools/hand', 'commodities/metal', 'commodities/misc'],
@@ -1645,7 +1643,6 @@ async function guessIconPath(item) {
       };
     }
   } else {
-    // Use basic mapping when enhanced mode is disabled
     synonymMapping = {
       ring: ['commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'],
       key: ['tools/hand', 'commodities/metal', 'commodities/misc'],
@@ -1658,43 +1655,97 @@ async function guessIconPath(item) {
     };
   }
 
-  // 1. Try synonym mapping for exact keyword matches
-  for (const [synonym, folders] of Object.entries(synonymMapping)) {
-    if (searchText.includes(synonym)) {
-      for (const folder of folders) {
-        const folderImages = paths.filter(path =>
-          path.toLowerCase().includes(`/${folder}/`)
-        );
-        if (folderImages.length > 0) {
-          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`BLACKSMITH | Item Import | Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
-          return chosen;
-        }
-      }
-    }
-  }
-
-  // 2. Try partial word matching for synonyms (handles plurals, compound words)
-  for (const [synonym, folders] of Object.entries(synonymMapping)) {
-    // Check if any word in the search text contains the synonym
-    const words = searchText.split(/\s+/);
-    for (const word of words) {
-      if (word.includes(synonym) || synonym.includes(word)) {
-        for (const folder of folders) {
-          const folderImages = paths.filter(path =>
-            path.toLowerCase().includes(`/${folder}/`)
-          );
+  // 0. Check itemImageTerms array (if present)
+  if (Array.isArray(item.itemImageTerms)) {
+    for (const termRaw of item.itemImageTerms) {
+      const term = (termRaw || '').toLowerCase().trim();
+      if (!term) continue;
+      // Exact match in mapping
+      if (synonymMapping[term]) {
+        for (const folder of synonymMapping[term]) {
+          const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
           if (folderImages.length > 0) {
             const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-            console.log(`BLACKSMITH | Item Import | Matched partial word '${word}' (synonym: '${synonym}') to folder '${folder}' -> '${chosen}'`);
+            console.log(`BLACKSMITH | Item Import | [IMAGE-TERMS-EXACT] Matched itemImageTerms '${term}' to folder '${folder}' -> '${chosen}'`);
             return chosen;
+          }
+        }
+      }
+      // Partial match in mapping keys
+      for (const [synonym, folders] of Object.entries(synonymMapping)) {
+        if (synonym.includes(term) || term.includes(synonym)) {
+          for (const folder of folders) {
+            const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
+            if (folderImages.length > 0) {
+              const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+              console.log(`BLACKSMITH | Item Import | [IMAGE-TERMS-PARTIAL] Matched itemImageTerms '${term}' (partial: '${synonym}') to folder '${folder}' -> '${chosen}'`);
+              return chosen;
+            }
           }
         }
       }
     }
   }
 
-  // 3. Try loot type as folder
+  // 1. Exact synonym match in item name (word boundary)
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    const regex = new RegExp(`\\b${synonym}\\b`);
+    if (regex.test(name)) {
+      for (const folder of folders) {
+        const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
+        if (folderImages.length > 0) {
+          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+          console.log(`BLACKSMITH | Item Import | [NAME-EXACT] Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
+          return chosen;
+        }
+      }
+    }
+  }
+
+  // 2. Partial synonym match in item name
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    if (name.includes(synonym)) {
+      for (const folder of folders) {
+        const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
+        if (folderImages.length > 0) {
+          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+          console.log(`BLACKSMITH | Item Import | [NAME-PARTIAL] Matched partial synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
+          return chosen;
+        }
+      }
+    }
+  }
+
+  // 3. Exact synonym match in description (word boundary)
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    const regex = new RegExp(`\\b${synonym}\\b`);
+    if (regex.test(description)) {
+      for (const folder of folders) {
+        const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
+        if (folderImages.length > 0) {
+          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+          console.log(`BLACKSMITH | Item Import | [DESC-EXACT] Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
+          return chosen;
+        }
+      }
+    }
+  }
+
+  // 4. Partial synonym match in description
+  for (const [synonym, folders] of Object.entries(synonymMapping)) {
+    if (description.includes(synonym)) {
+      for (const folder of folders) {
+        const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
+        if (folderImages.length > 0) {
+          const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
+          console.log(`BLACKSMITH | Item Import | [DESC-PARTIAL] Matched partial synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
+          return chosen;
+        }
+      }
+    }
+  }
+
+  // 5. Try loot type as folder
   if (lootType) {
     const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
     if (lootTypeMatch) {
@@ -1703,7 +1754,7 @@ async function guessIconPath(item) {
     }
   }
 
-  // 4. Try filename match for any synonym in any folder
+  // 6. Try filename match for any synonym in any folder
   for (const synonym of Object.keys(synonymMapping)) {
     const fileMatch = paths.find(path =>
       path.toLowerCase().match(new RegExp(`(^|/|_|-)${synonym}(-|_|\.|$)`, 'i'))
@@ -1714,7 +1765,7 @@ async function guessIconPath(item) {
     }
   }
 
-  // 5. Fallback to treasure/misc images
+  // 7. Fallback to treasure/misc images
   const fallbackFolders = ['commodities/treasure', 'commodities/misc', 'sundries/misc'];
   for (const folder of fallbackFolders) {
     const folderImages = paths.filter(path =>
@@ -1727,7 +1778,7 @@ async function guessIconPath(item) {
     }
   }
 
-  // 6. Ultimate fallback
+  // 8. Ultimate fallback
   console.log('BLACKSMITH | Item Import | No suitable image found, using default');
   return "icons/commodities/treasure/mask-jeweled-gold.webp";
 }

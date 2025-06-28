@@ -29,6 +29,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item t can be sent to the chat.
 - LOOTTYPE: (string) One of the following loot types: "art", "gear", "gem", "junk", "material", "resource", or "treasure"
 - ITEMISMAGICAL: (boolean) Identifies if the item has magical properties. The value should be true or false (not a string).
+- ITEMIMAGETERMS: (Array) This in an array of synonyms for the item image that might help auto-match the image with FoundryVTT's in-built images. These trings are separated by commas. e.g. for a book you'd include the main term and related terms: "book", "tome", "journal", "diary"
 
 -------------------
 JSON TEMPLATE
@@ -48,7 +49,8 @@ JSON TEMPLATE
   "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
   "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
   "itemLootType": "LOOTTYPE",
-  "itemIsMagical": ITEMISMAGICAL   
+  "itemIsMagical": ITEMISMAGICAL,
+  "itemImageTerms": [ITEMIMAGETERMS]
 }
 
 -------------------
