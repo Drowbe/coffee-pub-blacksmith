@@ -1,7 +1,1 @@
-2025/07/08-10:00:45.094 2838 Recovering log #1859
-2025/07/08-10:00:45.100 2838 Delete type=0 #1859
-2025/07/08-10:00:45.101 2838 Delete type=3 #1858
-2025/07/08-11:18:08.690 13cc Level-0 table #1863: started
-2025/07/08-11:18:08.690 13cc Level-0 table #1863: 0 bytes OK
-2025/07/08-11:18:08.691 13cc Delete type=0 #1861
-2025/07/08-11:18:08.693 13cc Manual compaction at level-0 from '!journal!AHcl2eLZo5VWNKCD' @ 72057594037927935 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at (end)
+2025/07/11-22:45:13.053 486c Delete type=3 #1
