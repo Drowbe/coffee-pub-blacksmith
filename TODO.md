@@ -95,6 +95,19 @@
 - **Plan**: Add proper cleanup
 - **Notes**: Need to ensure cleanup doesn't break functionality
 
+### 12. Encounter Toolbar Not Visible
+- **Issue**: Encounter toolbar code exists but is not visible in UI
+- **Location**: `scripts/encounter-toolbar.js`
+- **Impact**: Missing functionality for encounter management
+- **Status**: 🟡 TODO
+- **Plan**: Investigate why toolbar doesn't appear
+- **Notes**: 
+  - Toolbar is enabled by default in settings
+  - Requires journal entries with `data-journal-metadata` and `journal-type="encounter"`
+  - Template file exists at `templates/encounter-toolbar.hbs`
+  - Hook is registered in `blacksmith.js` line 324
+  - May need to check if journal entries have proper metadata format
+
 ## IMPLEMENTATION PHASES
 
 ### Phase 1: Critical Fixes (Immediate Priority)
