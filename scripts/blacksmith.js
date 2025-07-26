@@ -225,28 +225,21 @@ Hooks.once('init', async function() {
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
 
     // COMBAT TIMER
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CombatTimer...", "", false, true, false);
     CombatTimer.initialize();
     // PLANNING TIMER
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing PlanningTimer...", "", false, true, false);
     PlanningTimer.initialize();
     // ROUND TIMER
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing RoundTimer...", "", false, true, false);
     RoundTimer.initialize();
     // COMBAT TRACKER
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CombatTracker...", "", false, true, false);
     CombatTracker.initialize();
 
     // VOTE MANAGER
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing VoteManager...", "", false, true, false);
     VoteManager.initialize();
     
     // ENCOUNTER TOOLBAR
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing EncounterToolbar...", "", false, true, false);
     EncounterToolbar.init();
 
     // Initialize CanvasTools
-    postConsoleAndNotification("BLACKSMITH: In blacksmith.js and Initializing CanvasTools...", "", false, true, false);
     CanvasTools.initialize();
 });
 
@@ -262,7 +255,6 @@ Hooks.once('ready', async function() {
     CPBPlayerStats.initialize();
 
     // Initialize latency checker
-    postConsoleAndNotification("Initializing LatencyChecker", "", false, true, false);
     LatencyChecker.initialize();
 });
 
@@ -285,20 +277,14 @@ Hooks.on("ready", function () {
         if (blnCustomClicks) {
             // Keep the canvasInit hook to initialize the toolbar
             Hooks.once('canvasInit', () => {
-                postConsoleAndNotification("Initializing custom canvas layers", "", false, true, false);
-                postConsoleAndNotification("Current Canvas Layers:", CONFIG.Canvas.layers, false, true, false);
+                // Canvas initialization complete
             });
 
             // Keep the canvasReady hook to check for the layer
             Hooks.on('canvasReady', (canvas) => {
                 postConsoleAndNotification("Canvas is ready.", "", false, false, false); 
-                postConsoleAndNotification("Current Canvas CONFIG:", CONFIG.Canvas.layers, false, true, false);
                 const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-                if (blacksmithLayer) {
-                    postConsoleAndNotification("Blacksmith Layer is available:", blacksmithLayer, false, true, false); 
-                } else {
-                    postConsoleAndNotification("Blacksmith Layer is not available on the canvas.", "", false, true, false); 
-                }
+                // Layer availability checked silently
             });
         }
 
@@ -326,19 +312,16 @@ Hooks.once('ready', function() {
     postConsoleAndNotification("Fancy console: ", blnFancyConsole, false, false, false); 
     BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
     COFFEEPUB.blnFancyConsole = blnFancyConsole;
-    postConsoleAndNotification("Updated BLACKSMITH.blnFancyConsole to:", BLACKSMITH.blnFancyConsole, false, true, false);    
 
     // DEBUG ON/OFF
     const blnDebugOn = game.settings.get(MODULE_ID, 'globalDebugMode');
     postConsoleAndNotification("Debug mode: ", blnDebugOn, false, false, false); 
     BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
-    postConsoleAndNotification("Updated BLACKSMITH.blnDebugOn to:", BLACKSMITH.blnDebugOn, false, true, false);    
     
     // DEBUG STYLE
     const strConsoleDebugStyle = game.settings.get(MODULE_ID, 'globalConsoleDebugStyle');
     postConsoleAndNotification("Debug style: ", strConsoleDebugStyle, false, false, false); 
-    BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);
-    postConsoleAndNotification("Updated BLACKSMITH.strConsoleDebugStyle to:", BLACKSMITH.strConsoleDebugStyle, false, true, false);    
+    BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
     
     // OPENAI SETTINGS
     // Macro
@@ -428,11 +411,8 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
     
     // Check if the Ctrl key is held down
     ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
-    postConsoleAndNotification("Ctrl key active during render", ctrlKeyActiveDuringRender, false, true, false);
     shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
-    postConsoleAndNotification("Shift key active during render", shiftKeyActiveDuringRender, false, true, false);
-    altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT);
-    postConsoleAndNotification("Alt key active during render", altKeyActiveDuringRender, false, true, false); 
+    altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
 
     if (ctrlKeyActiveDuringRender) {
         strIconUrl = strIconUrlCrtl;
@@ -466,12 +446,9 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
                 customIcons.reverse().forEach(icon => {
                     entryIconField.prepend(new Option(icon.label, icon.value));
                 });
-                postConsoleAndNotification("Custom icons added to the dropdown", "", false, true, false);
 
                 // Set the default icon
                 entryIconField.val(strIconUrl);
-
-                postConsoleAndNotification("Default icon set to", strIconUrl, false, true, false);
             } else {
                 console.error("Entry Icon field not found");
             }
@@ -488,11 +465,7 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
 
 // Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
 Hooks.on('preCreateNote', async (note, options, userId) => {
-    postConsoleAndNotification("Pre-create Note", "", false, true, false);
-
-    if (ctrlKeyActiveDuringRender) {
-        postConsoleAndNotification("Ctrl key was active during renderNoteConfig. Doing nothing with this right now.", "", false, true, false);
-    }
+    // Note creation hook - silent operation
 });
 
 
@@ -541,7 +514,6 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
     let blnJournalDoubleClick = game.settings.get(MODULE_ID, 'enableJournalDoubleClick');
     // See if they want to enable double-click
     if (blnJournalDoubleClick) {
-        postConsoleAndNotification("Double-click enabled for journal entries.", "", false, true, false);
         // Enable the double-click
         const ENTITY_PERMISSIONS = { 
             "NONE": 0,
@@ -551,22 +523,14 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
         };
         const currentUser = game.user;
         html.on('dblclick', '.journal-entry-page', event => {
-            postConsoleAndNotification("Journal entry page double-clicked.", "", false, true, false);
             event.preventDefault();
             const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
-            postConsoleAndNotification("User has edit permission:", hasEditPermission, false, true, false);
             if (hasEditPermission) {
                 // Try to find the edit button more generally
                 const editButton = html.find('.edit-container .editor-edit');
-                postConsoleAndNotification("Edit button found:", editButton.length > 0, false, true, false);
                 if (editButton.length > 0) {
-                    postConsoleAndNotification("Opening the journal into edit mode.", "", false, true, false);
                     editButton[0].click();
-                } else {
-                    postConsoleAndNotification("Edit button not found on the journal.", "", false, true, false);
                 }
-            } else {
-                postConsoleAndNotification("User does not have permission to edit.", "", false, true, false);
             }
         });
     }
@@ -758,20 +722,7 @@ async function buildInjuryJournalEntry(journalData) {
     var strCardDuration = convertSecondsToRounds(journalData.duration);
     var strAction = journalData.action;
     var strStatusEffect = journalData.statuseffect;
-    postConsoleAndNotification("strJournalType", strJournalType, false, true, false);
-    postConsoleAndNotification("strCategory", strCategory, false, true, false);
-    postConsoleAndNotification("intOdds", intOdds, false, true, false);
-    postConsoleAndNotification("strFolderName", strFolderName, false, true, false);
-    postConsoleAndNotification("strTitle", strTitle, false, true, false);
-    postConsoleAndNotification("strImageTitle", strImageTitle, false, true, false);
-    postConsoleAndNotification("strImage", strImage, false, true, false);
-    postConsoleAndNotification("strDescription", strDescription, false, true, false);
-    postConsoleAndNotification("strTreatment", strTreatment, false, true, false);
-    postConsoleAndNotification("strSeverity", strSeverity, false, true, false);
-    postConsoleAndNotification("intDamage", intDamage, false, true, false);
-    postConsoleAndNotification("intDuration", intDuration, false, true, false);
-    postConsoleAndNotification("strAction", strAction, false, true, false);
-    postConsoleAndNotification("strStatusEffect", strStatusEffect, false, true, false);
+    // Injury journal data processed silently
     if(strFolderName) {
         let existingFolder = game.folders.find(x => x.name === strFolderName && x.type === "JournalEntry");
         if (existingFolder) {
@@ -815,7 +766,6 @@ async function buildInjuryJournalEntry(journalData) {
     let existingEntry = game.journal.contents.find(x => x.name === toSentenceCase(strCategory));
     if (existingEntry) {
         // It does exist, add a page to it.
-        postConsoleAndNotification("The journal entry already exists. existingEntry", existingEntry, false, true, false);
         let existingPages = Array.isArray(existingEntry.pages) ? existingEntry.pages : [];
         existingPages.push(newPage);
         await existingEntry.update({
@@ -826,7 +776,6 @@ async function buildInjuryJournalEntry(journalData) {
         });
     } else {
         // It does not exist, create it.
-        postConsoleAndNotification("The journal entry does not yet exist. existingEntry", existingEntry, false, true, false);
         await JournalEntry.create({
             name: toSentenceCase(strCategory),
             pages: [newPage],
@@ -943,7 +892,6 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     const template = Handlebars.compile(templateText);
 
     if (strQueryContext) {
-        postConsoleAndNotification("TRUE: strQueryContext:", strQueryContext, false, true, false); 
         strDisplayQuestion = strQueryContext; // Only change what's displayed, not what's sent to API
     }
     // Display user's question
@@ -980,8 +928,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     // Get the answer - using the original full question
     const openAIResponse = await getOpenAIReplyAsHtml(strQuestion);
 
-    // Debug the answer
-    postConsoleAndNotification("From OPENAI getOpenAIReplyAsHtml | strAnswer:", openAIResponse, false, true, false);
+    // Process OpenAI response
 
     // Check if it's JSON and clean it if needed
     const jsonCheck = cleanAndValidateJSON(openAIResponse.content || openAIResponse);
@@ -1189,7 +1136,7 @@ function updateChatStyles() {
     if (chatSpacing > 1) {
         // split the spacing in two since we apply to the top and the bottom
         intChatSpacing = Math.round(chatSpacing / 2);
-        postConsoleAndNotification("Variable intChatSpacing =", intChatSpacing, false, true, false);
+        // Chat spacing calculated
     } else {
         // do nothing for now
     }
@@ -1256,7 +1203,7 @@ export class ThirdPartyManager {
     static socket = null;
 
     static registerSocketFunctions() {
-        postConsoleAndNotification("Third Party Manager | Registering socket functions", "", false, true, false);
+        // Registering socket functions
         
         // Combat Timer
         this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
