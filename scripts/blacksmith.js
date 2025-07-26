@@ -59,6 +59,9 @@ const NOTE_CONFIG_CACHE_EXPIRATION = 10 * 60 * 1000; // 10 minutes
 let templateCache = new Map();
 const TEMPLATE_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
 
+// Window registry for efficient BlacksmithWindowQuery lookups
+let blacksmithWindowRegistry = new Set();
+
 // Helper function to get cached root element
 function getRootElement() {
     if (!cachedRootElement) {
@@ -130,6 +133,21 @@ export async function getCachedTemplate(templatePath) {
         console.error(`Error loading template ${templatePath}:`, error);
         throw error;
     }
+}
+
+// Helper functions for window registry management
+function registerBlacksmithWindow(window) {
+    if (window instanceof BlacksmithWindowQuery) {
+        blacksmithWindowRegistry.add(window);
+    }
+}
+
+function unregisterBlacksmithWindow(window) {
+    blacksmithWindowRegistry.delete(window);
+}
+
+function getBlacksmithWindows() {
+    return Array.from(blacksmithWindowRegistry);
 }
 
 // ***************************************************
@@ -219,8 +237,8 @@ Hooks.once('init', async function() {
             // Register skill roll handler
             socket.register('updateSkillRoll', (data) => {
                 if (game.user.isGM) {
-                    // Find any open BlacksmithWindowQuery instances
-                    const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                    // Use efficient window registry lookup
+                    const windows = getBlacksmithWindows();
                     windows.forEach(window => {
                         // Find the input field and update it
                         const inputField = window.element[0].querySelector(`#inputDiceValue-${data.workspaceId}`);
@@ -254,6 +272,19 @@ Hooks.once('init', async function() {
     Hooks.on('renderChatMessage', (message, html) => {
         if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
             SkillCheckDialog.handleChatMessageClick(message, html);
+        }
+    });
+    
+    // Register window lifecycle hooks for efficient lookups
+    Hooks.on('renderApplication', (app, html, data) => {
+        if (app instanceof BlacksmithWindowQuery) {
+            registerBlacksmithWindow(app);
+        }
+    });
+    
+    Hooks.on('closeApplication', (app) => {
+        if (app instanceof BlacksmithWindowQuery) {
+            unregisterBlacksmithWindow(app);
         }
     });
     
@@ -1312,7 +1343,7 @@ export class ThirdPartyManager {
 
             // If this was a requested roll, update the GM's interface
             if (flags.requesterId === game.user.id) {
-                const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+                const windows = getBlacksmithWindows();
                 windows.forEach(window => {
                     const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
                     if (inputField) {
@@ -1450,7 +1481,7 @@ export async function handleSkillRollUpdate(data) {
 
     // If this was a requested roll, update the GM's interface
     if (flags.requesterId === game.user.id) {
-        const windows = Object.values(ui.windows).filter(w => w instanceof BlacksmithWindowQuery);
+        const windows = getBlacksmithWindows();
         windows.forEach(window => {
             const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
             if (inputField) {

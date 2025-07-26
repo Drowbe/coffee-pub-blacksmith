@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, trimString } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
 import { getCachedTemplate } from './blacksmith.js';
