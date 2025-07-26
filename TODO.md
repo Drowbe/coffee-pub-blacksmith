@@ -1,166 +1,157 @@
-# Memory Leaks and Performance Issues - TODO
+# TODO - Memory Leaks and Performance Issues
 
-## Critical Memory Leaks
+## CRITICAL ISSUES (High Severity)
 
-### 1. **Uncleared Intervals (HIGH PRIORITY)**
-Multiple `setInterval` calls without proper cleanup:
+### 1. Global Variable Accumulation
+- **Issue**: `tokenCount` Map is never cleared and grows indefinitely
+- **Location**: Line 350: `let tokenCount = new Map();`
+- **Impact**: Memory leak that grows with each token creation
+- **Status**: 🔴 TODO
+- **Plan**: Add cleanup mechanism or limit Map size
+- **Notes**: Consider clearing on scene change or adding size limits
 
-#### Chat Panel (`scripts/chat-panel.js`)
-- **Lines 481, 485**: Two `setInterval` calls in `startTimerUpdates()` method
-- **Issue**: No cleanup mechanism when chat panel is destroyed or module is disabled
-- **Impact**: Continues running indefinitely, causing memory leaks and performance degradation
+### 2. Multiple Hook Registrations Without Cleanup
+- **Issue**: Multiple `Hooks.once('ready')` calls without proper cleanup
+- **Locations**: Lines 67, 200, 250, 280, 350
+- **Impact**: Potential memory leaks and duplicate initializations
+- **Status**: 🔴 TODO
+- **Plan**: Consolidate into single ready hook or add cleanup handlers
+- **Notes**: Need to ensure all initializations still happen in correct order
 
-#### Round Timer (`scripts/round-timer.js`)
-- **Line 68**: `setInterval` in `initialize()` method
-- **Issue**: No cleanup when combat ends or module is disabled
-- **Impact**: Timer continues running even when not needed
+### 3. Icon Path Cache Never Cleared
+- **Issue**: `iconPaths` cache (line 1750) is never cleared
+- **Impact**: Memory leak, especially with large icon directories
+- **Status**: 🔴 TODO
+- **Plan**: Add cache invalidation or size limits
+- **Notes**: Consider clearing on module reload or adding TTL
 
-#### Planning Timer (`scripts/planning-timer.js`)
-- **Lines 304, 374, 474**: Multiple `setInterval` calls in different methods
-- **Issue**: Intervals are cleared and recreated but no global cleanup
-- **Impact**: Potential for multiple overlapping intervals
+## HIGH SEVERITY ISSUES
 
-#### Combat Timer (`scripts/combat-timer.js`)
-- **Lines 336, 508, 600**: Multiple `setInterval` calls
-- **Issue**: Similar to planning timer - intervals cleared but no global cleanup
-- **Impact**: Memory leaks from uncleared intervals
+### 4. Excessive Console Logging
+- **Issue**: `postConsoleAndNotification` called frequently with debug info
+- **Locations**: Throughout the file (50+ instances)
+- **Impact**: Performance degradation, especially in production
+- **Status**: 🟡 TODO
+- **Plan**: Add debug level controls and reduce logging in production
+- **Notes**: Need to maintain debug capability while reducing overhead
 
-#### Latency Checker (`scripts/latency-checker.js`)
-- **Line 84**: `setInterval` in `startPeriodicCheck()`
-- **Issue**: No cleanup when module is disabled
-- **Impact**: Continues checking latency indefinitely
+### 5. Inefficient DOM Queries
+- **Issue**: `document.querySelector(':root')` called repeatedly
+- **Locations**: Lines 1050, 1070, 1100, 1130, 1160
+- **Impact**: Unnecessary DOM traversal
+- **Status**: 🟡 TODO
+- **Plan**: Cache the root element reference
+- **Notes**: Simple fix with minimal risk
 
-### 2. **Unremoved Event Listeners (HIGH PRIORITY)**
+### 6. File System Operations in Loops
+- **Issue**: `FilePicker.browse()` called in loops without caching
+- **Location**: Lines 450-480 (renderNoteConfig)
+- **Impact**: Performance bottleneck with large file systems
+- **Status**: 🟡 TODO
+- **Plan**: Cache file listings or implement lazy loading
+- **Notes**: Consider caching with invalidation on file system changes
 
-#### Window Query (`scripts/window-query.js`)
-- **Lines 61, 268**: Multiple `addEventListener` calls for `DOMContentLoaded`
-- **Lines 75, 90, 94**: Event listeners added but never removed
-- **Lines 688-697, 930-939**: Drag and drop event listeners
-- **Issue**: Event listeners persist after window is closed
-- **Impact**: Memory leaks and potential duplicate event handling
+## MEDIUM SEVERITY ISSUES
 
-#### Round Timer (`scripts/round-timer.js`)
-- **Lines 32, 45, 58, 62**: `window.addEventListener` for focus/blur events
-- **Issue**: No cleanup when module is disabled
-- **Impact**: Event listeners remain active
+### 7. Template Compilation on Every Call
+- **Issue**: `Handlebars.compile()` called repeatedly
+- **Locations**: Lines 650, 1000, 1200
+- **Impact**: CPU overhead for template compilation
+- **Status**: 🟢 TODO
+- **Plan**: Cache compiled templates
+- **Notes**: Low risk, high performance gain
 
-#### CSS Editor (`scripts/css-editor.js`)
-- **Lines 94, 230, 234, 263**: Multiple event listeners
-- **Issue**: No cleanup mechanism
-- **Impact**: Memory leaks from persistent listeners
+### 8. Inefficient Array Operations
+- **Issue**: `Object.values(ui.windows).filter()` called frequently
+- **Location**: Line 130
+- **Impact**: Performance impact with many open windows
+- **Status**: 🟢 TODO
+- **Plan**: Cache window references or use more efficient lookups
+- **Notes**: Consider using Map or Set for faster lookups
 
-#### Combat Tools (`scripts/combat-tools.js`)
-- **Lines 61-95**: Multiple drag and drop event listeners
-- **Issue**: No cleanup when combat tracker is re-rendered
-- **Impact**: Duplicate event listeners on each render
+### 9. Redundant Settings Retrieval
+- **Issue**: Same settings retrieved multiple times
+- **Locations**: Throughout the file
+- **Impact**: Unnecessary function calls
+- **Status**: 🟢 TODO
+- **Plan**: Cache settings values
+- **Notes**: Simple optimization with minimal risk
 
-### 3. **Uncleared Foundry Hooks (MEDIUM PRIORITY)**
+## LOW SEVERITY ISSUES
 
-#### Multiple Files
-- **Issue**: Many `Hooks.on()` calls without corresponding `Hooks.off()`
-- **Files affected**: `xp-manager.js`, `vote-manager.js`, `toolbar.js`, `player-stats.js`, `movement.js`, `combat-tracker.js`, `combat-timer.js`, `combat-stats.js`, `chat-panel.js`, `canvas-tools.js`, `blacksmith.js`
-- **Impact**: Hooks continue to fire even when not needed
+### 10. Global Variables Without Cleanup
+- **Issue**: Global flags like `ctrlKeyActiveDuringRender` never reset
+- **Location**: Lines 420-430
+- **Impact**: Minor memory leak
+- **Status**: 🟢 TODO
+- **Plan**: Add cleanup handlers
+- **Notes**: Very low priority
 
-#### Specific Examples:
-- `player-stats.js` lines 77-83: Multiple combat hooks without cleanup
-- `movement.js` lines 415, 529, 1181, 1235: Token and combat hooks
-- `combat-tracker.js` lines 35-256: Multiple combat-related hooks
-- `blacksmith.js` lines 168-1858: Extensive hook usage without cleanup
+### 11. Event Listener Accumulation
+- **Issue**: Event listeners added without removal
+- **Location**: Line 500 (journal double-click)
+- **Impact**: Potential memory leaks
+- **Status**: 🟢 TODO
+- **Plan**: Add proper cleanup
+- **Notes**: Need to ensure cleanup doesn't break functionality
 
-### 4. **DOM Element Accumulation (MEDIUM PRIORITY)**
+## IMPLEMENTATION PHASES
 
-#### CSS Editor (`scripts/css-editor.js`)
-- **Lines 195-203**: Creates style elements but only removes them in specific cases
-- **Issue**: Style elements may accumulate if editor is closed improperly
-- **Impact**: DOM pollution and memory leaks
+### Phase 1: Critical Fixes (Immediate Priority)
+- [ ] Fix tokenCount Map cleanup
+- [ ] Consolidate hook registrations
+- [ ] Add icon path cache invalidation
+- [ ] Implement debug level controls
 
-#### Latency Checker (`scripts/latency-checker.js`)
-- **Lines 190-192**: Creates latency spans but cleanup is incomplete
-- **Issue**: May leave orphaned elements in player list
-- **Impact**: DOM element accumulation
+### Phase 2: Performance Optimizations (Short-term)
+- [ ] Cache DOM queries and settings
+- [ ] Implement template caching
+- [ ] Optimize file system operations
+- [ ] Reduce console logging in production
 
-#### Skill Check Dialog (`scripts/skill-check-dialog.js`)
-- **Line 1566**: Uses `setTimeout` to remove overlay but no fallback
-- **Issue**: If timeout fails, overlay remains in DOM
-- **Impact**: Orphaned DOM elements
+### Phase 3: Memory Management (Medium-term)
+- [ ] Add proper cleanup handlers
+- [ ] Implement event listener cleanup
+- [ ] Add memory monitoring
+- [ ] Optimize array operations
 
-### 5. **Map/Set Memory Accumulation (LOW PRIORITY)**
+## TESTING CHECKLIST
 
-#### Multiple Files
-- **Issue**: Maps and Sets are created but never cleared
-- **Files affected**: `window-query.js`, `skill-check-dialog.js`, `player-stats.js`, `movement.js`, `latency-checker.js`, `combat-stats.js`, `chat-panel.js`, `canvas-tools.js`, `blacksmith.js`
+### Before Implementation
+- [ ] Document current memory usage baseline
+- [ ] Test with large numbers of tokens
+- [ ] Test with many open windows
+- [ ] Test with large file systems
+- [ ] Verify all existing features work
 
-#### Specific Examples:
-- `movement.js` line 16: `tokenFollowers` Map never cleared
-- `player-stats.js` line 9: `pendingAttacks` Map accumulates data
-- `latency-checker.js` line 7: `latencyData` Map grows indefinitely
-- `combat-stats.js` lines 88-89: Turn timing Maps accumulate
+### After Implementation
+- [ ] Monitor memory usage improvements
+- [ ] Test all existing functionality
+- [ ] Performance testing with large datasets
+- [ ] Verify no new bugs introduced
+- [ ] Test backward compatibility
 
-## Performance Issues
+## NOTES
 
-### 1. **Excessive DOM Queries (MEDIUM PRIORITY)**
+### Implementation Strategy
+- **Non-breaking approach**: Add new cleanup functions without removing existing code
+- **Gradual migration**: Implement caching alongside existing code
+- **Feature flags**: Add settings to enable/disable optimizations
+- **Backward compatibility**: Ensure all existing functionality remains intact
 
-#### Window Query (`scripts/window-query.js`)
-- **Lines 350-370**: Multiple `document.querySelector` calls in loops
-- **Issue**: Inefficient DOM traversal
-- **Impact**: Slower performance with large DOM trees
+### Risk Assessment
+- **High Risk**: Hook consolidation (could break initialization order)
+- **Medium Risk**: Cache implementations (could introduce stale data issues)
+- **Low Risk**: DOM query caching, settings caching
 
-#### Multiple Files
-- **Issue**: Repeated `html.find()` calls without caching
-- **Impact**: Unnecessary DOM queries
+### Success Criteria
+- [ ] Memory usage remains stable over time
+- [ ] No performance degradation
+- [ ] All existing features continue to work
+- [ ] Improved performance metrics
+- [ ] No new bugs introduced
 
-### 2. **Frequent Re-renders (MEDIUM PRIORITY)**
+---
 
-#### Planning Timer (`scripts/planning-timer.js`)
-- **Lines 176, 188**: `ui.combat.render(true)` called with setTimeout
-- **Issue**: Unnecessary re-renders
-- **Impact**: Performance degradation
-
-#### Multiple Files
-- **Issue**: `render(true)` calls without checking if needed
-- **Impact**: Excessive UI updates
-
-### 3. **Inefficient Data Structures (LOW PRIORITY)**
-
-#### Movement (`scripts/movement.js`)
-- **Line 18**: `occupiedGridPositions` Set uses string keys
-- **Issue**: String operations are slower than numeric keys
-- **Impact**: Minor performance impact
-
-## Recommended Solutions
-
-### 1. **Implement Cleanup Methods**
-- Add `destroy()` or `cleanup()` methods to all classes
-- Clear intervals, remove event listeners, and unregister hooks
-- Call cleanup when modules are disabled or windows are closed
-
-### 2. **Use WeakMap/WeakSet**
-- Replace Maps/Sets that hold DOM references with WeakMap/WeakSet
-- Allows garbage collection when DOM elements are removed
-
-### 3. **Cache DOM Queries**
-- Store frequently accessed DOM elements in variables
-- Avoid repeated `querySelector` calls in loops
-
-### 4. **Implement Proper Hook Management**
-- Store hook IDs and remove them in cleanup
-- Use `Hooks.off()` for all `Hooks.on()` calls
-
-### 5. **Add Error Handling**
-- Wrap setTimeout/setInterval calls in try-catch
-- Ensure cleanup happens even if errors occur
-
-### 6. **Optimize Re-renders**
-- Check if re-render is actually needed before calling `render(true)`
-- Use more granular updates instead of full re-renders
-
-## Priority Order
-1. **HIGH**: Fix uncleared intervals and event listeners
-2. **MEDIUM**: Clean up Foundry hooks and DOM accumulation
-3. **LOW**: Optimize performance issues
-
-## Testing Strategy
-- Monitor memory usage in browser dev tools
-- Test module enable/disable cycles
-- Verify cleanup on window close
-- Check for memory leaks in long-running sessions 
+**Last Updated**: [Current Date]
+**Next Review**: [Date + 1 week] 
