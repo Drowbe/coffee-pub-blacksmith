@@ -113,11 +113,11 @@ class ChatPanel {
                 if (game.settings.settings.get(`${MODULE_ID}.partyLeader`)) {
                     leaderData = game.settings.get(MODULE_ID, 'partyLeader');
                     isLeader = game.user.id === leaderData?.userId;
-                    console.log('Blacksmith | Chat Panel | Leader Status:', {
+                    postConsoleAndNotification('Blacksmith | Chat Panel | Leader Status:', {
                         userId: game.user.id,
                         leaderData: leaderData,
                         isLeader: isLeader
-                    });
+                    }, false, true, false);
                 }
             } catch (err) {
                 console.warn('Blacksmith | Party leader setting not registered yet, using default');
@@ -132,7 +132,7 @@ class ChatPanel {
                 currentMovement: currentMovementData
             };
 
-            console.log('Blacksmith | Chat Panel | Template Data:', templateData);
+            postConsoleAndNotification('Blacksmith | Chat Panel | Template Data:', templateData, false, true, false);
 
             // Render the template
             const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel.hbs', templateData);
@@ -239,7 +239,7 @@ class ChatPanel {
             });
             
         } catch (error) {
-            console.error("Blacksmith | Chat Panel: Error rendering panel:", error);
+            postConsoleAndNotification("Blacksmith | Chat Panel: Error rendering panel:", error, false, false, true);
         }
     }
 
@@ -249,10 +249,10 @@ class ChatPanel {
     }
 
     static async updateLeaderDisplay() {
-        console.log('BLACKSMITH | CHAT | Updating leader display');
+        postConsoleAndNotification('BLACKSMITH | CHAT | Updating leader display', '', false, true, false);
         const panel = document.querySelector('.blacksmith-chat-panel');
         if (!panel) {
-            console.log('BLACKSMITH | CHAT | No panel found, forcing full re-render');
+            postConsoleAndNotification('BLACKSMITH | CHAT | No panel found, forcing full re-render', '', false, true, false);
             ui.chat.render(true);
             return;
         }
@@ -264,7 +264,7 @@ class ChatPanel {
         this.updateVoteIconState();
 
         // Force a re-render of the chat log to update all components
-        console.log('BLACKSMITH | CHAT | Forcing chat re-render for full update');
+        postConsoleAndNotification('BLACKSMITH | CHAT | Forcing chat re-render for full update', '', false, true, false);
         const chatLog = ui.chat;
         if (chatLog) {
             const html = chatLog.element;
@@ -333,7 +333,7 @@ class ChatPanel {
     }
 
     static async showLeaderDialog() {
-        console.log('BLACKSMITH | CHAT | Opening leader dialog');
+        postConsoleAndNotification('BLACKSMITH | CHAT | Opening leader dialog', '', false, true, false);
         // Get all player-owned characters that aren't excluded
         const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
         
@@ -368,7 +368,7 @@ class ChatPanel {
             })
             .filter(entry => entry !== null); // Remove any entries where we didn't find an active owner
 
-        console.log('BLACKSMITH | CHAT | Found character entries:', characterEntries);
+        postConsoleAndNotification('BLACKSMITH | CHAT | Found character entries:', characterEntries, false, true, false);
 
         // Create the dialog content
         const content = `
@@ -397,15 +397,15 @@ class ChatPanel {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Set Leader",
                     callback: async (html) => {
-                        console.log('BLACKSMITH | CHAT | Leader dialog submitted');
+                        postConsoleAndNotification('BLACKSMITH | CHAT | Leader dialog submitted', '', false, true, false);
                         const selectedValue = html.find('#leader-select').val();
                         if (selectedValue) {
-                            console.log('BLACKSMITH | CHAT | Selected value:', selectedValue);
+                            postConsoleAndNotification('BLACKSMITH | CHAT | Selected value:', selectedValue, false, true, false);
                             const [actorId, userId] = selectedValue.split('|');
                             // Send messages when selecting from dialog
                             await ChatPanel.setNewLeader({ userId, actorId }, true);
                         } else {
-                            console.log('BLACKSMITH | CHAT | Clearing leader');
+                            postConsoleAndNotification('BLACKSMITH | CHAT | Clearing leader', '', false, true, false);
                             // Handle clearing the leader if none selected
                             await game.settings.set(MODULE_ID, 'partyLeader', { userId: '', actorId: '' });
                             this.currentLeader = null;
@@ -423,15 +423,15 @@ class ChatPanel {
     }
 
     static async loadLeader() {
-        console.log('Blacksmith | Chat Panel | Loading leader...');
+        postConsoleAndNotification('Blacksmith | Chat Panel | Loading leader...', '', false, true, false);
         let leaderData = null;
         try {
             leaderData = game.settings.get(MODULE_ID, 'partyLeader');
-            console.log('Blacksmith | Chat Panel | Leader data loaded:', leaderData);
+            postConsoleAndNotification('Blacksmith | Chat Panel | Leader data loaded:', leaderData, false, true, false);
         } catch (error) {
             // If we can't access the setting, assume no leader
             leaderData = { userId: '', actorId: '' };
-            console.warn('Blacksmith | Chat Panel | Could not load leader data:', error);
+            postConsoleAndNotification('Blacksmith | Chat Panel | Could not load leader data:', error, false, false, true);
         }
         
         postConsoleAndNotification("Chat Panel: Loading leader, found data:", leaderData, false, true, false);
@@ -439,11 +439,11 @@ class ChatPanel {
         if (leaderData && leaderData.actorId) {
             // Don't send messages during initialization
             await ChatPanel.setNewLeader(leaderData, false);
-            console.log('Blacksmith | Chat Panel | Leader set:', this.currentLeader);
+            postConsoleAndNotification('Blacksmith | Chat Panel | Leader set:', this.currentLeader, false, true, false);
         } else {
             ChatPanel.currentLeader = null;
             await ChatPanel.updateLeader(null);
-            console.log('Blacksmith | Chat Panel | No leader set');
+            postConsoleAndNotification('Blacksmith | Chat Panel | No leader set', '', false, true, false);
         }
     }
 
@@ -465,7 +465,7 @@ class ChatPanel {
             }
             postConsoleAndNotification("Chat Panel: Loading timer, found end time:", this.sessionEndTime, false, true, false);
         } catch (error) {
-            console.error("Blacksmith | Chat Panel: Error loading timer:", error);
+            postConsoleAndNotification("Blacksmith | Chat Panel: Error loading timer:", error, false, false, true);
             this.sessionEndTime = null;
             this.sessionStartTime = null;
         }
@@ -756,7 +756,7 @@ class ChatPanel {
 
     // Socket receiver functions
     static receiveLeaderUpdate(data) {
-        console.log('BLACKSMITH | CHAT | Received leader update:', data);
+        postConsoleAndNotification('BLACKSMITH | CHAT | Received leader update:', data, false, true, false);
         if (!game?.user) return;
         
         postConsoleAndNotification("Chat Panel: Received leader update:", data.leader, false, true, false);
@@ -764,9 +764,9 @@ class ChatPanel {
 
         // Update local leader data if provided
         if (data.leaderData) {
-            console.log('BLACKSMITH | CHAT | Updating local leader data:', data.leaderData);
+            postConsoleAndNotification('BLACKSMITH | CHAT | Updating local leader data:', data.leaderData, false, true, false);
             game.settings.set(MODULE_ID, 'partyLeader', data.leaderData).then(() => {
-                console.log('BLACKSMITH | CHAT | Leader data updated, refreshing display');
+                postConsoleAndNotification('BLACKSMITH | CHAT | Leader data updated, refreshing display', '', false, true, false);
                 ChatPanel.updateLeaderDisplay();
             });
         } else {
@@ -784,10 +784,10 @@ class ChatPanel {
 
     // Update existing socket emits to use ThirdPartyManager
     static async updateLeader(leader) {
-        console.log('BLACKSMITH | CHAT | updateLeader called with:', leader);
+        postConsoleAndNotification('BLACKSMITH | CHAT | updateLeader called with:', leader, false, true, false);
         if (game.user.isGM) {
             const socket = ThirdPartyManager.getSocket();
-            console.log('BLACKSMITH | CHAT | Sending leader update to other clients');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Sending leader update to other clients', '', false, true, false);
             // Get the current leader data to send
             const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
             await socket.executeForOthers("updateLeader", { 
@@ -795,7 +795,7 @@ class ChatPanel {
                 leaderData // full leader data
             });
             this.updateLeaderDisplay();
-            console.log('BLACKSMITH | CHAT | Leader update complete');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Leader update complete', '', false, true, false);
         }
     }
 
@@ -825,14 +825,14 @@ class ChatPanel {
      * @returns {Promise<boolean>} - True if successful, false if failed
      */
     static async setNewLeader(leaderData, sendMessages = false) {
-        console.log('BLACKSMITH | CHAT | setNewLeader called with:', leaderData);
+        postConsoleAndNotification('BLACKSMITH | CHAT | setNewLeader called with:', leaderData, false, true, false);
         try {
             // Get the user and actor
             const user = game.users.get(leaderData.userId);
             const actor = game.actors.get(leaderData.actorId);
             
             if (!user || !actor) {
-                console.error('BLACKSMITH | CHAT | Failed to find user or actor:', { user, actor });
+                postConsoleAndNotification('BLACKSMITH | CHAT | Failed to find user or actor:', { user, actor }, false, false, true);
                 postConsoleAndNotification("Chat Panel | Error", 
                     `Failed to set leader: User or character not found`, 
                     false, true, false
@@ -840,28 +840,28 @@ class ChatPanel {
                 return false;
             }
 
-            console.log('BLACKSMITH | CHAT | Setting leader with:', { user: user.name, actor: actor.name });
+            postConsoleAndNotification('BLACKSMITH | CHAT | Setting leader with:', { user: user.name, actor: actor.name }, false, true, false);
 
             // Store in settings
             await game.settings.set(MODULE_ID, 'partyLeader', leaderData);
-            console.log('BLACKSMITH | CHAT | Leader settings updated');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Leader settings updated', '', false, true, false);
 
             // Update the static currentLeader and display
             ChatPanel.currentLeader = actor.name;
             await ChatPanel.updateLeader(actor.name);
-            console.log('BLACKSMITH | CHAT | Leader display updated');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Leader display updated', '', false, true, false);
 
             // Update vote icon permissions
             this.updateVoteIconState();
-            console.log('BLACKSMITH | CHAT | Vote icon state updated');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Vote icon state updated', '', false, true, false);
 
             // Force chat re-render to update leader status
-            console.log('BLACKSMITH | CHAT | Forcing chat re-render');
+            postConsoleAndNotification('BLACKSMITH | CHAT | Forcing chat re-render', '', false, true, false);
             ui.chat.render(true);
 
             // Send the leader messages only if requested AND we are the GM
             if (sendMessages && game.user.isGM) {
-                console.log('BLACKSMITH | CHAT | Sending leader change messages');
+                postConsoleAndNotification('BLACKSMITH | CHAT | Sending leader change messages', '', false, true, false);
                 
                 // Play notification sound
                 playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -895,12 +895,12 @@ class ChatPanel {
                     speaker: ChatMessage.getSpeaker({ user: game.user }),
                     whisper: [leaderData.userId]
                 });
-                console.log('BLACKSMITH | CHAT | Leader messages sent');
+                postConsoleAndNotification('BLACKSMITH | CHAT | Leader messages sent', '', false, true, false);
             }
 
             return true;
         } catch (error) {
-            console.error('BLACKSMITH | CHAT | Error in setNewLeader:', error);
+            postConsoleAndNotification('BLACKSMITH | CHAT | Error in setNewLeader:', error, false, false, true);
             postConsoleAndNotification("Chat Panel | Error", 
                 `Failed to set leader: ${error.message}`, 
                 false, true, false

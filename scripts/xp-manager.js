@@ -2,7 +2,7 @@
 // ===== XP MANAGER =================================================
 // ================================================================== 
 
-console.log('XP Manager: Script file loaded');
+postConsoleAndNotification('XP Manager: Script file loaded', "", false, true, false);
 
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
@@ -32,7 +32,7 @@ export class XpManager {
     };
 
     static initialize() {
-        console.log('XP Manager: Initialize method called');
+        postConsoleAndNotification('XP Manager: Initialize method called', "", false, true, false);
         postConsoleAndNotification('XP Manager: Initializing...', '', false, true, false);
         
         // Register multiple combat hooks to see which ones are triggered
@@ -62,7 +62,7 @@ export class XpManager {
      * Handle combat deletion and trigger XP distribution
      */
     static async _onCombatEnd(combat, options, userId) {
-        console.log('XP Manager: Combat delete hook triggered', { 
+        postConsoleAndNotification('XP Manager: Combat delete hook triggered', { 
             combat: combat?.id, 
             userId: userId,
             combatExists: !!combat,
@@ -73,30 +73,30 @@ export class XpManager {
                 round: combat.round,
                 turn: combat.turn
             } : null
-        });
+        }, false, true, false);
         
         postConsoleAndNotification('XP Manager: Combat deletion detected', { combat: combat?.id, userId: userId }, false, true, false);
         
         if (!game.user.isGM) {
-            console.log('XP Manager: Not GM, skipping');
+            postConsoleAndNotification('XP Manager: Not GM, skipping', "", false, true, false);
             postConsoleAndNotification('XP Manager: Not GM, skipping', '', false, true, false);
             return;
         }
         
         // Check if XP distribution is enabled
         const isEnabled = game.settings.get(MODULE_ID, 'enableXpDistribution');
-        console.log('XP Manager: XP distribution enabled?', isEnabled);
+        postConsoleAndNotification('XP Manager: XP distribution enabled?', isEnabled, false, true, false);
         postConsoleAndNotification('XP Manager: XP distribution enabled?', isEnabled, false, true, false);
         
         if (!isEnabled) {
-            console.log('XP Manager: XP distribution disabled in settings');
+            postConsoleAndNotification('XP Manager: XP distribution disabled in settings', "", false, true, false);
             postConsoleAndNotification('XP Manager: XP distribution disabled in settings', '', false, true, false);
             return;
         }
 
         // Wait a moment for combat to fully end
         setTimeout(async () => {
-            console.log('XP Manager: Showing XP distribution window');
+            postConsoleAndNotification('XP Manager: Showing XP distribution window', "", false, true, false);
             postConsoleAndNotification('XP Manager: Showing XP distribution window', '', false, true, false);
             await this.showXpDistributionWindow(combat);
         }, 1000);
@@ -322,11 +322,11 @@ export class XpManager {
      */
     static async postXpResults(xpData, results) {
         try {
-            console.log('XP Manager: Generating chat message', { xpData, results });
+            postConsoleAndNotification('XP Manager: Generating chat message', { xpData, results }, false, true, false);
             
             const content = await this.generateXpChatMessage(xpData, results);
             
-            console.log('XP Manager: Chat message generated', { content: content.substring(0, 100) + '...' });
+            postConsoleAndNotification('XP Manager: Chat message generated', { content: content.substring(0, 100) + '...' }, false, true, false);
             
             // Play notification sound
             playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -334,7 +334,7 @@ export class XpManager {
             // Get the GM user for the speaker (messages always appear from GM)
             const gmUser = game.users.find(u => u.isGM);
             if (!gmUser) {
-                console.error('XP Manager: No GM user found');
+                postConsoleAndNotification('XP Manager: No GM user found', "", false, false, true);
                 return;
             }
             
@@ -355,9 +355,9 @@ export class XpManager {
                 }
             });
             
-            console.log('XP Manager: Chat message posted successfully');
+            postConsoleAndNotification('XP Manager: Chat message posted successfully', "", false, true, false);
         } catch (error) {
-            console.error('XP Manager: Error posting XP results', error);
+            postConsoleAndNotification('XP Manager: Error posting XP results', error, false, false, true);
             
             // Fallback: post a simple text message instead
             const fallbackMessage = `XP Distribution Complete!\nTotal XP: ${xpData.adjustedTotalXp}\nPlayers: ${results.map(r => `${r.name}: +${r.xpGained} XP`).join(', ')}`;
@@ -379,20 +379,20 @@ export class XpManager {
      */
     static async generateXpChatMessage(xpData, results) {
         try {
-            console.log('XP Manager: Rendering template with data', { 
+            postConsoleAndNotification('XP Manager: Rendering template with data', { 
                 xpDataKeys: Object.keys(xpData),
                 resultsLength: results.length 
-            });
+            }, false, true, false);
             
             const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
                 xpData: xpData,
                 results: results
             });
             
-            console.log('XP Manager: Template rendered successfully');
+            postConsoleAndNotification('XP Manager: Template rendered successfully', "", false, true, false);
             return template;
         } catch (error) {
-            console.error('XP Manager: Error rendering template', error);
+            postConsoleAndNotification('XP Manager: Error rendering template', error, false, false, true);
             throw error;
         }
     }
@@ -431,14 +431,14 @@ export class XpManager {
      * Debug hook for combat round
      */
     static _onCombatRound(combat, round, userId) {
-        console.log('XP Manager: Combat round hook triggered', { combat: combat.id, round, userId });
+        postConsoleAndNotification('XP Manager: Combat round hook triggered', { combat: combat.id, round, userId }, false, true, false);
     }
 
     /**
      * Debug hook for combat turn
      */
     static _onCombatTurn(combat, turn, userId) {
-        console.log('XP Manager: Combat turn hook triggered', { combat: combat.id, turn, userId });
+        postConsoleAndNotification('XP Manager: Combat turn hook triggered', { combat: combat.id, turn, userId }, false, true, false);
     }
 }
 
@@ -542,7 +542,7 @@ class XpDistributionWindow extends FormApplication {
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
         } catch (error) {
-            console.error('XP Manager: Error in _updateObject', error);
+            postConsoleAndNotification('XP Manager: Error in _updateObject', error, false, false, true);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
         }
     }
@@ -618,7 +618,7 @@ class XpDistributionWindow extends FormApplication {
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
         } catch (error) {
-            console.error('XP Manager: Error applying XP', error);
+            postConsoleAndNotification('XP Manager: Error applying XP', error, false, false, true);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
         }
     }

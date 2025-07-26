@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     postConsoleAndNotification(`Roll changed in ${workspace}:`, roll.value, false, true, false);
                 });
             } else {
-                console.error(`Blacksmith | Elements not found for workspace: ${workspace}`);
+                postConsoleAndNotification(`Blacksmith | Elements not found for workspace: ${workspace}`, "", false, false, true);
             }
         });
 
@@ -273,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add event listeners after rendering
                     addEventListeners();
                 } else {
-                    console.error('Blacksmith | Element with ID "blacksmith-workspace-wrapper" not found.');
+                    postConsoleAndNotification('Blacksmith | Element with ID "blacksmith-workspace-wrapper" not found.', "", false, false, true);
                 }
             });
         } catch (error) {
-            console.error('Blacksmith | Error loading partial templates:', error);
+            postConsoleAndNotification('Blacksmith | Error loading partial templates:', error, false, false, true);
         }
     };
 
@@ -700,44 +700,44 @@ export class BlacksmithWindowQuery extends FormApplication {
                 dropZone.classList.remove('dragover');
 
                 try {
-                    console.log('BLACKSMITH | Regent: Drop event triggered on zone:', dropZone.id);
+                    postConsoleAndNotification('BLACKSMITH | Regent: Drop event triggered on zone:', dropZone.id, false, true, false);
                     const rawData = event.dataTransfer.getData('text/plain');
-                    console.log('BLACKSMITH | Regent: Raw drop data:', rawData);
+                    postConsoleAndNotification('BLACKSMITH | Regent: Raw drop data:', rawData, false, true, false);
                     
                     const data = JSON.parse(rawData);
-                    console.log('BLACKSMITH | Regent: Parsed drop data:', data);
+                    postConsoleAndNotification('BLACKSMITH | Regent: Parsed drop data:', data, false, true, false);
                     
                     const id = dropZone.id.split('-').pop();
-                    console.log('BLACKSMITH | Regent: Zone ID:', id);
+                    postConsoleAndNotification('BLACKSMITH | Regent: Zone ID:', id, false, true, false);
 
                     // Handle different drop types based on the zone
                     if (dropZone.id.includes('encounters-drop-zone')) {
-                        console.log('BLACKSMITH | Regent: Processing drop for encounters zone');
+                        postConsoleAndNotification('BLACKSMITH | Regent: Processing drop for encounters zone', "", false, true, false);
                         
                         // Handle both JournalEntry and JournalEntryPage drops
                         if (data.type === 'JournalEntry' || data.type === 'JournalEntryPage') {
                             let journal, page;
                             
                             if (data.type === 'JournalEntryPage') {
-                                console.log('BLACKSMITH | Regent: Processing JournalEntryPage:', data.uuid);
+                                postConsoleAndNotification('BLACKSMITH | Regent: Processing JournalEntryPage:', data.uuid, false, true, false);
                                 page = await fromUuid(data.uuid);
                                 if (!page) {
-                                    console.warn('BLACKSMITH | Regent: Page not found for UUID:', data.uuid);
+                                    postConsoleAndNotification('BLACKSMITH | Regent: Page not found for UUID:', data.uuid, false, true, false);
                                     return;
                                 }
                                 journal = page.parent;
                                 await addEncounterToNarrative(id, journal, page);
                             } else {
-                                console.log('BLACKSMITH | Regent: Processing JournalEntry:', data.uuid);
+                                postConsoleAndNotification('BLACKSMITH | Regent: Processing JournalEntry:', data.uuid, false, true, false);
                                 journal = await fromUuid(data.uuid);
                                 if (!journal) {
-                                    console.warn('BLACKSMITH | Regent: Journal not found for UUID:', data.uuid);
+                                    postConsoleAndNotification('BLACKSMITH | Regent: Journal not found for UUID:', data.uuid, false, true, false);
                                     return;
                                 }
 
                                 // If a specific page was dropped
                                 if (data.pageId) {
-                                    console.log('BLACKSMITH | Regent: Processing specific page:', data.pageId);
+                                    postConsoleAndNotification('BLACKSMITH | Regent: Processing specific page:', data.pageId, false, true, false);
                                     page = journal.pages.get(data.pageId);
                                     if (page) {
                                         await addEncounterToNarrative(id, journal, page);
@@ -745,7 +745,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 } else {
                                     // If the whole journal was dropped, show a dialog to select a page
                                     const pages = journal.pages.contents;
-                                    console.log('BLACKSMITH | Regent: Journal pages:', pages.length);
+                                    postConsoleAndNotification('BLACKSMITH | Regent: Journal pages:', pages.length, false, true, false);
                                     
                                     if (pages.length === 0) {
                                         ui.notifications.warn("This journal has no pages.");
@@ -753,10 +753,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                                     }
                                     
                                     if (pages.length === 1) {
-                                        console.log('BLACKSMITH | Regent: Single page journal, using first page');
+                                        postConsoleAndNotification('BLACKSMITH | Regent: Single page journal, using first page', "", false, true, false);
                                         await addEncounterToNarrative(id, journal, pages[0]);
                                     } else {
-                                        console.log('BLACKSMITH | Regent: Multiple pages, showing selection dialog');
+                                        postConsoleAndNotification('BLACKSMITH | Regent: Multiple pages, showing selection dialog', "", false, true, false);
                                         // Create dialog for page selection
                                         const dialog = new Dialog({
                                             title: "Select Encounter Page",
@@ -768,7 +768,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                                     label: "Select",
                                                     callback: async (html) => {
                                                         const pageId = html.find('#page-select').val();
-                                                        console.log('BLACKSMITH | Regent: Selected page:', pageId);
+                                                        postConsoleAndNotification('BLACKSMITH | Regent: Selected page:', pageId, false, true, false);
                                                         const page = journal.pages.get(pageId);
                                                         if (page) {
                                                             await addEncounterToNarrative(id, journal, page);
@@ -786,7 +786,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 }
                             }
                         } else {
-                            console.warn('BLACKSMITH | Regent: Dropped item is not a JournalEntry or JournalEntryPage:', data.type);
+                            postConsoleAndNotification('BLACKSMITH | Regent: Dropped item is not a JournalEntry or JournalEntryPage:', data.type, false, true, false);
                         }
                     } else if (dropZone.id.includes('monster-drop-zone')) {
                         // Handle actor drops for monsters
@@ -882,8 +882,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    console.error('Error processing dropped item:', error);
-                    console.error('Error stack:', error.stack);
+                    postConsoleAndNotification('Error processing dropped item:', error, false, false, true);
+                    postConsoleAndNotification('Error stack:', error.stack, false, false, true);
                 }
             });
         });
@@ -1122,7 +1122,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
 
         if (logToggle) {
-            console.log(`Workspace visibility toggled. Hidden: ${!isHidden}`);
+            postConsoleAndNotification(`Workspace visibility toggled. Hidden: ${!isHidden}`, "", false, true, false);
         }
     }
 
@@ -1169,10 +1169,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                 heroCR = partyHeroCRElement.innerText.trim();
                 postConsoleAndNotification(`Party Benchmark for id ${id}:`, heroCR, false, true, false);
             } else {
-                console.error(`Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`);
+                postConsoleAndNotification(`Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`, "", false, false, true);
             }
         } else {
-            console.error(`Element with id worksheet-party-partycr-${id} not found.`);
+            postConsoleAndNotification(`Element with id worksheet-party-partycr-${id} not found.`, "", false, false, true);
         }
         // Update the Hero CR on the PARTY sheet
 
@@ -1184,10 +1184,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                 heroCR = npcHeroCrElement.innerText.trim();
                 postConsoleAndNotification(`NPC Hero CR for id ${id}:`, heroCR, false, true, false);
             } else {
-                console.error(`Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`);
+                postConsoleAndNotification(`Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`, "", false, false, true);
             }
         } else {
-            console.error(`Element with id worksheet-npc-herocr-${id} not found.`);
+            postConsoleAndNotification(`Element with id worksheet-npc-herocr-${id} not found.`, "", false, false, true);
         }
         // MONSTER CR 
         const monsterCRValueElement = document.querySelector(`#monsterCRValue-${id}`);
@@ -1196,7 +1196,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
             postConsoleAndNotification(`Monster CR Value for id ${id}:`, monsterCRValue, false, true, false);
         } else {
-            console.error(`Blacksmith | Element with id monsterCRValue-${id} not found.`);
+            postConsoleAndNotification(`Blacksmith | Element with id monsterCRValue-${id} not found.`, "", false, false, true);
             monsterCRValue = 0;
         }
 
@@ -1234,7 +1234,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (!tokensContainer) {
-            console.error(`Blacksmith | Container not found for type ${type} and ID ${id}`);
+            postConsoleAndNotification(`Blacksmith | Container not found for type ${type} and ID ${id}`, "", false, false, true);
             return;
         }
     
@@ -1509,7 +1509,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                     postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
             }
         } catch (error) {
-            console.error("Blacksmith | Error processing JSON:", error);
+            postConsoleAndNotification("Blacksmith | Error processing JSON:", error, false, false, true);
 
         }
     }
@@ -1533,7 +1533,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 speaker: ChatMessage.getSpeaker()
             });
         } else {
-            console.error("Blacksmith | No content found to send to chat.");
+            postConsoleAndNotification("Blacksmith | No content found to send to chat.", "", false, false, true);
             ui.notifications.error("No content found to send to chat.");
         }
     }
@@ -1563,11 +1563,11 @@ export class BlacksmithWindowQuery extends FormApplication {
                 await navigator.clipboard.writeText(content);
                 ui.notifications.info("Content copied to clipboard.");
             } catch (err) {
-                console.error("Blacksmith | Failed to copy content: ", err);
+                postConsoleAndNotification("Blacksmith | Failed to copy content: ", err, false, false, true);
                 ui.notifications.error("Blacksmith | Failed to copy content to clipboard.");
             }
         } else {
-            console.error("Blacksmith | No content found to copy.");
+            postConsoleAndNotification("Blacksmith | No content found to copy.", "", false, false, true);
             ui.notifications.error("Blacksmith | No content found to copy.");
         }
     }
@@ -2264,7 +2264,7 @@ Key encounter requirements:`;
                     strPromptNarration += `\n\nIMPORTANT: Make sure to include ALL linked encounters in your JSON response. The linkedEncounters array MUST include all encounters listed above, with proper uuid, name, synopsis, and keyMoments fields for each encounter. DO NOT omit any fields.`;
                 }
             } catch (e) {
-                console.error('Error parsing encounters data:', e);
+                postConsoleAndNotification('Error parsing encounters data:', e, false, false, true);
             }
         }
 
@@ -3070,7 +3070,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     const content = page.text.content;
     
     // Log the content for debugging
-    console.log('BLACKSMITH | Regent: Parsing encounter content for:', page.name);
+    postConsoleAndNotification('BLACKSMITH | Regent: Parsing encounter content for:', page.name, false, true, false);
     
     // First try to find the Summary and Setup section
     const setupMatch = content.match(/<h4>Summary and Setup<\/h4>([\s\S]*?)(?=<h4>|$)/i);
@@ -3080,7 +3080,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     }
 
     const setupContent = setupMatch[1];
-    console.log('BLACKSMITH | Regent: Setup content found, length:', setupContent.length);
+    postConsoleAndNotification('BLACKSMITH | Regent: Setup content found, length:', setupContent.length, false, true, false);
     
     // Extract synopsis - handle multiple possible patterns
     let synopsis = "";
@@ -3097,7 +3097,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
             break;
         }
     }
-    console.log('BLACKSMITH | Regent: Extracted synopsis:', synopsis);
+    postConsoleAndNotification('BLACKSMITH | Regent: Extracted synopsis:', synopsis, false, true, false);
     
     // Extract key moments - handle multiple possible patterns
     let keyMoments = [];
@@ -3127,7 +3127,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
             break;
         }
     }
-    console.log('BLACKSMITH | Regent: Extracted key moments:', keyMoments);
+    postConsoleAndNotification('BLACKSMITH | Regent: Extracted key moments:', keyMoments, false, true, false);
 
     // Create the encounter card
     const strName = trimString(page.name, 24);
@@ -3200,7 +3200,7 @@ function updateEncountersData(id, newEncounterData) {
     // Update the input value with the formatted data
     encountersInput.value = JSON.stringify(encountersData);
     
-    console.log('BLACKSMITH | Regent: Updated encounters data:', encountersData);
+    postConsoleAndNotification('BLACKSMITH | Regent: Updated encounters data:', encountersData, false, true, false);
 }
 
 function formatCharacterData(tokenData) {

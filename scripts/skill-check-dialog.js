@@ -63,7 +63,7 @@ export class SkillCheckDialog extends Application {
 
         // Get tools directly using _getToolProficiencies
         const tools = this._getToolProficiencies();
-        console.log('Tools data being passed to template:', tools);
+        postConsoleAndNotification('Tools data being passed to template:', tools, false, true, false);
 
         // Create a map of skill descriptions
         const skillDescriptions = {
@@ -145,7 +145,7 @@ export class SkillCheckDialog extends Application {
             userPreferences: this.userPreferences
         };
 
-        console.log('Final template data:', templateData);
+        postConsoleAndNotification('Final template data:', templateData, false, true, false);
         return templateData;
     }
 
@@ -156,7 +156,7 @@ export class SkillCheckDialog extends Application {
         
         if (selectedCount === 0) return [];
 
-        console.log('Selected actors count:', selectedCount);
+        postConsoleAndNotification('Selected actors count:', selectedCount, false, true, false);
         
         selectedActors.each((i, el) => {
             const tokenId = el.dataset.tokenId; // Updated to use new data attribute name
@@ -169,7 +169,7 @@ export class SkillCheckDialog extends Application {
 
             // Get tool proficiencies from the actor
             const tools = actor.items.filter(i => i.type === "tool");
-            console.log(`Actor ${actor.name} tools:`, tools.map(t => t.name));
+            postConsoleAndNotification(`Actor ${actor.name} tools:`, tools.map(t => t.name), false, true, false);
             tools.forEach(tool => {
                 // If we've already processed a tool with this name for this actor, skip it
                 if (processedTools.has(tool.name)) return;
@@ -194,7 +194,7 @@ export class SkillCheckDialog extends Application {
         const result = Array.from(toolProfs.entries())
             .map(([name, data]) => {
                 const isCommon = data.count === selectedCount;
-                console.log(`Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`);
+                postConsoleAndNotification(`Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`, "", false, true, false);
                 return {
                     name,
                     isCommon,
@@ -203,14 +203,14 @@ export class SkillCheckDialog extends Application {
             })
             .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
 
-        console.log('Final tool list:', result);
+        postConsoleAndNotification('Final tool list:', result, false, true, false);
         return result;
     }
 
     activateListeners(html) {
         super.activateListeners(html);
 
-        console.log("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...");
+        postConsoleAndNotification("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", false, true, false);
 
         // If we have an initial skill selection, trigger a click on it
         if (this.selectedType === 'skill' && this.selectedValue) {
@@ -225,14 +225,14 @@ export class SkillCheckDialog extends Application {
         }
 
         // Debug: Check if classes are being applied
-        console.log('Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length);
+        postConsoleAndNotification('Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length, false, true, false);
         html.find('.cpb-check-item[data-type="tool"]').each((i, el) => {
-            console.log('Tool item:', {
+            postConsoleAndNotification('Tool item:', {
                 name: el.querySelector('span').textContent,
                 hasUnavailableClass: el.classList.contains('cpb-tool-unavailable'),
                 dataCommon: el.dataset.common,
                 classList: Array.from(el.classList)
-            });
+            }, false, true, false);
         });
 
         // Apply initial filter if there are selected tokens
@@ -431,7 +431,7 @@ export class SkillCheckDialog extends Application {
                     });
                 } else if (rollType === 'contested') {
                     // Contested roll: set up both challenger and defender skills
-                    console.log('CPB | Setting up contested roll:', { value, defenderSkillAttr });
+                    postConsoleAndNotification('CPB | Setting up contested roll:', { value, defenderSkillAttr }, false, true, false);
                     
                     // Set the challenger skill selection
                     const quickRollMap = {
@@ -631,7 +631,7 @@ export class SkillCheckDialog extends Application {
                         description: customSkillData.description,
                         link: `@UUID[${uuid}]{${title}}`
                     };
-                    console.log("Skill Info set:", this.skillInfo);
+                    postConsoleAndNotification("Skill Info set:", this.skillInfo, false, true, false);
                 }
             }
         });
@@ -923,7 +923,7 @@ export class SkillCheckDialog extends Application {
                 isCinematic: html.find('input[name="isCinematic"]').is(':checked')
             };
 
-            console.log('CPB | Cinematic Mode flag set to:', messageData.isCinematic);
+            postConsoleAndNotification('CPB | Cinematic Mode flag set to:', messageData.isCinematic, false, true, false);
 
             // Create the chat message
             ChatMessage.create({
@@ -1465,16 +1465,16 @@ export class SkillCheckDialog extends Application {
                 }
             }
             
-            console.log('CPB | Cinematic Display - Roll result:', result);
-            console.log('CPB | Cinematic Display - d20Roll value:', d20Roll);
-            console.log('CPB | Cinematic Display - Terms structure:', result?.terms);
-            console.log('CPB | Cinematic Display - Dice structure:', result?.dice);
+            postConsoleAndNotification('CPB | Cinematic Display - Roll result:', result, false, true, false);
+            postConsoleAndNotification('CPB | Cinematic Display - d20Roll value:', d20Roll, false, true, false);
+            postConsoleAndNotification('CPB | Cinematic Display - Terms structure:', result?.terms, false, true, false);
+            postConsoleAndNotification('CPB | Cinematic Display - Dice structure:', result?.dice, false, true, false);
             
             if (d20Roll === 20) {
-                console.log('CPB | Cinematic Display - CRITICAL DETECTED!');
+                postConsoleAndNotification('CPB | Cinematic Display - CRITICAL DETECTED!', "", false, true, false);
                 playSound(COFFEEPUB.SOUNDROLLCRITICAL, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else if (d20Roll === 1) {
-                console.log('CPB | Cinematic Display - FUMBLE DETECTED!');
+                postConsoleAndNotification('CPB | Cinematic Display - FUMBLE DETECTED!', "", false, true, false);
                 playSound(COFFEEPUB.SOUNDROLLFUMBLE, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else {
                 playSound(COFFEEPUB.SOUNDROLLCOMPLETE, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -1489,8 +1489,8 @@ export class SkillCheckDialog extends Application {
 
             const successClass = result.total >= messageData.dc ? 'success' : 'failure';
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${result.total}</div>`;
-            console.log('CPB | Cinematic Display - Applied classes:', { successClass, specialClass });
-            console.log('CPB | Cinematic Display - Final HTML:', resultHtml);
+            postConsoleAndNotification('CPB | Cinematic Display - Applied classes:', { successClass, specialClass }, false, true, false);
+            postConsoleAndNotification('CPB | Cinematic Display - Final HTML:', resultHtml, false, true, false);
             rollArea.append(resultHtml);
 
             // Check if all rolls are complete to hide the overlay
@@ -1632,10 +1632,10 @@ export class SkillCheckDialog extends Application {
                     // Attempt to use the modern dnd5e API for tool checks
                     if (typeof actor.rollToolCheck === 'function') {
                         try {
-                            console.log(`Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`);
+                            postConsoleAndNotification(`Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", false, true, false);
                             roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
                         } catch (err) {
-                            console.warn(`COFFEEPUB | actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err);
+                            postConsoleAndNotification(`COFFEEPUB | actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, false, true, false);
                             roll = undefined; // Ensure roll is undefined for the next check
                         }
                     }
@@ -1717,7 +1717,7 @@ export class SkillCheckDialog extends Application {
             }
 
         } catch (err) {
-            console.error("Blacksmith | Error handling skill roll:", err);
+            postConsoleAndNotification("Blacksmith | Error handling skill roll:", err, false, false, true);
             ui.notifications.error("An error occurred while processing the roll. See the console for details.");
         }
     }
