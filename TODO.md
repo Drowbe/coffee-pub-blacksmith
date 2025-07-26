@@ -10,13 +10,13 @@
 - **Plan**: Replaced Map with real-time token counting
 - **Notes**: Fixed in both blacksmith.js and canvas-tools.js
 
-### 2. Multiple Hook Registrations Without Cleanup
-- **Issue**: Multiple `Hooks.once('ready')` calls without proper cleanup
-- **Locations**: Lines 67, 200, 250, 280, 350
-- **Impact**: Potential memory leaks and duplicate initializations
-- **Status**: 🔴 TODO
-- **Plan**: Consolidate into single ready hook or add cleanup handlers
-- **Notes**: Need to ensure all initializations still happen in correct order
+### 2. Duplicate Token Naming Hooks
+- **Issue**: Token naming logic duplicated in both blacksmith.js and canvas-tools.js
+- **Locations**: Lines 381 (blacksmith.js) and 59 (canvas-tools.js)
+- **Impact**: Duplicate hooks causing potential race conditions and performance issues
+- **Status**: ✅ COMPLETED
+- **Plan**: Removed duplicate hook from blacksmith.js, kept only in CanvasTools
+- **Notes**: Eliminated duplicate token naming functionality
 
 ### 3. Icon Path Cache Never Cleared
 - **Issue**: `iconPaths` cache (line 1750) is never cleared
@@ -99,7 +99,7 @@
 
 ### Phase 1: Critical Fixes (Immediate Priority)
 - [x] Fix tokenCount Map cleanup
-- [ ] Consolidate hook registrations
+- [x] Remove duplicate token naming hooks
 - [ ] Add icon path cache invalidation
 - [ ] Implement debug level controls
 
