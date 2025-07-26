@@ -62,6 +62,10 @@ const TEMPLATE_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
 // Window registry for efficient BlacksmithWindowQuery lookups
 let blacksmithWindowRegistry = new Set();
 
+// Settings cache for frequently accessed settings
+let settingsCache = new Map();
+const SETTINGS_CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes
+
 // Helper function to get cached root element
 function getRootElement() {
     if (!cachedRootElement) {
@@ -148,6 +152,35 @@ function unregisterBlacksmithWindow(window) {
 
 function getBlacksmithWindows() {
     return Array.from(blacksmithWindowRegistry);
+}
+
+// Helper function to get cached setting value
+export function getCachedSetting(settingKey, defaultValue = null) {
+    const now = Date.now();
+    
+    // Check if setting is cached and still valid
+    if (settingsCache.has(settingKey)) {
+        const cached = settingsCache.get(settingKey);
+        if ((now - cached.timestamp) < SETTINGS_CACHE_EXPIRATION) {
+            return cached.value;
+        }
+    }
+    
+    // Setting not cached or expired, retrieve it
+    const value = game.settings.get(MODULE_ID, settingKey);
+    
+    // Store in cache with timestamp
+    settingsCache.set(settingKey, {
+        value: value,
+        timestamp: now
+    });
+    
+    return value;
+}
+
+// Helper function to clear settings cache (call when settings change)
+function clearSettingsCache() {
+    settingsCache.clear();
 }
 
 // ***************************************************
@@ -288,6 +321,13 @@ Hooks.once('init', async function() {
         }
     });
     
+    // Clear settings cache when settings change
+    Hooks.on('settingChange', (moduleId, settingKey, value) => {
+        if (moduleId === MODULE_ID) {
+            clearSettingsCache();
+        }
+    });
+    
     // Expose our API on the module
     const module = game.modules.get(MODULE_ID);
     module.api = {
@@ -424,39 +464,39 @@ Hooks.on('updateToken', updateNameplates);
 Hooks.once('ready', function() {
 
     // RICH CONSOLE
-    const blnFancyConsole = game.settings.get(MODULE_ID, 'globalFancyConsole');
+    const blnFancyConsole = getCachedSetting('globalFancyConsole');
  
     BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
     COFFEEPUB.blnFancyConsole = blnFancyConsole;
 
     // DEBUG ON/OFF
-    const blnDebugOn = game.settings.get(MODULE_ID, 'globalDebugMode');
+    const blnDebugOn = getCachedSetting('globalDebugMode');
  
     BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
     
     // DEBUG STYLE
-    const strConsoleDebugStyle = game.settings.get(MODULE_ID, 'globalConsoleDebugStyle');
+    const strConsoleDebugStyle = getCachedSetting('globalConsoleDebugStyle');
  
     BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
     
     // OPENAI SETTINGS
     // Macro
-    const strOpenAIMacro = game.settings.get(MODULE_ID, 'openAIMacro');
+    const strOpenAIMacro = getCachedSetting('openAIMacro');
     BLACKSMITH.updateValue('strOpenAIMacro', strOpenAIMacro);
     // API Key
-    const strOpenAIAPIKey = game.settings.get(MODULE_ID, 'openAIAPIKey');
+    const strOpenAIAPIKey = getCachedSetting('openAIAPIKey');
     BLACKSMITH.updateValue('strOpenAIAPIKey', strOpenAIAPIKey);
     // Model 
-    const strOpenAIModel = game.settings.get(MODULE_ID, 'openAIModel');
+    const strOpenAIModel = getCachedSetting('openAIModel');
     BLACKSMITH.updateValue('strOpenAIModel', strOpenAIModel);
     // Model 
-    const strOpenAIGameSystems = game.settings.get(MODULE_ID, 'openAIGameSystems');
+    const strOpenAIGameSystems = getCachedSetting('openAIGameSystems');
     BLACKSMITH.updateValue('strOpenAIGameSystems', strOpenAIGameSystems);
     // Prompt 
-    const strOpenAIPrompt = game.settings.get(MODULE_ID, 'openAIPrompt');
+    const strOpenAIPrompt = getCachedSetting('openAIPrompt');
     BLACKSMITH.updateValue('strOpenAIPrompt', strOpenAIPrompt);
     // Temperature 
-    const strOpenAITemperature = game.settings.get(MODULE_ID, 'openAITemperature');
+    const strOpenAITemperature = getCachedSetting('openAITemperature');
     BLACKSMITH.updateValue('strOpenAITemperature', strOpenAITemperature);
 
     // Update the Chat Spacing per settings
@@ -482,7 +522,7 @@ Hooks.on("ready", () => {
 
     // *** CHECK FOR MACRO BUTTONS ***
     // OPEN AI WINDOW
-    var strOpenAIMacro = game.settings.get(MODULE_ID, 'openAIMacro');
+    var strOpenAIMacro = getCachedSetting('openAIMacro');
     if(strOpenAIMacro) {
         let OpenAIMacro = game.macros.getName(strOpenAIMacro);
         if(OpenAIMacro) {
@@ -1058,12 +1098,12 @@ function scrollToBottom() {
   function updateNameplates() {
 
     let tokens = canvas.tokens.placeables;
-    let strNameplateFontsize = game.settings.get(MODULE_ID, 'nameplateFontSize') + "px";
+    let strNameplateFontsize = getCachedSetting('nameplateFontSize') + "px";
 
-    let strNameplateColor = game.settings.get(MODULE_ID, 'nameplateColor');
-    let strNameplateOutlineSize = game.settings.get(MODULE_ID, 'nameplateOutlineSize');
-    let strNameplateOutlineColor = game.settings.get(MODULE_ID, 'nameplateOutlineColor');
-    let strNameplateFontFamily = game.settings.get(MODULE_ID, 'nameplateFontFamily');
+    let strNameplateColor = getCachedSetting('nameplateColor');
+    let strNameplateOutlineSize = getCachedSetting('nameplateOutlineSize');
+    let strNameplateOutlineColor = getCachedSetting('nameplateOutlineColor');
+    let strNameplateFontFamily = getCachedSetting('nameplateFontFamily');
     let color = parseInt((strNameplateColor.charAt(0) === '#' ? strNameplateColor.slice(1) : strNameplateColor), 16);
     let outlineColor = parseInt((strNameplateOutlineColor.charAt(0) === '#' ? strNameplateOutlineColor.slice(1) : strNameplateOutlineColor), 16);
 
@@ -1085,7 +1125,7 @@ function scrollToBottom() {
 
 function updateObjectLinkStyles() {
     // Get the settings
-    const objectLinkStyle = game.settings.get(MODULE_ID, 'objectLinkStyle');
+    const objectLinkStyle = getCachedSetting('objectLinkStyle');
     // Set defaults
     var strAContentLinkColor = "#191814";
     var strAContentLinkBackground = "#dddddd";
@@ -1192,9 +1232,9 @@ function updateObjectLinkStyles() {
 function updateWindowStyles() {
     //Windows titlebar
     const root = getRootElement();
-    const strTitlebarTextSize = game.settings.get(MODULE_ID, 'titlebarTextSize') + "px";
-    const strTitlebarIconSize = game.settings.get(MODULE_ID, 'titlebarIconSize') + "px";
-    const strTitlebarSpacing = game.settings.get(MODULE_ID, 'titlebarSpacing') + "px";
+    const strTitlebarTextSize = getCachedSetting('titlebarTextSize') + "px";
+    const strTitlebarIconSize = getCachedSetting('titlebarIconSize') + "px";
+    const strTitlebarSpacing = getCachedSetting('titlebarSpacing') + "px";
     if (strTitlebarTextSize) {
         root.style.setProperty('--blacksmith-window-header-a-font-size', strTitlebarTextSize);
     }
@@ -1213,8 +1253,8 @@ function updateWindowStyles() {
 
 function updateChatStyles() {
     // Get the settings
-    const hideRollTableIcon = game.settings.get(MODULE_ID, 'hideRollTableIcon');
-    const chatSpacing = game.settings.get(MODULE_ID, 'chatSpacing');
+    const hideRollTableIcon = getCachedSetting('hideRollTableIcon');
+    const chatSpacing = getCachedSetting('chatSpacing');
     var intChatSpacing = 0;
     var strHideRollTableIcon = "block";
     // GLOBAL setting for space between chat messages
@@ -1244,11 +1284,11 @@ function updateChatStyles() {
 
 function updateSceneStyles() {
 	// Get the settings
-    const sceneTextAlign = game.settings.get(MODULE_ID, 'sceneTextAlign');
-    const sceneFontSize = game.settings.get(MODULE_ID, 'sceneFontSize') + "em";
-    const sceneTitlePaddingLeft = game.settings.get(MODULE_ID, 'sceneTitlePadding') + "px";
-    const sceneTitlePaddingRight = game.settings.get(MODULE_ID, 'sceneTitlePadding') + "px";
-    const scenePanelHeight = game.settings.get(MODULE_ID, 'scenePanelHeight') + "px";
+    const sceneTextAlign = getCachedSetting('sceneTextAlign');
+    const sceneFontSize = getCachedSetting('sceneFontSize') + "em";
+    const sceneTitlePaddingLeft = getCachedSetting('sceneTitlePadding') + "px";
+    const sceneTitlePaddingRight = getCachedSetting('sceneTitlePadding') + "px";
+    const scenePanelHeight = getCachedSetting('scenePanelHeight') + "px";
     // Update the stylesheet variables
 	const root = getRootElement();
     root.style.setProperty('--strSceneTextAlign', sceneTextAlign);
@@ -1265,11 +1305,11 @@ function updateSceneStyles() {
 
 function updateMargins() {
 	
-    const cardTopMargin = game.settings.get(MODULE_ID, 'cardTopMargin');
-	const cardBottomMargin = game.settings.get(MODULE_ID, 'cardBottomMargin');
-	const cardLeftMargin = game.settings.get(MODULE_ID, 'cardLeftMargin');
-	const cardRightMargin = game.settings.get(MODULE_ID, 'cardRightMargin');
-    const cardTopOffset = game.settings.get(MODULE_ID, 'cardTopOffset');
+    const cardTopMargin = getCachedSetting('cardTopMargin');
+	const cardBottomMargin = getCachedSetting('cardBottomMargin');
+	const cardLeftMargin = getCachedSetting('cardLeftMargin');
+	const cardRightMargin = getCachedSetting('cardRightMargin');
+    const cardTopOffset = getCachedSetting('cardTopOffset');
 
 	const root = getRootElement();
     root.style.setProperty('--intCardMarginTop', cardTopMargin +'px');
