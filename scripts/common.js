@@ -26,6 +26,8 @@ import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 // get the common utilities
 import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';
+// Import template caching function
+import { getCachedTemplate } from './blacksmith.js';
 
 
 // ================================================================== 
@@ -61,9 +63,7 @@ export async function createJournalEntry(journalData) {
     var templatePath = journalData.journaltype.toUpperCase() === "ENCOUNTER" ? 
         BLACKSMITH.JOURNAL_ENCOUNTER_TEMPLATE : 
         BLACKSMITH.JOURNAL_NARRATIVE_TEMPLATE;
-    var response = await fetch(templatePath);
-    var templateText = await response.text();
-    var template = Handlebars.compile(templateText);
+    var template = await getCachedTemplate(templatePath);
 
     // Convert any object fields to HTML
     const convertObjectToHtml = async (obj) => {

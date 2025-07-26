@@ -55,6 +55,10 @@ let noteConfigIconsCache = null;
 let noteConfigIconsCacheTimestamp = 0;
 const NOTE_CONFIG_CACHE_EXPIRATION = 10 * 60 * 1000; // 10 minutes
 
+// Cache for compiled Handlebars templates to avoid repeated compilation
+let templateCache = new Map();
+const TEMPLATE_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
+
 // Helper function to get cached root element
 function getRootElement() {
     if (!cachedRootElement) {
@@ -95,6 +99,37 @@ async function getNoteConfigIcons() {
     }
     
     return [];
+}
+
+// Helper function to get cached compiled template
+export async function getCachedTemplate(templatePath) {
+    const now = Date.now();
+    
+    // Check if template is cached and still valid
+    if (templateCache.has(templatePath)) {
+        const cached = templateCache.get(templatePath);
+        if ((now - cached.timestamp) < TEMPLATE_CACHE_EXPIRATION) {
+            return cached.template;
+        }
+    }
+    
+    // Template not cached or expired, compile it
+    try {
+        const response = await fetch(templatePath);
+        const templateText = await response.text();
+        const template = Handlebars.compile(templateText);
+        
+        // Store in cache with timestamp
+        templateCache.set(templatePath, {
+            template: template,
+            timestamp: now
+        });
+        
+        return template;
+    } catch (error) {
+        console.error(`Error loading template ${templatePath}:`, error);
+        throw error;
+    }
 }
 
 // ***************************************************
@@ -759,9 +794,7 @@ async function buildInjuryJournalEntry(journalData) {
         }
     }
     var templatePath = BLACKSMITH.JOURNAL_INJURY_TEMPLATE;
-    var response = await fetch(templatePath);
-    var templateText = await response.text();
-    var template = Handlebars.compile(templateText);
+    var template = await getCachedTemplate(templatePath);
     var CARDDATA = {
         strJournalType: strJournalType,
         strCategory: toSentenceCase(strCategory),
@@ -910,9 +943,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     var strDateStamp = generateFormattedDate();
     // Set the template type
     const templatePath = BLACKSMITH.WINDOW_QUERY_MESSAGE;
-    const response = await fetch(templatePath);
-    const templateText = await response.text();
-    const template = Handlebars.compile(templateText);
+    const template = await getCachedTemplate(templatePath);
 
     if (strQueryContext) {
         strDisplayQuestion = strQueryContext; // Only change what's displayed, not what's sent to API

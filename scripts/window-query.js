@@ -6,6 +6,7 @@ import { MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
+import { getCachedTemplate } from './blacksmith.js';
 
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from './common.js';
@@ -262,8 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // MAIN TEMPLATE
             // Render the main template (assuming you have a main template to render)
-            const mainTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query.hbs').then(response => response.text());
-            const template = Handlebars.compile(mainTemplate);
+            const template = await getCachedTemplate('modules/coffee-pub-blacksmith/templates/window-query.hbs');
 
             // Wait for the DOM to be fully loaded before setting innerHTML
             document.addEventListener('DOMContentLoaded', () => {

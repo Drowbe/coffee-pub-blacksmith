@@ -1,6 +1,7 @@
 // Encounter Toolbar Module
 import { MODULE_ID, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './global.js';
+import { getCachedTemplate } from './blacksmith.js';
 
 export class EncounterToolbar {
     static init() {
@@ -46,9 +47,7 @@ export class EncounterToolbar {
 
             // Get the template
             const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
-            const response = await fetch(templatePath);
-            const templateText = await response.text();
-            const template = Handlebars.compile(templateText);
+            const template = await getCachedTemplate(templatePath);
             
             // Prepare the data for the template
             const templateData = {
