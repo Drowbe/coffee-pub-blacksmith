@@ -57,9 +57,6 @@ export class CanvasTools {
 
     // *** TOKEN NAMING ***
     static _initializeTokenNaming() {
-        // Set the variable to track token count
-        this.tokenCount = new Map();
-
         Hooks.on('createToken', this._onCreateToken.bind(this));
     }
 
@@ -142,14 +139,32 @@ export class CanvasTools {
             } else if (strTokenNameFormat == "number-append-end" || strTokenNameFormat == "number-append-end-parenthesis" || strTokenNameFormat == "number-append-end-dash") {
                 // Append a number to the token name
                 const baseName = document.actor.name;
-                const count = this.tokenCount.get(baseName) || 0;
-                this.tokenCount.set(baseName, count + 1);
+                // Count existing tokens with the same base name on the current scene
+                const existingTokens = canvas.tokens.placeables.filter(token => {
+                    if (token.id === document.id) return false;
+                    // Check if token name starts with base name followed by number patterns
+                    const tokenName = token.name;
+                    const actorName = token.actor?.name;
+                    
+                    // Exact match for base name
+                    if (actorName === baseName || tokenName === baseName) return true;
+                    
+                    // Check for number patterns: "Goblin 01", "Goblin (01)", "Goblin - 01"
+                    const numberPatterns = [
+                        new RegExp(`^${baseName}\\s+\\d+$`), // "Goblin 01"
+                        new RegExp(`^${baseName}\\s+\\(\\d+\\)$`), // "Goblin (01)"
+                        new RegExp(`^${baseName}\\s+-\\s+\\d+$`) // "Goblin - 01"
+                    ];
+                    
+                    return numberPatterns.some(pattern => pattern.test(tokenName));
+                });
+                const count = existingTokens.length + 1;
                 if (strTokenNameFormat == "number-append-end-parenthesis") {
-                    updatedName = baseName + " (" + String(count + 1).padStart(2, '0') + ")";
+                    updatedName = baseName + " (" + String(count).padStart(2, '0') + ")";
                 } else if (strTokenNameFormat == "number-append-end-dash") {
-                    updatedName = baseName + " - " + String(count + 1).padStart(2, '0');
+                    updatedName = baseName + " - " + String(count).padStart(2, '0');
                 } else {
-                    updatedName = baseName + " " + String(count + 1).padStart(2, '0');
+                    updatedName = baseName + " " + String(count).padStart(2, '0');
                 }
             } else {
                 // Do nothing
