@@ -6,9 +6,9 @@
 - **Issue**: `tokenCount` Map is never cleared and grows indefinitely
 - **Location**: Line 350: `let tokenCount = new Map();`
 - **Impact**: Memory leak that grows with each token creation
-- **Status**: 🔴 TODO
-- **Plan**: Add cleanup mechanism or limit Map size
-- **Notes**: Consider clearing on scene change or adding size limits
+- **Status**: ✅ COMPLETED
+- **Plan**: Replaced Map with real-time token counting
+- **Notes**: Fixed in both blacksmith.js and canvas-tools.js
 
 ### 2. Multiple Hook Registrations Without Cleanup
 - **Issue**: Multiple `Hooks.once('ready')` calls without proper cleanup
@@ -98,7 +98,7 @@
 ## IMPLEMENTATION PHASES
 
 ### Phase 1: Critical Fixes (Immediate Priority)
-- [ ] Fix tokenCount Map cleanup
+- [x] Fix tokenCount Map cleanup
 - [ ] Consolidate hook registrations
 - [ ] Add icon path cache invalidation
 - [ ] Implement debug level controls
