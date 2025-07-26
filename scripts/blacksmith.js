@@ -1475,18 +1475,26 @@ async function getItemPromptWithDefaults(itemPrompt) {
   return itemPrompt;
 }
 
-// Cache for icon paths
-let iconPaths = null;
+// Cache for icon paths with expiration
+let iconPathsCache = null;
 
 // Recursively collect all image files in icons/ and subdirectories
 async function getIconPaths() {
-  if (iconPaths) return iconPaths;
-  iconPaths = [];
+  const now = Date.now();
+  const CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+  
+  // Check if cache exists and is still valid
+  if (iconPathsCache && (now - iconPathsCache.timestamp) < CACHE_EXPIRATION) {
+    return iconPathsCache.paths;
+  }
+  
+  // Cache expired or doesn't exist, rebuild it
+  const paths = [];
   async function collect(dir) {
     const result = await FilePicker.browse('public', dir);
     for (const file of result.files) {
       if (file.endsWith('.webp') || file.endsWith('.png') || file.endsWith('.jpg')) {
-        iconPaths.push(file);
+        paths.push(file);
       }
     }
     for (const subdir of result.dirs) {
@@ -1494,7 +1502,14 @@ async function getIconPaths() {
     }
   }
   await collect('icons/');
-  return iconPaths;
+  
+  // Store cache with timestamp
+  iconPathsCache = {
+    paths: paths,
+    timestamp: now
+  };
+  
+  return paths;
 }
 
 // Heuristic image guesser using prioritized synonym matching and itemImageTerms support

@@ -1,0 +1,72 @@
+[
+  {
+    "itemName": "Golden Ring of Protection",
+    "itemDescription": "A beautifully crafted golden ring that provides magical protection to its wearer.",
+    "itemType": "loot",
+    "itemLootType": "treasure",
+    "itemRarity": "rare",
+    "itemWeight": 0.1,
+    "itemPrice": 5000,
+    "itemIsMagical": true,
+    "itemSource": "Test Import",
+    "itemQuantity": 1,
+    "itemIdentified": true,
+    "itemImageTerms": ["ring", "gold", "jewelry"]
+  },
+  {
+    "itemName": "Ancient Spellbook",
+    "itemDescription": "A weathered tome containing powerful arcane knowledge and spells.",
+    "itemType": "loot",
+    "itemLootType": "treasure",
+    "itemRarity": "very rare",
+    "itemWeight": 3,
+    "itemPrice": 15000,
+    "itemIsMagical": true,
+    "itemSource": "Test Import",
+    "itemQuantity": 1,
+    "itemIdentified": true,
+    "itemImageTerms": ["book", "spell", "arcane"]
+  },
+  {
+    "itemName": "Healing Potion",
+    "itemDescription": "A red liquid that restores vitality when consumed.",
+    "itemType": "loot",
+    "itemLootType": "consumable",
+    "itemRarity": "common",
+    "itemWeight": 0.5,
+    "itemPrice": 50,
+    "itemIsMagical": true,
+    "itemSource": "Test Import",
+    "itemQuantity": 3,
+    "itemIdentified": true,
+    "itemImageTerms": ["potion", "healing", "red"]
+  },
+  {
+    "itemName": "Mysterious Key",
+    "itemDescription": "An ornate key with unknown origins and purpose.",
+    "itemType": "loot",
+    "itemLootType": "treasure",
+    "itemRarity": "uncommon",
+    "itemWeight": 0.1,
+    "itemPrice": 100,
+    "itemIsMagical": false,
+    "itemSource": "Test Import",
+    "itemQuantity": 1,
+    "itemIdentified": false,
+    "itemImageTerms": ["key", "ornate", "mysterious"]
+  },
+  {
+    "itemName": "Sapphire Gemstone",
+    "itemDescription": "A brilliant blue sapphire of exceptional clarity and value.",
+    "itemType": "loot",
+    "itemLootType": "treasure",
+    "itemRarity": "rare",
+    "itemWeight": 0.05,
+    "itemPrice": 2000,
+    "itemIsMagical": false,
+    "itemSource": "Test Import",
+    "itemQuantity": 1,
+    "itemIdentified": true,
+    "itemImageTerms": ["gem", "sapphire", "blue"]
+  }
+] 

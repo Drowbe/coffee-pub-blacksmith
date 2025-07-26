@@ -21,9 +21,9 @@
 ### 3. Icon Path Cache Never Cleared
 - **Issue**: `iconPaths` cache (line 1750) is never cleared
 - **Impact**: Memory leak, especially with large icon directories
-- **Status**: 🔴 TODO
-- **Plan**: Add cache invalidation or size limits
-- **Notes**: Consider clearing on module reload or adding TTL
+- **Status**: ✅ COMPLETED
+- **Plan**: Added 5-minute time-based cache expiration
+- **Notes**: Cache expires after 5 minutes to balance performance and memory usage
 
 ## HIGH SEVERITY ISSUES
 
@@ -100,7 +100,7 @@
 ### Phase 1: Critical Fixes (Immediate Priority)
 - [x] Fix tokenCount Map cleanup
 - [x] Remove duplicate token naming hooks
-- [ ] Add icon path cache invalidation
+- [x] Add icon path cache invalidation
 - [ ] Implement debug level controls
 
 ### Phase 2: Performance Optimizations (Short-term)
