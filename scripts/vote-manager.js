@@ -168,7 +168,7 @@ export class VoteManager {
         const isLeader = game.user.id === leaderId;
         const canStartVote = isGM || isLeader;
 
-        console.log('Vote Manager | Starting Vote:', {
+        postConsoleAndNotification('Vote Manager | Starting Vote:', {
             type,
             userId: game.user.id,
             isGM,

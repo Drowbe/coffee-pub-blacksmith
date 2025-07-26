@@ -306,7 +306,7 @@ class CPBPlayerStats {
             }
 
         } catch (error) {
-            console.error(`${MODULE_ID} | Error processing attack roll:`, error);
+            postConsoleAndNotification(`${MODULE_ID} | Error processing attack roll:`, error, false, false, true);
         }
     }
 
@@ -510,10 +510,10 @@ class CPBPlayerStats {
             await this.updatePlayerStats(actor.id, updates);
 
         } catch (error) {
-            console.error(`${MODULE_ID} | Error processing damage roll:`, error);
-            console.error('Actor:', actor);
-            console.error('Combat:', game.combat);
-            console.error('Roll:', roll);
+            postConsoleAndNotification(`${MODULE_ID} | Error processing damage roll:`, error, false, false, true);
+            postConsoleAndNotification('Actor:', actor, false, false, true);
+            postConsoleAndNotification('Combat:', game.combat, false, false, true);
+            postConsoleAndNotification('Roll:', roll, false, false, true);
         }
     }
 

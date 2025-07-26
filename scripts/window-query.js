@@ -311,7 +311,7 @@ window.toggleSection = function(sectionId, button) {
         }
         postConsoleAndNotification("Collapsed class toggled. Current classes:", sectionContent.className, false, true, false);
     } else {
-        console.error("Section content not found for ID:", sectionId);
+        postConsoleAndNotification("Section content not found for ID:", sectionId, false, false, true);
     }
 };
 
@@ -992,7 +992,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    console.error('Error processing dropped journal:', error);
+                    postConsoleAndNotification('Error processing dropped journal:', error, false, false, true);
                 }
             });
         });
@@ -1095,7 +1095,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         const toggleButton = document.getElementById('blacksmith-toggle-workspace');
         
         if (!workspace || !windowElement) {
-            console.error('Could not find workspace or window elements');
+            postConsoleAndNotification('Could not find workspace or window elements', "", false, false, true);
             return;
         }
 

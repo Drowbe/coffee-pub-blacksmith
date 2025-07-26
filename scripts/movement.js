@@ -90,7 +90,6 @@ function handleLeaderMovement(token, tokenDocument) {
 
     if (leaderMovementPath.length === 0) {
         leaderMovementPath.push(startPosition);
-        console.log(`BLACKSMITH | MOVEMENT | Started new leader path at: ${startPosition.x},${startPosition.y}`);
     }
     
     return { position, startPosition };
@@ -131,11 +130,9 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
         (isGMMoveOfFollower && game.user.isGM); // GM manually moved a follower
     
     if (shouldRecalculateOrder) {
-        console.log('BLACKSMITH | MOVEMENT | Recalculating marching order');
         // Get the actual leader token
         const leaderToken = canvas.tokens.get(currentLeaderTokenId);
         if (!leaderToken) {
-            console.log('BLACKSMITH | MOVEMENT | No leader token found, cannot recalculate marching order');
             return;
         }
         
@@ -181,11 +178,9 @@ Hooks.once('init', () => {
                 if (newType) {
                     if (movementIcon) {
                         movementIcon.className = `fas ${newType.icon} movement-icon`;
-                        console.log('BLACKSMITH | MOVEMENT | Movement icon updated:', newType.icon);
                     }
                     if (movementLabel) {
                         movementLabel.textContent = newType.name;
-                        console.log('BLACKSMITH | MOVEMENT | Movement label updated:', newType.name);
                     }
                 }
             }, 100);
@@ -303,7 +298,7 @@ export class MovementConfig extends Application {
                 if (leaderToken) {
                     currentLeaderTokenId = leaderToken.id;
                     
-                    console.log(`BLACKSMITH | MOVEMENT | Setting initial leader token to ${leaderToken.name} (${leaderToken.id})`);
+
                     
                     // Reset state for movement
                     lastLeaderMoveTime = Date.now();
@@ -372,7 +367,6 @@ export class MovementConfig extends Application {
                 token.actor?.id === leaderData.actorId
             );
         } catch (error) {
-            console.error("Error getting leader token:", error);
             return null;
         }
     }
@@ -406,8 +400,7 @@ function checkPartyLeader() {
         return null;
     }
     
-    console.log("Current party leader:", leaderToken.name);
-    console.log("Leader Actor ID:", leaderData.actorId);
+
     
     return leaderToken;
 }
@@ -427,8 +420,6 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
         
         // Check if this is conga or follow mode
         if (currentMovement === 'conga-movement' || currentMovement === 'follow-movement') {
-            console.log(`${currentMovement} - checking if token can move`);
-            
             // If user is GM, always allow
             if (game.user.isGM) return true;
             
@@ -437,7 +428,6 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
             
             // If the moving user is the party leader, allow movement
             if (game.user.id === partyLeaderUserId) {
-                console.log('User is party leader, allowing movement');
                 return true;
             }
             
@@ -470,7 +460,7 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
             }
         }
     } catch (err) {
-        console.warn('Blacksmith | Movement type setting not registered yet, allowing movement', err);
+        // Setting not registered yet, allowing movement
     }
     
     // Allow movement in all other cases
@@ -509,7 +499,6 @@ function createPathPoints(startPos, endPos) {
         
         const point = { x, y, gridPos };
         result.push(point);
-        console.log(`BLACKSMITH | MOVEMENT | Added path point: ${x},${y} (${gridPos})`);
     }
     
     return result;
@@ -517,8 +506,6 @@ function createPathPoints(startPos, endPos) {
 
 // Record a step in the leader's movement path
 function recordLeaderPathStep(startPos, endPos) {
-    console.log(`BLACKSMITH | MOVEMENT | Recording path from ${startPos.x},${startPos.y} to ${endPos.x},${endPos.y} (${Math.max(Math.abs(endPos.x - startPos.x), Math.abs(endPos.y - startPos.y)) / 20} steps)`);
-    
     // Create path points from start to end
     const points = createPathPoints(startPos, endPos);
     
@@ -544,15 +531,12 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         
         // Check if this is automated movement (e.g. part of conga line)
         if (isAutomatedMovement(token, changes)) {
-            console.log(`BLACKSMITH | MOVEMENT | Skipping processing for automated movement of token ${token.name}`);
             return;
         }
         
         // Handle leader movement - either by leader or GM moving leader's token
         const isLeaderToken = token.id === currentLeaderTokenId;
         if (movementContext.movedByLeader || (isLeaderToken && movementContext.movedByGM)) {
-            console.log(`BLACKSMITH | MOVEMENT | Leader token moved by ${movementContext.movedByLeader ? 'leader' : 'GM'}: ${token.name}`);
-            
             const { position, startPosition } = handleLeaderMovement(token, tokenDocument);
             
             // Calculate and add new path points
@@ -561,22 +545,18 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
             
             // If no followers yet, calculate initial marching order
             if (tokenFollowers.size === 0) {
-                console.log('BLACKSMITH | MOVEMENT | No followers yet, calculating initial marching order');
                 calculateMarchingOrder(token, true, false);
             }
             
             // Process follower movement after a short delay
             setTimeout(() => {
                 if (leaderMovementPath.length >= 2) {
-                    console.log(`BLACKSMITH | MOVEMENT | Initiating ${movementContext.currentMovement} after leader moved`);
                     const sortedFollowers = getSortedFollowers();
                     processFollowerMovement(movementContext.currentMovement, sortedFollowers);
                     // Post marching order after movement completes (but NOT for conga mode)
                     if (movementContext.currentMovement !== 'conga-movement') {
                         calculateMarchingOrder(token, true, false);
                     }
-                } else {
-                    console.log('BLACKSMITH | MOVEMENT | Not enough path points to move followers');
                 }
             }, 100);
             
@@ -590,7 +570,7 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower);
         
     } catch (err) {
-        console.error('BLACKSMITH | MOVEMENT | Error in movement processing:', err);
+        // Error in movement processing
     }
 });
 
@@ -612,22 +592,14 @@ async function findPath(startToken, targetPoint) {
 
     // Validate grid coordinates
     if (!Array.isArray(startGrid) || !Array.isArray(endGrid)) {
-        console.error("BLACKSMITH | MOVEMENT | Invalid grid coordinates:", { startGrid, endGrid });
         throw new Error("Grid coordinates must be arrays");
     }
 
-    // Debug: Log detailed wall information
+    // Get wall information
     const walls = canvas.walls.placeables;
     const closedDoors = walls.filter(w => w.document.ds === 0);
     const openDoors = walls.filter(w => w.document.ds === 1);
     const normalWalls = walls.filter(w => w.document.ds === 2);
-    
-    console.log("BLACKSMITH | MOVEMENT | Wall Information:", {
-        total: walls.length,
-        closedDoors: closedDoors.length,
-        openDoors: openDoors.length,
-        normalWalls: normalWalls.length
-    });
 
     // First check if there's a direct path (considering walls and closed doors)
     const startCenter = canvas.grid.getCenterPoint(startToken);
@@ -643,7 +615,6 @@ async function findPath(startToken, targetPoint) {
     });
 
     if (blocked) {
-        console.log(`BLACKSMITH | MOVEMENT | ${startToken.name} is blocked from reaching the target`);
         return null;
     }
 
@@ -655,11 +626,8 @@ async function findPath(startToken, targetPoint) {
 async function processFollowMovement(sortedFollowers) {
     // Safety check - if no path points, exit
     if (leaderMovementPath.length < 2) {
-        console.log('BLACKSMITH | MOVEMENT | Not enough path points for follow movement');
         return;
     }
-    
-    console.log("BLACKSMITH | MOVEMENT | Processing follow movement");
     
     // Set processing flag
     processingCongaMovement = true;
@@ -667,7 +635,6 @@ async function processFollowMovement(sortedFollowers) {
     // Get the leader token
     const leaderToken = canvas.tokens.get(currentLeaderTokenId);
     if (!leaderToken) {
-        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting follow movement');
         processingCongaMovement = false;
         return;
     }
@@ -692,7 +659,6 @@ async function processFollowMovement(sortedFollowers) {
                 const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
 
                 if (distance > distanceThreshold) {
-                    console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
                     if (state.status !== STATUS.TOO_FAR) {
                         state.status = STATUS.TOO_FAR;
                         statusUpdateNeeded = true;
@@ -724,7 +690,6 @@ async function processFollowMovement(sortedFollowers) {
         const targetPoint = leaderMovementPath[targetIndex];
         
         if (!targetPoint) {
-            console.log(`BLACKSMITH | MOVEMENT | No target point for ${token.name}`);
             processNextFollower(index + 1);
         return;
     }
@@ -733,7 +698,6 @@ async function processFollowMovement(sortedFollowers) {
             // Find a path to the target
             const path = await findPath(token, targetPoint);
             if (!path || path.length === 0) {
-                console.log(`BLACKSMITH | MOVEMENT | No valid path found for ${token.name}`);
                 // Update token status to blocked but don't recalculate yet
                 const followerState = tokenFollowers.get(tokenId);
                 if (followerState && followerState.status !== STATUS.BLOCKED) {
@@ -760,7 +724,6 @@ async function processFollowMovement(sortedFollowers) {
             }
 
         } catch (error) {
-            console.error(`BLACKSMITH | MOVEMENT | Error moving ${token.name}:`, error);
             ui.notifications.error(`Error moving ${token.name}: ${error.message}`);
         }
 
@@ -792,7 +755,6 @@ async function checkForStatusChanges(leaderToken) {
         
         // If status improved to NORMAL
         if (newStatus === STATUS.NORMAL && state.status !== STATUS.NORMAL) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} status improved to NORMAL`);
             statusChanged = true;
             break; // Exit early as we'll recalculate the whole marching order
         }
@@ -810,12 +772,8 @@ async function checkForStatusChanges(leaderToken) {
 function processCongaMovement(sortedFollowers) {
     // Safety check - if no path points, exit
     if (leaderMovementPath.length < 2) {
-        console.log('BLACKSMITH | MOVEMENT | Not enough path points for conga movement');
         return;
     }
-    
-    console.log("BLACKSMITH | MOVEMENT | Leader path length:", leaderMovementPath.length);
-    console.log("BLACKSMITH | MOVEMENT | Full path array:", leaderMovementPath);
     
     // Set processing flag
     processingCongaMovement = true;
@@ -823,14 +781,12 @@ function processCongaMovement(sortedFollowers) {
     // Get the leader token
     const leaderToken = canvas.tokens.get(currentLeaderTokenId);
     if (!leaderToken) {
-        console.log('BLACKSMITH | MOVEMENT | Leader token not found, aborting conga movement');
         processingCongaMovement = false;
         return;
     }
 
     // Only move tokens with status NORMAL
     const validFollowers = sortedFollowers.filter(([tokenId, state]) => state.status === STATUS.NORMAL);
-    console.log(`BLACKSMITH | MOVEMENT | Processing ${validFollowers.length} valid followers in conga mode, excluding ${sortedFollowers.length - validFollowers.length} invalid followers`);
     
     // Store all followers' current positions and their target indices
     const followerStates = validFollowers.map(([tokenId, state]) => {
@@ -848,7 +804,6 @@ function processCongaMovement(sortedFollowers) {
             if (Math.abs(pathPoint.x - currentPos.x) < 1 && Math.abs(pathPoint.y - currentPos.y) < 1) {
                 currentIndex = i;
                 isOnPath = true;
-                console.log(`BLACKSMITH | MOVEMENT | ${token.name} starting at path index ${currentIndex}`);
                 break;
             }
         }
@@ -867,16 +822,12 @@ function processCongaMovement(sortedFollowers) {
         // Check if all tokens have reached their targets
         const allDone = followerStates.every(f => f.currentIndex <= f.targetIndex);
         if (allDone) {
-            console.log('BLACKSMITH | MOVEMENT | All tokens have reached their targets');
-            
             // Find the highest index any token is at (excluding completed tokens)
             const highestIndex = Math.max(...followerStates.map(f => f.targetIndex));
-            console.log('BLACKSMITH | MOVEMENT | Trimming path - highest token index:', highestIndex);
             
             // Trim the path to remove points past the last token
             if (highestIndex < leaderMovementPath.length - 1) {
                 leaderMovementPath = leaderMovementPath.slice(0, highestIndex + 1);
-                console.log('BLACKSMITH | MOVEMENT | Path trimmed to length:', leaderMovementPath.length);
             }
             
             processingCongaMovement = false;
@@ -900,13 +851,11 @@ function processCongaMovement(sortedFollowers) {
                     .every(f => f.isOnPath || f.currentIndex <= f.targetIndex);
                 
                 if (!previousTokensOnPath) {
-                    console.log(`BLACKSMITH | MOVEMENT | ${follower.token.name} waiting for previous tokens`);
                     return Promise.resolve();
                 }
             }
 
             const position = leaderMovementPath[follower.currentIndex - 1];
-            console.log(`BLACKSMITH | MOVEMENT | ${follower.token.name} moving to index ${follower.currentIndex - 1}`);
 
             return follower.token.document.update({
                 x: position.x,
@@ -957,7 +906,7 @@ async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMo
         const distance = Math.sqrt(gridX * gridX + gridY * gridY);
         const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
         
-        console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
+
         
         let status;
         // Only check for blocked path first
@@ -965,17 +914,12 @@ async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMo
             const targetPoint = { x: leaderToken.x, y: leaderToken.y };
             const path = await findPath(token, targetPoint);
             status = path ? STATUS.NORMAL : STATUS.BLOCKED;
-            if (!path) {
-                console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
-            }
         } catch (error) {
-            console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
             status = STATUS.BLOCKED;
         }
 
         // If not blocked, check distance
         if (status === STATUS.NORMAL && distance > distanceThreshold) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
             status = STATUS.TOO_FAR;
         }
         
@@ -1137,10 +1081,7 @@ async function checkTokenStatus(token, leaderToken) {
     const distance = Math.sqrt(gridX * gridX + gridY * gridY);
     const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
     
-    console.log(`BLACKSMITH | MOVEMENT | Distance check for ${token.name}: ${distance} grid units from leader`);
-    
     if (distance > distanceThreshold) {
-        console.log(`BLACKSMITH | MOVEMENT | ${token.name} is too far (${distance} > ${distanceThreshold})`);
         return STATUS.TOO_FAR;
     }
 
@@ -1150,11 +1091,9 @@ async function checkTokenStatus(token, leaderToken) {
         const path = await findPath(token, targetPoint);
         
         if (!path) {
-            console.log(`BLACKSMITH | MOVEMENT | ${token.name} is blocked from reaching the leader`);
             return STATUS.BLOCKED;
         }
     } catch (error) {
-        console.error(`BLACKSMITH | MOVEMENT | Error checking path for ${token.name}:`, error);
         return STATUS.BLOCKED;
     }
 
@@ -1185,7 +1124,6 @@ Hooks.on('createCombat', async (combat) => {
         
         // Store current movement mode
         preCombatMovementMode = game.settings.get(MODULE_ID, 'movementType');
-        console.log(`BLACKSMITH | MOVEMENT | Combat started. Storing previous mode: ${preCombatMovementMode}`);
         
         // Get the previous mode's name
         const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
@@ -1229,7 +1167,7 @@ Hooks.on('createCombat', async (combat) => {
             });
         }
     } catch (err) {
-        console.error('BLACKSMITH | MOVEMENT | Error in combat start handling:', err);
+        // Error in combat start handling
     }
 });
 
@@ -1238,7 +1176,7 @@ Hooks.on('deleteCombat', async (combat) => {
         if (!game.user.isGM) return;
         if (!preCombatMovementMode) return;
         
-        console.log(`BLACKSMITH | MOVEMENT | Combat ended. Restoring previous mode: ${preCombatMovementMode}`);
+
         
         // Get the movement type info
         const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
@@ -1282,7 +1220,7 @@ Hooks.on('deleteCombat', async (combat) => {
         // Clear the stored mode
         preCombatMovementMode = null;
     } catch (err) {
-        console.error('BLACKSMITH | MOVEMENT | Error in combat end handling:', err);
+        // Error in combat end handling
     }
 }); 
 

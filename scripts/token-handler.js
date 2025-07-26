@@ -279,12 +279,12 @@ export class TokenHandler {
                         // Replace the entire element with the new content
                         element.replaceWith(temp.firstElementChild);
                     } catch (error) {
-                        console.error(`Error rendering section ${section.id}:`, error);
+                        postConsoleAndNotification(`Error rendering section ${section.id}:`, error, false, false, true);
                     }
                 }
             }
         } catch (error) {
-            console.error("CHARACTER | Error updating sections:", error);
+            postConsoleAndNotification("CHARACTER | Error updating sections:", error, false, false, true);
         }
 
         postConsoleAndNotification("CHARACTER | Panel updated successfully", "", false, true, false, MODULE_TITLE);

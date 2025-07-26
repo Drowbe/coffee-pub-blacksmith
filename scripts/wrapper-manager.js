@@ -11,7 +11,7 @@ export class WrapperManager {
         
         // Check if libWrapper is available
         if(typeof libWrapper === 'undefined') {
-            console.error('Coffee Pub Blacksmith | libWrapper module not found! Please make sure you have it installed.');
+            postConsoleAndNotification('Coffee Pub Blacksmith | libWrapper module not found! Please make sure you have it installed.', "", false, false, true);
             ui.notifications.error("Coffee Pub Blacksmith requires the 'libWrapper' module. Please install and enable it.");
             return;
         }
@@ -127,14 +127,14 @@ export class WrapperManager {
                     libWrapper.register(MODULE_ID, reg.target, reg.callback, reg.type);
                     postConsoleAndNotification(`Coffee Pub Blacksmith | Successfully registered wrapper for ${reg.target}`, "", false, true, false);
                 } catch (wrapError) {
-                    console.error(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError);
+                    postConsoleAndNotification(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError, false, false, true);
                     ui.notifications.error(`Coffee Pub Blacksmith | Failed to register wrapper for ${reg.target}`);
                 }
             }
 
             postConsoleAndNotification("Coffee Pub Blacksmith | All wrappers registered successfully", "", false, true, false);
         } catch (error) {
-            console.error("Coffee Pub Blacksmith | Error registering wrappers:", error);
+            postConsoleAndNotification("Coffee Pub Blacksmith | Error registering wrappers:", error, false, false, true);
             ui.notifications.error("Coffee Pub Blacksmith | Failed to register some wrappers. See console for details.");
         }
     }
@@ -164,7 +164,7 @@ export class WrapperManager {
             
             return result;
         } catch (error) {
-            console.error("Coffee Pub Blacksmith | Error in chat message wrapper:", error);
+            postConsoleAndNotification("Coffee Pub Blacksmith | Error in chat message wrapper:", error, false, false, true);
             // On error, try to proceed with original message data
             return wrapped(messageData, context);
         }
@@ -187,7 +187,7 @@ export class WrapperManager {
             
             return result;
         } catch (error) {
-            console.error("Coffee Pub Blacksmith | Error in next turn wrapper:", error);
+            postConsoleAndNotification("Coffee Pub Blacksmith | Error in next turn wrapper:", error, false, false, true);
             return wrapped(...args);
         }
     }
@@ -209,7 +209,7 @@ export class WrapperManager {
             
             return result;
         } catch (error) {
-            console.error("Coffee Pub Blacksmith | Error in next round wrapper:", error);
+            postConsoleAndNotification("Coffee Pub Blacksmith | Error in next round wrapper:", error, false, false, true);
             return wrapped(...args);
         }
     }
@@ -231,7 +231,7 @@ export class WrapperManager {
             
             return result;
         } catch (error) {
-            console.error("Coffee Pub Blacksmith | Error in token draw wrapper:", error);
+            postConsoleAndNotification("Coffee Pub Blacksmith | Error in token draw wrapper:", error, false, false, true);
             return wrapped(...args);
         }
     }

@@ -3,6 +3,7 @@
 // ================================================================== 
 
 import { MODULE_ID } from './const.js';
+import { postConsoleAndNotification } from './global.js';
 
 export class LatencyChecker {
     static #latencyData = new Map();
@@ -15,24 +16,24 @@ export class LatencyChecker {
     }
 
     static async initialize() {
-        console.log("BLACKSMITH | Latency: Initializing LatencyChecker");
+        postConsoleAndNotification("BLACKSMITH | Latency: Initializing LatencyChecker", "", false, true, false);
         
         try {
             // Check if latency is enabled in settings
             if (!game.settings.get(MODULE_ID, 'enableLatency')) {
-                console.log("BLACKSMITH | Latency: Latency display is disabled in settings");
+                postConsoleAndNotification("BLACKSMITH | Latency: Latency display is disabled in settings", "", false, true, false);
                 return;
             }
 
             // Wait for socket to be ready
             if (!game.socket?.connected) {
-                console.error("BLACKSMITH | Latency: Socket not connected!");
+                postConsoleAndNotification("BLACKSMITH | Latency: Socket not connected!", "", false, false, true);
                 return;
             }
 
             // Register socket handlers using game.socket.on
             game.socket.on("module.coffee-pub-blacksmith", this.#handleSocketMessage.bind(this));
-            console.log("BLACKSMITH | Latency: Socket handlers registered successfully");
+            postConsoleAndNotification("BLACKSMITH | Latency: Socket handlers registered successfully", "", false, true, false);
             
             // Only start operations after handlers are registered
             this.#initialized = true;
@@ -51,15 +52,15 @@ export class LatencyChecker {
             
             // Initial update
             this.#updateLatencyDisplay();
-            console.log("BLACKSMITH | Latency: LatencyChecker initialized successfully");
+            postConsoleAndNotification("BLACKSMITH | Latency: LatencyChecker initialized successfully", "", false, true, false);
         } catch (error) {
-            console.error("BLACKSMITH | Latency: Error initializing LatencyChecker:", error);
+            postConsoleAndNotification("BLACKSMITH | Latency: Error initializing LatencyChecker:", error, false, false, true);
         }
     }
 
     static startPeriodicCheck() {
         if (!this.#initialized) {
-            console.warn("BLACKSMITH | Latency: Cannot start periodic checks - LatencyChecker not initialized");
+            postConsoleAndNotification("BLACKSMITH | Latency: Cannot start periodic checks - LatencyChecker not initialized", "", false, false, true);
             return;
         }
 
@@ -71,7 +72,7 @@ export class LatencyChecker {
         // Get interval from settings (convert from seconds to milliseconds)
         const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
 
-        console.log(`BLACKSMITH | Latency: Starting periodic checks every ${interval/1000} seconds`);
+        postConsoleAndNotification(`BLACKSMITH | Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, true, false);
         
         // Initial update to show "--ms" for all players
         this.#updateLatencyDisplay();
@@ -111,7 +112,7 @@ export class LatencyChecker {
                 time: startTime
             });
         } catch (error) {
-            console.error("BLACKSMITH | Latency: Error measuring latency:", error);
+            postConsoleAndNotification("BLACKSMITH | Latency: Error measuring latency:", error, false, false, true);
         }
     }
 
@@ -207,7 +208,7 @@ export class LatencyChecker {
                 }
             });
         } catch (error) {
-            console.error("BLACKSMITH | Latency: Error updating latency display:", error);
+            postConsoleAndNotification("BLACKSMITH | Latency: Error updating latency display:", error, false, false, true);
         }
     }
 
@@ -242,7 +243,7 @@ export class LatencyChecker {
                 }
             }
         } catch (error) {
-            console.error("BLACKSMITH | Latency: Error checking users:", error);
+            postConsoleAndNotification("BLACKSMITH | Latency: Error checking users:", error, false, false, true);
         }
     }
 

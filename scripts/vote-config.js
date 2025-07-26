@@ -26,7 +26,7 @@ export class VoteConfig extends Application {
         const isLeader = game.user.id === leaderId;
         const canStartVote = isGM || isLeader;
 
-        console.log('Vote Config | User Status:', {
+        postConsoleAndNotification('Vote Config | User Status:', {
             userId: game.user.id,
             isGM,
             leaderId,
@@ -100,7 +100,7 @@ export class VoteConfig extends Application {
             event.preventDefault();
             const type = event.currentTarget.dataset.type;
             
-            console.log('Vote Config | Click Handler:', {
+            postConsoleAndNotification('Vote Config | Click Handler:', {
                 type,
                 isGM: game.user.isGM,
                 currentLeader: ChatPanel.currentLeader,
@@ -119,7 +119,7 @@ export class VoteConfig extends Application {
                     await VoteManager._showCharacterVoteDialog();
                     this.close();
                 } catch (error) {
-                    console.error('Vote Config | Error starting character vote:', error);
+                    postConsoleAndNotification('Vote Config | Error starting character vote:', error, false, false, true);
                     ui.notifications.error("Error starting character vote. Check the console for details.");
                 }
             } else {
@@ -127,7 +127,7 @@ export class VoteConfig extends Application {
                     await VoteManager.startVote(type);
                     this.close();
                 } catch (error) {
-                    console.error('Vote Config | Error starting vote:', error);
+                    postConsoleAndNotification('Vote Config | Error starting vote:', error, false, false, true);
                     ui.notifications.error("Error starting vote. Check the console for details.");
                 }
             }

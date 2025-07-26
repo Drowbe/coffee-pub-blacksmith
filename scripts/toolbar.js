@@ -107,7 +107,7 @@ export function addToolbarButton() {
                 //activateBlacksmithLayer(); // Ensure this function is called
             });
         } else {
-            console.error("BLACKSMITH: Toolbar button not found");
+            postConsoleAndNotification("BLACKSMITH: Toolbar button not found", "", false, false, true);
         }
     });
 
@@ -130,7 +130,7 @@ function toggleToolbarVisibility() {
         toolbar.classList.toggle('active');
         postConsoleAndNotification("Toolbar visibility toggled", "", false, true, false);
     } else {
-        console.error("Toolbar element not found");
+        postConsoleAndNotification("Toolbar element not found", "", false, false, true);
     }
 
     // Set the Blacksmith button as active
@@ -144,7 +144,7 @@ function toggleToolbarVisibility() {
         blacksmithButton.classList.add('active');
         postConsoleAndNotification("Blacksmith button set to active", "", false, true, false);
     } else {
-        console.error("Blacksmith button not found");
+        postConsoleAndNotification("Blacksmith button not found", "", false, false, true);
     }
 }
 
@@ -155,6 +155,6 @@ function activateBlacksmithLayer() {
     if (layer) {
         layer.activate();
     } else {
-        console.error("Blacksmith Layer not found");
+        postConsoleAndNotification("Blacksmith Layer not found", "", false, false, true);
     }
 }
