@@ -1,0 +1,23 @@
+{
+  "journaltype": "encounter",
+  "foldername": "Test Encounters",
+  "sceneparent": "Forest",
+  "scenearea": "Darkwood Grove",
+  "sceneenvironment": "Forest",
+  "scenelocation": "Ancient ruins",
+  "scenetitle": "Goblin Ambush",
+  "prepencounter": "@UUID[Actor.abc123]{Goblin Scout}, @UUID[Actor.def456]{Goblin Warrior}, @UUID[Actor.ghi789]{Goblin Shaman}",
+  "prepencounterdetails": "<ul><li><strong>Difficulty</strong>: Medium</li><li><strong>CR</strong>: 3</li><li><strong>XP</strong>: 700</li></ul>",
+  "preprewards": "<ul><li><strong>Gold</strong>: 50 gp</li><li><strong>Items</strong>: Shortsword, Leather armor</li><li><strong>Magic</strong>: Potion of healing</li></ul>",
+  "prepsetup": "<ul><li><strong>Synopsis</strong>: A group of goblins has set up an ambush in the ruins, waiting for travelers to pass through.</li><li><strong>Key Moments</strong>: The goblins use the ruins for cover, the shaman casts spells from behind, and reinforcements arrive if the fight goes poorly.</li></ul>",
+  "contextintro": "As you make your way through the ancient ruins of Darkwood Grove, the sound of rustling leaves and distant whispers fills the air. The crumbling stone walls provide perfect cover for an ambush...",
+  "cardtitle": "Goblin Ambush",
+  "carddescriptionprimary": "Three goblins leap from their hiding places among the ruins, their weapons gleaming in the dappled sunlight. The largest of them, clearly a warrior, brandishes a rusty scimitar while the smallest, a scout, nocks an arrow to his shortbow. The third, wearing tattered robes and clutching a staff, appears to be some kind of shaman.",
+  "cardimagetitle": "Goblin Ambush Scene",
+  "cardimage": "icons/environment/wilderness/ruins-stone-pillar.webp",
+  "carddescriptionsecondary": "The goblins have been watching this path for days, waiting for travelers to rob. They know the terrain well and will use the ruins to their advantage, darting between cover and using hit-and-run tactics.",
+  "carddialogue": "<h6>\"You picked the wrong path to travel, meat!\"</h6>",
+  "contextadditionalnarration": "The ruins echo with the sounds of battle as steel clashes against steel. The goblins' high-pitched war cries mix with the rustling of leaves and the distant calls of forest birds.",
+  "contextatmosphere": "The air is thick with the scent of moss and decay. Sunlight filters through the canopy above, creating shifting patterns of light and shadow that make it difficult to spot movement. The ancient stonework is covered in ivy and lichen, providing numerous hiding spots.",
+  "contextgmnotes": "The goblins will attempt to flank the party and use their numbers to their advantage. If reduced to half health, the shaman will attempt to flee and call for reinforcements. The ruins contain several hidden passages that the goblins know about but the party doesn't."
+} 
