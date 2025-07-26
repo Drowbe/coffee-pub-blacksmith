@@ -50,12 +50,51 @@ import { XpManager } from './xp-manager.js';
 // Cache for root element to avoid repeated DOM queries
 let cachedRootElement = null;
 
+// Cache for note config icons to avoid repeated file system operations
+let noteConfigIconsCache = null;
+let noteConfigIconsCacheTimestamp = 0;
+const NOTE_CONFIG_CACHE_EXPIRATION = 10 * 60 * 1000; // 10 minutes
+
 // Helper function to get cached root element
 function getRootElement() {
     if (!cachedRootElement) {
         cachedRootElement = document.querySelector(':root');
     }
     return cachedRootElement;
+}
+
+// Helper function to get cached note config icons
+async function getNoteConfigIcons() {
+    const now = Date.now();
+    
+    // Check if cache exists and is still valid
+    if (noteConfigIconsCache && (now - noteConfigIconsCacheTimestamp) < NOTE_CONFIG_CACHE_EXPIRATION) {
+        return noteConfigIconsCache;
+    }
+    
+    // Cache expired or doesn't exist, rebuild it
+    const folderPath = "modules/coffee-pub-blacksmith/images/pins-note";
+    try {
+        const response = await FilePicker.browse("data", folderPath);
+        if (response.files && response.files.length > 0) {
+            const customIcons = response.files.map(file => {
+                const fileName = file.split('/').pop().split('.').shift(); // Extract the file name without extension
+                const words = fileName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)); // Capitalize each word
+                const label = words.length > 1 ? `Blacksmith > ${words[0]} > ${words.slice(1).join(' ')}` : `Blacksmith > ${words[0]}`; // Format the label
+                return { value: file, label: label };
+            });
+            
+            // Store cache with timestamp
+            noteConfigIconsCache = customIcons;
+            noteConfigIconsCacheTimestamp = now;
+            
+            return customIcons;
+        }
+    } catch (error) {
+        console.error("Error browsing folder:", error);
+    }
+    
+    return [];
 }
 
 // ***************************************************
@@ -432,18 +471,11 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
     html.find('input[name="fontSize"]').val(intFontSize);
     html.find('input[name="iconSize"]').val(intIconSize);
 
-    // Use FilePicker to list files in the specified folder
-    const folderPath = "modules/coffee-pub-blacksmith/images/pins-note";
+    // Use cached note config icons to avoid repeated file system operations
     try {
-        const response = await FilePicker.browse("data", folderPath);
-        if (response.files && response.files.length > 0) {
-            const customIcons = response.files.map(file => {
-                const fileName = file.split('/').pop().split('.').shift(); // Extract the file name without extension
-                const words = fileName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)); // Capitalize each word
-                const label = words.length > 1 ? `Blacksmith > ${words[0]} > ${words.slice(1).join(' ')}` : `Blacksmith > ${words[0]}`; // Format the label
-                return { value: file, label: label };
-            });
-
+        const customIcons = await getNoteConfigIcons();
+        
+        if (customIcons.length > 0) {
             // Add custom icons to the start of the dropdown
             const entryIconField = html.find('select[name="icon.selected"]');
             if (entryIconField.length) {
@@ -456,11 +488,9 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
             } else {
                 console.error("Entry Icon field not found");
             }
-        } else {
-            console.error("No files found in the specified folder");
         }
     } catch (error) {
-        console.error("Error browsing folder:", error);
+        console.error("Error loading note config icons:", error);
     }
 
 

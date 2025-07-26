@@ -47,7 +47,7 @@
 - **Issue**: `FilePicker.browse()` called in loops without caching
 - **Location**: Lines 450-480 (renderNoteConfig)
 - **Impact**: Performance bottleneck with large file systems
-- **Status**: 🟡 TODO
+- **Status**: ✅ COMPLETED
 - **Plan**: Cache file listings or implement lazy loading
 - **Notes**: Consider caching with invalidation on file system changes
 
