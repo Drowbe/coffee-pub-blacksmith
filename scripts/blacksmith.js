@@ -47,6 +47,17 @@ import { XpManager } from './xp-manager.js';
 // ===== SET UP THE MODULE ==========================================
 // ================================================================== 
 
+// Cache for root element to avoid repeated DOM queries
+let cachedRootElement = null;
+
+// Helper function to get cached root element
+function getRootElement() {
+    if (!cachedRootElement) {
+        cachedRootElement = document.querySelector(':root');
+    }
+    return cachedRootElement;
+}
+
 // ***************************************************
 // ** BLACKSMITH VARIABLE UPDATE
 // ***************************************************
@@ -1067,7 +1078,7 @@ function updateObjectLinkStyles() {
    
     // Update the stylesheet variables for cards and such if needed
     if (objectLinkStyle !== "none") {
-        var root = document.querySelector(':root');
+        const root = getRootElement();
         root.style.setProperty('--a-content-link-color', strAContentLinkColor);
         root.style.setProperty('--a-content-link-background', strAContentLinkBackground);
         root.style.setProperty('--a-content-link-border', strAContentLinkBorder);
@@ -1088,7 +1099,7 @@ function updateObjectLinkStyles() {
 
 function updateWindowStyles() {
     //Windows titlebar
-    var root = document.querySelector(':root');
+    const root = getRootElement();
     const strTitlebarTextSize = game.settings.get(MODULE_ID, 'titlebarTextSize') + "px";
     const strTitlebarIconSize = game.settings.get(MODULE_ID, 'titlebarIconSize') + "px";
     const strTitlebarSpacing = game.settings.get(MODULE_ID, 'titlebarSpacing') + "px";
@@ -1129,11 +1140,9 @@ function updateChatStyles() {
 		strHideRollTableIcon = "block";
 	}
     // Update the stylesheet variables
-	var root = document.querySelector(':root');
-   // postConsoleAndNotification("Before Variable: root = ", root, false, true, false);
+	const root = getRootElement();
     root.style.setProperty('--intChatSpacing', intChatSpacing +'px');
     root.style.setProperty('--strHideRollTableIcon', strHideRollTableIcon);
-   // postConsoleAndNotification("After Variable: root = ", root, false, true, false);
 
 }
 
@@ -1149,7 +1158,7 @@ function updateSceneStyles() {
     const sceneTitlePaddingRight = game.settings.get(MODULE_ID, 'sceneTitlePadding') + "px";
     const scenePanelHeight = game.settings.get(MODULE_ID, 'scenePanelHeight') + "px";
     // Update the stylesheet variables
-	var root = document.querySelector(':root');
+	const root = getRootElement();
     root.style.setProperty('--strSceneTextAlign', sceneTextAlign);
     root.style.setProperty('--strSceneFontSize', sceneFontSize);
     root.style.setProperty('--strScenePaddingLeft', sceneTitlePaddingLeft);
@@ -1170,9 +1179,7 @@ function updateMargins() {
 	const cardRightMargin = game.settings.get(MODULE_ID, 'cardRightMargin');
     const cardTopOffset = game.settings.get(MODULE_ID, 'cardTopOffset');
 
-	var root = document.querySelector(':root');
-	//var rootStyles = getComputedStyle(root);
-	//var marg= rootStyles.getPropertyValue('--intChatSpacing');
+	const root = getRootElement();
     root.style.setProperty('--intCardMarginTop', cardTopMargin +'px');
 	root.style.setProperty('--intCardMarginBottom', cardBottomMargin +'px');
 	root.style.setProperty('--intCardMarginLeft', cardLeftMargin +'px');
