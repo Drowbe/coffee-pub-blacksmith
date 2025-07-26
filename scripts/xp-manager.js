@@ -2,8 +2,6 @@
 // ===== XP MANAGER =================================================
 // ================================================================== 
 
-postConsoleAndNotification('XP Manager: Script file loaded', "", false, true, false);
-
 import { MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 
@@ -32,16 +30,10 @@ export class XpManager {
     };
 
     static initialize() {
-        postConsoleAndNotification('XP Manager: Initialize method called', "", false, true, false);
-        postConsoleAndNotification('XP Manager: Initializing...', '', false, true, false);
-        
         // Register multiple combat hooks to see which ones are triggered
         Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
         Hooks.on('combatRound', this._onCombatRound.bind(this));
         Hooks.on('combatTurn', this._onCombatTurn.bind(this));
-        
-        postConsoleAndNotification('XP Manager: Hook registered for deleteCombat', '', false, true, false);
-        postConsoleAndNotification('XP Manager initialized', '', false, true, false);
 
         // Register Handlebars helper for prettifying resolution types
         if (typeof Handlebars !== 'undefined') {
@@ -62,42 +54,18 @@ export class XpManager {
      * Handle combat deletion and trigger XP distribution
      */
     static async _onCombatEnd(combat, options, userId) {
-        postConsoleAndNotification('XP Manager: Combat delete hook triggered', { 
-            combat: combat?.id, 
-            userId: userId,
-            combatExists: !!combat,
-            combatData: combat ? {
-                id: combat.id,
-                scene: combat.scene?.id,
-                combatants: combat.combatants?.length,
-                round: combat.round,
-                turn: combat.turn
-            } : null
-        }, false, true, false);
-        
-        postConsoleAndNotification('XP Manager: Combat deletion detected', { combat: combat?.id, userId: userId }, false, true, false);
-        
         if (!game.user.isGM) {
-            postConsoleAndNotification('XP Manager: Not GM, skipping', "", false, true, false);
-            postConsoleAndNotification('XP Manager: Not GM, skipping', '', false, true, false);
             return;
         }
         
         // Check if XP distribution is enabled
         const isEnabled = game.settings.get(MODULE_ID, 'enableXpDistribution');
-        postConsoleAndNotification('XP Manager: XP distribution enabled?', isEnabled, false, true, false);
-        postConsoleAndNotification('XP Manager: XP distribution enabled?', isEnabled, false, true, false);
-        
         if (!isEnabled) {
-            postConsoleAndNotification('XP Manager: XP distribution disabled in settings', "", false, true, false);
-            postConsoleAndNotification('XP Manager: XP distribution disabled in settings', '', false, true, false);
             return;
         }
 
         // Wait a moment for combat to fully end
         setTimeout(async () => {
-            postConsoleAndNotification('XP Manager: Showing XP distribution window', "", false, true, false);
-            postConsoleAndNotification('XP Manager: Showing XP distribution window', '', false, true, false);
             await this.showXpDistributionWindow(combat);
         }, 1000);
     }
@@ -106,7 +74,7 @@ export class XpManager {
      * Show the XP distribution window
      */
     static async showXpDistributionWindow(combat) {
-        postConsoleAndNotification('XP Manager: Starting XP calculation', { combatId: combat.id }, false, true, false);
+
         
         const xpData = await this.calculateXpData(combat);
         
@@ -120,7 +88,7 @@ export class XpManager {
         const xpWindow = new XpDistributionWindow(xpData);
         xpWindow.render(true);
         
-        postConsoleAndNotification('XP Manager: XP distribution window rendered', '', false, true, false);
+
     }
 
     /**
@@ -322,11 +290,14 @@ export class XpManager {
      */
     static async postXpResults(xpData, results) {
         try {
-            postConsoleAndNotification('XP Manager: Generating chat message', { xpData, results }, false, true, false);
+    
             
-            const content = await this.generateXpChatMessage(xpData, results);
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
+                xpData: xpData,
+                results: results
+            });
             
-            postConsoleAndNotification('XP Manager: Chat message generated', { content: content.substring(0, 100) + '...' }, false, true, false);
+
             
             // Play notification sound
             playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -355,7 +326,7 @@ export class XpManager {
                 }
             });
             
-            postConsoleAndNotification('XP Manager: Chat message posted successfully', "", false, true, false);
+
         } catch (error) {
             postConsoleAndNotification('XP Manager: Error posting XP results', error, false, false, true);
             
@@ -389,7 +360,7 @@ export class XpManager {
                 results: results
             });
             
-            postConsoleAndNotification('XP Manager: Template rendered successfully', "", false, true, false);
+
             return template;
         } catch (error) {
             postConsoleAndNotification('XP Manager: Error rendering template', error, false, false, true);
@@ -431,14 +402,14 @@ export class XpManager {
      * Debug hook for combat round
      */
     static _onCombatRound(combat, round, userId) {
-        postConsoleAndNotification('XP Manager: Combat round hook triggered', { combat: combat.id, round, userId }, false, true, false);
+        // Combat round hook - no action needed
     }
 
     /**
      * Debug hook for combat turn
      */
     static _onCombatTurn(combat, turn, userId) {
-        postConsoleAndNotification('XP Manager: Combat turn hook triggered', { combat: combat.id, turn, userId }, false, true, false);
+        // Combat turn hook - no action needed
     }
 }
 

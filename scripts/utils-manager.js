@@ -10,7 +10,7 @@ export class UtilsManager {
     static API_VERSION = API_VERSION;
 
     static initialize() {
-        postConsoleAndNotification(`${MODULE_TITLE} | UtilsManager initializing`, "", false, true, false);
+
         this.isInitialized = true;
     }
 

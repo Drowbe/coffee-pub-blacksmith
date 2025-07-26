@@ -1489,8 +1489,6 @@ export class SkillCheckDialog extends Application {
 
             const successClass = result.total >= messageData.dc ? 'success' : 'failure';
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${result.total}</div>`;
-            postConsoleAndNotification('CPB | Cinematic Display - Applied classes:', { successClass, specialClass }, false, true, false);
-            postConsoleAndNotification('CPB | Cinematic Display - Final HTML:', resultHtml, false, true, false);
             rollArea.append(resultHtml);
 
             // Check if all rolls are complete to hide the overlay

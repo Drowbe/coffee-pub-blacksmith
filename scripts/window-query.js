@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to add event listeners
     const addEventListeners = () => {
-        postConsoleAndNotification("Adding event listeners...", "", false, true, false);
+    
         const workspaces = ['lookup', 'narrative', 'encounter', 'assistant', 'character'];
 
         workspaces.forEach(workspace => {
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (skill && dice && roll) {
                 skill.addEventListener('change', () => {
-                    postConsoleAndNotification(`Skill changed in ${workspace}:`, skill.value, false, true, false);
+        
                     // Get the skill description from CONFIG.DND5E.skills
                     const skillKey = Object.entries(CONFIG.DND5E.skills).find(([k, s]) => 
                         game.i18n.localize(s.label) === skill.value
@@ -89,11 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 dice.addEventListener('change', () => {
-                    postConsoleAndNotification(`Dice changed in ${workspace}:`, dice.value, false, true, false);
+        
                 });
 
                 roll.addEventListener('change', () => {
-                    postConsoleAndNotification(`Roll changed in ${workspace}:`, roll.value, false, true, false);
+        
                 });
             } else {
                 postConsoleAndNotification(`Blacksmith | Elements not found for workspace: ${workspace}`, "", false, false, true);
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call the function to register partials and render templates
     registerPartialsAndRender();
-    postConsoleAndNotification("Called registerPartialsAndRender", "", false, true, false);
+    
 });
 
 
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Function to toggle the visibility of workspace sections
 window.toggleSection = function(sectionId, button) {
-    postConsoleAndNotification("Toggling section with ID:", sectionId, false, true, false);
+    
     const sectionContent = document.getElementById(sectionId);
     if (sectionContent) {
         sectionContent.classList.toggle('collapsed');
@@ -309,7 +309,7 @@ window.toggleSection = function(sectionId, button) {
             icon.classList.remove('fa-chevron-down');
             icon.classList.add('fa-chevron-up');
         }
-        postConsoleAndNotification("Collapsed class toggled. Current classes:", sectionContent.className, false, true, false);
+
     } else {
         postConsoleAndNotification("Section content not found for ID:", sectionId, false, false, true);
     }
@@ -322,7 +322,7 @@ window.toggleSection = function(sectionId, button) {
 function clearFormInputs(form, blnClearForm) {
     const formInputs = form.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
     if (blnClearForm) {
-        postConsoleAndNotification("CLEAR FORMS: Clearing all inputs", "", false, true, false);
+
 
         // Clear the values of the form inputs
         formInputs.forEach(input => {
@@ -434,7 +434,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         // Set the workspace ID
         this.workspaceId = options.workspaceId || 'default';
         this.messages = [];
-        postConsoleAndNotification("Setting the selected workspace mode...", "", false, true, false);
+
         
         // Set workspaceId based on mode
         if (mode === 'encounter') {
@@ -460,7 +460,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         // Store the last active workspace
         this.lastActiveWorkspace = this.workspaceId;
         
-        postConsoleAndNotification(`BlacksmithWindowQuery initialized with mode: ${mode} and workspaceId: ${this.workspaceId}`, "", false, true, false);
+
     }
 
     // ************************************
@@ -497,8 +497,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async initialize(html) {
-        postConsoleAndNotification(`BlacksmithWindowQuery initialized.`, "", false, true, false);
-        postConsoleAndNotification(`this.workspaceId: ${this.workspaceId}`, "", false, true, false);
+
 
         // Get the window element - try both jQuery and direct DOM approaches
         const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
@@ -629,9 +628,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-tokens-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                postConsoleAndNotification("Player Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the tokens to the container
                 await this.addTokensToContainer(id, 'player');
                 // update the counts
@@ -648,9 +645,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-monsters-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                postConsoleAndNotification("Monster Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the monsters to the container
                 await this.addTokensToContainer(id, 'monster');
                 // update the counts
@@ -666,9 +661,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         html.find('.add-npcs-button').each((index, button) => {
             $(button).on('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
-                postConsoleAndNotification("NPC Button clicked:", event.target, false, true, false); // Log button click
                 const id = event.target.id.split('-').pop();
-                postConsoleAndNotification("Extracted ID:", id, false, true, false); // Log extracted ID
                 // add the monsters to the container
                 await this.addTokensToContainer(id, 'npc');
                 // update the counts
@@ -700,26 +693,21 @@ export class BlacksmithWindowQuery extends FormApplication {
                 dropZone.classList.remove('dragover');
 
                 try {
-                    postConsoleAndNotification('BLACKSMITH | Regent: Drop event triggered on zone:', dropZone.id, false, true, false);
                     const rawData = event.dataTransfer.getData('text/plain');
-                    postConsoleAndNotification('BLACKSMITH | Regent: Raw drop data:', rawData, false, true, false);
                     
                     const data = JSON.parse(rawData);
-                    postConsoleAndNotification('BLACKSMITH | Regent: Parsed drop data:', data, false, true, false);
-                    
                     const id = dropZone.id.split('-').pop();
-                    postConsoleAndNotification('BLACKSMITH | Regent: Zone ID:', id, false, true, false);
 
                     // Handle different drop types based on the zone
                     if (dropZone.id.includes('encounters-drop-zone')) {
-                        postConsoleAndNotification('BLACKSMITH | Regent: Processing drop for encounters zone', "", false, true, false);
+
                         
                         // Handle both JournalEntry and JournalEntryPage drops
                         if (data.type === 'JournalEntry' || data.type === 'JournalEntryPage') {
                             let journal, page;
                             
                             if (data.type === 'JournalEntryPage') {
-                                postConsoleAndNotification('BLACKSMITH | Regent: Processing JournalEntryPage:', data.uuid, false, true, false);
+
                                 page = await fromUuid(data.uuid);
                                 if (!page) {
                                     postConsoleAndNotification('BLACKSMITH | Regent: Page not found for UUID:', data.uuid, false, true, false);
@@ -728,7 +716,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 journal = page.parent;
                                 await addEncounterToNarrative(id, journal, page);
                             } else {
-                                postConsoleAndNotification('BLACKSMITH | Regent: Processing JournalEntry:', data.uuid, false, true, false);
+
                                 journal = await fromUuid(data.uuid);
                                 if (!journal) {
                                     postConsoleAndNotification('BLACKSMITH | Regent: Journal not found for UUID:', data.uuid, false, true, false);
@@ -737,7 +725,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                                 // If a specific page was dropped
                                 if (data.pageId) {
-                                    postConsoleAndNotification('BLACKSMITH | Regent: Processing specific page:', data.pageId, false, true, false);
+
                                     page = journal.pages.get(data.pageId);
                                     if (page) {
                                         await addEncounterToNarrative(id, journal, page);
@@ -745,7 +733,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 } else {
                                     // If the whole journal was dropped, show a dialog to select a page
                                     const pages = journal.pages.contents;
-                                    postConsoleAndNotification('BLACKSMITH | Regent: Journal pages:', pages.length, false, true, false);
+
                                     
                                     if (pages.length === 0) {
                                         ui.notifications.warn("This journal has no pages.");
@@ -753,10 +741,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                                     }
                                     
                                     if (pages.length === 1) {
-                                        postConsoleAndNotification('BLACKSMITH | Regent: Single page journal, using first page', "", false, true, false);
+
                                         await addEncounterToNarrative(id, journal, pages[0]);
                                     } else {
-                                        postConsoleAndNotification('BLACKSMITH | Regent: Multiple pages, showing selection dialog', "", false, true, false);
+
                                         // Create dialog for page selection
                                         const dialog = new Dialog({
                                             title: "Select Encounter Page",
@@ -768,7 +756,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                                     label: "Select",
                                                     callback: async (html) => {
                                                         const pageId = html.find('#page-select').val();
-                                                        postConsoleAndNotification('BLACKSMITH | Regent: Selected page:', pageId, false, true, false);
+
                                                         const page = journal.pages.get(pageId);
                                                         if (page) {
                                                             await addEncounterToNarrative(id, journal, page);
@@ -786,7 +774,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                                 }
                             }
                         } else {
-                            postConsoleAndNotification('BLACKSMITH | Regent: Dropped item is not a JournalEntry or JournalEntryPage:', data.type, false, true, false);
+
                         }
                     } else if (dropZone.id.includes('monster-drop-zone')) {
                         // Handle actor drops for monsters
@@ -1047,14 +1035,14 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     switchWorkspace(html, workspaceId) {
-        postConsoleAndNotification("Switching Workspace", workspaceId, false, true, false);
+
         playSound(COFFEEPUB.SOUNDPOP03, COFFEEPUB.SOUNDVOLUMESOFT);
     
         // Update workspaceId and store as last active
         const oldWorkspaceId = this.workspaceId;
         this.workspaceId = workspaceId.replace('blacksmith-query-workspace-', '');
         this.lastActiveWorkspace = this.workspaceId;
-        postConsoleAndNotification('Updated active workspace ID:', this.workspaceId, false, true, false);
+
 
         // First unregister any existing hooks
         TokenHandler.unregisterTokenHooks();
@@ -1122,7 +1110,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
 
         if (logToggle) {
-            postConsoleAndNotification(`Workspace visibility toggled. Hidden: ${!isHidden}`, "", false, true, false);
+    
         }
     }
 
@@ -1150,7 +1138,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async addAllTokensToContainer(id) {
-        postConsoleAndNotification("ADD ALL Button clicked for ID:", id, false, true, false);
+
 
         // Add the monsters and players to the container
         await this.addTokensToContainer(id, 'monster');

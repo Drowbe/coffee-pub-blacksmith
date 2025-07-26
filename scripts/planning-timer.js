@@ -42,7 +42,7 @@ export class PlanningTimer {
             
             // Check if we're loading into an active combat with planning phase
             if (game.combat?.started && game.combat.turn === 0) {
-                postConsoleAndNotification("Planning Timer | Initial load during planning phase", "", false, true, false);
+        
                 const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
                 this.startTimer(duration, true);
                 ui.combat.render(true);
@@ -51,7 +51,7 @@ export class PlanningTimer {
 
         // Add socket ready check
         Hooks.once('blacksmith.socketReady', () => {
-            postConsoleAndNotification("Planning Timer | Socket is ready", "", false, true, false);
+    
         });
 
         // Handle combat updates
@@ -264,7 +264,7 @@ export class PlanningTimer {
     }
 
     static pauseTimer() {
-        postConsoleAndNotification("Planning Timer | Pausing timer", "", false, true, false);
+
         this.state.isPaused = true;
         this.state.showingMessage = false;
 
@@ -295,7 +295,7 @@ export class PlanningTimer {
     }
 
     static resumeTimer() {
-        postConsoleAndNotification("Planning Timer | Resuming timer", "", false, true, false);
+
         this.state.isPaused = false;
         this.state.showingMessage = false;
 
@@ -470,7 +470,7 @@ export class PlanningTimer {
 
         // If auto-start is enabled, start the timer interval
         if (!this.state.isPaused && game.user.isGM) {
-            postConsoleAndNotification("Planning Timer | Auto-starting timer", "", false, true, false);
+    
             if (this.timer) clearInterval(this.timer);
             this.timer = setInterval(() => {
                 if (this.state.isPaused) return;

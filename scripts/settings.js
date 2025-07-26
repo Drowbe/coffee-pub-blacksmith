@@ -108,8 +108,6 @@ function getCompendiumChoices() {
     }, {"none": "-- None --"});
 
     // BLACKSMITH UPDATER - Make the Compendium Array available to ALL Coffee Pub modules
-    postConsoleAndNotification("choices:", choices, false, true, false);
-    postConsoleAndNotification("BLACKSMITH:", BLACKSMITH, false, true, false);
 
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
     postConsoleAndNotification("Updated BLACKSMITH.arrCompendiumChoices to:", BLACKSMITH.arrCompendiumChoices, false, false, false);
@@ -128,9 +126,6 @@ function getTableChoices() {
     }, choices);
 
 	// BLACKSMITH UPDATER - Make the Table Array available to ALL Coffee Pub modules
-
-	postConsoleAndNotification("choices:", choices, false, true, false);
-	postConsoleAndNotification("BLACKSMITH:", BLACKSMITH, false, true, false);
 
 	BLACKSMITH.updateValue('arrTableChoices', choices);
 	postConsoleAndNotification("Updated BLACKSMITH.arrTableChoices to:", BLACKSMITH.arrTableChoices, false, false, false);
@@ -321,8 +316,7 @@ export const registerSettings = async () => {
 
 		// *** COFFEEE PUB MODULES ***
 		let moduleStatus = checkInstalledModules();
-		postConsoleAndNotification("Installed modules:", moduleStatus.activeModules, false, true, false);
-		postConsoleAndNotification("Missing modules:", moduleStatus.missingModules, false, true, false);
+		
 
 		// ---------- Installed Modules ----------
 		game.settings.register(MODULE_ID, "headingH4BlacksmithInstalled", {
@@ -459,10 +453,10 @@ export const registerSettings = async () => {
 		// -------------------------------------
 		+
 		// Build out the themes based on the js file.
-		postConsoleAndNotification("Registering the themes from the themes file.", "", false, true, false);
+		
 		registerThemes();
 		// Make them available to other settings.
-		postConsoleAndNotification("Building the theme selections for global use in Coffee Pub modules.", "", false, true, false);
+		
 		getThemeChoices();
 
 		// ---------- SUBHEADING - ENABLE/DISABLE ----------

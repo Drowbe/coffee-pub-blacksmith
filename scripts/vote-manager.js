@@ -22,7 +22,7 @@ export class VoteManager {
     }
 
     static initialize() {
-        postConsoleAndNotification("Vote Manager | Initializing", "", false, true, false);
+
 
         // Initialize activeVote
         this.activeVote = null;
@@ -782,7 +782,7 @@ export class VoteManager {
      * @param {Object} data - The vote data and message ID
      */
     static async receiveVoteStart(data) {
-        postConsoleAndNotification("Vote Manager | Receiving vote start", data, false, true, false);
+
         
         // Update our local vote state with the complete data
         this.activeVote = data.voteData;

@@ -54,7 +54,7 @@ import { XpManager } from './xp-manager.js';
 BLACKSMITH.updateValue = function(key, value) {
     this[key] = value;
     // Signal to other modules that the variable has been updated
-    postConsoleAndNotification("A Global Vairable has been updated.", "KEY: " + key + " | VALUE: " + value, false, true, false);
+
     Hooks.callAll("blacksmithUpdated", this);
 }
 
@@ -65,7 +65,7 @@ BLACKSMITH.updateValue = function(key, value) {
 // Register the Blacksmith hook
 registerBlacksmithUpdatedHook();
 // Register the settings
-postConsoleAndNotification("Registering settings...", "", false, false, false);    
+    
 await registerSettings();
 
 // ================================================================== 
@@ -116,7 +116,7 @@ const hookCanvas = () => {
 
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
-    postConsoleAndNotification("Blacksmith | Initializing coffee-pub-blacksmith", "", false, true, false);
+
     
     // Initialize ModuleManager first
     ModuleManager.initialize();
@@ -221,7 +221,7 @@ Hooks.once('init', async function() {
         }
     });
     
-    postConsoleAndNotification("BLACKSMITH: Custom layer injected into canvas layers", CONFIG.Canvas.layers, false, true, false);
+
     postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
 
     // COMBAT TIMER
@@ -245,7 +245,7 @@ Hooks.once('init', async function() {
 
 // Initialize WrapperManager after libWrapper is ready
 Hooks.once('ready', async function() {
-    postConsoleAndNotification("Blacksmith | Initializing WrapperManager", "", false, true, false);
+
     WrapperManager.initialize();
     
     // Initialize combat stats tracking
@@ -282,7 +282,7 @@ Hooks.on("ready", function () {
 
             // Keep the canvasReady hook to check for the layer
             Hooks.on('canvasReady', (canvas) => {
-                postConsoleAndNotification("Canvas is ready.", "", false, false, false); 
+             
                 const blacksmithLayer = canvas['blacksmith-utilities-layer'];
                 // Layer availability checked silently
             });
@@ -309,18 +309,18 @@ Hooks.once('ready', function() {
 
     // RICH CONSOLE
     const blnFancyConsole = game.settings.get(MODULE_ID, 'globalFancyConsole');
-    postConsoleAndNotification("Fancy console: ", blnFancyConsole, false, false, false); 
+ 
     BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
     COFFEEPUB.blnFancyConsole = blnFancyConsole;
 
     // DEBUG ON/OFF
     const blnDebugOn = game.settings.get(MODULE_ID, 'globalDebugMode');
-    postConsoleAndNotification("Debug mode: ", blnDebugOn, false, false, false); 
+ 
     BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
     
     // DEBUG STYLE
     const strConsoleDebugStyle = game.settings.get(MODULE_ID, 'globalConsoleDebugStyle');
-    postConsoleAndNotification("Debug style: ", strConsoleDebugStyle, false, false, false); 
+ 
     BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
     
     // OPENAI SETTINGS
@@ -344,22 +344,15 @@ Hooks.once('ready', function() {
     BLACKSMITH.updateValue('strOpenAITemperature', strOpenAITemperature);
 
     // Update the Chat Spacing per settings
-    postConsoleAndNotification("Updating chat styles...", "", false, false, false); 
     updateChatStyles();
     // Update any scene overrides
-    postConsoleAndNotification("Updating scene styles...", "", false, false, false); 
     updateSceneStyles();
     // Update any link style overrides
-    postConsoleAndNotification("Updating object link styles...", "", false, false, false);
     updateObjectLinkStyles();
     // Update any link style overrides
-    postConsoleAndNotification("Updating window styles...", "", false, false, false);
     updateWindowStyles();
     // Update the Margin per settings
-    postConsoleAndNotification("Updating card Margins...", "", false, false, false);
     updateMargins();
-    // All done
-    postConsoleAndNotification("All updates Complete.", "", false, false, false);
 });
 
 // ***************************************************
@@ -399,7 +392,7 @@ let ctrlKeyActiveDuringRender = false;
 let shiftKeyActiveDuringRender = false;
 let altKeyActiveDuringRender = false;
 Hooks.on('renderNoteConfig', async (app, html, data) => {
-    postConsoleAndNotification("Rendering Note Config.", app, false, false, false);
+
     // Define the default icon URL
     var strIconUrl = "";
     const strIconUrlDefault = "modules/coffee-pub-blacksmith/images/pins-note/icon-book.svg";
@@ -459,8 +452,7 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
         console.error("Error browsing folder:", error);
     }
 
-    // Optional: Notify the user
-    postConsoleAndNotification("Custom icons added and default icon set in NoteConfig.", "", false, false, false);
+
 });
 
 // Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
@@ -471,32 +463,26 @@ Hooks.on('preCreateNote', async (note, options, userId) => {
 
 
 export function buildButtonEventRegent(worksheet = 'default') {
-    postConsoleAndNotification(`BLACKSMITH: Opening Regent with worksheet: ${worksheet}`, "", false, true, false);
+
     // Logic to open the regent with the specified worksheet
     if (worksheet === 'encounter') {
-        postConsoleAndNotification("Opening Encounter Worksheet", "", false, true, false);
         // Add your logic to open the encounter worksheet here
     } else if (worksheet === 'assistant') {
-        postConsoleAndNotification("Opening Assistant Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'lookup') {
-        postConsoleAndNotification("Opening Lookup Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'narrative') {
-        postConsoleAndNotification("Opening Narrative Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else if (worksheet === 'character') {
-        postConsoleAndNotification("Opening Character Worksheet", "", false, true, false);
         // Add your logic to open the assistant worksheet here
     } else {
-        postConsoleAndNotification("Opening Default Worksheet", "", false, true, false);
         // Add your logic to open the default worksheet here
     }
 
-    postConsoleAndNotification("Clicked Button", "Regent", false, false, false);
+
     var queryWindow = new BlacksmithWindowQuery({}, worksheet); // Pass the worksheet as a parameter
     queryWindow.onFormSubmit = async (inputMessage, queryContext = '') => {
-        postConsoleAndNotification("BLACKSMIT: buildQueryCard inputMessage:", inputMessage, false, true, false);
+
         await buildQueryCard(inputMessage, queryWindow, queryContext);
     };
     queryWindow.formTitle = 'Regent';
@@ -542,7 +528,7 @@ Hooks.on('renderJournalSheet', (app, html, data) => {
 
 async function runMacro(macroName) {
     const macro = game.macros.getName(macroName);
-    postConsoleAndNotification("Executing macro.", macro, false, false, false);
+
     if (!macro) {
       return Promise.reject(`Macro named ${macroName} not found.`);
     }
@@ -656,15 +642,11 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
                         // works for either NARRATION or ENCOUNTER
                         case "NARRATIVE":
                         case "ENCOUNTER":
-                            postConsoleAndNotification("Creating an NARRATIVE or ENCOUNTER journal entry.", "", false, false, false);
-                            await createJournalEntry(journalData);
-                            postConsoleAndNotification("completed NARRATIVE or ENCOUNTER journal entry creation.", "", false, false, false);
-                            break;
-                        case "INJURY":
-                            // ---------- INJURY ----------
-                            postConsoleAndNotification("Creating an INJURY journal entry.", "", false, false, false);
-                            await buildInjuryJournalEntry(journalData);
-                            postConsoleAndNotification("completed INJURY journal entry creation.", "", false, false, false);
+                                await createJournalEntry(journalData);
+    break;
+case "INJURY":
+    // ---------- INJURY ----------
+    await buildInjuryJournalEntry(journalData);
                             break;
                         default:
                             postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
@@ -971,7 +953,7 @@ function scrollToBottom() {
 // ***************************************************
 
   function updateNameplates() {
-    postConsoleAndNotification("Modifying Nameplates...", "", false, false, false);
+
     let tokens = canvas.tokens.placeables;
     let strNameplateFontsize = game.settings.get(MODULE_ID, 'nameplateFontSize') + "px";
 
@@ -1097,7 +1079,7 @@ function updateObjectLinkStyles() {
         root.style.setProperty('--a-content-link-border-radius', strAContentLinkBorderRadius);
         root.style.setProperty('--a-content-link-text-transform', strAContentLinkTextTransform);
     }
-    postConsoleAndNotification("Link style updates complete.", "", false, false, false);
+
 }
 
 // ***************************************************
@@ -1119,7 +1101,7 @@ function updateWindowStyles() {
     if (strTitlebarSpacing) {
         root.style.setProperty('--blacksmith-window-header-a-i-margin-left', strTitlebarSpacing);
     }
-    postConsoleAndNotification("Window style updates complete.", "", false, false, false);
+
 }
 
 // ***************************************************
@@ -1152,7 +1134,7 @@ function updateChatStyles() {
     root.style.setProperty('--intChatSpacing', intChatSpacing +'px');
     root.style.setProperty('--strHideRollTableIcon', strHideRollTableIcon);
    // postConsoleAndNotification("After Variable: root = ", root, false, true, false);
-    postConsoleAndNotification("Chat style updates complete.", "", false, false, false);
+
 }
 
 // ***************************************************
@@ -1173,7 +1155,7 @@ function updateSceneStyles() {
     root.style.setProperty('--strScenePaddingLeft', sceneTitlePaddingLeft);
     root.style.setProperty('--strScenePaddingRight', sceneTitlePaddingRight);
     root.style.setProperty('--intScenePanelHeight', scenePanelHeight);
-    postConsoleAndNotification("Scene style updates complete.", "", false, false, false);
+
 }
 
 // ***************************************************
@@ -1196,7 +1178,7 @@ function updateMargins() {
 	root.style.setProperty('--intCardMarginLeft', cardLeftMargin +'px');
 	root.style.setProperty('--intCardMarginRight', cardRightMargin +'px');
     root.style.setProperty('--intOffsetMarginTop', cardTopOffset +'px');
-    postConsoleAndNotification("Update Margins complete.", "", false, false, false);
+
 }
 
 export class ThirdPartyManager {

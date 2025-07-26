@@ -7,7 +7,7 @@ import { postConsoleAndNotification } from './global.js';
  */
 export class WrapperManager {
     static initialize() {
-        postConsoleAndNotification("Coffee Pub Blacksmith | WrapperManager initializing", "", false, true, false);
+
         
         // Check if libWrapper is available
         if(typeof libWrapper === 'undefined') {
@@ -19,20 +19,20 @@ export class WrapperManager {
         // Verify libWrapper module is active
         const libWrapperModule = game.modules.get('lib-wrapper');
         if (!libWrapperModule?.active) {
-            postConsoleAndNotification("Coffee Pub Blacksmith | Waiting for libWrapper to be ready", "", false, true, false);
+
             Hooks.once('libWrapper.Ready', () => {
-                postConsoleAndNotification("Coffee Pub Blacksmith | libWrapper Ready, registering wrappers", "", false, true, false);
+
                 this._registerWrappers();
             });
         } else {
-            postConsoleAndNotification("Coffee Pub Blacksmith | libWrapper already active, registering wrappers", "", false, true, false);
+
             this._registerWrappers();
         }
     }
 
     static _registerWrappers() {
         try {
-            postConsoleAndNotification("Coffee Pub Blacksmith | Starting wrapper registration", "", false, true, false);
+    
             
             // Verify libWrapper is still available
             if(typeof libWrapper === 'undefined') {
@@ -63,18 +63,18 @@ export class WrapperManager {
                 {
                     target: 'SceneDirectory.prototype._onClickEntryName',
                     callback: async function(event) {
-                        postConsoleAndNotification("Coffee Pub Blacksmith | Scene Click Handler Called", "", false, true, false);
+                
                         if (!event) {
-                            postConsoleAndNotification("Coffee Pub Blacksmith | No event received", "", false, true, false);
+                            
                             return;
                         }
 
                         // Only handle if custom clicks are enabled
                         const blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
-                        postConsoleAndNotification("Coffee Pub Blacksmith | Custom clicks enabled", blnCustomClicks, false, true, false);
+
                         
                         if (!blnCustomClicks) {
-                            postConsoleAndNotification("Coffee Pub Blacksmith | Using default behavior", "", false, true, false);
+                            
                             return this._original(event);
                         }
 
@@ -86,14 +86,14 @@ export class WrapperManager {
                         
                         // Handle shift-click for configuration
                         if (event.shiftKey) {
-                            postConsoleAndNotification("Coffee Pub Blacksmith | Shift-click detected: Opening config", "", false, true, false);
+
                             scene.sheet.render(true);
                             return;
                         }
 
                         // Handle double-click for activation
                         if (event.type === "click" && event.detail === 2) {
-                            postConsoleAndNotification("Coffee Pub Blacksmith | Double-click detected: Activating scene", "", false, true, false);
+
                             await scene.activate();
                             WrapperManager._updateSceneIcons();
                             return;
@@ -108,7 +108,7 @@ export class WrapperManager {
                             setTimeout(async () => {
                                 // Only proceed if this wasn't followed by a double-click
                                 if (event.detail === 1) {
-                                    postConsoleAndNotification("Coffee Pub Blacksmith | Single-click detected: Viewing scene", "", false, true, false);
+        
                                     await clickedScene.view();
                                     WrapperManager._updateSceneIcons();
                                 }
@@ -123,16 +123,16 @@ export class WrapperManager {
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
                 try {
-                    postConsoleAndNotification(`Coffee Pub Blacksmith | Registering wrapper for ${reg.target}`, "", false, true, false);
+    
                     libWrapper.register(MODULE_ID, reg.target, reg.callback, reg.type);
-                    postConsoleAndNotification(`Coffee Pub Blacksmith | Successfully registered wrapper for ${reg.target}`, "", false, true, false);
+
                 } catch (wrapError) {
                     postConsoleAndNotification(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError, false, false, true);
                     ui.notifications.error(`Coffee Pub Blacksmith | Failed to register wrapper for ${reg.target}`);
                 }
             }
 
-            postConsoleAndNotification("Coffee Pub Blacksmith | All wrappers registered successfully", "", false, true, false);
+
         } catch (error) {
             postConsoleAndNotification("Coffee Pub Blacksmith | Error registering wrappers:", error, false, false, true);
             ui.notifications.error("Coffee Pub Blacksmith | Failed to register some wrappers. See console for details.");

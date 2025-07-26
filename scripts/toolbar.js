@@ -6,10 +6,10 @@ import { CSSEditor } from './css-editor.js';
 import { rollCoffeePubDice, playSound } from './global.js';
 
 export function addToolbarButton() {
-    postConsoleAndNotification("Adding toolbar button", "", false, true, false);
+
 
     Hooks.on('getSceneControlButtons', (controls) => {
-        postConsoleAndNotification("getSceneControlButtons hook triggered", "", false, true, false);
+
 
         const regentTool = {
             icon: "fa-solid fa-crystal-ball",
@@ -95,14 +95,14 @@ export function addToolbarButton() {
             layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
             tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, refreshTool]
         });
-        postConsoleAndNotification("Toolbar buttons added to controls", "", false, true, false);
+
     });
 
     Hooks.on('renderSceneControls', () => {
         const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
         if (button) {
             button.addEventListener('click', () => {
-                postConsoleAndNotification("Toolbar button clicked", "", false, true, false);
+        
                 toggleToolbarVisibility();
                 //activateBlacksmithLayer(); // Ensure this function is called
             });
@@ -111,12 +111,12 @@ export function addToolbarButton() {
         }
     });
 
-    postConsoleAndNotification("Toolbar button registration complete", "", false, true, false);
+    
 }
 
 // Function to toggle the "active" class
 function toggleToolbarVisibility() {
-    postConsoleAndNotification("Toggling toolbar visibility", "", false, true, false);
+
 
     // Hide all toolbars first
     const allToolbars = document.querySelectorAll('.sub-controls.app.control-tools');
@@ -128,7 +128,7 @@ function toggleToolbarVisibility() {
     const toolbar = document.querySelector('#tools-panel-blacksmith-utilities'); // Use the actual ID
     if (toolbar) {
         toolbar.classList.toggle('active');
-        postConsoleAndNotification("Toolbar visibility toggled", "", false, true, false);
+
     } else {
         postConsoleAndNotification("Toolbar element not found", "", false, false, true);
     }
@@ -142,7 +142,7 @@ function toggleToolbarVisibility() {
     const blacksmithButton = document.querySelector(`[data-control="blacksmith-utilities"]`);
     if (blacksmithButton) {
         blacksmithButton.classList.add('active');
-        postConsoleAndNotification("Blacksmith button set to active", "", false, true, false);
+
     } else {
         postConsoleAndNotification("Blacksmith button not found", "", false, false, true);
     }
@@ -150,7 +150,7 @@ function toggleToolbarVisibility() {
 
 // Function to activate the Blacksmith layer
 function activateBlacksmithLayer() {
-    postConsoleAndNotification("Activating Blacksmith Layer", "", false, true, false);
+
     const layer = canvas['blacksmith-utilities-layer'];
     if (layer) {
         layer.activate();
