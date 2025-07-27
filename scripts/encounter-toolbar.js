@@ -20,7 +20,14 @@ export class EncounterToolbar {
     static async _onRenderJournalSheet(app, html, data) {
         // Only create toolbar in normal view, not edit view
         if (!this._isEditMode(html)) {
+            // Try immediately first
             this._updateToolbarContent(html);
+            
+            // Always retry after a delay to catch late-loading content
+            setTimeout(() => {
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", "", false, true, false);
+                this._updateToolbarContent(html);
+            }, 500);
         }
     }
 
@@ -72,8 +79,22 @@ export class EncounterToolbar {
             }
         }
 
-        // Look for metadata in the journal page content section
-        const metadataDiv = html.find('section.journal-page-content div[data-journal-metadata]');
+        // Look for metadata div inside the journal page content section (the green-circled area)
+        let metadataDiv = html.find('section.journal-page-content div[data-journal-metadata]');
+        
+        // Debug: Let's see what we're finding
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for metadata", `Found ${metadataDiv.length} metadata divs`, false, true, false);
+        
+        // Also try looking in the document as a fallback
+        if (metadataDiv.length === 0) {
+            const docMetadataDiv = $(document).find('section.journal-page-content div[data-journal-metadata]');
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docMetadataDiv.length} metadata divs`, false, true, false);
+            
+            if (docMetadataDiv.length > 0) {
+                // Use the document version if html doesn't have it
+                metadataDiv = docMetadataDiv;
+            }
+        }
         
         if (metadataDiv.length > 0) {
             const journalType = metadataDiv.data('journal-type');

@@ -391,9 +391,6 @@ Hooks.once('init', async function() {
 
     // VOTE MANAGER
     VoteManager.initialize();
-    
-    // ENCOUNTER TOOLBAR
-    EncounterToolbar.init();
 
     // Initialize CanvasTools
     CanvasTools.initialize();
@@ -412,6 +409,9 @@ Hooks.once('ready', async function() {
 
     // Initialize latency checker
     LatencyChecker.initialize();
+    
+    // ENCOUNTER TOOLBAR
+    EncounterToolbar.init();
 });
 
 // ***************************************************
