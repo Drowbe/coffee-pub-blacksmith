@@ -1,13 +1,60 @@
-/* Encounter Toolbar Styles */
+/* Toolbar Wrapper */
 .encounter-toolbar {
     margin-bottom: 10px;
     background: rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--color-border-dark);
-    border-radius: 5px;
-    padding: 8px;
+    border-top: 1px solid var(--color-border-dark);
+    border-bottom: 1px dotted var(--color-border-dark);
+    border-left: 0px solid var(--color-border-dark);
+    border-right: 0px solid var(--color-border-dark);
+    border-radius: 0px;
+    padding: 12px;
     font-family: var(--font-primary);
 }
 
+/* Compact Encounter Toolbar Styles */
+.encounter-toolbar-compact {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 3px;
+    margin-bottom: 8px;
+    font-family: var(--font-primary);
+}
+
+.encounter-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--color-bg-btn);
+    color: var(--color-text-light-highlight);
+    border: 1px solid var(--color-border-dark);
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.encounter-btn:hover {
+    background: var(--color-bg-btn-hover);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.encounter-btn i {
+    font-size: 14px;
+}
+
+
+
+
+
+
+
+/* Toolbar Header */
 .encounter-toolbar-header {
     display: flex;
     justify-content: space-between;
@@ -23,6 +70,41 @@
     color: var(--color-text-dark-primary);
 }
 
+/* Difficulty */
+
+
+.difficulty-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: auto;
+}
+
+/* Difficulty colors */
+.difficulty-badge.easy {
+    background-color: #4caf50;
+    color: white;
+}
+
+.difficulty-badge.medium {
+    background-color: #ff9800;
+    color: white;
+}
+
+.difficulty-badge.hard {
+    background-color: #f44336;
+    color: white;
+}
+
+.difficulty-badge.deadly {
+    background-color: #9c27b0;
+    color: white;
+}
+
+
 .encounter-toolbar-header .difficulty {
     padding: 2px 8px;
     border-radius: 3px;
@@ -30,7 +112,6 @@
     font-weight: bold;
 }
 
-/* Difficulty colors */
 .encounter-toolbar-header .difficulty.easy {
     background-color: #4caf50;
     color: white;
@@ -50,6 +131,9 @@
     background-color: #9c27b0;
     color: white;
 }
+
+
+/* Toolbar Buttons */
 
 .encounter-toolbar-buttons {
     display: flex;

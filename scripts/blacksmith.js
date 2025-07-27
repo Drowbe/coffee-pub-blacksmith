@@ -784,6 +784,11 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
                     const journalData = JSON.parse(jsonData);
                     var strJournalType = journalData.journaltype;
                     
+                    // Check if journaltype exists
+                    if (!strJournalType) {
+                        throw new Error("Missing 'journaltype' field in JSON data");
+                    }
+                    
                     // See what kind of Journal we are creating
                     switch (strJournalType.toUpperCase()) {
                         // works for either NARRATION or ENCOUNTER
