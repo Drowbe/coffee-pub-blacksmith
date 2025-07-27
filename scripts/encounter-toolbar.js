@@ -70,33 +70,44 @@ export class EncounterToolbar {
 
 
 
-        // Check if toolbar already exists, if not create it
-        let toolbar = html.find('.encounter-toolbar');
+        // Get the page ID to scope the toolbar
+        const journalPage = html.find('article.journal-entry-page');
+        const pageId = journalPage.data('page-id');
+        
+        if (!pageId) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No page ID found", "", false, true, false);
+            return; // Can't create toolbar without page ID
+        }
+        
+        // Check if toolbar already exists for this specific page, if not create it
+        const toolbarSelector = `.encounter-toolbar[data-page-id="${pageId}"]`;
+        let toolbar = html.find(toolbarSelector);
+        
         if (toolbar.length === 0) {
             // Create the toolbar container
             const journalHeader = html.find('.journal-header');
             const journalEntryPages = html.find('.journal-entry-pages');
             
             if (journalHeader.length && journalEntryPages.length) {
-                const toolbarContainer = $('<div class="encounter-toolbar"></div>');
+                const toolbarContainer = $(`<div class="encounter-toolbar" data-page-id="${pageId}"></div>`);
                 journalHeader.after(toolbarContainer);
                 toolbar = toolbarContainer;
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created toolbar container", "", false, true, false);
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, false, true, false);
             } else {
                 return; // Can't create toolbar
             }
         }
 
-        // Look for metadata div inside the journal page content section (the green-circled area)
-        let metadataDiv = html.find('section.journal-page-content div[data-journal-metadata]');
+        // Look for metadata div inside the specific journal page content section
+        let metadataDiv = html.find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-metadata]`);
         
         // Debug: Let's see what we're finding
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for metadata", `Found ${metadataDiv.length} metadata divs`, false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for metadata", `Found ${metadataDiv.length} metadata divs for page ${pageId}`, false, true, false);
         
-        // Also try looking in the document as a fallback
+        // Also try looking in the document as a fallback, but still scoped to this page
         if (metadataDiv.length === 0) {
-            const docMetadataDiv = $(document).find('section.journal-page-content div[data-journal-metadata]');
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docMetadataDiv.length} metadata divs`, false, true, false);
+            const docMetadataDiv = $(document).find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-metadata]`);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docMetadataDiv.length} metadata divs for page ${pageId}`, false, true, false);
             
             if (docMetadataDiv.length > 0) {
                 // Use the document version if html doesn't have it
