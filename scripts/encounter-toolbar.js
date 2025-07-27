@@ -18,28 +18,36 @@ export class EncounterToolbar {
 
     // Hook for journal sheet rendering (normal view only)
     static async _onRenderJournalSheet(app, html, data) {
+        // Use unified method with immediate retry
+        this._processJournalSheet(html, true);
+    }
+
+    // Hook for when journal entry pages are updated (saves)
+    static async _onUpdateJournalEntryPage(page, change, options, userId) {
+        // Find the journal sheet and use unified method
+        setTimeout(() => {
+            const journalSheet = Object.values(ui.windows).find(w => w instanceof JournalSheet && w.document.id === page.parent.id);
+            if (journalSheet) {
+                this._processJournalSheet(journalSheet.element, false);
+            }
+        }, 100);
+    }
+
+    // Unified method to process journal sheets
+    static _processJournalSheet(html, shouldRetry = false) {
         // Only create toolbar in normal view, not edit view
         if (!this._isEditMode(html)) {
             // Try immediately first
             this._updateToolbarContent(html);
             
-            // Always retry after a delay to catch late-loading content
-            setTimeout(() => {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", "", false, true, false);
-                this._updateToolbarContent(html);
-            }, 500);
-        }
-    }
-
-    // Hook for when journal entry pages are updated (saves)
-    static async _onUpdateJournalEntryPage(page, change, options, userId) {
-        // Only update toolbar in normal view, not edit view
-        setTimeout(() => {
-            const journalSheet = Object.values(ui.windows).find(w => w instanceof JournalSheet && w.document.id === page.parent.id);
-            if (journalSheet && !this._isEditMode(journalSheet.element)) {
-                this._updateToolbarContent(journalSheet.element);
+            // Retry after delay if requested (for renderJournalSheet)
+            if (shouldRetry) {
+                setTimeout(() => {
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", "", false, true, false);
+                    this._updateToolbarContent(html);
+                }, 500);
             }
-        }, 100);
+        }
     }
 
     // Helper method to check if we're in edit mode
