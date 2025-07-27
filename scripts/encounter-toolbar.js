@@ -188,22 +188,27 @@ export class EncounterToolbar {
     }
 
     static _addEventListeners(html, metadata) {
+        console.log("BLACKSMITH | Encounter Toolbar: Setting up event listeners with metadata:", metadata);
+        
         // Deploy monsters button
         html.find('.deploy-monsters').click(async (event) => {
+            console.log("BLACKSMITH | Encounter Toolbar: Deploy monsters button clicked!");
             event.preventDefault();
-            this._deployMonsters(metadata);
+            EncounterToolbar._deployMonsters(metadata);
         });
         
         // Roll initiative button
         html.find('.roll-initiative').click(async (event) => {
+            console.log("BLACKSMITH | Encounter Toolbar: Roll initiative button clicked!");
             event.preventDefault();
-            this._rollInitiative(metadata);
+            EncounterToolbar._rollInitiative(metadata);
         });
         
         // Create combat button
         html.find('.create-combat').click(async (event) => {
+            console.log("BLACKSMITH | Encounter Toolbar: Create combat button clicked!");
             event.preventDefault();
-            this._createCombat(metadata);
+            EncounterToolbar._createCombat(metadata);
         });
     }
 
@@ -216,53 +221,128 @@ export class EncounterToolbar {
         try {
             // Get the target position (where the user clicked)
             const position = await this._getTargetPosition();
+            
             if (!position) {
                 ui.notifications.warn("Please click on the canvas to place monsters.");
                 return;
             }
 
             // Deploy each monster
-            for (const monsterId of metadata.monsters) {
+            for (let i = 0; i < metadata.monsters.length; i++) {
+                const monsterId = metadata.monsters[i];
+                
                 try {
                     const actor = await fromUuid(monsterId);
+                    console.log("BLACKSMITH | Encounter Toolbar: Loaded actor:", actor);
+                    
                     if (actor) {
-                        const token = await actor.getActiveTokens().pop() || await actor.getToken();
-                        if (token) {
-                            // Create the token at the target position
-                            await token.document.update({
-                                x: position.x,
-                                y: position.y
-                            });
-                            
-                            // Add some offset for multiple monsters
-                            position.x += 100;
+                        console.log("BLACKSMITH | Encounter Toolbar: Actor ID:", actor.id);
+                        
+                        // First, create a world copy of the actor if it's from a compendium
+                        let worldActor = actor;
+                        if (actor.pack) {
+                            console.log("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor");
+                            const actorData = actor.toObject();
+                            worldActor = await Actor.create(actorData);
+                            console.log("BLACKSMITH | Encounter Toolbar: World actor created:", worldActor.id);
                         }
+                        
+                        // Create the token using actor's prototype token data
+                        const tokenData = {
+                            ...worldActor.prototypeToken.toObject(),
+                            // Position and linking
+                            x: position.x,
+                            y: position.y,
+                            actorId: worldActor.id,
+                            actorLink: true,
+                            // Override the displayName setting to use hover behavior instead of prototype "never"
+                            // Use HOVER mode (1) which shows names on hover - this is the typical default behavior
+                            displayName: CONST.TOKEN_DISPLAY_MODES.HOVER || 1
+                        };
+                        
+                        console.log("BLACKSMITH | Encounter Toolbar: Creating token with data:", tokenData);
+                        
+                        // Create the token on the canvas
+                        const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+                        console.log("BLACKSMITH | Encounter Toolbar: Token creation result:", createdTokens);
+                        
+                        // Verify the token was created and is visible
+                        if (createdTokens && createdTokens.length > 0) {
+                            const token = createdTokens[0];
+                            console.log("BLACKSMITH | Encounter Toolbar: Created token:", token);
+                            console.log("BLACKSMITH | Encounter Toolbar: Token position:", {x: token.x, y: token.y});
+                            console.log("BLACKSMITH | Encounter Toolbar: Token visible:", token.visible);
+                            console.log("BLACKSMITH | Encounter Toolbar: Token actor:", token.actor);
+                            console.log("BLACKSMITH | Encounter Toolbar: Token actorId:", token.actorId);
+                        }
+                        
+                        // Add some offset for multiple monsters
+                        position.x += 100;
                     }
                 } catch (error) {
-                    console.warn(`Failed to deploy monster ${monsterId}:`, error);
+                    console.error(`BLACKSMITH | Encounter Toolbar: Failed to deploy monster ${monsterId}:`, error);
                 }
             }
 
             ui.notifications.info(`Deployed ${metadata.monsters.length} monsters.`);
             
         } catch (error) {
-            console.error("Error deploying monsters:", error);
+            console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
             ui.notifications.error("Failed to deploy monsters.");
         }
     }
 
     static async _getTargetPosition() {
         return new Promise((resolve) => {
+            console.log("BLACKSMITH | Encounter Toolbar: Setting up click handler for target position");
             ui.notifications.info("Click on the canvas to place monsters.");
             
+            // Use FoundryVTT's canvas pointer handling
             const handler = (event) => {
-                event.preventDefault();
-                const position = canvas.grid.getSnappedPosition(event.data.x, event.data.y);
-                canvas.app.stage.off('click', handler);
-                resolve(position);
+                console.log("BLACKSMITH | Encounter Toolbar: Canvas pointer event! Event type:", event.type);
+                console.log("BLACKSMITH | Encounter Toolbar: Event global:", event.global);
+                
+                // Only handle pointerdown events (clicks)
+                if (event.type !== 'pointerdown') {
+                    return;
+                }
+                
+                // Use FoundryVTT's built-in coordinate conversion
+                // Convert global coordinates to scene coordinates using canvas stage
+                const stage = canvas.app.stage;
+                const globalPoint = new PIXI.Point(event.global.x, event.global.y);
+                const localPoint = stage.toLocal(globalPoint);
+                
+                console.log("BLACKSMITH | Encounter Toolbar: Local coordinates from stage:", localPoint);
+                
+                // Snap to grid
+                let position = canvas.grid.getSnappedPoint(localPoint.x, localPoint.y);
+                console.log("BLACKSMITH | Encounter Toolbar: getSnappedPoint result:", position);
+                
+                // If that fails, fall back to the deprecated but working method
+                if (!position) {
+                    console.log("BLACKSMITH | Encounter Toolbar: getSnappedPoint failed, trying getSnappedPosition");
+                    position = canvas.grid.getSnappedPosition(localPoint.x, localPoint.y);
+                    console.log("BLACKSMITH | Encounter Toolbar: getSnappedPosition result:", position);
+                }
+                
+                // Remove the event listener immediately
+                canvas.app.stage.off('pointerdown', handler);
+                console.log("BLACKSMITH | Encounter Toolbar: Click handler removed, resolving position");
+                
+                // Resolve with the position
+                if (position) {
+                    console.log("BLACKSMITH | Encounter Toolbar: Resolving position:", position);
+                    resolve(position);
+                } else {
+                    console.warn("BLACKSMITH | Encounter Toolbar: No valid position obtained, resolving null");
+                    resolve(null);
+                }
             };
             
-            canvas.app.stage.on('click', handler);
+            // Add the event listener to the canvas stage
+            console.log("BLACKSMITH | Encounter Toolbar: Adding pointerdown handler to canvas stage");
+            canvas.app.stage.on('pointerdown', handler);
         });
     }
 
@@ -300,6 +380,12 @@ export class EncounterToolbar {
         }
 
         try {
+            // First deploy the monsters to get tokens on the canvas
+            await this._deployMonsters(metadata);
+            
+            // Wait a moment for tokens to be created
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             // Create a new combat encounter
             const combat = await Combat.create({
                 scene: canvas.scene.id,
@@ -307,26 +393,27 @@ export class EncounterToolbar {
                 active: true
             });
 
-            // Add monsters to combat
-            for (const monsterId of metadata.monsters) {
+            // Add deployed tokens to combat
+            const deployedTokens = canvas.tokens.placeables.filter(token => 
+                metadata.monsters.some(monsterId => {
+                    const actorId = monsterId.split('.').pop(); // Extract actor ID from UUID
+                    return token.actor?.id === actorId;
+                })
+            );
+
+            for (const token of deployedTokens) {
                 try {
-                    const actor = await fromUuid(monsterId);
-                    if (actor) {
-                        const token = await actor.getActiveTokens().pop() || await actor.getToken();
-                        if (token) {
-                            await combat.createEmbeddedDocuments("Combatant", [{
-                                tokenId: token.id,
-                                actorId: actor.id,
-                                sceneId: canvas.scene.id
-                            }]);
-                        }
-                    }
+                    await combat.createEmbeddedDocuments("Combatant", [{
+                        tokenId: token.id,
+                        actorId: token.actor.id,
+                        sceneId: canvas.scene.id
+                    }]);
                 } catch (error) {
-                    console.warn(`Failed to add ${monsterId} to combat:`, error);
+                    console.warn(`Failed to add ${token.name} to combat:`, error);
                 }
             }
 
-            ui.notifications.info("Combat encounter created.");
+            ui.notifications.info("Combat encounter created with deployed monsters.");
             
         } catch (error) {
             console.error("Error creating combat:", error);
