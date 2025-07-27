@@ -275,45 +275,54 @@ export async function createJournalEntry(journalData) {
         }
     }
     
-    // Extract difficulty from prepencounterdetails
-    if (journalData.prepencounterdetails) {
-        // Try different patterns for Difficulty
-        const difficultyPatterns = [
-            /<li><strong>Difficulty<\/strong>:(.*?)<\/li>/i,
-            /<li><strong>Difficulty<\/strong>(.*?)<\/li>/i,
-            /<li><strong>Difficulty:<\/strong>(.*?)<\/li>/i
-        ];
+    // For encounters, create clean data attributes instead of bloated metadata
+    if (journalData.journaltype && journalData.journaltype.toLowerCase() === 'encounter') {
+        let encounterDataAttributes = '';
         
-        for (const pattern of difficultyPatterns) {
-            const match = journalData.prepencounterdetails.match(pattern);
-            if (match && match[1]) {
-                metadata.difficulty = match[1].trim();
-                break;
+        // Extract difficulty from prepencounterdetails
+        if (journalData.prepencounterdetails) {
+            const difficultyPatterns = [
+                /<li><strong>Difficulty<\/strong>:(.*?)<\/li>/i,
+                /<li><strong>Difficulty<\/strong>(.*?)<\/li>/i,
+                /<li><strong>Difficulty:<\/strong>(.*?)<\/li>/i
+            ];
+            
+            for (const pattern of difficultyPatterns) {
+                const match = journalData.prepencounterdetails.match(pattern);
+                if (match && match[1]) {
+                    encounterDataAttributes += ` data-encounter-difficulty="${match[1].trim()}"`;
+                    break;
+                }
             }
         }
-    }
-    
-    // For monster lists, extract UUIDs
-    if (journalData.prepencounter && typeof journalData.prepencounter === 'string') {
-        const monsterUUIDPattern = /@UUID\[(.*?)\]/g;
-        const monsterUUIDs = [];
-        let match;
         
-        while ((match = monsterUUIDPattern.exec(journalData.prepencounter)) !== null) {
-            monsterUUIDs.push(match[1]);
+        // Process monster names into UUIDs for the data attributes
+        if (journalData.prepencounter && typeof journalData.prepencounter === 'string') {
+            const monsterNames = journalData.prepencounter.split(", ");
+            const monsterUUIDs = [];
+            
+            for (const monsterName of monsterNames) {
+                const trimmedName = monsterName.trim();
+                if (trimmedName) {
+                    // Use the same logic as buildCompendiumLinkActor to find the UUID
+                    const uuid = await findMonsterUUID(trimmedName);
+                    if (uuid) {
+                        monsterUUIDs.push(uuid);
+                    }
+                }
+            }
+            
+            if (monsterUUIDs.length > 0) {
+                encounterDataAttributes += ` data-encounter-monsters="${monsterUUIDs.join(',')}"`;
+            }
         }
         
-        if (monsterUUIDs.length > 0) {
-            metadata.monsters = monsterUUIDs;
+        // Add encounter data attributes to the HTML
+        if (encounterDataAttributes) {
+            const encounterDataBlock = `<div style="display:none" data-journal-type="encounter"${encounterDataAttributes}></div>`;
+            compiledHtml = encounterDataBlock + compiledHtml;
         }
     }
-
-    // Encode the metadata
-    const encodedMetadata = encodeURIComponent(JSON.stringify(metadata));
-    const metadataBlock = `<div style="display:none" data-journal-metadata="${encodedMetadata}" data-journal-type="${journalData.journaltype}"><![CDATA[${JSON.stringify(metadata)}]]></div>`;
-    
-    // Add the metadata block at the beginning of the HTML
-    compiledHtml = metadataBlock + compiledHtml;
 
     // Check if the journal entry already exists
     let existingEntry = game.journal.find(entry => {
@@ -371,6 +380,48 @@ export async function createJournalEntry(journalData) {
 // ***************************************************
 // ** UTILITY Build Compendium Links
 // ***************************************************
+
+// Helper function to find monster UUID (extracted from buildCompendiumLinkActor)
+async function findMonsterUUID(monsterData) {
+    // If we're passed a string, use the same logic as buildCompendiumLinkActor
+    if (typeof monsterData === 'string') {
+        const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldActorsFirst');
+        // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
+        const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
+        
+        // Only check world actors if the setting is enabled
+        if (searchWorldFirst) {
+            let foundActor;
+            try {
+                foundActor = game.actors.getName(strActorName);
+            } catch (error) {
+                foundActor = null;
+            }
+            if (foundActor) {
+                return `Actor.${foundActor.system._id}`;
+            }
+        }
+        
+        // Check up to 5 compendium settings in order
+        for (let i = 1; i <= 5; i++) {
+            const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
+            if (!compendiumSetting || compendiumSetting === 'none') continue;
+            
+            const compendium = game.packs.get(compendiumSetting);
+            if (compendium) {
+                let index = await compendium.getIndex();
+                let entry = index.find(e => e.name === strActorName);
+                if (entry) {
+                    return `Compendium.${compendiumSetting}.Actor.${entry._id}`;
+                }
+            }
+        }
+        
+        return null; // Not found
+    }
+    
+    return null;
+}
 
 export async function createHTMLList(monsterString) {
     // Split the string by comma to get an array of monsters

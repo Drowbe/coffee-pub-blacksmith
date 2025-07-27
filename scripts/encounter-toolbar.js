@@ -98,75 +98,78 @@ export class EncounterToolbar {
             }
         }
 
-        // Look for metadata div inside the specific journal page content section
-        let metadataDiv = html.find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-metadata]`);
+        // Look for encounter data attributes inside the specific journal page content section
+        let encounterDiv = html.find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-type="encounter"]`);
         
         // Debug: Let's see what we're finding
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for metadata", `Found ${metadataDiv.length} metadata divs for page ${pageId}`, false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for encounter data", `Found ${encounterDiv.length} encounter divs for page ${pageId}`, false, true, false);
         
         // Also try looking in the document as a fallback, but still scoped to this page
-        if (metadataDiv.length === 0) {
-            const docMetadataDiv = $(document).find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-metadata]`);
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docMetadataDiv.length} metadata divs for page ${pageId}`, false, true, false);
+        if (encounterDiv.length === 0) {
+            const docEncounterDiv = $(document).find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-type="encounter"]`);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docEncounterDiv.length} encounter divs for page ${pageId}`, false, true, false);
             
-            if (docMetadataDiv.length > 0) {
+            if (docEncounterDiv.length > 0) {
                 // Use the document version if html doesn't have it
-                metadataDiv = docMetadataDiv;
+                encounterDiv = docEncounterDiv;
             }
         }
         
-        if (metadataDiv.length > 0) {
-            const journalType = metadataDiv.data('journal-type');
-            if (journalType && journalType.toLowerCase() === 'encounter') {
-                // We have encounter data - use the full toolbar
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found encounter metadata, updating toolbar", "", false, true, false);
+        if (encounterDiv.length > 0) {
+            // We have encounter data - use the full toolbar
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found encounter data, updating toolbar", "", false, true, false);
+            
+            try {
+                // Extract data from attributes
+                const monsterUUIDs = encounterDiv.data('encounter-monsters');
+                const difficulty = encounterDiv.data('encounter-difficulty');
                 
-                try {
-                    // Parse the metadata
-                    const encodedData = metadataDiv.data('journal-metadata');
-                    const metadata = JSON.parse(decodeURIComponent(encodedData));
-                    
-                    // Check if we have monsters
-                    const hasMonsters = metadata.monsters && metadata.monsters.length > 0;
-                    
-                    // Determine difficulty class for styling
-                    let difficultyClass = '';
-                    if (metadata.difficulty) {
-                        const difficulty = metadata.difficulty.toLowerCase();
-                        if (difficulty.includes('easy')) difficultyClass = 'easy';
-                        else if (difficulty.includes('medium')) difficultyClass = 'medium';
-                        else if (difficulty.includes('hard')) difficultyClass = 'hard';
-                        else if (difficulty.includes('deadly')) difficultyClass = 'deadly';
-                    }
-
-                    // Get the template
-                    const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
-                    getCachedTemplate(templatePath).then(template => {
-                        // Prepare the data for the template
-                        const templateData = {
-                            journalId: metadataDiv.closest('.journal-sheet').data('document-id') || 'unknown',
-                            hasMonsters,
-                            difficulty: metadata.difficulty,
-                            difficultyClass,
-                            autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters')
-                        };
-                        
-                        // Render the toolbar
-                        const html = template(templateData);
-                        toolbar.html(html);
-                        
-                        // Add event listeners to the buttons
-                        this._addEventListeners($(document), metadata);
-                        
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with encounter data", "", false, true, false);
-                    });
-                    
-                    return; // Exit early since we're handling this asynchronously
-                    
-                } catch (error) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error processing encounter metadata", error, false, true, false);
-                    // Fall through to create "no encounter" toolbar
+                // Check if we have monsters
+                const hasMonsters = monsterUUIDs && monsterUUIDs.length > 0;
+                
+                // Determine difficulty class for styling
+                let difficultyClass = '';
+                if (difficulty) {
+                    const difficultyLower = difficulty.toLowerCase();
+                    if (difficultyLower.includes('easy')) difficultyClass = 'easy';
+                    else if (difficultyLower.includes('medium')) difficultyClass = 'medium';
+                    else if (difficultyLower.includes('hard')) difficultyClass = 'hard';
+                    else if (difficultyLower.includes('deadly')) difficultyClass = 'deadly';
                 }
+
+                // Create metadata object for event listeners
+                const metadata = {
+                    monsters: hasMonsters ? monsterUUIDs.split(',') : [],
+                    difficulty: difficulty
+                };
+
+                // Get the template
+                const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
+                getCachedTemplate(templatePath).then(template => {
+                    // Prepare the data for the template
+                    const templateData = {
+                        journalId: encounterDiv.closest('.journal-sheet').data('document-id') || 'unknown',
+                        hasMonsters,
+                        difficulty: difficulty,
+                        difficultyClass,
+                        autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters')
+                    };
+                    
+                    // Render the toolbar
+                    const html = template(templateData);
+                    toolbar.html(html);
+                    
+                    // Add event listeners to the buttons
+                    this._addEventListeners($(document), metadata);
+                    
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with encounter data", "", false, true, false);
+                });
+                
+                return; // Exit early since we're handling this asynchronously
+                
+            } catch (error) {
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error processing encounter data", error, false, true, false);
+                // Fall through to create "no encounter" toolbar
             }
         }
         
