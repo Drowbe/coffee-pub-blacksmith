@@ -829,7 +829,7 @@ export const registerSettings = async () => {
 
 		// ---------- SUBHEADING - JOURNAL QOL ----------
 		game.settings.register(MODULE_ID, "headingH3simpleJournalQOL", {
-			name: 'Journal Quality of Life Settings',
+			name: 'Quality of Life Settings',
 			hint: '',
 			scope: "world",
 			config: true,
@@ -914,7 +914,7 @@ export const registerSettings = async () => {
 				"line": "Line Formation",
 				"scatter": "Scatter Positioning",
 				"grid": "Grid Positioning",
-				"sequential": "Sequential Positioning"
+				"sequential": "Sequential Positioning (Click location for each)"
 			},
 			config: true,
 			scope: 'world',
