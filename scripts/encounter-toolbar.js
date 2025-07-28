@@ -183,6 +183,10 @@ export class EncounterToolbar {
         // If we don't have encounter data or there was an error, create a "no encounter" toolbar using the template
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No encounter data found, showing placeholder", "", false, true, false);
         
+        // Calculate CR values even when there's no encounter data
+        const partyCR = this.getPartyCR();
+        const monsterCR = this.getMonsterCR({ monsters: [] }); // Pass empty metadata for canvas-only calculation
+        
         // Get the template
         const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
         getCachedTemplate(templatePath).then(template => {
@@ -191,7 +195,9 @@ export class EncounterToolbar {
                 hasEncounterData: false,
                 hasMonsters: false,
                 difficulty: null,
-                difficultyClass: null
+                difficultyClass: null,
+                partyCR: partyCR,
+                monsterCR: monsterCR
             };
             
             // Render the toolbar
