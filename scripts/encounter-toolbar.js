@@ -149,6 +149,7 @@ export class EncounterToolbar {
                     // Prepare the data for the template
                     const templateData = {
                         journalId: encounterDiv.closest('.journal-sheet').data('document-id') || 'unknown',
+                        hasEncounterData: true,
                         hasMonsters,
                         difficulty: difficulty,
                         difficultyClass,
@@ -173,18 +174,26 @@ export class EncounterToolbar {
             }
         }
         
-        // If we don't have encounter data or there was an error, create a "no encounter" toolbar
+        // If we don't have encounter data or there was an error, create a "no encounter" toolbar using the template
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No encounter data found, showing placeholder", "", false, true, false);
         
-        toolbar.html(`
-            <div class="encounter-toolbar no-encounter" style="background: #f0f0f0; border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center;">
-                <h3 style="margin: 0 0 10px 0; color: #666;">⚔️ Encounter Tools</h3>
-                <p style="margin: 0; color: #888; font-style: italic;">No encounter data found in this journal entry.</p>
-                <p style="margin: 5px 0 0 0; color: #888; font-size: 0.9em;">
-                    <em>Future: Quick encounter creation will be available here.</em>
-                </p>
-            </div>
-        `);
+        // Get the template
+        const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
+        getCachedTemplate(templatePath).then(template => {
+            // Prepare the data for the template (no encounter case)
+            const templateData = {
+                hasEncounterData: false,
+                hasMonsters: false,
+                difficulty: null,
+                difficultyClass: null
+            };
+            
+            // Render the toolbar
+            const html = template(templateData);
+            toolbar.html(html);
+            
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with no encounter data", "", false, true, false);
+        });
     }
 
     static _addEventListeners(html, metadata) {
@@ -197,12 +206,7 @@ export class EncounterToolbar {
             EncounterToolbar._deployMonsters(metadata);
         });
         
-        // Roll initiative button
-        html.find('.roll-initiative').click(async (event) => {
-            console.log("BLACKSMITH | Encounter Toolbar: Roll initiative button clicked!");
-            event.preventDefault();
-            EncounterToolbar._rollInitiative(metadata);
-        });
+
         
         // Create combat button
         html.find('.create-combat').click(async (event) => {
@@ -218,7 +222,36 @@ export class EncounterToolbar {
             return;
         }
 
+        // Get the deployment pattern setting
+        const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+        console.log("BLACKSMITH | Encounter Toolbar: Deployment pattern:", deploymentPattern);
+
+        // Create tooltip for non-sequential deployments
+        let tooltip = null;
+        let mouseMoveHandler = null;
+
         try {
+            
+            if (deploymentPattern !== "sequential") {
+                tooltip = document.createElement('div');
+                tooltip.className = 'encounter-tooltip';
+                document.body.appendChild(tooltip);
+                
+                mouseMoveHandler = (event) => {
+                    tooltip.style.left = (event.data.global.x + 15) + 'px';
+                    tooltip.style.top = (event.data.global.y - 40) + 'px';
+                };
+                
+                // Show initial tooltip
+                const patternName = this._getDeploymentPatternName(deploymentPattern);
+                tooltip.innerHTML = `
+                    <div class="monster-name">Deploying Monsters</div>
+                    <div class="progress">${patternName} - Click to place ${metadata.monsters.length} monsters</div>
+                `;
+                tooltip.classList.add('show');
+                canvas.stage.on('mousemove', mouseMoveHandler);
+            }
+
             // Get the target position (where the user clicked)
             const position = await this._getTargetPosition();
             
@@ -226,14 +259,19 @@ export class EncounterToolbar {
                 ui.notifications.warn("Please click on the canvas to place monsters.");
                 return;
             }
-
-            // Get the deployment pattern setting
-            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-            console.log("BLACKSMITH | Encounter Toolbar: Deployment pattern:", deploymentPattern);
             
             // Deploy each monster
             for (let i = 0; i < metadata.monsters.length; i++) {
                 const monsterId = metadata.monsters[i];
+                
+                // Update tooltip with progress for non-sequential deployments
+                if (deploymentPattern !== "sequential" && tooltip) {
+                    const patternName = this._getDeploymentPatternName(deploymentPattern);
+                    tooltip.innerHTML = `
+                        <div class="monster-name">Deploying Monsters</div>
+                        <div class="progress">${patternName} - Placing monster ${i + 1} of ${metadata.monsters.length}</div>
+                    `;
+                }
                 
                 try {
                     const actor = await fromUuid(monsterId);
@@ -354,12 +392,39 @@ export class EncounterToolbar {
             if (deploymentPattern === "sequential") {
                 await this._deploySequential(metadata, position);
             } else {
-                ui.notifications.info(`Deployed ${metadata.monsters.length} monsters.`);
+                // Update tooltip to show completion
+                if (tooltip) {
+                    const patternName = this._getDeploymentPatternName(deploymentPattern);
+                    tooltip.innerHTML = `
+                        <div class="monster-name">Deployment Complete</div>
+                        <div class="progress">${patternName} - Deployed ${metadata.monsters.length} monsters</div>
+                    `;
+                    
+                    // Remove tooltip after a short delay
+                    setTimeout(() => {
+                        if (tooltip && tooltip.parentNode) {
+                            tooltip.remove();
+                        }
+                        if (mouseMoveHandler) {
+                            canvas.stage.off('mousemove', mouseMoveHandler);
+                        }
+                    }, 2000);
+                }
             }
             
         } catch (error) {
             console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
             ui.notifications.error("Failed to deploy monsters.");
+        } finally {
+            // Clean up tooltip and handlers for non-sequential deployments
+            if (deploymentPattern !== "sequential" && tooltip) {
+                if (tooltip.parentNode) {
+                    tooltip.remove();
+                }
+                if (mouseMoveHandler) {
+                    canvas.stage.off('mousemove', mouseMoveHandler);
+                }
+            }
         }
     }
 
@@ -432,6 +497,17 @@ export class EncounterToolbar {
         return { x, y };
     }
 
+    static _getDeploymentPatternName(pattern) {
+        const patternNames = {
+            "circle": "Circle Formation",
+            "line": "Line Formation", 
+            "scatter": "Scatter Positioning",
+            "grid": "Grid Positioning",
+            "sequential": "Sequential Positioning"
+        };
+        return patternNames[pattern] || "Unknown Pattern";
+    }
+
     static async _deploySequential(metadata, initialPosition) {
         // Set cursor to indicate placement mode
         canvas.stage.cursor = 'crosshair';
@@ -443,8 +519,8 @@ export class EncounterToolbar {
         
         // Mouse move handler for tooltip
         const mouseMoveHandler = (event) => {
-            tooltip.style.left = (event.data.global.x + 10) + 'px';
-            tooltip.style.top = (event.data.global.y - 30) + 'px';
+            tooltip.style.left = (event.data.global.x + 15) + 'px';
+            tooltip.style.top = (event.data.global.y - 40) + 'px';
         };
         
         try {
@@ -579,15 +655,22 @@ export class EncounterToolbar {
                 
                 console.log("BLACKSMITH | Encounter Toolbar: Local coordinates from stage:", localPoint);
                 
-                // Snap to grid
-                let position = canvas.grid.getSnappedPoint(localPoint.x, localPoint.y);
-                console.log("BLACKSMITH | Encounter Toolbar: getSnappedPoint result:", position);
+                // Use the exact click position first, then snap to grid
+                let position = { x: localPoint.x, y: localPoint.y };
                 
-                // If that fails, fall back to the deprecated but working method
-                if (!position) {
+                // Snap to grid using the more reliable method
+                const snappedPosition = canvas.grid.getSnappedPoint(localPoint.x, localPoint.y);
+                if (snappedPosition) {
+                    position = snappedPosition;
+                    console.log("BLACKSMITH | Encounter Toolbar: getSnappedPoint result:", position);
+                } else {
+                    // Fall back to deprecated method if needed
                     console.log("BLACKSMITH | Encounter Toolbar: getSnappedPoint failed, trying getSnappedPosition");
-                    position = canvas.grid.getSnappedPosition(localPoint.x, localPoint.y);
-                    console.log("BLACKSMITH | Encounter Toolbar: getSnappedPosition result:", position);
+                    const fallbackPosition = canvas.grid.getSnappedPosition(localPoint.x, localPoint.y);
+                    if (fallbackPosition) {
+                        position = fallbackPosition;
+                        console.log("BLACKSMITH | Encounter Toolbar: getSnappedPosition result:", position);
+                    }
                 }
                 
                 // Remove the event listener immediately
@@ -610,32 +693,7 @@ export class EncounterToolbar {
         });
     }
 
-    static async _rollInitiative(metadata) {
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
-            return;
-        }
 
-        try {
-            // Roll initiative for each monster
-            for (const monsterId of metadata.monsters) {
-                try {
-                    const actor = await fromUuid(monsterId);
-                    if (actor) {
-                        await actor.rollInitiative();
-                    }
-                } catch (error) {
-                    console.warn(`Failed to roll initiative for ${monsterId}:`, error);
-                }
-            }
-
-            ui.notifications.info("Initiative rolled for all monsters.");
-            
-        } catch (error) {
-            console.error("Error rolling initiative:", error);
-            ui.notifications.error("Failed to roll initiative.");
-        }
-    }
 
     static async _createCombat(metadata) {
         if (!metadata.monsters || metadata.monsters.length === 0) {
