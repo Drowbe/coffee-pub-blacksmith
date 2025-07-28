@@ -746,6 +746,39 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
   return result;
 }
 
+async function getEncounterTemplateWithDefaults(encounterTemplate) {
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
+    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'defaultEncounterFolder' },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultSceneArea' },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultSceneEnvironment' },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultSceneLocation' },
+    { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'encounterDefaultCardImage' }
+  ];
+  let result = encounterTemplate;
+  for (const { placeholder, key } of settings) {
+    let value = undefined;
+    try {
+      value = game.settings.get(MODULE_ID, key);
+    } catch (e) {}
+    // Special logic for image path
+    if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
+      if (value === 'custom') {
+        try {
+          value = game.settings.get(MODULE_ID, 'encounterDefaultImagePath');
+        } catch (e) {}
+      }
+    }
+    if (!value) continue; // leave placeholder if not set
+    result = result.split(placeholder).join(value);
+  }
+  return result;
+}
+
 Hooks.on("renderJournalDirectory", async (app, html, data) => {
     // Fetch template files at runtime
     const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
@@ -821,7 +854,8 @@ case "INJURY":
             if (type === "injury") {
               copyToClipboard(injuryTemplate);
             } else if (type === "encounter") {
-              copyToClipboard(encounterTemplate);
+              const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
+              copyToClipboard(templateWithDefaults);
             } else {
               const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
               copyToClipboard(templateWithDefaults);

@@ -249,6 +249,18 @@
 		"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
 		"narrativeDefaultEncounterDetails-Hint": "The default encounter description to use in new narratives. (optional)",
 
+		"headingH3EncounterDefaults-Label": "Encounter Defaults",
+		"headingH3EncounterDefaults-Hint": "These settings control default values for encounter templates.",
+
+		"defaultEncounterFolder-Label": "Default Encounter Folder",
+		"defaultEncounterFolder-Hint": "The folder that should be used when creating new encounters.",
+
+		"encounterDefaultCardImage-Label": "Default Encounter Card Image",
+		"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
+
+		"encounterDefaultImagePath-Label": "Default Encounter Image Path",
+		"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
+
 		"monsterCompendiumPrimary-Label": "Primary Monster Compendium",
 		"monsterCompendiumPrimary-Hint": "The primary monster compendium to use when linking monsters in new narratives. This is where we will look for a match first.",
 
