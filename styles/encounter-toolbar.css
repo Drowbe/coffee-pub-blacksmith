@@ -27,22 +27,33 @@
     font-family: var(--font-primary);
   }
   
-  /* ────────────────────────────────────────────────
-    Header with Title (on its own row, left aligned)
-  ──────────────────────────────────────────────── */
-  .encounter-toolbar-header {
-    display: block;
-    margin: 0;
-    padding: 0;
-    border: none;
-  }
-  
-  .encounter-toolbar-title {
-    font-weight: bold;
-    font-size: 14px;
-    color: var(--color-text-dark-primary);
-    margin: 0;
-  }
+     /* ────────────────────────────────────────────────
+     Header with Title (on its own row, left aligned)
+   ──────────────────────────────────────────────── */
+   .encounter-toolbar-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin: 0;
+     padding: 0;
+     border: none;
+   }
+   
+   .encounter-toolbar-title {
+     font-weight: bold;
+     font-size: 14px;
+     color: var(--color-text-dark-primary);
+     margin: 0;
+   }
+
+   /* ────────────────────────────────────────────────
+     Badge Container (right-aligned)
+   ──────────────────────────────────────────────── */
+   .encounter-badges {
+     display: flex;
+     align-items: center;
+     gap: 6px;
+   }
   
   /* ────────────────────────────────────────────────
     Row of Buttons + Badge
@@ -84,17 +95,44 @@
     font-size: 1.0em;
   }
   
-  /* ────────────────────────────────────────────────
-    Difficulty Badge
-  ──────────────────────────────────────────────── */
-  .difficulty-badge {
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+     /* ────────────────────────────────────────────────
+     CR Badges
+   ──────────────────────────────────────────────── */
+   .cr-badge {
+     padding: 2px 6px;
+     border-radius: 3px;
+     font-size: 10px;
+     font-weight: bold;
+     text-transform: uppercase;
+     letter-spacing: 0.5px;
+     background-color: #4a5568;
+     color: #ffffff;
+     border: 1px solid #2d3748;
+   }
+
+   .cr-badge.party-cr {
+     background-color: #3182ce;
+     color: #ffffff;
+     border: 1px solid #2c5282;
+   }
+
+   .cr-badge.monster-cr {
+     background-color: #e53e3e;
+     color: #ffffff;
+     border: 1px solid #c53030;
+   }
+
+   /* ────────────────────────────────────────────────
+     Difficulty Badge
+   ──────────────────────────────────────────────── */
+   .difficulty-badge {
+     padding: 2px 6px;
+     border-radius: 3px;
+     font-size: 10px;
+     font-weight: bold;
+     text-transform: uppercase;
+     letter-spacing: 0.5px;
+   }
   
   /* Difficulty colors */
   .difficulty-badge.easy {

@@ -143,6 +143,10 @@ export class EncounterToolbar {
                     difficulty: difficulty
                 };
 
+                // Calculate CR values
+                const partyCR = this.getPartyCR();
+                const monsterCR = this.getMonsterCR(metadata);
+
                 // Get the template
                 const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
                 getCachedTemplate(templatePath).then(template => {
@@ -153,6 +157,8 @@ export class EncounterToolbar {
                         hasMonsters,
                         difficulty: difficulty,
                         difficultyClass,
+                        partyCR: partyCR,
+                        monsterCR: monsterCR,
                         autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters')
                     };
                     
@@ -791,5 +797,168 @@ export class EncounterToolbar {
             console.error("BLACKSMITH | Encounter Toolbar: Error creating combat:", error);
             ui.notifications.error("Failed to create combat encounter.");
         }
+    }
+
+    // CR Calculation Functions
+    static getPartyCR() {
+        try {
+            // Get all player tokens on the current scene
+            const playerTokens = canvas.tokens.placeables.filter(token => 
+                token.actor && token.actor.type === 'character' && token.actor.hasPlayerOwner
+            );
+
+            if (playerTokens.length === 0) {
+                return "0";
+            }
+
+            // Calculate weighted party level using tiered formula
+            let totalLevel1to4 = 0;
+            let totalLevel5to10 = 0;
+            let totalLevel11to16 = 0;
+            let totalLevel17to20 = 0;
+
+            for (const token of playerTokens) {
+                const level = token.actor.system.details.level || 1;
+                
+                // Categorize by level brackets
+                if (level >= 1 && level <= 4) {
+                    totalLevel1to4 += level;
+                } else if (level >= 5 && level <= 10) {
+                    totalLevel5to10 += level;
+                } else if (level >= 11 && level <= 16) {
+                    totalLevel11to16 += level;
+                } else if (level >= 17 && level <= 20) {
+                    totalLevel17to20 += level;
+                }
+            }
+
+            // Apply weighted formula
+            const partyLevel = 
+                (totalLevel1to4 / 4) +
+                (totalLevel5to10 / 2) +
+                (totalLevel11to16 * 0.75) +
+                totalLevel17to20;
+
+            // Convert party level to approximate CR (party level is already weighted)
+            const partyCR = Math.max(1, Math.floor(partyLevel));
+            
+            return this.formatCR(partyCR);
+        } catch (error) {
+            console.warn("BLACKSMITH | Encounter Toolbar: Error calculating party CR:", error);
+            return "0";
+        }
+    }
+
+    static getMonsterCR(metadata) {
+        try {
+            if (!metadata.monsters || metadata.monsters.length === 0) {
+                return "0";
+            }
+
+            let totalCR = 0;
+            let monsterCount = 0;
+
+            for (const monsterId of metadata.monsters) {
+                try {
+                    const actor = fromUuidSync(monsterId);
+                    if (actor && actor.system) {
+                        // Use the existing CR calculation from window-query.js
+                        const cr = this.calculateNPCCR(actor);
+                        const crValue = this.parseCR(cr);
+                        totalCR += crValue;
+                        monsterCount++;
+                    }
+                } catch (error) {
+                    console.warn(`BLACKSMITH | Encounter Toolbar: Error calculating CR for monster ${monsterId}:`, error);
+                }
+            }
+
+            if (monsterCount === 0) {
+                return "0";
+            }
+
+            // Return average CR for multiple monsters
+            const averageCR = totalCR / monsterCount;
+            return this.formatCR(averageCR);
+        } catch (error) {
+            console.warn("BLACKSMITH | Encounter Toolbar: Error calculating monster CR:", error);
+            return "0";
+        }
+    }
+
+    static calculateNPCCR(actor) {
+        // Get actor data
+        const actorData = actor.system;
+        
+        // Calculate Defensive CR
+        const hp = foundry.utils.getProperty(actorData, "attributes.hp.value") || 0;
+        const ac = foundry.utils.getProperty(actorData, "attributes.ac.value") || 10;
+        let defensiveCR = this.calculateDefensiveCR(hp, ac);
+        
+        // Calculate Offensive CR
+        const spellDC = foundry.utils.getProperty(actorData, "attributes.spell.dc") || foundry.utils.getProperty(actorData, "attributes.spelldc") || 0;
+        const spells = foundry.utils.getProperty(actorData, "spells") || {};
+        const spellLevel = Math.max(...Object.values(spells).map(s => parseInt(foundry.utils.getProperty(s, "value") || 0)));
+        let offensiveCR = this.calculateOffensiveCR(spellDC, spellLevel);
+        
+        // Calculate final CR
+        const finalCR = (defensiveCR + offensiveCR) / 2;
+        
+        // Format CR
+        return this.formatCR(finalCR);
+    }
+
+    static calculateDefensiveCR(hp, ac) {
+        // Simplified CR calculation based on HP and AC
+        let cr = 0;
+        
+        // HP-based CR (very simplified)
+        if (hp <= 35) cr = 1/8;
+        else if (hp <= 49) cr = 1/4;
+        else if (hp <= 70) cr = 1/2;
+        else if (hp <= 85) cr = 1;
+        else if (hp <= 100) cr = 2;
+        
+        // Adjust for AC
+        if (ac >= 15) cr += 1;
+        
+        return cr;
+    }
+
+    static calculateOffensiveCR(spellDC, spellLevel) {
+        // Simplified CR calculation based on spell DC and level
+        let cr = 0;
+        
+        // Base CR on spell level
+        cr = spellLevel;
+        
+        // Adjust for spell DC
+        if (spellDC >= 15) cr += 1;
+        
+        return cr;
+    }
+
+    static parseCR(crString) {
+        // Parse CR string to numeric value
+        if (crString === "0") return 0;
+        if (crString === "1/8") return 0.125;
+        if (crString === "1/4") return 0.25;
+        if (crString === "1/2") return 0.5;
+        return parseFloat(crString) || 0;
+    }
+
+    static formatCR(cr) {
+        // Handle special cases
+        if (cr === 0) return "0";
+        if (cr > 0 && cr < 0.125) return "1/8";  // Round up very low CRs
+        
+        // Format standard CR values
+        const crValues = {
+            0.125: "1/8",
+            0.25: "1/4",
+            0.5: "1/2"
+        };
+        
+        return crValues[cr] || Math.round(cr).toString();
     }
 }
