@@ -245,20 +245,26 @@ export class EncounterToolbar {
                             const actorData = actor.toObject();
                             worldActor = await Actor.create(actorData);
                             console.log("BLACKSMITH | Encounter Toolbar: World actor created:", worldActor.id);
+                            
+                            // Update the actor's prototype token to use GM's default settings
+                            const defaultTokenData = game.settings.get("core", "defaultToken");
+                            await worldActor.update({
+                                "prototypeToken.displayName": defaultTokenData.displayName,
+                                "prototypeToken.displayBars": defaultTokenData.displayBars,
+                                "prototypeToken.disposition": defaultTokenData.disposition,
+                                "prototypeToken.vision": defaultTokenData.vision
+                            });
                         }
                         
-                        // Create the token using actor's prototype token data
-                        const tokenData = {
-                            ...worldActor.prototypeToken.toObject(),
-                            // Position and linking
-                            x: position.x,
-                            y: position.y,
-                            actorId: worldActor.id,
-                            actorLink: true,
-                            // Override the displayName setting to use hover behavior instead of prototype "never"
-                            // Use HOVER mode (1) which shows names on hover - this is the typical default behavior
-                            displayName: CONST.TOKEN_DISPLAY_MODES.HOVER || 1
-                        };
+                        // Get the GM's default token settings and merge with actor's prototype token
+                        const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                        const tokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
+                        
+                        // Override position and linking settings
+                        tokenData.x = position.x;
+                        tokenData.y = position.y;
+                        tokenData.actorId = worldActor.id;
+                        tokenData.actorLink = true;
                         
                         console.log("BLACKSMITH | Encounter Toolbar: Creating token with data:", tokenData);
                         

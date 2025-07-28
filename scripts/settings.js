@@ -858,6 +858,15 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
+		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentHidden', {
+			name: MODULE_ID + '.encounterToolbarDeploymentHidden-Label',
+			hint: MODULE_ID + '.encounterToolbarDeploymentHidden-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+		});
+
 		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentPattern', {
 			name: MODULE_ID + '.encounterToolbarDeploymentPattern-Label',
 			hint: MODULE_ID + '.encounterToolbarDeploymentPattern-Hint',
@@ -865,7 +874,8 @@ export const registerSettings = async () => {
 			choices: {
 				"circle": "Circle Formation",
 				"line": "Line Formation",
-				"random": "Random Positioning"
+				"scatter": "Scatter Positioning",
+				"sequential": "Sequential Positioning"
 			},
 			config: true,
 			scope: 'world',

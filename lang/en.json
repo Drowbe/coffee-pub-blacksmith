@@ -200,8 +200,8 @@
 		"headingH3NarrativeGenerator-Label": "Narration",
 		"headingH3NarrativeGenerator-Hint": "Description",
 
-
-
+		"encounterToolbarDeploymentHidden-Label": "Deployment Visibility",
+		"encounterToolbarDeploymentHidden-Hint": "If checked, deployed tokens will be hidden by default.",
 
 		
 		"defaultNarrativeFolder-Label": "Default Narrative Folder",
