@@ -266,6 +266,12 @@ export class EncounterToolbar {
                         tokenData.actorId = worldActor.id;
                         tokenData.actorLink = true;
                         
+                        // Honor the deployment hidden setting
+                        const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                        if (deploymentHidden) {
+                            tokenData.hidden = true;
+                        }
+                        
                         console.log("BLACKSMITH | Encounter Toolbar: Creating token with data:", tokenData);
                         
                         // Create the token on the canvas
