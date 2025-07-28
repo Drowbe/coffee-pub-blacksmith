@@ -711,12 +711,20 @@ export class EncounterToolbar {
         }
 
         try {
-            // Create a new combat encounter
-            const combat = await Combat.create({
-                scene: canvas.scene.id,
-                name: metadata.title || "Encounter",
-                active: true
-            });
+            // Check if there's already an active combat encounter
+            let combat = game.combats.active;
+            
+            if (!combat) {
+                // Create a new combat encounter if none exists
+                combat = await Combat.create({
+                    scene: canvas.scene.id,
+                    name: metadata.title || "Encounter",
+                    active: true
+                });
+                console.log("BLACKSMITH | Encounter Toolbar: Created new combat encounter");
+            } else {
+                console.log("BLACKSMITH | Encounter Toolbar: Adding to existing combat encounter");
+            }
 
             // Add deployed tokens to combat using their actual IDs
             for (const token of deployedTokens) {
@@ -732,7 +740,8 @@ export class EncounterToolbar {
                 }
             }
 
-            ui.notifications.info(`Combat encounter created with ${deployedTokens.length} deployed monsters.`);
+            const action = combat === game.combats.active ? "added to existing" : "created new";
+            ui.notifications.info(`${deployedTokens.length} monsters ${action} combat encounter.`);
             
         } catch (error) {
             console.error("BLACKSMITH | Encounter Toolbar: Error creating combat:", error);
