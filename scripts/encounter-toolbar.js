@@ -213,8 +213,11 @@ export class EncounterToolbar {
             console.log("BLACKSMITH | Encounter Toolbar: Create combat button clicked!");
             event.preventDefault();
             
-            // Deploy monsters and create combat in one flow
-            await EncounterToolbar._deployAndCreateCombat(metadata);
+            // Deploy monsters first, then create combat
+            const deployedTokens = await EncounterToolbar._deployMonsters(metadata);
+            if (deployedTokens && deployedTokens.length > 0) {
+                await EncounterToolbar._createCombatWithTokens(deployedTokens, metadata);
+            }
         });
     }
 
@@ -255,16 +258,156 @@ export class EncounterToolbar {
                 canvas.stage.on('mousemove', mouseMoveHandler);
             }
 
-            // Get the target position (where the user clicked)
-            const position = await this._getTargetPosition();
-            
-            if (!position) {
-                ui.notifications.warn("Please click on the canvas to place monsters.");
-                return [];
+            // Handle sequential deployment
+            if (deploymentPattern === "sequential") {
+                return await this._deploySequential(metadata, null);
+            } else {
+                // Get the target position (where the user clicked)
+                const position = await this._getTargetPosition();
+                
+                if (!position) {
+                    ui.notifications.warn("Please click on the canvas to place monsters.");
+                    return [];
+                }
+                
+                // Deploy each monster
+                for (let i = 0; i < metadata.monsters.length; i++) {
+                    const monsterId = metadata.monsters[i];
+                    
+                    try {
+                        const actor = await fromUuid(monsterId);
+                        console.log("BLACKSMITH | Encounter Toolbar: Loaded actor:", actor);
+                        
+                        if (actor) {
+                            console.log("BLACKSMITH | Encounter Toolbar: Actor ID:", actor.id);
+                            
+                            // First, create a world copy of the actor if it's from a compendium
+                            let worldActor = actor;
+                            if (actor.pack) {
+                                console.log("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor");
+                                const actorData = actor.toObject();
+                                
+                                // Get or create the encounter folder
+                                const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                                let encounterFolder = null;
+                                
+                                // Only create/find folder if folderName is not empty
+                                if (folderName && folderName.trim() !== '') {
+                                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                                    
+                                    if (!encounterFolder) {
+                                        console.log("BLACKSMITH | Encounter Toolbar: Creating encounter folder:", folderName);
+                                        encounterFolder = await Folder.create({
+                                            name: folderName,
+                                            type: 'Actor',
+                                            color: '#ff0000'
+                                        });
+                                        console.log("BLACKSMITH | Encounter Toolbar: Encounter folder created:", encounterFolder.id);
+                                    }
+                                }
+                                
+                                // Create the world actor
+                                const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                                console.log("BLACKSMITH | Encounter Toolbar: Creating actor with options:", createOptions);
+                                worldActor = await Actor.create(actorData, createOptions);
+                                console.log("BLACKSMITH | Encounter Toolbar: World actor created:", worldActor.id);
+                                console.log("BLACKSMITH | Encounter Toolbar: Actor folder:", worldActor.folder);
+                                
+                                // Ensure folder is assigned (sometimes it doesn't get set during creation)
+                                if (encounterFolder && !worldActor.folder) {
+                                    console.log("BLACKSMITH | Encounter Toolbar: Folder not assigned during creation, updating actor...");
+                                    await worldActor.update({ folder: encounterFolder.id });
+                                    console.log("BLACKSMITH | Encounter Toolbar: Actor folder after update:", worldActor.folder);
+                                }
+                                
+                                // Update the prototype token to honor GM defaults
+                                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                                const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
+                                await worldActor.update({ prototypeToken: prototypeTokenData });
+                            }
+                            
+                            // Get the deployment pattern setting for positioning
+                            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+                            const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                            
+                            // Calculate position based on pattern
+                            let tokenPosition;
+                            if (deploymentPattern === "circle") {
+                                tokenPosition = this._calculateCirclePosition(position, i, metadata.monsters.length);
+                            } else if (deploymentPattern === "scatter") {
+                                tokenPosition = this._calculateScatterPosition(position, i);
+                            } else if (deploymentPattern === "grid") {
+                                tokenPosition = this._calculateSquarePosition(position, i, metadata.monsters.length);
+                            } else {
+                                // Default to line formation
+                                const gridSize = canvas.scene.grid.size;
+                                tokenPosition = {
+                                    x: position.x + (i * gridSize),
+                                    y: position.y
+                                };
+                            }
+                            
+                            // Create token data
+                            const tokenData = foundry.utils.mergeObject(
+                                foundry.utils.deepClone(game.settings.get("core", "defaultToken")),
+                                worldActor.prototypeToken.toObject(),
+                                { overwrite: false }
+                            );
+                            
+                            // Set token properties
+                            tokenData.x = tokenPosition.x;
+                            tokenData.y = tokenPosition.y;
+                            tokenData.actorId = worldActor.id;
+                            tokenData.actorLink = false; // Create unlinked tokens
+                            tokenData.hidden = deploymentHidden;
+                            
+                            // Honor lock rotation setting
+                            const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
+                            if (lockRotation !== undefined) {
+                                tokenData.lockRotation = lockRotation;
+                            }
+                            
+                            // Create the token on the canvas
+                            const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+                            console.log("BLACKSMITH | Encounter Toolbar: Token creation result:", createdTokens);
+                            
+                            // Verify the token was created and is visible
+                            if (createdTokens && createdTokens.length > 0) {
+                                const token = createdTokens[0];
+                                deployedTokens.push(token);
+                                console.log("BLACKSMITH | Encounter Toolbar: Created token:", token);
+                                console.log("BLACKSMITH | Encounter Toolbar: Token position:", {x: token.x, y: token.y});
+                                console.log("BLACKSMITH | Encounter Toolbar: Token visible:", token.visible);
+                                console.log("BLACKSMITH | Encounter Toolbar: Token actor:", token.actor);
+                                console.log("BLACKSMITH | Encounter Toolbar: Token actorId:", token.actorId);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`BLACKSMITH | Encounter Toolbar: Failed to deploy monster ${monsterId}:`, error);
+                    }
+                }
+                
+                // Update tooltip to show completion
+                if (tooltip) {
+                    const patternName = this._getDeploymentPatternName(deploymentPattern);
+                    tooltip.innerHTML = `
+                        <div class="monster-name">Deployment Complete</div>
+                        <div class="progress">${patternName} - Deployed ${metadata.monsters.length} monsters</div>
+                    `;
+                    
+                    // Remove tooltip after a short delay
+                    setTimeout(() => {
+                        if (tooltip && tooltip.parentNode) {
+                            tooltip.remove();
+                        }
+                        if (mouseMoveHandler) {
+                            canvas.stage.off('mousemove', mouseMoveHandler);
+                        }
+                    }, 2000);
+                }
+                
+                return deployedTokens;
             }
-            
-            // Deploy using the position-based method
-            return await this._deployMonstersToPosition(metadata, position);
             
         } catch (error) {
             console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
@@ -283,155 +426,7 @@ export class EncounterToolbar {
         }
     }
 
-    static async _deployMonstersToPosition(metadata, position) {
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
-            return [];
-        }
 
-        // Get the deployment pattern setting
-        const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-        console.log("BLACKSMITH | Encounter Toolbar: Deploy to position pattern:", deploymentPattern);
-
-        const deployedTokens = [];
-
-        try {
-            
-            // Deploy each monster
-            for (let i = 0; i < metadata.monsters.length; i++) {
-                const monsterId = metadata.monsters[i];
-                
-
-                
-                try {
-                    const actor = await fromUuid(monsterId);
-                    console.log("BLACKSMITH | Encounter Toolbar: Loaded actor:", actor);
-                    
-                    if (actor) {
-                        console.log("BLACKSMITH | Encounter Toolbar: Actor ID:", actor.id);
-                        
-                        // First, create a world copy of the actor if it's from a compendium
-                        let worldActor = actor;
-                        if (actor.pack) {
-                            console.log("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor");
-                            const actorData = actor.toObject();
-                            
-                            // Get or create the encounter folder
-                            const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
-                            let encounterFolder = null;
-                            
-                            // Only create/find folder if folderName is not empty
-                            if (folderName && folderName.trim() !== '') {
-                                encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                                
-                                if (!encounterFolder) {
-                                    console.log("BLACKSMITH | Encounter Toolbar: Creating encounter folder:", folderName);
-                                    try {
-                                        encounterFolder = await Folder.create({
-                                            name: folderName,
-                                            type: 'Actor',
-                                            color: '#ff0000'
-                                        });
-                                        console.log("BLACKSMITH | Encounter Toolbar: Encounter folder created:", encounterFolder.id);
-                                    } catch (error) {
-                                        console.error("BLACKSMITH | Encounter Toolbar: Failed to create encounter folder:", error);
-                                        // Continue without folder if creation fails
-                                        encounterFolder = null;
-                                    }
-                                }
-                            }
-                            
-                            // Create actor in the encounter folder (or without folder if creation failed)
-                            const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
-                            console.log("BLACKSMITH | Encounter Toolbar: Creating actor with options:", createOptions);
-                            worldActor = await Actor.create(actorData, createOptions);
-                            console.log("BLACKSMITH | Encounter Toolbar: World actor created:", worldActor.id);
-                            console.log("BLACKSMITH | Encounter Toolbar: Actor folder:", worldActor.folder);
-                            
-                            // If folder assignment didn't work during creation, try to update it
-                            if (encounterFolder && !worldActor.folder) {
-                                console.log("BLACKSMITH | Encounter Toolbar: Folder not assigned during creation, updating actor...");
-                                await worldActor.update({ folder: encounterFolder.id });
-                                console.log("BLACKSMITH | Encounter Toolbar: Actor folder after update:", worldActor.folder);
-                            }
-                            
-                            // Update the actor's prototype token to use GM's default settings
-                            const defaultTokenData = game.settings.get("core", "defaultToken");
-                            await worldActor.update({
-                                "prototypeToken.displayName": defaultTokenData.displayName,
-                                "prototypeToken.displayBars": defaultTokenData.displayBars,
-                                "prototypeToken.disposition": defaultTokenData.disposition,
-                                "prototypeToken.vision": defaultTokenData.vision
-                            });
-                        }
-                        
-                        // Get the GM's default token settings and merge with actor's prototype token
-                        const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
-                        const tokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
-                        
-                        // Calculate position based on deployment pattern
-                        let tokenPosition;
-                        if (deploymentPattern === "circle") {
-                            tokenPosition = this._calculateCirclePosition(position, i, metadata.monsters.length);
-                        } else if (deploymentPattern === "scatter") {
-                            tokenPosition = this._calculateScatterPosition(position, i);
-                        } else if (deploymentPattern === "grid") {
-                            tokenPosition = this._calculateSquarePosition(position, i, metadata.monsters.length);
-                        } else if (deploymentPattern === "sequential") {
-                            // For sequential, we'll handle this separately
-                            continue; // Skip this iteration, we'll handle sequential separately
-                        } else {
-                            // Default to line formation for now
-                            tokenPosition = { x: position.x + (i * 100), y: position.y };
-                        }
-                        
-                        // Override position and linking settings
-                        tokenData.x = tokenPosition.x;
-                        tokenData.y = tokenPosition.y;
-                        tokenData.actorId = worldActor.id;
-                        tokenData.actorLink = false; // Create unlinked tokens
-                        
-                        // Honor the deployment hidden setting
-                        const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
-                        if (deploymentHidden) {
-                            tokenData.hidden = true;
-                        }
-                        
-                        console.log("BLACKSMITH | Encounter Toolbar: Creating token with data:", tokenData);
-                        
-                        // Create the token on the canvas
-                        const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                        console.log("BLACKSMITH | Encounter Toolbar: Token creation result:", createdTokens);
-                        
-                        // Verify the token was created and is visible
-                        if (createdTokens && createdTokens.length > 0) {
-                            const token = createdTokens[0];
-                            deployedTokens.push(token);
-                            console.log("BLACKSMITH | Encounter Toolbar: Created token:", token);
-                            console.log("BLACKSMITH | Encounter Toolbar: Token position:", {x: token.x, y: token.y});
-                            console.log("BLACKSMITH | Encounter Toolbar: Token visible:", token.visible);
-                            console.log("BLACKSMITH | Encounter Toolbar: Token actor:", token.actor);
-                            console.log("BLACKSMITH | Encounter Toolbar: Token actorId:", token.actorId);
-                        }
-                    }
-                } catch (error) {
-                    console.error(`BLACKSMITH | Encounter Toolbar: Failed to deploy monster ${monsterId}:`, error);
-                }
-            }
-
-            // Handle sequential deployment if that's the pattern
-            if (deploymentPattern === "sequential") {
-                const sequentialTokens = await this._deploySequential(metadata, position);
-                deployedTokens.push(...sequentialTokens);
-            }
-            
-            return deployedTokens;
-            
-        } catch (error) {
-            console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters to position:", error);
-            ui.notifications.error("Failed to deploy monsters.");
-        }
-    }
 
     static _calculateCirclePosition(centerPosition, index, totalTokens) {
         // Calculate circle formation
@@ -707,43 +702,7 @@ export class EncounterToolbar {
 
 
 
-    static async _deployAndCreateCombat(metadata) {
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
-            return;
-        }
 
-        try {
-            // Get the deployment pattern setting
-            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-            console.log("BLACKSMITH | Encounter Toolbar: Create combat deployment pattern:", deploymentPattern);
-
-            let deployedTokens = [];
-
-            // Handle sequential deployment for create-combat flow
-            if (deploymentPattern === "sequential") {
-                deployedTokens = await this._deploySequential(metadata, null);
-            } else {
-                // For non-sequential patterns, get position first
-                const position = await this._getTargetPosition();
-                if (!position) {
-                    ui.notifications.warn("Please click on the canvas to place monsters.");
-                    return;
-                }
-                
-                // Deploy using the regular method but without the initial notification
-                deployedTokens = await this._deployMonstersToPosition(metadata, position);
-            }
-
-            if (deployedTokens && deployedTokens.length > 0) {
-                await this._createCombatWithTokens(deployedTokens, metadata);
-            }
-            
-        } catch (error) {
-            console.error("BLACKSMITH | Encounter Toolbar: Error in deploy and create combat:", error);
-            ui.notifications.error("Failed to deploy monsters and create combat.");
-        }
-    }
 
     static async _createCombatWithTokens(deployedTokens, metadata) {
         if (!deployedTokens || deployedTokens.length === 0) {
