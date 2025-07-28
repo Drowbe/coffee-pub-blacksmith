@@ -402,8 +402,8 @@ async function findMonsterUUID(monsterData) {
             }
         }
         
-        // Check up to 5 compendium settings in order
-        for (let i = 1; i <= 5; i++) {
+        // Check up to 8 compendium settings in order
+        for (let i = 1; i <= 8; i++) {
             const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             
@@ -474,9 +474,9 @@ export async function buildCompendiumLinkActor(monsterData) {
                 return formatLink(`Actor.${strActorID}`, strActorName);
             }
         }
-        // Check up to 5 compendium settings in order
+        // Check up to 8 compendium settings in order
         let found = false;
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 8; i++) {
             const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);
@@ -527,8 +527,8 @@ export async function buildCompendiumLinkItem(itemData) {
                 return formatLink(`Item.${strItemID}`, strItemName);
             }
         }
-        // Check up to 5 compendium settings in order
-        for (let i = 1; i <= 5; i++) {
+        // Check up to 8 compendium settings in order
+        for (let i = 1; i <= 8; i++) {
             const compendiumSetting = game.settings.get(MODULE_ID, `itemCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);

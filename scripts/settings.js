@@ -2097,15 +2097,8 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// -- Default PRIMARY Monster Compendium --
-	// (Removed old monsterCompendiumPrimary setting)
-
-	// -- Default SECONDARY Monster Compendium --
-	// (Removed old monsterCompendiumSecondary setting)
-
-
-	// -- Monster Lookup Compendiums (up to 5) --
-	for (let i = 1; i <= 5; i++) {
+	// -- Monster Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= 8; i++) {
 		game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
 			name: `Monster Lookup ${i}`,
 			hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
@@ -2128,8 +2121,8 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// -- Item Lookup Compendiums (up to 5) --
-	for (let i = 1; i <= 5; i++) {
+	// -- Item Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= 8; i++) {
 		game.settings.register(MODULE_ID, `itemCompendium${i}` , {
 			name: `Item Lookup ${i}`,
 			hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
@@ -2140,18 +2133,6 @@ export const registerSettings = async () => {
 			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
 		});
 	}
-
-    // -- Search World Items First --
-    game.settings.register(MODULE_ID, 'searchWorldItemsFirst', {
-        name: 'Search World Items First',
-        hint: 'When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-        type: Boolean,
-        config: true,
-        scope: 'world',
-        default: false,
-    });
-
-
 
 
 	// *** ROUND ANNOUNCMENTS ***
