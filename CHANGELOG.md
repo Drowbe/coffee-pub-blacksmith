@@ -14,9 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Circle Formation:** Tokens are placed in a circle around the deployment point
   - **Scatter Positioning:** Tokens are scattered in a spiral pattern to prevent overlaps with random variation
   - **Grid Positioning:** Tokens are placed in a proper square grid formation using scene grid size
+  - **Sequential Positioning:** Tokens are placed one at a time with user guidance via tooltip
   - **Line Formation:** Default fallback pattern for backward compatibility
 - **Unlinked Token Creation:** Deployed tokens are now created as unlinked copies instead of linked tokens, providing better flexibility for individual token management.
 - **Lock Rotation Support:** Deployed tokens now honor the GM's default token rotation settings from Foundry core settings.
+- **CR Badge System:** Added Party CR and Monster CR badges to the encounter toolbar:
+  - **Party CR:** Calculates weighted party level using tiered formula (levels 1-4: 0.25x, 5-10: 0.5x, 11-16: 0.75x, 17-20: 1x)
+  - **Monster CR:** Shows total CR of monsters currently deployed on the canvas
+  - **Difficulty Badge:** Displays encounter difficulty with proper color coding
+- **Encounter Template Import:** Added "Encounter" option to the JSON import dropdown, allowing users to copy encounter templates from `prompt-encounter.txt` for easy encounter creation.
 
 ### Fixed
 - **Token Display Name Settings:** Fixed deployed tokens to honor the GM's core token display settings instead of prototype token settings. Tokens now properly use the GM's default name display mode (e.g., "anyone on hover" vs "never").
@@ -25,18 +31,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Grid Formation Issues:** Fixed grid deployment pattern to create proper square formations instead of single lines, using actual scene grid size for positioning.
 - **Memory Leaks:** Fixed memory leaks in event handlers and socket communications to improve performance and prevent memory accumulation over time.
 - **Debug Logging:** Optimized debug logging to reduce console noise and improve performance by using proper logging levels and conditional debugging.
+- **Combat Token Addition:** Fixed issue where deployed tokens were not being added to combat encounters. Now properly tracks deployed tokens and adds them to existing or new combat encounters.
+- **Double Deployment Issue:** Fixed issue where clicking "create-combat" button would deploy tokens twice. Consolidated deployment logic into single function used by both buttons.
+- **Spell DC Deprecation Warning:** Updated CR calculation to use new DnD5e 4.3+ spell DC property path (`attributes.spell.dc`) with backward compatibility.
 
 ### Changed
 - **Deployment Pattern Setting:** Added `encounterToolbarDeploymentPattern` setting with options for circle, line, scatter, grid, and sequential positioning.
 - **Deployment Hidden Setting:** Added `encounterToolbarDeploymentHidden` setting to control whether deployed tokens are hidden by default.
 - **Improved Token Positioning:** All deployment patterns now properly snap to the scene grid and use appropriate spacing based on grid size.
 - **Enhanced Error Handling:** Added comprehensive error handling for folder creation and actor placement operations.
+- **Toolbar Layout:** Redesigned encounter toolbar with title above buttons and badges, improved badge positioning and styling.
+- **Combat Creation Flow:** Updated "create-combat" button to deploy tokens first, then create combat with those tokens, ensuring proper token tracking.
 
 ### Technical Details
 - Implemented proper merging of GM's `defaultToken` settings with actor prototype tokens using `foundry.utils.mergeObject`
 - Added grid-aware positioning using `canvas.scene.grid.size` for accurate token placement
 - Enhanced spiral-based scatter algorithm with random variation for natural-looking distributions
 - Improved folder management with automatic creation and error recovery
+- Added weighted party CR calculation using tiered level brackets for realistic encounter scaling
+- Implemented canvas-based monster CR calculation for real-time encounter difficulty assessment
 
 ## [1.0.19] - Item Import and UI Improvements
 
