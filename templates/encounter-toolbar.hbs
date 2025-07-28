@@ -1,27 +1,28 @@
-{{!-- Compact Encounter Toolbar Template --}}
-<div class="encounter-toolbar-compact">
+  <div class="encounter-toolbar-compact">
+    <div class="encounter-toolbar-header">
+      <span class="encounter-toolbar-title">Encounter Tools</span>
+              {{#if difficulty}}
+        <span class="difficulty-badge {{difficultyClass}}">
+          {{difficulty}}
+        </span>
+        {{/if}}
+    </div>
+
     {{#if hasEncounterData}}
-        <h3>Encounter Tools</h3>
+      <div class="encounter-toolbar-actions">
         {{#if hasMonsters}}
-        
-        <button class="encounter-btn deploy-monsters" data-tooltip="Deploy monsters to the current scene">
-            <i class="fas fa-dragon"></i>
+        <button class="encounter-btn deploy-monsters">
+          <i class="fas fa-dragon"></i>
         </button>
-        {{/if}}
-        
-        <button class="encounter-btn create-combat" data-tooltip="Deploy monsters to the current scene and create a new combat encounter">
-            <i class="fas fa-swords"></i>
-        </button>
-        {{#if difficulty}}
-        <div class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
-            {{difficulty}}
-        </div>
         {{/if}}
 
+        <button class="encounter-btn create-combat">
+          <i class="fas fa-swords"></i>
+        </button>
+
+
+      </div>
     {{else}}
-
-        <h3>Encounter Tools</h3>
-        <p>No encounter data found in this journal entry.</p>
-
-    {{/if}} 
-</div>
+      <p>No encounter data found in this journal entry.</p>
+    {{/if}}
+  </div>

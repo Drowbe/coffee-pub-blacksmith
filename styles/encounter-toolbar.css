@@ -1,157 +1,132 @@
-/* Toolbar Wrapper */
+/* ────────────────────────────────────────────────
+  Toolbar Wrapper (outermost container)
+──────────────────────────────────────────────── */
 .encounter-toolbar {
-    margin-bottom: 10px;
-    background: rgba(0, 0, 0, 0.00);
-    border-top: 0px solid rgba(0, 0, 0, 0.2);
     border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
-    border-left: 0px solid rgba(0, 0, 0, 0.2);
-    border-right: 0px solid rgba(0, 0, 0, 0.2);
-    border-radius: 0px;
-    padding-top: 0px;
-    padding-bottom: 8px;
-    padding-left: 14px;
-    padding-right: 16px;
+    padding: 0 16px 8px 14px;
+    height: auto;
+    max-height: none !important;
+    overflow: visible;
+    min-width: 100%;
+    display: inline-block !important;
+    vertical-align: top;
+    flex: 0 0 auto !important;
+    align-self: flex-start !important;
+  }
+  
+  /* ────────────────────────────────────────────────
+    Inner Compact Toolbar Container
+  ──────────────────────────────────────────────── */
+  .encounter-toolbar-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
     font-family: var(--font-primary);
-    max-height: 60px;
-}
-
-/* Encounter Toolbar Styles */
-.encounter-toolbar-compact {
+  }
+  
+  /* ────────────────────────────────────────────────
+    Header with Title (on its own row, left aligned)
+  ──────────────────────────────────────────────── */
+  .encounter-toolbar-header {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  
+  .encounter-toolbar-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--color-text-dark-primary);
+    margin: 0;
+  }
+  
+  /* ────────────────────────────────────────────────
+    Row of Buttons + Badge
+  ──────────────────────────────────────────────── */
+  .encounter-toolbar-actions {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 5px 8px;
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-    margin-bottom: 8px;
-    font-family: var(--font-primary);
-}
-
-/* Buttons */
-
-.encounter-btn {
+    flex-wrap: wrap; /* Allows wrapping on narrow screens */
+  }
+  
+  /* ────────────────────────────────────────────────
+    Action Buttons
+  ──────────────────────────────────────────────── */
+  .encounter-btn {
     line-height: normal;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    padding-left: 6px;
-    padding-right: 6px;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    margin-left: 0px;
-    margin-right: 0px;
+    padding: 4px 6px;
+    margin: 2px 0;
     font-size: 0.9em;
     border-radius: 4px;
     text-transform: uppercase;
     text-align: center;
-    width: auto;
     background-color: #312E20;
     color: #ffffff;
     border: 1px solid #625D45;
-}
-
-.encounter-btn:hover {
+    width: auto;
+  }
+  
+  .encounter-btn:hover {
     background-color: #EBD04A;
     color: #312E20;
     border: 1px solid #AB993C;
     box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.4);
-}
-.encounter-btn i {
+  }
+  
+  .encounter-btn i {
     padding-left: 2px;
     padding-top: 2px;
     font-size: 1.0em;
-}
-
-
-/* Toolbar Header */
-.encounter-toolbar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--color-border-light);
-}
-
-.encounter-toolbar-header .title {
-    font-weight: bold;
-    font-size: 14px;
-    color: var(--color-text-dark-primary);
-}
-
-/* Difficulty */
-
-
-.difficulty-badge {
+  }
+  
+  /* ────────────────────────────────────────────────
+    Difficulty Badge
+  ──────────────────────────────────────────────── */
+  .difficulty-badge {
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 10px;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-left: auto;
-}
-
-/* Difficulty colors */
-.difficulty-badge.easy {
+  }
+  
+  /* Difficulty colors */
+  .difficulty-badge.easy {
     background-color: #4caf50;
     color: white;
-}
-
-.difficulty-badge.medium {
+  }
+  
+  .difficulty-badge.medium {
     background-color: #ff9800;
     color: white;
-}
-
-.difficulty-badge.hard {
+  }
+  
+  .difficulty-badge.hard {
     background-color: #f44336;
     color: white;
-}
-
-.difficulty-badge.deadly {
+  }
+  
+  .difficulty-badge.deadly {
     background-color: #9c27b0;
     color: white;
-}
-
-
-.encounter-toolbar-header .difficulty {
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.encounter-toolbar-header .difficulty.easy {
-    background-color: #4caf50;
-    color: white;
-}
-
-.encounter-toolbar-header .difficulty.medium {
-    background-color: #ff9800;
-    color: white;
-}
-
-.encounter-toolbar-header .difficulty.hard {
-    background-color: #f44336;
-    color: white;
-}
-
-.encounter-toolbar-header .difficulty.deadly {
-    background-color: #9c27b0;
-    color: white;
-}
-
-
-
-/* Sequential Deployment Tooltip */
-.encounter-tooltip {
+  }
+  
+  /* ────────────────────────────────────────────────
+    Optional: Tooltip styling
+  ──────────────────────────────────────────────── */
+  .encounter-tooltip {
     position: absolute;
     background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 14px;
-    font-family: var(--font-primary);
     pointer-events: none;
     z-index: 1000;
     display: none;
@@ -159,59 +134,50 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     max-width: 250px;
     text-align: center;
-}
-
-.encounter-tooltip.show {
+  }
+  
+  .encounter-tooltip.show {
     display: block;
-}
-
-.encounter-tooltip .monster-name {
+  }
+  
+  .encounter-tooltip .monster-name {
     font-weight: bold;
     color: #ffd700;
-}
-
-.encounter-tooltip .progress {
+  }
+  
+  .encounter-tooltip .progress {
     font-size: 12px;
     color: #cccccc;
     margin-top: 4px;
-}
-
-
-
-
-
-
-
-/* No Encounter Toolbar */
-.encounter-toolbar.no-encounter {
+  }
+  
+  /* ────────────────────────────────────────────────
+    Optional: Empty State
+  ──────────────────────────────────────────────── */
+  .encounter-toolbar.no-encounter {
     background: #f0f0f0;
     border: 1px solid #ccc;
     padding: 10px;
     margin: 10px 0;
     border-radius: 5px;
     text-align: center;
-}
-
-.encounter-toolbar.no-encounter h3 {
+  }
+  
+  .encounter-toolbar.no-encounter h3 {
     margin: 0 0 10px 0;
     color: #666;
     font-size: 14px;
-}
-
-.encounter-toolbar.no-encounter p {
+  }
+  
+  .encounter-toolbar.no-encounter p {
     margin: 0;
     color: #888;
     font-style: italic;
     font-size: 12px;
-}
-
-.encounter-toolbar.no-encounter p:last-child {
-    margin: 5px 0 0 0;
+  }
+  
+  .encounter-toolbar.no-encounter p:last-child {
+    margin-top: 5px;
     font-size: 11px;
-}
-
-
-
-
-
-
+  }
+  
