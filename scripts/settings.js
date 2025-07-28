@@ -827,6 +827,17 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 
+		// ---------- SUBHEADING - JOURNAL QOL ----------
+		game.settings.register(MODULE_ID, "headingH3simpleJournalQOL", {
+			name: 'Journal Quality of Life Settings',
+			hint: '',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
 
 		// -- JOURNAL INTERACTIONS --
 		game.settings.register(MODULE_ID, 'enableJournalDoubleClick', {
@@ -839,6 +850,20 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+
+
+		// ---------- SUBHEADING - AUTOMATED ENCOUNTERS ----------
+		game.settings.register(MODULE_ID, "headingH3simpleEncounterSettings", {
+			name: 'Automated Encounter Settings',
+			hint: '',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
+
 		// -- ENCOUNTER TOOLBAR --
 		game.settings.register(MODULE_ID, 'enableEncounterToolbar', {
 			name: MODULE_ID + '.enableEncounterToolbar-Label',
@@ -849,6 +874,17 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+		// -- Encounter Folder --
+		game.settings.register(MODULE_ID, 'encounterFolder', {
+			name: 'Encounter Folder',
+			hint: 'Folder in which to add actors when deloying from the journal. Leave blank to not put them in a folder.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'Encounters'
+		});
+
+		// -- Auto Create Combat --
 		game.settings.register(MODULE_ID, 'autoCreateCombatForEncounters', {
 			name: MODULE_ID + '.autoCreateCombatForEncounters-Label',
 			hint: MODULE_ID + '.autoCreateCombatForEncounters-Hint',
@@ -858,6 +894,7 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
+		// -- Deployment Hidden --
 		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentHidden', {
 			name: MODULE_ID + '.encounterToolbarDeploymentHidden-Label',
 			hint: MODULE_ID + '.encounterToolbarDeploymentHidden-Hint',
@@ -867,6 +904,7 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
+		// -- Deployment Pattern --
 		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentPattern', {
 			name: MODULE_ID + '.encounterToolbarDeploymentPattern-Label',
 			hint: MODULE_ID + '.encounterToolbarDeploymentPattern-Hint',
@@ -875,11 +913,12 @@ export const registerSettings = async () => {
 				"circle": "Circle Formation",
 				"line": "Line Formation",
 				"scatter": "Scatter Positioning",
+				"grid": "Grid Positioning",
 				"sequential": "Sequential Positioning"
 			},
 			config: true,
 			scope: 'world',
-			default: "circle",
+			default: "grid",
 		});
 
 		// *** SCENE SETTINGS ***

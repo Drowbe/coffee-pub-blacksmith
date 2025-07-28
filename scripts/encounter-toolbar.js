@@ -227,6 +227,10 @@ export class EncounterToolbar {
                 return;
             }
 
+            // Get the deployment pattern setting
+            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+            console.log("BLACKSMITH | Encounter Toolbar: Deployment pattern:", deploymentPattern);
+            
             // Deploy each monster
             for (let i = 0; i < metadata.monsters.length; i++) {
                 const monsterId = metadata.monsters[i];
@@ -243,8 +247,45 @@ export class EncounterToolbar {
                         if (actor.pack) {
                             console.log("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor");
                             const actorData = actor.toObject();
-                            worldActor = await Actor.create(actorData);
+                            
+                            // Get or create the encounter folder
+                            const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                            let encounterFolder = null;
+                            
+                            // Only create/find folder if folderName is not empty
+                            if (folderName && folderName.trim() !== '') {
+                                encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                                
+                                if (!encounterFolder) {
+                                    console.log("BLACKSMITH | Encounter Toolbar: Creating encounter folder:", folderName);
+                                    try {
+                                        encounterFolder = await Folder.create({
+                                            name: folderName,
+                                            type: 'Actor',
+                                            color: '#ff0000'
+                                        });
+                                        console.log("BLACKSMITH | Encounter Toolbar: Encounter folder created:", encounterFolder.id);
+                                    } catch (error) {
+                                        console.error("BLACKSMITH | Encounter Toolbar: Failed to create encounter folder:", error);
+                                        // Continue without folder if creation fails
+                                        encounterFolder = null;
+                                    }
+                                }
+                            }
+                            
+                            // Create actor in the encounter folder (or without folder if creation failed)
+                            const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                            console.log("BLACKSMITH | Encounter Toolbar: Creating actor with options:", createOptions);
+                            worldActor = await Actor.create(actorData, createOptions);
                             console.log("BLACKSMITH | Encounter Toolbar: World actor created:", worldActor.id);
+                            console.log("BLACKSMITH | Encounter Toolbar: Actor folder:", worldActor.folder);
+                            
+                            // If folder assignment didn't work during creation, try to update it
+                            if (encounterFolder && !worldActor.folder) {
+                                console.log("BLACKSMITH | Encounter Toolbar: Folder not assigned during creation, updating actor...");
+                                await worldActor.update({ folder: encounterFolder.id });
+                                console.log("BLACKSMITH | Encounter Toolbar: Actor folder after update:", worldActor.folder);
+                            }
                             
                             // Update the actor's prototype token to use GM's default settings
                             const defaultTokenData = game.settings.get("core", "defaultToken");
@@ -260,11 +301,24 @@ export class EncounterToolbar {
                         const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
                         const tokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
                         
+                        // Calculate position based on deployment pattern
+                        let tokenPosition;
+                        if (deploymentPattern === "circle") {
+                            tokenPosition = this._calculateCirclePosition(position, i, metadata.monsters.length);
+                        } else if (deploymentPattern === "scatter") {
+                            tokenPosition = this._calculateScatterPosition(position, i);
+                        } else if (deploymentPattern === "grid") {
+                            tokenPosition = this._calculateSquarePosition(position, i, metadata.monsters.length);
+                        } else {
+                            // Default to line formation for now
+                            tokenPosition = { x: position.x + (i * 100), y: position.y };
+                        }
+                        
                         // Override position and linking settings
-                        tokenData.x = position.x;
-                        tokenData.y = position.y;
+                        tokenData.x = tokenPosition.x;
+                        tokenData.y = tokenPosition.y;
                         tokenData.actorId = worldActor.id;
-                        tokenData.actorLink = true;
+                        tokenData.actorLink = false; // Create unlinked tokens
                         
                         // Honor the deployment hidden setting
                         const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
@@ -287,9 +341,6 @@ export class EncounterToolbar {
                             console.log("BLACKSMITH | Encounter Toolbar: Token actor:", token.actor);
                             console.log("BLACKSMITH | Encounter Toolbar: Token actorId:", token.actorId);
                         }
-                        
-                        // Add some offset for multiple monsters
-                        position.x += 100;
                     }
                 } catch (error) {
                     console.error(`BLACKSMITH | Encounter Toolbar: Failed to deploy monster ${monsterId}:`, error);
@@ -302,6 +353,75 @@ export class EncounterToolbar {
             console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
             ui.notifications.error("Failed to deploy monsters.");
         }
+    }
+
+    static _calculateCirclePosition(centerPosition, index, totalTokens) {
+        // Calculate circle formation
+        const radius = 100; // Base radius in pixels
+        const angleStep = (2 * Math.PI) / totalTokens;
+        const angle = index * angleStep;
+        
+        const x = centerPosition.x + (radius * Math.cos(angle));
+        const y = centerPosition.y + (radius * Math.sin(angle));
+        
+        return { x, y };
+    }
+
+    static _calculateScatterPosition(centerPosition, index) {
+        // Calculate scatter formation using spiral pattern to prevent overlaps
+        const gridSize = canvas.scene.grid.size;
+        const spacing = gridSize * 1.5; // Minimum spacing between tokens
+        
+        // Use spiral pattern for better distribution
+        const spiralRadius = spacing * (index + 1);
+        const spiralAngle = index * Math.PI / 3; // Golden angle approximation
+        
+        // Add some randomness to the spiral
+        const randomOffset = (Math.random() - 0.5) * spacing * 0.5;
+        
+        // Calculate position
+        let x = centerPosition.x + (spiralRadius * Math.cos(spiralAngle)) + randomOffset;
+        let y = centerPosition.y + (spiralRadius * Math.sin(spiralAngle)) + randomOffset;
+        
+        // Snap to grid
+        const snappedPosition = canvas.grid.getSnappedPoint(x, y);
+        if (snappedPosition) {
+            x = snappedPosition.x;
+            y = snappedPosition.y;
+        }
+        
+        console.log(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (gridSize ${gridSize}):`, { x, y });
+        return { x, y };
+    }
+
+    static _calculateSquarePosition(centerPosition, index, totalTokens) {
+        // Calculate square formation - grid-based square block
+        const gridSize = canvas.scene.grid.size; // Use actual scene grid size
+        const spacing = gridSize; // Use exact grid size for proper grid alignment
+        
+        // Calculate the dimensions of the square
+        const sideLength = Math.ceil(Math.sqrt(totalTokens));
+        
+        // Calculate row and column for this token
+        const row = Math.floor(index / sideLength);
+        const col = index % sideLength;
+        
+        // Calculate offset from center to make the square centered on the click point
+        const offsetX = (sideLength - 1) * spacing / 2;
+        const offsetY = (sideLength - 1) * spacing / 2;
+        
+        let x = centerPosition.x + (col * spacing) - offsetX;
+        let y = centerPosition.y + (row * spacing) - offsetY;
+        
+        // Snap to grid
+        const snappedPosition = canvas.grid.getSnappedPoint(x, y);
+        if (snappedPosition) {
+            x = snappedPosition.x;
+            y = snappedPosition.y;
+        }
+        
+        console.log(`BLACKSMITH | Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize}):`, { x, y });
+        return { x, y };
     }
 
     static async _getTargetPosition() {
