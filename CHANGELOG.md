@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.0.20] - Encounter Toolbar and Token Deployment
+
+### Added
+- **Encounter Folder Support:** Added support for placing deployed actors in a configurable folder. When the `encounterFolder` setting is specified, actors are automatically placed in that folder. If the folder doesn't exist, it's created automatically. If the setting is empty, actors are placed in the root directory.
+- **Enhanced Token Deployment Patterns:** Implemented multiple deployment patterns for encounter tokens:
+  - **Circle Formation:** Tokens are placed in a circle around the deployment point
+  - **Scatter Positioning:** Tokens are scattered in a spiral pattern to prevent overlaps with random variation
+  - **Grid Positioning:** Tokens are placed in a proper square grid formation using scene grid size
+  - **Line Formation:** Default fallback pattern for backward compatibility
+- **Unlinked Token Creation:** Deployed tokens are now created as unlinked copies instead of linked tokens, providing better flexibility for individual token management.
+- **Lock Rotation Support:** Deployed tokens now honor the GM's default token rotation settings from Foundry core settings.
+
+### Fixed
+- **Token Display Name Settings:** Fixed deployed tokens to honor the GM's core token display settings instead of prototype token settings. Tokens now properly use the GM's default name display mode (e.g., "anyone on hover" vs "never").
+- **Actor Prototype Token Updates:** Fixed actor prototype tokens to be updated with GM's default settings when created from compendiums, ensuring subsequent drags from the actor tab also honor GM defaults.
+- **Scatter Pattern Overlaps:** Fixed scatter deployment pattern to prevent token overlaps by using a spiral-based distribution with adequate spacing.
+- **Grid Formation Issues:** Fixed grid deployment pattern to create proper square formations instead of single lines, using actual scene grid size for positioning.
+- **Memory Leaks:** Fixed memory leaks in event handlers and socket communications to improve performance and prevent memory accumulation over time.
+- **Debug Logging:** Optimized debug logging to reduce console noise and improve performance by using proper logging levels and conditional debugging.
+
+### Changed
+- **Deployment Pattern Setting:** Added `encounterToolbarDeploymentPattern` setting with options for circle, line, scatter, grid, and sequential positioning.
+- **Deployment Hidden Setting:** Added `encounterToolbarDeploymentHidden` setting to control whether deployed tokens are hidden by default.
+- **Improved Token Positioning:** All deployment patterns now properly snap to the scene grid and use appropriate spacing based on grid size.
+- **Enhanced Error Handling:** Added comprehensive error handling for folder creation and actor placement operations.
+
+### Technical Details
+- Implemented proper merging of GM's `defaultToken` settings with actor prototype tokens using `foundry.utils.mergeObject`
+- Added grid-aware positioning using `canvas.scene.grid.size` for accurate token placement
+- Enhanced spiral-based scatter algorithm with random variation for natural-looking distributions
+- Improved folder management with automatic creation and error recovery
+
 ## [1.0.19] - Item Import and UI Improvements
 
 ### Added
