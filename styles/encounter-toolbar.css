@@ -178,3 +178,36 @@
         justify-content: center;
     }
 } 
+
+/* Sequential Deployment Tooltip */
+.encounter-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: var(--font-primary);
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    max-width: 250px;
+    text-align: center;
+}
+
+.encounter-tooltip.show {
+    display: block;
+}
+
+.encounter-tooltip .monster-name {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.encounter-tooltip .progress {
+    font-size: 12px;
+    color: #cccccc;
+    margin-top: 4px;
+}

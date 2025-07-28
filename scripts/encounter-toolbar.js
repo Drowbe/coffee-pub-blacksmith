@@ -309,6 +309,9 @@ export class EncounterToolbar {
                             tokenPosition = this._calculateScatterPosition(position, i);
                         } else if (deploymentPattern === "grid") {
                             tokenPosition = this._calculateSquarePosition(position, i, metadata.monsters.length);
+                        } else if (deploymentPattern === "sequential") {
+                            // For sequential, we'll handle this separately
+                            continue; // Skip this iteration, we'll handle sequential separately
                         } else {
                             // Default to line formation for now
                             tokenPosition = { x: position.x + (i * 100), y: position.y };
@@ -347,7 +350,12 @@ export class EncounterToolbar {
                 }
             }
 
-            ui.notifications.info(`Deployed ${metadata.monsters.length} monsters.`);
+            // Handle sequential deployment if that's the pattern
+            if (deploymentPattern === "sequential") {
+                await this._deploySequential(metadata, position);
+            } else {
+                ui.notifications.info(`Deployed ${metadata.monsters.length} monsters.`);
+            }
             
         } catch (error) {
             console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
@@ -422,6 +430,130 @@ export class EncounterToolbar {
         
         console.log(`BLACKSMITH | Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize}):`, { x, y });
         return { x, y };
+    }
+
+    static async _deploySequential(metadata, initialPosition) {
+        // Set cursor to indicate placement mode
+        canvas.stage.cursor = 'crosshair';
+        
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'encounter-tooltip';
+        document.body.appendChild(tooltip);
+        
+        // Mouse move handler for tooltip
+        const mouseMoveHandler = (event) => {
+            tooltip.style.left = (event.data.global.x + 10) + 'px';
+            tooltip.style.top = (event.data.global.y - 30) + 'px';
+        };
+        
+        try {
+            // Create all actors first (without placing tokens)
+            const actors = [];
+            for (let i = 0; i < metadata.monsters.length; i++) {
+                const monsterId = metadata.monsters[i];
+                const actor = await fromUuid(monsterId);
+                
+                if (actor) {
+                    // Create world copy if from compendium
+                    let worldActor = actor;
+                    if (actor.pack) {
+                        const actorData = actor.toObject();
+                        
+                        // Get or create the encounter folder
+                        const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                        let encounterFolder = null;
+                        
+                        if (folderName && folderName.trim() !== '') {
+                            encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                            
+                            if (!encounterFolder) {
+                                try {
+                                    encounterFolder = await Folder.create({
+                                        name: folderName,
+                                        type: 'Actor',
+                                        color: '#ff0000'
+                                    });
+                                } catch (error) {
+                                    console.error("BLACKSMITH | Encounter Toolbar: Failed to create encounter folder:", error);
+                                    encounterFolder = null;
+                                }
+                            }
+                        }
+                        
+                        const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                        worldActor = await Actor.create(actorData, createOptions);
+                        
+                        if (encounterFolder && !worldActor.folder) {
+                            await worldActor.update({ folder: encounterFolder.id });
+                        }
+                        
+                        // Update prototype token settings
+                        const defaultTokenData = game.settings.get("core", "defaultToken");
+                        await worldActor.update({
+                            "prototypeToken.displayName": defaultTokenData.displayName,
+                            "prototypeToken.displayBars": defaultTokenData.displayBars,
+                            "prototypeToken.disposition": defaultTokenData.disposition,
+                            "prototypeToken.vision": defaultTokenData.vision
+                        });
+                    }
+                    
+                    actors.push(worldActor);
+                }
+            }
+            
+            // Now place tokens one by one
+            for (let i = 0; i < actors.length; i++) {
+                const actor = actors[i];
+                const monsterName = actor.name;
+                
+                // Update tooltip content
+                tooltip.innerHTML = `
+                    <div class="monster-name">${monsterName}</div>
+                    <div class="progress">Click to place (${i + 1} of ${actors.length})</div>
+                `;
+                tooltip.classList.add('show');
+                
+                // Add mouse move handler
+                canvas.stage.on('mousemove', mouseMoveHandler);
+                
+                // Get position for this token
+                const position = await this._getTargetPosition();
+                
+                // Remove mouse move handler
+                canvas.stage.off('mousemove', mouseMoveHandler);
+                
+                // Create token data
+                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                const tokenData = foundry.utils.mergeObject(defaultTokenData, actor.prototypeToken.toObject(), { overwrite: false });
+                
+                // Set position and linking
+                tokenData.x = position.x;
+                tokenData.y = position.y;
+                tokenData.actorId = actor.id;
+                tokenData.actorLink = false;
+                
+                // Honor deployment hidden setting
+                const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                if (deploymentHidden) {
+                    tokenData.hidden = true;
+                }
+                
+                // Create the token
+                await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+            }
+            
+            ui.notifications.info(`Sequentially deployed ${actors.length} monsters.`);
+            
+        } catch (error) {
+            console.error("BLACKSMITH | Encounter Toolbar: Error in sequential deployment:", error);
+            ui.notifications.error("Failed to deploy monsters sequentially.");
+        } finally {
+            // Clean up
+            canvas.stage.off('mousemove', mouseMoveHandler);
+            tooltip.remove();
+            canvas.stage.cursor = 'default';
+        }
     }
 
     static async _getTargetPosition() {
