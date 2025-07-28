@@ -33,7 +33,7 @@
    .encounter-toolbar-header {
      display: flex;
      justify-content: space-between;
-     align-items: center;
+     align-items: left;
      margin: 0;
      padding: 0;
      border: none;
@@ -95,65 +95,81 @@
     font-size: 1.0em;
   }
   
-     /* ────────────────────────────────────────────────
-     CR Badges
-   ──────────────────────────────────────────────── */
+  
+  /* ────────────────────────────────────────────────
+    CR Badges
+  ──────────────────────────────────────────────── */
    .cr-badge {
-     padding: 2px 6px;
-     border-radius: 3px;
-     font-size: 10px;
-     font-weight: bold;
-     text-transform: uppercase;
-     letter-spacing: 0.5px;
-     background-color: #4a5568;
-     color: #ffffff;
-     border: 1px solid #2d3748;
-   }
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: .8em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: #4a5568;
+    color: #ffffff;
+    border: 1px solid #2d3748;
+  }
 
-   .cr-badge.party-cr {
-     background-color: #3182ce;
-     color: #ffffff;
-     border: 1px solid #2c5282;
-   }
+.cr-badge i {
+   font-size: .8em;
+   margin-right: 3px;
+ }
 
-   .cr-badge.monster-cr {
-     background-color: #e53e3e;
-     color: #ffffff;
-     border: 1px solid #c53030;
-   }
+  .cr-badge.encounter-party-cr {
+    background-color: #114270;
+    color: #ffffff;
+    border: 1px solid #2c5282;
+  }
 
-   /* ────────────────────────────────────────────────
-     Difficulty Badge
-   ──────────────────────────────────────────────── */
-   .difficulty-badge {
-     padding: 2px 6px;
-     border-radius: 3px;
-     font-size: 10px;
-     font-weight: bold;
-     text-transform: uppercase;
-     letter-spacing: 0.5px;
-   }
-  
-  /* Difficulty colors */
-  .difficulty-badge.easy {
-    background-color: #4caf50;
-    color: white;
+  .cr-badge.encounter-monster-cr {
+    background-color: #8f1515;
+    color: #ffffff;
+    border: 1px solid #771111;
   }
-  
-  .difficulty-badge.medium {
-    background-color: #ff9800;
-    color: white;
+
+  /* ────────────────────────────────────────────────
+    Difficulty Badge
+  ──────────────────────────────────────────────── */
+  .difficulty-badge {
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: .8em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
   }
-  
-  .difficulty-badge.hard {
-    background-color: #f44336;
-    color: white;
-  }
-  
-  .difficulty-badge.deadly {
-    background-color: #9c27b0;
-    color: white;
-  }
+
+  .difficulty-badge i {
+   font-size: .8em;
+   margin-right: 3px;
+ }
+ 
+ /* Difficulty colors */
+ .difficulty-badge.easy {
+   background-color: #197c1d;
+   border: 1px solid #0d5510;
+   color: #ffffff;
+ }
+ 
+ .difficulty-badge.medium {
+   background-color: #d48105;
+   border: 1px solid #995e06;
+   color: #ffffff;
+ }
+ 
+ .difficulty-badge.hard {
+   background-color: #c9180c;
+   border: 1px solid #a0180e;
+   color: #ffffff;
+ }
+ 
+ .difficulty-badge.deadly {
+   background-color: #830c0c;
+   border: 1px solid #580303;
+   color: #ffffff;
+ }
   
   /* ────────────────────────────────────────────────
     Optional: Tooltip styling

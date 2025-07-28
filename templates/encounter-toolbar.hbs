@@ -1,22 +1,24 @@
   <div class="encounter-toolbar-compact">
     <div class="encounter-toolbar-header">
-      <span class="encounter-toolbar-title">Encounter Tools</span>
+        <span class="encounter-toolbar-title">ENCOUNTER </span>
+        {{#if difficulty}}
+            <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
+            <i class="fa-solid fa-swords"></i>{{difficulty}}
+            </span>
+        {{/if}}
       <div class="encounter-badges">
+        <span class="encounter-toolbar-title">CANVAS </span>
         {{#if partyCR}}
-        <span class="cr-badge party-cr" data-tooltip="Party CR">
-          PARTY CR: {{partyCR}}
+        <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
+          <i class="fas fa-helmet-battle"></i>{{partyCR}}
         </span>
         {{/if}}
         {{#if monsterCR}}
-        <span class="cr-badge monster-cr" data-tooltip="Monster CR">
-          MONSTER CR: {{monsterCR}}
+        <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
+          <i class="fas fa-dragon"></i>{{monsterCR}}
         </span>
         {{/if}}
-        {{#if difficulty}}
-        <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
-          {{difficulty}}
-        </span>
-        {{/if}}
+
       </div>
     </div>
 

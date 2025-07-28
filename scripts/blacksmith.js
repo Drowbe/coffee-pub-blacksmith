@@ -757,8 +757,8 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="template-type" style="flex: 0 0 auto;">
           <option value="narrative">Narrative</option>
-          <option value="injury">Injury</option>
           <option value="encounter">Encounter</option>
+          <option value="injury">Injury</option>
         </select>
         <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
