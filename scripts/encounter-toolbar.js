@@ -851,25 +851,34 @@ export class EncounterToolbar {
 
     static getMonsterCR(metadata) {
         try {
-            if (!metadata.monsters || metadata.monsters.length === 0) {
+            // Get all monster tokens on the current scene (not player tokens)
+            const monsterTokens = canvas.tokens.placeables.filter(token => 
+                token.actor && token.actor.type === 'npc' && !token.actor.hasPlayerOwner
+            );
+
+            if (monsterTokens.length === 0) {
                 return "0";
             }
 
             let totalCR = 0;
             let monsterCount = 0;
 
-            for (const monsterId of metadata.monsters) {
+            for (const token of monsterTokens) {
                 try {
-                    const actor = fromUuidSync(monsterId);
+                    const actor = token.actor;
                     if (actor && actor.system) {
-                        // Use the existing CR calculation from window-query.js
-                        const cr = this.calculateNPCCR(actor);
-                        const crValue = this.parseCR(cr);
-                        totalCR += crValue;
-                        monsterCount++;
+                        // Get the actual CR from the monster's data
+                        const crValue = parseFloat(actor.system.details.cr);
+                        if (!isNaN(crValue)) {
+                            totalCR += crValue;
+                            monsterCount++;
+                            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, false, true, false);
+                        } else {
+                            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Warning", `No CR found for ${actor.name}`, false, false, true);
+                        }
                     }
                 } catch (error) {
-                    console.warn(`BLACKSMITH | Encounter Toolbar: Error calculating CR for monster ${monsterId}:`, error);
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, false, false, true);
                 }
             }
 
@@ -877,11 +886,10 @@ export class EncounterToolbar {
                 return "0";
             }
 
-            // Return average CR for multiple monsters
-            const averageCR = totalCR / monsterCount;
-            return this.formatCR(averageCR);
+            // Return total CR for multiple monsters (not average)
+            return this.formatCR(totalCR);
         } catch (error) {
-            console.warn("BLACKSMITH | Encounter Toolbar: Error calculating monster CR:", error);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, false, false, true);
             return "0";
         }
     }
