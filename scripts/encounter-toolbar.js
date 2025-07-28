@@ -212,14 +212,16 @@ export class EncounterToolbar {
         html.find('.create-combat').click(async (event) => {
             console.log("BLACKSMITH | Encounter Toolbar: Create combat button clicked!");
             event.preventDefault();
-            EncounterToolbar._createCombat(metadata);
+            
+            // Deploy monsters and create combat in one flow
+            await EncounterToolbar._deployAndCreateCombat(metadata);
         });
     }
 
     static async _deployMonsters(metadata) {
         if (!metadata.monsters || metadata.monsters.length === 0) {
             ui.notifications.warn("No monsters found in encounter data.");
-            return;
+            return [];
         }
 
         // Get the deployment pattern setting
@@ -229,6 +231,7 @@ export class EncounterToolbar {
         // Create tooltip for non-sequential deployments
         let tooltip = null;
         let mouseMoveHandler = null;
+        const deployedTokens = [];
 
         try {
             
@@ -257,21 +260,48 @@ export class EncounterToolbar {
             
             if (!position) {
                 ui.notifications.warn("Please click on the canvas to place monsters.");
-                return;
+                return [];
             }
+            
+            // Deploy using the position-based method
+            return await this._deployMonstersToPosition(metadata, position);
+            
+        } catch (error) {
+            console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
+            ui.notifications.error("Failed to deploy monsters.");
+            return [];
+        } finally {
+            // Clean up tooltip and handlers for non-sequential deployments
+            if (deploymentPattern !== "sequential" && tooltip) {
+                if (tooltip.parentNode) {
+                    tooltip.remove();
+                }
+                if (mouseMoveHandler) {
+                    canvas.stage.off('mousemove', mouseMoveHandler);
+                }
+            }
+        }
+    }
+
+    static async _deployMonstersToPosition(metadata, position) {
+        if (!metadata.monsters || metadata.monsters.length === 0) {
+            ui.notifications.warn("No monsters found in encounter data.");
+            return [];
+        }
+
+        // Get the deployment pattern setting
+        const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+        console.log("BLACKSMITH | Encounter Toolbar: Deploy to position pattern:", deploymentPattern);
+
+        const deployedTokens = [];
+
+        try {
             
             // Deploy each monster
             for (let i = 0; i < metadata.monsters.length; i++) {
                 const monsterId = metadata.monsters[i];
                 
-                // Update tooltip with progress for non-sequential deployments
-                if (deploymentPattern !== "sequential" && tooltip) {
-                    const patternName = this._getDeploymentPatternName(deploymentPattern);
-                    tooltip.innerHTML = `
-                        <div class="monster-name">Deploying Monsters</div>
-                        <div class="progress">${patternName} - Placing monster ${i + 1} of ${metadata.monsters.length}</div>
-                    `;
-                }
+
                 
                 try {
                     const actor = await fromUuid(monsterId);
@@ -376,6 +406,7 @@ export class EncounterToolbar {
                         // Verify the token was created and is visible
                         if (createdTokens && createdTokens.length > 0) {
                             const token = createdTokens[0];
+                            deployedTokens.push(token);
                             console.log("BLACKSMITH | Encounter Toolbar: Created token:", token);
                             console.log("BLACKSMITH | Encounter Toolbar: Token position:", {x: token.x, y: token.y});
                             console.log("BLACKSMITH | Encounter Toolbar: Token visible:", token.visible);
@@ -390,41 +421,15 @@ export class EncounterToolbar {
 
             // Handle sequential deployment if that's the pattern
             if (deploymentPattern === "sequential") {
-                await this._deploySequential(metadata, position);
-            } else {
-                // Update tooltip to show completion
-                if (tooltip) {
-                    const patternName = this._getDeploymentPatternName(deploymentPattern);
-                    tooltip.innerHTML = `
-                        <div class="monster-name">Deployment Complete</div>
-                        <div class="progress">${patternName} - Deployed ${metadata.monsters.length} monsters</div>
-                    `;
-                    
-                    // Remove tooltip after a short delay
-                    setTimeout(() => {
-                        if (tooltip && tooltip.parentNode) {
-                            tooltip.remove();
-                        }
-                        if (mouseMoveHandler) {
-                            canvas.stage.off('mousemove', mouseMoveHandler);
-                        }
-                    }, 2000);
-                }
+                const sequentialTokens = await this._deploySequential(metadata, position);
+                deployedTokens.push(...sequentialTokens);
             }
             
+            return deployedTokens;
+            
         } catch (error) {
-            console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters:", error);
+            console.error("BLACKSMITH | Encounter Toolbar: Error deploying monsters to position:", error);
             ui.notifications.error("Failed to deploy monsters.");
-        } finally {
-            // Clean up tooltip and handlers for non-sequential deployments
-            if (deploymentPattern !== "sequential" && tooltip) {
-                if (tooltip.parentNode) {
-                    tooltip.remove();
-                }
-                if (mouseMoveHandler) {
-                    canvas.stage.off('mousemove', mouseMoveHandler);
-                }
-            }
         }
     }
 
@@ -523,6 +528,8 @@ export class EncounterToolbar {
             tooltip.style.top = (event.data.global.y - 40) + 'px';
         };
         
+        const deployedTokens = [];
+        
         try {
             // Create all actors first (without placing tokens)
             const actors = [];
@@ -616,7 +623,10 @@ export class EncounterToolbar {
                 }
                 
                 // Create the token
-                await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+                const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+                if (createdTokens && createdTokens.length > 0) {
+                    deployedTokens.push(createdTokens[0]);
+                }
             }
             
             ui.notifications.info(`Sequentially deployed ${actors.length} monsters.`);
@@ -630,6 +640,8 @@ export class EncounterToolbar {
             tooltip.remove();
             canvas.stage.cursor = 'default';
         }
+        
+        return deployedTokens;
     }
 
     static async _getTargetPosition() {
@@ -695,6 +707,80 @@ export class EncounterToolbar {
 
 
 
+    static async _deployAndCreateCombat(metadata) {
+        if (!metadata.monsters || metadata.monsters.length === 0) {
+            ui.notifications.warn("No monsters found in encounter data.");
+            return;
+        }
+
+        try {
+            // Get the deployment pattern setting
+            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+            console.log("BLACKSMITH | Encounter Toolbar: Create combat deployment pattern:", deploymentPattern);
+
+            let deployedTokens = [];
+
+            // Handle sequential deployment for create-combat flow
+            if (deploymentPattern === "sequential") {
+                deployedTokens = await this._deploySequential(metadata, null);
+            } else {
+                // For non-sequential patterns, get position first
+                const position = await this._getTargetPosition();
+                if (!position) {
+                    ui.notifications.warn("Please click on the canvas to place monsters.");
+                    return;
+                }
+                
+                // Deploy using the regular method but without the initial notification
+                deployedTokens = await this._deployMonstersToPosition(metadata, position);
+            }
+
+            if (deployedTokens && deployedTokens.length > 0) {
+                await this._createCombatWithTokens(deployedTokens, metadata);
+            }
+            
+        } catch (error) {
+            console.error("BLACKSMITH | Encounter Toolbar: Error in deploy and create combat:", error);
+            ui.notifications.error("Failed to deploy monsters and create combat.");
+        }
+    }
+
+    static async _createCombatWithTokens(deployedTokens, metadata) {
+        if (!deployedTokens || deployedTokens.length === 0) {
+            ui.notifications.warn("No tokens were deployed.");
+            return;
+        }
+
+        try {
+            // Create a new combat encounter
+            const combat = await Combat.create({
+                scene: canvas.scene.id,
+                name: metadata.title || "Encounter",
+                active: true
+            });
+
+            // Add deployed tokens to combat using their actual IDs
+            for (const token of deployedTokens) {
+                try {
+                    await combat.createEmbeddedDocuments("Combatant", [{
+                        tokenId: token.id,
+                        actorId: token.actor.id,
+                        sceneId: canvas.scene.id
+                    }]);
+                    console.log(`BLACKSMITH | Encounter Toolbar: Added ${token.name} to combat`);
+                } catch (error) {
+                    console.warn(`BLACKSMITH | Encounter Toolbar: Failed to add ${token.name} to combat:`, error);
+                }
+            }
+
+            ui.notifications.info(`Combat encounter created with ${deployedTokens.length} deployed monsters.`);
+            
+        } catch (error) {
+            console.error("BLACKSMITH | Encounter Toolbar: Error creating combat:", error);
+            ui.notifications.error("Failed to create combat encounter.");
+        }
+    }
+
     static async _createCombat(metadata) {
         if (!metadata.monsters || metadata.monsters.length === 0) {
             ui.notifications.warn("No monsters found in encounter data.");
@@ -703,10 +789,12 @@ export class EncounterToolbar {
 
         try {
             // First deploy the monsters to get tokens on the canvas
-            await this._deployMonsters(metadata);
+            const deployedTokens = await this._deployMonsters(metadata);
             
-            // Wait a moment for tokens to be created
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (!deployedTokens || deployedTokens.length === 0) {
+                ui.notifications.warn("No tokens were deployed.");
+                return;
+            }
             
             // Create a new combat encounter
             const combat = await Combat.create({
@@ -715,14 +803,7 @@ export class EncounterToolbar {
                 active: true
             });
 
-            // Add deployed tokens to combat
-            const deployedTokens = canvas.tokens.placeables.filter(token => 
-                metadata.monsters.some(monsterId => {
-                    const actorId = monsterId.split('.').pop(); // Extract actor ID from UUID
-                    return token.actor?.id === actorId;
-                })
-            );
-
+            // Add deployed tokens to combat using their actual IDs
             for (const token of deployedTokens) {
                 try {
                     await combat.createEmbeddedDocuments("Combatant", [{
@@ -730,15 +811,16 @@ export class EncounterToolbar {
                         actorId: token.actor.id,
                         sceneId: canvas.scene.id
                     }]);
+                    console.log(`BLACKSMITH | Encounter Toolbar: Added ${token.name} to combat`);
                 } catch (error) {
-                    console.warn(`Failed to add ${token.name} to combat:`, error);
+                    console.warn(`BLACKSMITH | Encounter Toolbar: Failed to add ${token.name} to combat:`, error);
                 }
             }
 
-            ui.notifications.info("Combat encounter created with deployed monsters.");
+            ui.notifications.info(`Combat encounter created with ${deployedTokens.length} deployed monsters.`);
             
         } catch (error) {
-            console.error("Error creating combat:", error);
+            console.error("BLACKSMITH | Encounter Toolbar: Error creating combat:", error);
             ui.notifications.error("Failed to create combat encounter.");
         }
     }
