@@ -750,6 +750,7 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
     // Fetch template files at runtime
     const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
     const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
+    const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
@@ -757,6 +758,7 @@ Hooks.on("renderJournalDirectory", async (app, html, data) => {
         <select id="template-type" style="flex: 0 0 auto;">
           <option value="narrative">Narrative</option>
           <option value="injury">Injury</option>
+          <option value="encounter">Encounter</option>
         </select>
         <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
@@ -818,6 +820,8 @@ case "INJURY":
             const type = htmlDialog.find("#template-type").val();
             if (type === "injury") {
               copyToClipboard(injuryTemplate);
+            } else if (type === "encounter") {
+              copyToClipboard(encounterTemplate);
             } else {
               const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
               copyToClipboard(templateWithDefaults);
