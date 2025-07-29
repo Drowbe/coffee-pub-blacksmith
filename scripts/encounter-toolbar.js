@@ -1327,6 +1327,12 @@ export class EncounterToolbar {
                 // Remove mouse move handler
                 canvas.stage.off('mousemove', mouseMoveHandler);
                 
+                // Check if user cancelled (ESC pressed)
+                if (!position) {
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Sequential deployment cancelled by user", "", false, true, false);
+                    break; // Exit the loop and return deployed tokens so far
+                }
+                
                 // Create token data
                 const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
                 const tokenData = foundry.utils.mergeObject(defaultTokenData, actor.prototypeToken.toObject(), { overwrite: false });
@@ -1374,6 +1380,12 @@ export class EncounterToolbar {
                 
                 // Only handle pointerdown events (clicks)
                 if (event.type !== 'pointerdown') {
+                    return;
+                }
+                
+                // Ignore right-clicks (button 2) - let the rightClickHandler deal with them
+                if (event.data.originalEvent && event.data.originalEvent.button === 2) {
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Right-click ignored by main handler", "", false, true, false);
                     return;
                 }
                 
@@ -1434,20 +1446,21 @@ export class EncounterToolbar {
                 }
             };
             
-            // Key down handler to detect ESC key for cancellation
-            const keyDownHandler = (event) => {
-                if (event.key === 'Escape') {
+            // Right-click handler to detect cancellation
+            const rightClickHandler = (event) => {
+                if (event.data.originalEvent && event.data.originalEvent.button === 2) { // Right mouse button
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Right-click detected, cancelling deployment", "", false, true, false);
                     canvas.app.stage.off('pointerdown', handler);
+                    canvas.app.stage.off('pointerdown', rightClickHandler);
                     document.removeEventListener('keyup', keyUpHandler);
-                    document.removeEventListener('keydown', keyDownHandler);
                     resolve(null);
                 }
             };
             
             // Add the event listeners
             canvas.app.stage.on('pointerdown', handler);
+            canvas.app.stage.on('pointerdown', rightClickHandler);
             document.addEventListener('keyup', keyUpHandler);
-            document.addEventListener('keydown', keyDownHandler);
         });
     }
 
