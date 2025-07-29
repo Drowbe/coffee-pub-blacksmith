@@ -56,6 +56,224 @@ export class EncounterToolbar {
         return html.find('.editor-container').length > 0;
     }
 
+    // Helper method to validate UUIDs
+    static async _validateUUID(uuid) {
+        try {
+            // Check if it's a valid UUID format
+            if (!uuid.includes('Compendium.')) {
+                console.warn(`BLACKSMITH | Encounter Toolbar: Invalid UUID format: "${uuid}"`);
+                return null;
+            }
+            
+            // Try to load the actor to validate it exists
+            const actor = await fromUuid(uuid);
+            if (!actor) {
+                console.warn(`BLACKSMITH | Encounter Toolbar: Could not load actor with UUID: "${uuid}"`);
+                return null;
+            }
+            
+            return uuid;
+        } catch (error) {
+            console.error(`BLACKSMITH | Encounter Toolbar: Error validating UUID "${uuid}":`, error);
+            return null;
+        }
+    }
+
+    // Enhanced method to scan journal content for encounter data
+    static _scanJournalContent(html, pageId) {
+        try {
+            console.log("BLACKSMITH | Encounter Toolbar: Starting content scan for page:", pageId);
+            
+            // Get the journal page content - try different selectors
+            let pageContent = html.find(`article[data-page-id="${pageId}"] section.journal-page-content`);
+            console.log("BLACKSMITH | Encounter Toolbar: Found page content:", pageContent.length > 0);
+            console.log("BLACKSMITH | Encounter Toolbar: Looking for selector:", `article[data-page-id="${pageId}"] section.journal-page-content`);
+            
+            // If that doesn't work, try finding the article first, then the section
+            if (!pageContent.length) {
+                const article = html.find(`article[data-page-id="${pageId}"]`);
+                console.log("BLACKSMITH | Encounter Toolbar: Found article:", article.length > 0);
+                if (article.length > 0) {
+                    console.log("BLACKSMITH | Encounter Toolbar: All sections in article:", article.find('section').length);
+                    console.log("BLACKSMITH | Encounter Toolbar: Section classes:", article.find('section').map((i, el) => $(el).attr('class')).get());
+                    pageContent = article.find('section.journal-page-content');
+                    console.log("BLACKSMITH | Encounter Toolbar: Found section in article:", pageContent.length > 0);
+                    
+                    // If still not found, try without the class
+                    if (!pageContent.length) {
+                        pageContent = article.find('section');
+                        console.log("BLACKSMITH | Encounter Toolbar: Found any section:", pageContent.length > 0);
+                    }
+                }
+            }
+            
+            console.log("BLACKSMITH | Encounter Toolbar: Total articles found:", html.find('article').length);
+            console.log("BLACKSMITH | Encounter Toolbar: Articles with data-page-id:", html.find('article[data-page-id]').length);
+            console.log("BLACKSMITH | Encounter Toolbar: All articles:", html.find('article').map((i, el) => $(el).attr('data-page-id')).get());
+            
+            if (!pageContent.length) {
+                console.log("BLACKSMITH | Encounter Toolbar: No page content found");
+                return null;
+            }
+
+            // Check if content scanning is enabled
+            if (!game.settings.get(MODULE_ID, 'enableEncounterContentScanning')) {
+                console.log("BLACKSMITH | Encounter Toolbar: Content scanning disabled");
+                return null;
+            }
+
+            // Extract both text and HTML content
+            const textContent = pageContent.text();
+            const htmlContent = pageContent.html();
+            
+            console.log("BLACKSMITH | Encounter Toolbar: Text content length:", textContent.length);
+            console.log("BLACKSMITH | Encounter Toolbar: HTML content length:", htmlContent.length);
+
+            // Try JSON format first (for structured data)
+            let encounterData = this._parseJSONEncounter(htmlContent);
+            if (encounterData) {
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found JSON encounter data", "", false, true, false);
+                return encounterData;
+            }
+
+            // Use the new pattern-based detection
+            encounterData = this._parsePatternBasedEncounter(textContent, htmlContent);
+            if (encounterData) {
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found pattern-based encounter data", "", false, true, false);
+                return encounterData;
+            }
+
+            console.log("BLACKSMITH | Encounter Toolbar: No encounter data found");
+            return null;
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error scanning journal content", error, false, true, false);
+            return null;
+        }
+    }
+
+    // Pattern-based encounter detection
+    static _parsePatternBasedEncounter(textContent, htmlContent) {
+        try {
+            const encounterData = {
+                monsters: [],
+                difficulty: null
+            };
+
+            // Debug: Log what we're scanning
+            console.log("BLACKSMITH | Encounter Toolbar: Scanning text content for patterns");
+            console.log("BLACKSMITH | Encounter Toolbar: Text content length:", textContent.length);
+            console.log("BLACKSMITH | Encounter Toolbar: Sample of text content:", textContent.substring(0, 500));
+            console.log("BLACKSMITH | Encounter Toolbar: HTML content length:", htmlContent.length);
+            console.log("BLACKSMITH | Encounter Toolbar: Sample of HTML content:", htmlContent.substring(0, 1000));
+
+            // 1. Find all data-uuid attributes in the content (Foundry renders links as <a> tags)
+            console.log("BLACKSMITH | Encounter Toolbar: Looking for data-uuid attributes in HTML content");
+            const uuidMatches = htmlContent.match(/data-uuid="([^"]+)"/g);
+            console.log("BLACKSMITH | Encounter Toolbar: Found UUID matches:", uuidMatches);
+            
+            if (uuidMatches) {
+                for (const match of uuidMatches) {
+                    const uuidMatch = match.match(/data-uuid="([^"]+)"/);
+                    if (uuidMatch) {
+                        const uuid = uuidMatch[1];
+                        console.log("BLACKSMITH | Encounter Toolbar: Processing UUID:", uuid);
+                        
+                        // 2. Check if this UUID contains "Actor" (case-insensitive)
+                        if (uuid.toLowerCase().includes('actor')) {
+                            console.log("BLACKSMITH | Encounter Toolbar: Found Actor UUID:", uuid);
+                            
+                            // 3. Look for quantity indicators near this UUID
+                            let quantity = 1;
+                            
+                            // Find the context around this UUID (within 100 characters)
+                            const uuidIndex = htmlContent.indexOf(match);
+                            const contextStart = Math.max(0, uuidIndex - 100);
+                            const contextEnd = Math.min(htmlContent.length, uuidIndex + match.length + 100);
+                            const context = htmlContent.substring(contextStart, contextEnd);
+                            console.log("BLACKSMITH | Encounter Toolbar: Context around UUID:", context);
+                            
+                            // Look for quantity patterns
+                            const quantityPatterns = [
+                                /(\d+)\s*x\s*$/i,           // "3 x" at end
+                                /x\s*(\d+)/i,               // "x 3"
+                                /\((\d+)\)/i,               // "(3)"
+                                /\s(\d+)\s*$/i              // " 3 " at end
+                            ];
+                            
+                            for (const pattern of quantityPatterns) {
+                                const quantityMatch = context.match(pattern);
+                                if (quantityMatch) {
+                                    quantity = parseInt(quantityMatch[1]);
+                                    console.log("BLACKSMITH | Encounter Toolbar: Found quantity:", quantity);
+                                    break;
+                                }
+                            }
+                            
+                            // Add the monster the specified number of times
+                            for (let i = 0; i < quantity; i++) {
+                                encounterData.monsters.push(uuid);
+                            }
+                        } else {
+                            console.log("BLACKSMITH | Encounter Toolbar: UUID is not an Actor type:", uuid);
+                        }
+                    }
+                }
+            }
+
+            // 4. Look for difficulty patterns (case-insensitive)
+            const difficultyPatterns = [
+                /difficulty\s*:\s*(easy|medium|hard|deadly)/i,
+                /difficulty\s*=\s*(easy|medium|hard|deadly)/i,
+                /(easy|medium|hard|deadly)\s*difficulty/i
+            ];
+            
+            console.log("BLACKSMITH | Encounter Toolbar: Looking for difficulty patterns");
+            for (const pattern of difficultyPatterns) {
+                const difficultyMatch = textContent.match(pattern);
+                if (difficultyMatch) {
+                    encounterData.difficulty = difficultyMatch[1].toLowerCase();
+                    console.log("BLACKSMITH | Encounter Toolbar: Found difficulty:", encounterData.difficulty);
+                    break;
+                }
+            }
+
+            // Return data if we found monsters or difficulty
+            console.log("BLACKSMITH | Encounter Toolbar: Final encounter data:", encounterData);
+            console.log("BLACKSMITH | Encounter Toolbar: Has monsters:", encounterData.monsters.length > 0);
+            console.log("BLACKSMITH | Encounter Toolbar: Has difficulty:", !!encounterData.difficulty);
+            return (encounterData.monsters.length > 0 || encounterData.difficulty) ? encounterData : null;
+        } catch (error) {
+            console.error("BLACKSMITH | Encounter Toolbar: Error in pattern-based parsing:", error);
+            return null;
+        }
+    }
+
+    // Parse JSON encounter data
+    static _parseJSONEncounter(htmlContent) {
+        try {
+            // Look for JSON blocks in the content
+            const jsonMatches = htmlContent.match(/```json\s*([\s\S]*?)\s*```/g);
+            if (!jsonMatches) return null;
+
+            for (const match of jsonMatches) {
+                const jsonContent = match.replace(/```json\s*/, '').replace(/\s*```/, '');
+                const data = JSON.parse(jsonContent);
+                
+                if (data.encounter && (data.encounter.monsters || data.encounter.difficulty)) {
+                    return {
+                        monsters: data.encounter.monsters || [],
+                        difficulty: data.encounter.difficulty || null
+                    };
+                }
+            }
+            return null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+
+
     // Simple method to update toolbar content
     static _updateToolbarContent(html) {
         // Check if toolbar is enabled in settings
@@ -67,8 +285,6 @@ export class EncounterToolbar {
         if (!html || !html.length) {
             return;
         }
-
-
 
         // Get the page ID to scope the toolbar
         const journalPage = html.find('article.journal-entry-page');
@@ -98,64 +314,44 @@ export class EncounterToolbar {
             }
         }
 
-        // Look for encounter data attributes inside the specific journal page content section
-        let encounterDiv = html.find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-type="encounter"]`);
+        // Try content scanning for encounter data (check all journals, not just encounter type)
+        let encounterData = this._scanJournalContent(html, pageId);
+        console.log("BLACKSMITH | Encounter Toolbar: Content scan result:", encounterData);
         
-        // Debug: Let's see what we're finding
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for encounter data", `Found ${encounterDiv.length} encounter divs for page ${pageId}`, false, true, false);
-        
-        // Also try looking in the document as a fallback, but still scoped to this page
-        if (encounterDiv.length === 0) {
-            const docEncounterDiv = $(document).find(`article[data-page-id="${pageId}"] section.journal-page-content div[data-journal-type="encounter"]`);
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Fallback search in document", `Found ${docEncounterDiv.length} encounter divs for page ${pageId}`, false, true, false);
-            
-            if (docEncounterDiv.length > 0) {
-                // Use the document version if html doesn't have it
-                encounterDiv = docEncounterDiv;
-            }
-        }
-        
-        if (encounterDiv.length > 0) {
+        if (encounterData) {
             // We have encounter data - use the full toolbar
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found encounter data, updating toolbar", "", false, true, false);
+            console.log("BLACKSMITH | Encounter Toolbar: Encounter data:", encounterData);
             
             try {
-                // Extract data from attributes
-                const monsterUUIDs = encounterDiv.data('encounter-monsters');
-                const difficulty = encounterDiv.data('encounter-difficulty');
-                
                 // Check if we have monsters
-                const hasMonsters = monsterUUIDs && monsterUUIDs.length > 0;
+                const hasMonsters = encounterData.monsters && encounterData.monsters.length > 0;
+                console.log("BLACKSMITH | Encounter Toolbar: Has monsters:", hasMonsters);
+                console.log("BLACKSMITH | Encounter Toolbar: Monsters array:", encounterData.monsters);
                 
                 // Determine difficulty class for styling
                 let difficultyClass = '';
-                if (difficulty) {
-                    const difficultyLower = difficulty.toLowerCase();
+                if (encounterData.difficulty) {
+                    const difficultyLower = encounterData.difficulty.toLowerCase();
                     if (difficultyLower.includes('easy')) difficultyClass = 'easy';
                     else if (difficultyLower.includes('medium')) difficultyClass = 'medium';
                     else if (difficultyLower.includes('hard')) difficultyClass = 'hard';
                     else if (difficultyLower.includes('deadly')) difficultyClass = 'deadly';
                 }
 
-                // Create metadata object for event listeners
-                const metadata = {
-                    monsters: hasMonsters ? monsterUUIDs.split(',') : [],
-                    difficulty: difficulty
-                };
-
                 // Calculate CR values
                 const partyCR = this.getPartyCR();
-                const monsterCR = this.getMonsterCR(metadata);
+                const monsterCR = this.getMonsterCR(encounterData);
 
                 // Get the template
                 const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
                 getCachedTemplate(templatePath).then(template => {
                     // Prepare the data for the template
                     const templateData = {
-                        journalId: encounterDiv.closest('.journal-sheet').data('document-id') || 'unknown',
+                        journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
                         hasEncounterData: true,
                         hasMonsters,
-                        difficulty: difficulty,
+                        difficulty: encounterData.difficulty,
                         difficultyClass,
                         partyCR: partyCR,
                         monsterCR: monsterCR,
@@ -163,11 +359,11 @@ export class EncounterToolbar {
                     };
                     
                     // Render the toolbar
-                    const html = template(templateData);
-                    toolbar.html(html);
+                    const renderedHtml = template(templateData);
+                    toolbar.html(renderedHtml);
                     
                     // Add event listeners to the buttons
-                    this._addEventListeners($(document), metadata);
+                    this._addEventListeners($(document), encounterData);
                     
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with encounter data", "", false, true, false);
                 });
@@ -192,6 +388,7 @@ export class EncounterToolbar {
         getCachedTemplate(templatePath).then(template => {
             // Prepare the data for the template (no encounter case)
             const templateData = {
+                journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
                 hasEncounterData: false,
                 hasMonsters: false,
                 difficulty: null,
@@ -201,8 +398,8 @@ export class EncounterToolbar {
             };
             
             // Render the toolbar
-            const html = template(templateData);
-            toolbar.html(html);
+            const renderedHtml = template(templateData);
+            toolbar.html(renderedHtml);
             
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with no encounter data", "", false, true, false);
         });
@@ -287,7 +484,14 @@ export class EncounterToolbar {
                     const monsterId = metadata.monsters[i];
                     
                     try {
-                        const actor = await fromUuid(monsterId);
+                        // Validate the UUID
+                        const validatedId = await this._validateUUID(monsterId);
+                        if (!validatedId) {
+                            console.warn(`BLACKSMITH | Encounter Toolbar: Could not validate UUID "${monsterId}", skipping`);
+                            continue;
+                        }
+                        
+                        const actor = await fromUuid(validatedId);
                         console.log("BLACKSMITH | Encounter Toolbar: Loaded actor:", actor);
                         
                         if (actor) {
@@ -542,7 +746,15 @@ export class EncounterToolbar {
             const actors = [];
             for (let i = 0; i < metadata.monsters.length; i++) {
                 const monsterId = metadata.monsters[i];
-                const actor = await fromUuid(monsterId);
+                
+                // Validate the UUID
+                const validatedId = await this._validateUUID(monsterId);
+                if (!validatedId) {
+                    console.warn(`BLACKSMITH | Encounter Toolbar: Could not validate UUID "${monsterId}", skipping`);
+                    continue;
+                }
+                
+                const actor = await fromUuid(validatedId);
                 
                 if (actor) {
                     // Create world copy if from compendium

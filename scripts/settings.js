@@ -921,6 +921,16 @@ export const registerSettings = async () => {
 			default: "grid",
 		});
 
+		// -- Content Scanning --
+		game.settings.register(MODULE_ID, 'enableEncounterContentScanning', {
+			name: MODULE_ID + '.enableEncounterContentScanning-Label',
+			hint: MODULE_ID + '.enableEncounterContentScanning-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+		});
+
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - SCENES  ----------

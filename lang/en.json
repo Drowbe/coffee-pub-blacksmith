@@ -82,6 +82,9 @@
 		"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
 		"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
 
+		"enableEncounterContentScanning-Label": "Enable Content Scanning",
+		"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
+
 		"headingH2Scenes-Label": "Scenes",
 		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 
