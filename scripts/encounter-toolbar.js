@@ -812,7 +812,21 @@ export class EncounterToolbar {
                 const position = positionResult.position;
                 const isAltHeld = positionResult.isAltHeld;
                 
+                // First, count valid tokens to get the total
+                let validTokenCount = 0;
+                for (let i = 0; i < allTokens.length; i++) {
+                    const tokenId = allTokens[i];
+                    const validatedId = await this._validateUUID(tokenId);
+                    if (validatedId) {
+                        const actor = await fromUuid(validatedId);
+                        if (actor) {
+                            validTokenCount++;
+                        }
+                    }
+                }
+                
                 // Deploy each token at this position
+                let validTokenIndex = 0; // Counter for valid tokens only
                 for (let i = 0; i < allTokens.length; i++) {
                     const tokenId = allTokens[i];
                     
@@ -878,16 +892,16 @@ export class EncounterToolbar {
                             // Calculate position based on pattern
                             let tokenPosition;
                             if (deploymentPattern === "circle") {
-                                tokenPosition = this._calculateCirclePosition(position, i, allTokens.length);
+                                tokenPosition = this._calculateCirclePosition(position, validTokenIndex, validTokenCount);
                             } else if (deploymentPattern === "scatter") {
-                                tokenPosition = this._calculateScatterPosition(position, i, allTokens.length);
+                                tokenPosition = this._calculateScatterPosition(position, validTokenIndex, validTokenCount);
                             } else if (deploymentPattern === "grid") {
-                                tokenPosition = this._calculateSquarePosition(position, i, allTokens.length);
+                                tokenPosition = this._calculateSquarePosition(position, validTokenIndex, validTokenCount);
                             } else {
                                 // Default to line formation
                                 const gridSize = canvas.scene.grid.size;
                                 tokenPosition = {
-                                    x: position.x + (i * gridSize),
+                                    x: position.x + (validTokenIndex * gridSize),
                                     y: position.y
                                 };
                             }
@@ -927,6 +941,9 @@ export class EncounterToolbar {
                                 postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token visible", token.visible, false, true, false);
                                 postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token actor", token.actor, false, true, false);
                                 postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token actorId", token.actorId, false, true, false);
+                                
+                                // Increment the valid token index for pattern positioning
+                                validTokenIndex++;
                             }
                         }
                     } catch (error) {
@@ -1195,14 +1212,14 @@ export class EncounterToolbar {
     }
 
     static _calculateCirclePosition(centerPosition, index, totalTokens) {
-        // Calculate circle formation
-        const radius = 100; // Base radius in pixels
-        const angleStep = (2 * Math.PI) / totalTokens;
-        const angle = index * angleStep;
-        
+        if (index === 0) {
+            return { x: centerPosition.x, y: centerPosition.y };
+        }
+        const radius = 100;
+        const angleStep = (2 * Math.PI) / (totalTokens - 1);
+        const angle = (index - 1) * angleStep;
         const x = centerPosition.x + (radius * Math.cos(angle));
         const y = centerPosition.y + (radius * Math.sin(angle));
-        
         return { x, y };
     }
 
@@ -1241,13 +1258,9 @@ export class EncounterToolbar {
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
         
-        // Calculate offset from center to make the grid centered on the click point
-        const offsetX = (gridWidth - 1) * gridSize / 2;
-        const offsetY = (gridHeight - 1) * gridSize / 2;
-        
         // Calculate the actual position using scene grid size
-        let x = centerPosition.x + (tokenPosition.col * gridSize) - offsetX;
-        let y = centerPosition.y + (tokenPosition.row * gridSize) - offsetY;
+        let x = centerPosition.x + (tokenPosition.col * gridSize);
+        let y = centerPosition.y + (tokenPosition.row * gridSize);
         
         // Snap to grid
         const snappedPosition = canvas.grid.getSnappedPoint(x, y);
@@ -1272,12 +1285,8 @@ export class EncounterToolbar {
         const row = Math.floor(index / sideLength);
         const col = index % sideLength;
         
-        // Calculate offset from center to make the square centered on the click point
-        const offsetX = (sideLength - 1) * spacing / 2;
-        const offsetY = (sideLength - 1) * spacing / 2;
-        
-        let x = centerPosition.x + (col * spacing) - offsetX;
-        let y = centerPosition.y + (row * spacing) - offsetY;
+        let x = centerPosition.x + (col * spacing);
+        let y = centerPosition.y + (row * spacing);
         
         // Snap to grid
         const snappedPosition = canvas.grid.getSnappedPoint(x, y);
@@ -1567,7 +1576,7 @@ export class EncounterToolbar {
                 
                 // Use FoundryVTT's built-in coordinate conversion
                 // Convert global coordinates to scene coordinates using canvas stage
-                const stage = canvas.app.stage;
+                const stage = canvas.stage;
                 const globalPoint = new PIXI.Point(event.global.x, event.global.y);
                 const localPoint = stage.toLocal(globalPoint);
                 
@@ -1598,7 +1607,7 @@ export class EncounterToolbar {
                 
                 // If not allowing multiple or CTRL not held, remove the handler
                 if (!allowMultiple || !isCtrlHeld) {
-                    canvas.app.stage.off('pointerdown', handler);
+                    canvas.stage.off('pointerdown', handler);
                     document.removeEventListener('keyup', keyUpHandler);
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Click handler removed, resolving position", "", false, true, false);
                 } else {
@@ -1622,7 +1631,7 @@ export class EncounterToolbar {
             // Key up handler to detect when CTRL is released
             const keyUpHandler = (event) => {
                 if (event.key === 'Control' && allowMultiple) {
-                    canvas.app.stage.off('pointerdown', handler);
+                    canvas.stage.off('pointerdown', handler);
                     document.removeEventListener('keyup', keyUpHandler);
                     resolve(null);
                 }
@@ -1632,16 +1641,16 @@ export class EncounterToolbar {
             const rightClickHandler = (event) => {
                 if (event.data.originalEvent && event.data.originalEvent.button === 2) { // Right mouse button
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Right-click detected, cancelling deployment", "", false, true, false);
-                    canvas.app.stage.off('pointerdown', handler);
-                    canvas.app.stage.off('pointerdown', rightClickHandler);
+                    canvas.stage.off('pointerdown', handler);
+                    canvas.stage.off('pointerdown', rightClickHandler);
                     document.removeEventListener('keyup', keyUpHandler);
                     resolve(null);
                 }
             };
             
             // Add the event listeners
-            canvas.app.stage.on('pointerdown', handler);
-            canvas.app.stage.on('pointerdown', rightClickHandler);
+            canvas.stage.on('pointerdown', handler);
+            canvas.stage.on('pointerdown', rightClickHandler);
             document.addEventListener('keyup', keyUpHandler);
         });
     }
