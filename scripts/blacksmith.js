@@ -840,8 +840,6 @@ case "INJURY":
                     }
               } catch (e) {
                 postConsoleAndNotification("Failed to parse JSON", e, false, false, true);
-                ui.notifications.error("Failed to parse JSON!");
-                postConsoleAndNotification("Failed to parse JSON!", e + ".", false, true, true);
               }
             },
           },
@@ -1911,7 +1909,7 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
                         }
                         // Validate and create items
                         const created = await Item.createDocuments(itemsToImport, {keepId: false});
-                        ui.notifications.info(`Imported ${created.length} item(s) successfully.`);
+                        postConsoleAndNotification(`Imported ${created.length} item(s) successfully.`, "", false, false, true);
                     } catch (e) {
                         postConsoleAndNotification("Failed to import items", e, false, false, true);
                         ui.notifications.error("Failed to import items: " + e.message);

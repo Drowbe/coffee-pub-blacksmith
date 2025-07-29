@@ -681,7 +681,6 @@ export class EncounterToolbar {
     static async _deployMonsters(metadata) {
         // Check if user has permission to create tokens
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can deploy tokens.");
             return [];
         }
         
@@ -693,7 +692,6 @@ export class EncounterToolbar {
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - combined allTokens", allTokens, false, true, false);
         
         if (allTokens.length === 0) {
-            ui.notifications.warn("No monsters or NPCs found in encounter data.");
             return [];
         }
 
@@ -761,9 +759,9 @@ export class EncounterToolbar {
                 if (!position) {
                     // User cancelled or no position obtained
                     if (isSingleToken) {
-                        ui.notifications.info("Token deployment cancelled.");
+                        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Token deployment cancelled.`, '', false, true, false);
                     } else {
-                        ui.notifications.warn("Please click on the canvas to place tokens.");
+                        postConsoleAndNotification(`Please click on the canvas to place tokens.`, '', false, false, true);
                     }
                     return [];
                 }
@@ -913,7 +911,6 @@ export class EncounterToolbar {
             
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying monsters", error, false, false, true);
-            ui.notifications.error("Failed to deploy monsters.");
             return [];
         } finally {
             // Clean up tooltip and handlers for non-sequential deployments
@@ -932,7 +929,6 @@ export class EncounterToolbar {
     static async _deploySingleMonsterMultiple(metadata) {
         // Check if user has permission to create tokens
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can deploy tokens.");
             return [];
         }
         
@@ -940,7 +936,6 @@ export class EncounterToolbar {
         const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
         
         if (allTokens.length === 0) {
-            ui.notifications.warn("No tokens found in encounter data.");
             return [];
         }
 
@@ -956,14 +951,12 @@ export class EncounterToolbar {
             const validatedId = await this._validateUUID(tokenUUID);
             if (!validatedId) {
                 postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID`, tokenUUID, false, false, false);
-                ui.notifications.error("Invalid token UUID.");
                 return [];
             }
             
             const actor = await fromUuid(validatedId);
             
             if (!actor) {
-                ui.notifications.error("Could not load token actor.");
                 return [];
             }
 
@@ -1038,7 +1031,6 @@ export class EncounterToolbar {
                 
                 if (!position) {
                     // User cancelled or no position obtained
-                    ui.notifications.info("Monster deployment finished.");
                     // Clean up tooltip immediately when deployment ends
                     if (tooltip && tooltip.parentNode) {
                         tooltip.remove();
@@ -1089,8 +1081,7 @@ export class EncounterToolbar {
             }
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying single monster multiple times", error, false, false, true);
-            ui.notifications.error("Failed to deploy monster.");
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying single monster multiple times", error, false, true, true);
         } finally {
             // Clean up tooltip and handlers
             if (tooltip && tooltip.parentNode) {
@@ -1108,7 +1099,6 @@ export class EncounterToolbar {
     static async _toggleTokenVisibility() {
         // Check if user has permission to modify tokens
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can modify token visibility.");
             return;
         }
 
@@ -1117,7 +1107,7 @@ export class EncounterToolbar {
             const allTokens = canvas.tokens.placeables;
             
             if (allTokens.length === 0) {
-                ui.notifications.warn("No tokens found on the canvas.");
+                postConsoleAndNotification("No tokens found on the canvas.", "", false, false, true);
                 return;
             }
 
@@ -1136,7 +1126,7 @@ export class EncounterToolbar {
             });
             
             if (hiddenMonsterTokens.length === 0) {
-                ui.notifications.info("No hidden monster tokens found on the canvas.");
+                postConsoleAndNotification("No hidden tokens found on the canvas.", "", false, false, true);
                 return;
             }
 
@@ -1146,12 +1136,10 @@ export class EncounterToolbar {
             }
             
             // Show notification with results
-            ui.notifications.info(`Made ${hiddenMonsterTokens.length} hidden monster tokens visible.`);
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, true, false);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, true, true);
             
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error making monster tokens visible", error, false, false, true);
-            ui.notifications.error("Failed to make monster tokens visible.");
         }
     }
 
@@ -1365,7 +1353,6 @@ export class EncounterToolbar {
                      
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error in sequential deployment", error, false, false, true);
-            ui.notifications.error("Failed to deploy monsters sequentially.");
         } finally {
             // Clean up
             canvas.stage.off('mousemove', mouseMoveHandler);
@@ -1441,17 +1428,26 @@ export class EncounterToolbar {
             // Key up handler to detect when CTRL is released
             const keyUpHandler = (event) => {
                 if (event.key === 'Control' && allowMultiple) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: CTRL released, ending deployment", "", false, true, false);
                     canvas.app.stage.off('pointerdown', handler);
                     document.removeEventListener('keyup', keyUpHandler);
                     resolve(null);
                 }
             };
             
+            // Key down handler to detect ESC key for cancellation
+            const keyDownHandler = (event) => {
+                if (event.key === 'Escape') {
+                    canvas.app.stage.off('pointerdown', handler);
+                    document.removeEventListener('keyup', keyUpHandler);
+                    document.removeEventListener('keydown', keyDownHandler);
+                    resolve(null);
+                }
+            };
+            
             // Add the event listeners
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Adding pointerdown handler to canvas stage", "", false, true, false);
             canvas.app.stage.on('pointerdown', handler);
             document.addEventListener('keyup', keyUpHandler);
+            document.addEventListener('keydown', keyDownHandler);
         });
     }
 
@@ -1462,12 +1458,11 @@ export class EncounterToolbar {
     static async _createCombatWithTokens(deployedTokens, metadata) {
         // Check if user has permission to create combat
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can create combat encounters.");
             return;
         }
         
         if (!deployedTokens || deployedTokens.length === 0) {
-            ui.notifications.warn("No tokens were deployed.");
+            postConsoleAndNotification("No tokens were deployed.", "", false, false, true);
             return;
         }
 
@@ -1505,19 +1500,16 @@ export class EncounterToolbar {
             
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error creating combat", error, false, false, true);
-            ui.notifications.error("Failed to create combat encounter.");
         }
     }
 
     static async _createCombat(metadata) {
         // Check if user has permission to create combat
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can create combat encounters.");
             return;
         }
         
         if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
             return;
         }
 
@@ -1526,7 +1518,8 @@ export class EncounterToolbar {
             const deployedTokens = await this._deployMonsters(metadata);
             
             if (!deployedTokens || deployedTokens.length === 0) {
-                ui.notifications.warn("No tokens were deployed.");
+                postConsoleAndNotification(`No tokens were deployed.`, "", false, false, true);
+                
                 return;
             }
             
@@ -1553,7 +1546,6 @@ export class EncounterToolbar {
 
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error creating combat", error, false, false, true);
-            ui.notifications.error("Failed to create combat encounter.");
         }
     }
 
