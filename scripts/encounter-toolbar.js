@@ -554,6 +554,15 @@ export class EncounterToolbar {
             }
         });
 
+        // Toggle visibility button - scope to this toolbar only
+        toolbar.find('.toggle-visibility').off('click').on('click', async (event) => {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Toggle visibility button clicked!", "", false, true, false);
+            event.preventDefault();
+            event.stopPropagation();
+            
+            await EncounterToolbar._toggleTokenVisibility();
+        });
+
         // Monster icon clicks - deploy individual monsters
         toolbar.find('.monster-icon').off('click').on('click', async (event) => {
             event.preventDefault();
@@ -995,6 +1004,57 @@ export class EncounterToolbar {
         }
         
         return deployedTokens;
+    }
+
+    // Make hidden monster tokens visible
+    static async _toggleTokenVisibility() {
+        // Check if user has permission to modify tokens
+        if (!game.user.isGM) {
+            ui.notifications.error("Only Game Masters can modify token visibility.");
+            return;
+        }
+
+        try {
+            // Get all tokens on the current scene
+            const allTokens = canvas.tokens.placeables;
+            
+            if (allTokens.length === 0) {
+                ui.notifications.warn("No tokens found on the canvas.");
+                return;
+            }
+
+            // Filter for hidden monster tokens only (hostile NPCs)
+            const hiddenMonsterTokens = allTokens.filter(token => {
+                const type = token.actor?.type;
+                // Must be an NPC
+                if (type !== "npc") return false;
+                
+                // Must be hidden
+                if (!token.document.hidden) return false;
+                
+                // Must be hostile (not friendly/neutral)
+                const disposition = token.document.disposition;
+                return disposition <= -1; // Hostile tokens have disposition -1 or lower
+            });
+            
+            if (hiddenMonsterTokens.length === 0) {
+                ui.notifications.info("No hidden monster tokens found on the canvas.");
+                return;
+            }
+
+            // Update each token to make it visible
+            for (const token of hiddenMonsterTokens) {
+                await token.document.update({ hidden: false });
+            }
+            
+            // Show notification with results
+            ui.notifications.info(`Made ${hiddenMonsterTokens.length} hidden monster tokens visible.`);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, true, false);
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error making monster tokens visible", error, false, false, true);
+            ui.notifications.error("Failed to make monster tokens visible.");
+        }
     }
 
     static _calculateCirclePosition(centerPosition, index, totalTokens) {

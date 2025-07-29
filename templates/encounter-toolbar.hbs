@@ -1,56 +1,73 @@
-  <div class="encounter-toolbar-compact">
-    <div class="encounter-toolbar-header">
-      <div class="encounter-toolbar-left">
-        <span class="encounter-toolbar-title">ENCOUNTER </span>
-        {{#if difficulty}}
-            <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
-            <i class="fa-solid fa-swords"></i>{{difficulty}}
-            </span>
-        {{/if}}
-      </div>
-      <div class="encounter-badges">
-        <span class="encounter-toolbar-title">CANVAS </span>
-        {{#if partyCR}}
-        <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
-          <i class="fas fa-helmet-battle"></i>{{partyCR}}
-        </span>
-        {{/if}}
-        {{#if monsterCR}}
-        <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
-          <i class="fas fa-dragon"></i>{{monsterCR}}
-        </span>
-        {{/if}}
-      </div>
+<div class="encounter-toolbar-compact">
+  <div class="encounter-toolbar-header">
+    <div class="encounter-toolbar-left">
+      <span class="encounter-toolbar-title">ENCOUNTER </span>
+      {{#if difficulty}}
+      <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
+        <i class="fa-solid fa-swords"></i>{{difficulty}}
+      </span>
+      {{/if}}
     </div>
+    <div class="encounter-badges">
+      <span class="encounter-toolbar-title">CANVAS </span>
+      {{#if partyCR}}
+      <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
+        <i class="fas fa-helmet-battle"></i>{{partyCR}}
+      </span>
+      {{/if}}
+      {{#if monsterCR}}
+      <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
+        <i class="fas fa-dragon"></i>{{monsterCR}}
+      </span>
+      {{/if}}
+    </div>
+  </div>
 
+
+  <div class="encounter-toolbar-actions">
+    {{!-- ENCOUNTER TOOLBAR ACTIONS --}}  
     {{#if hasEncounterData}}
-      <div class="encounter-toolbar-actions">
+        {{!-- HAS MONSTERS TO DEPLOY --}}  
         {{#if hasMonsters}}
-        <div class="encounter-monster-icons">
-          {{#each monsters}}
-          <div class="monster-icon" data-tooltip="Deploy {{name}} (CR {{cr}})">
-            {{#if portrait}}
-            <img src="{{portrait}}" alt="{{name}}" class="monster-portrait">
-            {{else}}
-            <i class="fas fa-dragon"></i>
-            {{/if}}
+          <div class="encounter-monster-icons">
+            {{#each monsters}}
+              <div class="monster-icon" data-tooltip="Deploy {{name}} (CR {{cr}})">
+                {{#if portrait}}
+                  <img src="{{portrait}}" alt="{{name}}" class="monster-portrait">
+                {{else}}
+                  <i class="fas fa-dragon"></i>
+                {{/if}}
+              </div>
+            {{/each}}
           </div>
-          {{/each}}
-        </div>
-        {{#if isGM}}
-        <button class="encounter-btn deploy-monsters">
-          <i class="fas fa-dragon"></i>Deploy Monsters
-        </button>
-        {{/if}}
+          {{#if isGM}}
+            <button class="encounter-btn deploy-monsters" data-tooltip="Deploy monsters">
+              <i class="fas fa-dragon"></i>Deploy
+            </button>
+            <button class="encounter-btn create-combat" data-tooltip="Deploy monsters and create combat">
+            <i class="fas fa-swords"></i>Combat
+          </button>
+          {{/if}}
+
+
+
+          
         {{/if}}
 
-        {{#if isGM}}
-        <button class="encounter-btn create-combat">
-          <i class="fas fa-swords"></i>Create Combat
-        </button>
-        {{/if}}
-      </div>
+
+      
     {{else}}
+      {{!-- NO ENCOUNTER DATA --}}  
       <p>No encounter data found in this journal entry.</p>
     {{/if}}
+
+    {{!-- ALWAYS SHOWN BUTTONS--}}  
+    {{#if isGM}}
+      <button class="encounter-btn toggle-visibility" data-tooltip="Reveal hidden monster tokens">
+        <i class="fas fa-eye"></i>Reveal
+      </button>
+    {{/if}}
+
+
   </div>
+</div>

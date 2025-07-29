@@ -88,6 +88,9 @@
 		"enableEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
 		"enableEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
 
+		"toggleVisibility-Label": "Toggle Token Visibility",
+		"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
+
 		"headingH2Scenes-Label": "Scenes",
 		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 
