@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [12.0.20] - Encounter Toolbar and Token Deployment
 
+### NOTE: Bumped the version to 12 to align with the Foundry version.
+
 ### Added
 - **Encounter Folder Support:** Added support for placing deployed actors in a configurable folder. When the `encounterFolder` setting is specified, actors are automatically placed in that folder. If the folder doesn't exist, it's created automatically. If the setting is empty, actors are placed in the root directory.
 - **Enhanced Token Deployment Patterns:** Implemented multiple deployment patterns for encounter tokens:
