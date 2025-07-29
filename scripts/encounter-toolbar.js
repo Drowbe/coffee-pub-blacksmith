@@ -564,14 +564,21 @@ export class EncounterToolbar {
             
             if (metadata.monsters && metadata.monsters[monsterIndex]) {
                 const monsterUUID = metadata.monsters[monsterIndex];
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `Index: ${monsterIndex}, UUID: ${monsterUUID}`, false, true, false);
+                const isCtrlHeld = event.ctrlKey;
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `Index: ${monsterIndex}, UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
                 
-                // Create metadata for just this one monster and use existing deployment function
+                // Create metadata for just this one monster
                 const singleMonsterMetadata = {
                     ...metadata,
                     monsters: [monsterUUID]
                 };
-                await EncounterToolbar._deployMonsters(singleMonsterMetadata);
+                
+                // Use multiple deployment only if CTRL is held, otherwise use regular deployment
+                if (isCtrlHeld) {
+                    await EncounterToolbar._deploySingleMonsterMultiple(singleMonsterMetadata);
+                } else {
+                    await EncounterToolbar._deployMonsters(singleMonsterMetadata);
+                }
             }
         });
     }
@@ -643,15 +650,23 @@ export class EncounterToolbar {
             if (deploymentPattern === "sequential") {
                 return await this._deploySequential(metadata, null);
             } else {
+                // Check if this is a single monster deployment (for CTRL functionality)
+                const isSingleMonster = metadata.monsters.length === 1;
+                
                 // Get the target position (where the user clicked)
-                const position = await this._getTargetPosition();
+                const position = await this._getTargetPosition(isSingleMonster);
                 
                 if (!position) {
-                    ui.notifications.warn("Please click on the canvas to place monsters.");
+                    // User cancelled or no position obtained
+                    if (isSingleMonster) {
+                        ui.notifications.info("Monster deployment cancelled.");
+                    } else {
+                        ui.notifications.warn("Please click on the canvas to place monsters.");
+                    }
                     return [];
                 }
                 
-                // Deploy each monster
+                // Deploy each monster at this position
                 for (let i = 0; i < metadata.monsters.length; i++) {
                     const monsterId = metadata.monsters[i];
                     
@@ -810,7 +825,177 @@ export class EncounterToolbar {
         }
     }
 
+    // Deploy a single monster multiple times with CTRL key support
+    static async _deploySingleMonsterMultiple(metadata) {
+        // Check if user has permission to create tokens
+        if (!game.user.isGM) {
+            ui.notifications.error("Only Game Masters can deploy monsters.");
+            return [];
+        }
+        
+        if (!metadata.monsters || metadata.monsters.length === 0) {
+            ui.notifications.warn("No monsters found in encounter data.");
+            return [];
+        }
 
+        const deployedTokens = [];
+        const monsterUUID = metadata.monsters[0]; // Single monster
+        
+        // Declare variables in outer scope for cleanup
+        let tooltip = null;
+        let mouseMoveHandler = null;
+        
+        try {
+            // Validate the UUID
+            const validatedId = await this._validateUUID(monsterUUID);
+            if (!validatedId) {
+                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID`, monsterUUID, false, false, false);
+                ui.notifications.error("Invalid monster UUID.");
+                return [];
+            }
+            
+            const actor = await fromUuid(validatedId);
+            
+            if (!actor) {
+                ui.notifications.error("Could not load monster actor.");
+                return [];
+            }
+
+            // Get the deployment pattern setting for positioning
+            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+            const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+            
+            // Create tooltip for deployment
+            tooltip = document.createElement('div');
+            tooltip.className = 'encounter-tooltip';
+            document.body.appendChild(tooltip);
+            
+            mouseMoveHandler = (event) => {
+                tooltip.style.left = (event.data.global.x + 15) + 'px';
+                tooltip.style.top = (event.data.global.y - 40) + 'px';
+            };
+            
+            // Show initial tooltip
+            const patternName = this._getDeploymentPatternName(deploymentPattern);
+            tooltip.innerHTML = `
+                <div class="monster-name">Deploy ${actor.name} (CR ${actor.system.details.cr})</div>
+                <div class="progress">${patternName} - Click to place, release CTRL to finish</div>
+            `;
+            tooltip.classList.add('show');
+            canvas.stage.on('mousemove', mouseMoveHandler);
+
+            // First, create a world copy of the actor if it's from a compendium
+            let worldActor = actor;
+            if (actor.pack) {
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor", "", false, true, false);
+                const actorData = actor.toObject();
+                
+                // Get or create the encounter folder
+                const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                let encounterFolder = null;
+                
+                if (folderName && folderName.trim() !== '') {
+                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                    
+                    if (!encounterFolder) {
+                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating encounter folder", folderName, false, true, false);
+                        encounterFolder = await Folder.create({
+                            name: folderName,
+                            type: 'Actor',
+                            color: '#ff0000'
+                        });
+                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Encounter folder created", encounterFolder.id, false, true, false);
+                    }
+                }
+                
+                // Create the world actor
+                const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                worldActor = await Actor.create(actorData, createOptions);
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: World actor created", worldActor.id, false, true, false);
+                
+                // Ensure folder is assigned
+                if (encounterFolder && !worldActor.folder) {
+                    await worldActor.update({ folder: encounterFolder.id });
+                }
+                
+                // Update the prototype token to honor GM defaults
+                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
+                await worldActor.update({ prototypeToken: prototypeTokenData });
+            }
+
+            // Deploy multiple instances
+            let continueDeploying = true;
+            while (continueDeploying) {
+                // Get the target position (where the user clicked)
+                const position = await this._getTargetPosition(true); // Allow multiple
+                
+                if (!position) {
+                    // User cancelled or no position obtained
+                    ui.notifications.info("Monster deployment finished.");
+                    // Clean up tooltip immediately when deployment ends
+                    if (tooltip && tooltip.parentNode) {
+                        tooltip.remove();
+                    }
+                    if (mouseMoveHandler) {
+                        canvas.stage.off('mousemove', mouseMoveHandler);
+                    }
+                    break;
+                }
+                
+                // Create token data
+                const tokenData = foundry.utils.mergeObject(
+                    foundry.utils.deepClone(game.settings.get("core", "defaultToken")),
+                    worldActor.prototypeToken.toObject(),
+                    { overwrite: false }
+                );
+                
+                // Set token properties
+                tokenData.x = position.x;
+                tokenData.y = position.y;
+                tokenData.actorId = worldActor.id;
+                tokenData.actorLink = false; // Create unlinked tokens
+                tokenData.hidden = deploymentHidden;
+                
+                // Honor lock rotation setting
+                const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
+                if (lockRotation !== undefined) {
+                    tokenData.lockRotation = lockRotation;
+                }
+                
+                // Create the token on the canvas
+                const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Single monster token creation result", createdTokens, false, true, false);
+                
+                // Verify the token was created
+                if (createdTokens && createdTokens.length > 0) {
+                    const token = createdTokens[0];
+                    deployedTokens.push(token);
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created single monster token", token, false, true, false);
+                    
+                    // Update tooltip to show success and continue instruction
+                    tooltip.innerHTML = `
+                        <div class="monster-name">${actor.name} Deployed</div>
+                        <div class="progress">Hold CTRL and click to place another, release CTRL to finish</div>
+                    `;
+                }
+            }
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying single monster multiple times", error, false, false, true);
+            ui.notifications.error("Failed to deploy monster.");
+        } finally {
+            // Clean up tooltip and handlers
+            if (tooltip && tooltip.parentNode) {
+                tooltip.remove();
+            }
+            if (mouseMoveHandler) {
+                canvas.stage.off('mousemove', mouseMoveHandler);
+            }
+        }
+        
+        return deployedTokens;
+    }
 
     static _calculateCirclePosition(centerPosition, index, totalTokens) {
         // Calculate circle formation
@@ -1029,9 +1214,9 @@ export class EncounterToolbar {
         return deployedTokens;
     }
 
-    static async _getTargetPosition() {
+    static async _getTargetPosition(allowMultiple = false) {
         return new Promise((resolve) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Setting up click handler for target position", "", false, true, false);
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, false, true, false);
             
             // Use FoundryVTT's canvas pointer handling
             const handler = (event) => {
@@ -1069,9 +1254,17 @@ export class EncounterToolbar {
                     }
                 }
                 
-                // Remove the event listener immediately
-                canvas.app.stage.off('pointerdown', handler);
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Click handler removed, resolving position", "", false, true, false);
+                // Check if CTRL is held down for multiple deployments
+                const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
+                
+                // If not allowing multiple or CTRL not held, remove the handler
+                if (!allowMultiple || !isCtrlHeld) {
+                    canvas.app.stage.off('pointerdown', handler);
+                    document.removeEventListener('keyup', keyUpHandler);
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Click handler removed, resolving position", "", false, true, false);
+                } else {
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", false, true, false);
+                }
                 
                 // Resolve with the position
                 if (position) {
@@ -1083,9 +1276,20 @@ export class EncounterToolbar {
                 }
             };
             
-            // Add the event listener to the canvas stage
+            // Key up handler to detect when CTRL is released
+            const keyUpHandler = (event) => {
+                if (event.key === 'Control' && allowMultiple) {
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: CTRL released, ending deployment", "", false, true, false);
+                    canvas.app.stage.off('pointerdown', handler);
+                    document.removeEventListener('keyup', keyUpHandler);
+                    resolve(null);
+                }
+            };
+            
+            // Add the event listeners
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Adding pointerdown handler to canvas stage", "", false, true, false);
             canvas.app.stage.on('pointerdown', handler);
+            document.addEventListener('keyup', keyUpHandler);
         });
     }
 
