@@ -23,42 +23,43 @@
     </div>
   </div>
 
-
   <div class="encounter-toolbar-actions">
-    {{!-- ENCOUNTER TOOLBAR ACTIONS --}}  
+    {{! ENCOUNTER TOOLBAR ACTIONS }}
     {{#if hasEncounterData}}
-        {{!-- HAS MONSTERS TO DEPLOY --}}  
-        {{#if hasMonsters}}
-          <div class="encounter-monster-icons">
-            {{#each monsters}}
-              <div class="monster-icon" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}})">
-                {{#if portrait}}
-                  <img src="{{portrait}}" alt="{{name}}" class="monster-portrait">
-                {{else}}
-                  <i class="fas fa-dragon"></i>
-                {{/if}}
-              </div>
-            {{/each}}
-          </div>
-          {{#if isGM}}
-            <button class="encounter-btn deploy-monsters" data-tooltip="Deploy monsters">
-              <i class="fas fa-dragon"></i>Deploy
-            </button>
-            <button class="encounter-btn create-combat" data-tooltip="Deploy monsters and create combat">
-            <i class="fas fa-swords"></i>Combat
-          </button>
-          {{/if}}
+    {{! HAS MONSTERS TO DEPLOY }}
+    {{#if hasMonsters}}
+    <div class="encounter-icons-monster">
+      {{#each monsters}}
+      <div class="encounter-icon-monster" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}})">
+        {{#if portrait}}
+        <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
+        {{else}}
+        <i class="fas fa-dragon"></i>
         {{/if}}
+      </div>
+      {{/each}}
+    </div>
+    {{#if isGM}}
+    <button class="encounter-btn deploy-monsters" data-tooltip="Deploy Monsters and NPCs">
+      <i class="fas fa-dragon"></i>Deploy All
+    </button>
+    <button class="encounter-btn create-combat" data-tooltip="Deploy all and create combat">
+      <i class="fas fa-swords"></i>Combat
+    </button>
+    {{/if}}
+    {{/if}}
     {{else}}
-      {{!-- NO ENCOUNTER DATA --}}  
-      <p>No Encounter</p>
+    {{! NO ENCOUNTER DATA }}
+    <div class="encounter-icons-none">
+      <p><i class="fas fa-users"></i>Nothing to Deploy</p>
+    </div>
     {{/if}}
 
-    {{!-- ALWAYS SHOWN BUTTONS--}}  
+    {{! ALWAYS SHOWN BUTTONS}}
     {{#if isGM}}
-      <button class="encounter-btn toggle-visibility" data-tooltip="Reveal hidden monster tokens">
-        <i class="fas fa-eye"></i>Reveal
-      </button>
+    <button class="encounter-btn toggle-visibility" data-tooltip="Reveal hidden monster tokens">
+      <i class="fas fa-eye"></i>Reveal
+    </button>
     {{/if}}
   </div>
 </div>

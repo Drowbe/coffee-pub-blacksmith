@@ -568,7 +568,7 @@ export class EncounterToolbar {
         });
 
         // Monster icon clicks - deploy individual monsters
-        toolbar.find('.monster-icon').off('click').on('click', async (event) => {
+        toolbar.find('.encounter-icon-monster').off('click').on('click', async (event) => {
             event.preventDefault();
             event.stopPropagation();
             

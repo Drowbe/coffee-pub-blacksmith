@@ -101,9 +101,11 @@
   }
   
  /* ────────────────────────────────────────────────
-    Monster Icons
+    Encounter Icons
   ──────────────────────────────────────────────── */
-  .encounter-monster-icons {
+  .encounter-icons-none,
+  .encounter-icons-npc,
+  .encounter-icons-monster {
     display: flex;
     gap: 4px;
     margin-right: 4px;
@@ -111,38 +113,55 @@
     border-right: 2px dotted rgba(0, 0, 0, 0.3);
   }
 
-  .monster-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(254, 0, 0, 0.5);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .monster-icon:hover {
-    background: rgba(0, 0, 0, 0.8);
-    border-color: var(--color-border-highlight);
-    transform: scale(1.1);
-  }
-
-  .monster-icon i {
-    font-size: 12px;
-    color: var(--color-text-primary);
-  }
-  
-  .monster-portrait {
+  .encounter-icon-portrait {
     width: 22px;
     height: 22px;
     border-radius: 0px;
     object-fit: cover;
     border: 0px solid rgba(0, 0, 0, 0.3);
   }
+
+  .encounter-icon-none,
+  .encounter-icon-npc,
+  .encounter-icon-monster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .encounter-icon-none:hover,
+  .encounter-icon-npc:hover,
+  .encounter-icon-monster:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--color-border-highlight);
+    transform: scale(1.1);
+  }
+
+  .encounter-icon-none {
+    border: 1px solid rgba(24, 22, 22, 0.5);
+  }
+  .encounter-icon-npc {
+    border: 1px solid rgba(8, 81, 177, 0.5);
+  }
+  .encounter-icon-monster {
+    border: 1px solid rgba(254, 0, 0, 0.5);
+  }
   
+  .encounter-icon-none i,
+  .encounter-icon-npc i,
+  .encounter-icon-monster i {
+    font-size: 12px;
+    color: var(--color-text-primary);
+  }
+  
+  
+
   
   /* ────────────────────────────────────────────────
     CR Badges
