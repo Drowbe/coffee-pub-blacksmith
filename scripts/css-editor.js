@@ -61,7 +61,7 @@ export class CSSEditor extends FormApplication {
                 ui.notifications.info('CSS copied to clipboard');
             }).catch(err => {
                 ui.notifications.error('Failed to copy CSS');
-                console.error('Failed to copy CSS:', err);
+                postConsoleAndNotification('Failed to copy CSS', err, false, false, true);
             });
         });
 

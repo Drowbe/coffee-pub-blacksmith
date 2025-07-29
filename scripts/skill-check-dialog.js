@@ -1089,7 +1089,7 @@ export class SkillCheckDialog extends Application {
                             }
                         }
                     } catch (error) {
-                        console.error('Error in tool selection:', error);
+                        postConsoleAndNotification('Error in tool selection', error, false, false, true);
                         ui.notifications.error('There was an error processing the tool selection.');
                     }
                 });

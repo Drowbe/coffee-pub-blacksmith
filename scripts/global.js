@@ -629,7 +629,7 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
             loop: loop
         }, broadcast);
     } catch (error) {
-        console.error(`Blacksmith | Global.js | Failed to play sound: ${sound}`, error);
+        postConsoleAndNotification(`Blacksmith | Global.js | Failed to play sound: ${sound}`, error, false, false, true);
     }
 }
 
@@ -737,7 +737,7 @@ async function callGptApiText(query) {
         max_tokens = 4096;  // Default for other models
     }
 
-    console.log(`BLACKSMITH: Using model ${model} with max_tokens ${max_tokens}`);
+    postConsoleAndNotification(`BLACKSMITH: Using model ${model} with max_tokens ${max_tokens}`, "", false, true, false);
 
     const requestBody = {
         model,
@@ -803,7 +803,7 @@ async function callGptApiText(query) {
         for (let retries = 0, backoffTime = 2000; retries < 4; retries++, backoffTime *= 2) {
             if (retries > 0) {
                 await new Promise(r => setTimeout(r, backoffTime));
-                console.log(`BLACKSMITH: Retry attempt ${retries} after ${backoffTime}ms wait`);
+                postConsoleAndNotification(`BLACKSMITH: Retry attempt ${retries} after ${backoffTime}ms wait`, "", false, true, false);
             }
             
             try {
@@ -843,7 +843,7 @@ async function callGptApiText(query) {
                     throw fetchError;
                 }
                 // For timeout errors, continue with retry
-                console.log(`BLACKSMITH: Request timed out, will retry`);
+                postConsoleAndNotification(`BLACKSMITH: Request timed out, will retry`, "", false, true, false);
             }
         }
         
@@ -923,7 +923,7 @@ export async function getOpenAIReplyAsHtml(query) {
             // Convert back to string
             content = JSON.stringify(jsonObj, null, 2);
         } catch (e) {
-            console.error("Error processing JSON:", e);
+            postConsoleAndNotification("Error processing JSON", e, false, false, true);
             // Keep the original content if JSON processing fails
         }
     } else {

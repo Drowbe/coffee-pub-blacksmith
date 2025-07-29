@@ -102,7 +102,7 @@ class ChatPanel {
                     currentMovementData = movementTypes[currentMovement] || movementTypes['normal-movement'];
                 }
             } catch (err) {
-                console.warn('Blacksmith | Movement type setting not registered yet, using default');
+                postConsoleAndNotification('Blacksmith | Movement type setting not registered yet, using default', "", false, false, false);
             }
 
             // Prepare template data
@@ -115,7 +115,7 @@ class ChatPanel {
                     isLeader = game.user.id === leaderData?.userId;
                 }
             } catch (err) {
-                console.warn('Blacksmith | Party leader setting not registered yet, using default');
+                postConsoleAndNotification('Blacksmith | Party leader setting not registered yet, using default', "", false, false, false);
             }
 
             const templateData = {
@@ -582,7 +582,7 @@ class ChatPanel {
             this.previousRemainingMinutes = remainingMinutes;
 
         } catch (error) {
-            console.error("Error in timer warning check:", error);
+            postConsoleAndNotification("Error in timer warning check", error, false, false, true);
             // If settings aren't registered yet, just use default styling
             timerInfo.classList.remove('warning', 'expired');
             timerInfo.style.setProperty('--progress-color', '#c1bfb5');

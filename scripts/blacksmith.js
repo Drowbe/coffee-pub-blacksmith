@@ -102,7 +102,7 @@ async function getNoteConfigIcons() {
             return customIcons;
         }
     } catch (error) {
-        console.error("Error browsing folder:", error);
+        postConsoleAndNotification("Error browsing folder", error, false, false, true);
     }
     
     return [];
@@ -134,7 +134,7 @@ export async function getCachedTemplate(templatePath) {
         
         return template;
     } catch (error) {
-        console.error(`Error loading template ${templatePath}:`, error);
+        postConsoleAndNotification(`Error loading template ${templatePath}`, error, false, false, true);
         throw error;
     }
 }
@@ -295,10 +295,10 @@ Hooks.once('init', async function() {
             // Store socket for use in other parts of the module
             game.modules.get(MODULE_ID).socket = socket;
         } else {
-            console.warn('Blacksmith | SocketLib API not found, some features may be limited');
+            postConsoleAndNotification('Blacksmith | SocketLib API not found, some features may be limited', "", false, false, false);
         }
     } else {
-        console.warn('Blacksmith | SocketLib module not active, some features may be limited');
+        postConsoleAndNotification('Blacksmith | SocketLib module not active, some features may be limited', "", false, false, false);
     }
     
     // Register chat message click handler for skill rolls
@@ -592,11 +592,11 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
                 // Set the default icon
                 entryIconField.val(strIconUrl);
             } else {
-                console.error("Entry Icon field not found");
+                postConsoleAndNotification("Entry Icon field not found", "", false, false, true);
             }
         }
     } catch (error) {
-        console.error("Error loading note config icons:", error);
+        postConsoleAndNotification("Error loading note config icons", error, false, false, true);
     }
 
 
@@ -839,7 +839,7 @@ case "INJURY":
                             postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
                     }
               } catch (e) {
-                console.error(e);
+                postConsoleAndNotification("Failed to parse JSON", e, false, false, true);
                 ui.notifications.error("Failed to parse JSON!");
                 postConsoleAndNotification("Failed to parse JSON!", e + ".", false, true, true);
               }
@@ -1913,7 +1913,7 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
                         const created = await Item.createDocuments(itemsToImport, {keepId: false});
                         ui.notifications.info(`Imported ${created.length} item(s) successfully.`);
                     } catch (e) {
-                        console.error(e);
+                        postConsoleAndNotification("Failed to import items", e, false, false, true);
                         ui.notifications.error("Failed to import items: " + e.message);
                     }
                 }

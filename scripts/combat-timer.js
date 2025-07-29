@@ -130,7 +130,7 @@ class CombatTimer {
                 });
 
             } catch (error) {
-                console.error(`Blacksmith | Could not initialize Combat Timer:`, error);
+                postConsoleAndNotification(`Blacksmith | Could not initialize Combat Timer`, error, false, false, true);
             }
         });
 
@@ -209,7 +209,7 @@ class CombatTimer {
 
             this.updateUI();
         } catch (error) {
-            console.error("Blacksmith | Combat Timer: Error rendering combat tracker:", error);
+            postConsoleAndNotification("Blacksmith | Combat Timer: Error rendering combat tracker", error, false, false, true);
         }
     }
 
@@ -532,7 +532,7 @@ class CombatTimer {
                 });
             }
         } catch (error) {
-            console.error("Blacksmith | Combat Timer: Error in startTimer:", error);
+            postConsoleAndNotification("Blacksmith | Combat Timer: Error in startTimer", error, false, false, true);
         }
     }
 
@@ -767,7 +767,7 @@ class CombatTimer {
             }
 
         } catch (error) {
-            console.error("Blacksmith | Combat Timer: Error updating UI:", error);
+            postConsoleAndNotification("Blacksmith | Combat Timer: Error updating UI", error, false, false, true);
         }
     }
 

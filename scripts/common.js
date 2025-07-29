@@ -571,7 +571,7 @@ export async function copyToClipboard(text) {
             ui.notifications.info('Copied to clipboard!');
             return true;
         } catch (error) {
-            console.warn('Modern clipboard API failed:', error);
+            postConsoleAndNotification('Modern clipboard API failed', error, false, false, false);
         }
     }
     // Method 2: Try legacy execCommand approach
@@ -591,7 +591,7 @@ export async function copyToClipboard(text) {
             return true;
         }
     } catch (error) {
-        console.warn('Legacy clipboard method failed:', error);
+        postConsoleAndNotification('Legacy clipboard method failed', error, false, false, false);
     }
     // Method 3: Show dialog with text for manual copying
     new Dialog({

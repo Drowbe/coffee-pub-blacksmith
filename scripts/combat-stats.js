@@ -201,7 +201,7 @@ class CombatStats {
                 playSound(soundId, volume);
             }
         } catch (error) {
-            console.error('Blacksmith | Error announcing new round:', error);
+            postConsoleAndNotification('Blacksmith | Error announcing new round', error, false, false, true);
         }
     }
 
@@ -526,7 +526,7 @@ class CombatStats {
             const actorId = uuid.split('.')[1];
             return game.actors.get(actorId);
         } catch (error) {
-            console.error('Blacksmith | Combat Stats - Error getting actor from UUID:', error);
+            postConsoleAndNotification('Blacksmith | Combat Stats - Error getting actor from UUID', error, false, false, true);
             return null;
         }
     }
@@ -640,7 +640,7 @@ class CombatStats {
             return input.hasPlayerOwner || input.type === 'character';
         }
 
-        console.warn('Blacksmith | Timer Debug - Invalid input for _isPlayerCharacter:', input);
+        postConsoleAndNotification('Blacksmith | Timer Debug - Invalid input for _isPlayerCharacter', input, false, false, false);
         return false;
     }
 
@@ -1315,7 +1315,7 @@ class CombatStats {
             this.currentStats.activePlanningTime = 0;
 
         } catch (error) {
-            console.error('Blacksmith | Round End - Error:', error);
+            postConsoleAndNotification('Blacksmith | Round End - Error', error, false, false, true);
         }
     }
 
@@ -1531,7 +1531,7 @@ class CombatStats {
         }, false, true, false);
 
         if (!this.currentStats?.notableMoments) {
-            console.warn('Blacksmith | Notable Moments structure not initialized');
+            postConsoleAndNotification('Blacksmith | Notable Moments structure not initialized', "", false, false, false);
             return;
         }
         
