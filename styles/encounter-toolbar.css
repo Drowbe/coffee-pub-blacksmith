@@ -100,13 +100,15 @@
     padding-top: 2px;
   }
   
-  /* ────────────────────────────────────────────────
+ /* ────────────────────────────────────────────────
     Monster Icons
   ──────────────────────────────────────────────── */
   .encounter-monster-icons {
     display: flex;
     gap: 4px;
-    margin-right: 8px;
+    margin-right: 4px;
+    padding-right: 8px;
+    border-right: 2px dotted rgba(0, 0, 0, 0.3);
   }
 
   .monster-icon {
@@ -115,15 +117,15 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border-primary);
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(254, 0, 0, 0.5);
     border-radius: 4px;
     cursor: help;
     transition: all 0.2s ease;
   }
 
   .monster-icon:hover {
-    background: var(--color-bg-highlight);
+    background: rgba(0, 0, 0, 0.8);
     border-color: var(--color-border-highlight);
     transform: scale(1.1);
   }
@@ -134,11 +136,11 @@
   }
   
   .monster-portrait {
-    width: 20px;
-    height: 20px;
-    border-radius: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 0px;
     object-fit: cover;
-    border: 1px solid var(--color-border-primary);
+    border: 0px solid rgba(0, 0, 0, 0.3);
   }
   
   
