@@ -177,6 +177,41 @@ export class EncounterToolbar {
         }
     }
 
+    // Helper method to determine if an actor is a monster (vs NPC)
+    static async _isActorMonster(uuid) {
+        try {
+            const actor = await fromUuid(uuid);
+            if (actor) {
+                // In FoundryVTT, both monsters and NPCs are typically of type 'npc'
+                // The distinction is usually made by disposition or other properties
+                // For now, let's use a simple heuristic: if the actor has a hostile disposition or is from a monster compendium, it's a monster
+                // Otherwise, it's an NPC
+                
+                // Check if it's from a monster compendium
+                if (actor.pack && actor.pack.includes('monster')) {
+                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as monster (monster compendium)`, "", false, true, false);
+                    return true;
+                }
+                
+                // Check disposition (hostile = monster, friendly/neutral = NPC)
+                if (actor.prototypeToken && actor.prototypeToken.disposition !== undefined) {
+                    const isMonster = actor.prototypeToken.disposition <= -1; // Hostile
+                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as ${isMonster ? 'monster' : 'npc'} (disposition: ${actor.prototypeToken.disposition})`, "", false, true, false);
+                    return isMonster;
+                }
+                
+                // Default: assume it's a monster if we can't determine
+                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as monster (default)`, "", false, true, false);
+                return true;
+            }
+            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${uuid} classified as monster (no actor found)`, "", false, true, false);
+            return true; // Default to monster if we can't determine
+        } catch (error) {
+            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Error checking actor type for ${uuid}`, error, false, false, true);
+            return true; // Default to monster on error
+        }
+    }
+
     // Helper method to get monster details for display
     static async _getMonsterDetails(monsterUUIDs) {
         const monsterDetails = [];
@@ -218,7 +253,7 @@ export class EncounterToolbar {
     }
 
     // Enhanced method to scan journal content for encounter data
-    static _scanJournalContent(html, pageId) {
+    static async _scanJournalContent(html, pageId) {
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Starting content scan for page", pageId, false, true, false);
         
         // Get the journal page content - try different selectors
@@ -273,7 +308,7 @@ export class EncounterToolbar {
         }
 
         // Use the new pattern-based detection
-        encounterData = this._parsePatternBasedEncounter(textContent, htmlContent);
+        encounterData = await this._parsePatternBasedEncounter(textContent, htmlContent);
         if (encounterData) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found pattern-based encounter data", "", false, true, false);
             return encounterData;
@@ -284,9 +319,10 @@ export class EncounterToolbar {
     }
 
     // Pattern-based encounter detection
-    static _parsePatternBasedEncounter(textContent, htmlContent) {
+    static async _parsePatternBasedEncounter(textContent, htmlContent) {
         const encounterData = {
             monsters: [],
+            npcs: [],
             difficulty: null
         };
 
@@ -336,9 +372,14 @@ export class EncounterToolbar {
                             }
                         }
                         
-                        // Add the monster the specified number of times
+                        // Determine if this is a monster or NPC and add to appropriate array
+                        const isMonster = await this._isActorMonster(uuid);
                         for (let i = 0; i < quantity; i++) {
-                            encounterData.monsters.push(uuid);
+                            if (isMonster) {
+                                encounterData.monsters.push(uuid);
+                            } else {
+                                encounterData.npcs.push(uuid);
+                            }
                         }
                     } else {
                         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: UUID is not an Actor type", uuid, false, true, false);
@@ -365,7 +406,7 @@ export class EncounterToolbar {
         }
 
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Final encounter data", encounterData, false, true, false);
-        return (encounterData.monsters.length > 0 || encounterData.difficulty) ? encounterData : null;
+        return (encounterData.monsters.length > 0 || encounterData.npcs.length > 0 || encounterData.difficulty) ? encounterData : null;
     }
 
     // Parse JSON encounter data
@@ -379,9 +420,10 @@ export class EncounterToolbar {
                 const jsonContent = match.replace(/```json\s*/, '').replace(/\s*```/, '');
                 const data = JSON.parse(jsonContent);
                 
-                if (data.encounter && (data.encounter.monsters || data.encounter.difficulty)) {
+                if (data.encounter && (data.encounter.monsters || data.encounter.npcs || data.encounter.difficulty)) {
                     return {
                         monsters: data.encounter.monsters || [],
+                        npcs: data.encounter.npcs || [],
                         difficulty: data.encounter.difficulty || null
                     };
                 }
@@ -435,7 +477,7 @@ export class EncounterToolbar {
         }
 
         // Try content scanning for encounter data (check all journals, not just encounter type)
-        let encounterData = this._scanJournalContent(html, pageId);
+        let encounterData = await this._scanJournalContent(html, pageId);
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Content scan result", encounterData, false, true, false);
         
         if (encounterData) {
@@ -443,13 +485,20 @@ export class EncounterToolbar {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found encounter data, updating toolbar", "", false, true, false);
             
             try {
-                // Check if we have monsters
+                // Check if we have monsters and NPCs
                 const hasMonsters = encounterData.monsters && encounterData.monsters.length > 0;
+                const hasNpcs = encounterData.npcs && encounterData.npcs.length > 0;
                 
                 // Get monster details for display
                 let monsterDetails = [];
                 if (hasMonsters) {
                     monsterDetails = await this._getMonsterDetails(encounterData.monsters);
+                }
+                
+                // Get NPC details for display
+                let npcDetails = [];
+                if (hasNpcs) {
+                    npcDetails = await this._getMonsterDetails(encounterData.npcs);
                 }
                 
                 // Determine difficulty class for styling
@@ -474,7 +523,9 @@ export class EncounterToolbar {
                         journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
                         hasEncounterData: true,
                         hasMonsters,
+                        hasNpcs,
                         monsters: monsterDetails,
+                        npcs: npcDetails,
                         difficulty: encounterData.difficulty,
                         difficultyClass,
                         partyCR: partyCR,
@@ -516,6 +567,7 @@ export class EncounterToolbar {
                 journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
                 hasEncounterData: false,
                 hasMonsters: false,
+                hasNpcs: false,
                 difficulty: null,
                 difficultyClass: null,
                 partyCR: partyCR,
@@ -528,7 +580,7 @@ export class EncounterToolbar {
             toolbar.html(renderedHtml);
             
             // Add event listeners even when there's no encounter data (for the Reveal button)
-            this._addEventListeners(toolbar, { monsters: [] });
+            this._addEventListeners(toolbar, { monsters: [], npcs: [] });
             
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with no encounter data", "", false, true, false);
         });
@@ -536,6 +588,8 @@ export class EncounterToolbar {
 
     static _addEventListeners(toolbar, metadata) {
         postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Setting up event listeners with metadata", metadata, false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Metadata monsters array", metadata.monsters || [], false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Metadata npcs array", metadata.npcs || [], false, true, false);
         
         // Deploy monsters button - scope to this toolbar only
         toolbar.find('.deploy-monsters').off('click').on('click', async (event) => {
@@ -582,7 +636,8 @@ export class EncounterToolbar {
                 // Create metadata for just this one monster
                 const singleMonsterMetadata = {
                     ...metadata,
-                    monsters: [monsterUUID]
+                    monsters: [monsterUUID],
+                    npcs: []
                 };
                 
                 // Use multiple deployment only if CTRL is held, otherwise use regular deployment
@@ -593,17 +648,52 @@ export class EncounterToolbar {
                 }
             }
         });
+
+        // NPC icon clicks - deploy individual NPCs
+        toolbar.find('.encounter-icon-npc').off('click').on('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const $npcIcon = $(event.currentTarget);
+            const npcUUID = $npcIcon.data('uuid');
+            
+            if (npcUUID) {
+                const isCtrlHeld = event.ctrlKey;
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
+                
+                // Create metadata for just this one NPC
+                const singleNpcMetadata = {
+                    ...metadata,
+                    monsters: [],
+                    npcs: [npcUUID]
+                };
+                
+                // Use multiple deployment only if CTRL is held, otherwise use regular deployment
+                if (isCtrlHeld) {
+                    await EncounterToolbar._deploySingleMonsterMultiple(singleNpcMetadata);
+                } else {
+                    await EncounterToolbar._deployMonsters(singleNpcMetadata);
+                }
+            }
+        });
     }
 
     static async _deployMonsters(metadata) {
         // Check if user has permission to create tokens
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can deploy monsters.");
+            ui.notifications.error("Only Game Masters can deploy tokens.");
             return [];
         }
         
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
+        // Combine monsters and NPCs for deployment
+        const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
+        
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - combined allTokens", allTokens, false, true, false);
+        
+        if (allTokens.length === 0) {
+            ui.notifications.warn("No monsters or NPCs found in encounter data.");
             return [];
         }
 
@@ -631,27 +721,27 @@ export class EncounterToolbar {
                 // Show initial tooltip
                 const patternName = this._getDeploymentPatternName(deploymentPattern);
                 
-                // Check if this is a single monster deployment
-                if (metadata.monsters.length === 1) {
-                    // For single monster, get the monster details for the tooltip
-                    const monsterDetails = await this._getMonsterDetails(metadata.monsters);
-                    if (monsterDetails.length > 0) {
-                        const monster = monsterDetails[0];
+                // Check if this is a single token deployment
+                if (allTokens.length === 1) {
+                    // For single token, get the details for the tooltip
+                    const tokenDetails = await this._getMonsterDetails(allTokens);
+                    if (tokenDetails.length > 0) {
+                        const token = tokenDetails[0];
                         tooltip.innerHTML = `
-                            <div class="monster-name">Deploy ${monster.name} (CR ${monster.cr})</div>
+                            <div class="monster-name">Deploy ${token.name} (CR ${token.cr})</div>
                             <div class="progress">${patternName} - Click to place</div>
                         `;
                     } else {
                         tooltip.innerHTML = `
-                            <div class="monster-name">Deploying Monster</div>
+                            <div class="monster-name">Deploying Token</div>
                             <div class="progress">${patternName} - Click to place</div>
                         `;
                     }
                 } else {
-                    // For multiple monsters, show the original tooltip
+                    // For multiple tokens, show the original tooltip
                     tooltip.innerHTML = `
-                        <div class="monster-name">Deploying Monsters</div>
-                        <div class="progress">${patternName} - Click to place ${metadata.monsters.length} monsters</div>
+                        <div class="monster-name">Deploying Tokens</div>
+                        <div class="progress">${patternName} - Click to place ${allTokens.length} tokens</div>
                     `;
                 }
                 tooltip.classList.add('show');
@@ -662,31 +752,31 @@ export class EncounterToolbar {
             if (deploymentPattern === "sequential") {
                 return await this._deploySequential(metadata, null);
             } else {
-                // Check if this is a single monster deployment (for CTRL functionality)
-                const isSingleMonster = metadata.monsters.length === 1;
+                // Check if this is a single token deployment (for CTRL functionality)
+                const isSingleToken = allTokens.length === 1;
                 
                 // Get the target position (where the user clicked)
-                const position = await this._getTargetPosition(isSingleMonster);
+                const position = await this._getTargetPosition(isSingleToken);
                 
                 if (!position) {
                     // User cancelled or no position obtained
-                    if (isSingleMonster) {
-                        ui.notifications.info("Monster deployment cancelled.");
+                    if (isSingleToken) {
+                        ui.notifications.info("Token deployment cancelled.");
                     } else {
-                        ui.notifications.warn("Please click on the canvas to place monsters.");
+                        ui.notifications.warn("Please click on the canvas to place tokens.");
                     }
                     return [];
                 }
                 
-                // Deploy each monster at this position
-                for (let i = 0; i < metadata.monsters.length; i++) {
-                    const monsterId = metadata.monsters[i];
+                // Deploy each token at this position
+                for (let i = 0; i < allTokens.length; i++) {
+                    const tokenId = allTokens[i];
                     
                     try {
                         // Validate the UUID
-                        const validatedId = await this._validateUUID(monsterId);
+                        const validatedId = await this._validateUUID(tokenId);
                         if (!validatedId) {
-                            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, monsterId, false, false, false);
+                            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false, false);
                             continue;
                         }
                         
@@ -744,11 +834,11 @@ export class EncounterToolbar {
                             // Calculate position based on pattern
                             let tokenPosition;
                             if (deploymentPattern === "circle") {
-                                tokenPosition = this._calculateCirclePosition(position, i, metadata.monsters.length);
+                                tokenPosition = this._calculateCirclePosition(position, i, allTokens.length);
                             } else if (deploymentPattern === "scatter") {
                                 tokenPosition = this._calculateScatterPosition(position, i);
                             } else if (deploymentPattern === "grid") {
-                                tokenPosition = this._calculateSquarePosition(position, i, metadata.monsters.length);
+                                tokenPosition = this._calculateSquarePosition(position, i, allTokens.length);
                             } else {
                                 // Default to line formation
                                 const gridSize = canvas.scene.grid.size;
@@ -837,21 +927,24 @@ export class EncounterToolbar {
         }
     }
 
-    // Deploy a single monster multiple times with CTRL key support
+    // Deploy a single token multiple times with CTRL key support
     static async _deploySingleMonsterMultiple(metadata) {
         // Check if user has permission to create tokens
         if (!game.user.isGM) {
-            ui.notifications.error("Only Game Masters can deploy monsters.");
+            ui.notifications.error("Only Game Masters can deploy tokens.");
             return [];
         }
         
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            ui.notifications.warn("No monsters found in encounter data.");
+        // Get the token UUID (either monster or NPC)
+        const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
+        
+        if (allTokens.length === 0) {
+            ui.notifications.warn("No tokens found in encounter data.");
             return [];
         }
 
         const deployedTokens = [];
-        const monsterUUID = metadata.monsters[0]; // Single monster
+        const tokenUUID = allTokens[0]; // Single token
         
         // Declare variables in outer scope for cleanup
         let tooltip = null;
@@ -859,17 +952,17 @@ export class EncounterToolbar {
         
         try {
             // Validate the UUID
-            const validatedId = await this._validateUUID(monsterUUID);
+            const validatedId = await this._validateUUID(tokenUUID);
             if (!validatedId) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID`, monsterUUID, false, false, false);
-                ui.notifications.error("Invalid monster UUID.");
+                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID`, tokenUUID, false, false, false);
+                ui.notifications.error("Invalid token UUID.");
                 return [];
             }
             
             const actor = await fromUuid(validatedId);
             
             if (!actor) {
-                ui.notifications.error("Could not load monster actor.");
+                ui.notifications.error("Could not load token actor.");
                 return [];
             }
 
@@ -1158,15 +1251,18 @@ export class EncounterToolbar {
         const deployedTokens = [];
         
         try {
+            // Combine monsters and NPCs for sequential deployment
+            const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
+            
             // Create all actors first (without placing tokens)
             const actors = [];
-            for (let i = 0; i < metadata.monsters.length; i++) {
-                const monsterId = metadata.monsters[i];
+            for (let i = 0; i < allTokens.length; i++) {
+                const tokenId = allTokens[i];
                 
                 // Validate the UUID
-                const validatedId = await this._validateUUID(monsterId);
+                const validatedId = await this._validateUUID(tokenId);
                 if (!validatedId) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, monsterId, false, false, false);
+                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false, false);
                     continue;
                 }
                 
