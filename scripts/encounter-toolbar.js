@@ -8,12 +8,101 @@ import { postConsoleAndNotification } from './global.js';
 
 export class EncounterToolbar {
     
+    // Debounce timer for CR updates
+    static _crUpdateTimer = null;
+    
     static init() {
         // Listen for journal sheet rendering (normal view only)
         Hooks.on('renderJournalSheet', this._onRenderJournalSheet.bind(this));
         
         // Also listen for when journal content is updated (saves)
         Hooks.on('updateJournalEntryPage', this._onUpdateJournalEntryPage.bind(this));
+        
+        // Listen for token changes to update CR values in real-time
+        this._setupTokenChangeHooks();
+        
+        // Listen for setting changes
+        Hooks.on('settingChange', this._onSettingChange.bind(this));
+    }
+
+    // Setup or remove token change hooks based on setting
+    static _setupTokenChangeHooks() {
+        // Remove existing hooks first
+        Hooks.off('createToken', this._onTokenChange);
+        Hooks.off('updateToken', this._onTokenChange);
+        Hooks.off('deleteToken', this._onTokenChange);
+        
+        // Add hooks if setting is enabled
+        if (game.settings.get(MODULE_ID, 'enableEncounterToolbarRealTimeUpdates')) {
+            Hooks.on('createToken', this._onTokenChange.bind(this));
+            Hooks.on('updateToken', this._onTokenChange.bind(this));
+            Hooks.on('deleteToken', this._onTokenChange.bind(this));
+        }
+    }
+
+    // Handle setting changes
+    static _onSettingChange(moduleId, key, value) {
+        if (moduleId === MODULE_ID && key === 'enableEncounterToolbarRealTimeUpdates') {
+            this._setupTokenChangeHooks();
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", false, true, false);
+        }
+    }
+
+    // Hook for token changes (create, update, delete)
+    static _onTokenChange(tokenDocument, change, options, userId) {
+        // Debounce the update to prevent excessive recalculations
+        if (this._crUpdateTimer) {
+            clearTimeout(this._crUpdateTimer);
+        }
+        
+        this._crUpdateTimer = setTimeout(() => {
+            this._updateAllToolbarCRs();
+        }, 250); // 250ms debounce
+    }
+
+    // Update CR values for all open journal toolbars
+    static _updateAllToolbarCRs() {
+        try {
+            // Find all open journal sheets
+            const journalSheets = Object.values(ui.windows).filter(w => w instanceof JournalSheet);
+            
+            for (const journalSheet of journalSheets) {
+                // Check if this journal has encounter toolbars
+                const toolbars = journalSheet.element.find('.encounter-toolbar');
+                if (toolbars.length > 0) {
+                    this._updateToolbarCRs(journalSheet.element);
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error updating CR values", error, false, false, true);
+        }
+    }
+
+    // Update CR values for a specific journal toolbar
+    static _updateToolbarCRs(html) {
+        try {
+            // Find all toolbars in this journal
+            const toolbars = html.find('.encounter-toolbar');
+            
+            toolbars.each((index, toolbarElement) => {
+                const $toolbar = $(toolbarElement);
+                const pageId = $toolbar.data('page-id');
+                
+                if (pageId) {
+                    // Recalculate CR values
+                    const partyCR = this.getPartyCR();
+                    const monsterCR = this.getMonsterCR({ monsters: [] }); // Empty metadata for canvas-only calculation
+                    
+                    // Update the CR badges with icons intact
+                    $toolbar.find('.encounter-party-cr').html(`<i class="fas fa-helmet-battle"></i>${partyCR}`);
+                    $toolbar.find('.encounter-monster-cr').html(`<i class="fas fa-dragon"></i>${monsterCR}`);
+                    
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, false, true, false);
+                }
+            });
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error updating toolbar CRs", error, false, false, true);
+        }
     }
 
     // Hook for journal sheet rendering (normal view only)
@@ -464,6 +553,27 @@ export class EncounterToolbar {
                 await EncounterToolbar._createCombatWithTokens(deployedTokens, metadata);
             }
         });
+
+        // Monster icon clicks - deploy individual monsters
+        toolbar.find('.monster-icon').off('click').on('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const $monsterIcon = $(event.currentTarget);
+            const monsterIndex = $monsterIcon.index();
+            
+            if (metadata.monsters && metadata.monsters[monsterIndex]) {
+                const monsterUUID = metadata.monsters[monsterIndex];
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `Index: ${monsterIndex}, UUID: ${monsterUUID}`, false, true, false);
+                
+                // Create metadata for just this one monster and use existing deployment function
+                const singleMonsterMetadata = {
+                    ...metadata,
+                    monsters: [monsterUUID]
+                };
+                await EncounterToolbar._deployMonsters(singleMonsterMetadata);
+            }
+        });
     }
 
     static async _deployMonsters(metadata) {
@@ -501,10 +611,30 @@ export class EncounterToolbar {
                 
                 // Show initial tooltip
                 const patternName = this._getDeploymentPatternName(deploymentPattern);
-                tooltip.innerHTML = `
-                    <div class="monster-name">Deploying Monsters</div>
-                    <div class="progress">${patternName} - Click to place ${metadata.monsters.length} monsters</div>
-                `;
+                
+                // Check if this is a single monster deployment
+                if (metadata.monsters.length === 1) {
+                    // For single monster, get the monster details for the tooltip
+                    const monsterDetails = await this._getMonsterDetails(metadata.monsters);
+                    if (monsterDetails.length > 0) {
+                        const monster = monsterDetails[0];
+                        tooltip.innerHTML = `
+                            <div class="monster-name">Deploy ${monster.name} (CR ${monster.cr})</div>
+                            <div class="progress">${patternName} - Click to place</div>
+                        `;
+                    } else {
+                        tooltip.innerHTML = `
+                            <div class="monster-name">Deploying Monster</div>
+                            <div class="progress">${patternName} - Click to place</div>
+                        `;
+                    }
+                } else {
+                    // For multiple monsters, show the original tooltip
+                    tooltip.innerHTML = `
+                        <div class="monster-name">Deploying Monsters</div>
+                        <div class="progress">${patternName} - Click to place ${metadata.monsters.length} monsters</div>
+                    `;
+                }
                 tooltip.classList.add('show');
                 canvas.stage.on('mousemove', mouseMoveHandler);
             }
@@ -1133,6 +1263,7 @@ export class EncounterToolbar {
                         const crValue = parseFloat(actor.system.details.cr);
                         if (!isNaN(crValue)) {
                             totalCR += crValue;
+                            monsterCount++;
                             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, false, true, false);
                         } else {
                             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Warning", `No CR found for ${actor.name}`, false, false, false);

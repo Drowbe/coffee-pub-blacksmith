@@ -931,6 +931,16 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+		// -- Real-time CR Updates --
+		game.settings.register(MODULE_ID, 'enableEncounterToolbarRealTimeUpdates', {
+			name: MODULE_ID + '.enableEncounterToolbarRealTimeUpdates-Label',
+			hint: MODULE_ID + '.enableEncounterToolbarRealTimeUpdates-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+		});
+
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - SCENES  ----------

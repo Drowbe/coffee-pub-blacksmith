@@ -85,6 +85,9 @@
 		"enableEncounterContentScanning-Label": "Enable Content Scanning",
 		"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
 
+		"enableEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
+		"enableEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
+
 		"headingH2Scenes-Label": "Scenes",
 		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 
