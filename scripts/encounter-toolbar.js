@@ -110,7 +110,7 @@ export class EncounterToolbar {
                     // Update the deployment pattern badge
                     const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
                     const patternName = this._getDeploymentPatternName(currentPattern);
-                    $toolbar.find('.deploy-type').html(`<i class="fas fa-swords"></i>${patternName}`);
+                    $toolbar.find('.deploy-type').html(`<i class="fas fa-grid-2-plus"></i>${patternName}`);
                     
                     // Update the deployment visibility badge
                     const currentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
@@ -879,7 +879,7 @@ export class EncounterToolbar {
                             if (deploymentPattern === "circle") {
                                 tokenPosition = this._calculateCirclePosition(position, i, allTokens.length);
                             } else if (deploymentPattern === "scatter") {
-                                tokenPosition = this._calculateScatterPosition(position, i);
+                                tokenPosition = this._calculateScatterPosition(position, i, allTokens.length);
                             } else if (deploymentPattern === "grid") {
                                 tokenPosition = this._calculateSquarePosition(position, i, allTokens.length);
                             } else {
@@ -1205,21 +1205,48 @@ export class EncounterToolbar {
         return { x, y };
     }
 
-    static _calculateScatterPosition(centerPosition, index) {
-        // Calculate scatter formation using spiral pattern to prevent overlaps
+    static _calculateScatterPosition(centerPosition, index, totalTokens) {
+        // Calculate scatter formation using grid-based random placement
         const gridSize = canvas.scene.grid.size;
-        const spacing = gridSize * 1.5; // Minimum spacing between tokens
         
-        // Use spiral pattern for better distribution
-        const spiralRadius = spacing * (index + 1);
-        const spiralAngle = index * Math.PI / 3; // Golden angle approximation
+        // Create a grid that is 1x the number of tokens in width and height
+        const gridWidth = totalTokens;
+        const gridHeight = totalTokens;
         
-        // Add some randomness to the spiral
-        const randomOffset = (Math.random() - 0.5) * spacing * 0.5;
+        // Calculate the total grid area
+        const totalGridCells = gridWidth * gridHeight;
         
-        // Calculate position
-        let x = centerPosition.x + (spiralRadius * Math.cos(spiralAngle)) + randomOffset;
-        let y = centerPosition.y + (spiralRadius * Math.sin(spiralAngle)) + randomOffset;
+        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, false, true, false);
+        
+        // Create an array of all possible positions
+        const allPositions = [];
+        for (let row = 0; row < gridHeight; row++) {
+            for (let col = 0; col < gridWidth; col++) {
+                allPositions.push({ row, col });
+            }
+        }
+        
+        // Shuffle the positions randomly
+        for (let i = allPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
+        }
+        
+        // Take the first 'totalTokens' positions
+        const selectedPositions = allPositions.slice(0, totalTokens);
+        
+        // Get the position for this specific token
+        const tokenPosition = selectedPositions[index];
+        
+        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
+        
+        // Calculate offset from center to make the grid centered on the click point
+        const offsetX = (gridWidth - 1) * gridSize / 2;
+        const offsetY = (gridHeight - 1) * gridSize / 2;
+        
+        // Calculate the actual position using scene grid size
+        let x = centerPosition.x + (tokenPosition.col * gridSize) - offsetX;
+        let y = centerPosition.y + (tokenPosition.row * gridSize) - offsetY;
         
         // Snap to grid
         const snappedPosition = canvas.grid.getSnappedPoint(x, y);
@@ -1228,7 +1255,7 @@ export class EncounterToolbar {
             y = snappedPosition.y;
         }
         
-        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (gridSize ${gridSize})`, { x, y }, false, true, false);
+        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, true, false);
         return { x, y };
     }
 
