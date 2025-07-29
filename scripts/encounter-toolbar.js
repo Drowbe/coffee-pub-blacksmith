@@ -419,7 +419,7 @@ export class EncounterToolbar {
                     toolbar.html(renderedHtml);
                     
                     // Add event listeners to the buttons
-                    this._addEventListeners($(document), encounterData);
+                    this._addEventListeners(toolbar, encounterData);
                     
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with encounter data", "", false, true, false);
                 });
@@ -462,22 +462,22 @@ export class EncounterToolbar {
         });
     }
 
-    static _addEventListeners(html, metadata) {
+    static _addEventListeners(toolbar, metadata) {
         console.log("BLACKSMITH | Encounter Toolbar: Setting up event listeners with metadata:", metadata);
         
-        // Deploy monsters button
-        html.find('.deploy-monsters').click(async (event) => {
+        // Deploy monsters button - scope to this toolbar only
+        toolbar.find('.deploy-monsters').off('click').on('click', async (event) => {
             console.log("BLACKSMITH | Encounter Toolbar: Deploy monsters button clicked!");
             event.preventDefault();
+            event.stopPropagation();
             EncounterToolbar._deployMonsters(metadata);
         });
         
-
-        
-        // Create combat button
-        html.find('.create-combat').click(async (event) => {
+        // Create combat button - scope to this toolbar only
+        toolbar.find('.create-combat').off('click').on('click', async (event) => {
             console.log("BLACKSMITH | Encounter Toolbar: Create combat button clicked!");
             event.preventDefault();
+            event.stopPropagation();
             
             // Deploy monsters first, then create combat
             const deployedTokens = await EncounterToolbar._deployMonsters(metadata);
