@@ -859,7 +859,8 @@ export class EncounterToolbar {
                             tokenData.x = tokenPosition.x;
                             tokenData.y = tokenPosition.y;
                             tokenData.actorId = worldActor.id;
-                            tokenData.actorLink = false; // Create unlinked tokens
+                            // Honor the original actor's linked setting
+                            tokenData.actorLink = worldActor.prototypeToken.actorLink;
                             tokenData.hidden = deploymentHidden;
                             
                             // Honor lock rotation setting
@@ -1059,7 +1060,8 @@ export class EncounterToolbar {
                 tokenData.x = position.x;
                 tokenData.y = position.y;
                 tokenData.actorId = worldActor.id;
-                tokenData.actorLink = false; // Create unlinked tokens
+                // Honor the original actor's linked setting
+                tokenData.actorLink = worldActor.prototypeToken.actorLink;
                 tokenData.hidden = deploymentHidden;
                 
                 // Honor lock rotation setting
@@ -1345,7 +1347,8 @@ export class EncounterToolbar {
                 tokenData.x = position.x;
                 tokenData.y = position.y;
                 tokenData.actorId = actor.id;
-                tokenData.actorLink = false;
+                // Honor the original actor's linked setting
+                tokenData.actorLink = actor.prototypeToken.actorLink;
                 
                 // Honor deployment hidden setting
                 const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
