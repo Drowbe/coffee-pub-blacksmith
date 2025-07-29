@@ -160,7 +160,45 @@
   color: var(--color-text-primary);
 }
 
+/* ────────────────────────────────────────────────
+  FUNCTION BUTTONS Badge
+──────────────────────────────────────────────── */
+.badge-deploy {
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: .8em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
+.badge-deploy i {
+ font-size: .8em;
+ margin-right: 3px;
+}
+
+.badge-deploy:hover {
+  background-color: #EBD04A;
+  color: #312E20;
+  border: 1px solid #AB993C;
+  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.4);
+}
+
+/* Type of Deployment */
+.badge-deploy.deploy-type {
+ background-color: #323536;
+ border: 1px solid #1e2020;
+ color: #ffffff;
+}
+
+/* Deployment Visibility */
+.badge-deploy.deploy-visibility {
+  background-color: #323536;
+  border: 1px solid #1e2020;
+  color: #ffffff;
+ }
 
 
 /* ────────────────────────────────────────────────
