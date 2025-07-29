@@ -156,8 +156,9 @@ export class EncounterToolbar {
     // Helper method to validate UUIDs
     static async _validateUUID(uuid) {
         try {
-            // Check if it's a valid UUID format
-            if (!uuid.includes('Compendium.')) {
+            // Check if it's a valid UUID format for actors
+            // Accept both compendium references (Compendium.module.collection.Actor.id) and world actors (Actor.id)
+            if (!uuid.includes('Compendium.') && !uuid.startsWith('Actor.')) {
                 postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Invalid UUID format`, uuid, false, false, false);
                 return null;
             }
@@ -572,12 +573,11 @@ export class EncounterToolbar {
             event.stopPropagation();
             
             const $monsterIcon = $(event.currentTarget);
-            const monsterIndex = $monsterIcon.index();
+            const monsterUUID = $monsterIcon.data('uuid');
             
-            if (metadata.monsters && metadata.monsters[monsterIndex]) {
-                const monsterUUID = metadata.monsters[monsterIndex];
+            if (monsterUUID) {
                 const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `Index: ${monsterIndex}, UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
                 
                 // Create metadata for just this one monster
                 const singleMonsterMetadata = {

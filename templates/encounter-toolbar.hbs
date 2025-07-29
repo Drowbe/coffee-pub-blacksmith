@@ -31,7 +31,7 @@
         {{#if hasMonsters}}
           <div class="encounter-monster-icons">
             {{#each monsters}}
-              <div class="monster-icon" data-tooltip="Deploy {{name}} (CR {{cr}})">
+              <div class="monster-icon" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}})">
                 {{#if portrait}}
                   <img src="{{portrait}}" alt="{{name}}" class="monster-portrait">
                 {{else}}
