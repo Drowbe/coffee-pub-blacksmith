@@ -252,6 +252,17 @@
 }
 
 /* Difficulty colors */
+.difficulty-badge.none {
+ background-color: #6c757d;
+ border: 1px solid #495057;
+ color: #ffffff;
+}
+
+.difficulty-badge.trivial {
+ background-color: #155724;
+ border: 1px solid #0d5510;
+ color: #ffffff;
+}
 .difficulty-badge.easy {
  background-color: #197c1d;
  border: 1px solid #0d5510;
@@ -274,6 +285,12 @@
  background-color: #830c0c;
  border: 1px solid #580303;
  color: #ffffff;
+}
+
+.difficulty-badge.impossible {
+ background-color: #3f0808;
+ border: 1px solid #1a0303;
+ color: #fffcfa;
 }
 
 /* ────────────────────────────────────────────────

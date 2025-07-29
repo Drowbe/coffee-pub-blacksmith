@@ -117,6 +117,11 @@ export class EncounterToolbar {
                     const visibilityName = this._getDeploymentVisibilityName(currentHidden);
                     $toolbar.find('.deploy-visibility').html(`<i class="fas fa-eye"></i>${visibilityName}`);
                     
+                    // Update the difficulty badge based on current CR values
+                    const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
+                    $toolbar.find('.difficulty-badge').html(`<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`);
+                    $toolbar.find('.difficulty-badge').removeClass().addClass(`difficulty-badge ${difficultyData.difficultyClass}`);
+                    
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, false, true, false);
                 }
             });
@@ -521,19 +526,12 @@ export class EncounterToolbar {
                     npcDetails = await this._getMonsterDetails(encounterData.npcs);
                 }
                 
-                // Determine difficulty class for styling
-                let difficultyClass = '';
-                if (encounterData.difficulty) {
-                    const difficultyLower = encounterData.difficulty.toLowerCase();
-                    if (difficultyLower.includes('easy')) difficultyClass = 'easy';
-                    else if (difficultyLower.includes('medium')) difficultyClass = 'medium';
-                    else if (difficultyLower.includes('hard')) difficultyClass = 'hard';
-                    else if (difficultyLower.includes('deadly')) difficultyClass = 'deadly';
-                }
-
                 // Calculate CR values
                 const partyCR = this.getPartyCR();
                 const monsterCR = this.getMonsterCR(encounterData);
+                
+                // Calculate difficulty based on canvas tokens using the same formula as encounter configuration
+                const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
 
                 // Get the template
                 const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
@@ -546,8 +544,8 @@ export class EncounterToolbar {
                         hasNpcs,
                         monsters: monsterDetails,
                         npcs: npcDetails,
-                        difficulty: encounterData.difficulty,
-                        difficultyClass,
+                        difficulty: difficultyData.difficulty,
+                        difficultyClass: difficultyData.difficultyClass,
                         partyCR: partyCR,
                         monsterCR: monsterCR,
                         autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters'),
@@ -581,6 +579,9 @@ export class EncounterToolbar {
         const partyCR = this.getPartyCR();
         const monsterCR = this.getMonsterCR({ monsters: [] }); // Pass empty metadata for canvas-only calculation
         
+        // Calculate difficulty based on canvas tokens
+        const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
+        
         // Get the template
         const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
         getCachedTemplate(templatePath).then(template => {
@@ -590,8 +591,8 @@ export class EncounterToolbar {
                 hasEncounterData: false,
                 hasMonsters: false,
                 hasNpcs: false,
-                difficulty: null,
-                difficultyClass: null,
+                difficulty: difficultyData.difficulty,
+                difficultyClass: difficultyData.difficultyClass,
                 partyCR: partyCR,
                 monsterCR: monsterCR,
                 deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
@@ -1291,17 +1292,48 @@ export class EncounterToolbar {
 
     static _getDeploymentPatternName(pattern) {
         const patternNames = {
-            "circle": "Circle Formation",
-            "line": "Line Formation", 
-            "scatter": "Scatter Positioning",
-            "grid": "Grid Positioning",
-            "sequential": "Sequential Positioning"
+            "circle": "Circle",
+            "line": "Linear", 
+            "scatter": "Scattered",
+            "grid": "Grid",
+            "sequential": "Sequential"
         };
         return patternNames[pattern] || "Unknown Pattern";
     }
 
     static _getDeploymentVisibilityName(isHidden) {
         return isHidden ? "Hidden" : "Visible";
+    }
+
+    static _calculateEncounterDifficulty(partyCR, monsterCR) {
+        // Calculate difficulty based on the ratio of monster CR to party CR
+        // Using the same formula as the encounter configuration system
+        
+        if (partyCR <= 0 || monsterCR <= 0) {
+            return { difficulty: "None", difficultyClass: "none" };
+        }
+        
+        const ratio = monsterCR / partyCR;
+        
+        if (ratio <= 0) {
+            return { difficulty: "None", difficultyClass: "none" };
+        } else if (ratio < 0.25) {
+            return { difficulty: "Trivial", difficultyClass: "trivial" };
+        } else if (ratio < 0.5) {
+            return { difficulty: "Easy", difficultyClass: "easy" };
+        } else if (ratio < 1.0) {
+            return { difficulty: "Moderate", difficultyClass: "medium" };
+        } else if (ratio < 1.5) {
+            return { difficulty: "Hard", difficultyClass: "hard" };
+        } else if (ratio < 1.75) {
+            return { difficulty: "Deadly", difficultyClass: "deadly" };
+        } else if (ratio < 2.0) {
+            return { difficulty: "Deadly", difficultyClass: "deadly" };
+        } else if (ratio < 2.25) {
+            return { difficulty: "Deadly", difficultyClass: "deadly" };
+        } else {
+            return { difficulty: "Impossible", difficultyClass: "impossible" };
+        }
     }
 
     static async _cycleDeploymentPattern() {
