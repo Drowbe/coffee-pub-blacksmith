@@ -526,6 +526,9 @@ export class EncounterToolbar {
             const renderedHtml = template(templateData);
             toolbar.html(renderedHtml);
             
+            // Add event listeners even when there's no encounter data (for the Reveal button)
+            this._addEventListeners(toolbar, { monsters: [] });
+            
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with no encounter data", "", false, true, false);
         });
     }
