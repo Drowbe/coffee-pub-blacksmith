@@ -2,23 +2,24 @@
   <div class="encounter-toolbar-header">
     <div class="encounter-toolbar-left">
       <span class="encounter-toolbar-title">ENCOUNTER </span>
-      {{#if difficulty}}
-      <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
-        <i class="fa-solid fa-swords"></i>{{difficulty}}
-      </span>
-      {{/if}}
+
     </div>
     <div class="encounter-badges">
-      <span class="encounter-toolbar-title">CANVAS </span>
+      <span class="encounter-toolbar-title">CANVAS</span>
       {{#if partyCR}}
-      <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
-        <i class="fas fa-helmet-battle"></i>{{partyCR}}
-      </span>
+        <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
+          <i class="fas fa-helmet-battle"></i>{{partyCR}}
+        </span>
       {{/if}}
       {{#if monsterCR}}
-      <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
-        <i class="fas fa-dragon"></i>{{monsterCR}}
-      </span>
+        <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
+          <i class="fas fa-dragon"></i>{{monsterCR}}
+        </span>
+      {{/if}}
+      {{#if difficulty}}
+        <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
+          <i class="fa-solid fa-swords"></i>{{difficulty}}
+        </span>
       {{/if}}
     </div>
   </div>
@@ -30,7 +31,7 @@
       {{#if hasNpcs}}
         <div class="encounter-icons-npc">
           {{#each npcs}}
-          <div class="encounter-icon-npc" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}})">
+          <div class="encounter-icon-npc" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
             {{#if portrait}}
             <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
             {{else}}
@@ -44,7 +45,7 @@
       {{#if hasMonsters}}
         <div class="encounter-icons-monster">
           {{#each monsters}}
-          <div class="encounter-icon-monster" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}})">
+          <div class="encounter-icon-monster" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
             {{#if portrait}}
             <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
             {{else}}
@@ -55,10 +56,10 @@
         </div>
       {{/if}}
       {{#if isGM}}
-        <button class="encounter-btn deploy-monsters" data-tooltip="Deploy Monsters and NPCs">
+        <button class="encounter-btn deploy-monsters" data-tooltip="Deploy Monsters and NPCs - ALT: Hidden">
           <i class="fas fa-dragon"></i>Deploy All
         </button>
-        <button class="encounter-btn create-combat" data-tooltip="Deploy all and create combat">
+        <button class="encounter-btn create-combat" data-tooltip="Deploy all and create combat - ALT: Hidden">
           <i class="fas fa-swords"></i>Combat
         </button>
       {{/if}}

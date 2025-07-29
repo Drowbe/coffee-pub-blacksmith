@@ -754,9 +754,9 @@ export class EncounterToolbar {
                 const isSingleToken = allTokens.length === 1;
                 
                 // Get the target position (where the user clicked)
-                const position = await this._getTargetPosition(isSingleToken);
+                const positionResult = await this._getTargetPosition(isSingleToken);
                 
-                if (!position) {
+                if (!positionResult) {
                     // User cancelled or no position obtained
                     if (isSingleToken) {
                         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Token deployment cancelled.`, '', false, true, false);
@@ -765,6 +765,9 @@ export class EncounterToolbar {
                     }
                     return [];
                 }
+                
+                const position = positionResult.position;
+                const isAltHeld = positionResult.isAltHeld;
                 
                 // Deploy each token at this position
                 for (let i = 0; i < allTokens.length; i++) {
@@ -859,7 +862,8 @@ export class EncounterToolbar {
                             tokenData.actorId = worldActor.id;
                             // Honor the original actor's linked setting
                             tokenData.actorLink = worldActor.prototypeToken.actorLink;
-                            tokenData.hidden = deploymentHidden;
+                            // Set hidden based on ALT key or deployment setting
+                            tokenData.hidden = isAltHeld ? true : deploymentHidden;
                             
                             // Honor lock rotation setting
                             const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
@@ -1027,9 +1031,9 @@ export class EncounterToolbar {
             let continueDeploying = true;
             while (continueDeploying) {
                 // Get the target position (where the user clicked)
-                const position = await this._getTargetPosition(true); // Allow multiple
+                const positionResult = await this._getTargetPosition(true); // Allow multiple
                 
-                if (!position) {
+                if (!positionResult) {
                     // User cancelled or no position obtained
                     // Clean up tooltip immediately when deployment ends
                     if (tooltip && tooltip.parentNode) {
@@ -1040,6 +1044,9 @@ export class EncounterToolbar {
                     }
                     break;
                 }
+                
+                const position = positionResult.position;
+                const isAltHeld = positionResult.isAltHeld;
                 
                 // Create token data
                 const tokenData = foundry.utils.mergeObject(
@@ -1054,7 +1061,8 @@ export class EncounterToolbar {
                 tokenData.actorId = worldActor.id;
                 // Honor the original actor's linked setting
                 tokenData.actorLink = worldActor.prototypeToken.actorLink;
-                tokenData.hidden = deploymentHidden;
+                // Set hidden based on ALT key or deployment setting
+                tokenData.hidden = isAltHeld ? true : deploymentHidden;
                 
                 // Honor lock rotation setting
                 const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
@@ -1322,16 +1330,19 @@ export class EncounterToolbar {
                 canvas.stage.on('mousemove', mouseMoveHandler);
                 
                 // Get position for this token
-                const position = await this._getTargetPosition();
+                const positionResult = await this._getTargetPosition();
                 
                 // Remove mouse move handler
                 canvas.stage.off('mousemove', mouseMoveHandler);
                 
                 // Check if user cancelled (ESC pressed)
-                if (!position) {
+                if (!positionResult) {
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Sequential deployment cancelled by user", "", false, true, false);
                     break; // Exit the loop and return deployed tokens so far
                 }
+                
+                const position = positionResult.position;
+                const isAltHeld = positionResult.isAltHeld;
                 
                 // Create token data
                 const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
@@ -1344,11 +1355,9 @@ export class EncounterToolbar {
                 // Honor the original actor's linked setting
                 tokenData.actorLink = actor.prototypeToken.actorLink;
                 
-                // Honor deployment hidden setting
+                // Set hidden based on ALT key or deployment setting
                 const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
-                if (deploymentHidden) {
-                    tokenData.hidden = true;
-                }
+                tokenData.hidden = isAltHeld ? true : deploymentHidden;
                 
                 // Create the token
                 const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
@@ -1417,6 +1426,8 @@ export class EncounterToolbar {
                 
                 // Check if CTRL is held down for multiple deployments
                 const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
+                // Check if ALT is held down for invisible deployment
+                const isAltHeld = event.data.originalEvent && event.data.originalEvent.altKey;
                 
                 // If not allowing multiple or CTRL not held, remove the handler
                 if (!allowMultiple || !isCtrlHeld) {
@@ -1427,10 +1438,14 @@ export class EncounterToolbar {
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", false, true, false);
                 }
                 
-                // Resolve with the position
+                // Resolve with the position and key states
                 if (position) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Resolving position", position, false, true, false);
-                    resolve(position);
+                    const result = {
+                        position: position,
+                        isAltHeld: isAltHeld
+                    };
+                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Resolving position", result, false, true, false);
+                    resolve(result);
                 } else {
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No valid position obtained, resolving null", "", false, false, false);
                     resolve(null);
