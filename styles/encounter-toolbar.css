@@ -114,9 +114,10 @@
 }
 
 .encounter-icon-portrait {
-  width: 24;
-  height: 24;
+  width: 22px;
+  height: 22px;
   object-fit: cover;
+  border: 0px dotted rgba(0, 0, 0, 0.3);
 }
 
 .encounter-icon-none,
