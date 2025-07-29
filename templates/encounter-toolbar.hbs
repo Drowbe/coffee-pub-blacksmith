@@ -26,6 +26,17 @@
     {{#if hasEncounterData}}
       <div class="encounter-toolbar-actions">
         {{#if hasMonsters}}
+        <div class="encounter-monster-icons">
+          {{#each monsters}}
+          <div class="monster-icon" data-tooltip="{{name}} (CR {{cr}})">
+            {{#if portrait}}
+            <img src="{{portrait}}" alt="{{name}}" class="monster-portrait">
+            {{else}}
+            <i class="fas fa-dragon"></i>
+            {{/if}}
+          </div>
+          {{/each}}
+        </div>
         <button class="encounter-btn deploy-monsters">
           <i class="fas fa-dragon"></i>Deploy Monsters
         </button>

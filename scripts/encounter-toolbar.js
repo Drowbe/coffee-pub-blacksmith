@@ -38,14 +38,22 @@ export class EncounterToolbar {
         // Only create toolbar in normal view, not edit view
         if (!this._isEditMode(html)) {
             // Try immediately first
-            this._updateToolbarContent(html);
+            this._updateToolbarContent(html).catch(error => {
+                console.error("BLACKSMITH | Encounter Toolbar: Error in initial update:", error);
+            });
             
             // Retry after delay if requested (for renderJournalSheet)
             if (shouldRetry) {
-                setTimeout(() => {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", "", false, true, false);
-                    this._updateToolbarContent(html);
-                }, 500);
+                // Multiple retries with increasing delays
+                const retryDelays = [500, 1000, 2000];
+                retryDelays.forEach((delay, index) => {
+                    setTimeout(() => {
+                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", `Attempt ${index + 2}`, false, true, false);
+                        this._updateToolbarContent(html).catch(error => {
+                            console.error(`BLACKSMITH | Encounter Toolbar: Error in retry ${index + 2}:`, error);
+                        });
+                    }, delay);
+                });
             }
         }
     }
@@ -77,6 +85,46 @@ export class EncounterToolbar {
             console.error(`BLACKSMITH | Encounter Toolbar: Error validating UUID "${uuid}":`, error);
             return null;
         }
+    }
+
+    // Helper method to get monster details for display
+    static async _getMonsterDetails(monsterUUIDs) {
+        const monsterDetails = [];
+        
+        for (const uuid of monsterUUIDs) {
+            try {
+                const actor = await fromUuid(uuid);
+                if (actor) {
+                    // Get the name
+                    const name = actor.name || 'Unknown Monster';
+                    
+                    // Get CR value - try multiple paths
+                    let cr = 0;
+                    if (actor.system?.details?.cr?.value !== undefined) {
+                        cr = actor.system.details.cr.value;
+                    } else if (actor.system?.details?.cr !== undefined) {
+                        cr = actor.system.details.cr;
+                    } else if (actor.system?.cr !== undefined) {
+                        cr = actor.system.cr;
+                    }
+                    
+                    // Get portrait - try multiple sources
+                    let portrait = null;
+                    if (actor.img) {
+                        portrait = actor.img;
+                    } else if (actor.prototypeToken?.texture?.src) {
+                        portrait = actor.prototypeToken.texture.src;
+                    }
+                    
+                    monsterDetails.push({ uuid, name, cr, portrait });
+                    console.log("BLACKSMITH | Encounter Toolbar: Monster details:", { name, cr, portrait });
+                }
+            } catch (error) {
+                console.error(`BLACKSMITH | Encounter Toolbar: Error getting details for ${uuid}:`, error);
+            }
+        }
+        
+        return monsterDetails;
     }
 
     // Enhanced method to scan journal content for encounter data
@@ -275,7 +323,7 @@ export class EncounterToolbar {
 
 
     // Simple method to update toolbar content
-    static _updateToolbarContent(html) {
+    static async _updateToolbarContent(html) {
         // Check if toolbar is enabled in settings
         if (!game.settings.get(MODULE_ID, 'enableEncounterToolbar')) {
             return;
@@ -329,6 +377,12 @@ export class EncounterToolbar {
                 console.log("BLACKSMITH | Encounter Toolbar: Has monsters:", hasMonsters);
                 console.log("BLACKSMITH | Encounter Toolbar: Monsters array:", encounterData.monsters);
                 
+                // Get monster details for display
+                let monsterDetails = [];
+                if (hasMonsters) {
+                    monsterDetails = await this._getMonsterDetails(encounterData.monsters);
+                }
+                
                 // Determine difficulty class for styling
                 let difficultyClass = '';
                 if (encounterData.difficulty) {
@@ -351,6 +405,7 @@ export class EncounterToolbar {
                         journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
                         hasEncounterData: true,
                         hasMonsters,
+                        monsters: monsterDetails,
                         difficulty: encounterData.difficulty,
                         difficultyClass,
                         partyCR: partyCR,
