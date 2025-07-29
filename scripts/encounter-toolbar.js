@@ -42,9 +42,15 @@ export class EncounterToolbar {
 
     // Handle setting changes
     static _onSettingChange(moduleId, key, value) {
-        if (moduleId === MODULE_ID && key === 'enableEncounterToolbarRealTimeUpdates') {
-            this._setupTokenChangeHooks();
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", false, true, false);
+        if (moduleId === MODULE_ID) {
+            if (key === 'enableEncounterToolbarRealTimeUpdates') {
+                this._setupTokenChangeHooks();
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", false, true, false);
+            } else if (key === 'encounterToolbarDeploymentPattern') {
+                // Update all open journal toolbars when deployment pattern changes
+                this._updateAllToolbarCRs();
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern setting changed", value, false, true, false);
+            }
         }
     }
 
@@ -96,6 +102,11 @@ export class EncounterToolbar {
                     // Update the CR badges with icons intact
                     $toolbar.find('.encounter-party-cr').html(`<i class="fas fa-helmet-battle"></i>${partyCR}`);
                     $toolbar.find('.encounter-monster-cr').html(`<i class="fas fa-dragon"></i>${monsterCR}`);
+                    
+                    // Update the deployment pattern badge
+                    const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+                    const patternName = this._getDeploymentPatternName(currentPattern);
+                    $toolbar.find('.deploy-type').html(`<i class="fas fa-swords"></i>${patternName}`);
                     
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, false, true, false);
                 }
@@ -531,6 +542,7 @@ export class EncounterToolbar {
                         partyCR: partyCR,
                         monsterCR: monsterCR,
                         autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters'),
+                        deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
                         isGM: game.user.isGM
                     };
                     
@@ -572,6 +584,7 @@ export class EncounterToolbar {
                 difficultyClass: null,
                 partyCR: partyCR,
                 monsterCR: monsterCR,
+                deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
                 isGM: game.user.isGM
             };
             
@@ -619,6 +632,15 @@ export class EncounterToolbar {
             event.stopPropagation();
             
             await EncounterToolbar._toggleTokenVisibility();
+        });
+
+        // Deployment type badge - cycle through deployment patterns
+        toolbar.find('.deploy-type').off('click').on('click', async (event) => {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment type badge clicked!", "", false, true, false);
+            event.preventDefault();
+            event.stopPropagation();
+            
+            await EncounterToolbar._cycleDeploymentPattern();
         });
 
         // Monster icon clicks - deploy individual monsters
@@ -1229,6 +1251,42 @@ export class EncounterToolbar {
             "sequential": "Sequential Positioning"
         };
         return patternNames[pattern] || "Unknown Pattern";
+    }
+
+    static async _cycleDeploymentPattern() {
+        // Check if user has permission to change settings
+        if (!game.user.isGM) {
+            return;
+        }
+
+        try {
+            // Get current deployment pattern
+            const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+            
+            // Define the order of patterns to cycle through
+            const patternOrder = ["circle", "line", "scatter", "grid", "sequential"];
+            
+            // Find current pattern index
+            const currentIndex = patternOrder.indexOf(currentPattern);
+            
+            // Calculate next pattern index (cycle back to 0 if at end)
+            const nextIndex = (currentIndex + 1) % patternOrder.length;
+            const nextPattern = patternOrder[nextIndex];
+            
+            // Update the setting
+            await game.settings.set(MODULE_ID, 'encounterToolbarDeploymentPattern', nextPattern);
+            
+            // Get the display name for the new pattern
+            const newPatternName = this._getDeploymentPatternName(nextPattern);
+            
+            // Update all open journal toolbars to reflect the change
+            this._updateAllToolbarCRs();
+            
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern changed", `${newPatternName}`, false, true, true);
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error cycling deployment pattern", error, false, false, true);
+        }
     }
 
     static async _deploySequential(metadata, initialPosition) {
