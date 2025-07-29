@@ -1531,9 +1531,38 @@ export class EncounterToolbar {
             const deployedTokens = await this._deployMonsters(metadata);
             
             if (!deployedTokens || deployedTokens.length === 0) {
-                postConsoleAndNotification(`No tokens were deployed.`, "", false, false, true);
+                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", false, true, false);
                 
                 return;
+            }
+            
+            // Check if this was a partial deployment (user cancelled mid-deployment)
+            const totalExpectedTokens = (metadata.monsters || []).length + (metadata.npcs || []).length;
+            if (deployedTokens.length < totalExpectedTokens) {
+                const createCombatWithPartial = await new Promise((resolve) => {
+                    new Dialog({
+                        title: "Partial Deployment",
+                        content: `<p>Only ${deployedTokens.length} out of ${totalExpectedTokens} tokens were deployed. Do you want to create combat with the deployed tokens?</p>`,
+                        buttons: {
+                            yes: {
+                                icon: '<i class="fas fa-check"></i>',
+                                label: "Yes, Create Combat",
+                                callback: () => resolve(true)
+                            },
+                            no: {
+                                icon: '<i class="fas fa-times"></i>',
+                                label: "No, Cancel",
+                                callback: () => resolve(false)
+                            }
+                        },
+                        default: "no"
+                    }).render(true);
+                });
+                
+                if (!createCombatWithPartial) {
+                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Combat creation cancelled by user.`, "", false, true, false);
+                    return;
+                }
             }
             
             // Create a new combat encounter
