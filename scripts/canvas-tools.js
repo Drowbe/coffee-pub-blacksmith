@@ -61,6 +61,11 @@ export class CanvasTools {
     }
 
     static async _onCreateToken(document, options, userId) {
+        // Check if user has permission to update tokens
+        if (!game.user.isGM) {
+            return;
+        }
+        
         postConsoleAndNotification("Token(s) created on the scene. Modifying non-linked tokens...", "", false, false, false);
         const actorLink = document.actor?.isToken === false;
         let updatedName;
