@@ -37,14 +37,18 @@
           </div>
           {{/each}}
         </div>
+        {{#if isGM}}
         <button class="encounter-btn deploy-monsters">
           <i class="fas fa-dragon"></i>Deploy Monsters
         </button>
         {{/if}}
+        {{/if}}
 
+        {{#if isGM}}
         <button class="encounter-btn create-combat">
           <i class="fas fa-swords"></i>Create Combat
         </button>
+        {{/if}}
       </div>
     {{else}}
       <p>No encounter data found in this journal entry.</p>

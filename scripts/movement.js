@@ -645,6 +645,11 @@ async function processFollowMovement(sortedFollowers) {
 
     // Process followers one at a time
     async function processNextFollower(index) {
+        // Check if user has permission to update tokens
+        if (!game.user.isGM) {
+            return;
+        }
+        
         if (index >= validFollowers.length) {
             processingCongaMovement = false;
             
@@ -819,6 +824,11 @@ function processCongaMovement(sortedFollowers) {
 
     // Move all tokens one step at a time
     function moveAllTokensOneStep() {
+        // Check if user has permission to update tokens
+        if (!game.user.isGM) {
+            return;
+        }
+        
         // Check if all tokens have reached their targets
         const allDone = followerStates.every(f => f.currentIndex <= f.targetIndex);
         if (allDone) {

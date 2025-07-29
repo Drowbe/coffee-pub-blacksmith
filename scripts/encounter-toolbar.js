@@ -410,7 +410,8 @@ export class EncounterToolbar {
                         difficultyClass,
                         partyCR: partyCR,
                         monsterCR: monsterCR,
-                        autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters')
+                        autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters'),
+                        isGM: game.user.isGM
                     };
                     
                     // Render the toolbar
@@ -449,7 +450,8 @@ export class EncounterToolbar {
                 difficulty: null,
                 difficultyClass: null,
                 partyCR: partyCR,
-                monsterCR: monsterCR
+                monsterCR: monsterCR,
+                isGM: game.user.isGM
             };
             
             // Render the toolbar
@@ -486,6 +488,12 @@ export class EncounterToolbar {
     }
 
     static async _deployMonsters(metadata) {
+        // Check if user has permission to create tokens
+        if (!game.user.isGM) {
+            ui.notifications.error("Only Game Masters can deploy monsters.");
+            return [];
+        }
+        
         if (!metadata.monsters || metadata.monsters.length === 0) {
             ui.notifications.warn("No monsters found in encounter data.");
             return [];
@@ -984,6 +992,12 @@ export class EncounterToolbar {
 
 
     static async _createCombatWithTokens(deployedTokens, metadata) {
+        // Check if user has permission to create combat
+        if (!game.user.isGM) {
+            ui.notifications.error("Only Game Masters can create combat encounters.");
+            return;
+        }
+        
         if (!deployedTokens || deployedTokens.length === 0) {
             ui.notifications.warn("No tokens were deployed.");
             return;
@@ -1029,6 +1043,12 @@ export class EncounterToolbar {
     }
 
     static async _createCombat(metadata) {
+        // Check if user has permission to create combat
+        if (!game.user.isGM) {
+            ui.notifications.error("Only Game Masters can create combat encounters.");
+            return;
+        }
+        
         if (!metadata.monsters || metadata.monsters.length === 0) {
             ui.notifications.warn("No monsters found in encounter data.");
             return;

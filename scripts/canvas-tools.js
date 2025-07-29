@@ -225,6 +225,12 @@ export class CanvasTools {
 
     static async _convertTokenToLoot(token) {
         try {
+            // Check if user has permission to update tokens
+            if (!game.user.isGM) {
+                postConsoleAndNotification("Only Game Masters can convert tokens to loot.", "", false, true, false);
+                return;
+            }
+            
             // Add loot from tables if configured
             const tables = [
                 {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
