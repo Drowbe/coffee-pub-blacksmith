@@ -50,6 +50,10 @@ export class EncounterToolbar {
                 // Update all open journal toolbars when deployment pattern changes
                 this._updateAllToolbarCRs();
                 postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern setting changed", value, false, true, false);
+            } else if (key === 'encounterToolbarDeploymentHidden') {
+                // Update all open journal toolbars when deployment visibility changes
+                this._updateAllToolbarCRs();
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment visibility setting changed", value, false, true, false);
             }
         }
     }
@@ -107,6 +111,11 @@ export class EncounterToolbar {
                     const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
                     const patternName = this._getDeploymentPatternName(currentPattern);
                     $toolbar.find('.deploy-type').html(`<i class="fas fa-swords"></i>${patternName}`);
+                    
+                    // Update the deployment visibility badge
+                    const currentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                    const visibilityName = this._getDeploymentVisibilityName(currentHidden);
+                    $toolbar.find('.deploy-visibility').html(`<i class="fas fa-eye"></i>${visibilityName}`);
                     
                     postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, false, true, false);
                 }
@@ -543,6 +552,7 @@ export class EncounterToolbar {
                         monsterCR: monsterCR,
                         autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters'),
                         deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
+                        deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden')),
                         isGM: game.user.isGM
                     };
                     
@@ -585,6 +595,7 @@ export class EncounterToolbar {
                 partyCR: partyCR,
                 monsterCR: monsterCR,
                 deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
+                deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden')),
                 isGM: game.user.isGM
             };
             
@@ -641,6 +652,15 @@ export class EncounterToolbar {
             event.stopPropagation();
             
             await EncounterToolbar._cycleDeploymentPattern();
+        });
+
+        // Deployment visibility badge - toggle visibility setting
+        toolbar.find('.deploy-visibility').off('click').on('click', async (event) => {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment visibility badge clicked!", "", false, true, false);
+            event.preventDefault();
+            event.stopPropagation();
+            
+            await EncounterToolbar._toggleDeploymentVisibility();
         });
 
         // Monster icon clicks - deploy individual monsters
@@ -1253,6 +1273,10 @@ export class EncounterToolbar {
         return patternNames[pattern] || "Unknown Pattern";
     }
 
+    static _getDeploymentVisibilityName(isHidden) {
+        return isHidden ? "Hidden" : "Visible";
+    }
+
     static async _cycleDeploymentPattern() {
         // Check if user has permission to change settings
         if (!game.user.isGM) {
@@ -1282,10 +1306,36 @@ export class EncounterToolbar {
             // Update all open journal toolbars to reflect the change
             this._updateAllToolbarCRs();
             
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern changed", `${newPatternName}`, false, true, true);
-            
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error cycling deployment pattern", error, false, false, true);
+        }
+    }
+
+    static async _toggleDeploymentVisibility() {
+        // Check if user has permission to change settings
+        if (!game.user.isGM) {
+            return;
+        }
+
+        try {
+            // Get current visibility setting
+            const currentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+            
+            // Toggle the setting
+            const newHidden = !currentHidden;
+            
+            // Update the setting
+            await game.settings.set(MODULE_ID, 'encounterToolbarDeploymentHidden', newHidden);
+            
+            // Get the display name for the new visibility
+            const newVisibilityName = this._getDeploymentVisibilityName(newHidden);
+            
+            // Update all open journal toolbars to reflect the change
+            this._updateAllToolbarCRs();
+            
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error toggling deployment visibility", error, false, false, true);
         }
     }
 

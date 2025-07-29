@@ -914,7 +914,7 @@ export const registerSettings = async () => {
 				"line": "Line Formation",
 				"scatter": "Scatter Positioning",
 				"grid": "Grid Positioning",
-				"sequential": "Sequential Positioning (Click location for each)"
+				"sequential": "Sequential Positioning"
 			},
 			config: true,
 			scope: 'world',
