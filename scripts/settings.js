@@ -884,15 +884,7 @@ export const registerSettings = async () => {
 			default: 'Encounters'
 		});
 
-		// -- Auto Create Combat --
-		game.settings.register(MODULE_ID, 'autoCreateCombatForEncounters', {
-			name: MODULE_ID + '.autoCreateCombatForEncounters-Label',
-			hint: MODULE_ID + '.autoCreateCombatForEncounters-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: false,
-		});
+
 
 		// -- Deployment Hidden --
 		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentHidden', {

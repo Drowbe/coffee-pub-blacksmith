@@ -548,7 +548,6 @@ export class EncounterToolbar {
                         difficultyClass: difficultyData.difficultyClass,
                         partyCR: partyCR,
                         monsterCR: monsterCR,
-                        autoCreateCombat: game.settings.get(MODULE_ID, 'autoCreateCombatForEncounters'),
                         deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
                         deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden')),
                         isGM: game.user.isGM

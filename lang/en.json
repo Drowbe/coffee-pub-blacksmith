@@ -76,8 +76,7 @@
 		"enableEncounterToolbar-Label": "Enable Encounter Toolbar",
 		"enableEncounterToolbar-Hint": "Shows a toolbar in encounter journal entries that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
 
-		"autoCreateCombatForEncounters-Label": "Auto-Create Combat After Deployment",
-		"autoCreateCombatForEncounters-Hint": "Automatically creates a combat encounter after deploying monsters from an encounter journal.",
+		
 
 		"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
 		"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
