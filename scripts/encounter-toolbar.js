@@ -1234,8 +1234,8 @@ export class EncounterToolbar {
             return centerPosition;
         }
         
-        // For subsequent tokens, use random scatter placement
-        // Create a grid that is 1x the number of tokens in width and height
+        // For subsequent tokens, use random scatter placement with no overlaps
+        // Create a grid where width and height equal the number of tokens
         const gridWidth = totalTokens;
         const gridHeight = totalTokens;
         
@@ -1258,25 +1258,74 @@ export class EncounterToolbar {
             [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
         }
         
-        // Take the first 'totalTokens' positions
-        const selectedPositions = allPositions.slice(0, totalTokens);
+        // Take exactly the number of tokens we need (excluding the first token which is already placed)
+        const selectedPositions = allPositions.slice(0, totalTokens - 1);
         
-        // Get the position for this specific token (adjust index since first token is already placed)
-        const tokenPosition = selectedPositions[index];
+        // Get the position for this specific token (index - 1 because first token is already placed)
+        const tokenPosition = selectedPositions[index - 1];
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
         
         // Calculate the actual position using scene grid size - snap to top-left of grid squares
-        // Calculate the base position in grid coordinates
-        let x = centerPosition.x + (tokenPosition.col * gridSize);
-        let y = centerPosition.y + (tokenPosition.row * gridSize);
+        // Calculate the base position in grid coordinates (offset from center)
+        let x = centerPosition.x + ((tokenPosition.col - Math.floor(gridWidth / 2)) * gridSize);
+        let y = centerPosition.y + ((tokenPosition.row - Math.floor(gridHeight / 2)) * gridSize);
         
         // Snap to top-left of the grid square
         x = Math.floor(x / gridSize) * gridSize;
         y = Math.floor(y / gridSize) * gridSize;
         
+        // Check if this position is already occupied by an existing token
+        if (this._isGridSquareOccupied(x, y, gridSize)) {
+            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Position occupied, trying next available position`, { x, y }, false, true, false);
+            
+            // Find the next available position
+            for (let i = index; i < selectedPositions.length; i++) {
+                const nextPosition = selectedPositions[i];
+                let nextX = centerPosition.x + ((nextPosition.col - Math.floor(gridWidth / 2)) * gridSize);
+                let nextY = centerPosition.y + ((nextPosition.row - Math.floor(gridHeight / 2)) * gridSize);
+                
+                nextX = Math.floor(nextX / gridSize) * gridSize;
+                nextY = Math.floor(nextY / gridSize) * gridSize;
+                
+                if (!this._isGridSquareOccupied(nextX, nextY, gridSize)) {
+                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, false, true, false);
+                    return { x: nextX, y: nextY };
+                }
+            }
+            
+            // If no position found in the grid, place it at a random offset
+            const randomOffset = Math.floor(Math.random() * 3) + 1; // 1-3 grid squares away
+            const randomDirection = Math.floor(Math.random() * 4); // 0-3 for different directions
+            
+            let fallbackX = x;
+            let fallbackY = y;
+            
+            switch (randomDirection) {
+                case 0: fallbackX += randomOffset * gridSize; break; // Right
+                case 1: fallbackX -= randomOffset * gridSize; break; // Left
+                case 2: fallbackY += randomOffset * gridSize; break; // Down
+                case 3: fallbackY -= randomOffset * gridSize; break; // Up
+            }
+            
+            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, false, true, false);
+            return { x: fallbackX, y: fallbackY };
+        }
+        
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, true, false);
         return { x, y };
+    }
+
+    // Helper function to check if a grid square is occupied
+    static _isGridSquareOccupied(x, y, gridSize) {
+        const snappedX = Math.floor(x / gridSize) * gridSize;
+        const snappedY = Math.floor(y / gridSize) * gridSize;
+
+        return canvas.tokens.placeables.some(token => {
+            const tokenX = Math.floor(token.x / gridSize) * gridSize;
+            const tokenY = Math.floor(token.y / gridSize) * gridSize;
+            return tokenX === snappedX && tokenY === snappedY;
+        });
     }
 
     static _calculateSquarePosition(centerPosition, index, totalTokens) {
