@@ -1228,6 +1228,13 @@ export class EncounterToolbar {
         // Calculate scatter formation using grid-based random placement
         const gridSize = canvas.scene.grid.size;
         
+        // If this is the first token (index 0), place it exactly at the clicked position
+        if (index === 0) {
+            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (first token at clicked position)`, centerPosition, false, true, false);
+            return centerPosition;
+        }
+        
+        // For subsequent tokens, use random scatter placement
         // Create a grid that is 1x the number of tokens in width and height
         const gridWidth = totalTokens;
         const gridHeight = totalTokens;
@@ -1254,7 +1261,7 @@ export class EncounterToolbar {
         // Take the first 'totalTokens' positions
         const selectedPositions = allPositions.slice(0, totalTokens);
         
-        // Get the position for this specific token
+        // Get the position for this specific token (adjust index since first token is already placed)
         const tokenPosition = selectedPositions[index];
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
