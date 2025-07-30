@@ -257,46 +257,62 @@ export class JournalTools {
                 const pageContent = page.text.content;
                 if (!pageContent) continue;
                 
-                // Scan for actor links in this page
+                // Scan for existing actor links in this page
                 const actorLinks = this._scanJournalForActorLinks(pageContent);
                 
-                if (actorLinks.length === 0) {
-                    postConsoleAndNotification("BLACKSMITH | Journal Tools: No actor links found in page", page.name, false, true, false);
+                // Scan for plain text monsters in bullet lists
+                const bulletListMonsters = this._scanJournalForBulletListMonsters(pageContent);
+                
+                // Scan for manual link requests
+                const manualLinkMonsters = this._scanJournalForManualLinkMonsters(pageContent);
+                
+                const allMonsters = [...actorLinks, ...bulletListMonsters, ...manualLinkMonsters];
+                
+                if (allMonsters.length === 0) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: No monsters found in page", page.name, false, true, false);
                     continue;
                 }
                 
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found actor links in page", `${actorLinks.length} links in ${page.name}`, false, true, false);
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found monsters in page", 
+                    `${actorLinks.length} existing links, ${bulletListMonsters.length} bullet list monsters, ${manualLinkMonsters.length} manual link requests in ${page.name}`, false, true, false);
                 
                 let pageContentUpdated = pageContent;
                 let pageUpgraded = 0;
                 let pageSkipped = 0;
                 
-                // Process each actor link
-                for (const link of actorLinks) {
+                // Sort all monsters by startIndex in descending order to avoid position shifting issues
+                allMonsters.sort((a, b) => b.startIndex - a.startIndex);
+                
+                // Process each monster
+                for (const monster of allMonsters) {
                     try {
-                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing link", `Actor: "${link.actorName}", UUID: ${link.uuid}`, false, true, false);
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing monster", 
+                            `Type: ${monster.type}, Name: "${monster.actorName}"`, false, true, false);
                         
-                        const result = await this._upgradeActorLink(link, pageContentUpdated);
+                        const result = await this._upgradeActorLink(monster, pageContentUpdated);
                         if (result.success) {
                             pageContentUpdated = result.newContent;
                             pageUpgraded++;
                             totalUpgraded++;
                         } else {
-                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Link upgrade failed", `${link.actorName}: ${result.reason}`, false, true, false);
+                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Monster upgrade failed", 
+                                `${monster.actorName}: ${result.reason}`, false, true, false);
                             pageSkipped++;
                             totalSkipped++;
                         }
                     } catch (error) {
-                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Error upgrading actor link", `${link.actorName}: ${error.message}`, false, false, true);
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Error upgrading monster", 
+                            `${monster.actorName}: ${error.message}`, false, false, true);
                         pageSkipped++;
                         totalErrors++;
                     }
                 }
                 
-                // Update the page if any links were upgraded
+                // Update the page if any monsters were upgraded
                 if (pageUpgraded > 0) {
                     await page.update({ text: { content: pageContentUpdated } });
-                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Updated page", `${page.name}: ${pageUpgraded} upgraded, ${pageSkipped} skipped`, false, true, false);
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Updated page", 
+                        `${page.name}: ${pageUpgraded} upgraded, ${pageSkipped} skipped`, false, true, false);
                 }
             }
             
@@ -340,15 +356,192 @@ export class JournalTools {
                     uuid,
                     actorName,
                     startIndex: match.index,
-                    endIndex: match.index + fullMatch.length
+                    endIndex: match.index + fullMatch.length,
+                    type: 'existing-link'
                 });
             }
+        }
+        
+        // Also find @Actor patterns
+        const actorRegex = /@Actor\[([^\]]+)\]\{([^}]+)\}/gi;
+        while ((match = actorRegex.exec(content)) !== null) {
+            const fullMatch = match[0];
+            const uuid = match[1];
+            const actorName = match[2];
+            
+            actorLinks.push({
+                fullMatch,
+                uuid,
+                actorName,
+                startIndex: match.index,
+                endIndex: match.index + fullMatch.length,
+                type: 'existing-link'
+            });
         }
         
         // Sort by startIndex in descending order to avoid position shifting issues
         actorLinks.sort((a, b) => b.startIndex - a.startIndex);
         
         return actorLinks;
+    }
+
+    // Scan journal content for plain text monsters in bullet lists
+    static _scanJournalForBulletListMonsters(content) {
+        const bulletListMonsters = [];
+        
+        // Split content into lines
+        const lines = content.split('\n');
+        let inEncounterSection = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Check if we're in an encounter section
+            if (this._isEncounterHeading(line)) {
+                inEncounterSection = true;
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found encounter section", line, false, true, false);
+                continue;
+            }
+            
+            // If we're in an encounter section, look for bullet list items or plain text monsters
+            if (inEncounterSection) {
+                let monsterName = null;
+                let isBulletItem = false;
+                
+                // Check if it's a bullet list item
+                if (this._isBulletListItem(line)) {
+                    monsterName = this._extractMonsterNameFromBullet(line);
+                    isBulletItem = true;
+                }
+                // Check if it's a plain text monster (not empty, not a heading, not already a link)
+                else if (line.length > 0 && !this._isHeading(line) && !this._isExistingLink(line)) {
+                    monsterName = this._extractMonsterNameFromPlainText(line);
+                }
+                
+                if (monsterName) {
+                    // Find the position of this line in the original content
+                    const lineStart = content.indexOf(lines[i]);
+                    const monsterStart = lineStart + lines[i].indexOf(monsterName);
+                    const monsterEnd = monsterStart + monsterName.length;
+                    
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found monster in encounter section", 
+                        `${isBulletItem ? 'Bullet' : 'Plain text'}: "${monsterName}"`, false, true, false);
+                    
+                    bulletListMonsters.push({
+                        fullMatch: monsterName,
+                        uuid: null,
+                        actorName: monsterName,
+                        startIndex: monsterStart,
+                        endIndex: monsterEnd,
+                        type: isBulletItem ? 'bullet-list' : 'plain-text'
+                    });
+                }
+            }
+        }
+        
+        return bulletListMonsters;
+    }
+
+    // Scan journal content for manual link requests
+    static _scanJournalForManualLinkMonsters(content) {
+        const manualLinkMonsters = [];
+        
+        // Regex to find text with "(link manually)" or similar
+        const manualLinkRegex = /([^(]+?)\s*\(link\s+manually\)/gi;
+        let match;
+        
+        while ((match = manualLinkRegex.exec(content)) !== null) {
+            const fullMatch = match[0];
+            const monsterName = match[1].trim();
+            
+            if (monsterName) {
+                manualLinkMonsters.push({
+                    fullMatch,
+                    uuid: null,
+                    actorName: monsterName,
+                    startIndex: match.index,
+                    endIndex: match.index + fullMatch.length,
+                    type: 'manual-link'
+                });
+            }
+        }
+        
+        return manualLinkMonsters;
+    }
+
+    // Check if a line is an encounter heading
+    static _isEncounterHeading(line) {
+        const encounterKeywords = [
+            'encounters and monsters',
+            'encounters',
+            'monsters and npcs',
+            'monsters',
+            'npcs',
+            'enemies',
+            'opponents'
+        ];
+        
+        const lowerLine = line.toLowerCase();
+        return encounterKeywords.some(keyword => lowerLine.includes(keyword));
+    }
+
+    // Check if a line is a bullet list item
+    static _isBulletListItem(line) {
+        return line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || line.startsWith('+');
+    }
+
+    // Extract monster name from bullet list item
+    static _extractMonsterNameFromBullet(line) {
+        // Remove bullet and common prefixes
+        let monsterName = line.replace(/^[•\-*+]\s*/, '').trim();
+        
+        // Remove common suffixes like "(CR X)" or "(x2)" etc.
+        monsterName = monsterName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        
+        // Remove trailing punctuation
+        monsterName = monsterName.replace(/[.,;:]$/, '').trim();
+        
+        return monsterName.length > 0 ? monsterName : null;
+    }
+
+    // Extract monster name from plain text
+    static _extractMonsterNameFromPlainText(line) {
+        let monsterName = line.trim();
+        
+        // Remove common suffixes like "(CR X)" or "(x2)" etc.
+        monsterName = monsterName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        
+        // Remove trailing punctuation
+        monsterName = monsterName.replace(/[.,;:]$/, '').trim();
+        
+        // Skip if it's too short or looks like a heading
+        if (monsterName.length < 2 || monsterName.length > 100) {
+            return null;
+        }
+        
+        return monsterName.length > 0 ? monsterName : null;
+    }
+
+    // Check if a line is a heading
+    static _isHeading(line) {
+        // Check for markdown headings (# ## ### etc.)
+        if (line.startsWith('#')) return true;
+        
+        // Check for all caps (likely a heading)
+        if (line === line.toUpperCase() && line.length > 3) return true;
+        
+        // Check for common heading patterns
+        const headingPatterns = [
+            /^[A-Z][A-Z\s]+$/,
+            /^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/
+        ];
+        
+        return headingPatterns.some(pattern => pattern.test(line));
+    }
+
+    // Check if a line contains an existing link
+    static _isExistingLink(line) {
+        return line.includes('@UUID[') || line.includes('@Actor[');
     }
 
     // Upgrade a single actor link
