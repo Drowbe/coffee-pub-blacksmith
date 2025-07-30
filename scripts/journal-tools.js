@@ -176,43 +176,8 @@ export class JournalTools {
             </div>
         `;
 
-        // Create and show the dialog
-        const dialog = new Dialog({
-            title: "Journal Tools",
-            content: dialogContent,
-            buttons: {
-                submit: {
-                    icon: "<i class='fas fa-magic'></i>",
-                    label: "Submit",
-                    callback: async (html) => {
-                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Submit button clicked", "", false, true, false);
-                        
-                        const toolType = html.find('#tool-type').val();
-                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Selected tool type", toolType, false, true, false);
-                        
-                        try {
-                            await this._processToolRequest(journal, toolType);
-                        } catch (error) {
-                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error in submit handler", error, false, false, true);
-                        }
-                    }
-                },
-                cancel: {
-                    icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                    label: "Cancel",
-                    callback: () => {}
-                }
-            },
-            default: "submit",
-            close: () => {}
-        });
-
-        try {
-            dialog.render(true);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Dialog opened successfully", "", false, true, false);
-        } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error opening dialog", error, false, false, true);
-        }
+        // Create and show the tools window
+        new JournalToolsWindow(journal).render(true);
     }
 
     // Process the tool request
@@ -1505,4 +1470,117 @@ export class JournalTools {
         return itemName.length > 0 ? itemName : null;
     }
 
+} 
+
+// ================================================================== 
+// ===== JOURNAL TOOLS WINDOW =======================================
+// ================================================================== 
+
+class JournalToolsWindow extends FormApplication {
+    constructor(journal) {
+        super();
+        this.journal = journal;
+    }
+
+    static get defaultOptions() {
+        return mergeObject(super.defaultOptions, {
+            id: "journal-tools-window",
+            title: "Journal Tools",
+            template: "modules/coffee-pub-blacksmith/templates/journal-tools-window.hbs",
+            width: 400,
+            height: 300,
+            resizable: true,
+            classes: ["journal-tools-window"]
+        });
+    }
+
+    getData() {
+        return {
+            journalName: this.journal.name,
+            journalId: this.journal.id
+        };
+    }
+
+    async _updateObject(event, formData) {
+        const upgradeActors = formData.upgradeActors || false;
+        const upgradeItems = formData.upgradeItems || false;
+
+        postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing window submission", 
+            `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
+
+        try {
+            if (upgradeActors) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", "", false, true, false);
+                await JournalTools._upgradeActorLinks(this.journal);
+            }
+
+            if (upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", "", false, true, false);
+                await JournalTools._upgradeItemLinks(this.journal);
+            }
+
+            if (!upgradeActors && !upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
+                return;
+            }
+
+            this.close();
+            ui.notifications.info(`Journal tools applied successfully!`);
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing window submission", error, false, false, true);
+            ui.notifications.error(`Error applying journal tools: ${error.message}`);
+        }
+    }
+
+    activateListeners(html) {
+        super.activateListeners(html);
+        
+        // Add event listeners for the custom buttons
+        html.find('.apply-tools').click(this._onApplyTools.bind(this));
+        html.find('.cancel-tools').click(this._onCancelTools.bind(this));
+    }
+
+    async _onApplyTools(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        try {
+            // Get form data from checkboxes
+            const upgradeActors = this.element.find('#upgrade-actors').is(':checked');
+            const upgradeItems = this.element.find('#upgrade-items').is(':checked');
+
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Apply button clicked", 
+                `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
+
+            if (upgradeActors) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", "", false, true, false);
+                await JournalTools._upgradeActorLinks(this.journal);
+            }
+
+            if (upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", "", false, true, false);
+                await JournalTools._upgradeItemLinks(this.journal);
+            }
+
+            if (!upgradeActors && !upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
+                ui.notifications.warn("Please select at least one tool to run");
+                return;
+            }
+
+            this.close();
+            ui.notifications.info(`Journal tools applied successfully!`);
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, true);
+            ui.notifications.error(`Error applying journal tools: ${error.message}`);
+        }
+    }
+
+    _onCancelTools(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Close the window without applying tools
+        this.close();
+    }
 } 

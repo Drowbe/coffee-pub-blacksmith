@@ -1,0 +1,57 @@
+{{!-- Journal Tools Window Template --}}
+<div class="journal-tools foundry-style-window">
+  <div class="journal-tools-header-sticky">
+    <div class="journal-tools-header">
+      <i class="fas fa-feather"></i>
+      <span>Journal Tools</span>
+    </div>
+    <div class="journal-tools-summary-row">
+      <div class="journal-tools-summary-item">
+        <span class="label">Journal</span>
+        <span class="journal-name">{{journalName}}</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="journal-tools-body-scroll">
+    <div class="journal-tools-section">
+      <div class="journal-tools-section-header">
+        <i class="fas fa-tools"></i> Select Tools
+      </div>
+      <div class="journal-tools-options">
+        <div class="journal-tools-option">
+          <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
+          <label for="upgrade-actors">
+            <i class="fas fa-dragon"></i>
+            <span>Upgrade Actor Links</span>
+          </label>
+        </div>
+        <div class="journal-tools-option">
+          <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
+          <label for="upgrade-items">
+            <i class="fas fa-sword"></i>
+            <span>Upgrade Item Links</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="journal-tools-section">
+      <div class="journal-tools-section-header">
+        <i class="fas fa-info-circle"></i> Description
+      </div>
+      <div class="journal-tools-description">
+        <p>Select one or both tools to upgrade links in this journal. Actor links will be upgraded using your configured monster compendiums. Item links will be upgraded using your configured item compendiums.</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="journal-tools-footer">
+    <button type="button" class="journal-tools-btn cancel-tools">
+      <i class="fas fa-times"></i> Cancel
+    </button>
+    <button type="button" class="journal-tools-btn apply-tools">
+      <i class="fas fa-check"></i> Apply Tools
+    </button>
+  </div>
+</div> 
