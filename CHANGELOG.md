@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.0.21] - Token Grid Positioning Fix
+
+### Fixed
+- **Token Grid Positioning:** Fixed token deployment to properly snap to grid square positions instead of grid intersections. All deployment patterns (line, circle, scatter, grid, sequential) now correctly place tokens within grid squares using the proper FoundryVTT coordinate system.
+
 ## [12.0.20] - Encounter Toolbar and Token Deployment
 
 ### NOTE: Bumped the version to 12 to align with the Foundry version.
