@@ -469,24 +469,10 @@ export class JournalTools {
                         }
                     }
                     
-                    // Try exact match first (don't check type - any entry in item compendium is an item)
+                    // Only use exact match - no partial matching to avoid false positives
                     let entry = index.find(e => 
                         e.name.toLowerCase() === strItemName.toLowerCase()
                     );
-                    
-                    // If no exact match, try partial match
-                    if (!entry) {
-                        entry = index.find(e => 
-                            e.name.toLowerCase().includes(strItemName.toLowerCase())
-                        );
-                    }
-                    
-                    // If still no match, try reverse partial match
-                    if (!entry) {
-                        entry = index.find(e => 
-                            strItemName.toLowerCase().includes(e.name.toLowerCase())
-                        );
-                    }
                     
                     if (entry) {
                         postConsoleAndNotification("BLACKSMITH | Journal Tools: Found item in compendium", 
@@ -532,6 +518,15 @@ export class JournalTools {
                     `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
                 postConsoleAndNotification("BLACKSMITH | Journal Tools: Content sample", 
                     pageContent.substring(0, 500) + "...", false, true, false);
+                
+                // Search for "Magic: Potion of healing" in the content
+                if (pageContent.includes('Magic: Potion of healing') || pageContent.includes('Potion of healing')) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found potion reference", 
+                        `"Magic: Potion of healing" found in content`, false, true, false);
+                } else {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: No potion reference", 
+                        `"Magic: Potion of healing" NOT found in content`, false, true, false);
+                }
                 
                 // Scan for existing item links in this page
                 const itemLinks = this._scanJournalForItemLinks(pageContent);
@@ -1000,14 +995,47 @@ export class JournalTools {
                 `Content length: ${htmlContent.length}`, false, true, false);
             
             // Look for plain text in <li> tags that don't have links
-            const liRegex = /<li[^>]*>([^<]*?)<\/li>/gi;
+            const liRegex = /<li[^>]*>(.*?)<\/li>/gi;
             let match;
+            let liCount = 0;
             
             while ((match = liRegex.exec(htmlContent)) !== null) {
+                liCount++;
                 const liContent = match[1].trim();
                 
+                // Debug: Show what we're processing
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing li tag", 
+                    `"${liContent}"`, false, true, false);
+                
+                // Special debug for items we're looking for
+                if (liContent.includes('Leather armor') || liContent.includes('Potion of healing') || liContent.includes('Shortsword')) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found target item in li", 
+                        `"${liContent}"`, false, true, false);
+                }
+                
                 // Skip if it's empty or contains links
-                if (liContent === '' || liContent.includes('@UUID') || liContent.includes('@Item')) {
+                // Skip if empty or if the entire content is already a link
+                // Strip both @UUID/@Item patterns and HTML <a> tags
+                let strippedContent = liContent
+                    .replace(/@UUID\[[^\]]+\]\{[^}]+\}/gi, '')
+                    .replace(/@Item\[[^\]]+\]\{[^}]+\}/gi, '')
+                    .replace(/<a[^>]*>.*?<\/a>/gi, '') // Remove HTML links
+                    .replace(/<[^>]*>/gi, '') // Remove any remaining HTML tags
+                    .trim();
+                
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Stripped content", 
+                    `Original: "${liContent}" -> Stripped: "${strippedContent}"`, false, true, false);
+                
+                // Skip if the original content already contains @UUID links (to prevent nested links)
+                if (liContent.includes('@UUID[') || liContent.includes('@Item[')) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Skipping li tag", 
+                        `Already contains UUID links`, false, true, false);
+                    continue;
+                }
+                
+                if (liContent === '' || strippedContent === '') {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Skipping li tag", 
+                        `Empty or entirely linked`, false, true, false);
                     continue;
                 }
                 
@@ -1028,10 +1056,79 @@ export class JournalTools {
                         liEnd: match.index + match[0].length
                     });
                 }
+                
+                // Also check for colon-separated items (like "Magic: Potion of healing")
+                if (liContent.includes(':')) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found colon in li tag", 
+                        `"${liContent}"`, false, true, false);
+                    
+                    const colonParts = liContent.split(':');
+                    if (colonParts.length >= 2) {
+                        const itemsPart = colonParts[1].trim();
+                        
+                        // Strip HTML tags from itemsPart before processing
+                        const cleanItemsPart = itemsPart.replace(/<[^>]*>/gi, '').trim();
+                        
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Items part after colon", 
+                            `Original: "${itemsPart}" -> Cleaned: "${cleanItemsPart}"`, false, true, false);
+                        
+                        // Split by comma for multiple items
+                        const itemList = cleanItemsPart.split(',').map(item => item.trim());
+                        
+                        for (const item of itemList) {
+                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing colon item", 
+                                `"${item}"`, false, true, false);
+                            
+                            const colonItemName = this._extractItemNameFromPlainText(item);
+                            if (colonItemName) {
+                                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found HTML colon item", 
+                                    `"${liContent}" -> "${colonItemName}"`, false, true, false);
+                                
+                                // Find the position of this specific item within the li content
+                                const itemStart = match.index + match[0].indexOf(item);
+                                const itemEnd = itemStart + item.length;
+                                
+                                htmlItems.push({
+                                    fullMatch: item,
+                                    uuid: null,
+                                    itemName: colonItemName,
+                                    startIndex: itemStart,
+                                    endIndex: itemEnd,
+                                    type: 'html-content',
+                                    liStart: match.index,
+                                    liEnd: match.index + match[0].length
+                                });
+                            } else {
+                                postConsoleAndNotification("BLACKSMITH | Journal Tools: Colon item filtered out", 
+                                    `"${item}" was rejected by _extractItemNameFromPlainText`, false, true, false);
+                            }
+                        }
+                    }
+                }
+                
+                // Also try to match the full colon-separated string as a single item
+                if (liContent.includes(':')) {
+                    const fullItemName = this._extractItemNameFromPlainText(liContent);
+                    if (fullItemName) {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Found full colon item", 
+                            `"${liContent}" -> "${fullItemName}"`, false, true, false);
+                        
+                        htmlItems.push({
+                            fullMatch: liContent,
+                            uuid: null,
+                            itemName: fullItemName,
+                            startIndex: match.index + match[0].indexOf(liContent),
+                            endIndex: match.index + match[0].indexOf(liContent) + liContent.length,
+                            type: 'html-content',
+                            liStart: match.index,
+                            liEnd: match.index + match[0].length
+                        });
+                    }
+                }
             }
             
             postConsoleAndNotification("BLACKSMITH | Journal Tools: HTML item scan complete", 
-                `Found ${htmlItems.length} HTML items`, false, true, false);
+                `Found ${htmlItems.length} HTML items from ${liCount} li tags`, false, true, false);
             
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error scanning HTML for items", 
@@ -1175,16 +1272,8 @@ export class JournalTools {
             return null;
         }
         
-        // Skip if it's just whitespace or common non-item text
-        if (itemName === '' || itemName.toLowerCase().includes('difficulty') || 
-            itemName.toLowerCase().includes('cr') || itemName.toLowerCase().includes('xp') ||
-            itemName.toLowerCase().includes('gold') || itemName.toLowerCase().includes('magic') ||
-            itemName.toLowerCase().includes('synopsis') || itemName.toLowerCase().includes('key moments')) {
-            return null;
-        }
-        
-        // Skip if it's just numbers or currency
-        if (/^[0-9]+$/.test(itemName) || /^[0-9]+\s*gp$/.test(itemName)) {
+        // Skip if it's just whitespace
+        if (itemName === '') {
             return null;
         }
         
@@ -1201,6 +1290,12 @@ export class JournalTools {
         
         // Skip if it looks like a category label (ends with colon)
         if (itemName.endsWith(':')) {
+            return null;
+        }
+        
+        // Allow any text that looks like an item name (letters, numbers, spaces, common symbols)
+        // This allows: "Leather armor", "Quiver of 10 Arrows", "Ancient Scroll of Hope", etc.
+        if (!/^[a-zA-Z0-9\s\-'()]+$/.test(itemName)) {
             return null;
         }
         
