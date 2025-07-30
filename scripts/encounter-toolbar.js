@@ -898,8 +898,9 @@ export class EncounterToolbar {
                             } else if (deploymentPattern === "grid") {
                                 tokenPosition = this._calculateSquarePosition(position, validTokenIndex, validTokenCount);
                             } else {
-                                // Default to line formation
+                                // Default to line formation - place in grid square centers
                                 const gridSize = canvas.scene.grid.size;
+                                // The position is already the center of a grid square, so we just offset by grid size
                                 tokenPosition = {
                                     x: position.x + (validTokenIndex * gridSize),
                                     y: position.y
@@ -1258,16 +1259,14 @@ export class EncounterToolbar {
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
         
-        // Calculate the actual position using scene grid size
+        // Calculate the actual position using scene grid size - snap to top-left of grid squares
+        // Calculate the base position in grid coordinates
         let x = centerPosition.x + (tokenPosition.col * gridSize);
         let y = centerPosition.y + (tokenPosition.row * gridSize);
         
-        // Snap to grid
-        const snappedPosition = canvas.grid.getSnappedPoint(x, y);
-        if (snappedPosition) {
-            x = snappedPosition.x;
-            y = snappedPosition.y;
-        }
+        // Snap to top-left of the grid square
+        x = Math.floor(x / gridSize) * gridSize;
+        y = Math.floor(y / gridSize) * gridSize;
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, true, false);
         return { x, y };
@@ -1285,15 +1284,14 @@ export class EncounterToolbar {
         const row = Math.floor(index / sideLength);
         const col = index % sideLength;
         
+        // Calculate position in grid square centers
+        // Calculate the base position in grid coordinates
         let x = centerPosition.x + (col * spacing);
         let y = centerPosition.y + (row * spacing);
         
-        // Snap to grid
-        const snappedPosition = canvas.grid.getSnappedPoint(x, y);
-        if (snappedPosition) {
-            x = snappedPosition.x;
-            y = snappedPosition.y;
-        }
+        // Snap to top-left of the grid square
+        x = Math.floor(x / gridSize) * gridSize;
+        y = Math.floor(y / gridSize) * gridSize;
         
         postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize})`, { x, y }, false, true, false);
         return { x, y };
@@ -1580,25 +1578,21 @@ export class EncounterToolbar {
                 const globalPoint = new PIXI.Point(event.global.x, event.global.y);
                 const localPoint = stage.toLocal(globalPoint);
                 
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Event global coordinates", event.global, false, true, false);
                 postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Local coordinates from stage", localPoint, false, true, false);
                 
-                // Use the exact click position first, then snap to grid
+                // Use the exact click position first, then snap to grid square center
                 let position = { x: localPoint.x, y: localPoint.y };
                 
-                // Snap to grid using the more reliable method
-                const snappedPosition = canvas.grid.getSnappedPoint(localPoint.x, localPoint.y);
-                if (snappedPosition) {
-                    position = snappedPosition;
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: getSnappedPoint result", position, false, true, false);
-                } else {
-                    // Fall back to deprecated method if needed
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: getSnappedPoint failed, trying getSnappedPosition", "", false, true, false);
-                    const fallbackPosition = canvas.grid.getSnappedPosition(localPoint.x, localPoint.y);
-                    if (fallbackPosition) {
-                        position = fallbackPosition;
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: getSnappedPosition result", position, false, true, false);
-                    }
-                }
+                // Get the grid size and calculate grid square center
+                const gridSize = canvas.scene.grid.size;
+                
+                // Snap to top-left of the grid square (token coordinates are top-left, not center)
+                const snappedX = Math.floor(localPoint.x / gridSize) * gridSize;
+                const snappedY = Math.floor(localPoint.y / gridSize) * gridSize;
+                
+                position = { x: snappedX, y: snappedY };
+                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Grid square top-left position", position, false, true, false);
                 
                 // Check if CTRL is held down for multiple deployments
                 const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
