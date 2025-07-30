@@ -173,11 +173,6 @@ export class JournalTools {
                         <option value="upgrade-items">Upgrade Item Links</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <button id="submit-tools" type="button" class="journal-tools-submit">
-                        <i class="fas fa-magic"></i> Submit
-                    </button>
-                </div>
             </div>
         `;
 
@@ -186,26 +181,34 @@ export class JournalTools {
             title: "Journal Tools",
             content: dialogContent,
             buttons: {
+                submit: {
+                    icon: "<i class='fas fa-magic'></i>",
+                    label: "Submit",
+                    callback: async (html) => {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Submit button clicked", "", false, true, false);
+                        
+                        const toolType = html.find('#tool-type').val();
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Selected tool type", toolType, false, true, false);
+                        
+                        try {
+                            await this._processToolRequest(journal, toolType);
+                        } catch (error) {
+                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error in submit handler", error, false, false, true);
+                        }
+                    }
+                },
                 cancel: {
                     icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
                     label: "Cancel",
                     callback: () => {}
                 }
             },
-            default: "cancel",
+            default: "submit",
             close: () => {}
         });
 
         try {
             dialog.render(true);
-            
-            // Add event listener for submit button
-            dialog.element.find('#submit-tools').on('click', async () => {
-                const toolType = dialog.element.find('#tool-type').val();
-                await this._processToolRequest(journal, toolType);
-                dialog.close();
-            });
-            
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Dialog opened successfully", "", false, true, false);
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error opening dialog", error, false, false, true);
@@ -217,11 +220,18 @@ export class JournalTools {
         try {
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing tool request", `Type: ${toolType}, Journal: ${journal.name}`, false, true, false);
 
+            if (!journal) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: No journal provided", "", false, false, true);
+                return;
+            }
+
             switch (toolType) {
                 case 'upgrade-actors':
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", "", false, true, false);
                     await this._upgradeActorLinks(journal);
                     break;
                 case 'upgrade-items':
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", "", false, true, false);
                     await this._upgradeItemLinks(journal);
                     break;
                 default:
@@ -234,13 +244,69 @@ export class JournalTools {
 
     // Upgrade actor links in the journal
     static async _upgradeActorLinks(journal) {
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Actor link upgrade functionality will be implemented in the next phase", "", false, true, false);
-        
-        // TODO: Implement actor link upgrading
-        // 1. Scan journal content for actor UUIDs
-        // 2. Validate UUIDs against compendiums
-        // 3. Update links to point to compendium entries
-        // 4. Save the journal entry
+        try {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor link upgrade", `Journal: ${journal.name}`, false, true, false);
+            
+            // Get all pages in the journal
+            const pages = journal.pages.contents;
+            let totalUpgraded = 0;
+            let totalSkipped = 0;
+            let totalErrors = 0;
+            
+            for (const page of pages) {
+                const pageContent = page.text.content;
+                if (!pageContent) continue;
+                
+                // Scan for actor links in this page
+                const actorLinks = this._scanJournalForActorLinks(pageContent);
+                
+                if (actorLinks.length === 0) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: No actor links found in page", page.name, false, true, false);
+                    continue;
+                }
+                
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found actor links in page", `${actorLinks.length} links in ${page.name}`, false, true, false);
+                
+                let pageContentUpdated = pageContent;
+                let pageUpgraded = 0;
+                let pageSkipped = 0;
+                
+                // Process each actor link
+                for (const link of actorLinks) {
+                    try {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing link", `Actor: "${link.actorName}", UUID: ${link.uuid}`, false, true, false);
+                        
+                        const result = await this._upgradeActorLink(link, pageContentUpdated);
+                        if (result.success) {
+                            pageContentUpdated = result.newContent;
+                            pageUpgraded++;
+                            totalUpgraded++;
+                        } else {
+                            postConsoleAndNotification("BLACKSMITH | Journal Tools: Link upgrade failed", `${link.actorName}: ${result.reason}`, false, true, false);
+                            pageSkipped++;
+                            totalSkipped++;
+                        }
+                    } catch (error) {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Error upgrading actor link", `${link.actorName}: ${error.message}`, false, false, true);
+                        pageSkipped++;
+                        totalErrors++;
+                    }
+                }
+                
+                // Update the page if any links were upgraded
+                if (pageUpgraded > 0) {
+                    await page.update({ text: { content: pageContentUpdated } });
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Updated page", `${page.name}: ${pageUpgraded} upgraded, ${pageSkipped} skipped`, false, true, false);
+                }
+            }
+            
+            // Final summary
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Actor link upgrade complete", 
+                `Total: ${totalUpgraded} upgraded, ${totalSkipped} skipped, ${totalErrors} errors`, false, true, false);
+                
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error during actor link upgrade", error, false, false, true);
+        }
     }
 
     // Upgrade item links in the journal
@@ -253,4 +319,116 @@ export class JournalTools {
         // 3. Update links to point to compendium entries
         // 4. Save the journal entry
     }
+
+    // Scan journal content for actor links
+    static _scanJournalForActorLinks(content) {
+        const actorLinks = [];
+        
+        // Regex to find @UUID patterns with Actor type
+        const uuidRegex = /@UUID\[([^\]]+)\]\{([^}]+)\}/gi;
+        let match;
+        
+        while ((match = uuidRegex.exec(content)) !== null) {
+            const fullMatch = match[0];
+            const uuid = match[1];
+            const actorName = match[2];
+            
+            // Check if this is an Actor UUID (case insensitive)
+            if (uuid.toLowerCase().includes('actor')) {
+                actorLinks.push({
+                    fullMatch,
+                    uuid,
+                    actorName,
+                    startIndex: match.index,
+                    endIndex: match.index + fullMatch.length
+                });
+            }
+        }
+        
+        // Sort by startIndex in descending order to avoid position shifting issues
+        actorLinks.sort((a, b) => b.startIndex - a.startIndex);
+        
+        return actorLinks;
+    }
+
+    // Upgrade a single actor link
+    static async _upgradeActorLink(link, content) {
+        try {
+            // Find the actor in compendiums
+            const newUuid = await this._findActorInCompendiums(link.actorName);
+            
+            if (!newUuid) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Actor not found in compendiums", link.actorName, false, true, false);
+                return { success: false, reason: 'Actor not found in compendiums' };
+            }
+            
+            // Create new UUID link
+            const newLink = `@UUID[${newUuid}]{${link.actorName}}`;
+            
+            // Replace the old link with the new one
+            const newContent = content.substring(0, link.startIndex) + 
+                             newLink + 
+                             content.substring(link.endIndex);
+            
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Upgraded actor link", 
+                `${link.actorName}: ${link.uuid} → ${newUuid}`, false, true, false);
+            
+            return { success: true, newContent };
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error upgrading actor link", 
+                `${link.actorName}: ${error.message}`, false, false, true);
+            return { success: false, reason: error.message };
+        }
+    }
+
+    // Find actor in compendiums
+    static async _findActorInCompendiums(actorName) {
+        try {
+            const searchWorldActorsFirst = game.settings.get(MODULE_ID, 'searchWorldActorsFirst') || false;
+            
+            // Clean up the actor name (same logic as buildCompendiumLinkActor)
+            const strActorName = actorName.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
+            
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Searching for actor", `Original: "${actorName}" -> Cleaned: "${strActorName}"`, false, true, false);
+            
+            // Search world actors first if enabled
+            if (searchWorldActorsFirst) {
+                let foundActor;
+                try {
+                    foundActor = game.actors.getName(strActorName);
+                } catch (error) {
+                    foundActor = null;
+                }
+                if (foundActor) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found actor in world", strActorName, false, true, false);
+                    return `Actor.${foundActor.system._id}`;
+                }
+            }
+            
+            // Check up to 8 compendium settings in order (same as buildCompendiumLinkActor)
+            for (let i = 1; i <= 8; i++) {
+                const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
+                if (!compendiumSetting || compendiumSetting === 'none') continue;
+                
+                const compendium = game.packs.get(compendiumSetting);
+                if (compendium) {
+                    let index = await compendium.getIndex();
+                    let entry = index.find(e => e.name === strActorName);
+                    if (entry) {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Found actor in compendium", `${strActorName} in ${compendiumSetting}`, false, true, false);
+                        return `Compendium.${compendiumSetting}.Actor.${entry._id}`;
+                    }
+                }
+            }
+            
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Actor not found in any compendium", strActorName, false, true, false);
+            return null; // Not found
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error finding actor in compendiums", error, false, false, true);
+            return null;
+        }
+    }
+
 } 
