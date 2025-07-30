@@ -933,6 +933,40 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
+		// *** JOURNAL TOOLS SETTINGS ***
+
+		// -- Journal Tools --
+		game.settings.register(MODULE_ID, 'enableJournalTools', {
+			name: MODULE_ID + '.enableJournalTools-Label',
+			hint: MODULE_ID + '.enableJournalTools-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+		});
+
+		// -- Actor Compendium for Link Upgrades --
+		game.settings.register(MODULE_ID, 'journalToolsActorCompendium', {
+			name: MODULE_ID + '.journalToolsActorCompendium-Label',
+			hint: MODULE_ID + '.journalToolsActorCompendium-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: getCompendiumChoices(),
+			default: '',
+		});
+
+		// -- Item Compendium for Link Upgrades --
+		game.settings.register(MODULE_ID, 'journalToolsItemCompendium', {
+			name: MODULE_ID + '.journalToolsItemCompendium-Label',
+			hint: MODULE_ID + '.journalToolsItemCompendium-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: getCompendiumChoices(),
+			default: '',
+		});
+
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - SCENES  ----------

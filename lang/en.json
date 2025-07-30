@@ -90,6 +90,15 @@
 		"toggleVisibility-Label": "Toggle Token Visibility",
 		"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
 
+		"enableJournalTools-Label": "Enable Journal Tools",
+		"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+
+		"journalToolsActorCompendium-Label": "Actor Compendium for Link Upgrades",
+		"journalToolsActorCompendium-Hint": "Compendium to use when upgrading actor links in journals. Leave empty to skip actor link upgrades.",
+
+		"journalToolsItemCompendium-Label": "Item Compendium for Link Upgrades",
+		"journalToolsItemCompendium-Hint": "Compendium to use when upgrading item links in journals. Leave empty to skip item link upgrades.",
+
 		"headingH2Scenes-Label": "Scenes",
 		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 

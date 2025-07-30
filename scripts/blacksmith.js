@@ -39,6 +39,7 @@ import { CanvasTools } from './canvas-tools.js';
 import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { JournalTools } from './journal-tools.js';
 import { CSSEditor } from './css-editor.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
 import { XpManager } from './xp-manager.js';
@@ -412,6 +413,9 @@ Hooks.once('ready', async function() {
     
     // ENCOUNTER TOOLBAR
     EncounterToolbar.init();
+    
+    // JOURNAL TOOLS
+    JournalTools.init();
 });
 
 // ***************************************************

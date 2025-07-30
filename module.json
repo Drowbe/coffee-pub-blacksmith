@@ -49,7 +49,8 @@
     "scripts/latency-checker.js",
     "scripts/combat-tools.js",
     "scripts/movement.js",
-    "scripts/xp-manager.js"
+    "scripts/xp-manager.js",
+    "scripts/journal-tools.js"
   ],
   "styles": [
     "styles/default.css"

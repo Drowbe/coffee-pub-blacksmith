@@ -1,0 +1,97 @@
+/* ================================================================== */
+/* === JOURNAL TOOLS STYLES ======================================== */
+/* ================================================================== */
+
+/* Journal Tools Icon */
+.journal-tools-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    color: var(--color-text-light-highlight);
+    text-decoration: none;
+    margin: 0 2px;
+    opacity: 0.8;
+}
+
+.journal-tools-icon:hover {
+    background-color: var(--color-background-highlight);
+    color: var(--color-text-highlight);
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.journal-tools-icon i {
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* Journal Tools Dialog */
+.journal-tools-dialog {
+    padding: 15px;
+}
+
+.journal-tools-dialog .form-group {
+    margin-bottom: 15px;
+}
+
+.journal-tools-dialog label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    font-size: 14px;
+}
+
+.journal-tools-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    background-color: var(--color-background-light);
+    color: var(--color-text-dark);
+    font-size: 14px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s ease;
+}
+
+.journal-tools-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-transparent);
+}
+
+.journal-tools-submit {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    background-color: var(--color-primary);
+    color: var(--color-text-light-highlight);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.journal-tools-submit:hover {
+    background-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.journal-tools-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.journal-tools-submit i {
+    font-size: 12px;
+} 

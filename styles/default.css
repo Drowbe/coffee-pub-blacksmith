@@ -20,6 +20,7 @@
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
 @import "encounter-toolbar.css";
+@import "journal-tools.css";
 
 /* --- Cards ---------------------- */
 @import "cards-layout.css";
