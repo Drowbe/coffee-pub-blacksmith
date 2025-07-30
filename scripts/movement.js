@@ -325,7 +325,7 @@ export class MovementConfig extends Application {
             // Send chat message
             ChatMessage.create({
                 content: basicContent,
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                type: CONST.CHAT_MESSAGE_STYLES.OTHER
             });
         }
 
@@ -1079,7 +1079,7 @@ async function postMarchingOrder() {
 
     ChatMessage.create({
         content: content,
-        type: CONST.CHAT_MESSAGE_TYPES.OTHER
+        type: CONST.CHAT_MESSAGE_STYLES.OTHER
     });
 }
 
@@ -1157,7 +1157,7 @@ Hooks.on('createCombat', async (combat) => {
 
             ChatMessage.create({
                 content: combatContent,
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                type: CONST.CHAT_MESSAGE_STYLES.OTHER
             });
             
             // Update UI
@@ -1208,7 +1208,7 @@ Hooks.on('deleteCombat', async (combat) => {
 
         ChatMessage.create({
             content: endCombatContent,
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER
+            type: CONST.CHAT_MESSAGE_STYLES.OTHER
         });
         
         // Update UI

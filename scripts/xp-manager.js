@@ -314,7 +314,7 @@ export class XpManager {
             // Create chat message using the same pattern as other systems
             await ChatMessage.create({
                 content: content,
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                type: CONST.CHAT_MESSAGE_STYLES.OTHER,
                 speaker: ChatMessage.getSpeaker({ user: gmUser }),
                 whisper: isShared ? [] : [game.user.id], // Empty array means visible to all
                 flags: {
@@ -337,7 +337,7 @@ export class XpManager {
             if (gmUser) {
                 await ChatMessage.create({
                     content: fallbackMessage,
-                    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
                     speaker: ChatMessage.getSpeaker({ user: gmUser }),
                     whisper: [game.user.id]
                 });
