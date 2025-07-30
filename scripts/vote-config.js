@@ -9,7 +9,7 @@ import { ChatPanel } from "./chat-panel.js";
 
 export class VoteConfig extends Application {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'vote-config',
             template: 'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             title: 'Start a Vote',

@@ -424,7 +424,7 @@ class XpDistributionWindow extends FormApplication {
     }
 
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'xp-distribution-window',
             template: 'modules/coffee-pub-blacksmith/templates/xp-distribution.hbs',
             title: 'XP Distribution',
