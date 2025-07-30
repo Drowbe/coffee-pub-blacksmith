@@ -257,6 +257,12 @@ export class JournalTools {
                 const pageContent = page.text.content;
                 if (!pageContent) continue;
                 
+                // Debug: Show the content we're working with
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Page content preview", 
+                    `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Content sample", 
+                    pageContent.substring(0, 500) + "...", false, true, false);
+                
                 // Scan for existing actor links in this page
                 const actorLinks = this._scanJournalForActorLinks(pageContent);
                 
@@ -266,7 +272,9 @@ export class JournalTools {
                 // Scan for manual link requests
                 const manualLinkMonsters = this._scanJournalForManualLinkMonsters(pageContent);
                 
-                const allMonsters = [...actorLinks, ...bulletListMonsters, ...manualLinkMonsters];
+                // Also try to find monsters in the HTML content if available
+                const htmlMonsters = this._scanJournalForHtmlMonsters(page);
+                const allMonsters = [...actorLinks, ...bulletListMonsters, ...manualLinkMonsters, ...htmlMonsters];
                 
                 if (allMonsters.length === 0) {
                     postConsoleAndNotification("BLACKSMITH | Journal Tools: No monsters found in page", page.name, false, true, false);
@@ -274,7 +282,7 @@ export class JournalTools {
                 }
                 
                 postConsoleAndNotification("BLACKSMITH | Journal Tools: Found monsters in page", 
-                    `${actorLinks.length} existing links, ${bulletListMonsters.length} bullet list monsters, ${manualLinkMonsters.length} manual link requests in ${page.name}`, false, true, false);
+                    `${actorLinks.length} existing links, ${bulletListMonsters.length} bullet list monsters, ${manualLinkMonsters.length} manual link requests, ${htmlMonsters.length} HTML monsters in ${page.name}`, false, true, false);
                 
                 let pageContentUpdated = pageContent;
                 let pageUpgraded = 0;
@@ -393,8 +401,15 @@ export class JournalTools {
         const lines = content.split('\n');
         let inEncounterSection = false;
         
+        postConsoleAndNotification("BLACKSMITH | Journal Tools: Scanning content", `Total lines: ${lines.length}`, false, true, false);
+        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
+            
+            // Debug: log each line
+            if (line.length > 0) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing line", `Line ${i}: "${line}"`, false, true, false);
+            }
             
             // Check if we're in an encounter section
             if (this._isEncounterHeading(line)) {
@@ -412,10 +427,14 @@ export class JournalTools {
                 if (this._isBulletListItem(line)) {
                     monsterName = this._extractMonsterNameFromBullet(line);
                     isBulletItem = true;
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found bullet item", `"${line}" -> "${monsterName}"`, false, true, false);
                 }
                 // Check if it's a plain text monster (not empty, not a heading, not already a link)
                 else if (line.length > 0 && !this._isHeading(line) && !this._isExistingLink(line)) {
                     monsterName = this._extractMonsterNameFromPlainText(line);
+                    if (monsterName) {
+                        postConsoleAndNotification("BLACKSMITH | Journal Tools: Found plain text monster", `"${line}" -> "${monsterName}"`, false, true, false);
+                    }
                 }
                 
                 if (monsterName) {
@@ -439,6 +458,9 @@ export class JournalTools {
             }
         }
         
+        postConsoleAndNotification("BLACKSMITH | Journal Tools: Bullet list scan complete", 
+            `Found ${bulletListMonsters.length} monsters`, false, true, false);
+        
         return bulletListMonsters;
     }
 
@@ -446,7 +468,7 @@ export class JournalTools {
     static _scanJournalForManualLinkMonsters(content) {
         const manualLinkMonsters = [];
         
-        // Regex to find text with "(link manually)" or similar
+        // Regex to find text with "(link manually)" or similar (case insensitive)
         const manualLinkRegex = /([^(]+?)\s*\(link\s+manually\)/gi;
         let match;
         
@@ -455,6 +477,9 @@ export class JournalTools {
             const monsterName = match[1].trim();
             
             if (monsterName) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found manual link request", 
+                    `"${fullMatch}" -> "${monsterName}"`, false, true, false);
+                
                 manualLinkMonsters.push({
                     fullMatch,
                     uuid: null,
@@ -466,7 +491,64 @@ export class JournalTools {
             }
         }
         
+        postConsoleAndNotification("BLACKSMITH | Journal Tools: Manual link scan complete", 
+            `Found ${manualLinkMonsters.length} manual link requests`, false, true, false);
+        
         return manualLinkMonsters;
+    }
+
+    // Scan journal content for monsters in HTML format
+    static _scanJournalForHtmlMonsters(page) {
+        const htmlMonsters = [];
+        
+        try {
+            // Try to get the rendered HTML content
+            const htmlContent = page.text.content;
+            if (!htmlContent) return htmlMonsters;
+            
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Scanning HTML content", 
+                `Content length: ${htmlContent.length}`, false, true, false);
+            
+            // Look for plain text in <li> tags that don't have links
+            const liRegex = /<li[^>]*>([^<]*?)<\/li>/gi;
+            let match;
+            
+            while ((match = liRegex.exec(htmlContent)) !== null) {
+                const liContent = match[1].trim();
+                
+                // Skip if it's empty or contains links
+                if (liContent === '' || liContent.includes('@UUID') || liContent.includes('@Actor')) {
+                    continue;
+                }
+                
+                // Check if it looks like a monster name
+                const monsterName = this._extractMonsterNameFromPlainText(liContent);
+                if (monsterName) {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Found HTML monster", 
+                        `"${liContent}" -> "${monsterName}"`, false, true, false);
+                    
+                    htmlMonsters.push({
+                        fullMatch: liContent,
+                        uuid: null,
+                        actorName: monsterName,
+                        startIndex: match.index + match[0].indexOf(liContent),
+                        endIndex: match.index + match[0].indexOf(liContent) + liContent.length,
+                        type: 'html-content',
+                        liStart: match.index,
+                        liEnd: match.index + match[0].length
+                    });
+                }
+            }
+            
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: HTML scan complete", 
+                `Found ${htmlMonsters.length} HTML monsters`, false, true, false);
+            
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error scanning HTML", 
+                error.message, false, false, true);
+        }
+        
+        return htmlMonsters;
     }
 
     // Check if a line is an encounter heading
@@ -508,14 +590,25 @@ export class JournalTools {
     static _extractMonsterNameFromPlainText(line) {
         let monsterName = line.trim();
         
+        // Skip if it's too short or too long
+        if (monsterName.length < 2 || monsterName.length > 100) {
+            return null;
+        }
+        
+        // Skip if it's just whitespace or common non-monster text
+        if (monsterName === '' || monsterName.toLowerCase().includes('difficulty') || 
+            monsterName.toLowerCase().includes('cr') || monsterName.toLowerCase().includes('xp')) {
+            return null;
+        }
+        
         // Remove common suffixes like "(CR X)" or "(x2)" etc.
         monsterName = monsterName.replace(/\s*\([^)]*\)\s*$/, '').trim();
         
         // Remove trailing punctuation
         monsterName = monsterName.replace(/[.,;:]$/, '').trim();
         
-        // Skip if it's too short or looks like a heading
-        if (monsterName.length < 2 || monsterName.length > 100) {
+        // Skip if it's too short after cleaning
+        if (monsterName.length < 2) {
             return null;
         }
         
@@ -558,13 +651,35 @@ export class JournalTools {
             // Create new UUID link
             const newLink = `@UUID[${newUuid}]{${link.actorName}}`;
             
-            // Replace the old link with the new one
+            // For HTML content monsters, we need to be more careful about replacement
+            if (link.type === 'html-content') {
+                // Use the stored <li> tag boundaries
+                if (link.liStart !== undefined && link.liEnd !== undefined) {
+                    // Get the full <li> content
+                    const fullLi = content.substring(link.liStart, link.liEnd);
+                    
+                    // Replace just the monster name within the <li> tag
+                    const beforeMonster = fullLi.substring(0, link.startIndex - link.liStart);
+                    const afterMonster = fullLi.substring(link.endIndex - link.liStart);
+                    const newLi = beforeMonster + newLink + afterMonster;
+                    
+                    // Replace the entire <li> tag
+                    const newContent = content.substring(0, link.liStart) + newLi + content.substring(link.liEnd);
+                    
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Upgraded HTML monster", 
+                        `${link.actorName}: plain text → ${newUuid}`, false, true, false);
+                    
+                    return { success: true, newContent };
+                }
+            }
+            
+            // For other types, use the standard replacement
             const newContent = content.substring(0, link.startIndex) + 
                              newLink + 
                              content.substring(link.endIndex);
             
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Upgraded actor link", 
-                `${link.actorName}: ${link.uuid} → ${newUuid}`, false, true, false);
+                `${link.actorName}: ${link.uuid || 'plain text'} → ${newUuid}`, false, true, false);
             
             return { success: true, newContent };
             
