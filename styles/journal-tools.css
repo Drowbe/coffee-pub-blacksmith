@@ -10,18 +10,18 @@
 
 /* Journal Tools Icon */
 .journal-tools-icon {
-  color: rgba(255, 47, 47, 1.0);
-  font-size: 1.2em;
+  color: inherit;
+  font-size: inherit;
   transition: all 0.2s ease;
   cursor: pointer;
-  padding: 4px;
-  border-radius: var(--element-radius);
+  padding: inherit;
+  border-radius: inherit;
 }
 
 .journal-tools-icon:hover {
   color: rgba(255, 255, 255, 1.0);
   text-shadow: 0px 0px 8px rgba(255, 47, 47, 0.8);
-  background: rgba(255, 47, 47, 0.1);
+  background: inherit;
 }
 
 /* Main Window */

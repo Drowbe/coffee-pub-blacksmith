@@ -1162,17 +1162,10 @@ class JournalToolsWindow extends FormApplication {
             `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
 
         try {
-            if (upgradeActors) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinks(this.journal, 'actor');
-            }
-
-            if (upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinks(this.journal, 'item');
-            }
-
-            if (!upgradeActors && !upgradeItems) {
+            if (upgradeActors || upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", "", false, true, false);
+                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems);
+            } else {
                 postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
                 return;
             }
@@ -1205,17 +1198,10 @@ class JournalToolsWindow extends FormApplication {
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Apply button clicked", 
                 `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
 
-            if (upgradeActors) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinks(this.journal, 'actor');
-            }
-
-            if (upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinks(this.journal, 'item');
-            }
-
-            if (!upgradeActors && !upgradeItems) {
+            if (upgradeActors || upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", "", false, true, false);
+                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems);
+            } else {
                 postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
                 ui.notifications.warn("Please select at least one tool to run");
                 return;
