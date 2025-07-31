@@ -95,7 +95,7 @@ export class JournalTools {
             windowHeader.append(toolsIcon);
         }
 
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Added tools icon to journal window", "", false, true, false);
+        postConsoleAndNotification("BLACKSMITH | Journal Tools: Added tools icon to journal window", "", false, false, false);
     }
 
     static _openToolsDialog(html) {
@@ -141,7 +141,7 @@ export class JournalTools {
 
         } catch (error) {
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing tool request", 
-                error.message, false, false, true);
+                error.message, false, false, false);
             throw error;
         }
     }
@@ -205,7 +205,7 @@ export class JournalTools {
                         }
                     } catch (error) {
                         postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading ${entityType}`, 
-                            `${entity.name}: ${error.message}`, false, false, true);
+                            `${entity.name}: ${error.message}`, false, false, false);
                         totalErrors++;
                     }
                 }
@@ -223,7 +223,7 @@ export class JournalTools {
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in ${entityType} upgrade`, 
-                error.message, false, false, true);
+                error.message, false, false, false);
             throw error;
         }
     }
@@ -233,7 +233,7 @@ export class JournalTools {
         try {
             const logStatus = (message, type = "info") => {
                 if (statusCallback) statusCallback(message, type);
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: " + message, "", false, true, false);
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: " + message, "", false, false, false);
             };
             
             const updateOverallProgress = (percentage, message) => {
@@ -356,7 +356,7 @@ export class JournalTools {
                         totalErrors++;
                         // Log errors to console instead of UI
                         postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
-                            `${entity.name}: ${error.message}`, false, false, true);
+                            `${entity.name}: ${error.message}`, false, false, false);
                         logStatus(`✗ Error processing ${entity.name}`, "error");
                     }
                 }
@@ -380,7 +380,7 @@ export class JournalTools {
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
-                error.message, false, false, true);
+                error.message, false, false, false);
             throw error;
         }
     }
@@ -771,7 +771,7 @@ export class JournalTools {
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading ${entityType}`, 
-                `${entity.name}: ${error.message}`, false, false, true);
+                `${entity.name}: ${error.message}`, false, false, false);
             return content;
         }
     }
@@ -788,6 +788,7 @@ export class JournalTools {
             // Remove common suffixes like "(CR X)" or "(number)"
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
+            // Console only - debug only
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching for ${entityType}`, 
                 `"${strEntityName}"`, false, true, false);
             
@@ -833,25 +834,45 @@ export class JournalTools {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
                     if (!compendiumName || compendiumName === '') {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${settingKey} not set`, 
-                            `${settingKey} not set`, false, true, false);
+                        // Skip silently - this is normal for unconfigured compendiums
                         continue;
                     }
                     
                     try {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} compendium not found`, 
-                                `${compendiumName}`, false, true, false);
+                            // Only warn if the compendium is configured but doesn't exist
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Configured compendium not found`, 
+                                `${compendiumName} (${settingKey})`, false, false, true);
                             continue;
                         }
                         
-                        const index = await pack.getIndex();
+                        // Try to get the index with retry logic
+                        let index = null;
+                        let retryCount = 0;
+                        const maxRetries = 2;
                         
-                        // Check if index is valid
+                        while (retryCount <= maxRetries) {
+                            try {
+                                index = await pack.getIndex();
+                                if (index && Array.isArray(index)) {
+                                    break; // Success
+                                }
+                            } catch (error) {
+                                // Index failed to load
+                            }
+                            
+                            retryCount++;
+                            if (retryCount <= maxRetries) {
+                                // Wait a bit before retrying
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        }
+                        
+                        // If we still don't have a valid index after retries, skip this compendium
                         if (!index || !Array.isArray(index)) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Invalid index for compendium`, 
-                                `${compendiumName}`, false, false, true);
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
+                                `${compendiumName} (${settingKey})`, false, true, false);
                             continue;
                         }
                         
@@ -861,10 +882,12 @@ export class JournalTools {
                         );
                         
                         if (entry) {
+                            // Console only - always show successful finds
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${entityType} in compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.${entityType === 'actor' ? 'Actor' : 'Item'}.${entry._id}`;
                         } else {
+                            // Console only - debug only
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} not found in compendium`, 
                                 `${searchName} not found in ${compendiumName}`, false, true, false);
                         }
@@ -875,13 +898,14 @@ export class JournalTools {
                 }
             }
             
+            // Console only - debug only
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} not found in any compendium`, 
                 strEntityName, false, true, false);
             return null;
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error finding ${entityType} in compendiums`, 
-                `${entityName}: ${error.message}`, false, false, true);
+                `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
     }
@@ -926,12 +950,41 @@ export class JournalTools {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) continue;
                         
-                        const index = await pack.getIndex();
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        // Try to get the index with retry logic
+                        let index = null;
+                        let retryCount = 0;
+                        const maxRetries = 2;
+                        
+                        while (retryCount <= maxRetries) {
+                            try {
+                                index = await pack.getIndex();
+                                if (index && Array.isArray(index)) {
+                                    break; // Success
+                                }
+                            } catch (error) {
+                                // Index failed to load
+                            }
+                            
+                            retryCount++;
+                            if (retryCount <= maxRetries) {
+                                // Wait a bit before retrying
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        }
+                        
+                        // If we still don't have a valid index after retries, skip this compendium
+                        if (!index || !Array.isArray(index)) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
+                                `${compendiumName} (${settingKey})`, false, true, false);
+                            continue;
+                        }
+                        
+                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
+                            // Console only - always show
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
                     } catch (error) {
@@ -952,12 +1005,41 @@ export class JournalTools {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) continue;
                         
-                        const index = await pack.getIndex();
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        // Try to get the index with retry logic
+                        let index = null;
+                        let retryCount = 0;
+                        const maxRetries = 2;
+                        
+                        while (retryCount <= maxRetries) {
+                            try {
+                                index = await pack.getIndex();
+                                if (index && Array.isArray(index)) {
+                                    break; // Success
+                                }
+                            } catch (error) {
+                                // Index failed to load
+                            }
+                            
+                            retryCount++;
+                            if (retryCount <= maxRetries) {
+                                // Wait a bit before retrying
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        }
+                        
+                        // If we still don't have a valid index after retries, skip this compendium
+                        if (!index || !Array.isArray(index)) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
+                                `${compendiumName} (${settingKey})`, false, true, false);
+                            continue;
+                        }
+                        
+                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
+                            // Console only - always show
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
                     } catch (error) {
@@ -966,13 +1048,14 @@ export class JournalTools {
                 }
             }
             
+            // Console only - debug only
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Not found in any compendium`, 
                 strEntityName, false, true, false);
             return null;
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums`, 
-                `${entityName}: ${error.message}`, false, false, true);
+                `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
     }
@@ -1114,7 +1197,7 @@ export class JournalTools {
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
-                `${entity.name}: ${error.message}`, false, false, true);
+                `${entity.name}: ${error.message}`, false, false, false);
             return { newContent: content, compendiumName: null, foundEntityType: null };
         }
     }
@@ -1131,6 +1214,7 @@ export class JournalTools {
             // Remove common suffixes like "(CR X)" or "(number)"
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
+            // Console only - debug only
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching both compendiums with type detection`, 
                 `"${strEntityName}"`, false, true, false);
             
@@ -1169,8 +1253,9 @@ export class JournalTools {
                         let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
+                            // Console only - always show
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
                     } catch (error) {
@@ -1201,8 +1286,9 @@ export class JournalTools {
                         let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
+                            // Console only - always show
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
                     } catch (error) {
@@ -1211,13 +1297,14 @@ export class JournalTools {
                 }
             }
             
+            // Console only - debug only
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Not found in any compendium (type detection)`, 
                 strEntityName, false, true, false);
             return null;
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums with type detection`, 
-                `${entityName}: ${error.message}`, false, false, true);
+                `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
     }
@@ -1300,15 +1387,15 @@ class JournalToolsWindow extends FormApplication {
             // Re-enable the apply button
             this.element.find('#apply-button').prop('disabled', false);
             
-            // Show completion notification
-            ui.notifications.info(`Journal tools applied successfully!`);
+            // Success message - console only
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing completed successfully", "", false, false, false);
             
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
             // Stop the spinner on error too
             this.element.find('#progress-spinner').removeClass('fa-spin');
             this.element.find('#apply-button').prop('disabled', false);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing window submission", error, false, false, true);
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing window submission", error, false, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
     }
@@ -1319,6 +1406,7 @@ class JournalToolsWindow extends FormApplication {
         // Add event listeners for the custom buttons
         html.find('.apply-tools').click(this._onApplyTools.bind(this));
         html.find('.cancel-tools').click(this._onCancelTools.bind(this));
+        html.find('.copy-status-btn').click(this._onCopyStatus.bind(this));
     }
 
     async _onApplyTools(event) {
@@ -1375,15 +1463,15 @@ class JournalToolsWindow extends FormApplication {
             // Re-enable the apply button
             this.element.find('#apply-button').prop('disabled', false);
             
-            // Show completion notification
-            ui.notifications.info(`Journal tools applied successfully!`);
+            // Success message - console only
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing completed successfully", "", false, false, false);
             
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
             // Stop the spinner on error too
             this.element.find('#progress-spinner').removeClass('fa-spin');
             this.element.find('#apply-button').prop('disabled', false);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, true);
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
     }
@@ -1403,6 +1491,32 @@ class JournalToolsWindow extends FormApplication {
         const messageDiv = $(`<div class="status-message ${type}">${message}</div>`);
         statusArea.append(messageDiv);
         statusArea.scrollTop(statusArea[0].scrollHeight);
+    }
+
+    _onCopyStatus(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        try {
+            const statusArea = this.element.find('#status-area');
+            const statusText = statusArea.text();
+            
+            if (statusText && statusText.trim()) {
+                navigator.clipboard.writeText(statusText).then(() => {
+                    // Show notification that content was copied
+                    ui.notifications.info("Status content copied to clipboard");
+                    
+                    // Console log for confirmation
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Status copied to clipboard", "", false, false, false);
+                }).catch(err => {
+                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Failed to copy status", err.message, false, false, false);
+                });
+            } else {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: No status content to copy", "", false, false, false);
+            }
+        } catch (error) {
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error copying status", error.message, false, false, false);
+        }
     }
 
     _onCancelTools(event) {
