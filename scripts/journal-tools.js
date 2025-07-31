@@ -260,8 +260,10 @@ export class JournalTools {
             // Initialize tracking variables
             let totalFoundInWorld = 0;
             let totalFoundInCompendium = 0;
-            let totalBrokenLinksFixed = 0;
-            let totalValidLinks = 0;
+            
+            // Track actor vs item results separately
+            let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
+            let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
             
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
                 const page = pages[pageIndex];
@@ -279,31 +281,77 @@ export class JournalTools {
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
                 
-                updatePageProgress(10, "Scanning for actors...");
-                if (upgradeActors) {
-                    // Scan for actor-specific entities
-                    const existingActorLinks = this._scanJournalForLinks(pageContent, 'actor');
-                    const bulletListActors = this._scanJournalForBulletListEntities(pageContent, 'actor');
-                    const manualLinkActors = this._scanJournalForManualLinkEntities(pageContent, 'actor');
-                    const htmlActors = this._scanJournalForHtmlEntities(page, 'actor');
-                    
-                    allEntities.push(...existingActorLinks, ...bulletListActors, ...manualLinkActors, ...htmlActors);
-                    
-                    logStatus(`Found ${existingActorLinks.length} existing actor links, ${bulletListActors.length} bullet actors, ${manualLinkActors.length} manual actors, ${htmlActors.length} HTML actors`);
+                updatePageProgress(10, "Scanning for entities...");
+                
+                // Scan for all entities (both actors and items) in one pass
+                const existingLinks = this._scanJournalForLinks(pageContent, 'both');
+                const bulletListEntities = this._scanJournalForBulletListEntities(pageContent, 'both');
+                const manualLinkEntities = this._scanJournalForManualLinkEntities(pageContent, 'both');
+                const htmlEntities = this._scanJournalForHtmlEntities(page, 'both');
+                
+                allEntities.push(...existingLinks, ...bulletListEntities, ...manualLinkEntities, ...htmlEntities);
+                
+                // Analyze what we found and categorize them
+                const actorLinks = existingLinks.filter(e => e.fullMatch.includes('@Actor[') || e.fullMatch.includes('.Actor.'));
+                const itemLinks = existingLinks.filter(e => e.fullMatch.includes('@Item[') || e.fullMatch.includes('.Item.'));
+                const uuidLinks = existingLinks.filter(e => e.fullMatch.includes('@UUID[') && !e.fullMatch.includes('@Actor[') && !e.fullMatch.includes('@Item['));
+                
+                // Count potential actors vs items in other categories
+                let potentialActors = 0;
+                let potentialItems = 0;
+                
+                // Analyze bullet list entities
+                for (const entity of bulletListEntities) {
+                    // Simple heuristic: if it's in an encounter section, likely actor; if in treasure section, likely item
+                    const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
+                    if (this._isEncounterHeading(contextBefore.split('\n').pop() || '')) {
+                        potentialActors++;
+                    } else if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
+                        potentialItems++;
+                    } else {
+                        // Default to actor for bullet lists (most common)
+                        potentialActors++;
+                    }
                 }
                 
-                updatePageProgress(20, "Scanning for items...");
-                if (upgradeItems) {
-                    // Scan for item-specific entities
-                    const existingItemLinks = this._scanJournalForLinks(pageContent, 'item');
-                    const bulletListItems = this._scanJournalForBulletListEntities(pageContent, 'item');
-                    const manualLinkItems = this._scanJournalForManualLinkEntities(pageContent, 'item');
-                    const htmlItems = this._scanJournalForHtmlEntities(page, 'item');
-                    
-                    allEntities.push(...existingItemLinks, ...bulletListItems, ...manualLinkItems, ...htmlItems);
-                    
-                    logStatus(`Found ${existingItemLinks.length} existing item links, ${bulletListItems.length} bullet items, ${manualLinkItems.length} manual items, ${htmlItems.length} HTML items`);
+                // Analyze manual link entities
+                for (const entity of manualLinkEntities) {
+                    // Default to actor for manual links (most common)
+                    potentialActors++;
                 }
+                
+                // Analyze HTML entities
+                for (const entity of htmlEntities) {
+                    // Check if it's in a treasure/reward context
+                    const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
+                    if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
+                        potentialItems++;
+                    } else {
+                        // Default to actor for HTML entities
+                        potentialActors++;
+                    }
+                }
+                
+                const totalCandidates = existingLinks.length + bulletListEntities.length + manualLinkEntities.length + htmlEntities.length;
+                
+                logStatus("============================");
+                logStatus("==   INITIAL REPORT                                ==");
+                logStatus("============================");
+                logStatus("");
+                logStatus(`Found ${totalCandidates} Unique Entities`);
+                if (uuidLinks.length > 0) {
+                    logStatus(`${uuidLinks.length} Generic UUID Links`);
+                }
+                logStatus("");
+                logStatus("ACTORS");
+                logStatus(`- ${actorLinks.length} Actor Links`);
+                logStatus(`- ${potentialActors} Potential Actors`);
+                logStatus("");
+                logStatus("ITEMS");
+                logStatus(`- ${itemLinks.length} Item Links`);
+                logStatus(`- ${potentialItems} Potential Items`);
+                logStatus("");
+                logStatus("============================");
                 
                 updatePageProgress(30, "Removing duplicates...");
                 
@@ -366,23 +414,33 @@ export class JournalTools {
                         // Track different types of results
                         if (result.foundInWorld && !result.foundInCompendium) {
                             totalFoundInWorld++;
-                            if (entity.type === 'existing-link') {
-                                totalValidLinks++;
-                                logStatus(`✓ Valid link (world): ${entity.name}`, "success");
-                            } else {
-                                logStatus(`✓ Found in world: ${entity.name}`, "success");
-                            }
+                            logStatus(`✓ Found in world: ${entity.name}`, "success");
                         } else if (result.foundInCompendium) {
                             totalFoundInCompendium++;
                             if (entity.type === 'existing-link') {
-                                totalBrokenLinksFixed++;
-                                logStatus(`✓ Fixed broken link → ${result.compendiumName}: ${entity.name}`, "success");
+                                logStatus(`✓ Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
+                                if (result.foundEntityType === 'actor') {
+                                    actorLinksUpgraded++;
+                                } else if (result.foundEntityType === 'item') {
+                                    itemLinksUpgraded++;
+                                }
                             } else {
                                 logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
+                                if (result.foundEntityType === 'actor') {
+                                    actorLinksCreated++;
+                                } else if (result.foundEntityType === 'item') {
+                                    itemLinksCreated++;
+                                }
                             }
                         } else {
                             totalSkipped++;
                             logStatus(`- No match found: ${entity.name}`, "warning");
+                            // Estimate actor vs item for skips based on entity type bias
+                            if (entityType === 'actor' || entityType === 'both') {
+                                actorLinksSkipped++;
+                            } else {
+                                itemLinksSkipped++;
+                            }
                         }
                         
                         // Update content if changed
@@ -397,6 +455,13 @@ export class JournalTools {
                         postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
                             `${entity.name}: ${error.message}`, false, false, false);
                         logStatus(`✗ Error processing ${entity.name}`, "error");
+                        
+                        // Track actor vs item errors
+                        if (entityType === 'actor' || entityType === 'both') {
+                            actorErrors++;
+                        } else {
+                            itemErrors++;
+                        }
                     }
                 }
                 
@@ -414,15 +479,34 @@ export class JournalTools {
             }
             
             updateOverallProgress(100, "Complete!");
-            logStatus(`Processing complete!`, "success");
-            logStatus(`Results: ${totalUpgraded} linked, ${totalSkipped} not found, ${totalErrors} errors`, "success");
-            logStatus(`Details: ${totalFoundInCompendium} found in compendiums, ${totalFoundInWorld} found in world`, "info");
-            if (totalBrokenLinksFixed > 0) {
-                logStatus(`Fixed ${totalBrokenLinksFixed} broken links`, "success");
+            logStatus("============================");
+            logStatus("==   FINAL REPORT                                  ==");
+            logStatus("============================");
+            logStatus("");
+            logStatus("Processing complete!");
+            logStatus(`- ${totalFoundInCompendium} Entities found in compendiums`);
+            logStatus(`- ${totalFoundInWorld} Entities found in world`);
+            logStatus(`- ${totalErrors} Error in Processing`);
+            logStatus("");
+            
+            // Use actual tracked values for final report
+            
+            logStatus("ACTORS");
+            logStatus(`- ${actorLinksSkipped} Actor Links Skipped`);
+            logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`);
+            logStatus(`- ${actorLinksCreated} Actor Links Created`);
+            logStatus(`- ${actorErrors} Errors`);
+            logStatus("");
+            logStatus("ITEMS");
+            logStatus(`- ${itemLinksSkipped} Item Links Skipped`);
+            logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`);
+            logStatus(`- ${itemLinksCreated} Item Links Created`);
+            logStatus(`- ${itemErrors} Errors`);
+            if (itemErrors > 0) {
+                logStatus(`  -- Could not repair ${itemErrors} broken link${itemErrors > 1 ? 's' : ''}`);
             }
-            if (totalValidLinks > 0) {
-                logStatus(`Found ${totalValidLinks} valid existing links`, "info");
-            }
+            logStatus("");
+            logStatus("============================");
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
@@ -434,14 +518,21 @@ export class JournalTools {
     // Generic method to scan for existing links
     static _scanJournalForLinks(content, entityType) {
         const links = [];
-        const linkPattern = entityType === 'actor' 
-            ? /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}/gi
-            : /@UUID\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+        let linkPattern;
+        
+        if (entityType === 'actor') {
+            linkPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}/gi;
+        } else if (entityType === 'item') {
+            linkPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+        } else {
+            // 'both' - scan for all types of links
+            linkPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+        }
         
         let match;
         while ((match = linkPattern.exec(content)) !== null) {
-            const uuid = match[1] || match[3];
-            const name = match[2] || match[4];
+            const uuid = match[1] || match[3] || match[5];
+            const name = match[2] || match[4] || match[6];
             links.push({
                 type: 'existing-link',
                 name: name,
@@ -468,7 +559,17 @@ export class JournalTools {
             const line = lines[i].trim();
             
             // Check if we're entering a relevant section
-            if (entityType === 'actor' ? this._isEncounterHeading(line) : this._isItemHeading(line)) {
+            let isRelevantSection = false;
+            if (entityType === 'actor') {
+                isRelevantSection = this._isEncounterHeading(line);
+            } else if (entityType === 'item') {
+                isRelevantSection = this._isItemHeading(line);
+            } else {
+                // 'both' - check for either type of section
+                isRelevantSection = this._isEncounterHeading(line) || this._isItemHeading(line);
+            }
+            
+            if (isRelevantSection) {
                 inRelevantSection = true;
                 foundAnySection = true;
                 postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found relevant section`, 
@@ -596,7 +697,14 @@ export class JournalTools {
                             
                             for (const itemName of itemNames) {
                                 if (itemName) {
-                                    const entityName = this._extractEntityNameFromPlainText(itemName, entityType);
+                                    // For 'both' entity type, try both actor and item extraction
+                                    let entityName = null;
+                                    if (entityType === 'both') {
+                                        entityName = this._extractEntityNameFromPlainText(itemName, 'actor') || 
+                                                   this._extractEntityNameFromPlainText(itemName, 'item');
+                                    } else {
+                                        entityName = this._extractEntityNameFromPlainText(itemName, entityType);
+                                    }
                                     
                                     if (entityName) {
                                         entities.push({
@@ -615,7 +723,13 @@ export class JournalTools {
                         }
                     } else {
                         // Single entity in the list item
-                        const entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                        let entityName = null;
+                        if (entityType === 'both') {
+                            entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
+                                       this._extractEntityNameFromPlainText(strippedContent, 'item');
+                        } else {
+                            entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                        }
                         
                         if (entityName) {
                             entities.push({
@@ -922,7 +1036,7 @@ export class JournalTools {
                 for (const settingKey of compendiumSettings) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
-                    if (!compendiumName || compendiumName === '') {
+                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') {
                         // Skip silently - this is normal for unconfigured compendiums
                         continue;
                     }
@@ -1006,42 +1120,15 @@ export class JournalTools {
                 for (const settingKey of actorCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
-                    if (!compendiumName || compendiumName === '') continue;
+                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
                     
                     try {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) continue;
                         
-                        // Try to get the index with retry logic
-                        let index = null;
-                        let retryCount = 0;
-                        const maxRetries = 2;
+                        const index = await pack.getIndex();
                         
-                        while (retryCount <= maxRetries) {
-                            try {
-                                index = await pack.getIndex();
-                                if (index && Array.isArray(index)) {
-                                    break; // Success
-                                }
-                            } catch (error) {
-                                // Index failed to load
-                            }
-                            
-                            retryCount++;
-                            if (retryCount <= maxRetries) {
-                                // Wait a bit before retrying
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                            }
-                        }
-                        
-                        // If we still don't have a valid index after retries, skip this compendium
-                        if (!index || !Array.isArray(index)) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
-                                `${compendiumName} (${settingKey})`, false, true, false);
-                            continue;
-                        }
-                        
-                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             // Console only - always show
@@ -1061,42 +1148,15 @@ export class JournalTools {
                 for (const settingKey of itemCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
-                    if (!compendiumName || compendiumName === '') continue;
+                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
                     
                     try {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) continue;
                         
-                        // Try to get the index with retry logic
-                        let index = null;
-                        let retryCount = 0;
-                        const maxRetries = 2;
+                        const index = await pack.getIndex();
                         
-                        while (retryCount <= maxRetries) {
-                            try {
-                                index = await pack.getIndex();
-                                if (index && Array.isArray(index)) {
-                                    break; // Success
-                                }
-                            } catch (error) {
-                                // Index failed to load
-                            }
-                            
-                            retryCount++;
-                            if (retryCount <= maxRetries) {
-                                // Wait a bit before retrying
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                            }
-                        }
-                        
-                        // If we still don't have a valid index after retries, skip this compendium
-                        if (!index || !Array.isArray(index)) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
-                                `${compendiumName} (${settingKey})`, false, true, false);
-                            continue;
-                        }
-                        
-                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             // Console only - always show
@@ -1201,21 +1261,10 @@ export class JournalTools {
             let foundInWorld = false;
             let foundInCompendium = false;
             
-            // For existing links, check if they're broken first
+            // For existing links, always try to upgrade to the first compendium (original intent)
             if (entity.type === 'existing-link') {
-                try {
-                    const existingEntity = await fromUuid(entity.uuid);
-                    if (existingEntity) {
-                        // Link is valid, no need to upgrade
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Existing link is valid`, 
-                            `${entity.name} -> ${entity.uuid}`, false, true, false);
-                        return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: true, foundInCompendium: false };
-                    }
-                } catch (error) {
-                    // Link is broken, continue with search
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Existing link is broken, searching for replacement`, 
-                        `${entity.name} -> ${entity.uuid}`, false, true, false);
-                }
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Upgrading existing link to first compendium`, 
+                    `${entity.name} -> ${entity.uuid}`, false, true, false);
             }
             
             // Search based on entity type
@@ -1245,8 +1294,8 @@ export class JournalTools {
                 }
             }
             
-            // If not found in compendiums, check world as last resort (for broken links)
-            if (!uuid && entity.type === 'existing-link') {
+            // If not found in compendiums, check world as last resort
+            if (!uuid) {
                 const worldEntities = foundEntityType === 'item' ? game.items : game.actors;
                 const worldEntity = worldEntities.find(e => 
                     e.name.toLowerCase() === entity.name.toLowerCase()
@@ -1256,7 +1305,7 @@ export class JournalTools {
                     uuid = worldEntity.uuid;
                     foundInWorld = true;
                     foundEntityType = foundEntityType || (worldEntity.type === 'Item' ? 'item' : 'actor');
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found broken link replacement in world`, 
+                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity in world`, 
                         `${entity.name} -> ${worldEntity.uuid}`, false, true, false);
                 }
             }
@@ -1343,7 +1392,7 @@ export class JournalTools {
                 for (const settingKey of actorCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
-                    if (!compendiumName || compendiumName === '') continue;
+                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
                     
                     try {
                         const pack = game.packs.get(compendiumName);
@@ -1371,7 +1420,7 @@ export class JournalTools {
                 for (const settingKey of itemCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
                     
-                    if (!compendiumName || compendiumName === '') continue;
+                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
                     
                     try {
                         const pack = game.packs.get(compendiumName);
@@ -1595,10 +1644,18 @@ class JournalToolsWindow extends FormApplication {
         
         try {
             const statusArea = this.element.find('#status-area');
-            const statusText = statusArea.text();
             
-            if (statusText && statusText.trim()) {
-                navigator.clipboard.writeText(statusText).then(() => {
+            // Get all status messages and format them properly
+            const statusMessages = statusArea.find('.status-message');
+            let formattedText = '';
+            
+            statusMessages.each(function() {
+                const message = $(this).text();
+                formattedText += message + '\n';
+            });
+            
+            if (formattedText && formattedText.trim()) {
+                navigator.clipboard.writeText(formattedText).then(() => {
                     // Show notification that content was copied
                     ui.notifications.info("Status content copied to clipboard");
                     
