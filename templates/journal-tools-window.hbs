@@ -23,15 +23,45 @@
           <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
           <label for="upgrade-actors">
             <i class="fas fa-dragon"></i>
-            <span>Upgrade Actor Links</span>
+            <span>Actors</span>
           </label>
         </div>
         <div class="journal-tools-option">
           <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
           <label for="upgrade-items">
             <i class="fas fa-sword"></i>
-            <span>Upgrade Item Links</span>
+            <span>Items</span>
           </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="journal-tools-section" id="progress-section" style="display: none;">
+      <div class="journal-tools-section-header">
+        <i class="fas fa-spinner fa-spin" id="progress-spinner"></i> Progress
+      </div>
+      <div class="journal-tools-progress">
+        <div class="progress-label">Overall Progress</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="overall-progress-bar"></div>
+        </div>
+        <div class="progress-text" id="overall-progress-text">Initializing...</div>
+        
+        <div class="progress-label">Current Page</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="page-progress-bar"></div>
+        </div>
+        <div class="progress-text" id="page-progress-text">Ready...</div>
+      </div>
+    </div>
+
+    <div class="journal-tools-section" id="status-section" style="display: none;">
+      <div class="journal-tools-section-header">
+        <i class="fas fa-list"></i> Status
+      </div>
+      <div class="journal-tools-status">
+        <div class="status-area" id="status-area">
+          <div class="status-message">Ready to process...</div>
         </div>
       </div>
     </div>
@@ -50,7 +80,7 @@
     <button type="button" class="journal-tools-btn cancel-tools">
       <i class="fas fa-times"></i> Cancel
     </button>
-    <button type="button" class="journal-tools-btn apply-tools">
+    <button type="button" class="journal-tools-btn apply-tools" id="apply-button">
       <i class="fas fa-check"></i> Apply Tools
     </button>
   </div>

@@ -38,12 +38,7 @@ export class JournalTools {
 
         // Only add tools icon in normal view, not edit view (same as old code)
         const isEditMode = this._isEditMode(html);
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Edit mode check", 
-            `isEditMode: ${isEditMode}`, false, true, false);
-        
         if (isEditMode) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: In edit mode", 
-                "Journal is in edit mode, not showing tools icon", false, true, false);
             return;
         }
 
@@ -51,8 +46,6 @@ export class JournalTools {
         html.data('journal-app', app);
 
         // Add the tools icon
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Adding tools icon", 
-            `Journal: ${app?.document?.name || 'Unknown'}`, false, true, false);
         this._addToolsIcon(html);
     }
 
@@ -63,26 +56,16 @@ export class JournalTools {
     static _addToolsIcon(html) {
         // Find the window header
         const windowHeader = html.find('.window-header');
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Looking for window header", 
-            `header found: ${windowHeader.length > 0}`, false, true, false);
         
         if (!windowHeader.length) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: No window header found", 
-                "Cannot add tools icon", false, true, false);
             return;
         }
 
         // Check if tools icon already exists
         const existingToolsIcon = windowHeader.find('.journal-tools-icon');
         if (existingToolsIcon.length > 0) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Icon already exists", 
-                "Skipping icon addition", false, true, false);
             return; // Already added
         }
-
-        // Debug: Log the HTML structure
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Adding icon to header", 
-            `Header found: ${windowHeader.length}`, false, true, false);
 
         // Create the tools icon
         const toolsIcon = $(`
@@ -103,22 +86,13 @@ export class JournalTools {
         const closeButton = windowHeader.find('.header-button.close');
         const configureButton = windowHeader.find('.header-button.configure-sheet');
         
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Looking for buttons", 
-            `close button: ${closeButton.length > 0}, configure button: ${configureButton.length > 0}`, false, true, false);
-        
         // Try to place it before the close button, then before configure button, then at the end
         if (closeButton.length > 0) {
             closeButton.before(toolsIcon);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Icon inserted before close button", 
-                "Icon placement successful", false, true, false);
         } else if (configureButton.length > 0) {
             configureButton.before(toolsIcon);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Icon inserted before configure button", 
-                "Icon placement successful", false, true, false);
         } else {
             windowHeader.append(toolsIcon);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Icon appended to header", 
-                "Icon placement successful", false, true, false);
         }
 
         postConsoleAndNotification("BLACKSMITH | Journal Tools: Added tools icon to journal window", "", false, true, false);
@@ -132,8 +106,6 @@ export class JournalTools {
 
             if (app && app.document) {
                 journal = app.document;
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found journal via app", 
-                    `Journal: ${journal.name}`, false, true, false);
             } else {
                 // Fallback: try to get from the HTML data
                 journal = html.data('journal');
@@ -257,10 +229,24 @@ export class JournalTools {
     }
 
     // New unified method that processes all entities in one pass
-    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems) {
+    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems, overallProgressCallback = null, pageProgressCallback = null, statusCallback = null) {
         try {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Starting unified link upgrade`, 
-                `Journal: ${journal.name}`, false, true, false);
+            const logStatus = (message, type = "info") => {
+                if (statusCallback) statusCallback(message, type);
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: " + message, "", false, true, false);
+            };
+            
+            const updateOverallProgress = (percentage, message) => {
+                if (overallProgressCallback) overallProgressCallback(percentage, message);
+            };
+            
+            const updatePageProgress = (percentage, message) => {
+                if (pageProgressCallback) pageProgressCallback(percentage, message);
+            };
+            
+            logStatus("Starting unified link upgrade...");
+            updateOverallProgress(5, "Initializing...");
+            updatePageProgress(0, "Ready...");
             
             // Get all pages in the journal
             const pages = journal.pages.contents;
@@ -268,13 +254,21 @@ export class JournalTools {
             let totalSkipped = 0;
             let totalErrors = 0;
             
-            for (const page of pages) {
+            updateOverallProgress(10, "Scanning pages...");
+            logStatus(`Processing ${pages.length} page(s) in journal`);
+            
+            for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+                const page = pages[pageIndex];
+                const overallProgress = 10 + (pageIndex / pages.length) * 80; // 10-90% for pages
+                updateOverallProgress(overallProgress, `Processing page ${pageIndex + 1}/${pages.length}...`);
+                updatePageProgress(0, `Starting page: ${page.name}`);
                 let pageContent = page.text.content;
-                if (!pageContent) continue;
+                if (!pageContent) {
+                    logStatus(`Skipping empty page: ${page.name}`, "warning");
+                    continue;
+                }
                 
-                // Debug: Show the content we're working with
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Page content preview`, 
-                    `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
+                logStatus(`Processing page: ${page.name} (${pageContent.length} chars)`);
                 
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
@@ -287,6 +281,8 @@ export class JournalTools {
                     const htmlActors = this._scanJournalForHtmlEntities(page, 'actor');
                     
                     allEntities.push(...existingActorLinks, ...bulletListActors, ...manualLinkActors, ...htmlActors);
+                    
+                    logStatus(`Found ${existingActorLinks.length} existing actor links, ${bulletListActors.length} bullet actors, ${manualLinkActors.length} manual actors, ${htmlActors.length} HTML actors`);
                 }
                 
                 if (upgradeItems) {
@@ -297,7 +293,11 @@ export class JournalTools {
                     const htmlItems = this._scanJournalForHtmlEntities(page, 'item');
                     
                     allEntities.push(...existingItemLinks, ...bulletListItems, ...manualLinkItems, ...htmlItems);
+                    
+                    logStatus(`Found ${existingItemLinks.length} existing item links, ${bulletListItems.length} bullet items, ${manualLinkItems.length} manual items, ${htmlItems.length} HTML items`);
                 }
+                
+                updateOverallProgress(30, "Removing duplicates...");
                 
                 // Remove duplicates based on name and position
                 const uniqueEntities = [];
@@ -310,47 +310,73 @@ export class JournalTools {
                         seen.add(key);
                         uniqueEntities.push(entity);
                     } else {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Skipping duplicate entity`, 
-                            `${entity.name} (already processed)`, false, true, false);
+                        logStatus(`Skipping duplicate: ${entity.name}`, "warning");
                     }
                 }
                 
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${uniqueEntities.length} unique entities to process`, 
-                    `Page: ${page.name}`, false, true, false);
+                logStatus(`Found ${uniqueEntities.length} unique entities to process`);
+                
+                updatePageProgress(20, "Scanning for entities...");
                 
                 // Process each unique entity
                 let contentChanged = false;
                 
-                for (const entity of uniqueEntities) {
+                for (let i = 0; i < uniqueEntities.length; i++) {
+                    const entity = uniqueEntities[i];
+                    const pageProgress = 20 + (i / uniqueEntities.length) * 70; // 20-90% for entities
+                    updatePageProgress(pageProgress, `Processing ${entity.name}...`);
+                    
+                    // Add a small delay to make progress visible
+                    if (i % 3 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                    
                     try {
                         // Determine entity type based on where it was found and context
                         let entityType = this._determineEntityTypeFromContext(entity, pageContent, uniqueEntities);
                         
-                        const newContent = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
-                        if (newContent !== pageContent) {
-                            pageContent = newContent;
+                        logStatus(`Processing: ${entity.name} (${entity.type}) -> ${entityType} bias`);
+                        
+                        const result = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
+                        if (result.newContent !== pageContent) {
+                            pageContent = result.newContent;
                             contentChanged = true;
                             totalUpgraded++;
+                            
+                            if (result.compendiumName) {
+                                logStatus(`✓ ${entity.name} → ${result.compendiumName}`, "success");
+                            } else {
+                                logStatus(`✓ Linked: ${entity.name}`, "success");
+                            }
                         } else {
                             totalSkipped++;
+                            logStatus(`- No match found: ${entity.name}`, "warning");
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading entity`, 
-                            `${entity.name}: ${error.message}`, false, false, true);
                         totalErrors++;
+                        // Log errors to console instead of UI
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
+                            `${entity.name}: ${error.message}`, false, false, true);
+                        logStatus(`✗ Error processing ${entity.name}`, "error");
                     }
                 }
+                
+                updatePageProgress(90, "Updating journal...");
                 
                 // Update the page if content changed
                 if (contentChanged) {
                     await page.update({ 'text.content': pageContent });
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Updated page`, 
-                        `${page.name} - ${totalUpgraded} entities upgraded`, false, true, false);
+                    logStatus(`✓ Updated page: ${page.name}`, "success");
+                } else {
+                    logStatus(`- No changes made to page: ${page.name}`, "warning");
                 }
+                
+                updatePageProgress(100, "Page complete!");
             }
             
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Unified upgrade complete`, 
-                `Upgraded: ${totalUpgraded}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`, false, true, false);
+            updateOverallProgress(100, "Complete!");
+            logStatus(`Processing complete!`, "success");
+            logStatus(`Results: ${totalUpgraded} linked, ${totalSkipped} not found, ${totalErrors} errors`);
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
@@ -822,9 +848,16 @@ export class JournalTools {
                         
                         const index = await pack.getIndex();
                         
+                        // Check if index is valid
+                        if (!index || !Array.isArray(index)) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Invalid index for compendium`, 
+                                `${compendiumName}`, false, false, true);
+                            continue;
+                        }
+                        
                         // Only use exact match - no partial matching to avoid false positives
                         let entry = index.find(e => 
-                            e.name.toLowerCase() === searchName.toLowerCase()
+                            e && e.name && e.name.toLowerCase() === searchName.toLowerCase()
                         );
                         
                         if (entry) {
@@ -1067,15 +1100,22 @@ export class JournalTools {
                 newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
             }
             
+            // Extract compendium name for status message
+            let compendiumName = "Unknown";
+            const compendiumMatch = uuid.match(/Compendium\.([^\.]+)/);
+            if (compendiumMatch) {
+                compendiumName = compendiumMatch[1];
+            }
+            
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded unified entity`, 
                 `${entity.name} -> ${newLink} (${foundEntityType})`, false, true, false);
             
-            return newContent;
+            return { newContent, compendiumName, foundEntityType };
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
                 `${entity.name}: ${error.message}`, false, false, true);
-            return content;
+            return { newContent: content, compendiumName: null, foundEntityType: null };
         }
     }
 
@@ -1120,7 +1160,13 @@ export class JournalTools {
                         if (!pack) continue;
                         
                         const index = await pack.getIndex();
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        
+                        // Check if index is valid
+                        if (!index || !Array.isArray(index)) {
+                            continue;
+                        }
+                        
+                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium (type detection)`, 
@@ -1146,7 +1192,13 @@ export class JournalTools {
                         if (!pack) continue;
                         
                         const index = await pack.getIndex();
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        
+                        // Check if index is valid
+                        if (!index || !Array.isArray(index)) {
+                            continue;
+                        }
+                        
+                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium (type detection)`, 
@@ -1204,21 +1256,58 @@ class JournalToolsWindow extends FormApplication {
         const upgradeActors = formData.upgradeActors || false;
         const upgradeItems = formData.upgradeItems || false;
 
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing window submission", 
-            `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
+        if (!upgradeActors && !upgradeItems) {
+            ui.notifications.warn("Please select at least one tool to run");
+            return;
+        }
+
+        // Show progress and status sections
+        this.element.find('#progress-section').show();
+        this.element.find('#status-section').show();
+        
+        // Disable the apply button
+        this.element.find('#apply-button').prop('disabled', true);
+        
+                    // Initialize progress
+            this.updateOverallProgress(0, "Initializing...");
+            this.updatePageProgress(0, "Ready...");
+            this.addStatusMessage("Starting journal tools processing...", "info");
+
+            // Create progress callbacks for the unified processing
+            const overallProgressCallback = (progress, message) => {
+                this.updateOverallProgress(progress, message);
+            };
+            
+            const pageProgressCallback = (progress, message) => {
+                this.updatePageProgress(progress, message);
+            };
+
+            const statusCallback = (message, type = "info") => {
+                this.addStatusMessage(message, type);
+            };
 
         try {
-            if (upgradeActors || upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems);
-            } else {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
-                return;
-            }
+            this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}`, "info");
+            await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback);
 
-            this.close();
+            this.updateOverallProgress(100, "Complete!");
+            this.updatePageProgress(100, "Complete!");
+            this.addStatusMessage("Journal tools processing completed successfully!", "success");
+            
+            // Stop the spinner
+            this.element.find('#progress-spinner').removeClass('fa-spin');
+            
+            // Re-enable the apply button
+            this.element.find('#apply-button').prop('disabled', false);
+            
+            // Show completion notification
             ui.notifications.info(`Journal tools applied successfully!`);
+            
         } catch (error) {
+            this.addStatusMessage(`Error: ${error.message}`, "error");
+            // Stop the spinner on error too
+            this.element.find('#progress-spinner').removeClass('fa-spin');
+            this.element.find('#apply-button').prop('disabled', false);
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing window submission", error, false, false, true);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
@@ -1241,24 +1330,79 @@ class JournalToolsWindow extends FormApplication {
             const upgradeActors = this.element.find('#upgrade-actors').is(':checked');
             const upgradeItems = this.element.find('#upgrade-items').is(':checked');
 
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Apply button clicked", 
-                `Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
-
-            if (upgradeActors || upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", "", false, true, false);
-                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems);
-            } else {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: No tools selected", "Please select at least one tool to run", false, true, false);
+            if (!upgradeActors && !upgradeItems) {
                 ui.notifications.warn("Please select at least one tool to run");
                 return;
             }
 
-            this.close();
+            // Show progress and status sections
+            this.element.find('#progress-section').show();
+            this.element.find('#status-section').show();
+            
+            // Disable the apply button
+            this.element.find('#apply-button').prop('disabled', true);
+            
+            // Initialize progress
+            this.updateOverallProgress(0, "Initializing...");
+            this.updatePageProgress(0, "Ready...");
+            this.addStatusMessage("Starting journal tools processing...", "info");
+
+            // Create progress callbacks for the unified processing
+            const overallProgressCallback = (progress, message) => {
+                this.updateOverallProgress(progress, message);
+            };
+            
+            const pageProgressCallback = (progress, message) => {
+                this.updatePageProgress(progress, message);
+            };
+
+            const statusCallback = (message, type = "info") => {
+                this.addStatusMessage(message, type);
+            };
+
+            if (upgradeActors || upgradeItems) {
+                this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}`, "info");
+                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback);
+            }
+
+            this.updateOverallProgress(100, "Complete!");
+            this.updatePageProgress(100, "Complete!");
+            this.addStatusMessage("Journal tools processing completed successfully!", "success");
+            
+            // Stop the spinner
+            this.element.find('#progress-spinner').removeClass('fa-spin');
+            
+            // Re-enable the apply button
+            this.element.find('#apply-button').prop('disabled', false);
+            
+            // Show completion notification
             ui.notifications.info(`Journal tools applied successfully!`);
+            
         } catch (error) {
+            this.addStatusMessage(`Error: ${error.message}`, "error");
+            // Stop the spinner on error too
+            this.element.find('#progress-spinner').removeClass('fa-spin');
+            this.element.find('#apply-button').prop('disabled', false);
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, true);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
+    }
+
+    updateOverallProgress(percentage, message) {
+        this.element.find('#overall-progress-bar').css('width', `${percentage}%`);
+        this.element.find('#overall-progress-text').text(message);
+    }
+
+    updatePageProgress(percentage, message) {
+        this.element.find('#page-progress-bar').css('width', `${percentage}%`);
+        this.element.find('#page-progress-text').text(message);
+    }
+
+    addStatusMessage(message, type = "info") {
+        const statusArea = this.element.find('#status-area');
+        const messageDiv = $(`<div class="status-message ${type}">${message}</div>`);
+        statusArea.append(messageDiv);
+        statusArea.scrollTop(statusArea[0].scrollHeight);
     }
 
     _onCancelTools(event) {
