@@ -1,0 +1,162 @@
+# Test Journal Content for Journal Tools
+
+## Encounters and Monsters
+
+### Plain Text Monsters
+- Goblin Boss
+- Ancient Dragon
+- Mighty Servant of Leuk-o
+- Arcanaloth
+- Mummy (Link Manually)
+- Frog
+- Sally's Good General Goods and Stuff
+- Jimmy Hammertoe's Weapons and Stuff
+- Flambo's Emporium of Magics and Stuff
+- Mysterio the Illusionist
+
+### Existing Actor Links
+- @Actor[tFR10y4uID3nHC2l]{Mummy}
+- @UUID[Compendium.dnd-monster-manual.actors.Actor.abc123]{Goblin}
+- @UUID[Compendium.dnd-players-handbook.actors.Actor.def456]{Dragon}
+
+### Manual Link Format
+- Ancient Dragon (Link Manually)
+- Goblin Boss (link manually)
+- Mighty Servant of Leuk-o (Link Manually)
+
+## Rewards and Treasure
+
+### Plain Text Items
+- Shortsword
+- Leather Armor
+- Magic: Potion of Healing
+- Gem: Diamond
+- Astral Shard
+- Primal Fruit
+- Medium Barrier Tattoo
+- Quiver of 10 Arrows
+- Ancient Scroll of Hope
+- Goblin Necklace
+- Elixir of Climbing Difficulty
+
+### Existing Item Links
+- @UUID[Item.b6y71ooU5ky9gtGB]{Mysterious Key}
+- @UUID[Item.F9iYvZAbhNMoHC7e]{Gem: Diamond}
+- @UUID[Cjjs.Item.thjj0]{Astral Shard}
+- @Item[abc123]{Magic Sword}
+
+### Manual Link Format
+- Shortsword (Link Manually)
+- Leather Armor (link manually)
+- Magic: Potion of Healing (Link Manually)
+
+### Complex Item Names
+- Potion of Healing
+- Ring of Protection
+- Staff of the Magi
+- Vorpal Sword
+- Cloak of Invisibility
+- Boots of Elvenkind
+- Bag of Holding
+- Wand of Magic Detection
+- Scroll of Fireball
+- Tome of Clear Thought
+
+### Items with Special Characters
+- Quiver of 10 Arrows
+- Elixir of Climbing Difficulty
+- Gem: Diamond
+- Magic: Potion of Healing
+- Ancient Scroll of Hope
+- Goblin Necklace
+- Medium Barrier Tattoo
+
+## Mixed Content Section
+
+### Some Monsters
+- Orc Warrior
+- Troll
+- Beholder
+- Mind Flayer
+
+### Some Items
+- Longsword
+- Chain Mail
+- Healing Potion
+- Magic Ring
+
+### Existing Mixed Links
+- @Actor[xyz789]{Orc Warrior}
+- @Item[def456]{Longsword}
+- @UUID[Compendium.dnd-monster-manual.actors.Actor.ghi789]{Troll}
+- @UUID[Compendium.dnd-players-handbook.equipment.Item.jkl012]{Chain Mail}
+
+## HTML Content Test
+
+<p>This is a paragraph with some <strong>bold text</strong> and <em>italic text</em>.</p>
+
+<ul>
+<li>Goblin Boss</li>
+<li>Ancient Dragon</li>
+<li>Shortsword</li>
+<li>Leather Armor</li>
+<li>Magic: Potion of Healing</li>
+<li>Gem: Diamond</li>
+<li>Astral Shard</li>
+<li>Primal Fruit</li>
+</ul>
+
+<ol>
+<li>Mighty Servant of Leuk-o</li>
+<li>Arcanaloth</li>
+<li>Mummy (Link Manually)</li>
+<li>Frog</li>
+</ol>
+
+## Narrative Text with Embedded Entities
+
+The party encountered a fearsome Ancient Dragon in the depths of the dungeon. After a long battle, they found a treasure hoard containing a Vorpal Sword and a Ring of Protection. They also discovered a mysterious Gem: Diamond that seemed to pulse with magical energy.
+
+Nearby, they found a Goblin Boss guarding a chest filled with Leather Armor and several Magic: Potion of Healing. The goblin was also carrying a Shortsword and an Astral Shard.
+
+## Edge Cases
+
+### Items that might be confused with descriptive text
+- Ancient Scroll of Hope (should be linked as an item)
+- Goblin Necklace (should be linked as an item)
+- Medium Barrier Tattoo (should be linked as an item)
+- Elixir of Climbing Difficulty (should be linked as an item)
+
+### Monsters that might be confused with items
+- Frog (should be linked as an actor)
+- Ancient Dragon (should be linked as an actor)
+- Goblin Boss (should be linked as an actor)
+
+### Mixed content in same line
+- The party fought a Goblin Boss and found a Shortsword
+- They defeated an Ancient Dragon and looted a Vorpal Sword
+- A Frog was guarding a Primal Fruit
+
+## Test Cases for Context Detection
+
+### Actor-heavy context
+- Orc Warrior
+- Troll
+- Beholder
+- Mind Flayer
+- @Actor[abc123]{Goblin}
+- @UUID[Compendium.dnd-monster-manual.actors.Actor.def456]{Dragon}
+
+### Item-heavy context
+- Longsword
+- Chain Mail
+- Healing Potion
+- Magic Ring
+- @Item[xyz789]{Sword}
+- @UUID[Compendium.dnd-players-handbook.equipment.Item.ghi789]{Armor}
+
+### Mixed context (should default to 'both' search)
+- Frog
+- Primal Fruit
+- Ancient Dragon
+- Vorpal Sword 

@@ -390,6 +390,7 @@ export class JournalTools {
         const lines = content.split('\n');
         
         let inRelevantSection = false;
+        let foundAnySection = false;
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -397,7 +398,15 @@ export class JournalTools {
             // Check if we're entering a relevant section
             if (entityType === 'actor' ? this._isEncounterHeading(line) : this._isItemHeading(line)) {
                 inRelevantSection = true;
+                foundAnySection = true;
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found relevant section`, 
+                    `${line}`, false, true, false);
                 continue;
+            }
+            
+            // If we haven't found any specific sections, scan everything
+            if (!foundAnySection) {
+                inRelevantSection = true;
             }
             
             // Skip if not in a relevant section
@@ -405,9 +414,46 @@ export class JournalTools {
             
             // Check if this is a bullet list item
             if (this._isBulletListItem(line)) {
-                const entityName = this._extractEntityNameFromBullet(line, entityType);
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found bullet item`, 
+                    `Line ${i}: "${line}"`, false, true, false);
                 
-                if (entityName) {
+                // First, try to extract from the bullet line itself
+                let entityName = this._extractEntityNameFromBullet(line, entityType);
+                
+                // If no entity found on the bullet line, look at subsequent lines
+                if (!entityName) {
+                    // Look ahead up to 3 lines to find the entity name
+                    for (let j = 1; j <= 3 && i + j < lines.length; j++) {
+                        const nextLine = lines[i + j].trim();
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Checking line ${i + j}`, 
+                            `"${nextLine}"`, false, true, false);
+                        
+                        // If we hit another bullet or heading, stop looking
+                        if (this._isBulletListItem(nextLine) || this._isHeading(nextLine)) {
+                            break;
+                        }
+                        
+                        // If the line has content, try to extract an entity name
+                        if (nextLine) {
+                            entityName = this._extractEntityNameFromPlainText(nextLine, entityType);
+                            
+                            if (entityName) {
+                                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity on line ${i + j}`, 
+                                    `${entityName}`, false, true, false);
+                                entities.push({
+                                    type: 'bullet-list',
+                                    name: entityName,
+                                    startIndex: content.indexOf(lines[i + j]),
+                                    endIndex: content.indexOf(lines[i + j]) + lines[i + j].length,
+                                    fullMatch: lines[i + j]
+                                });
+                                break;
+                            }
+                        }
+                    }
+                } else if (entityName) {
+                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity on bullet line`, 
+                        `${entityName}`, false, true, false);
                     entities.push({
                         type: 'bullet-list',
                         name: entityName,
@@ -1136,7 +1182,7 @@ class JournalToolsWindow extends FormApplication {
     }
 
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: "journal-tools-window",
             title: "Journal Tools",
             template: "modules/coffee-pub-blacksmith/templates/journal-tools-window.hbs",
