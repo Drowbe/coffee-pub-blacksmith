@@ -257,6 +257,12 @@ export class JournalTools {
             updateOverallProgress(10, "Scanning pages...");
             logStatus(`Processing ${pages.length} page(s) in journal`);
             
+            // Initialize tracking variables
+            let totalFoundInWorld = 0;
+            let totalFoundInCompendium = 0;
+            let totalBrokenLinksFixed = 0;
+            let totalValidLinks = 0;
+            
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
                 const page = pages[pageIndex];
                 const overallProgress = 10 + (pageIndex / pages.length) * 80; // 10-90% for pages
@@ -301,20 +307,36 @@ export class JournalTools {
                 
                 updatePageProgress(30, "Removing duplicates...");
                 
-                // Remove duplicates based on name and position
+                // Remove duplicates - prioritize existing links over plain text
                 const uniqueEntities = [];
-                const seen = new Set();
+                const seen = new Map(); // Map to track best version of each entity
                 
                 for (const entity of allEntities) {
-                    // Use just the name for duplicate detection since the same entity might be found by different scanning methods
                     const key = entity.name.toLowerCase();
+                    
                     if (!seen.has(key)) {
-                        seen.add(key);
-                        uniqueEntities.push(entity);
+                        // First time seeing this entity
+                        seen.set(key, entity);
                     } else {
-                        logStatus(`Skipping duplicate: ${entity.name}`, "warning");
+                        // We've seen this entity before - keep the better version
+                        const existing = seen.get(key);
+                        
+                        // Prioritize existing links over plain text
+                        if (entity.type === 'existing-link' && existing.type !== 'existing-link') {
+                            seen.set(key, entity);
+                            logStatus(`Replacing plain text with existing link: ${entity.name}`, "info");
+                        } else if (entity.type === 'existing-link' && existing.type === 'existing-link') {
+                            // Both are existing links - keep the first one
+                            logStatus(`Skipping duplicate existing link: ${entity.name}`, "warning");
+                        } else {
+                            // Both are plain text or other types - keep the first one
+                            logStatus(`Skipping duplicate: ${entity.name}`, "warning");
+                        }
                     }
                 }
+                
+                // Convert map values back to array
+                uniqueEntities.push(...seen.values());
                 
                 logStatus(`Found ${uniqueEntities.length} unique entities to process`);
                 
@@ -340,19 +362,34 @@ export class JournalTools {
                         logStatus(`Processing: ${entity.name} (${entity.type}) -> ${entityType} bias`);
                         
                         const result = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
-                        if (result.newContent !== pageContent) {
-                            pageContent = result.newContent;
-                            contentChanged = true;
-                            totalUpgraded++;
-                            
-                            if (result.compendiumName) {
-                                logStatus(`✓ ${entity.name} → ${result.compendiumName}`, "success");
+                        
+                        // Track different types of results
+                        if (result.foundInWorld && !result.foundInCompendium) {
+                            totalFoundInWorld++;
+                            if (entity.type === 'existing-link') {
+                                totalValidLinks++;
+                                logStatus(`✓ Valid link (world): ${entity.name}`, "success");
                             } else {
-                                logStatus(`✓ Linked: ${entity.name}`, "success");
+                                logStatus(`✓ Found in world: ${entity.name}`, "success");
+                            }
+                        } else if (result.foundInCompendium) {
+                            totalFoundInCompendium++;
+                            if (entity.type === 'existing-link') {
+                                totalBrokenLinksFixed++;
+                                logStatus(`✓ Fixed broken link → ${result.compendiumName}: ${entity.name}`, "success");
+                            } else {
+                                logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
                             }
                         } else {
                             totalSkipped++;
                             logStatus(`- No match found: ${entity.name}`, "warning");
+                        }
+                        
+                        // Update content if changed
+                        if (result.newContent !== pageContent) {
+                            pageContent = result.newContent;
+                            contentChanged = true;
+                            totalUpgraded++;
                         }
                     } catch (error) {
                         totalErrors++;
@@ -378,7 +415,14 @@ export class JournalTools {
             
             updateOverallProgress(100, "Complete!");
             logStatus(`Processing complete!`, "success");
-            logStatus(`Results: ${totalUpgraded} linked, ${totalSkipped} not found, ${totalErrors} errors`);
+            logStatus(`Results: ${totalUpgraded} linked, ${totalSkipped} not found, ${totalErrors} errors`, "success");
+            logStatus(`Details: ${totalFoundInCompendium} found in compendiums, ${totalFoundInWorld} found in world`, "info");
+            if (totalBrokenLinksFixed > 0) {
+                logStatus(`Fixed ${totalBrokenLinksFixed} broken links`, "success");
+            }
+            if (totalValidLinks > 0) {
+                logStatus(`Found ${totalValidLinks} valid existing links`, "info");
+            }
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
@@ -432,9 +476,9 @@ export class JournalTools {
                 continue;
             }
             
-            // If we haven't found any specific sections, scan everything
+            // Only scan if we're in a relevant section - no more scanning everything
             if (!foundAnySection) {
-                inRelevantSection = true;
+                inRelevantSection = false;
             }
             
             // Skip if not in a relevant section
@@ -596,13 +640,20 @@ export class JournalTools {
     // Check if a line is an encounter heading
     static _isEncounterHeading(line) {
         const encounterKeywords = [
+            'encounter',
             'encounters',
+            'monster',
             'monsters',
+            'npc',
             'npcs',
+            'combat',
             'enemies',
             'foes',
             'adversaries',
-            'creatures'
+            'creatures',
+            'monsters and npcs',
+            'combat encounter',
+            'combat encounters'
         ];
         
         const lowerLine = line.toLowerCase();
@@ -612,17 +663,26 @@ export class JournalTools {
     // Check if a line is an item heading
     static _isItemHeading(line) {
         const itemKeywords = [
-            'items',
             'treasure',
+            'treasures',
+            'reward',
+            'rewards',
+            'xp',
+            'experience',
             'loot',
+            'items',
             'equipment',
             'gear',
             'weapons',
             'armor',
             'magic items',
             'consumables',
-            'rewards',
-            'rewards and treasure'
+            'treasure and experience',
+            'treasure and xp',
+            'loot and xp',
+            'loot and experience',
+            'rewards and treasure',
+            'rewards and xp'
         ];
         
         const lowerLine = line.toLowerCase();
@@ -631,7 +691,7 @@ export class JournalTools {
 
     // Check if a line is a bullet list item
     static _isBulletListItem(line) {
-        return /^[•\-*+]\s/.test(line);
+        return /^[•*+]\s/.test(line);
     }
 
     // Check if content looks like an entity list item
@@ -679,14 +739,30 @@ export class JournalTools {
 
     // Generic method to extract entity name from bullet list item
     static _extractEntityNameFromBullet(line, entityType) {
-        // Remove bullet and common prefixes
-        let entityName = line.replace(/^[•\-*+]\s*/, '').trim();
+        // Remove bullet and common prefixes (no more dashes)
+        let entityName = line.replace(/^[•*+]\s*/, '').trim();
         
         // Remove common suffixes like "(x2)" etc.
         entityName = entityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
         
-        // Remove trailing punctuation
-        entityName = entityName.replace(/[.,;:]$/, '').trim();
+        // Remove trailing punctuation (but not colons, as items might be "Gem: Diamond")
+        entityName = entityName.replace(/[.,;]$/, '').trim();
+        
+        // Skip if it ends with a period (likely a sentence)
+        if (entityName.endsWith('.')) {
+            return null;
+        }
+        
+        // Count words - must be less than 5 words
+        const wordCount = entityName.split(/\s+/).length;
+        if (wordCount >= 5) {
+            return null;
+        }
+        
+        // Skip if it looks like a category label (ends with colon and no content after)
+        if (entityName.endsWith(':') && entityName.split(':').length === 2 && entityName.split(':')[1].trim() === '') {
+            return null;
+        }
         
         return entityName.length > 0 ? entityName : null;
     }
@@ -705,19 +781,30 @@ export class JournalTools {
             return null;
         }
         
+        // Skip if it ends with a period (likely a sentence)
+        if (entityName.endsWith('.')) {
+            return null;
+        }
+        
+        // Count words - must be less than 5 words
+        const wordCount = entityName.split(/\s+/).length;
+        if (wordCount >= 5) {
+            return null;
+        }
+        
         // Remove common suffixes like "(x2)" etc.
         entityName = entityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
         
-        // Remove trailing punctuation
-        entityName = entityName.replace(/[.,;:]$/, '').trim();
+        // Remove trailing punctuation (but not colons, as items might be "Gem: Diamond")
+        entityName = entityName.replace(/[.,;]$/, '').trim();
         
         // Skip if it's too short after cleaning
         if (entityName.length < 2) {
             return null;
         }
         
-        // Skip if it looks like a category label (ends with colon)
-        if (entityName.endsWith(':')) {
+        // Skip if it looks like a category label (ends with colon and no content after)
+        if (entityName.endsWith(':') && entityName.split(':').length === 2 && entityName.split(':')[1].trim() === '') {
             return null;
         }
         
@@ -849,38 +936,11 @@ export class JournalTools {
                             continue;
                         }
                         
-                        // Try to get the index with retry logic
-                        let index = null;
-                        let retryCount = 0;
-                        const maxRetries = 2;
-                        
-                        while (retryCount <= maxRetries) {
-                            try {
-                                index = await pack.getIndex();
-                                if (index && Array.isArray(index)) {
-                                    break; // Success
-                                }
-                            } catch (error) {
-                                // Index failed to load
-                            }
-                            
-                            retryCount++;
-                            if (retryCount <= maxRetries) {
-                                // Wait a bit before retrying
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                            }
-                        }
-                        
-                        // If we still don't have a valid index after retries, skip this compendium
-                        if (!index || !Array.isArray(index)) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Failed to load compendium index after retries`, 
-                                `${compendiumName} (${settingKey})`, false, true, false);
-                            continue;
-                        }
+                        const index = await pack.getIndex();
                         
                         // Only use exact match - no partial matching to avoid false positives
                         let entry = index.find(e => 
-                            e && e.name && e.name.toLowerCase() === searchName.toLowerCase()
+                            e.name.toLowerCase() === searchName.toLowerCase()
                         );
                         
                         if (entry) {
@@ -1138,18 +1198,44 @@ export class JournalTools {
             
             let uuid = null;
             let foundEntityType = null;
+            let foundInWorld = false;
+            let foundInCompendium = false;
+            
+            // For existing links, check if they're broken first
+            if (entity.type === 'existing-link') {
+                try {
+                    const existingEntity = await fromUuid(entity.uuid);
+                    if (existingEntity) {
+                        // Link is valid, no need to upgrade
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Existing link is valid`, 
+                            `${entity.name} -> ${entity.uuid}`, false, true, false);
+                        return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: true, foundInCompendium: false };
+                    }
+                } catch (error) {
+                    // Link is broken, continue with search
+                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Existing link is broken, searching for replacement`, 
+                        `${entity.name} -> ${entity.uuid}`, false, true, false);
+                }
+            }
             
             // Search based on entity type
             if (entityType === 'actor') {
                 uuid = await this._findEntityInCompendiums(entity.name, 'actor');
-                if (uuid) foundEntityType = 'actor';
+                if (uuid) {
+                    foundEntityType = 'actor';
+                    foundInCompendium = true;
+                }
             } else if (entityType === 'item') {
                 uuid = await this._findEntityInCompendiums(entity.name, 'item');
-                if (uuid) foundEntityType = 'item';
+                if (uuid) {
+                    foundEntityType = 'item';
+                    foundInCompendium = true;
+                }
             } else {
                 // Search both compendiums and determine the actual type
                 uuid = await this._findEntityInBothCompendiumsWithType(entity.name);
                 if (uuid) {
+                    foundInCompendium = true;
                     // Determine the actual entity type from the UUID
                     if (uuid.includes('.Actor.')) {
                         foundEntityType = 'actor';
@@ -1159,10 +1245,26 @@ export class JournalTools {
                 }
             }
             
+            // If not found in compendiums, check world as last resort (for broken links)
+            if (!uuid && entity.type === 'existing-link') {
+                const worldEntities = foundEntityType === 'item' ? game.items : game.actors;
+                const worldEntity = worldEntities.find(e => 
+                    e.name.toLowerCase() === entity.name.toLowerCase()
+                );
+                
+                if (worldEntity) {
+                    uuid = worldEntity.uuid;
+                    foundInWorld = true;
+                    foundEntityType = foundEntityType || (worldEntity.type === 'Item' ? 'item' : 'actor');
+                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found broken link replacement in world`, 
+                        `${entity.name} -> ${worldEntity.uuid}`, false, true, false);
+                }
+            }
+            
             if (!uuid) {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium`, 
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium or world`, 
                     entity.name, false, true, false);
-                return content;
+                return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: false, foundInCompendium: false };
             }
             
             // Create the new link
@@ -1186,21 +1288,23 @@ export class JournalTools {
             }
             
             // Extract compendium name for status message
-            let compendiumName = "Unknown";
-            const compendiumMatch = uuid.match(/Compendium\.([^\.]+)/);
-            if (compendiumMatch) {
-                compendiumName = compendiumMatch[1];
+            let compendiumName = foundInWorld ? "World" : "Unknown";
+            if (foundInCompendium) {
+                const compendiumMatch = uuid.match(/Compendium\.([^\.]+)/);
+                if (compendiumMatch) {
+                    compendiumName = compendiumMatch[1];
+                }
             }
             
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded unified entity`, 
                 `${entity.name} -> ${newLink} (${foundEntityType})`, false, true, false);
             
-            return { newContent, compendiumName, foundEntityType };
+            return { newContent, compendiumName, foundEntityType, foundInWorld, foundInCompendium };
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
                 `${entity.name}: ${error.message}`, false, false, false);
-            return { newContent: content, compendiumName: null, foundEntityType: null };
+            return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: false, foundInCompendium: false };
         }
     }
 
@@ -1247,12 +1351,7 @@ export class JournalTools {
                         
                         const index = await pack.getIndex();
                         
-                        // Check if index is valid
-                        if (!index || !Array.isArray(index)) {
-                            continue;
-                        }
-                        
-                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             // Console only - always show
@@ -1280,12 +1379,7 @@ export class JournalTools {
                         
                         const index = await pack.getIndex();
                         
-                        // Check if index is valid
-                        if (!index || !Array.isArray(index)) {
-                            continue;
-                        }
-                        
-                        let entry = index.find(e => e && e.name && e.name.toLowerCase() === searchName.toLowerCase());
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
                             // Console only - always show
