@@ -304,10 +304,14 @@ export class JournalTools {
                 const seen = new Set();
                 
                 for (const entity of allEntities) {
-                    const key = `${entity.name}-${entity.startIndex}-${entity.endIndex}`;
+                    // Use just the name for duplicate detection since the same entity might be found by different scanning methods
+                    const key = entity.name.toLowerCase();
                     if (!seen.has(key)) {
                         seen.add(key);
                         uniqueEntities.push(entity);
+                    } else {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Skipping duplicate entity`, 
+                            `${entity.name} (already processed)`, false, true, false);
                     }
                 }
                 
@@ -969,15 +973,26 @@ export class JournalTools {
                 `${entity.name} (${entity.type}, ${entityType})`, false, true, false);
             
             let uuid = null;
+            let foundEntityType = null;
             
             // Search based on entity type
             if (entityType === 'actor') {
                 uuid = await this._findEntityInCompendiums(entity.name, 'actor');
+                if (uuid) foundEntityType = 'actor';
             } else if (entityType === 'item') {
                 uuid = await this._findEntityInCompendiums(entity.name, 'item');
+                if (uuid) foundEntityType = 'item';
             } else {
-                // Search both compendiums
-                uuid = await this._findEntityInBothCompendiums(entity.name);
+                // Search both compendiums and determine the actual type
+                uuid = await this._findEntityInBothCompendiumsWithType(entity.name);
+                if (uuid) {
+                    // Determine the actual entity type from the UUID
+                    if (uuid.includes('.Actor.')) {
+                        foundEntityType = 'actor';
+                    } else if (uuid.includes('.Item.')) {
+                        foundEntityType = 'item';
+                    }
+                }
             }
             
             if (!uuid) {
@@ -1007,7 +1022,7 @@ export class JournalTools {
             }
             
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded unified entity`, 
-                `${entity.name} -> ${newLink}`, false, true, false);
+                `${entity.name} -> ${newLink} (${foundEntityType})`, false, true, false);
             
             return newContent;
             
@@ -1015,6 +1030,97 @@ export class JournalTools {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
                 `${entity.name}: ${error.message}`, false, false, true);
             return content;
+        }
+    }
+
+    // Search both actor and item compendiums and return the UUID (same as _findEntityInBothCompendiums but with better logging)
+    static async _findEntityInBothCompendiumsWithType(entityName) {
+        try {
+            // Clean the entity name
+            let strEntityName = entityName.trim();
+            
+            // Remove HTML tags if present
+            strEntityName = strEntityName.replace(/<[^>]+>/g, '').trim();
+            
+            // Remove common suffixes like "(CR X)" or "(number)"
+            strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching both compendiums with type detection`, 
+                `"${strEntityName}"`, false, true, false);
+            
+            // Handle colon-separated names (e.g., "Gem: Diamond")
+            let searchNames = [strEntityName];
+            if (strEntityName.includes(':')) {
+                const parts = strEntityName.split(':');
+                if (parts.length > 1) {
+                    // Try with colon first, then without
+                    searchNames = [strEntityName, parts[1].trim()];
+                }
+            }
+            
+            // Try each search name
+            for (const searchName of searchNames) {
+                // Try actor compendiums first (default bias)
+                const actorCompendiums = ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
+                                         'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8'];
+                
+                for (const settingKey of actorCompendiums) {
+                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
+                    
+                    if (!compendiumName || compendiumName === '') continue;
+                    
+                    try {
+                        const pack = game.packs.get(compendiumName);
+                        if (!pack) continue;
+                        
+                        const index = await pack.getIndex();
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        
+                        if (entry) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium (type detection)`, 
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                            return `Compendium.${compendiumName}.Actor.${entry._id}`;
+                        }
+                    } catch (error) {
+                        // Continue to next compendium
+                    }
+                }
+                
+                // Try item compendiums second
+                const itemCompendiums = ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
+                                        'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
+                
+                for (const settingKey of itemCompendiums) {
+                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
+                    
+                    if (!compendiumName || compendiumName === '') continue;
+                    
+                    try {
+                        const pack = game.packs.get(compendiumName);
+                        if (!pack) continue;
+                        
+                        const index = await pack.getIndex();
+                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
+                        
+                        if (entry) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium (type detection)`, 
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, true, false);
+                            return `Compendium.${compendiumName}.Item.${entry._id}`;
+                        }
+                    } catch (error) {
+                        // Continue to next compendium
+                    }
+                }
+            }
+            
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Not found in any compendium (type detection)`, 
+                strEntityName, false, true, false);
+            return null;
+            
+        } catch (error) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums with type detection`, 
+                `${entityName}: ${error.message}`, false, false, true);
+            return null;
         }
     }
 } 
