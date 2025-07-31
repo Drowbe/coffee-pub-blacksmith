@@ -161,16 +161,10 @@ export class JournalTools {
     // Generic method to process tool requests
     static async _processToolRequest(journal, upgradeActors, upgradeItems) {
         try {
-            if (upgradeActors) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting actor upgrade", 
-                    `Journal: ${journal.name}`, false, true, false);
-                await this._upgradeJournalLinks(journal, 'actor');
-            }
-
-            if (upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting item upgrade", 
-                    `Journal: ${journal.name}`, false, true, false);
-                await this._upgradeJournalLinks(journal, 'item');
+            if (upgradeActors || upgradeItems) {
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", 
+                    `Journal: ${journal.name}, Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
+                await this._upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems);
             }
 
         } catch (error) {
@@ -257,6 +251,105 @@ export class JournalTools {
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in ${entityType} upgrade`, 
+                error.message, false, false, true);
+            throw error;
+        }
+    }
+
+    // New unified method that processes all entities in one pass
+    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems) {
+        try {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Starting unified link upgrade`, 
+                `Journal: ${journal.name}`, false, true, false);
+            
+            // Get all pages in the journal
+            const pages = journal.pages.contents;
+            let totalUpgraded = 0;
+            let totalSkipped = 0;
+            let totalErrors = 0;
+            
+            for (const page of pages) {
+                let pageContent = page.text.content;
+                if (!pageContent) continue;
+                
+                // Debug: Show the content we're working with
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Page content preview`, 
+                    `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
+                
+                // Collect all potential entities from all scanning methods
+                const allEntities = [];
+                
+                if (upgradeActors) {
+                    // Scan for actor-specific entities
+                    const existingActorLinks = this._scanJournalForLinks(pageContent, 'actor');
+                    const bulletListActors = this._scanJournalForBulletListEntities(pageContent, 'actor');
+                    const manualLinkActors = this._scanJournalForManualLinkEntities(pageContent, 'actor');
+                    const htmlActors = this._scanJournalForHtmlEntities(page, 'actor');
+                    
+                    allEntities.push(...existingActorLinks, ...bulletListActors, ...manualLinkActors, ...htmlActors);
+                }
+                
+                if (upgradeItems) {
+                    // Scan for item-specific entities
+                    const existingItemLinks = this._scanJournalForLinks(pageContent, 'item');
+                    const bulletListItems = this._scanJournalForBulletListEntities(pageContent, 'item');
+                    const manualLinkItems = this._scanJournalForManualLinkEntities(pageContent, 'item');
+                    const htmlItems = this._scanJournalForHtmlEntities(page, 'item');
+                    
+                    allEntities.push(...existingItemLinks, ...bulletListItems, ...manualLinkItems, ...htmlItems);
+                }
+                
+                // Remove duplicates based on name and position
+                const uniqueEntities = [];
+                const seen = new Set();
+                
+                for (const entity of allEntities) {
+                    const key = `${entity.name}-${entity.startIndex}-${entity.endIndex}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        uniqueEntities.push(entity);
+                    }
+                }
+                
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${uniqueEntities.length} unique entities to process`, 
+                    `Page: ${page.name}`, false, true, false);
+                
+                // Process each unique entity
+                let contentChanged = false;
+                
+                for (const entity of uniqueEntities) {
+                    try {
+                        // Determine entity type based on where it was found and context
+                        let entityType = this._determineEntityTypeFromContext(entity, pageContent, uniqueEntities);
+                        
+                        const newContent = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
+                        if (newContent !== pageContent) {
+                            pageContent = newContent;
+                            contentChanged = true;
+                            totalUpgraded++;
+                        } else {
+                            totalSkipped++;
+                        }
+                    } catch (error) {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading entity`, 
+                            `${entity.name}: ${error.message}`, false, false, true);
+                        totalErrors++;
+                    }
+                }
+                
+                // Update the page if content changed
+                if (contentChanged) {
+                    await page.update({ 'text.content': pageContent });
+                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Updated page`, 
+                        `${page.name} - ${totalUpgraded} entities upgraded`, false, true, false);
+                }
+            }
+            
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Unified upgrade complete`, 
+                `Upgraded: ${totalUpgraded}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`, false, true, false);
+            
+        } catch (error) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
                 error.message, false, false, true);
             throw error;
         }
@@ -737,7 +830,7 @@ export class JournalTools {
             
             // Try each search name
             for (const searchName of searchNames) {
-                // Try actor compendiums first
+                // Try actor compendiums first (default bias)
                 const actorCompendiums = ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
                                          'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8'];
                 
@@ -763,7 +856,7 @@ export class JournalTools {
                     }
                 }
                 
-                // Try item compendiums
+                // Try item compendiums second
                 const itemCompendiums = ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
                                         'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
                 
@@ -798,6 +891,130 @@ export class JournalTools {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums`, 
                 `${entityName}: ${error.message}`, false, false, true);
             return null;
+        }
+    }
+
+    // Determine entity type based on context and existing links
+    static _determineEntityTypeFromContext(entity, pageContent, allEntities) {
+        // If it's an existing link, determine type from the link itself
+        if (entity.type === 'existing-link') {
+            if (entity.fullMatch.includes('@Actor[') || entity.fullMatch.includes('Actor.')) {
+                return 'actor';
+            } else if (entity.fullMatch.includes('@Item[') || entity.fullMatch.includes('Item.')) {
+                return 'item';
+            }
+        }
+        
+        // Look for context clues in nearby entities
+        const contextRange = 1000; // Look within 1000 characters before and after
+        const entityPosition = entity.startIndex;
+        const contextStart = Math.max(0, entityPosition - contextRange);
+        const contextEnd = Math.min(pageContent.length, entityPosition + contextRange);
+        const contextContent = pageContent.substring(contextStart, contextEnd);
+        
+        // Count actor vs item links in the context
+        let actorLinks = 0;
+        let itemLinks = 0;
+        
+        // Look for existing UUID links in the context
+        const uuidPattern = /@UUID\[([^\]]+)\]/g;
+        let match;
+        while ((match = uuidPattern.exec(contextContent)) !== null) {
+            const uuid = match[1];
+            if (uuid.includes('.Actor.') || uuid.includes('@Actor[')) {
+                actorLinks++;
+            } else if (uuid.includes('.Item.') || uuid.includes('@Item[')) {
+                itemLinks++;
+            }
+        }
+        
+        // Look for other entities in the same list/area
+        for (const otherEntity of allEntities) {
+            if (otherEntity === entity) continue; // Skip self
+            
+            const distance = Math.abs(otherEntity.startIndex - entityPosition);
+            if (distance <= contextRange) {
+                // If this other entity is an existing link, count it
+                if (otherEntity.type === 'existing-link') {
+                    if (otherEntity.fullMatch.includes('@Actor[') || otherEntity.fullMatch.includes('Actor.')) {
+                        actorLinks++;
+                    } else if (otherEntity.fullMatch.includes('@Item[') || otherEntity.fullMatch.includes('Item.')) {
+                        itemLinks++;
+                    }
+                }
+            }
+        }
+        
+        // Determine bias based on context
+        if (actorLinks > itemLinks) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor`, 
+                `${entity.name}: ${actorLinks} actor links vs ${itemLinks} item links in context`, false, true, false);
+            return 'actor';
+        } else if (itemLinks > actorLinks) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item`, 
+                `${entity.name}: ${itemLinks} item links vs ${actorLinks} actor links in context`, false, true, false);
+            return 'item';
+        } else {
+            // No clear bias, default to searching actors first, then items
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: No context bias, defaulting to actor-first search`, 
+                `${entity.name}: ${actorLinks} actor links, ${itemLinks} item links in context`, false, true, false);
+            return 'both';
+        }
+    }
+
+    // Unified method to upgrade a single entity link
+    static async _upgradeEntityLinkUnified(entity, content, entityType) {
+        try {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Processing unified entity`, 
+                `${entity.name} (${entity.type}, ${entityType})`, false, true, false);
+            
+            let uuid = null;
+            
+            // Search based on entity type
+            if (entityType === 'actor') {
+                uuid = await this._findEntityInCompendiums(entity.name, 'actor');
+            } else if (entityType === 'item') {
+                uuid = await this._findEntityInCompendiums(entity.name, 'item');
+            } else {
+                // Search both compendiums
+                uuid = await this._findEntityInBothCompendiums(entity.name);
+            }
+            
+            if (!uuid) {
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium`, 
+                    entity.name, false, true, false);
+                return content;
+            }
+            
+            // Create the new link
+            const newLink = `@UUID[${uuid}]{${entity.name}}`;
+            
+            // Replace the old content with the new link
+            let newContent = content;
+            
+            if (entity.type === 'html-list') {
+                // For HTML list items, we need to be more careful to preserve the <li> structure
+                const liStart = entity.liStart;
+                const liEnd = entity.liEnd;
+                const liContent = content.substring(liStart, liEnd);
+                
+                // Replace the entity name within the <li> content
+                const updatedLiContent = liContent.replace(entity.name, newLink);
+                newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
+            } else {
+                // For other types, replace the full match
+                newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
+            }
+            
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded unified entity`, 
+                `${entity.name} -> ${newLink}`, false, true, false);
+            
+            return newContent;
+            
+        } catch (error) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
+                `${entity.name}: ${error.message}`, false, false, true);
+            return content;
         }
     }
 } 
