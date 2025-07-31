@@ -273,6 +273,7 @@ export class JournalTools {
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
                 
+                updatePageProgress(10, "Scanning for actors...");
                 if (upgradeActors) {
                     // Scan for actor-specific entities
                     const existingActorLinks = this._scanJournalForLinks(pageContent, 'actor');
@@ -285,6 +286,7 @@ export class JournalTools {
                     logStatus(`Found ${existingActorLinks.length} existing actor links, ${bulletListActors.length} bullet actors, ${manualLinkActors.length} manual actors, ${htmlActors.length} HTML actors`);
                 }
                 
+                updatePageProgress(20, "Scanning for items...");
                 if (upgradeItems) {
                     // Scan for item-specific entities
                     const existingItemLinks = this._scanJournalForLinks(pageContent, 'item');
@@ -297,7 +299,7 @@ export class JournalTools {
                     logStatus(`Found ${existingItemLinks.length} existing item links, ${bulletListItems.length} bullet items, ${manualLinkItems.length} manual items, ${htmlItems.length} HTML items`);
                 }
                 
-                updateOverallProgress(30, "Removing duplicates...");
+                updatePageProgress(30, "Removing duplicates...");
                 
                 // Remove duplicates based on name and position
                 const uniqueEntities = [];
@@ -316,14 +318,14 @@ export class JournalTools {
                 
                 logStatus(`Found ${uniqueEntities.length} unique entities to process`);
                 
-                updatePageProgress(20, "Scanning for entities...");
+                updatePageProgress(40, "Processing entities...");
                 
                 // Process each unique entity
                 let contentChanged = false;
                 
                 for (let i = 0; i < uniqueEntities.length; i++) {
                     const entity = uniqueEntities[i];
-                    const pageProgress = 20 + (i / uniqueEntities.length) * 70; // 20-90% for entities
+                    const pageProgress = 40 + (i / uniqueEntities.length) * 40; // 40-80% for entities
                     updatePageProgress(pageProgress, `Processing ${entity.name}...`);
                     
                     // Add a small delay to make progress visible
@@ -361,7 +363,7 @@ export class JournalTools {
                     }
                 }
                 
-                updatePageProgress(90, "Updating journal...");
+                updatePageProgress(80, "Updating journal...");
                 
                 // Update the page if content changed
                 if (contentChanged) {
