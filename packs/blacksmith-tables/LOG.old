@@ -1,3 +1,13 @@
-2025/07/30-15:05:03.771 829c Recovering log #1940
-2025/07/30-15:05:03.776 829c Delete type=0 #1940
-2025/07/30-15:05:03.777 829c Delete type=3 #1939
+2025/07/31-10:12:32.281 15834 Recovering log #1944
+2025/07/31-10:12:32.286 15834 Delete type=0 #1944
+2025/07/31-10:12:32.287 15834 Delete type=3 #1943
+2025/07/31-10:13:28.453 cbac Level-0 table #1948: started
+2025/07/31-10:13:28.453 cbac Level-0 table #1948: 0 bytes OK
+2025/07/31-10:13:28.455 cbac Delete type=0 #1946
+2025/07/31-10:13:28.468 cbac Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 203 : 1
+2025/07/31-10:13:28.468 cbac Compacting 1@0 + 0@1 files
+2025/07/31-10:13:28.474 cbac Generated table #1949@0: 205 keys, 30605 bytes
+2025/07/31-10:13:28.474 cbac Compacted 1@0 + 0@1 files => 30605 bytes
+2025/07/31-10:13:28.476 cbac compacted to: files[ 0 1 0 0 0 0 0 ]
+2025/07/31-10:13:28.476 cbac Delete type=2 #1883
+2025/07/31-10:13:28.476 cbac Manual compaction at level-0 from '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 203 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)
