@@ -687,61 +687,84 @@ export class JournalTools {
                 const strippedContent = liContent.replace(/<[^>]+>/g, '').trim();
                 
                 if (strippedContent) {
-                    // Handle colon-separated items like "Items: Shortsword, Leather armor"
-                    if (strippedContent.includes(':')) {
-                        const [prefix, itemsPart] = strippedContent.split(':', 2);
-                        if (itemsPart) {
-                            // Strip HTML tags from itemsPart before processing
-                            const cleanItemsPart = itemsPart.replace(/<[^>]+>/g, '').trim();
-                            const itemNames = cleanItemsPart.split(',').map(item => item.trim());
-                            
-                            for (const itemName of itemNames) {
-                                if (itemName) {
-                                    // For 'both' entity type, try both actor and item extraction
-                                    let entityName = null;
-                                    if (entityType === 'both') {
-                                        entityName = this._extractEntityNameFromPlainText(itemName, 'actor') || 
-                                                   this._extractEntityNameFromPlainText(itemName, 'item');
-                                    } else {
-                                        entityName = this._extractEntityNameFromPlainText(itemName, entityType);
-                                    }
-                                    
-                                    if (entityName) {
-                                        entities.push({
-                                            type: 'html-list',
-                                            name: entityName,
-                                            startIndex: match.index,
-                                            endIndex: match.index + match[0].length,
-                                            fullMatch: match[0],
-                                            liStart: match.index,
-                                            liEnd: match.index + match[0].length,
-                                            originalContent: liContent
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // Single entity in the list item
-                        let entityName = null;
-                        if (entityType === 'both') {
-                            entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
-                                       this._extractEntityNameFromPlainText(strippedContent, 'item');
-                        } else {
-                            entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
-                        }
-                        
-                        if (entityName) {
+                    // Check if this <li> contains a UUID link (including malformed ones)
+                    const uuidPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}|@UUID\{([^}]+)\}/gi;
+                    const uuidMatch = strippedContent.match(uuidPattern);
+                    
+                    if (uuidMatch) {
+                        // Extract the display name from the UUID link
+                        const displayNameMatch = strippedContent.match(/\{([^}]+)\}/);
+                        if (displayNameMatch) {
+                            const displayName = displayNameMatch[1];
                             entities.push({
                                 type: 'html-list',
-                                name: entityName,
+                                name: displayName,
                                 startIndex: match.index,
                                 endIndex: match.index + match[0].length,
                                 fullMatch: match[0],
                                 liStart: match.index,
                                 liEnd: match.index + match[0].length,
-                                originalContent: liContent
+                                originalContent: liContent,
+                                isUuidLink: true
                             });
+                        }
+                    } else {
+                        // Handle colon-separated items like "Items: Shortsword, Leather armor"
+                        if (strippedContent.includes(':')) {
+                            const [prefix, itemsPart] = strippedContent.split(':', 2);
+                            if (itemsPart) {
+                                // Strip HTML tags from itemsPart before processing
+                                const cleanItemsPart = itemsPart.replace(/<[^>]+>/g, '').trim();
+                                const itemNames = cleanItemsPart.split(',').map(item => item.trim());
+                                
+                                for (const itemName of itemNames) {
+                                    if (itemName) {
+                                        // For 'both' entity type, try both actor and item extraction
+                                        let entityName = null;
+                                        if (entityType === 'both') {
+                                            entityName = this._extractEntityNameFromPlainText(itemName, 'actor') || 
+                                                       this._extractEntityNameFromPlainText(itemName, 'item');
+                                        } else {
+                                            entityName = this._extractEntityNameFromPlainText(itemName, entityType);
+                                        }
+                                        
+                                        if (entityName) {
+                                            entities.push({
+                                                type: 'html-list',
+                                                name: entityName,
+                                                startIndex: match.index,
+                                                endIndex: match.index + match[0].length,
+                                                fullMatch: match[0],
+                                                liStart: match.index,
+                                                liEnd: match.index + match[0].length,
+                                                originalContent: liContent
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Single entity in the list item
+                            let entityName = null;
+                            if (entityType === 'both') {
+                                entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
+                                           this._extractEntityNameFromPlainText(strippedContent, 'item');
+                            } else {
+                                entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                            }
+                            
+                            if (entityName) {
+                                entities.push({
+                                    type: 'html-list',
+                                    name: entityName,
+                                    startIndex: match.index,
+                                    endIndex: match.index + match[0].length,
+                                    fullMatch: match[0],
+                                    liStart: match.index,
+                                    liEnd: match.index + match[0].length,
+                                    originalContent: liContent
+                                });
+                            }
                         }
                     }
                 }
@@ -942,30 +965,37 @@ export class JournalTools {
             }
             
             if (!uuid) {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium`, 
-                    entity.name, false, true, false);
-                return content;
-            }
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium`, 
+                entity.name, false, true, false);
+            return content;
+        }
+        
+        // Create the new link
+        const newLink = `@UUID[${uuid}]{${entity.name}}`;
+        
+        // Replace the old content with the new link
+        let newContent = content;
+        
+        if (entity.type === 'html-list') {
+            // For HTML list items, we need to be more careful to preserve the <li> structure
+            const liStart = entity.liStart;
+            const liEnd = entity.liEnd;
+            const liContent = content.substring(liStart, liEnd);
             
-            // Create the new link
-            const newLink = `@UUID[${uuid}]{${entity.name}}`;
-            
-            // Replace the old content with the new link
-            let newContent = content;
-            
-            if (entity.type === 'html-list') {
-                // For HTML list items, we need to be more careful to preserve the <li> structure
-                const liStart = entity.liStart;
-                const liEnd = entity.liEnd;
-                const liContent = content.substring(liStart, liEnd);
-                
-                // Replace the entity name within the <li> content
-                const updatedLiContent = liContent.replace(entity.name, newLink);
+            if (entity.isUuidLink) {
+                // For existing UUID links, replace the entire UUID with the new one
+                const uuidPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+                const updatedLiContent = liContent.replace(uuidPattern, newLink);
                 newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
             } else {
-                // For other types, replace the full match
-                newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
+                // For plain text entities, replace just the entity name
+                const updatedLiContent = liContent.replace(entity.name, newLink);
+                newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
             }
+        } else {
+            // For other types, replace the full match
+            newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
+        }
             
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded ${entityType}`, 
                 `${entity.name} -> ${newLink}`, false, true, false);
@@ -1328,9 +1358,16 @@ export class JournalTools {
                 const liEnd = entity.liEnd;
                 const liContent = content.substring(liStart, liEnd);
                 
-                // Replace the entity name within the <li> content
-                const updatedLiContent = liContent.replace(entity.name, newLink);
-                newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
+                if (entity.isUuidLink) {
+                    // For existing UUID links, replace the entire UUID with the new one
+                    const uuidPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+                    const updatedLiContent = liContent.replace(uuidPattern, newLink);
+                    newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
+                } else {
+                    // For plain text entities, replace just the entity name
+                    const updatedLiContent = liContent.replace(entity.name, newLink);
+                    newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
+                }
             } else {
                 // For other types, replace the full match
                 newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
