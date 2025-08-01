@@ -1273,21 +1273,103 @@ export class JournalTools {
             }
         }
         
-        // Look for context clues in nearby entities
-        const contextRange = 1000; // Look within 1000 characters before and after
+        // Look for section headers and immediate context
         const entityPosition = entity.startIndex;
-        const contextStart = Math.max(0, entityPosition - contextRange);
-        const contextEnd = Math.min(pageContent.length, entityPosition + contextRange);
+        const contextStart = Math.max(0, entityPosition - 2000);
+        const contextEnd = Math.min(pageContent.length, entityPosition + 2000);
         const contextContent = pageContent.substring(contextStart, contextEnd);
         
-        // Count actor vs item links in the context
+        // Check for section headers that indicate entity type
+        const treasurePattern = /<h[1-6][^>]*>.*?[Tt]reasure.*?<\/h[1-6]>/gi;
+        const encounterPattern = /<h[1-6][^>]*>.*?[Ee]ncounters?.*?<\/h[1-6]>/gi;
+        const monsterPattern = /<h[1-6][^>]*>.*?[Mm]onsters?.*?<\/h[1-6]>/gi;
+        const itemPattern = /<h[1-6][^>]*>.*?[Ii]tems?.*?<\/h[1-6]>/gi;
+        
+        if (treasurePattern.test(contextContent) || itemPattern.test(contextContent)) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (section header)`, 
+                `${entity.name}: Found Treasure/Items section`, false, true, false);
+            return 'item';
+        }
+        
+        if (encounterPattern.test(contextContent) || monsterPattern.test(contextContent)) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (section header)`, 
+                `${entity.name}: Found Encounters/Monsters section`, false, true, false);
+            return 'actor';
+        }
+        
+        // Look for immediate neighbors (previous and next entities in the same list)
+        let previousEntity = null;
+        let nextEntity = null;
+        let minPrevDistance = Infinity;
+        let minNextDistance = Infinity;
+        
+        for (const otherEntity of allEntities) {
+            if (otherEntity === entity) continue; // Skip self
+            
+            const distance = otherEntity.startIndex - entityPosition;
+            
+            // Find closest previous entity
+            if (distance < 0 && Math.abs(distance) < minPrevDistance) {
+                minPrevDistance = Math.abs(distance);
+                previousEntity = otherEntity;
+            }
+            
+            // Find closest next entity
+            if (distance > 0 && distance < minNextDistance) {
+                minNextDistance = distance;
+                nextEntity = otherEntity;
+            }
+        }
+        
+        // Check immediate neighbors for type bias
+        let neighborActorCount = 0;
+        let neighborItemCount = 0;
+        
+        if (previousEntity && minPrevDistance < 500) { // Within 500 chars
+            if (previousEntity.type === 'existing-link') {
+                if (previousEntity.fullMatch.includes('@Actor[') || previousEntity.fullMatch.includes('Actor.')) {
+                    neighborActorCount += 2; // Weight previous entity more heavily
+                } else if (previousEntity.fullMatch.includes('@Item[') || previousEntity.fullMatch.includes('Item.')) {
+                    neighborItemCount += 2;
+                }
+            }
+        }
+        
+        if (nextEntity && minNextDistance < 500) { // Within 500 chars
+            if (nextEntity.type === 'existing-link') {
+                if (nextEntity.fullMatch.includes('@Actor[') || nextEntity.fullMatch.includes('Actor.')) {
+                    neighborActorCount += 1;
+                } else if (nextEntity.fullMatch.includes('@Item[') || nextEntity.fullMatch.includes('Item.')) {
+                    neighborItemCount += 1;
+                }
+            }
+        }
+        
+        // If neighbors provide clear bias, use it
+        if (neighborItemCount > neighborActorCount) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (neighbors)`, 
+                `${entity.name}: ${neighborItemCount} item neighbors vs ${neighborActorCount} actor neighbors`, false, true, false);
+            return 'item';
+        } else if (neighborActorCount > neighborItemCount) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (neighbors)`, 
+                `${entity.name}: ${neighborActorCount} actor neighbors vs ${neighborItemCount} item neighbors`, false, true, false);
+            return 'actor';
+        }
+        
+        // Fall back to broader context analysis
+        const contextRange = 1000; // Look within 1000 characters before and after
+        const broadContextStart = Math.max(0, entityPosition - contextRange);
+        const broadContextEnd = Math.min(pageContent.length, entityPosition + contextRange);
+        const broadContextContent = pageContent.substring(broadContextStart, broadContextEnd);
+        
+        // Count actor vs item links in the broader context
         let actorLinks = 0;
         let itemLinks = 0;
         
         // Look for existing UUID links in the context
         const uuidPattern = /@UUID\[([^\]]+)\]/g;
         let match;
-        while ((match = uuidPattern.exec(contextContent)) !== null) {
+        while ((match = uuidPattern.exec(broadContextContent)) !== null) {
             const uuid = match[1];
             if (uuid.includes('.Actor.') || uuid.includes('@Actor[')) {
                 actorLinks++;
@@ -1313,13 +1395,13 @@ export class JournalTools {
             }
         }
         
-        // Determine bias based on context
+        // Determine bias based on broader context
         if (actorLinks > itemLinks) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor`, 
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (broad context)`, 
                 `${entity.name}: ${actorLinks} actor links vs ${itemLinks} item links in context`, false, true, false);
             return 'actor';
         } else if (itemLinks > actorLinks) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item`, 
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (broad context)`, 
                 `${entity.name}: ${itemLinks} item links vs ${actorLinks} actor links in context`, false, true, false);
             return 'item';
         } else {
