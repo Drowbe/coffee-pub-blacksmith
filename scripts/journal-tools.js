@@ -681,6 +681,7 @@ export class JournalTools {
             // Find all <li> tags
             const liPattern = /<li[^>]*>(.*?)<\/li>/gi;
             let match;
+            let previousEntityType = null; // Track previous entity type for context
             
             while ((match = liPattern.exec(htmlContent)) !== null) {
                 const liContent = match[1];
@@ -696,6 +697,16 @@ export class JournalTools {
                         const displayNameMatch = strippedContent.match(/\{([^}]+)\}/);
                         if (displayNameMatch) {
                             const displayName = displayNameMatch[1];
+                            
+                            // Determine entity type from UUID for contextual bias
+                            if (entityType === 'both') {
+                                if (strippedContent.includes('@Actor[') || strippedContent.includes('Actor.')) {
+                                    previousEntityType = 'actor';
+                                } else if (strippedContent.includes('@Item[') || strippedContent.includes('Item.')) {
+                                    previousEntityType = 'item';
+                                }
+                            }
+                            
                             entities.push({
                                 type: 'html-list',
                                 name: displayName,
@@ -743,29 +754,52 @@ export class JournalTools {
                                     }
                                 }
                             }
-                        } else {
-                            // Single entity in the list item
-                            let entityName = null;
-                            if (entityType === 'both') {
-                                entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
-                                           this._extractEntityNameFromPlainText(strippedContent, 'item');
-                            } else {
-                                entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                                                    } else {
+                                // Single entity in the list item
+                                let entityName = null;
+                                let currentEntityType = entityType;
+                                
+                                // Use contextual bias if available and entityType is 'both'
+                                if (entityType === 'both' && previousEntityType) {
+                                    // Try the previous entity type first
+                                    entityName = this._extractEntityNameFromPlainText(strippedContent, previousEntityType);
+                                    if (entityName) {
+                                        currentEntityType = previousEntityType;
+                                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using contextual bias`, 
+                                            `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, false, true, false);
+                                    }
+                                }
+                                
+                                // If no contextual match or no context, try both types
+                                if (!entityName && entityType === 'both') {
+                                    entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
+                                               this._extractEntityNameFromPlainText(strippedContent, 'item');
+                                } else if (!entityName) {
+                                    entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                                }
+                                
+                                if (entityName) {
+                                    // Update previous entity type for next iteration
+                                    if (entityType === 'both') {
+                                        previousEntityType = currentEntityType;
+                                    }
+                                    
+                                    entities.push({
+                                        type: 'html-list',
+                                        name: entityName,
+                                        startIndex: match.index,
+                                        endIndex: match.index + match[0].length,
+                                        fullMatch: match[0],
+                                        liStart: match.index,
+                                        liEnd: match.index + match[0].length,
+                                        originalContent: liContent
+                                    });
+                                } else {
+                                    // Debug logging for rejected entities
+                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected entity in HTML list`, 
+                                        `"${strippedContent}" -> null`, false, true, false);
+                                }
                             }
-                            
-                            if (entityName) {
-                                entities.push({
-                                    type: 'html-list',
-                                    name: entityName,
-                                    startIndex: match.index,
-                                    endIndex: match.index + match[0].length,
-                                    fullMatch: match[0],
-                                    liStart: match.index,
-                                    liEnd: match.index + match[0].length,
-                                    originalContent: liContent
-                                });
-                            }
-                        }
                     }
                 }
             }
@@ -908,26 +942,32 @@ export class JournalTools {
     static _extractEntityNameFromPlainText(line, entityType) {
         let entityName = line.trim();
         
+        // Debug logging for entity extraction
+        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Extracting entity from plain text`, 
+            `"${entityName}" (${entityType})`, false, true, false);
+        
         // Skip if it's too short or too long
         if (entityName.length < 2 || entityName.length > 100) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - length check`, 
+                `${entityName.length} chars`, false, true, false);
             return null;
         }
         
         // Skip if it's just whitespace
         if (entityName === '') {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - empty`, 
+                `"${entityName}"`, false, true, false);
             return null;
         }
         
         // Skip if it ends with a period (likely a sentence)
         if (entityName.endsWith('.')) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - ends with period`, 
+                `"${entityName}"`, false, true, false);
             return null;
         }
         
-        // Count words - must be less than 5 words
-        const wordCount = entityName.split(/\s+/).length;
-        if (wordCount >= 5) {
-            return null;
-        }
+        // Removed word count check - using character count instead
         
         // Remove common suffixes like "(x2)" etc.
         entityName = entityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
@@ -942,10 +982,20 @@ export class JournalTools {
         
         // Skip if it looks like a category label (ends with colon and no content after)
         if (entityName.endsWith(':') && entityName.split(':').length === 2 && entityName.split(':')[1].trim() === '') {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - category label`, 
+                `"${entityName}"`, false, true, false);
             return null;
         }
         
-        return entityName.length > 0 ? entityName : null;
+        const result = entityName.length > 0 ? entityName : null;
+        if (result) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Accepted entity`, 
+                `"${entityName}" -> "${result}"`, false, true, false);
+        } else {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - final check`, 
+                `"${entityName}" -> null`, false, true, false);
+        }
+        return result;
     }
 
     // Generic method to upgrade a single entity link
