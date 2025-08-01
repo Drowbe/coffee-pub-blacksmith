@@ -1932,76 +1932,9 @@ class JournalToolsWindow extends FormApplication {
     }
 
     async _updateObject(event, formData) {
-        const upgradeActors = formData.upgradeActors || false;
-        const upgradeItems = formData.upgradeItems || false;
-        const upgradeMacros = formData.upgradeMacros || false;
-
-        if (!upgradeActors && !upgradeItems && !upgradeMacros) {
-            ui.notifications.warn("Please select at least one tool to run");
-            return;
-        }
-
-        // Save the settings
-        const searchWorldActorsFirst = formData.searchWorldActorsFirst || false;
-        const searchWorldActorsLast = formData.searchWorldActorsLast || false;
-        const searchWorldItemsFirst = formData.searchWorldItemsFirst || false;
-        const searchWorldItemsLast = formData.searchWorldItemsLast || false;
-
-        await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsFirst', searchWorldActorsFirst);
-        await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsLast', searchWorldActorsLast);
-        await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsFirst', searchWorldItemsFirst);
-        await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsLast', searchWorldItemsLast);
-
-        // Show progress and status sections
-        this.element.find('#progress-section').show();
-        this.element.find('#status-section').show();
-        
-        // Disable the apply button
-        this.element.find('#apply-button').prop('disabled', true);
-        
-        // Initialize progress
-        this.updateOverallProgress(0, "Initializing...");
-        this.updatePageProgress(0, "Ready...");
-        this.addStatusMessage("Starting journal tools processing...", "info");
-
-        // Create progress callbacks for the unified processing
-        const overallProgressCallback = (progress, message) => {
-            this.updateOverallProgress(progress, message);
-        };
-        
-        const pageProgressCallback = (progress, message) => {
-            this.updatePageProgress(progress, message);
-        };
-
-        const statusCallback = (message, type = "info") => {
-            this.addStatusMessage(message, type);
-        };
-
-        try {
-            this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}, Macros=${upgradeMacros}`, "info");
-            await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback, pageProgressCallback, statusCallback);
-
-            this.updateOverallProgress(100, "Complete!");
-            this.updatePageProgress(100, "Complete!");
-            this.addStatusMessage("Journal tools processing completed successfully!", "success");
-            
-            // Stop the spinner
-            this.element.find('#progress-spinner').removeClass('fa-spin');
-            
-            // Re-enable the apply button
-            this.element.find('#apply-button').prop('disabled', false);
-            
-            // Success message - console only
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing completed successfully", "", false, false, false);
-            
-        } catch (error) {
-            this.addStatusMessage(`Error: ${error.message}`, "error");
-            // Stop the spinner on error too
-            this.element.find('#progress-spinner').removeClass('fa-spin');
-            this.element.find('#apply-button').prop('disabled', false);
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing window submission", error, false, false, false);
-            ui.notifications.error(`Error applying journal tools: ${error.message}`);
-        }
+        // This method is called by FormApplication but we handle everything in _onApplyTools
+        // So we just return without doing anything to avoid conflicts
+        return;
     }
 
     activateListeners(html) {
@@ -2030,6 +1963,30 @@ class JournalToolsWindow extends FormApplication {
             const upgradeActors = formData.get('upgradeActors') === 'true';
             const upgradeItems = formData.get('upgradeItems') === 'true';
             const upgradeMacros = formData.get('upgradeMacros') === 'true';
+
+            // Debug logging
+            postConsoleAndNotification("BLACKSMITH | Journal Tools: Form data debug", 
+                `upgradeActors: ${upgradeActors}, upgradeItems: ${upgradeItems}, upgradeMacros: ${upgradeMacros}`, false, true, false);
+
+            // Fallback: read checkbox values directly if FormData fails
+            if (!upgradeActors && !upgradeItems && !upgradeMacros) {
+                const actorsChecked = this.element.find('#upgrade-actors').is(':checked');
+                const itemsChecked = this.element.find('#upgrade-items').is(':checked');
+                const macrosChecked = this.element.find('#upgrade-macros').is(':checked');
+                
+                postConsoleAndNotification("BLACKSMITH | Journal Tools: Fallback checkbox reading", 
+                    `actors: ${actorsChecked}, items: ${itemsChecked}, macros: ${macrosChecked}`, false, true, false);
+                
+                if (!actorsChecked && !itemsChecked && !macrosChecked) {
+                    ui.notifications.warn("Please select at least one tool to run");
+                    return;
+                }
+                
+                // Use the fallback values
+                const upgradeActors = actorsChecked;
+                const upgradeItems = itemsChecked;
+                const upgradeMacros = macrosChecked;
+            }
 
             if (!upgradeActors && !upgradeItems && !upgradeMacros) {
                 ui.notifications.warn("Please select at least one tool to run");

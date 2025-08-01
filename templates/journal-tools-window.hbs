@@ -1,132 +1,134 @@
 {{!-- Journal Tools Window Template --}}
 <div class="journal-tools foundry-style-window">
-  <div class="journal-tools-header-sticky">
-    <div class="journal-tools-header">
-      <i class="fas fa-feather"></i>
-      <span>Entity Replacement</span>
-    </div>
-    <div class="journal-tools-summary-row">
-      <div class="journal-tools-summary-item">
-        <span class="label">Journal</span>
-        <span class="journal-name">{{journalName}}</span>
+  <form class="journal-tools-form">
+    <div class="journal-tools-header-sticky">
+      <div class="journal-tools-header">
+        <i class="fas fa-feather"></i>
+        <span>Entity Replacement</span>
       </div>
-    </div>
-  </div>
-  
-  <div class="journal-tools-body-scroll">
-    <div class="journal-tools-section">
-      <div class="journal-tools-section-header">
-        <i class="fas fa-tools"></i> Entities to Replace
-      </div>
-      <div class="journal-tools-options" data-tooltip="Finds and replaces ACTOR links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
-        <div class="journal-tools-option">
-          <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
-          <label for="upgrade-actors">
-            <i class="fas fa-dragon"></i>
-            <span>Actors</span>
-          </label>
-        </div>
-        <div class="journal-tools-option" data-tooltip="Finds and replaces ITEM links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
-          <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
-          <label for="upgrade-items">
-            <i class="fas fa-sword"></i>
-            <span>Items</span>
-          </label>
-        </div>
-        <div class="journal-tools-option" data-tooltip="Macro links in journals only work with imported macros, so this option will upgrade and fix macros to use in-world macros, if present.">
-          <input type="checkbox" id="upgrade-macros" name="upgradeMacros" value="true">
-          <label for="upgrade-macros">
-            <i class="fas fa-magic"></i>
-            <span>World Macros</span>
-          </label>
+      <div class="journal-tools-summary-row">
+        <div class="journal-tools-summary-item">
+          <span class="label">Journal</span>
+          <span class="journal-name">{{journalName}}</span>
         </div>
       </div>
     </div>
+    
+    <div class="journal-tools-body-scroll">
+      <div class="journal-tools-section">
+        <div class="journal-tools-section-header">
+          <i class="fas fa-tools"></i> Entities to Replace
+        </div>
+        <div class="journal-tools-options" data-tooltip="Finds and replaces ACTOR links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
+          <div class="journal-tools-option">
+            <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
+            <label for="upgrade-actors">
+              <i class="fas fa-dragon"></i>
+              <span>Actors</span>
+            </label>
+          </div>
+          <div class="journal-tools-option" data-tooltip="Finds and replaces ITEM links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
+            <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
+            <label for="upgrade-items">
+              <i class="fas fa-sword"></i>
+              <span>Items</span>
+            </label>
+          </div>
+          <div class="journal-tools-option" data-tooltip="Macro links in journals only work with imported macros, so this option will upgrade and fix macros to use in-world macros, if present.">
+            <input type="checkbox" id="upgrade-macros" name="upgradeMacros" value="true">
+            <label for="upgrade-macros">
+              <i class="fas fa-magic"></i>
+              <span>World Macros</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
-    <div class="journal-tools-section">
-      <div class="journal-tools-section-header">
-        <i class="fas fa-cog"></i> Processing Settings
-      </div>
-      <div class="journal-tools-settings">
-        <div class="journal-tools-setting-group">
-          <div class="journal-tools-setting-group-heading">Actors</div>
-          <div class="journal-tools-setting">
-            <input type="checkbox" id="search-world-actors-first" name="searchWorldActorsFirst" value="true" {{#if searchWorldActorsFirst}}checked{{/if}}>
-            <label for="search-world-actors-first">
-              <span>Search in World Actors FIRST</span>
-            </label>
+      <div class="journal-tools-section">
+        <div class="journal-tools-section-header">
+          <i class="fas fa-cog"></i> Processing Settings
+        </div>
+        <div class="journal-tools-settings">
+          <div class="journal-tools-setting-group">
+            <div class="journal-tools-setting-group-heading">Actors</div>
+            <div class="journal-tools-setting">
+              <input type="checkbox" id="search-world-actors-first" name="searchWorldActorsFirst" value="true" {{#if searchWorldActorsFirst}}checked{{/if}}>
+              <label for="search-world-actors-first">
+                <span>Search in World Actors FIRST</span>
+              </label>
+            </div>
+            <div class="journal-tools-setting">
+              <input type="checkbox" id="search-world-actors-last" name="searchWorldActorsLast" value="true" {{#if searchWorldActorsLast}}checked{{/if}}>
+              <label for="search-world-actors-last">
+                <span>Search in World Actors LAST</span>
+              </label>
+            </div>
           </div>
-          <div class="journal-tools-setting">
-            <input type="checkbox" id="search-world-actors-last" name="searchWorldActorsLast" value="true" {{#if searchWorldActorsLast}}checked{{/if}}>
-            <label for="search-world-actors-last">
-              <span>Search in World Actors LAST</span>
-            </label>
+          <div class="journal-tools-setting-group">
+            <div class="journal-tools-setting-group-heading">Items</div>
+            <div class="journal-tools-setting">
+              <input type="checkbox" id="search-world-items-first" name="searchWorldItemsFirst" value="true" {{#if searchWorldItemsFirst}}checked{{/if}}>
+              <label for="search-world-items-first">
+                <span>Search in World Items FIRST</span>
+              </label>
+            </div>
+            <div class="journal-tools-setting">
+              <input type="checkbox" id="search-world-items-last" name="searchWorldItemsLast" value="true" {{#if searchWorldItemsLast}}checked{{/if}}>
+              <label for="search-world-items-last">
+                <span>Search in World Items LAST</span>
+              </label>
+            </div>
           </div>
         </div>
-        <div class="journal-tools-setting-group">
-          <div class="journal-tools-setting-group-heading">Items</div>
-          <div class="journal-tools-setting">
-            <input type="checkbox" id="search-world-items-first" name="searchWorldItemsFirst" value="true" {{#if searchWorldItemsFirst}}checked{{/if}}>
-            <label for="search-world-items-first">
-              <span>Search in World Items FIRST</span>
-            </label>
-          </div>
-          <div class="journal-tools-setting">
-            <input type="checkbox" id="search-world-items-last" name="searchWorldItemsLast" value="true" {{#if searchWorldItemsLast}}checked{{/if}}>
-            <label for="search-world-items-last">
-              <span>Search in World Items LAST</span>
-            </label>
-          </div>
-        </div>
       </div>
-    </div>
 
-    <div class="journal-tools-section" id="progress-section" style="display: none;">
-      <div class="journal-tools-section-header">
-        <i class="fas fa-spinner fa-spin" id="progress-spinner"></i> Progress
+      <div class="journal-tools-section" id="progress-section" style="display: none;">
+        <div class="journal-tools-section-header">
+          <i class="fas fa-spinner fa-spin" id="progress-spinner"></i> Progress
+        </div>
+        <div class="journal-tools-progress">
+          <div class="progress-row">
+            <div class="progress-label">Overall Progress:</div>
+            <div class="progress-text" id="overall-progress-text">Initializing...</div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="overall-progress-bar"></div>
+          </div>
+          
+          <div class="progress-row">
+            <div class="progress-label">Current Page:</div>
+            <div class="progress-text" id="page-progress-text">Ready...</div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="page-progress-bar"></div>
+          </div>
+        </div>
       </div>
-      <div class="journal-tools-progress">
-        <div class="progress-row">
-          <div class="progress-label">Overall Progress:</div>
-          <div class="progress-text" id="overall-progress-text">Initializing...</div>
-        </div>
-        <div class="progress-bar-container">
-          <div class="progress-bar" id="overall-progress-bar"></div>
-        </div>
-        
-        <div class="progress-row">
-          <div class="progress-label">Current Page:</div>
-          <div class="progress-text" id="page-progress-text">Ready...</div>
-        </div>
-        <div class="progress-bar-container">
-          <div class="progress-bar" id="page-progress-bar"></div>
-        </div>
-      </div>
-    </div>
 
-    <div class="journal-tools-section" id="status-section" style="display: none;">
-      <div class="journal-tools-section-header">
-        <div>
-          <i class="fas fa-list"></i> Status
+      <div class="journal-tools-section" id="status-section" style="display: none;">
+        <div class="journal-tools-section-header">
+          <div>
+            <i class="fas fa-list"></i> Status
+          </div>
+          <button type="button" class="copy-status-btn" id="copy-status-btn" title="Copy status to clipboard">
+            <i class="fas fa-copy"></i>
+          </button>
         </div>
-        <button type="button" class="copy-status-btn" id="copy-status-btn" title="Copy status to clipboard">
-          <i class="fas fa-copy"></i>
-        </button>
-      </div>
-      <div class="journal-tools-status">
-        <div class="status-area" id="status-area">
-          <div class="status-message">Ready to process...</div>
+        <div class="journal-tools-status">
+          <div class="status-area" id="status-area">
+            <div class="status-message">Ready to process...</div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <div class="journal-tools-footer">
-    <button type="button" class="journal-tools-btn cancel-tools">
-      <i class="fas fa-times"></i> Close
-    </button>
-    <button type="button" class="journal-tools-btn apply-tools" id="apply-button">
-      <i class="fas fa-check" id="apply-icon"></i> <span id="apply-text">Update Links</span>
-    </button>
-  </div>
+    
+    <div class="journal-tools-footer">
+      <button type="button" class="journal-tools-btn cancel-tools">
+        <i class="fas fa-times"></i> Close
+      </button>
+      <button type="button" class="journal-tools-btn apply-tools" id="apply-button">
+        <i class="fas fa-check" id="apply-icon"></i> <span id="apply-text">Update Links</span>
+      </button>
+    </div>
+  </form>
 </div> 

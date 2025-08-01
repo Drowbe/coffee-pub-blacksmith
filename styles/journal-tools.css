@@ -26,10 +26,10 @@
 
 /* Main Window */
 div#journal-tools-window {
-  min-height: 600px;
-  min-width: 600px;
+  min-height: 800px;
+  min-width: 450px;
   max-width: 800px;
-  max-height: 80vh;
+  max-height: 90vh;
 }
 
 /* Window Content */
@@ -38,6 +38,16 @@ div#journal-tools-window .window-content {
   padding: 0px;
   background: #222222;
   color: rgba(255, 47, 47, 1.0);
+  border-radius: 0px 0px 8px 8px;
+}
+
+/* Form */
+.journal-tools-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  border: 0px solid #8ef88e;
 }
 
 /* Journal Tools - Modern Foundry Style */
