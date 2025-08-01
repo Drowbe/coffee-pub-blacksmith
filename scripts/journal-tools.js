@@ -1360,7 +1360,8 @@ export class JournalTools {
                 
                 if (entity.isUuidLink) {
                     // For existing UUID links, replace the entire UUID with the new one
-                    const uuidPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}/gi;
+                    // Handle both proper UUIDs and malformed ones
+                    const uuidPattern = /@UUID\[([^\]]+)\]\{([^}]+)\}|@Actor\[([^\]]+)\]\{([^}]+)\}|@Item\[([^\]]+)\]\{([^}]+)\}|@UUID\{([^}]+)\}/gi;
                     const updatedLiContent = liContent.replace(uuidPattern, newLink);
                     newContent = content.substring(0, liStart) + updatedLiContent + content.substring(liEnd);
                 } else {
