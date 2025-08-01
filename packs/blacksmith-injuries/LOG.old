@@ -1,13 +1,3 @@
-2025/07/31-10:12:32.293 14ffc Recovering log #1900
-2025/07/31-10:12:32.298 14ffc Delete type=0 #1900
-2025/07/31-10:12:32.298 14ffc Delete type=3 #1899
-2025/07/31-10:13:28.483 cbac Level-0 table #1904: started
-2025/07/31-10:13:28.483 cbac Level-0 table #1904: 0 bytes OK
-2025/07/31-10:13:28.485 cbac Delete type=0 #1902
-2025/07/31-10:13:28.489 cbac Manual compaction at level-0 from '!journal!AHcl2eLZo5VWNKCD' @ 72057594037927935 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 1130 : 1
-2025/07/31-10:13:28.489 cbac Compacting 1@0 + 0@1 files
-2025/07/31-10:13:28.495 cbac Generated table #1905@0: 115 keys, 106781 bytes
-2025/07/31-10:13:28.496 cbac Compacted 1@0 + 0@1 files => 106781 bytes
-2025/07/31-10:13:28.497 cbac compacted to: files[ 0 1 0 0 0 0 0 ]
-2025/07/31-10:13:28.497 cbac Delete type=2 #1839
-2025/07/31-10:13:28.499 cbac Manual compaction at level-0 from '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 1130 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at (end)
+2025/07/31-10:14:02.059 15834 Recovering log #1903
+2025/07/31-10:14:02.065 15834 Delete type=0 #1903
+2025/07/31-10:14:02.066 15834 Delete type=3 #1901

@@ -1,7 +1,3 @@
-2025/07/31-10:12:32.269 10b58 Recovering log #1948
-2025/07/31-10:12:32.275 10b58 Delete type=0 #1948
-2025/07/31-10:12:32.275 10b58 Delete type=3 #1947
-2025/07/31-10:13:28.455 cbac Level-0 table #1952: started
-2025/07/31-10:13:28.455 cbac Level-0 table #1952: 0 bytes OK
-2025/07/31-10:13:28.456 cbac Delete type=0 #1950
-2025/07/31-10:13:28.476 cbac Manual compaction at level-0 from 'undefined' @ 72057594037927935 : 1 .. 'undefined' @ 0 : 0; will stop at (end)
+2025/07/31-10:14:02.032 1777c Recovering log #1951
+2025/07/31-10:14:02.037 1777c Delete type=0 #1951
+2025/07/31-10:14:02.037 1777c Delete type=3 #1949
