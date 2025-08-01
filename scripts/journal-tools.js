@@ -229,7 +229,7 @@ export class JournalTools {
     }
 
     // New unified method that processes all entities in one pass
-    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems, overallProgressCallback = null, pageProgressCallback = null, statusCallback = null, stopCallback = null) {
+    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback = null, pageProgressCallback = null, statusCallback = null, stopCallback = null) {
         try {
             const logStatus = (message, type = "info") => {
                 if (statusCallback) statusCallback(message, type);
@@ -483,7 +483,50 @@ export class JournalTools {
                     }
                 }
                 
-                updatePageProgress(80, "Updating journal...");
+                updatePageProgress(80, "Processing macros...");
+                
+                // Process macros if requested
+                if (upgradeMacros) {
+                    const macros = this._scanJournalForMacros(pageContent);
+                    logStatus(`Found ${macros.length} macro links to process`);
+                    
+                    let macroUpgraded = 0;
+                    let macroSkipped = 0;
+                    let macroErrors = 0;
+                    
+                    for (let i = 0; i < macros.length; i++) {
+                        // Check for stop request
+                        if (checkStopRequest()) {
+                            logStatus("Macro processing stopped by user request.", "warning");
+                            break;
+                        }
+                        
+                        const macro = macros[i];
+                        const macroProgress = 80 + (i / macros.length) * 10; // 80-90% for macros
+                        updatePageProgress(macroProgress, `Processing macro: ${macro.name}...`);
+                        
+                        try {
+                            const result = await this._upgradeMacroLink(macro, pageContent);
+                            
+                            if (result.success) {
+                                pageContent = result.newContent;
+                                contentChanged = true;
+                                macroUpgraded++;
+                                logStatus(`✓ Macro upgraded: ${macro.name}`, "success");
+                            } else {
+                                macroSkipped++;
+                                logStatus(`- Macro not found: ${macro.name}`, "warning");
+                            }
+                        } catch (error) {
+                            macroErrors++;
+                            logStatus(`✗ Error processing macro ${macro.name}: ${error.message}`, "error");
+                        }
+                    }
+                    
+                    logStatus(`Macros: ${macroUpgraded} upgraded, ${macroSkipped} skipped, ${macroErrors} errors`);
+                }
+                
+                updatePageProgress(90, "Updating journal...");
                 
                 // Update the page if content changed
                 if (contentChanged) {
@@ -842,6 +885,31 @@ export class JournalTools {
         }
         
         return entities;
+    }
+
+    // Method to scan for macro links
+    static _scanJournalForMacros(content) {
+        const macros = [];
+        
+        // Look for macro UUID patterns: @UUID[Macro.xxx]{Name}
+        const macroPattern = /@UUID\[Macro\.([^\]]+)\]\{([^}]+)\}/gi;
+        let match;
+        
+        while ((match = macroPattern.exec(content)) !== null) {
+            const macroId = match[1];
+            const macroName = match[2];
+            
+            macros.push({
+                type: 'macro-link',
+                name: macroName,
+                macroId: macroId,
+                startIndex: match.index,
+                endIndex: match.index + match[0].length,
+                fullMatch: match[0]
+            });
+        }
+        
+        return macros;
     }
 
     // Check if a line is an encounter heading
@@ -1598,7 +1666,31 @@ export class JournalTools {
             
             // Try each search name
             for (const searchName of searchNames) {
-                // Try actor compendiums first (default bias)
+                // Check world first if enabled
+                const searchWorldActorsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst');
+                const searchWorldItemsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst');
+                
+                // Try world actors first if enabled
+                if (searchWorldActorsFirst) {
+                    const worldActor = game.actors.getName(searchName);
+                    if (worldActor) {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world actors (first)`, 
+                            `${searchName} -> ${worldActor.name}`, false, false, false);
+                        return `Actor.${worldActor.id}`;
+                    }
+                }
+                
+                // Try world items first if enabled
+                if (searchWorldItemsFirst) {
+                    const worldItem = game.items.getName(searchName);
+                    if (worldItem) {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world items (first)`, 
+                            `${searchName} -> ${worldItem.name}`, false, false, false);
+                        return `Item.${worldItem.id}`;
+                    }
+                }
+                
+                // Try actor compendiums
                 const actorCompendiums = ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
                                          'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8'];
                 
@@ -1626,7 +1718,7 @@ export class JournalTools {
                     }
                 }
                 
-                // Try item compendiums second
+                // Try item compendiums
                 const itemCompendiums = ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
                                         'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
                 
@@ -1653,15 +1745,40 @@ export class JournalTools {
                         // Continue to next compendium
                     }
                 }
+                
+                // Check world last if enabled
+                const searchWorldActorsLast = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast');
+                const searchWorldItemsLast = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast');
+                
+                // Try world actors last if enabled
+                if (searchWorldActorsLast) {
+                    const worldActor = game.actors.getName(searchName);
+                    if (worldActor) {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world actors (last)`, 
+                            `${searchName} -> ${worldActor.name}`, false, false, false);
+                        return `Actor.${worldActor.id}`;
+                    }
+                }
+                
+                // Try world items last if enabled
+                if (searchWorldItemsLast) {
+                    const worldItem = game.items.getName(searchName);
+                    if (worldItem) {
+                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world items (last)`, 
+                            `${searchName} -> ${worldItem.name}`, false, false, false);
+                        return `Item.${worldItem.id}`;
+                    }
+                }
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Not found in any compendium (type detection)`, 
-                strEntityName, false, true, false);
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium or world`, 
+                `"${strEntityName}"`, false, true, false);
+            
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums with type detection`, 
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching compendiums with type detection`, 
                 `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
@@ -1727,6 +1844,56 @@ export class JournalTools {
         
         return true;
     }
+
+    // Method to upgrade macro links
+    static async _upgradeMacroLink(macro, content) {
+        try {
+            const macroName = macro.name;
+            
+            // Search for the macro in the world
+            const worldMacro = game.macros.getName(macroName);
+            
+            if (worldMacro) {
+                // Create the new UUID link
+                const newLink = `@UUID[Macro.${worldMacro.id}]{${macroName}}`;
+                
+                // Replace the old link with the new one
+                const newContent = content.substring(0, macro.startIndex) + 
+                                 newLink + 
+                                 content.substring(macro.endIndex);
+                
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Macro upgraded`, 
+                    `"${macroName}" -> ${worldMacro.id}`, false, true, false);
+                
+                return {
+                    success: true,
+                    newContent: newContent,
+                    oldLink: macro.fullMatch,
+                    newLink: newLink,
+                    macroName: macroName,
+                    macroId: worldMacro.id
+                };
+            } else {
+                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Macro not found in world`, 
+                    `"${macroName}" not found`, false, true, false);
+                
+                return {
+                    success: false,
+                    error: `Macro "${macroName}" not found in world`,
+                    macroName: macroName
+                };
+            }
+        } catch (error) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading macro`, 
+                `${macro.name}: ${error.message}`, false, true, false);
+            
+            return {
+                success: false,
+                error: error.message,
+                macroName: macro.name
+            };
+        }
+    }
 } 
 
 // ================================================================== 
@@ -1756,18 +1923,34 @@ class JournalToolsWindow extends FormApplication {
     getData() {
         return {
             journalName: this.journal.name,
-            journalId: this.journal.id
+            journalId: this.journal.id,
+            searchWorldActorsFirst: game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst'),
+            searchWorldActorsLast: game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast'),
+            searchWorldItemsFirst: game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst'),
+            searchWorldItemsLast: game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast')
         };
     }
 
     async _updateObject(event, formData) {
         const upgradeActors = formData.upgradeActors || false;
         const upgradeItems = formData.upgradeItems || false;
+        const upgradeMacros = formData.upgradeMacros || false;
 
-        if (!upgradeActors && !upgradeItems) {
+        if (!upgradeActors && !upgradeItems && !upgradeMacros) {
             ui.notifications.warn("Please select at least one tool to run");
             return;
         }
+
+        // Save the settings
+        const searchWorldActorsFirst = formData.searchWorldActorsFirst || false;
+        const searchWorldActorsLast = formData.searchWorldActorsLast || false;
+        const searchWorldItemsFirst = formData.searchWorldItemsFirst || false;
+        const searchWorldItemsLast = formData.searchWorldItemsLast || false;
+
+        await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsFirst', searchWorldActorsFirst);
+        await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsLast', searchWorldActorsLast);
+        await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsFirst', searchWorldItemsFirst);
+        await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsLast', searchWorldItemsLast);
 
         // Show progress and status sections
         this.element.find('#progress-section').show();
@@ -1776,27 +1959,27 @@ class JournalToolsWindow extends FormApplication {
         // Disable the apply button
         this.element.find('#apply-button').prop('disabled', true);
         
-                    // Initialize progress
-            this.updateOverallProgress(0, "Initializing...");
-            this.updatePageProgress(0, "Ready...");
-            this.addStatusMessage("Starting journal tools processing...", "info");
+        // Initialize progress
+        this.updateOverallProgress(0, "Initializing...");
+        this.updatePageProgress(0, "Ready...");
+        this.addStatusMessage("Starting journal tools processing...", "info");
 
-            // Create progress callbacks for the unified processing
-            const overallProgressCallback = (progress, message) => {
-                this.updateOverallProgress(progress, message);
-            };
-            
-            const pageProgressCallback = (progress, message) => {
-                this.updatePageProgress(progress, message);
-            };
+        // Create progress callbacks for the unified processing
+        const overallProgressCallback = (progress, message) => {
+            this.updateOverallProgress(progress, message);
+        };
+        
+        const pageProgressCallback = (progress, message) => {
+            this.updatePageProgress(progress, message);
+        };
 
-            const statusCallback = (message, type = "info") => {
-                this.addStatusMessage(message, type);
-            };
+        const statusCallback = (message, type = "info") => {
+            this.addStatusMessage(message, type);
+        };
 
         try {
-            this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}`, "info");
-            await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback);
+            this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}, Macros=${upgradeMacros}`, "info");
+            await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback, pageProgressCallback, statusCallback);
 
             this.updateOverallProgress(100, "Complete!");
             this.updatePageProgress(100, "Complete!");
@@ -1842,24 +2025,37 @@ class JournalToolsWindow extends FormApplication {
         }
         
         try {
-            // Get form data from checkboxes
-            const upgradeActors = this.element.find('#upgrade-actors').is(':checked');
-            const upgradeItems = this.element.find('#upgrade-items').is(':checked');
+            // Get form data
+            const formData = new FormData(this.element.find('form')[0]);
+            const upgradeActors = formData.get('upgradeActors') === 'true';
+            const upgradeItems = formData.get('upgradeItems') === 'true';
+            const upgradeMacros = formData.get('upgradeMacros') === 'true';
 
-            if (!upgradeActors && !upgradeItems) {
+            if (!upgradeActors && !upgradeItems && !upgradeMacros) {
                 ui.notifications.warn("Please select at least one tool to run");
                 return;
             }
 
+            // Save the settings
+            const searchWorldActorsFirst = formData.get('searchWorldActorsFirst') === 'true';
+            const searchWorldActorsLast = formData.get('searchWorldActorsLast') === 'true';
+            const searchWorldItemsFirst = formData.get('searchWorldItemsFirst') === 'true';
+            const searchWorldItemsLast = formData.get('searchWorldItemsLast') === 'true';
+
+            await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsFirst', searchWorldActorsFirst);
+            await game.settings.set('coffee-pub-blacksmith', 'searchWorldActorsLast', searchWorldActorsLast);
+            await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsFirst', searchWorldItemsFirst);
+            await game.settings.set('coffee-pub-blacksmith', 'searchWorldItemsLast', searchWorldItemsLast);
+
             // Set processing state
             this.isProcessing = true;
             this.shouldStop = false;
-
+            
             // Show progress and status sections
             this.element.find('#progress-section').show();
             this.element.find('#status-section').show();
             
-            // Change button to stop state
+            // Change button to stop mode
             this.element.find('#apply-icon').removeClass('fa-check').addClass('fa-stop');
             this.element.find('#apply-text').text('Stop Update');
             this.element.find('#apply-button').addClass('stop-mode').prop('disabled', false);
@@ -1886,9 +2082,9 @@ class JournalToolsWindow extends FormApplication {
                 return this.shouldStop;
             };
 
-            if (upgradeActors || upgradeItems) {
-                this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}`, "info");
-                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback, stopCallback);
+            if (upgradeActors || upgradeItems || upgradeMacros) {
+                this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}, Macros=${upgradeMacros}`, "info");
+                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback, pageProgressCallback, statusCallback, stopCallback);
             }
 
             // Check if processing was stopped

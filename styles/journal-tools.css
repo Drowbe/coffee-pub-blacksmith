@@ -66,13 +66,18 @@ div#journal-tools-window .window-content {
 .journal-tools-header {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 6px;
   background: #18181c;
   color: rgba(145, 133, 107, 1.0);
   font-weight: 700;
-  font-size: 1.1em;
+  font-size: 1.2em;
   padding: 0.75em 1em;
   border-bottom: 1px solid #444;
+  text-transform: uppercase;
+}
+.journal-tools-header i {
+  margin-right: 1px;
+  font-size: .9em;
 }
 
 .journal-tools-summary-row {
@@ -91,7 +96,7 @@ div#journal-tools-window .window-content {
   flex-direction: column;
   align-items: flex-start;
   min-width: 120px;
-  font-size: 0.95em;
+  font-size: 1em;
   color: #e0e0e0;
 }
 
@@ -99,12 +104,13 @@ div#journal-tools-window .window-content {
   font-size: 0.8em;
   color: rgba(145, 133, 107, 1.0);
   margin-bottom: 0.1em;
+  text-transform: uppercase;
 }
 
 .journal-tools-summary-item .journal-name {
   color: rgba(255, 255, 255, 1.0);
   font-weight: 700;
-  font-size: 1.2eml
+  font-size: 1.1em;
 }
 
 /* Body */
@@ -115,7 +121,7 @@ div#journal-tools-window .window-content {
   flex-direction: column;
   min-height: 0;
   padding: 0.5em 0.75em;
-  gap: 10px;
+  gap: 20px;
 }
 
 /* Status section should expand to fill remaining space */
@@ -140,11 +146,15 @@ div#journal-tools-window .window-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.3em;
+  
   border-bottom: 1px solid #444;
   border-radius: 4px;
-  padding: 0.3em 0.5em;
+  padding: 6px 6px;
   text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.journal-tools-section-header i {
+  margin-right: 6px;
 }
 
 .journal-tools-section-header:not(:has(.copy-status-btn)) {
@@ -178,19 +188,20 @@ div#journal-tools-window .window-content {
 .journal-tools-options {
   display: flex;
   flex-direction: row;
-  gap: 0.5em;
+  gap: 6px;
 }
 
 .journal-tools-option {
   display: flex;
   align-items: center;
-  gap: 0.75em;
+  gap: 0px;
   padding: 8px;
   background: #2a2a2a;
   border: 1px solid #444;
   border-radius: 6px;
   transition: all 0.2s ease;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .journal-tools-option:hover {
@@ -221,10 +232,73 @@ div#journal-tools-window .window-content {
 }
 
 .journal-tools-option label i {
+  margin-right: 3px;
+  color: rgba(145, 133, 107, 1.0);
+}
+
+/* Settings Section */
+.journal-tools-settings {
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  padding: 0.5em 0;
+}
+
+.journal-tools-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--element-radius);
+}
+
+.journal-tools-setting-group-heading {
+  font-size: 0.8em;
+  font-weight: 800;
+  color: rgba(145, 133, 107, 1.0);
+  text-transform: uppercase;
+}
+
+.journal-tools-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  white-space: nowrap;
+}
+
+.journal-tools-setting:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--element-radius);
+  padding: 8px 8px;
+  margin: 0px;
+}
+
+
+
+.journal-tools-setting input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: rgba(255, 47, 47, 1.0);
+  cursor: pointer;
+}
+
+.journal-tools-setting label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: #e0e0e0;
+  user-select: none;
+  flex: 1;
+}
+
+.journal-tools-setting label:hover {
   color: rgba(255, 47, 47, 1.0);
-  font-size: 1.1em;
-  min-width: 20px;
-  text-align: center;
 }
 
 /* Progress Section */

@@ -2123,6 +2123,16 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// -- Search World Actors Last --
+	game.settings.register(MODULE_ID, 'searchWorldActorsLast', {
+		name: 'Search World Actors Last',
+		hint: 'When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
 	// -- Monster Lookup Compendiums (up to 8) --
 	for (let i = 1; i <= 8; i++) {
 		game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
@@ -2147,6 +2157,16 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// -- Search World Items Last --
+	game.settings.register(MODULE_ID, 'searchWorldItemsLast', {
+		name: 'Search World Items Last',
+		hint: 'When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
 	// -- Item Lookup Compendiums (up to 8) --
 	for (let i = 1; i <= 8; i++) {
 		game.settings.register(MODULE_ID, `itemCompendium${i}` , {
@@ -2159,7 +2179,6 @@ export const registerSettings = async () => {
 			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
 		});
 	}
-
 
 	// *** ROUND ANNOUNCMENTS ***
 
