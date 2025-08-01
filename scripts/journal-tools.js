@@ -270,6 +270,7 @@ export class JournalTools {
             // Track actor vs item results separately
             let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
             let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
+            let macroLinksSkipped = 0, macroLinksUpgraded = 0, macroLinksCreated = 0, macroErrors = 0;
             
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
                 // Check for stop request
@@ -293,10 +294,20 @@ export class JournalTools {
                 // Force UI update after each page starts
                 await new Promise(resolve => setTimeout(resolve, 10));
                 
+                // Page processing header
+                logStatus("========================================================");
+                logStatus(`PROCESSING: ${page.name.toUpperCase()}`);
+                logStatus("========================================================");
+                
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
                 
                 updatePageProgress(10, "Scanning for entities...");
+                
+                // Initialize page-level counters
+                let pageActorUpgraded = 0, pageActorSkipped = 0, pageActorCreated = 0, pageActorErrors = 0;
+                let pageItemUpgraded = 0, pageItemSkipped = 0, pageItemCreated = 0, pageItemErrors = 0;
+                let pageMacroUpgraded = 0, pageMacroSkipped = 0, pageMacroCreated = 0, pageMacroErrors = 0;
                 
                 // Only scan for actors/items if those tools are enabled
                 if (upgradeActors || upgradeItems) {
@@ -351,10 +362,6 @@ export class JournalTools {
                     
                     const totalCandidates = existingLinks.length + bulletListEntities.length + manualLinkEntities.length + htmlEntities.length;
                     
-                    logStatus("============================");
-                    logStatus("==   INITIAL REPORT                                ==");
-                    logStatus("============================");
-                    logStatus("");
                     logStatus(`Found ${totalCandidates} Unique Entities`);
                     if (uuidLinks.length > 0) {
                         logStatus(`${uuidLinks.length} Generic UUID Links`);
@@ -367,15 +374,8 @@ export class JournalTools {
                     logStatus("ITEMS");
                     logStatus(`- ${itemLinks.length} Item Links`);
                     logStatus(`- ${potentialItems} Potential Items`);
-                    logStatus("");
-                    logStatus("============================");
                 } else {
-                    logStatus("============================");
-                    logStatus("==   INITIAL REPORT                                ==");
-                    logStatus("============================");
-                    logStatus("");
                     logStatus("No actor/item scanning - only macros enabled");
-                    logStatus("============================");
                 }
                 
                 updatePageProgress(30, "Removing duplicates...");
@@ -452,16 +452,16 @@ export class JournalTools {
                                 if (entity.type === 'existing-link') {
                                     logStatus(`✓ Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
                                     if (result.foundEntityType === 'actor') {
-                                        actorLinksUpgraded++;
+                                        pageActorUpgraded++;
                                     } else if (result.foundEntityType === 'item') {
-                                        itemLinksUpgraded++;
+                                        pageItemUpgraded++;
                                     }
                                 } else {
                                     logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
                                     if (result.foundEntityType === 'actor') {
-                                        actorLinksCreated++;
+                                        pageActorCreated++;
                                     } else if (result.foundEntityType === 'item') {
-                                        itemLinksCreated++;
+                                        pageItemCreated++;
                                     }
                                 }
                             } else {
@@ -469,9 +469,9 @@ export class JournalTools {
                                 logStatus(`- No match found: ${entity.name}`, "warning");
                                 // Estimate actor vs item for skips based on entity type bias
                                 if (entityType === 'actor' || entityType === 'both') {
-                                    actorLinksSkipped++;
+                                    pageActorSkipped++;
                                 } else {
-                                    itemLinksSkipped++;
+                                    pageItemSkipped++;
                                 }
                             }
                             
@@ -490,9 +490,9 @@ export class JournalTools {
                             
                             // Track actor vs item errors
                             if (entityType === 'actor' || entityType === 'both') {
-                                actorErrors++;
+                                pageActorErrors++;
                             } else {
-                                itemErrors++;
+                                pageItemErrors++;
                             }
                         }
                     }
@@ -506,10 +506,6 @@ export class JournalTools {
                 if (upgradeMacros) {
                     const macros = this._scanJournalForMacros(pageContent);
                     logStatus(`Found ${macros.length} macro links to process`);
-                    
-                    let macroUpgraded = 0;
-                    let macroSkipped = 0;
-                    let macroErrors = 0;
                     
                     for (let i = 0; i < macros.length; i++) {
                         // Check for stop request
@@ -531,19 +527,19 @@ export class JournalTools {
                             if (result.success) {
                                 pageContent = result.newContent;
                                 contentChanged = true;
-                                macroUpgraded++;
+                                pageMacroUpgraded++;
                                 logStatus(`✓ Macro upgraded: ${macro.name}`, "success");
                             } else {
-                                macroSkipped++;
+                                pageMacroSkipped++;
                                 logStatus(`- Macro not found: ${macro.name}`, "warning");
                             }
                         } catch (error) {
-                            macroErrors++;
+                            pageMacroErrors++;
                             logStatus(`✗ Error processing macro ${macro.name}: ${error.message}`, "error");
                         }
                     }
                     
-                    logStatus(`Macros: ${macroUpgraded} upgraded, ${macroSkipped} skipped, ${macroErrors} errors`);
+                    logStatus(`Macros: ${pageMacroUpgraded} upgraded, ${pageMacroSkipped} skipped, ${pageMacroErrors} errors`);
                 }
                 
                 updatePageProgress(90, "Updating journal...");
@@ -557,37 +553,76 @@ export class JournalTools {
                 }
                 
                 updatePageProgress(100, "Page complete!");
+                
+                // Page report
+                logStatus("========================================================");
+                logStatus(`RESULTS: ${page.name.toUpperCase()}`);
+                logStatus("========================================================");
+                logStatus(`ACTORS: ${pageActorUpgraded} Upgraded, ${pageActorSkipped} Skipped, ${pageActorCreated} Created, ${pageActorErrors} Errors`);
+                logStatus(`ITEMS:  ${pageItemUpgraded} Upgraded, ${pageItemSkipped} Skipped, ${pageItemCreated} Created, ${pageItemErrors} Errors`);
+                logStatus(`MACROS: ${pageMacroUpgraded} Upgraded, ${pageMacroSkipped} Skipped, ${pageMacroCreated} Created, ${pageMacroErrors} Errors`);
+                logStatus("========================================================");
+                
+                // Accumulate page-level counters to global counters
+                actorLinksSkipped += pageActorSkipped;
+                actorLinksUpgraded += pageActorUpgraded;
+                actorLinksCreated += pageActorCreated;
+                actorErrors += pageActorErrors;
+                
+                itemLinksSkipped += pageItemSkipped;
+                itemLinksUpgraded += pageItemUpgraded;
+                itemLinksCreated += pageItemCreated;
+                itemErrors += pageItemErrors;
+                
+                macroLinksSkipped += pageMacroSkipped;
+                macroLinksUpgraded += pageMacroUpgraded;
+                macroLinksCreated += pageMacroCreated;
+                macroErrors += pageMacroErrors;
             }
             
             updateOverallProgress(100, "Complete!");
-            logStatus("============================");
-            logStatus("==   FINAL REPORT                                  ==");
-            logStatus("============================");
             logStatus("");
-            logStatus("Processing complete!");
-            logStatus(`- ${totalFoundInCompendium} Entities found in compendiums`);
-            logStatus(`- ${totalFoundInWorld} Entities found in world`);
-            logStatus(`- ${totalErrors} Error in Processing`);
             logStatus("");
-            
-            // Use actual tracked values for final report
-            
+            logStatus("Journal tools processing completed successfully!");
+            logStatus("");
+            logStatus("========================================================");
+            logStatus(`FINAL RESLUTS: ${journal.name.toUpperCase()}`);
+            logStatus("========================================================");
             logStatus("ACTORS");
             logStatus(`- ${actorLinksSkipped} Actor Links Skipped`);
             logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`);
             logStatus(`- ${actorLinksCreated} Actor Links Created`);
-            logStatus(`- ${actorErrors} Errors`);
-            logStatus("");
+            logStatus(`- ${actorErrors} Actor Errors`);
+            logStatus("--------------------------------------------------------");
             logStatus("ITEMS");
             logStatus(`- ${itemLinksSkipped} Item Links Skipped`);
             logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`);
             logStatus(`- ${itemLinksCreated} Item Links Created`);
-            logStatus(`- ${itemErrors} Errors`);
-            if (itemErrors > 0) {
-                logStatus(`  -- Could not repair ${itemErrors} broken link${itemErrors > 1 ? 's' : ''}`);
-            }
-            logStatus("");
-            logStatus("============================");
+            logStatus(`- ${itemErrors} Item Errors`);
+            logStatus("--------------------------------------------------------");
+            logStatus("MACROS");
+            logStatus(`- ${macroLinksSkipped || 0} Macro Links Skipped`);
+            logStatus(`- ${macroLinksUpgraded || 0} Macro Links Upgraded`);
+            logStatus(`- ${macroLinksCreated || 0} Macro Links Created`);
+            logStatus(`- ${macroErrors || 0} Macro Errors`);
+            logStatus("--------------------------------------------------------");
+            logStatus("SETTINGS");
+            logStatus(`- Actors=${upgradeActors}`);
+            logStatus(`- Items=${upgradeItems}`);
+            logStatus(`- Macros=${upgradeMacros}`);
+            logStatus(`- Search World Items First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst')}`);
+            logStatus(`- Search World Actors First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst')}`);
+            logStatus(`- Search World Items Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast')}`);
+            logStatus(`- Search World Actors Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast')}`);
+            logStatus("--------------------------------------------------------");
+            logStatus("TOTALS");
+            logStatus(`- ${pages.length} Pages Processed`);
+            logStatus(`- ${totalFoundInCompendium + totalFoundInWorld} Entities Processed`);
+            logStatus(`- ${actorLinksSkipped + itemLinksSkipped + (macroLinksSkipped || 0)} Links Skipped`);
+            logStatus(`- ${actorLinksUpgraded + itemLinksUpgraded + (macroLinksUpgraded || 0)} Links Upgraded`);
+            logStatus(`- ${actorLinksCreated + itemLinksCreated + (macroLinksCreated || 0)} Links Created`);
+            logStatus(`- ${actorErrors + itemErrors + (macroErrors || 0)} Errors`);
+            logStatus("========================================================");
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
@@ -2072,10 +2107,7 @@ class JournalToolsWindow extends FormApplication {
             } else {
                 this.updateOverallProgress(100, "Complete!");
                 this.updatePageProgress(100, "Complete!");
-                this.addStatusMessage("Journal tools processing completed successfully!", "success");
-                
-                // Generate final report
-                this.addFinalReport();
+
             }
             
             // Stop the spinner
@@ -2172,108 +2204,5 @@ class JournalToolsWindow extends FormApplication {
         
         // Close the window without applying tools
         this.close();
-    }
-
-    addFinalReport() {
-        this.addStatusMessage("", "info");
-        this.addStatusMessage("============================", "info");
-        this.addStatusMessage("==   FINAL REPORT                                ==", "info");
-        this.addStatusMessage("============================", "info");
-        this.addStatusMessage("", "info");
-        
-        // Get all status messages to analyze results
-        const statusArea = this.element.find('#status-area');
-        const statusMessages = statusArea.find('.status-message');
-        
-        let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
-        let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
-        let pagesProcessed = 0;
-        
-        // Parse status messages to extract statistics
-        statusMessages.each(function() {
-            const message = $(this).text();
-            
-            // Count actor results
-            if (message.includes("Actor Links Skipped")) {
-                const match = message.match(/(\d+) Actor Links Skipped/);
-                if (match) actorLinksSkipped += parseInt(match[1]);
-            }
-            if (message.includes("Actor Links Upgraded")) {
-                const match = message.match(/(\d+) Actor Links Upgraded/);
-                if (match) actorLinksUpgraded += parseInt(match[1]);
-            }
-            if (message.includes("Actor Links Created")) {
-                const match = message.match(/(\d+) Actor Links Created/);
-                if (match) actorLinksCreated += parseInt(match[1]);
-            }
-            if (message.includes("Actor Errors")) {
-                const match = message.match(/(\d+) Actor Errors/);
-                if (match) actorErrors += parseInt(match[1]);
-            }
-            
-            // Count item results
-            if (message.includes("Item Links Skipped")) {
-                const match = message.match(/(\d+) Item Links Skipped/);
-                if (match) itemLinksSkipped += parseInt(match[1]);
-            }
-            if (message.includes("Item Links Upgraded")) {
-                const match = message.match(/(\d+) Item Links Upgraded/);
-                if (match) itemLinksUpgraded += parseInt(match[1]);
-            }
-            if (message.includes("Item Links Created")) {
-                const match = message.match(/(\d+) Item Links Created/);
-                if (match) itemLinksCreated += parseInt(match[1]);
-            }
-            if (message.includes("Item Errors")) {
-                const match = message.match(/(\d+) Item Errors/);
-                if (match) itemErrors += parseInt(match[1]);
-            }
-            
-            // Count pages processed
-            if (message.includes("Processing page")) {
-                pagesProcessed++;
-            }
-        });
-        
-        // Display final statistics
-        this.addStatusMessage(`Journal: ${this.journal.name}`, "info");
-        this.addStatusMessage(`Pages Processed: ${pagesProcessed}`, "info");
-        this.addStatusMessage("", "info");
-        
-        if (actorLinksSkipped > 0 || actorLinksUpgraded > 0 || actorLinksCreated > 0 || actorErrors > 0) {
-            this.addStatusMessage("ACTORS", "info");
-            this.addStatusMessage(`- ${actorLinksSkipped} Actor Links Skipped`, "info");
-            this.addStatusMessage(`- ${actorLinksUpgraded} Actor Links Upgraded`, "info");
-            this.addStatusMessage(`- ${actorLinksCreated} Actor Links Created`, "info");
-            this.addStatusMessage(`- ${actorErrors} Actor Errors`, "info");
-            this.addStatusMessage("", "info");
-        }
-        
-        if (itemLinksSkipped > 0 || itemLinksUpgraded > 0 || itemLinksCreated > 0 || itemErrors > 0) {
-            this.addStatusMessage("ITEMS", "info");
-            this.addStatusMessage(`- ${itemLinksSkipped} Item Links Skipped`, "info");
-            this.addStatusMessage(`- ${itemLinksUpgraded} Item Links Upgraded`, "info");
-            this.addStatusMessage(`- ${itemLinksCreated} Item Links Created`, "info");
-            this.addStatusMessage(`- ${itemErrors} Item Errors`, "info");
-            this.addStatusMessage("", "info");
-        }
-        
-        const totalSkipped = actorLinksSkipped + itemLinksSkipped;
-        const totalUpgraded = actorLinksUpgraded + itemLinksUpgraded;
-        const totalCreated = actorLinksCreated + itemLinksCreated;
-        const totalErrors = actorErrors + itemErrors;
-        
-        this.addStatusMessage("TOTALS", "info");
-        this.addStatusMessage(`- ${totalSkipped} Links Skipped`, "info");
-        this.addStatusMessage(`- ${totalUpgraded} Links Upgraded`, "info");
-        this.addStatusMessage(`- ${totalCreated} Links Created`, "info");
-        this.addStatusMessage(`- ${totalErrors} Errors`, "info");
-        this.addStatusMessage("", "info");
-        
-        if (totalErrors === 0) {
-            this.addStatusMessage("Journal tools processing completed successfully!", "success");
-        } else {
-            this.addStatusMessage(`Journal tools processing completed with ${totalErrors} error(s).`, "warning");
-        }
     }
 } 
