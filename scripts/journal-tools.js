@@ -229,7 +229,7 @@ export class JournalTools {
     }
 
     // New unified method that processes all entities in one pass
-    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems, overallProgressCallback = null, pageProgressCallback = null, statusCallback = null) {
+    static async _upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems, overallProgressCallback = null, pageProgressCallback = null, statusCallback = null, stopCallback = null) {
         try {
             const logStatus = (message, type = "info") => {
                 if (statusCallback) statusCallback(message, type);
@@ -242,6 +242,12 @@ export class JournalTools {
             
             const updatePageProgress = (percentage, message) => {
                 if (pageProgressCallback) pageProgressCallback(percentage, message);
+            };
+            
+            const checkStopRequest = () => {
+                if (stopCallback && stopCallback()) {
+                    throw new Error("Processing stopped by user");
+                }
             };
             
             logStatus("Starting unified link upgrade...");
@@ -266,9 +272,15 @@ export class JournalTools {
             let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
             
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+                // Check for stop request
+                if (checkStopRequest()) {
+                    logStatus("Processing stopped by user request.", "warning");
+                    break;
+                }
+                
                 const page = pages[pageIndex];
                 const overallProgress = 10 + (pageIndex / pages.length) * 80; // 10-90% for pages
-                updateOverallProgress(overallProgress, `Processing page ${pageIndex + 1}/${pages.length}...`);
+                updateOverallProgress(overallProgress, `Processing page ${pageIndex + 1}/${pages.length} ${page.name}`);
                 updatePageProgress(0, `Starting page: ${page.name}`);
                 let pageContent = page.text.content;
                 if (!pageContent) {
@@ -394,6 +406,12 @@ export class JournalTools {
                 let contentChanged = false;
                 
                 for (let i = 0; i < uniqueEntities.length; i++) {
+                    // Check for stop request
+                    if (checkStopRequest()) {
+                        logStatus("Processing stopped by user request.", "warning");
+                        break;
+                    }
+                    
                     const entity = uniqueEntities[i];
                     const pageProgress = 40 + (i / uniqueEntities.length) * 40; // 40-80% for entities
                     updatePageProgress(pageProgress, `Processing ${entity.name}...`);
@@ -1633,6 +1651,8 @@ class JournalToolsWindow extends FormApplication {
     constructor(journal) {
         super();
         this.journal = journal;
+        this.isProcessing = false;
+        this.shouldStop = false;
     }
 
     static get defaultOptions() {
@@ -1728,6 +1748,13 @@ class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        // If already processing, this is a stop request
+        if (this.isProcessing) {
+            this.shouldStop = true;
+            this.addStatusMessage("Stop request received. Processing will stop after current page...", "warning");
+            return;
+        }
+        
         try {
             // Get form data from checkboxes
             const upgradeActors = this.element.find('#upgrade-actors').is(':checked');
@@ -1738,12 +1765,18 @@ class JournalToolsWindow extends FormApplication {
                 return;
             }
 
+            // Set processing state
+            this.isProcessing = true;
+            this.shouldStop = false;
+
             // Show progress and status sections
             this.element.find('#progress-section').show();
             this.element.find('#status-section').show();
             
-            // Disable the apply button
-            this.element.find('#apply-button').prop('disabled', true);
+            // Change button to stop state
+            this.element.find('#apply-icon').removeClass('fa-check').addClass('fa-stop');
+            this.element.find('#apply-text').text('Stop Update');
+            this.element.find('#apply-button').addClass('stop-mode').prop('disabled', false);
             
             // Initialize progress
             this.updateOverallProgress(0, "Initializing...");
@@ -1763,20 +1796,40 @@ class JournalToolsWindow extends FormApplication {
                 this.addStatusMessage(message, type);
             };
 
+            const stopCallback = () => {
+                return this.shouldStop;
+            };
+
             if (upgradeActors || upgradeItems) {
                 this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}`, "info");
-                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback);
+                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, overallProgressCallback, pageProgressCallback, statusCallback, stopCallback);
             }
 
-            this.updateOverallProgress(100, "Complete!");
-            this.updatePageProgress(100, "Complete!");
-            this.addStatusMessage("Journal tools processing completed successfully!", "success");
+            // Check if processing was stopped
+            if (this.shouldStop) {
+                this.updateOverallProgress(100, "Stopped!");
+                this.updatePageProgress(100, "Stopped!");
+                this.addStatusMessage("Journal tools processing stopped by user.", "warning");
+            } else {
+                this.updateOverallProgress(100, "Complete!");
+                this.updatePageProgress(100, "Complete!");
+                this.addStatusMessage("Journal tools processing completed successfully!", "success");
+                
+                // Generate final report
+                this.addFinalReport();
+            }
             
             // Stop the spinner
             this.element.find('#progress-spinner').removeClass('fa-spin');
             
-            // Re-enable the apply button
-            this.element.find('#apply-button').prop('disabled', false);
+            // Reset button state
+            this.element.find('#apply-icon').removeClass('fa-stop').addClass('fa-check');
+            this.element.find('#apply-text').text('Update Links');
+            this.element.find('#apply-button').removeClass('stop-mode').prop('disabled', false);
+            
+            // Reset processing state
+            this.isProcessing = false;
+            this.shouldStop = false;
             
             // Success message - console only
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing completed successfully", "", false, false, false);
@@ -1785,7 +1838,16 @@ class JournalToolsWindow extends FormApplication {
             this.addStatusMessage(`Error: ${error.message}`, "error");
             // Stop the spinner on error too
             this.element.find('#progress-spinner').removeClass('fa-spin');
-            this.element.find('#apply-button').prop('disabled', false);
+            
+            // Reset button state
+            this.element.find('#apply-icon').removeClass('fa-stop').addClass('fa-check');
+            this.element.find('#apply-text').text('Update Links');
+            this.element.find('#apply-button').removeClass('stop-mode').prop('disabled', false);
+            
+            // Reset processing state
+            this.isProcessing = false;
+            this.shouldStop = false;
+            
             postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
@@ -1848,5 +1910,108 @@ class JournalToolsWindow extends FormApplication {
         
         // Close the window without applying tools
         this.close();
+    }
+
+    addFinalReport() {
+        this.addStatusMessage("", "info");
+        this.addStatusMessage("============================", "info");
+        this.addStatusMessage("==   FINAL REPORT                                ==", "info");
+        this.addStatusMessage("============================", "info");
+        this.addStatusMessage("", "info");
+        
+        // Get all status messages to analyze results
+        const statusArea = this.element.find('#status-area');
+        const statusMessages = statusArea.find('.status-message');
+        
+        let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
+        let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
+        let pagesProcessed = 0;
+        
+        // Parse status messages to extract statistics
+        statusMessages.each(function() {
+            const message = $(this).text();
+            
+            // Count actor results
+            if (message.includes("Actor Links Skipped")) {
+                const match = message.match(/(\d+) Actor Links Skipped/);
+                if (match) actorLinksSkipped += parseInt(match[1]);
+            }
+            if (message.includes("Actor Links Upgraded")) {
+                const match = message.match(/(\d+) Actor Links Upgraded/);
+                if (match) actorLinksUpgraded += parseInt(match[1]);
+            }
+            if (message.includes("Actor Links Created")) {
+                const match = message.match(/(\d+) Actor Links Created/);
+                if (match) actorLinksCreated += parseInt(match[1]);
+            }
+            if (message.includes("Actor Errors")) {
+                const match = message.match(/(\d+) Actor Errors/);
+                if (match) actorErrors += parseInt(match[1]);
+            }
+            
+            // Count item results
+            if (message.includes("Item Links Skipped")) {
+                const match = message.match(/(\d+) Item Links Skipped/);
+                if (match) itemLinksSkipped += parseInt(match[1]);
+            }
+            if (message.includes("Item Links Upgraded")) {
+                const match = message.match(/(\d+) Item Links Upgraded/);
+                if (match) itemLinksUpgraded += parseInt(match[1]);
+            }
+            if (message.includes("Item Links Created")) {
+                const match = message.match(/(\d+) Item Links Created/);
+                if (match) itemLinksCreated += parseInt(match[1]);
+            }
+            if (message.includes("Item Errors")) {
+                const match = message.match(/(\d+) Item Errors/);
+                if (match) itemErrors += parseInt(match[1]);
+            }
+            
+            // Count pages processed
+            if (message.includes("Processing page")) {
+                pagesProcessed++;
+            }
+        });
+        
+        // Display final statistics
+        this.addStatusMessage(`Journal: ${this.journal.name}`, "info");
+        this.addStatusMessage(`Pages Processed: ${pagesProcessed}`, "info");
+        this.addStatusMessage("", "info");
+        
+        if (actorLinksSkipped > 0 || actorLinksUpgraded > 0 || actorLinksCreated > 0 || actorErrors > 0) {
+            this.addStatusMessage("ACTORS", "info");
+            this.addStatusMessage(`- ${actorLinksSkipped} Actor Links Skipped`, "info");
+            this.addStatusMessage(`- ${actorLinksUpgraded} Actor Links Upgraded`, "info");
+            this.addStatusMessage(`- ${actorLinksCreated} Actor Links Created`, "info");
+            this.addStatusMessage(`- ${actorErrors} Actor Errors`, "info");
+            this.addStatusMessage("", "info");
+        }
+        
+        if (itemLinksSkipped > 0 || itemLinksUpgraded > 0 || itemLinksCreated > 0 || itemErrors > 0) {
+            this.addStatusMessage("ITEMS", "info");
+            this.addStatusMessage(`- ${itemLinksSkipped} Item Links Skipped`, "info");
+            this.addStatusMessage(`- ${itemLinksUpgraded} Item Links Upgraded`, "info");
+            this.addStatusMessage(`- ${itemLinksCreated} Item Links Created`, "info");
+            this.addStatusMessage(`- ${itemErrors} Item Errors`, "info");
+            this.addStatusMessage("", "info");
+        }
+        
+        const totalSkipped = actorLinksSkipped + itemLinksSkipped;
+        const totalUpgraded = actorLinksUpgraded + itemLinksUpgraded;
+        const totalCreated = actorLinksCreated + itemLinksCreated;
+        const totalErrors = actorErrors + itemErrors;
+        
+        this.addStatusMessage("TOTALS", "info");
+        this.addStatusMessage(`- ${totalSkipped} Links Skipped`, "info");
+        this.addStatusMessage(`- ${totalUpgraded} Links Upgraded`, "info");
+        this.addStatusMessage(`- ${totalCreated} Links Created`, "info");
+        this.addStatusMessage(`- ${totalErrors} Errors`, "info");
+        this.addStatusMessage("", "info");
+        
+        if (totalErrors === 0) {
+            this.addStatusMessage("Journal tools processing completed successfully!", "success");
+        } else {
+            this.addStatusMessage(`Journal tools processing completed with ${totalErrors} error(s).`, "warning");
+        }
     }
 } 
