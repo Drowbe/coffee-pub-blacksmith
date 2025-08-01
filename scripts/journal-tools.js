@@ -295,75 +295,85 @@ export class JournalTools {
                 
                 updatePageProgress(10, "Scanning for entities...");
                 
-                // Scan for all entities (both actors and items) in one pass
-                const existingLinks = this._scanJournalForLinks(pageContent, 'both');
-                const bulletListEntities = this._scanJournalForBulletListEntities(pageContent, 'both');
-                const manualLinkEntities = this._scanJournalForManualLinkEntities(pageContent, 'both');
-                const htmlEntities = this._scanJournalForHtmlEntities(page, 'both');
-                
-                allEntities.push(...existingLinks, ...bulletListEntities, ...manualLinkEntities, ...htmlEntities);
-                
-                // Analyze what we found and categorize them
-                const actorLinks = existingLinks.filter(e => e.fullMatch.includes('@Actor[') || e.fullMatch.includes('.Actor.'));
-                const itemLinks = existingLinks.filter(e => e.fullMatch.includes('@Item[') || e.fullMatch.includes('.Item.'));
-                const uuidLinks = existingLinks.filter(e => e.fullMatch.includes('@UUID[') && !e.fullMatch.includes('@Actor[') && !e.fullMatch.includes('@Item['));
-                
-                // Count potential actors vs items in other categories
-                let potentialActors = 0;
-                let potentialItems = 0;
-                
-                // Analyze bullet list entities
-                for (const entity of bulletListEntities) {
-                    // Simple heuristic: if it's in an encounter section, likely actor; if in treasure section, likely item
-                    const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
-                    if (this._isEncounterHeading(contextBefore.split('\n').pop() || '')) {
-                        potentialActors++;
-                    } else if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
-                        potentialItems++;
-                    } else {
-                        // Default to actor for bullet lists (most common)
+                // Only scan for actors/items if those tools are enabled
+                if (upgradeActors || upgradeItems) {
+                    // Scan for all entities (both actors and items) in one pass
+                    const existingLinks = this._scanJournalForLinks(pageContent, 'both');
+                    const bulletListEntities = this._scanJournalForBulletListEntities(pageContent, 'both');
+                    const manualLinkEntities = this._scanJournalForManualLinkEntities(pageContent, 'both');
+                    const htmlEntities = this._scanJournalForHtmlEntities(page, 'both');
+                    
+                    allEntities.push(...existingLinks, ...bulletListEntities, ...manualLinkEntities, ...htmlEntities);
+                    
+                    // Analyze what we found and categorize them
+                    const actorLinks = existingLinks.filter(e => e.fullMatch.includes('@Actor[') || e.fullMatch.includes('.Actor.'));
+                    const itemLinks = existingLinks.filter(e => e.fullMatch.includes('@Item[') || e.fullMatch.includes('.Item.'));
+                    const uuidLinks = existingLinks.filter(e => e.fullMatch.includes('@UUID[') && !e.fullMatch.includes('@Actor[') && !e.fullMatch.includes('@Item['));
+                    
+                    // Count potential actors vs items in other categories
+                    let potentialActors = 0;
+                    let potentialItems = 0;
+                    
+                    // Analyze bullet list entities
+                    for (const entity of bulletListEntities) {
+                        // Simple heuristic: if it's in an encounter section, likely actor; if in treasure section, likely item
+                        const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
+                        if (this._isEncounterHeading(contextBefore.split('\n').pop() || '')) {
+                            potentialActors++;
+                        } else if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
+                            potentialItems++;
+                        } else {
+                            // Default to actor for bullet lists (most common)
+                            potentialActors++;
+                        }
+                    }
+                    
+                    // Analyze manual link entities
+                    for (const entity of manualLinkEntities) {
+                        // Default to actor for manual links (most common)
                         potentialActors++;
                     }
-                }
-                
-                // Analyze manual link entities
-                for (const entity of manualLinkEntities) {
-                    // Default to actor for manual links (most common)
-                    potentialActors++;
-                }
-                
-                // Analyze HTML entities
-                for (const entity of htmlEntities) {
-                    // Check if it's in a treasure/reward context
-                    const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
-                    if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
-                        potentialItems++;
-                    } else {
-                        // Default to actor for HTML entities
-                        potentialActors++;
+                    
+                    // Analyze HTML entities
+                    for (const entity of htmlEntities) {
+                        // Check if it's in a treasure/reward context
+                        const contextBefore = pageContent.substring(Math.max(0, entity.startIndex - 500), entity.startIndex);
+                        if (this._isItemHeading(contextBefore.split('\n').pop() || '')) {
+                            potentialItems++;
+                        } else {
+                            // Default to actor for HTML entities
+                            potentialActors++;
+                        }
                     }
+                    
+                    const totalCandidates = existingLinks.length + bulletListEntities.length + manualLinkEntities.length + htmlEntities.length;
+                    
+                    logStatus("============================");
+                    logStatus("==   INITIAL REPORT                                ==");
+                    logStatus("============================");
+                    logStatus("");
+                    logStatus(`Found ${totalCandidates} Unique Entities`);
+                    if (uuidLinks.length > 0) {
+                        logStatus(`${uuidLinks.length} Generic UUID Links`);
+                    }
+                    logStatus("");
+                    logStatus("ACTORS");
+                    logStatus(`- ${actorLinks.length} Actor Links`);
+                    logStatus(`- ${potentialActors} Potential Actors`);
+                    logStatus("");
+                    logStatus("ITEMS");
+                    logStatus(`- ${itemLinks.length} Item Links`);
+                    logStatus(`- ${potentialItems} Potential Items`);
+                    logStatus("");
+                    logStatus("============================");
+                } else {
+                    logStatus("============================");
+                    logStatus("==   INITIAL REPORT                                ==");
+                    logStatus("============================");
+                    logStatus("");
+                    logStatus("No actor/item scanning - only macros enabled");
+                    logStatus("============================");
                 }
-                
-                const totalCandidates = existingLinks.length + bulletListEntities.length + manualLinkEntities.length + htmlEntities.length;
-                
-                logStatus("============================");
-                logStatus("==   INITIAL REPORT                                ==");
-                logStatus("============================");
-                logStatus("");
-                logStatus(`Found ${totalCandidates} Unique Entities`);
-                if (uuidLinks.length > 0) {
-                    logStatus(`${uuidLinks.length} Generic UUID Links`);
-                }
-                logStatus("");
-                logStatus("ACTORS");
-                logStatus(`- ${actorLinks.length} Actor Links`);
-                logStatus(`- ${potentialActors} Potential Actors`);
-                logStatus("");
-                logStatus("ITEMS");
-                logStatus(`- ${itemLinks.length} Item Links`);
-                logStatus(`- ${potentialItems} Potential Items`);
-                logStatus("");
-                logStatus("============================");
                 
                 updatePageProgress(30, "Removing duplicates...");
                 
@@ -402,85 +412,89 @@ export class JournalTools {
                 
                 updatePageProgress(40, "Processing entities...");
                 
-                // Process each unique entity
+                // Process each unique entity (only if actors/items are enabled)
                 let contentChanged = false;
                 
-                for (let i = 0; i < uniqueEntities.length; i++) {
-                    // Check for stop request
-                    if (checkStopRequest()) {
-                        logStatus("Processing stopped by user request.", "warning");
-                        break;
-                    }
-                    
-                    const entity = uniqueEntities[i];
-                    const pageProgress = 40 + (i / uniqueEntities.length) * 40; // 40-80% for entities
-                    updatePageProgress(pageProgress, `Processing ${entity.name}...`);
-                    
-                    // Add a small delay to make progress visible
-                    if (i % 3 === 0) {
-                        await new Promise(resolve => setTimeout(resolve, 10));
-                    }
-                    
-                    try {
-                        // Determine entity type based on where it was found and context
-                        let entityType = this._determineEntityTypeFromContext(entity, pageContent, uniqueEntities);
+                if (upgradeActors || upgradeItems) {
+                    for (let i = 0; i < uniqueEntities.length; i++) {
+                        // Check for stop request
+                        if (checkStopRequest()) {
+                            logStatus("Processing stopped by user request.", "warning");
+                            break;
+                        }
                         
-                        logStatus(`Processing: ${entity.name} (${entity.type}) -> ${entityType} bias`);
+                        const entity = uniqueEntities[i];
+                        const pageProgress = 40 + (i / uniqueEntities.length) * 40; // 40-80% for entities
+                        updatePageProgress(pageProgress, `Processing ${entity.name}...`);
                         
-                        const result = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
+                        // Add a small delay to make progress visible
+                        if (i % 3 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 10));
+                        }
                         
-                        // Track different types of results
-                        if (result.foundInWorld && !result.foundInCompendium) {
-                            totalFoundInWorld++;
-                            logStatus(`✓ Found in world: ${entity.name}`, "success");
-                        } else if (result.foundInCompendium) {
-                            totalFoundInCompendium++;
-                            if (entity.type === 'existing-link') {
-                                logStatus(`✓ Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
-                                if (result.foundEntityType === 'actor') {
-                                    actorLinksUpgraded++;
-                                } else if (result.foundEntityType === 'item') {
-                                    itemLinksUpgraded++;
+                        try {
+                            // Determine entity type based on where it was found and context
+                            let entityType = this._determineEntityTypeFromContext(entity, pageContent, uniqueEntities);
+                            
+                            logStatus(`Processing: ${entity.name} (${entity.type}) -> ${entityType} bias`);
+                            
+                            const result = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
+                            
+                            // Track different types of results
+                            if (result.foundInWorld && !result.foundInCompendium) {
+                                totalFoundInWorld++;
+                                logStatus(`✓ Found in world: ${entity.name}`, "success");
+                            } else if (result.foundInCompendium) {
+                                totalFoundInCompendium++;
+                                if (entity.type === 'existing-link') {
+                                    logStatus(`✓ Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
+                                    if (result.foundEntityType === 'actor') {
+                                        actorLinksUpgraded++;
+                                    } else if (result.foundEntityType === 'item') {
+                                        itemLinksUpgraded++;
+                                    }
+                                } else {
+                                    logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
+                                    if (result.foundEntityType === 'actor') {
+                                        actorLinksCreated++;
+                                    } else if (result.foundEntityType === 'item') {
+                                        itemLinksCreated++;
+                                    }
                                 }
                             } else {
-                                logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
-                                if (result.foundEntityType === 'actor') {
-                                    actorLinksCreated++;
-                                } else if (result.foundEntityType === 'item') {
-                                    itemLinksCreated++;
+                                totalSkipped++;
+                                logStatus(`- No match found: ${entity.name}`, "warning");
+                                // Estimate actor vs item for skips based on entity type bias
+                                if (entityType === 'actor' || entityType === 'both') {
+                                    actorLinksSkipped++;
+                                } else {
+                                    itemLinksSkipped++;
                                 }
                             }
-                        } else {
-                            totalSkipped++;
-                            logStatus(`- No match found: ${entity.name}`, "warning");
-                            // Estimate actor vs item for skips based on entity type bias
+                            
+                            // Update content if changed
+                            if (result.newContent !== pageContent) {
+                                pageContent = result.newContent;
+                                contentChanged = true;
+                                totalUpgraded++;
+                            }
+                        } catch (error) {
+                            totalErrors++;
+                            // Log errors to console instead of UI
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
+                                `${entity.name}: ${error.message}`, false, false, false);
+                            logStatus(`✗ Error processing ${entity.name}`, "error");
+                            
+                            // Track actor vs item errors
                             if (entityType === 'actor' || entityType === 'both') {
-                                actorLinksSkipped++;
+                                actorErrors++;
                             } else {
-                                itemLinksSkipped++;
+                                itemErrors++;
                             }
                         }
-                        
-                        // Update content if changed
-                        if (result.newContent !== pageContent) {
-                            pageContent = result.newContent;
-                            contentChanged = true;
-                            totalUpgraded++;
-                        }
-                    } catch (error) {
-                        totalErrors++;
-                        // Log errors to console instead of UI
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
-                            `${entity.name}: ${error.message}`, false, false, false);
-                        logStatus(`✗ Error processing ${entity.name}`, "error");
-                        
-                        // Track actor vs item errors
-                        if (entityType === 'actor' || entityType === 'both') {
-                            actorErrors++;
-                        } else {
-                            itemErrors++;
-                        }
                     }
+                } else {
+                    logStatus("Skipping entity processing - only macros enabled");
                 }
                 
                 updatePageProgress(80, "Processing macros...");
