@@ -290,6 +290,9 @@ export class JournalTools {
                 
                 logStatus(`Processing page: ${page.name} (${pageContent.length} chars)`);
                 
+                // Force UI update after each page starts
+                await new Promise(resolve => setTimeout(resolve, 10));
+                
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
                 
@@ -518,6 +521,9 @@ export class JournalTools {
                         const macro = macros[i];
                         const macroProgress = 80 + (i / macros.length) * 10; // 80-90% for macros
                         updatePageProgress(macroProgress, `Processing macro: ${macro.name}...`);
+                        
+                        // Force UI update for each macro
+                        await new Promise(resolve => setTimeout(resolve, 10));
                         
                         try {
                             const result = await this._upgradeMacroLink(macro, pageContent);
@@ -2121,6 +2127,9 @@ class JournalToolsWindow extends FormApplication {
         const messageDiv = $(`<div class="status-message ${type}">${message}</div>`);
         statusArea.append(messageDiv);
         statusArea.scrollTop(statusArea[0].scrollHeight);
+        
+        // Force UI update by yielding control back to browser
+        setTimeout(() => {}, 0);
     }
 
     _onCopyStatus(event) {
