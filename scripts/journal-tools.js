@@ -717,11 +717,21 @@ export class JournalTools {
                             const displayName = displayNameMatch[1];
                             
                             // Determine entity type from UUID for contextual bias
+                            let detectedEntityType = null;
                             if (entityType === 'both') {
-                                if (strippedContent.includes('@Actor[') || strippedContent.includes('Actor.')) {
+                                if (strippedContent.toLowerCase().includes('actor')) {
+                                    detectedEntityType = 'actor';
                                     previousEntityType = 'actor';
-                                } else if (strippedContent.includes('@Item[') || strippedContent.includes('Item.')) {
+                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found Actor UUID`, 
+                                        `"${displayName}" - bypassing validation`, false, true, false);
+                                } else if (strippedContent.toLowerCase().includes('item')) {
+                                    detectedEntityType = 'item';
                                     previousEntityType = 'item';
+                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found Item UUID`, 
+                                        `"${displayName}" - bypassing validation`, false, true, false);
+                                } else {
+                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found generic UUID`, 
+                                        `"${displayName}" - processing as potential entity`, false, true, false);
                                 }
                             }
                             
@@ -734,10 +744,18 @@ export class JournalTools {
                                 liStart: match.index,
                                 liEnd: match.index + match[0].length,
                                 originalContent: liContent,
-                                isUuidLink: true
+                                isUuidLink: true,
+                                detectedEntityType: detectedEntityType
                             });
                         }
                     } else {
+                        // Check if this li tag contains actual entity candidates before processing
+                        if (!this._containsEntityCandidates(liContent)) {
+                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Skipping li tag - no entity candidates`, 
+                                `"${strippedContent}"`, false, true, false);
+                            continue;
+                        }
+                        
                         // Handle colon-separated items like "Items: Shortsword, Leather armor"
                         if (strippedContent.includes(':')) {
                             const [prefix, itemsPart] = strippedContent.split(':', 2);
@@ -772,52 +790,52 @@ export class JournalTools {
                                     }
                                 }
                             }
-                                                    } else {
-                                // Single entity in the list item
-                                let entityName = null;
-                                let currentEntityType = entityType;
-                                
-                                // Use contextual bias if available and entityType is 'both'
-                                if (entityType === 'both' && previousEntityType) {
-                                    // Try the previous entity type first
-                                    entityName = this._extractEntityNameFromPlainText(strippedContent, previousEntityType);
-                                    if (entityName) {
-                                        currentEntityType = previousEntityType;
-                                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using contextual bias`, 
-                                            `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, false, true, false);
-                                    }
-                                }
-                                
-                                // If no contextual match or no context, try both types
-                                if (!entityName && entityType === 'both') {
-                                    entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
-                                               this._extractEntityNameFromPlainText(strippedContent, 'item');
-                                } else if (!entityName) {
-                                    entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
-                                }
-                                
+                        } else {
+                            // Single entity in the list item
+                            let entityName = null;
+                            let currentEntityType = entityType;
+                            
+                            // Use contextual bias if available and entityType is 'both'
+                            if (entityType === 'both' && previousEntityType) {
+                                // Try the previous entity type first
+                                entityName = this._extractEntityNameFromPlainText(strippedContent, previousEntityType);
                                 if (entityName) {
-                                    // Update previous entity type for next iteration
-                                    if (entityType === 'both') {
-                                        previousEntityType = currentEntityType;
-                                    }
-                                    
-                                    entities.push({
-                                        type: 'html-list',
-                                        name: entityName,
-                                        startIndex: match.index,
-                                        endIndex: match.index + match[0].length,
-                                        fullMatch: match[0],
-                                        liStart: match.index,
-                                        liEnd: match.index + match[0].length,
-                                        originalContent: liContent
-                                    });
-                                } else {
-                                    // Debug logging for rejected entities
-                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected entity in HTML list`, 
-                                        `"${strippedContent}" -> null`, false, true, false);
+                                    currentEntityType = previousEntityType;
+                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using contextual bias`, 
+                                        `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, false, true, false);
                                 }
                             }
+                            
+                            // If no contextual match or no context, try both types
+                            if (!entityName && entityType === 'both') {
+                                entityName = this._extractEntityNameFromPlainText(strippedContent, 'actor') || 
+                                           this._extractEntityNameFromPlainText(strippedContent, 'item');
+                            } else if (!entityName) {
+                                entityName = this._extractEntityNameFromPlainText(strippedContent, entityType);
+                            }
+                            
+                            if (entityName) {
+                                // Update previous entity type for next iteration
+                                if (entityType === 'both') {
+                                    previousEntityType = currentEntityType;
+                                }
+                                
+                                entities.push({
+                                    type: 'html-list',
+                                    name: entityName,
+                                    startIndex: match.index,
+                                    endIndex: match.index + match[0].length,
+                                    fullMatch: match[0],
+                                    liStart: match.index,
+                                    liEnd: match.index + match[0].length,
+                                    originalContent: liContent
+                                });
+                            } else {
+                                // Debug logging for rejected entities
+                                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected entity in HTML list`, 
+                                    `"${strippedContent}" -> null`, false, true, false);
+                            }
+                        }
                     }
                 }
             }
@@ -1282,6 +1300,13 @@ export class JournalTools {
 
     // Determine entity type based on context and existing links
     static _determineEntityTypeFromContext(entity, pageContent, allEntities) {
+        // If we have a detected entity type from UUID analysis, use it (100% accurate)
+        if (entity.detectedEntityType) {
+            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using detected entity type from UUID`, 
+                `${entity.name}: ${entity.detectedEntityType}`, false, true, false);
+            return entity.detectedEntityType;
+        }
+        
         // If it's an existing link, determine type from the link itself
         if (entity.type === 'existing-link') {
             if (entity.fullMatch.includes('@Actor[') || entity.fullMatch.includes('Actor.')) {
@@ -1640,6 +1665,67 @@ export class JournalTools {
                 `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
+    }
+
+    // Check if an li tag contains actual entity candidates
+    static _containsEntityCandidates(liContent) {
+        const strippedContent = liContent.replace(/<[^>]+>/g, '').trim();
+        
+        // Skip if it's too short
+        if (strippedContent.length < 3) {
+            return false;
+        }
+        
+        // Skip if it ends with a period (likely a sentence)
+        if (strippedContent.endsWith('.')) {
+            return false;
+        }
+        
+        // Skip if it contains sentence indicators
+        const sentenceIndicators = [
+            ' is ', ' are ', ' was ', ' were ', ' has ', ' have ', ' had ',
+            ' the ', ' a ', ' an ', ' this ', ' that ', ' these ', ' those ',
+            ' with ', ' from ', ' into ', ' during ', ' including ', ' until ',
+            ' against ', ' among ', ' throughout ', ' despite ', ' towards ',
+            ' upon ', ' within ', ' without ', ' beneath ', ' underneath ',
+            ' above ', ' below ', ' behind ', ' beside ', ' between ',
+            ' reveals ', ' shows ', ' indicates ', ' suggests ', ' means ',
+            ' contains ', ' holds ', ' carries ', ' bears ', ' displays ',
+            ' pulses ', ' glows ', ' shines ', ' sparkles ', ' gleams ',
+            ' discovery ', ' finding ', ' location ', ' area ', ' region ',
+            ' chamber ', ' room ', ' hall ', ' passage ', ' corridor '
+        ];
+        
+        const lowerContent = strippedContent.toLowerCase();
+        for (const indicator of sentenceIndicators) {
+            if (lowerContent.includes(indicator)) {
+                return false;
+            }
+        }
+        
+        // Skip if it's too long (likely descriptive text)
+        if (strippedContent.length > 50) {
+            return false;
+        }
+        
+        // Skip if it contains too many words (likely a sentence)
+        const wordCount = strippedContent.split(/\s+/).length;
+        if (wordCount > 4) {
+            return false;
+        }
+        
+        // Skip if it doesn't contain proper nouns (capitalized words)
+        const hasProperNoun = /[A-Z][a-z]+/.test(strippedContent);
+        if (!hasProperNoun) {
+            return false;
+        }
+        
+        // Skip if it looks like a category label
+        if (strippedContent.endsWith(':') && strippedContent.split(':').length === 2) {
+            return false;
+        }
+        
+        return true;
     }
 } 
 
