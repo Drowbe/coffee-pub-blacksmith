@@ -123,6 +123,67 @@ div#journal-tools-window .window-content {
   font-size: 1.1em;
 }
 
+/* Journal Selector */
+.journal-tools-summary-item .journal-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.journal-tools-summary-item select#journal-selector {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 1em;
+  padding: 4px 8px;
+  min-width: 200px;
+  font-family: inherit;
+  flex: 1;
+}
+
+.journal-tools-summary-item select#journal-selector:focus {
+  outline: none;
+  border-color: rgba(255, 47, 47, 0.8);
+  box-shadow: 0 0 0 2px rgba(255, 47, 47, 0.2);
+}
+
+.journal-tools-summary-item select#journal-selector optgroup {
+  font-weight: 600;
+  color: rgba(255, 47, 47, 0.8);
+  background: #1a1a1a;
+}
+
+.journal-tools-summary-item select#journal-selector option {
+  background: #2a2a2a;
+  color: #e0e0e0;
+  padding: 2px 4px;
+}
+
+/* Open Journal Button */
+.journal-tools-summary-item .open-journal-btn {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e0e0e0;
+  cursor: pointer;
+  padding: 6px 8px;
+  transition: all 0.2s ease;
+  font-size: 0.9em;
+  line-height: 1;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.journal-tools-summary-item .open-journal-btn:hover {
+  border-color: rgba(255, 47, 47, 0.8);
+  background: #333;
+  color: rgba(255, 47, 47, 1.0);
+}
+
 /* Body */
 .journal-tools-body-scroll {
   flex: 1 1 auto;

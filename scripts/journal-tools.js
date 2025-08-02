@@ -2298,17 +2298,41 @@ class JournalToolsWindow extends FormApplication {
             id: "journal-tools-window",
             title: "Journal Tools",
             template: "modules/coffee-pub-blacksmith/templates/journal-tools-window.hbs",
-            width: 400,
-            height: 300,
+            width: 700,
+            height: 600,
             resizable: true,
             classes: ["journal-tools-window"]
         });
     }
 
     getData() {
+        // Get all journals organized by folder
+        const allJournals = game.journal.contents;
+        const journalFolders = {};
+        
+        // Group journals by folder
+        allJournals.forEach(journal => {
+            const folder = journal.folder?.name || 'No Folder';
+            if (!journalFolders[folder]) {
+                journalFolders[folder] = [];
+            }
+            journalFolders[folder].push({
+                id: journal.id,
+                name: journal.name,
+                selected: journal.id === this.journal.id
+            });
+        });
+        
+        // Convert to array format for template
+        const availableJournals = Object.keys(journalFolders).map(folderName => ({
+            folderName: folderName,
+            journals: journalFolders[folderName].sort((a, b) => a.name.localeCompare(b.name))
+        })).sort((a, b) => a.folderName.localeCompare(b.folderName));
+        
         return {
             journalName: this.journal.name,
             journalId: this.journal.id,
+            availableJournals: availableJournals,
             searchWorldActorsFirst: game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst'),
             searchWorldActorsLast: game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast'),
             searchWorldItemsFirst: game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst'),
@@ -2329,6 +2353,7 @@ class JournalToolsWindow extends FormApplication {
         html.find('.apply-tools').click(this._onApplyTools.bind(this));
         html.find('.cancel-tools').click(this._onCancelTools.bind(this));
         html.find('.copy-status-btn').click(this._onCopyStatus.bind(this));
+        html.find('.open-journal-btn').click(this._onOpenJournal.bind(this));
     }
 
     async _onApplyTools(event) {
@@ -2348,6 +2373,19 @@ class JournalToolsWindow extends FormApplication {
             const upgradeActors = formData.get('upgradeActors') === 'true';
             const upgradeItems = formData.get('upgradeItems') === 'true';
             const upgradeMacros = formData.get('upgradeMacros') === 'true';
+            
+            // Get selected journal
+            const selectedJournalId = formData.get('selectedJournalId');
+            const selectedJournal = game.journal.get(selectedJournalId);
+            
+            if (!selectedJournal) {
+                ui.notifications.error("Selected journal not found");
+                return;
+            }
+            
+            // Clear status area for fresh start
+            this.element.find('#status-area').empty();
+            this.addStatusMessage("Ready to process...", "info");
 
             // Debug logging
             postConsoleAndNotification("Journal Tools: Form data debug", 
@@ -2426,7 +2464,7 @@ class JournalToolsWindow extends FormApplication {
 
             if (upgradeActors || upgradeItems || upgradeMacros) {
                 this.addStatusMessage(`Processing: Actors=${upgradeActors}, Items=${upgradeItems}, Macros=${upgradeMacros}`, "info");
-                await JournalTools._upgradeJournalLinksUnified(this.journal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback, pageProgressCallback, statusCallback, stopCallback);
+                await JournalTools._upgradeJournalLinksUnified(selectedJournal, upgradeActors, upgradeItems, upgradeMacros, overallProgressCallback, pageProgressCallback, statusCallback, stopCallback);
             }
 
             // Check if processing was stopped
@@ -2525,6 +2563,36 @@ class JournalToolsWindow extends FormApplication {
             }
         } catch (error) {
             postConsoleAndNotification("Journal Tools: Error copying status", error.message, false, false, false);
+        }
+    }
+
+    _onOpenJournal(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        try {
+            // Get the selected journal ID from the dropdown
+            const selectedJournalId = this.element.find('#journal-selector').val();
+            
+            if (!selectedJournalId) {
+                ui.notifications.warn("No journal selected");
+                return;
+            }
+            
+            // Get the journal and open it
+            const journal = game.journal.get(selectedJournalId);
+            
+            if (!journal) {
+                ui.notifications.error("Selected journal not found");
+                return;
+            }
+            
+            // Open the journal sheet
+            journal.sheet.render(true);
+            
+        } catch (error) {
+            postConsoleAndNotification("Journal Tools: Error opening journal", error, false, false, false);
+            ui.notifications.error(`Error opening journal: ${error.message}`);
         }
     }
 

@@ -9,7 +9,20 @@
       <div class="journal-tools-summary-row">
         <div class="journal-tools-summary-item">
           <span class="label">Journal</span>
-          <span class="journal-name">{{journalName}}</span>
+          <div class="journal-selector-container">
+            <select id="journal-selector" name="selectedJournalId">
+              {{#each availableJournals}}
+                <optgroup label="{{folderName}}">
+                  {{#each journals}}
+                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+                  {{/each}}
+                </optgroup>
+              {{/each}}
+            </select>
+            <button type="button" class="open-journal-btn" id="open-journal-btn" title="Open selected journal">
+              <i class="fas fa-feather"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
