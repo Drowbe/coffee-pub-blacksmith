@@ -403,23 +403,27 @@ div#journal-tools-window .window-content {
 }
 
 .status-message.system {
-  color: rgba(204, 35, 190, 0.7);
+  color: rgba(255, 115, 64, 0.9);
 }
 
 .status-message.report-header {
-  color: rgba(20, 147, 197, 0.692)
+  color: rgba(83, 174, 211, 0.9);
+  font-size: 1.2em;
+  font-weight: 900;
 }
 .status-message.report-subheader {
-  color: rgba(20, 147, 197, 0.692)
+  color: rgba(83, 174, 211, 0.6);
+  font-size: 1.1em;
+  font-weight: 700;
 }
 .status-message.report-content {
-  color: rgba(20, 147, 197, 0.692)
+  color: rgba(176, 206, 218, 0.9)
 }
 .status-message.report-line-thick {
-  color: rgba(20, 147, 197, 0.692)
+  color: rgba(83, 174, 211, 0.9)
 }
 .status-message.report-line-thin {
-  color: rgba(20, 147, 197, 0.692)
+  color: rgba(83, 174, 211, 0.5)
 }
 
 

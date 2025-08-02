@@ -295,9 +295,9 @@ export class JournalTools {
                 await new Promise(resolve => setTimeout(resolve, 10));
                 
                 // Page processing header
-                logStatus("========================================================");
-                logStatus(`PROCESSING: ${page.name.toUpperCase()}`);
-                logStatus("========================================================");
+                logStatus("========================================================", "report-line-thick");
+                logStatus(`PROCESSING: ${page.name.toUpperCase()}`, "report-header");
+                logStatus("========================================================", "report-line-thick");
                 
                 // Collect all potential entities from all scanning methods
                 const allEntities = [];
@@ -555,13 +555,13 @@ export class JournalTools {
                 updatePageProgress(100, "Page complete!");
                 
                 // Page report
-                logStatus("========================================================");
-                logStatus(`RESULTS: ${page.name.toUpperCase()}`);
-                logStatus("========================================================");
-                logStatus(`ACTORS: ${pageActorUpgraded} Upgraded, ${pageActorSkipped} Skipped, ${pageActorCreated} Created, ${pageActorErrors} Errors`);
-                logStatus(`ITEMS:  ${pageItemUpgraded} Upgraded, ${pageItemSkipped} Skipped, ${pageItemCreated} Created, ${pageItemErrors} Errors`);
-                logStatus(`MACROS: ${pageMacroUpgraded} Upgraded, ${pageMacroSkipped} Skipped, ${pageMacroCreated} Created, ${pageMacroErrors} Errors`);
-                logStatus("========================================================");
+                logStatus("========================================================", "report-line-thick");
+                logStatus(`RESULTS: ${page.name.toUpperCase()}`, "report-header");
+                logStatus("========================================================", "report-line-thick");
+                logStatus(`ACTORS: ${pageActorUpgraded} Upgraded, ${pageActorSkipped} Skipped, ${pageActorCreated} Created, ${pageActorErrors} Errors`, "report-content");
+                logStatus(`ITEMS:  ${pageItemUpgraded} Upgraded, ${pageItemSkipped} Skipped, ${pageItemCreated} Created, ${pageItemErrors} Errors`, "report-content");
+                logStatus(`MACROS: ${pageMacroUpgraded} Upgraded, ${pageMacroSkipped} Skipped, ${pageMacroCreated} Created, ${pageMacroErrors} Errors`, "report-content");
+                logStatus("========================================================", "report-line-thick");
                 
                 // Accumulate page-level counters to global counters
                 actorLinksSkipped += pageActorSkipped;
@@ -583,46 +583,46 @@ export class JournalTools {
             updateOverallProgress(100, "Complete!");
             logStatus("");
             logStatus("");
-            logStatus("Journal tools processing completed successfully!");
+            logStatus("Journal tools processing completed successfully!", "system");
             logStatus("");
-            logStatus("========================================================");
-            logStatus(`FINAL RESLUTS: ${journal.name.toUpperCase()}`);
-            logStatus("========================================================");
-            logStatus("ACTORS");
-            logStatus(`- ${actorLinksSkipped} Actor Links Skipped`);
-            logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`);
-            logStatus(`- ${actorLinksCreated} Actor Links Created`);
-            logStatus(`- ${actorErrors} Actor Errors`);
-            logStatus("--------------------------------------------------------");
-            logStatus("ITEMS");
-            logStatus(`- ${itemLinksSkipped} Item Links Skipped`);
-            logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`);
-            logStatus(`- ${itemLinksCreated} Item Links Created`);
-            logStatus(`- ${itemErrors} Item Errors`);
-            logStatus("--------------------------------------------------------");
-            logStatus("MACROS");
-            logStatus(`- ${macroLinksSkipped || 0} Macro Links Skipped`);
-            logStatus(`- ${macroLinksUpgraded || 0} Macro Links Upgraded`);
-            logStatus(`- ${macroLinksCreated || 0} Macro Links Created`);
-            logStatus(`- ${macroErrors || 0} Macro Errors`);
-            logStatus("--------------------------------------------------------");
-            logStatus("SETTINGS");
-            logStatus(`- Actors=${upgradeActors}`);
-            logStatus(`- Items=${upgradeItems}`);
-            logStatus(`- Macros=${upgradeMacros}`);
-            logStatus(`- Search World Items First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst')}`);
-            logStatus(`- Search World Actors First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst')}`);
-            logStatus(`- Search World Items Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast')}`);
-            logStatus(`- Search World Actors Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast')}`);
-            logStatus("--------------------------------------------------------");
-            logStatus("TOTALS");
-            logStatus(`- ${pages.length} Pages Processed`);
-            logStatus(`- ${totalFoundInCompendium + totalFoundInWorld} Entities Processed`);
-            logStatus(`- ${actorLinksSkipped + itemLinksSkipped + (macroLinksSkipped || 0)} Links Skipped`);
-            logStatus(`- ${actorLinksUpgraded + itemLinksUpgraded + (macroLinksUpgraded || 0)} Links Upgraded`);
-            logStatus(`- ${actorLinksCreated + itemLinksCreated + (macroLinksCreated || 0)} Links Created`);
-            logStatus(`- ${actorErrors + itemErrors + (macroErrors || 0)} Errors`);
-            logStatus("========================================================");
+            logStatus("========================================================", "report-line-thick");
+            logStatus(`FINAL REPORT: ${journal.name.toUpperCase()}`, "report-header");
+            logStatus("========================================================", "report-line-thick");
+            logStatus("ACTORS", "report-subheader");
+            logStatus(`- ${actorLinksSkipped} Actor Links Skipped`, "report-content");
+            logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`, "report-content");
+            logStatus(`- ${actorLinksCreated} Actor Links Created`, "report-content");
+            logStatus(`- ${actorErrors} Actor Errors`, "report-content");
+            logStatus("--------------------------------------------------------", "report-line-thin");
+            logStatus("ITEMS", "report-subheader");
+            logStatus(`- ${itemLinksSkipped} Item Links Skipped`, "report-content");
+            logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`, "report-content");
+            logStatus(`- ${itemLinksCreated} Item Links Created`, "report-content");
+            logStatus(`- ${itemErrors} Item Errors`, "report-content");
+            logStatus("--------------------------------------------------------", "report-line-thin");
+            logStatus("MACROS", "report-subheader");
+            logStatus(`- ${macroLinksSkipped || 0} Macro Links Skipped`, "report-content");
+            logStatus(`- ${macroLinksUpgraded || 0} Macro Links Upgraded`, "report-content");
+            logStatus(`- ${macroLinksCreated || 0} Macro Links Created`, "report-content");
+            logStatus(`- ${macroErrors || 0} Macro Errors`, "report-content");
+            logStatus("--------------------------------------------------------", "report-line-thin");
+            logStatus("SETTINGS", "report-subheader");
+            logStatus(`- Actors=${upgradeActors}`, "report-content");
+            logStatus(`- Items=${upgradeItems}`, "report-content");
+            logStatus(`- Macros=${upgradeMacros}`, "report-content");
+            logStatus(`- Search World Items First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst')}`, "report-content");
+            logStatus(`- Search World Actors First: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst')}`, "report-content");
+            logStatus(`- Search World Items Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast')}`, "report-content");
+            logStatus(`- Search World Actors Last: ${game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast')}`, "report-content");
+            logStatus("--------------------------------------------------------", "report-line-thin");
+            logStatus("TOTALS", "report-subheader");
+            logStatus(`- ${pages.length} Pages Processed`, "report-content");
+            logStatus(`- ${totalFoundInCompendium + totalFoundInWorld} Entities Processed`, "report-content");
+            logStatus(`- ${actorLinksSkipped + itemLinksSkipped + (macroLinksSkipped || 0)} Links Skipped`, "report-content");
+            logStatus(`- ${actorLinksUpgraded + itemLinksUpgraded + (macroLinksUpgraded || 0)} Links Upgraded`, "report-content");
+            logStatus(`- ${actorLinksCreated + itemLinksCreated + (macroLinksCreated || 0)} Links Created`, "report-content");
+            logStatus(`- ${actorErrors + itemErrors + (macroErrors || 0)} Errors`, "report-content");
+            logStatus("========================================================", "report-line-thick");
             
         } catch (error) {
             postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
