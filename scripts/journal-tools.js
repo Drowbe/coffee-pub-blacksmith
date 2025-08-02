@@ -2,13 +2,32 @@
 // ===== JOURNAL TOOLS ==============================================
 // ================================================================== 
 
-import { MODULE_ID } from './const.js';
+import { MODULE_ID, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class JournalTools {
-    static init() {
+    static async init() {
         Hooks.on('renderJournalSheet', this._onRenderJournalSheet.bind(this));
         Hooks.on('settingChange', this._onSettingChange.bind(this));
+        
+        // Register Handlebars partials
+        await this._registerPartials();
+    }
+
+    static async _registerPartials() {
+        try {
+            // Load and register the entity replacement partial
+            const entityReplacementTemplate = await fetch(BLACKSMITH.JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL).then(response => response.text());
+            Handlebars.registerPartial('partials/entity-replacement', entityReplacementTemplate);
+            
+            // Load and register the search & replace partial
+            const searchReplaceTemplate = await fetch(BLACKSMITH.JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL).then(response => response.text());
+            Handlebars.registerPartial('partials/search-replace', searchReplaceTemplate);
+            
+            postConsoleAndNotification("Journal Tools: Partials registered successfully", "", false, false, false);
+        } catch (error) {
+            postConsoleAndNotification("Journal Tools: Error registering partials", error.message, false, false, false);
+        }
     }
 
     static _onSettingChange(moduleId, key, value) {
@@ -2397,6 +2416,7 @@ export class JournalToolsWindow extends FormApplication {
         html.find('.apply-tools').click(this._onApplyTools.bind(this));
         html.find('.cancel-tools').click(this._onCancelTools.bind(this));
         html.find('.copy-status-btn').click(this._onCopyStatus.bind(this));
+        html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));
         html.find('.open-journal-btn').click(this._onOpenJournal.bind(this));
         
         // Tab switching
