@@ -27,11 +27,11 @@ export class JournalTools {
     static async _onRenderJournalSheet(app, html, data) {
         // Only add the tools icon if the feature is enabled
         const enableJournalTools = game.settings.get('coffee-pub-blacksmith', 'enableJournalTools');
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: renderJournalSheet hook called", 
+        postConsoleAndNotification("Journal Tools: renderJournalSheet hook called", 
             `enableJournalTools: ${enableJournalTools}`, false, true, false);
         
         if (!enableJournalTools) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Feature disabled", 
+            postConsoleAndNotification("Journal Tools: Feature disabled", 
                 "enableJournalTools setting is false", false, true, false);
             return;
         }
@@ -73,7 +73,7 @@ export class JournalTools {
                 <i class="fas fa-feather"></i>
             </a>
         `);
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Created tools icon", 
+        postConsoleAndNotification("Journal Tools: Created tools icon", 
             "Icon element created", false, true, false);
 
         // Add click handler
@@ -95,7 +95,7 @@ export class JournalTools {
             windowHeader.append(toolsIcon);
         }
 
-        postConsoleAndNotification("BLACKSMITH | Journal Tools: Added tools icon to journal window", "", false, false, false);
+        postConsoleAndNotification("Journal Tools: Added tools icon to journal window", "", false, false, false);
     }
 
     static _openToolsDialog(html) {
@@ -109,12 +109,12 @@ export class JournalTools {
             } else {
                 // Fallback: try to get from the HTML data
                 journal = html.data('journal');
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Found journal via HTML data", 
+                postConsoleAndNotification("Journal Tools: Found journal via HTML data", 
                     journal ? `Journal: ${journal.name}` : 'No journal found', false, true, false);
             }
 
             if (!journal) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Could not find journal entry", 
+                postConsoleAndNotification("Journal Tools: Could not find journal entry", 
                     `Primary: ${app?.document?.name}, Alternative: ${html.data('journal')?.name}`, false, true, false);
                 ui.notifications.error("Could not find journal entry");
                 return;
@@ -124,7 +124,7 @@ export class JournalTools {
             new JournalToolsWindow(journal).render(true);
 
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error opening tools dialog", 
+            postConsoleAndNotification("Journal Tools: Error opening tools dialog", 
                 error.message, false, false, true);
             ui.notifications.error(`Error opening journal tools: ${error.message}`);
         }
@@ -134,13 +134,13 @@ export class JournalTools {
     static async _processToolRequest(journal, upgradeActors, upgradeItems) {
         try {
             if (upgradeActors || upgradeItems) {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Starting unified upgrade", 
+                postConsoleAndNotification("Journal Tools: Starting unified upgrade", 
                     `Journal: ${journal.name}, Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
                 await this._upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems);
             }
 
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error processing tool request", 
+            postConsoleAndNotification("Journal Tools: Error processing tool request", 
                 error.message, false, false, false);
             throw error;
         }
@@ -150,7 +150,7 @@ export class JournalTools {
     static async _upgradeJournalLinks(journal, entityType) {
         try {
             const entityLabel = entityType === 'actor' ? 'Actor' : 'Item';
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Starting ${entityType} link upgrade`, 
+            postConsoleAndNotification(`Journal Tools: Starting ${entityType} link upgrade`, 
                 `Journal: ${journal.name}`, false, true, false);
             
             // Get all pages in the journal
@@ -164,7 +164,7 @@ export class JournalTools {
                 if (!pageContent) continue;
                 
                 // Debug: Show the content we're working with
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Page content preview`, 
+                postConsoleAndNotification(`Journal Tools: Page content preview`, 
                     `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
                 
                 // Scan for existing links in this page
@@ -187,7 +187,7 @@ export class JournalTools {
                     ...htmlEntities
                 ];
                 
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${allEntities.length} ${entityType}s to process`, 
+                postConsoleAndNotification(`Journal Tools: Found ${allEntities.length} ${entityType}s to process`, 
                     `Page: ${page.name}`, false, true, false);
                 
                 // Process each entity
@@ -204,7 +204,7 @@ export class JournalTools {
                             totalSkipped++;
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading ${entityType}`, 
+                        postConsoleAndNotification(`Journal Tools: Error upgrading ${entityType}`, 
                             `${entity.name}: ${error.message}`, false, false, false);
                         totalErrors++;
                     }
@@ -213,16 +213,16 @@ export class JournalTools {
                 // Update the page if content changed
                 if (contentChanged) {
                     await page.update({ 'text.content': pageContent });
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Updated page`, 
+                    postConsoleAndNotification(`Journal Tools: Updated page`, 
                         `${page.name} - ${totalUpgraded} ${entityType}s upgraded`, false, true, false);
                 }
             }
             
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityLabel} upgrade complete`, 
+            postConsoleAndNotification(`Journal Tools: ${entityLabel} upgrade complete`, 
                 `Upgraded: ${totalUpgraded}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`, false, true, false);
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in ${entityType} upgrade`, 
+            postConsoleAndNotification(`Journal Tools: Error in ${entityType} upgrade`, 
                 error.message, false, false, false);
             throw error;
         }
@@ -233,7 +233,7 @@ export class JournalTools {
         try {
             const logStatus = (message, type = "info") => {
                 if (statusCallback) statusCallback(message, type);
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: " + message, "", false, false, false);
+                postConsoleAndNotification("Journal Tools: " + message, "", false, false, false);
             };
             
             const updateOverallProgress = (percentage, message) => {
@@ -271,6 +271,13 @@ export class JournalTools {
             let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
             let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
             let macroLinksSkipped = 0, macroLinksUpgraded = 0, macroLinksCreated = 0, macroErrors = 0;
+            
+            // Track skip reasons
+            let skipReasons = {
+                actors: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
+                items: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
+                macros: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0 }
+            };
             
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
                 // Check for stop request
@@ -398,12 +405,28 @@ export class JournalTools {
                         if (entity.type === 'existing-link' && existing.type !== 'existing-link') {
                             seen.set(key, entity);
                             logStatus(`Replacing plain text with existing link: ${entity.name}`, "info");
-                        } else if (entity.type === 'existing-link' && existing.type === 'existing-link') {
+                        } else                         if (entity.type === 'existing-link' && existing.type === 'existing-link') {
                             // Both are existing links - keep the first one
-                            logStatus(`Skipping duplicate existing link: ${entity.name}`, "warning");
+                            const entityType = this._determineEntityTypeFromContext(entity, pageContent, allEntities);
+                            const typeLabel = entityType === 'actor' ? 'Actor' : entityType === 'item' ? 'Item' : 'Entity';
+                            logStatus(`${typeLabel}: Skipped (Duplicate): ${entity.name}`, "warning");
+                            // Track skip reason
+                            if (entityType === 'actor' || entityType === 'both') {
+                                skipReasons.actors.duplicate++;
+                            } else {
+                                skipReasons.items.duplicate++;
+                            }
                         } else {
                             // Both are plain text or other types - keep the first one
-                            logStatus(`Skipping duplicate: ${entity.name}`, "warning");
+                            const entityType = this._determineEntityTypeFromContext(entity, pageContent, allEntities);
+                            const typeLabel = entityType === 'actor' ? 'Actor' : entityType === 'item' ? 'Item' : 'Entity';
+                            logStatus(`${typeLabel}: Skipped (Duplicate): ${entity.name}`, "warning");
+                            // Track skip reason
+                            if (entityType === 'actor' || entityType === 'both') {
+                                skipReasons.actors.duplicate++;
+                            } else {
+                                skipReasons.items.duplicate++;
+                            }
                         }
                     }
                 }
@@ -444,34 +467,50 @@ export class JournalTools {
                             const result = await this._upgradeEntityLinkUnified(entity, pageContent, entityType);
                             
                             // Track different types of results
-                            if (result.foundInWorld && !result.foundInCompendium) {
+                            if (result.skipReason) {
+                                // Handle skip reasons
+                                totalSkipped++;
+                                const typeLabel = entityType === 'actor' ? 'Actor' : entityType === 'item' ? 'Item' : 'Entity';
+                                if (result.skipReason === 'alreadyOptimal') {
+                                    logStatus(`${typeLabel}: Skipped (Already Optimal): ${entity.name}`, "warning");
+                                    if (entityType === 'actor' || entityType === 'both') {
+                                        pageActorSkipped++;
+                                        skipReasons.actors.alreadyOptimal++;
+                                    } else {
+                                        pageItemSkipped++;
+                                        skipReasons.items.alreadyOptimal++;
+                                    }
+                                } else if (result.skipReason === 'notFound') {
+                                    logStatus(`${typeLabel}: Skipped (Not Found): ${entity.name}`, "warning");
+                                    if (entityType === 'actor' || entityType === 'both') {
+                                        pageActorSkipped++;
+                                        skipReasons.actors.notFound++;
+                                    } else {
+                                        pageItemSkipped++;
+                                        skipReasons.items.notFound++;
+                                    }
+                                }
+                            } else if (result.foundInWorld && !result.foundInCompendium) {
                                 totalFoundInWorld++;
-                                logStatus(`✓ Found in world: ${entity.name}`, "success");
+                                const typeLabel = result.foundEntityType === 'actor' ? 'Actor' : 'Item';
+                                logStatus(`✓ ${typeLabel}: Found in world: ${entity.name}`, "success");
                             } else if (result.foundInCompendium) {
                                 totalFoundInCompendium++;
+                                const typeLabel = result.foundEntityType === 'actor' ? 'Actor' : 'Item';
                                 if (entity.type === 'existing-link') {
-                                    logStatus(`✓ Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
+                                    logStatus(`✓ ${typeLabel}: Upgraded to ${result.compendiumName}: ${entity.name}`, "success");
                                     if (result.foundEntityType === 'actor') {
                                         pageActorUpgraded++;
                                     } else if (result.foundEntityType === 'item') {
                                         pageItemUpgraded++;
                                     }
                                 } else {
-                                    logStatus(`✓ Linked to ${result.compendiumName}: ${entity.name}`, "success");
+                                    logStatus(`✓ ${typeLabel}: Linked to ${result.compendiumName}: ${entity.name}`, "success");
                                     if (result.foundEntityType === 'actor') {
                                         pageActorCreated++;
                                     } else if (result.foundEntityType === 'item') {
                                         pageItemCreated++;
                                     }
-                                }
-                            } else {
-                                totalSkipped++;
-                                logStatus(`- No match found: ${entity.name}`, "warning");
-                                // Estimate actor vs item for skips based on entity type bias
-                                if (entityType === 'actor' || entityType === 'both') {
-                                    pageActorSkipped++;
-                                } else {
-                                    pageItemSkipped++;
                                 }
                             }
                             
@@ -484,7 +523,7 @@ export class JournalTools {
                         } catch (error) {
                             totalErrors++;
                             // Log errors to console instead of UI
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error processing entity`, 
+                            postConsoleAndNotification(`Journal Tools: Error processing entity`, 
                                 `${entity.name}: ${error.message}`, false, false, false);
                             logStatus(`✗ Error processing ${entity.name}`, "error");
                             
@@ -528,10 +567,11 @@ export class JournalTools {
                                 pageContent = result.newContent;
                                 contentChanged = true;
                                 pageMacroUpgraded++;
-                                logStatus(`✓ Macro upgraded: ${macro.name}`, "success");
+                                logStatus(`✓ Macro: Upgraded: ${macro.name}`, "success");
                             } else {
                                 pageMacroSkipped++;
-                                logStatus(`- Macro not found: ${macro.name}`, "warning");
+                                skipReasons.macros.notFound++;
+                                logStatus(`Macro: Skipped (Not Found): ${macro.name}`, "warning");
                             }
                         } catch (error) {
                             pageMacroErrors++;
@@ -590,18 +630,38 @@ export class JournalTools {
             logStatus("========================================================", "report-line-thick");
             logStatus("ACTORS", "report-subheader");
             logStatus(`- ${actorLinksSkipped} Actor Links Skipped`, "report-content");
+            if (actorLinksSkipped > 0) {
+                if (skipReasons.actors.alreadyOptimal > 0) logStatus(`  • ${skipReasons.actors.alreadyOptimal} Already Optimal`, "report-content");
+                if (skipReasons.actors.notFound > 0) logStatus(`  • ${skipReasons.actors.notFound} Not Found`, "report-content");
+                if (skipReasons.actors.duplicate > 0) logStatus(`  • ${skipReasons.actors.duplicate} Duplicate`, "report-content");
+                if (skipReasons.actors.invalidName > 0) logStatus(`  • ${skipReasons.actors.invalidName} Invalid Name`, "report-content");
+                if (skipReasons.actors.compendiumNone > 0) logStatus(`  • ${skipReasons.actors.compendiumNone} Compendium None`, "report-content");
+            }
             logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`, "report-content");
             logStatus(`- ${actorLinksCreated} Actor Links Created`, "report-content");
             logStatus(`- ${actorErrors} Actor Errors`, "report-content");
             logStatus("--------------------------------------------------------", "report-line-thin");
             logStatus("ITEMS", "report-subheader");
             logStatus(`- ${itemLinksSkipped} Item Links Skipped`, "report-content");
+            if (itemLinksSkipped > 0) {
+                if (skipReasons.items.alreadyOptimal > 0) logStatus(`  • ${skipReasons.items.alreadyOptimal} Already Optimal`, "report-content");
+                if (skipReasons.items.notFound > 0) logStatus(`  • ${skipReasons.items.notFound} Not Found`, "report-content");
+                if (skipReasons.items.duplicate > 0) logStatus(`  • ${skipReasons.items.duplicate} Duplicate`, "report-content");
+                if (skipReasons.items.invalidName > 0) logStatus(`  • ${skipReasons.items.invalidName} Invalid Name`, "report-content");
+                if (skipReasons.items.compendiumNone > 0) logStatus(`  • ${skipReasons.items.compendiumNone} Compendium None`, "report-content");
+            }
             logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`, "report-content");
             logStatus(`- ${itemLinksCreated} Item Links Created`, "report-content");
             logStatus(`- ${itemErrors} Item Errors`, "report-content");
             logStatus("--------------------------------------------------------", "report-line-thin");
             logStatus("MACROS", "report-subheader");
             logStatus(`- ${macroLinksSkipped || 0} Macro Links Skipped`, "report-content");
+            if ((macroLinksSkipped || 0) > 0) {
+                if (skipReasons.macros.alreadyOptimal > 0) logStatus(`  • ${skipReasons.macros.alreadyOptimal} Already Optimal`, "report-content");
+                if (skipReasons.macros.notFound > 0) logStatus(`  • ${skipReasons.macros.notFound} Not Found`, "report-content");
+                if (skipReasons.macros.duplicate > 0) logStatus(`  • ${skipReasons.macros.duplicate} Duplicate`, "report-content");
+                if (skipReasons.macros.invalidName > 0) logStatus(`  • ${skipReasons.macros.invalidName} Invalid Name`, "report-content");
+            }
             logStatus(`- ${macroLinksUpgraded || 0} Macro Links Upgraded`, "report-content");
             logStatus(`- ${macroLinksCreated || 0} Macro Links Created`, "report-content");
             logStatus(`- ${macroErrors || 0} Macro Errors`, "report-content");
@@ -625,7 +685,7 @@ export class JournalTools {
             logStatus("========================================================", "report-line-thick");
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error in unified upgrade`, 
+            postConsoleAndNotification(`Journal Tools: Error in unified upgrade`, 
                 error.message, false, false, false);
             throw error;
         }
@@ -688,7 +748,7 @@ export class JournalTools {
             if (isRelevantSection) {
                 inRelevantSection = true;
                 foundAnySection = true;
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found relevant section`, 
+                postConsoleAndNotification(`Journal Tools: Found relevant section`, 
                     `${line}`, false, true, false);
                 continue;
             }
@@ -703,7 +763,7 @@ export class JournalTools {
             
             // Check if this is a bullet list item
             if (this._isBulletListItem(line)) {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found bullet item`, 
+                postConsoleAndNotification(`Journal Tools: Found bullet item`, 
                     `Line ${i}: "${line}"`, false, true, false);
                 
                 // First, try to extract from the bullet line itself
@@ -714,7 +774,7 @@ export class JournalTools {
                     // Look ahead up to 3 lines to find the entity name
                     for (let j = 1; j <= 3 && i + j < lines.length; j++) {
                         const nextLine = lines[i + j].trim();
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Checking line ${i + j}`, 
+                        postConsoleAndNotification(`Journal Tools: Checking line ${i + j}`, 
                             `"${nextLine}"`, false, true, false);
                         
                         // If we hit another bullet or heading, stop looking
@@ -727,7 +787,7 @@ export class JournalTools {
                             entityName = this._extractEntityNameFromPlainText(nextLine, entityType);
                             
                             if (entityName) {
-                                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity on line ${i + j}`, 
+                                postConsoleAndNotification(`Journal Tools: Found entity on line ${i + j}`, 
                                     `${entityName}`, false, true, false);
                                 entities.push({
                                     type: 'bullet-list',
@@ -741,7 +801,7 @@ export class JournalTools {
                         }
                     }
                 } else if (entityName) {
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity on bullet line`, 
+                    postConsoleAndNotification(`Journal Tools: Found entity on bullet line`, 
                         `${entityName}`, false, true, false);
                     entities.push({
                         type: 'bullet-list',
@@ -820,15 +880,15 @@ export class JournalTools {
                                 if (strippedContent.toLowerCase().includes('actor')) {
                                     detectedEntityType = 'actor';
                                     previousEntityType = 'actor';
-                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found Actor UUID`, 
+                                    postConsoleAndNotification(`Journal Tools: Found Actor UUID`, 
                                         `"${displayName}" - bypassing validation`, false, true, false);
                                 } else if (strippedContent.toLowerCase().includes('item')) {
                                     detectedEntityType = 'item';
                                     previousEntityType = 'item';
-                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found Item UUID`, 
+                                    postConsoleAndNotification(`Journal Tools: Found Item UUID`, 
                                         `"${displayName}" - bypassing validation`, false, true, false);
                                 } else {
-                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found generic UUID`, 
+                                    postConsoleAndNotification(`Journal Tools: Found generic UUID`, 
                                         `"${displayName}" - processing as potential entity`, false, true, false);
                                 }
                             }
@@ -849,7 +909,7 @@ export class JournalTools {
                     } else {
                         // Check if this li tag contains actual entity candidates before processing
                         if (!this._containsEntityCandidates(liContent)) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Skipping li tag - no entity candidates`, 
+                            postConsoleAndNotification(`Journal Tools: Skipping li tag - no entity candidates`, 
                                 `"${strippedContent}"`, false, true, false);
                             continue;
                         }
@@ -899,7 +959,7 @@ export class JournalTools {
                                 entityName = this._extractEntityNameFromPlainText(strippedContent, previousEntityType);
                                 if (entityName) {
                                     currentEntityType = previousEntityType;
-                                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using contextual bias`, 
+                                    postConsoleAndNotification(`Journal Tools: Using contextual bias`, 
                                         `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, false, true, false);
                                 }
                             }
@@ -930,7 +990,7 @@ export class JournalTools {
                                 });
                             } else {
                                 // Debug logging for rejected entities
-                                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected entity in HTML list`, 
+                                postConsoleAndNotification(`Journal Tools: Rejected entity in HTML list`, 
                                     `"${strippedContent}" -> null`, false, true, false);
                             }
                         }
@@ -1102,26 +1162,26 @@ export class JournalTools {
         let entityName = line.trim();
         
         // Debug logging for entity extraction
-        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Extracting entity from plain text`, 
+        postConsoleAndNotification(`Journal Tools: Extracting entity from plain text`, 
             `"${entityName}" (${entityType})`, false, true, false);
         
         // Skip if it's too short or too long
         if (entityName.length < 2 || entityName.length > 100) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - length check`, 
+            postConsoleAndNotification(`Journal Tools: Rejected - length check`, 
                 `${entityName.length} chars`, false, true, false);
             return null;
         }
         
         // Skip if it's just whitespace
         if (entityName === '') {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - empty`, 
+            postConsoleAndNotification(`Journal Tools: Rejected - empty`, 
                 `"${entityName}"`, false, true, false);
             return null;
         }
         
         // Skip if it ends with a period (likely a sentence)
         if (entityName.endsWith('.')) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - ends with period`, 
+            postConsoleAndNotification(`Journal Tools: Rejected - ends with period`, 
                 `"${entityName}"`, false, true, false);
             return null;
         }
@@ -1141,17 +1201,17 @@ export class JournalTools {
         
         // Skip if it looks like a category label (ends with colon and no content after)
         if (entityName.endsWith(':') && entityName.split(':').length === 2 && entityName.split(':')[1].trim() === '') {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - category label`, 
+            postConsoleAndNotification(`Journal Tools: Rejected - category label`, 
                 `"${entityName}"`, false, true, false);
             return null;
         }
         
         const result = entityName.length > 0 ? entityName : null;
         if (result) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Accepted entity`, 
+            postConsoleAndNotification(`Journal Tools: Accepted entity`, 
                 `"${entityName}" -> "${result}"`, false, true, false);
         } else {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Rejected - final check`, 
+            postConsoleAndNotification(`Journal Tools: Rejected - final check`, 
                 `"${entityName}" -> null`, false, true, false);
         }
         return result;
@@ -1160,7 +1220,7 @@ export class JournalTools {
     // Generic method to upgrade a single entity link
     static async _upgradeEntityLink(entity, content, entityType) {
         try {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Processing ${entityType}`, 
+            postConsoleAndNotification(`Journal Tools: Processing ${entityType}`, 
                 `${entity.name} (${entity.type})`, false, true, false);
             
             // Find the entity in compendiums
@@ -1168,13 +1228,13 @@ export class JournalTools {
             
             // If not found in the specific entity type compendiums, try searching both
             if (!uuid) {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} not found, trying both compendiums`, 
+                postConsoleAndNotification(`Journal Tools: ${entityType} not found, trying both compendiums`, 
                     entity.name, false, true, false);
                 uuid = await this._findEntityInBothCompendiums(entity.name);
             }
             
             if (!uuid) {
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium`, 
+                            postConsoleAndNotification(`Journal Tools: Entity not found in any compendium`, 
                 entity.name, false, true, false);
             return content;
         }
@@ -1206,13 +1266,13 @@ export class JournalTools {
             newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
         }
             
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded ${entityType}`, 
+            postConsoleAndNotification(`Journal Tools: Successfully upgraded ${entityType}`, 
                 `${entity.name} -> ${newLink}`, false, true, false);
             
             return newContent;
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading ${entityType}`, 
+            postConsoleAndNotification(`Journal Tools: Error upgrading ${entityType}`, 
                 `${entity.name}: ${error.message}`, false, false, false);
             return content;
         }
@@ -1231,7 +1291,7 @@ export class JournalTools {
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching for ${entityType}`, 
+            postConsoleAndNotification(`Journal Tools: Searching for ${entityType}`, 
                 `"${strEntityName}"`, false, true, false);
             
             // Get settings based on entity type
@@ -1247,7 +1307,7 @@ export class JournalTools {
                 );
                 
                 if (worldEntity) {
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${entityType} in world`, 
+                    postConsoleAndNotification(`Journal Tools: Found ${entityType} in world`, 
                         `${strEntityName} -> ${worldEntity.uuid}`, false, true, false);
                     return worldEntity.uuid;
                 }
@@ -1284,7 +1344,7 @@ export class JournalTools {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) {
                             // Only warn if the compendium is configured but doesn't exist
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Configured compendium not found`, 
+                            postConsoleAndNotification(`Journal Tools: Configured compendium not found`, 
                                 `${compendiumName} (${settingKey})`, false, false, true);
                             continue;
                         }
@@ -1298,28 +1358,28 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show successful finds
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found ${entityType} in compendium`, 
+                            postConsoleAndNotification(`Journal Tools: Found ${entityType} in compendium`, 
                                 `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.${entityType === 'actor' ? 'Actor' : 'Item'}.${entry._id}`;
                         } else {
                             // Console only - debug only
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} not found in compendium`, 
+                            postConsoleAndNotification(`Journal Tools: ${entityType} not found in compendium`, 
                                 `${searchName} not found in ${compendiumName}`, false, true, false);
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching compendium`, 
+                        postConsoleAndNotification(`Journal Tools: Error searching compendium`, 
                             `${compendiumName}: ${error.message}`, false, true, false);
                     }
                 }
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: ${entityType} not found in any compendium`, 
+            postConsoleAndNotification(`Journal Tools: ${entityType} not found in any compendium`, 
                 strEntityName, false, true, false);
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error finding ${entityType} in compendiums`, 
+            postConsoleAndNotification(`Journal Tools: Error finding ${entityType} in compendiums`, 
                 `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
@@ -1337,7 +1397,7 @@ export class JournalTools {
             // Remove common suffixes like "(CR X)" or "(number)"
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching both compendiums`, 
+            postConsoleAndNotification(`Journal Tools: Searching both compendiums`, 
                 `"${strEntityName}"`, false, true, false);
             
             // Handle colon-separated names (e.g., "Gem: Diamond")
@@ -1371,7 +1431,7 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium`, 
+                            postConsoleAndNotification(`Journal Tools: Found in actor compendium`, 
                                 `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
@@ -1399,7 +1459,7 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium`, 
+                            postConsoleAndNotification(`Journal Tools: Found in item compendium`, 
                                 `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
@@ -1410,12 +1470,12 @@ export class JournalTools {
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Not found in any compendium`, 
+            postConsoleAndNotification(`Journal Tools: Not found in any compendium`, 
                 strEntityName, false, true, false);
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching both compendiums`, 
+            postConsoleAndNotification(`Journal Tools: Error searching both compendiums`, 
                 `${entityName}: ${error.message}`, false, false, false);
             return null;
         }
@@ -1425,7 +1485,7 @@ export class JournalTools {
     static _determineEntityTypeFromContext(entity, pageContent, allEntities) {
         // If we have a detected entity type from UUID analysis, use it (100% accurate)
         if (entity.detectedEntityType) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Using detected entity type from UUID`, 
+            postConsoleAndNotification(`Journal Tools: Using detected entity type from UUID`, 
                 `${entity.name}: ${entity.detectedEntityType}`, false, true, false);
             return entity.detectedEntityType;
         }
@@ -1452,13 +1512,13 @@ export class JournalTools {
         const itemPattern = /<h[1-6][^>]*>.*?[Ii]tems?.*?<\/h[1-6]>/gi;
         
         if (treasurePattern.test(contextContent) || itemPattern.test(contextContent)) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (section header)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards item (section header)`, 
                 `${entity.name}: Found Treasure/Items section`, false, true, false);
             return 'item';
         }
         
         if (encounterPattern.test(contextContent) || monsterPattern.test(contextContent)) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (section header)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards actor (section header)`, 
                 `${entity.name}: Found Encounters/Monsters section`, false, true, false);
             return 'actor';
         }
@@ -1513,11 +1573,11 @@ export class JournalTools {
         
         // If neighbors provide clear bias, use it
         if (neighborItemCount > neighborActorCount) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (neighbors)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards item (neighbors)`, 
                 `${entity.name}: ${neighborItemCount} item neighbors vs ${neighborActorCount} actor neighbors`, false, true, false);
             return 'item';
         } else if (neighborActorCount > neighborItemCount) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (neighbors)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards actor (neighbors)`, 
                 `${entity.name}: ${neighborActorCount} actor neighbors vs ${neighborItemCount} item neighbors`, false, true, false);
             return 'actor';
         }
@@ -1563,16 +1623,16 @@ export class JournalTools {
         
         // Determine bias based on broader context
         if (actorLinks > itemLinks) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards actor (broad context)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards actor (broad context)`, 
                 `${entity.name}: ${actorLinks} actor links vs ${itemLinks} item links in context`, false, true, false);
             return 'actor';
         } else if (itemLinks > actorLinks) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Context bias towards item (broad context)`, 
+            postConsoleAndNotification(`Journal Tools: Context bias towards item (broad context)`, 
                 `${entity.name}: ${itemLinks} item links vs ${actorLinks} actor links in context`, false, true, false);
             return 'item';
         } else {
             // No clear bias, default to searching actors first, then items
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: No context bias, defaulting to actor-first search`, 
+            postConsoleAndNotification(`Journal Tools: No context bias, defaulting to actor-first search`, 
                 `${entity.name}: ${actorLinks} actor links, ${itemLinks} item links in context`, false, true, false);
             return 'both';
         }
@@ -1581,7 +1641,7 @@ export class JournalTools {
     // Unified method to upgrade a single entity link
     static async _upgradeEntityLinkUnified(entity, content, entityType) {
         try {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Processing unified entity`, 
+            postConsoleAndNotification(`Journal Tools: Processing unified entity`, 
                 `${entity.name} (${entity.type}, ${entityType})`, false, true, false);
             
             let uuid = null;
@@ -1589,9 +1649,26 @@ export class JournalTools {
             let foundInWorld = false;
             let foundInCompendium = false;
             
-            // For existing links, always try to upgrade to the first compendium (original intent)
+            // For existing links, check if they're already optimal (in first compendium)
             if (entity.type === 'existing-link') {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Upgrading existing link to first compendium`, 
+                // Check if the existing link is already in the first compendium in the stack
+                const existingUuid = entity.uuid;
+                const isAlreadyOptimal = await this._isLinkAlreadyOptimal(existingUuid, entity.name);
+                
+                if (isAlreadyOptimal) {
+                    postConsoleAndNotification(`Journal Tools: Link already optimal`, 
+                        `${entity.name} -> ${existingUuid}`, false, true, false);
+                    return { 
+                        newContent: content, 
+                        compendiumName: null, 
+                        foundEntityType: null, 
+                        foundInWorld: false, 
+                        foundInCompendium: false,
+                        skipReason: 'alreadyOptimal'
+                    };
+                }
+                
+                postConsoleAndNotification(`Journal Tools: Upgrading existing link to first compendium`, 
                     `${entity.name} -> ${entity.uuid}`, false, true, false);
             }
             
@@ -1633,15 +1710,22 @@ export class JournalTools {
                     uuid = worldEntity.uuid;
                     foundInWorld = true;
                     foundEntityType = foundEntityType || (worldEntity.type === 'Item' ? 'item' : 'actor');
-                    postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found entity in world`, 
+                    postConsoleAndNotification(`Journal Tools: Found entity in world`, 
                         `${entity.name} -> ${worldEntity.uuid}`, false, true, false);
                 }
             }
             
             if (!uuid) {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium or world`, 
+                postConsoleAndNotification(`Journal Tools: Entity not found in any compendium or world`, 
                     entity.name, false, true, false);
-                return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: false, foundInCompendium: false };
+                return { 
+                    newContent: content, 
+                    compendiumName: null, 
+                    foundEntityType: null, 
+                    foundInWorld: false, 
+                    foundInCompendium: false,
+                    skipReason: 'notFound'
+                };
             }
             
             // Create the new link
@@ -1681,13 +1765,13 @@ export class JournalTools {
                 }
             }
             
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Successfully upgraded unified entity`, 
+            postConsoleAndNotification(`Journal Tools: Successfully upgraded unified entity`, 
                 `${entity.name} -> ${newLink} (${foundEntityType})`, false, true, false);
             
             return { newContent, compendiumName, foundEntityType, foundInWorld, foundInCompendium };
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading unified entity`, 
+            postConsoleAndNotification(`Journal Tools: Error upgrading unified entity`, 
                 `${entity.name}: ${error.message}`, false, false, false);
             return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: false, foundInCompendium: false };
         }
@@ -1706,7 +1790,7 @@ export class JournalTools {
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Searching both compendiums with type detection`, 
+            postConsoleAndNotification(`Journal Tools: Searching both compendiums with type detection`, 
                 `"${strEntityName}"`, false, true, false);
             
             // Handle colon-separated names (e.g., "Gem: Diamond")
@@ -1729,7 +1813,7 @@ export class JournalTools {
                 if (searchWorldActorsFirst) {
                     const worldActor = game.actors.getName(searchName);
                     if (worldActor) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world actors (first)`, 
+                        postConsoleAndNotification(`Journal Tools: Found in world actors (first)`, 
                             `${searchName} -> ${worldActor.name}`, false, false, false);
                         return `Actor.${worldActor.id}`;
                     }
@@ -1739,7 +1823,7 @@ export class JournalTools {
                 if (searchWorldItemsFirst) {
                     const worldItem = game.items.getName(searchName);
                     if (worldItem) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world items (first)`, 
+                        postConsoleAndNotification(`Journal Tools: Found in world items (first)`, 
                             `${searchName} -> ${worldItem.name}`, false, false, false);
                         return `Item.${worldItem.id}`;
                     }
@@ -1764,7 +1848,7 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in actor compendium (type detection)`, 
+                            postConsoleAndNotification(`Journal Tools: Found in actor compendium (type detection)`, 
                                 `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
@@ -1792,7 +1876,7 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in item compendium (type detection)`, 
+                            postConsoleAndNotification(`Journal Tools: Found in item compendium (type detection)`, 
                                 `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
@@ -1809,7 +1893,7 @@ export class JournalTools {
                 if (searchWorldActorsLast) {
                     const worldActor = game.actors.getName(searchName);
                     if (worldActor) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world actors (last)`, 
+                        postConsoleAndNotification(`Journal Tools: Found in world actors (last)`, 
                             `${searchName} -> ${worldActor.name}`, false, false, false);
                         return `Actor.${worldActor.id}`;
                     }
@@ -1819,7 +1903,7 @@ export class JournalTools {
                 if (searchWorldItemsLast) {
                     const worldItem = game.items.getName(searchName);
                     if (worldItem) {
-                        postConsoleAndNotification(`BLACKSMITH | Journal Tools: Found in world items (last)`, 
+                        postConsoleAndNotification(`Journal Tools: Found in world items (last)`, 
                             `${searchName} -> ${worldItem.name}`, false, false, false);
                         return `Item.${worldItem.id}`;
                     }
@@ -1827,15 +1911,54 @@ export class JournalTools {
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Entity not found in any compendium or world`, 
+            postConsoleAndNotification(`Journal Tools: Entity not found in any compendium or world`, 
                 `"${strEntityName}"`, false, true, false);
             
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error searching compendiums with type detection`, 
+            postConsoleAndNotification(`Journal Tools: Error searching compendiums with type detection`, 
                 `${entityName}: ${error.message}`, false, false, false);
             return null;
+        }
+    }
+
+    // Check if an existing link is already in the optimal compendium (first in stack)
+    static async _isLinkAlreadyOptimal(existingUuid, entityName) {
+        try {
+            // Extract compendium name from existing UUID
+            const compendiumMatch = existingUuid.match(/Compendium\.([^\.]+)/);
+            if (!compendiumMatch) {
+                // Not a compendium link, check if it's a world link and world is first
+                if (existingUuid.includes('Actor.') || existingUuid.includes('Item.')) {
+                    const searchWorldActorsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst');
+                    const searchWorldItemsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst');
+                    
+                    if (existingUuid.includes('Actor.') && searchWorldActorsFirst) {
+                        return true;
+                    }
+                    if (existingUuid.includes('Item.') && searchWorldItemsFirst) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            const existingCompendium = compendiumMatch[1];
+            
+            // Check if this compendium is first in the stack for this entity type
+            const entityType = existingUuid.includes('.Actor.') ? 'actor' : 'item';
+            const compendiumSetting = entityType === 'actor' ? 'actorCompendium' : 'itemCompendium';
+            
+            // Get the first compendium in the stack
+            const firstCompendium = game.settings.get('coffee-pub-blacksmith', compendiumSetting);
+            
+            return existingCompendium === firstCompendium;
+            
+        } catch (error) {
+            postConsoleAndNotification(`Journal Tools: Error checking if link is optimal`, 
+                `${entityName}: ${error.message}`, false, false, false);
+            return false;
         }
     }
 
@@ -1917,7 +2040,7 @@ export class JournalTools {
                                  newLink + 
                                  content.substring(macro.endIndex);
                 
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Macro upgraded`, 
+                postConsoleAndNotification(`Journal Tools: Macro upgraded`, 
                     `"${macroName}" -> ${worldMacro.id}`, false, true, false);
                 
                 return {
@@ -1929,7 +2052,7 @@ export class JournalTools {
                     macroId: worldMacro.id
                 };
             } else {
-                postConsoleAndNotification(`BLACKSMITH | Journal Tools: Macro not found in world`, 
+                postConsoleAndNotification(`Journal Tools: Macro not found in world`, 
                     `"${macroName}" not found`, false, true, false);
                 
                 return {
@@ -1939,7 +2062,7 @@ export class JournalTools {
                 };
             }
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Journal Tools: Error upgrading macro`, 
+            postConsoleAndNotification(`Journal Tools: Error upgrading macro`, 
                 `${macro.name}: ${error.message}`, false, true, false);
             
             return {
@@ -2020,7 +2143,7 @@ class JournalToolsWindow extends FormApplication {
             const upgradeMacros = formData.get('upgradeMacros') === 'true';
 
             // Debug logging
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Form data debug", 
+            postConsoleAndNotification("Journal Tools: Form data debug", 
                 `upgradeActors: ${upgradeActors}, upgradeItems: ${upgradeItems}, upgradeMacros: ${upgradeMacros}`, false, true, false);
 
             // Fallback: read checkbox values directly if FormData fails
@@ -2029,7 +2152,7 @@ class JournalToolsWindow extends FormApplication {
                 const itemsChecked = this.element.find('#upgrade-items').is(':checked');
                 const macrosChecked = this.element.find('#upgrade-macros').is(':checked');
                 
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: Fallback checkbox reading", 
+                postConsoleAndNotification("Journal Tools: Fallback checkbox reading", 
                     `actors: ${actorsChecked}, items: ${itemsChecked}, macros: ${macrosChecked}`, false, true, false);
                 
                 if (!actorsChecked && !itemsChecked && !macrosChecked) {
@@ -2123,7 +2246,7 @@ class JournalToolsWindow extends FormApplication {
             this.shouldStop = false;
             
             // Success message - console only
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Processing completed successfully", "", false, false, false);
+            postConsoleAndNotification("Journal Tools: Processing completed successfully", "", false, false, false);
             
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
@@ -2139,7 +2262,7 @@ class JournalToolsWindow extends FormApplication {
             this.isProcessing = false;
             this.shouldStop = false;
             
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error applying tools", error, false, false, false);
+            postConsoleAndNotification("Journal Tools: Error applying tools", error, false, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
     }
@@ -2186,15 +2309,15 @@ class JournalToolsWindow extends FormApplication {
                     ui.notifications.info("Status content copied to clipboard");
                     
                     // Console log for confirmation
-                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Status copied to clipboard", "", false, false, false);
+                    postConsoleAndNotification("Journal Tools: Status copied to clipboard", "", false, false, false);
                 }).catch(err => {
-                    postConsoleAndNotification("BLACKSMITH | Journal Tools: Failed to copy status", err.message, false, false, false);
+                    postConsoleAndNotification("Journal Tools: Failed to copy status", err.message, false, false, false);
                 });
             } else {
-                postConsoleAndNotification("BLACKSMITH | Journal Tools: No status content to copy", "", false, false, false);
+                postConsoleAndNotification("Journal Tools: No status content to copy", "", false, false, false);
             }
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Journal Tools: Error copying status", error.message, false, false, false);
+            postConsoleAndNotification("Journal Tools: Error copying status", error.message, false, false, false);
         }
     }
 
