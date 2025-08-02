@@ -2298,7 +2298,7 @@ export class JournalTools {
 // ===== JOURNAL TOOLS WINDOW =======================================
 // ================================================================== 
 
-class JournalToolsWindow extends FormApplication {
+export class JournalToolsWindow extends FormApplication {
     constructor(journal) {
         super();
         this.journal = journal;

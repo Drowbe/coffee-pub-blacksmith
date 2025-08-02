@@ -2,6 +2,7 @@ import { MODULE_ID } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
 import { buildButtonEventRegent } from './blacksmith.js';
 import { CSSEditor } from './css-editor.js';
+import { JournalToolsWindow } from './journal-tools.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './global.js';
 
@@ -77,6 +78,21 @@ export function addToolbarButton() {
             }
         };
 
+        const journalToolsTool = {
+            icon: "fa-solid fa-book-open",
+            name: "journal-tools",
+            title: "Journal Tools",
+            button: true,
+            visible: game.user.isGM,
+            onClick: () => {
+                // Create a dummy journal object for the window to work with
+                // The window will handle journal selection internally
+                const dummyJournal = { id: null, name: "Select Journal" };
+                const journalTools = new JournalToolsWindow(dummyJournal);
+                journalTools.render(true);
+            }
+        };
+
         const refreshTool = {
             icon: "fa-solid fa-sync-alt",
             name: "refresh",
@@ -93,7 +109,7 @@ export function addToolbarButton() {
             title: "Blacksmith Utilities",
             icon: "fa-solid fa-mug-hot",
             layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, refreshTool]
+            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, journalToolsTool, refreshTool]
         });
 
     });
