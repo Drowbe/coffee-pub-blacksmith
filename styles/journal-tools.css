@@ -455,6 +455,14 @@ div#journal-tools-window .window-content {
   color: rgba(255, 192, 20, 0.9);
 }
 
+.status-message.skipped {
+  color: rgba(255, 192, 20, 0.9);
+}
+
+.status-message.failed {
+  color: rgba(255, 115, 64, 0.9);
+}
+
 .status-message.error {
   color: rgba(231, 98, 98, 0.9);
 }
@@ -464,7 +472,7 @@ div#journal-tools-window .window-content {
 }
 
 .status-message.system {
-  color: rgba(255, 115, 64, 0.9);
+  color: rgba(164, 199, 106, 0.9);
 }
 
 .status-message.report-header {

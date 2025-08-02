@@ -393,15 +393,15 @@ export class JournalTools {
             let totalFoundInCompendium = 0;
             
             // Track actor vs item results separately
-            let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0;
-            let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0;
-            let macroLinksSkipped = 0, macroLinksUpgraded = 0, macroLinksCreated = 0, macroErrors = 0;
+            let actorLinksSkipped = 0, actorLinksUpgraded = 0, actorLinksCreated = 0, actorErrors = 0, actorLinksFailed = 0;
+            let itemLinksSkipped = 0, itemLinksUpgraded = 0, itemLinksCreated = 0, itemErrors = 0, itemLinksFailed = 0;
+            let macroLinksSkipped = 0, macroLinksUpgraded = 0, macroLinksCreated = 0, macroErrors = 0, macroLinksFailed = 0;
             
             // Track skip reasons
             let skipReasons = {
-                actors: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
-                items: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
-                macros: { alreadyOptimal: 0, notFound: 0, duplicate: 0, invalidName: 0 }
+                actors: { alreadyOptimal: 0, failed: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
+                items: { alreadyOptimal: 0, failed: 0, duplicate: 0, invalidName: 0, compendiumNone: 0 },
+                macros: { alreadyOptimal: 0, failed: 0, duplicate: 0, invalidName: 0 }
             };
             
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
@@ -437,9 +437,9 @@ export class JournalTools {
                 updatePageProgress(10, "Scanning for entities...");
                 
                 // Initialize page-level counters
-                let pageActorUpgraded = 0, pageActorSkipped = 0, pageActorCreated = 0, pageActorErrors = 0;
-                let pageItemUpgraded = 0, pageItemSkipped = 0, pageItemCreated = 0, pageItemErrors = 0;
-                let pageMacroUpgraded = 0, pageMacroSkipped = 0, pageMacroCreated = 0, pageMacroErrors = 0;
+                let pageActorUpgraded = 0, pageActorSkipped = 0, pageActorCreated = 0, pageActorErrors = 0, pageActorFailed = 0;
+                let pageItemUpgraded = 0, pageItemSkipped = 0, pageItemCreated = 0, pageItemErrors = 0, pageItemFailed = 0;
+                let pageMacroUpgraded = 0, pageMacroSkipped = 0, pageMacroCreated = 0, pageMacroErrors = 0, pageMacroFailed = 0;
                 
                 // Only scan for actors/items if those tools are enabled
                 if (upgradeActors || upgradeItems) {
@@ -596,25 +596,25 @@ export class JournalTools {
                                 // Handle skip reasons
                                 totalSkipped++;
                                 const typeLabel = entityType === 'actor' ? 'Actor' : entityType === 'item' ? 'Item' : 'Entity';
-                                if (result.skipReason === 'alreadyOptimal') {
-                                    logStatus(`${typeLabel}: Skipped (Already Optimal): ${entity.name}`, "warning");
-                                    if (entityType === 'actor' || entityType === 'both') {
-                                        pageActorSkipped++;
-                                        skipReasons.actors.alreadyOptimal++;
-                                    } else {
-                                        pageItemSkipped++;
-                                        skipReasons.items.alreadyOptimal++;
-                                    }
-                                } else if (result.skipReason === 'notFound') {
-                                    logStatus(`${typeLabel}: Skipped (Not Found): ${entity.name}`, "warning");
-                                    if (entityType === 'actor' || entityType === 'both') {
-                                        pageActorSkipped++;
-                                        skipReasons.actors.notFound++;
-                                    } else {
-                                        pageItemSkipped++;
-                                        skipReasons.items.notFound++;
-                                    }
+                                                            if (result.skipReason === 'alreadyOptimal') {
+                                logStatus(`${typeLabel}: Skipped (Already Optimal): ${entity.name}`, "skipped");
+                                if (entityType === 'actor' || entityType === 'both') {
+                                    pageActorSkipped++;
+                                    skipReasons.actors.alreadyOptimal++;
+                                } else {
+                                    pageItemSkipped++;
+                                    skipReasons.items.alreadyOptimal++;
                                 }
+                            } else if (result.skipReason === 'notFound') {
+                                logStatus(`${typeLabel}: Failed (Not Found): ${entity.name}`, "failed");
+                                if (entityType === 'actor' || entityType === 'both') {
+                                    pageActorFailed++;
+                                    skipReasons.actors.failed++;
+                                } else {
+                                    pageItemFailed++;
+                                    skipReasons.items.failed++;
+                                }
+                            }
                             } else if (result.foundInWorld && !result.foundInCompendium) {
                                 totalFoundInWorld++;
                                 const typeLabel = result.foundEntityType === 'actor' ? 'Actor' : 'Item';
@@ -694,9 +694,9 @@ export class JournalTools {
                                 pageMacroUpgraded++;
                                 logStatus(`✓ Macro: Upgraded: ${macro.name}`, "success");
                             } else {
-                                pageMacroSkipped++;
-                                skipReasons.macros.notFound++;
-                                logStatus(`Macro: Skipped (Not Found): ${macro.name}`, "warning");
+                                pageMacroFailed++;
+                                skipReasons.macros.failed++;
+                                logStatus(`Macro: Failed (Not Found): ${macro.name}`, "failed");
                             }
                         } catch (error) {
                             pageMacroErrors++;
@@ -723,9 +723,9 @@ export class JournalTools {
                 logStatus("========================================================", "report-line-thick");
                 logStatus(`RESULTS: ${page.name.toUpperCase()}`, "report-header");
                 logStatus("========================================================", "report-line-thick");
-                logStatus(`ACTORS: ${pageActorUpgraded} Upgraded, ${pageActorSkipped} Skipped, ${pageActorCreated} Created, ${pageActorErrors} Errors`, "report-content");
-                logStatus(`ITEMS:  ${pageItemUpgraded} Upgraded, ${pageItemSkipped} Skipped, ${pageItemCreated} Created, ${pageItemErrors} Errors`, "report-content");
-                logStatus(`MACROS: ${pageMacroUpgraded} Upgraded, ${pageMacroSkipped} Skipped, ${pageMacroCreated} Created, ${pageMacroErrors} Errors`, "report-content");
+                logStatus(`ACTORS: ${pageActorUpgraded} Upgraded, ${pageActorSkipped} Skipped, ${pageActorFailed} Failed, ${pageActorCreated} Created, ${pageActorErrors} Errors`, "report-content");
+                logStatus(`ITEMS:  ${pageItemUpgraded} Upgraded, ${pageItemSkipped} Skipped, ${pageItemFailed} Failed, ${pageItemCreated} Created, ${pageItemErrors} Errors`, "report-content");
+                logStatus(`MACROS: ${pageMacroUpgraded} Upgraded, ${pageMacroSkipped} Skipped, ${pageMacroFailed} Failed, ${pageMacroCreated} Created, ${pageMacroErrors} Errors`, "report-content");
                 logStatus("========================================================", "report-line-thick");
                 
                 // Accumulate page-level counters to global counters
@@ -733,16 +733,19 @@ export class JournalTools {
                 actorLinksUpgraded += pageActorUpgraded;
                 actorLinksCreated += pageActorCreated;
                 actorErrors += pageActorErrors;
+                actorLinksFailed += pageActorFailed;
                 
                 itemLinksSkipped += pageItemSkipped;
                 itemLinksUpgraded += pageItemUpgraded;
                 itemLinksCreated += pageItemCreated;
                 itemErrors += pageItemErrors;
+                itemLinksFailed += pageItemFailed;
                 
                 macroLinksSkipped += pageMacroSkipped;
                 macroLinksUpgraded += pageMacroUpgraded;
                 macroLinksCreated += pageMacroCreated;
                 macroErrors += pageMacroErrors;
+                macroLinksFailed += pageMacroFailed;
             }
             
             updateOverallProgress(100, "Complete!");
@@ -757,10 +760,13 @@ export class JournalTools {
             logStatus(`- ${actorLinksSkipped} Actor Links Skipped`, "report-content");
             if (actorLinksSkipped > 0) {
                 if (skipReasons.actors.alreadyOptimal > 0) logStatus(`  • ${skipReasons.actors.alreadyOptimal} Already Optimal`, "report-content");
-                if (skipReasons.actors.notFound > 0) logStatus(`  • ${skipReasons.actors.notFound} Not Found`, "report-content");
                 if (skipReasons.actors.duplicate > 0) logStatus(`  • ${skipReasons.actors.duplicate} Duplicate`, "report-content");
                 if (skipReasons.actors.invalidName > 0) logStatus(`  • ${skipReasons.actors.invalidName} Invalid Name`, "report-content");
                 if (skipReasons.actors.compendiumNone > 0) logStatus(`  • ${skipReasons.actors.compendiumNone} Compendium None`, "report-content");
+            }
+            logStatus(`- ${actorLinksFailed} Actor Links Failed`, "report-content");
+            if (actorLinksFailed > 0) {
+                if (skipReasons.actors.failed > 0) logStatus(`  • ${skipReasons.actors.failed} Not Found`, "report-content");
             }
             logStatus(`- ${actorLinksUpgraded} Actor Links Upgraded`, "report-content");
             logStatus(`- ${actorLinksCreated} Actor Links Created`, "report-content");
@@ -770,10 +776,13 @@ export class JournalTools {
             logStatus(`- ${itemLinksSkipped} Item Links Skipped`, "report-content");
             if (itemLinksSkipped > 0) {
                 if (skipReasons.items.alreadyOptimal > 0) logStatus(`  • ${skipReasons.items.alreadyOptimal} Already Optimal`, "report-content");
-                if (skipReasons.items.notFound > 0) logStatus(`  • ${skipReasons.items.notFound} Not Found`, "report-content");
                 if (skipReasons.items.duplicate > 0) logStatus(`  • ${skipReasons.items.duplicate} Duplicate`, "report-content");
                 if (skipReasons.items.invalidName > 0) logStatus(`  • ${skipReasons.items.invalidName} Invalid Name`, "report-content");
                 if (skipReasons.items.compendiumNone > 0) logStatus(`  • ${skipReasons.items.compendiumNone} Compendium None`, "report-content");
+            }
+            logStatus(`- ${itemLinksFailed} Item Links Failed`, "report-content");
+            if (itemLinksFailed > 0) {
+                if (skipReasons.items.failed > 0) logStatus(`  • ${skipReasons.items.failed} Not Found`, "report-content");
             }
             logStatus(`- ${itemLinksUpgraded} Item Links Upgraded`, "report-content");
             logStatus(`- ${itemLinksCreated} Item Links Created`, "report-content");
@@ -783,9 +792,12 @@ export class JournalTools {
             logStatus(`- ${macroLinksSkipped || 0} Macro Links Skipped`, "report-content");
             if ((macroLinksSkipped || 0) > 0) {
                 if (skipReasons.macros.alreadyOptimal > 0) logStatus(`  • ${skipReasons.macros.alreadyOptimal} Already Optimal`, "report-content");
-                if (skipReasons.macros.notFound > 0) logStatus(`  • ${skipReasons.macros.notFound} Not Found`, "report-content");
                 if (skipReasons.macros.duplicate > 0) logStatus(`  • ${skipReasons.macros.duplicate} Duplicate`, "report-content");
                 if (skipReasons.macros.invalidName > 0) logStatus(`  • ${skipReasons.macros.invalidName} Invalid Name`, "report-content");
+            }
+            logStatus(`- ${macroLinksFailed || 0} Macro Links Failed`, "report-content");
+            if ((macroLinksFailed || 0) > 0) {
+                if (skipReasons.macros.failed > 0) logStatus(`  • ${skipReasons.macros.failed} Not Found`, "report-content");
             }
             logStatus(`- ${macroLinksUpgraded || 0} Macro Links Upgraded`, "report-content");
             logStatus(`- ${macroLinksCreated || 0} Macro Links Created`, "report-content");
@@ -804,6 +816,7 @@ export class JournalTools {
             logStatus(`- ${pages.length} Pages Processed`, "report-content");
             logStatus(`- ${totalFoundInCompendium + totalFoundInWorld} Entities Processed`, "report-content");
             logStatus(`- ${actorLinksSkipped + itemLinksSkipped + (macroLinksSkipped || 0)} Links Skipped`, "report-content");
+            logStatus(`- ${actorLinksFailed + itemLinksFailed + (macroLinksFailed || 0)} Links Failed`, "report-content");
             logStatus(`- ${actorLinksUpgraded + itemLinksUpgraded + (macroLinksUpgraded || 0)} Links Upgraded`, "report-content");
             logStatus(`- ${actorLinksCreated + itemLinksCreated + (macroLinksCreated || 0)} Links Created`, "report-content");
             logStatus(`- ${actorErrors + itemErrors + (macroErrors || 0)} Errors`, "report-content");
