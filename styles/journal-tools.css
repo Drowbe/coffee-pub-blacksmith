@@ -90,6 +90,53 @@ div#journal-tools-window .window-content {
   font-size: .9em;
 }
 
+/* Tabs */
+.journal-tools-tabs {
+  display: flex;
+  background: #18181c;
+  border-bottom: 1px solid #444;
+}
+
+.journal-tools-tab {
+  background: none;
+  border: none;
+  color: rgba(145, 133, 107, 0.7);
+  font-weight: 600;
+  font-size: 0.9em;
+  padding: 0.75em 1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+}
+
+.journal-tools-tab:hover {
+  color: rgba(145, 133, 107, 1.0);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.journal-tools-tab.active {
+  color: rgba(255, 47, 47, 1.0);
+  border-bottom-color: rgba(255, 47, 47, 1.0);
+  background: rgba(255, 47, 47, 0.1);
+}
+
+.journal-tools-tab i {
+  font-size: 0.8em;
+}
+
+/* Tab Content */
+.journal-tools-tab-content {
+  display: none;
+}
+
+.journal-tools-tab-content.active {
+  display: block;
+}
+
 .journal-tools-summary-row {
   display: flex;
   flex-wrap: wrap;
@@ -552,6 +599,221 @@ div#journal-tools-window .window-content {
   border-color: #555;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Search & Replace Specific Styles */
+.journal-tools-search-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-input-group label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: rgba(145, 133, 107, 1.0);
+  text-transform: uppercase;
+}
+
+.search-input-group input,
+.search-input-group select {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 1em;
+  padding: 6px 8px;
+  font-family: inherit;
+}
+
+.search-input-group input:focus,
+.search-input-group select:focus {
+  outline: none;
+  border-color: rgba(255, 47, 47, 0.8);
+  box-shadow: 0 0 0 2px rgba(255, 47, 47, 0.2);
+}
+
+.journal-tools-document-types {
+  display: flex;
+  gap: 20px;
+}
+
+.document-type-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.journal-tools-target-fields {
+  display: flex;
+  gap: 12px;
+}
+
+/* Results Area */
+.journal-tools-results {
+  padding: 3px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.results-area {
+  flex: 1;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px;
+  font-family: var(--font-mono);
+  font-size: 1.0em;
+  line-height: inherit;
+  min-height: 0;
+}
+
+.results-message {
+  margin-bottom: 4px;
+  padding: 2px 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.copy-results-btn {
+  background: none;
+  border: none;
+  color: rgba(145, 133, 107, 1.0);
+  cursor: pointer;
+  padding: 0.1em;
+  transition: color 0.2s ease;
+  font-size: 0.8em;
+  line-height: 1;
+  width: auto;
+  height: auto;
+}
+
+.copy-results-btn:hover {
+  color: rgba(255, 47, 47, 1.0);
+}
+
+/* Search & Replace Button Styles */
+.journal-tools-btn.clear-search-btn {
+  background: rgba(42, 51, 56, 0.8);
+  border-color: #555;
+}
+
+.journal-tools-btn.clear-search-btn:hover {
+  background: rgba(42, 51, 56, 1.0);
+  border-color: #666;
+}
+
+.journal-tools-btn.run-report-btn {
+  background: rgba(34, 86, 39, 0.8);
+  border-color: #2d5a2d;
+}
+
+.journal-tools-btn.run-report-btn:hover {
+  background: rgba(34, 86, 39, 1.0);
+  border-color: #3d7a3d;
+}
+
+.journal-tools-btn.mass-replace-btn {
+  background: rgba(87, 44, 53, 0.8);
+  border-color: #5a2d3a;
+}
+
+.journal-tools-btn.mass-replace-btn:hover {
+  background: rgba(87, 44, 53, 1.0);
+  border-color: #6a3d4a;
+}
+
+/* Search Results Styling */
+.replace-result {
+  border-bottom: 1px dotted #444;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+}
+
+.replace-result-title {
+  border: 0px dotted #000000;
+  border-radius: 3px;
+  background-color: rgba(228, 222, 216, 0.2);
+  padding: 4px 5px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.replace-title {
+  border: 0px dotted #000000;
+  display: inline-block;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 8px;
+  text-transform: uppercase;
+  color: rgba(255, 47, 47, 1.0);
+}
+
+.replace-title:hover {
+  color: rgba(255, 47, 47, 0.8);
+}
+
+.replace-result-tag {
+  display: inline-block;
+  color: rgb(255, 255, 255);
+  background-color: rgba(159, 63, 18, 0.8);
+  padding: 3px 5px 2px 5px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  margin-right: 5px;
+}
+
+.replace-field-tag {
+  display: inline-block;
+  color: #fff;
+  background-color: rgba(58, 110, 165, 0.8);
+  padding: 3px 5px 2px 5px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  margin-right: 0px;
+}
+
+.code-old-label,
+.code-new-label {
+  padding: 1px 5px;
+  margin-right: 5px;
+  font-weight: 700;
+  display: inline-block;
+  width: 40px;
+  text-align: right;
+  background-color: rgba(222, 219, 210, 0.3);
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.code-new-label {
+  color: rgba(0, 102, 0, 1.0);
+}
+
+.code-old-label {
+  color: rgba(102, 0, 0, 1.0);
+}
+
+.code-new {
+  color: rgba(0, 102, 0, 1.0);
+}
+
+.code-old {
+  color: rgba(102, 0, 0, 1.0);
 }
 
 /* Scrollbar styling for Foundry look */
