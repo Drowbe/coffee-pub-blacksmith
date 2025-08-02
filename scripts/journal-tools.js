@@ -2330,8 +2330,8 @@ export class JournalToolsWindow extends FormApplication {
             id: "journal-tools-window",
             title: "Journal Tools",
             template: "modules/coffee-pub-blacksmith/templates/journal-tools-window.hbs",
-            width: 700,
-            height: 600,
+            width: 800,
+            height: 1000,
             resizable: true,
             classes: ["journal-tools-window"]
         });
@@ -2415,7 +2415,7 @@ export class JournalToolsWindow extends FormApplication {
         // Add event listeners for the custom buttons
         html.find('.apply-tools').click(this._onApplyTools.bind(this));
         html.find('.cancel-tools').click(this._onCancelTools.bind(this));
-        html.find('.copy-status-btn').click(this._onCopyStatus.bind(this));
+        html.find('#copy-results-entity').click(this._onCopyStatus.bind(this));
         html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));
         html.find('.open-journal-btn').click(this._onOpenJournal.bind(this));
         
@@ -2426,7 +2426,7 @@ export class JournalToolsWindow extends FormApplication {
         html.find('.clear-search-btn').click(this._onClearSearch.bind(this));
         html.find('.run-report-btn').click(this._onRunReport.bind(this));
         html.find('.mass-replace-btn').click(this._onMassReplace.bind(this));
-        html.find('.copy-results-btn').click(this._onCopyResults.bind(this));
+        html.find('#copy-results-search').click(this._onCopyResults.bind(this));
     }
 
     async _onApplyTools(event) {
@@ -2457,7 +2457,7 @@ export class JournalToolsWindow extends FormApplication {
             }
             
             // Clear status area for fresh start
-            this.element.find('#status-area').empty();
+            this.element.find('#results-entity').empty();
             this.addStatusMessage("Ready to process...", "info");
 
             // Debug logging
@@ -2596,7 +2596,7 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     addStatusMessage(message, type = "info") {
-        const statusArea = this.element.find('#status-area');
+        const statusArea = this.element.find('#results-entity');
         const messageDiv = $(`<div class="status-message ${type}">${message}</div>`);
         statusArea.append(messageDiv);
         statusArea.scrollTop(statusArea[0].scrollHeight);
@@ -2610,7 +2610,7 @@ export class JournalToolsWindow extends FormApplication {
         event.stopPropagation();
         
         try {
-            const statusArea = this.element.find('#status-area');
+            const statusArea = this.element.find('#results-entity');
             
             // Get all status messages and format them properly
             const statusMessages = statusArea.find('.status-message');
@@ -2707,7 +2707,7 @@ export class JournalToolsWindow extends FormApplication {
         this.element.find('#target-text').prop('checked', true); // Keep text checked by default
         
         // Clear the results area
-        this.element.find('#results-area').html(`
+        this.element.find('#results-search').html(`
             <div class="results-message">Always back up your files before running a mass change.</div>
             <div class="results-message">Run a search before doing a mass replace to verify what will be changed.</div>
         `);
@@ -2736,7 +2736,7 @@ export class JournalToolsWindow extends FormApplication {
         event.stopPropagation();
         
         try {
-            const resultsArea = this.element.find('#results-area');
+            const resultsArea = this.element.find('#results-search');
             const resultsText = resultsArea.text();
             
             if (resultsText && resultsText.trim()) {
@@ -2759,7 +2759,7 @@ export class JournalToolsWindow extends FormApplication {
         const newText = this.element.find('#new-text').val() ?? "";
         const folderFilter = this.element.find('#folder-filter').val();
         const matchMode = this.element.find('#match-mode').val();
-        const resultsArea = this.element.find('#results-area');
+        const resultsArea = this.element.find('#results-search');
         
         // Target field checkboxes
         const targetImages = this.element.find('#target-images').is(':checked');

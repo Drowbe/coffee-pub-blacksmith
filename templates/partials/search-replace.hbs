@@ -1,142 +1,195 @@
-{{!-- Search & Replace Tab Partial --}}
-<div class="journal-tools-search-config">
-  <div class="search-input-group">
-    <label for="current-text">Current Text:</label>
-    <input type="text" id="current-text" name="currentText" placeholder="Enter text to search for...">
-  </div>
+<div class="journal-tools-body-wrapper">
   
-  <div class="search-input-group">
-    <label for="new-text">New Text:</label>
-    <input type="text" id="new-text" name="newText" placeholder="Enter replacement text...">
-  </div>
-  
-  <div class="search-input-group">
-    <label for="folder-filter">Folder Filter:</label>
-    <select id="folder-filter" name="folderFilter">
-      <option value="">All Folders</option>
-      {{#each availableFolders}}
+  <!-- Folder Selection -->
+  <div class="journal-tools-section">
+    <div class="search-input-group">
+      <label for="folder-filter">Folder Filter</label>
+      <select id="folder-filter" name="folderFilter">
+        <option value="">(All Folders)</option>
+        {{#each availableFolders}}
         <option value="{{id}}">{{name}} ({{type}})</option>
-      {{/each}}
-    </select>
+        {{/each}}
+      </select>
+    </div>
   </div>
   
-  <div class="search-input-group">
-    <label for="match-mode">Match Mode:</label>
-    <select id="match-mode" name="matchMode">
-      <option value="all">All Text</option>
-      <option value="path">Paths Only</option>
-      <option value="filename">Filenames Only</option>
-    </select>
-  </div>
-</div>
+  
+  <!-- Search Configuration -->
+  <div class="journal-tools-section">
+    <div class="journal-tools-section-header">
+      <i class="fas fa-search"></i> Search Criteria
+    </div>
+    <div class="journal-tools-section-column-wrapper"><!-- journal-tools-search-config -->
+      <div class="journal-tools-section-column">
 
-<div class="journal-tools-document-types">
-  <div class="journal-tools-section-header">
-    <i class="fas fa-folder"></i> Document Types
-  </div>
-  <div class="document-type-column">
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-actors" name="updateActors" value="true">
-      <label for="update-actors">
-        <i class="fas fa-dragon"></i>
-        <span>Actors</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-items" name="updateItems" value="true">
-      <label for="update-items">
-        <i class="fas fa-sword"></i>
-        <span>Items</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-scenes" name="updateScenes" value="true">
-      <label for="update-scenes">
-        <i class="fas fa-map"></i>
-        <span>Scenes</span>
-      </label>
+        <div class="search-input-group">
+          <label for="current-text">Current Text</label>
+          <input type="text" id="current-text" name="currentText" placeholder="e.g. modules/assets" />
+        </div>
+      </div>
+      <div class="journal-tools-section-column">
+        <div class="search-input-group">
+          <label for="new-text">New Text</label>
+          <input type="text" id="new-text" name="newText" placeholder="e.g. newplace/newfolder" />
+        </div>
+      </div>
     </div>
   </div>
-  <div class="document-type-column">
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-journals" name="updateJournals" value="true">
-      <label for="update-journals">
-        <i class="fas fa-book"></i>
-        <span>Journals</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-tables" name="updateTables" value="true">
-      <label for="update-tables">
-        <i class="fas fa-dice"></i>
-        <span>Roll Tables</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="update-playlists" name="updatePlaylists" value="true">
-      <label for="update-playlists">
-        <i class="fas fa-music"></i>
-        <span>Playlists</span>
-      </label>
-    </div>
-  </div>
-</div>
 
-<div class="journal-tools-target-fields">
-  <div class="journal-tools-section-header">
-    <i class="fas fa-crosshairs"></i> Target Fields
-  </div>
-  <div class="journal-tools-options">
-    <div class="journal-tools-option">
-      <input type="checkbox" id="target-images" name="targetImages" value="true">
-      <label for="target-images">
-        <i class="fas fa-image"></i>
-        <span>Images</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="target-text" name="targetText" value="true" checked>
-      <label for="target-text">
-        <i class="fas fa-font"></i>
-        <span>Text</span>
-      </label>
-    </div>
-    <div class="journal-tools-option">
-      <input type="checkbox" id="target-audio" name="targetAudio" value="true">
-      <label for="target-audio">
-        <i class="fas fa-volume-up"></i>
-        <span>Audio</span>
-      </label>
-    </div>
-  </div>
-</div>
+  
 
-<div class="journal-tools-section">
-  <div class="journal-tools-section-header">
-    <i class="fas fa-chart-line"></i> Progress
+
+  <div class="journal-tools-section">
+    <div class="search-input-group">
+      <label for="match-mode">Match Mode</label>
+      <select id="match-mode" name="matchMode">
+        <option value="all">All Text</option>
+        <option value="path">Paths Only</option>
+        <option value="filename">Filenames Only</option>
+      </select>
+    </div>
   </div>
-  <div class="progress-section" id="search-progress-section" style="display: none;">
-    <div class="progress-row">
-      <span class="progress-label">Progress:</span>
+
+  <!-- Document Types -->
+  <div class="journal-tools-section">
+    <div class="journal-tools-section-header">
+      <i class="fas fa-file-alt"></i> Document Types
+    </div>
+    <div class="journal-tools-section-column-wrapper">
+      <div class="journal-tools-section-column">
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-actors" name="updateActors" value="true">
+          <label for="update-actors">
+            <i class="fas fa-dragon"></i>
+            <span>Actors</span>
+          </label>
+        </div>
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-items" name="updateItems" value="true">
+          <label for="update-items">
+            <i class="fas fa-sword"></i>
+            <span>Items</span>
+          </label>
+        </div>
+      </div>
+      <div class="journal-tools-section-column">
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-scenes" name="updateScenes" value="true">
+          <label for="update-scenes">
+            <i class="fas fa-map"></i>
+            <span>Scenes</span>
+          </label>
+        </div>
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-journals" name="updateJournals" value="true">
+          <label for="update-journals">
+            <i class="fas fa-book"></i>
+            <span>Journals</span>
+          </label>
+        </div>
+      </div>
+      <div class="journal-tools-section-column">
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-tables" name="updateTables" value="true">
+          <label for="update-tables">
+            <i class="fas fa-dice-d20"></i>
+            <span>Roll Tables</span>
+          </label>
+        </div>
+        <div class="journal-tools-option">
+          <input type="checkbox" id="update-playlists" name="updatePlaylists" value="true">
+          <label for="update-playlists">
+            <i class="fas fa-music"></i>
+            <span>Playlists</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Target Fields -->
+  <div class="journal-tools-section">
+    <div class="journal-tools-section-header">
+      <i class="fas fa-crosshairs"></i> Target Fields
+    </div>
+    <div class="journal-tools-target-fields">
+      <div class="journal-tools-option">
+        <input type="checkbox" id="target-images" name="targetImages" value="true">
+        <label for="target-images">
+          <i class="fas fa-image"></i>
+          <span>Images</span>
+        </label>
+      </div>
+      <div class="journal-tools-option">
+        <input type="checkbox" id="target-text" name="targetText" value="true" checked>
+        <label for="target-text">
+          <i class="fas fa-font"></i>
+          <span>Text</span>
+        </label>
+      </div>
+      <div class="journal-tools-option">
+        <input type="checkbox" id="target-audio" name="targetAudio" value="true">
+        <label for="target-audio">
+          <i class="fas fa-volume-up"></i>
+          <span>Audio</span>
+        </label>
+      </div>
+    </div>
+
+
+
+
+
+    <div class="search-input-group">
+      <label for="match-mode">Match Mode</label>
+      <select id="match-mode" name="matchMode">
+        <option value="all">All Text</option>
+        <option value="path">Paths Only</option>
+        <option value="filename">Filenames Only</option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- Results -->
+  <div class="journal-tools-section" id="status-section">
+    <div class="journal-tools-section-header">
+      <div>
+        <i class="fas fa-spinner fa-spin" id="search-progress-spinner"></i> Results
+      </div>
+      <button type="button" class="copy-results-button" id="copy-results-search" title="Copy results to clipboard">
+        <i class="fas fa-copy"></i>
+      </button>
+    </div>
+
+    <div class="journal-tools-progress">
+      <div class="progress-row">
+        <div class="progress-label">Status:</div>
+        <div class="progress-text" id="search-progress-text">Ready...</div>
+      </div>
       <div class="progress-bar-container">
         <div class="progress-bar" id="search-progress-bar"></div>
       </div>
-      <span class="progress-text" id="search-progress-text">Ready...</span>
     </div>
-  </div>
-</div>
 
-<div class="journal-tools-results">
-  <div class="journal-tools-section-header">
-    <i class="fas fa-list"></i> Results
-    <button type="button" class="copy-results-btn" id="copy-results-btn" title="Copy results to clipboard">
-      <i class="fas fa-copy"></i>
-    </button>
-  </div>
-  <div class="results-section" id="search-results-section" style="display: none;">
-    <div class="results-area" id="results-area">
-      <div class="results-message">Always back up your files before running a mass change.</div>
-      <div class="results-message">Run a search before doing a mass replace to verify what will be changed.</div>
+    <div class="journal-tools-results">
+      <div class="results-area" id="results-search">
+        <div class="status-message">Always back up your files before running a mass change.</div>
+      </div>
     </div>
   </div>
-</div> 
+
+
+
+</div>
+<!-- Buttons -->
+<div class="journal-tools-footer">
+  <button type="button" class="journal-tools-btn clear-search-btn">
+    <i class="fas fa-eraser"></i> Clear
+  </button>
+  <button type="button" class="journal-tools-btn run-report-btn">
+    <i class="fas fa-search"></i> Run Report
+  </button>
+  <button type="button" class="journal-tools-btn mass-replace-btn">
+    <i class="fas fa-exchange-alt"></i> Mass Replace
+  </button>
+</div>
