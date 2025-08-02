@@ -233,7 +233,132 @@ export class JournalTools {
         try {
             const logStatus = (message, type = "info") => {
                 if (statusCallback) statusCallback(message, type);
-                postConsoleAndNotification("Journal Tools: " + message, "", false, false, false);
+                
+                // Send condensed version to console to reduce noise
+                let consoleMessage = message;
+                
+                // Skip empty lines and separators for console
+                if (message.trim() === "" || message.includes("========================================================") || message.includes("--------------------------------------------------------")) {
+                    return;
+                }
+                
+                // Condense entity counts
+                if (message.includes("Found") && message.includes("Unique Entities") && message.includes("Generic UUID Links")) {
+                    // Extract numbers and combine
+                    const entityMatch = message.match(/Found (\d+) Unique Entities/);
+                    const uuidMatch = message.match(/(\d+) Generic UUID Links/);
+                    if (entityMatch && uuidMatch) {
+                        consoleMessage = `Found ${entityMatch[1]} Unique Entities, ${uuidMatch[1]} Generic UUID Links`;
+                    }
+                }
+                
+                // Condense actor/item breakdowns
+                if (message.startsWith("ACTORS") || message.startsWith("ITEMS")) {
+                    const section = message.startsWith("ACTORS") ? "ACTORS" : "ITEMS";
+                    const actorLinksMatch = message.match(/(\d+) Actor Links/);
+                    const itemLinksMatch = message.match(/(\d+) Item Links/);
+                    const potentialActorsMatch = message.match(/(\d+) Potential Actors/);
+                    const potentialItemsMatch = message.match(/(\d+) Potential Items/);
+                    
+                    if (section === "ACTORS" && actorLinksMatch && potentialActorsMatch) {
+                        consoleMessage = `ACTORS: ${actorLinksMatch[1]} Actor Links, ${potentialActorsMatch[1]} Potential Actors`;
+                    } else if (section === "ITEMS" && itemLinksMatch && potentialItemsMatch) {
+                        consoleMessage = `ITEMS: ${itemLinksMatch[1]} Item Links, ${potentialItemsMatch[1]} Potential Items`;
+                    }
+                }
+                
+                // Condense page results
+                if (message.includes("Upgraded,") && message.includes("Skipped,") && message.includes("Created,") && message.includes("Errors")) {
+                    // Keep as is - already condensed
+                }
+                
+                // Condense final report headers
+                if (message.startsWith("FINAL REPORT:")) {
+                    // Keep as is
+                }
+                
+                // Condense final report sections - only the main summary lines, not the detailed breakdowns
+                if (message.startsWith("ACTORS") && message.includes("Links Skipped") && message.includes("Links Upgraded") && !message.includes("•")) {
+                    // Extract all the numbers and combine
+                    const skippedMatch = message.match(/(\d+) Actor Links Skipped/);
+                    const upgradedMatch = message.match(/(\d+) Actor Links Upgraded/);
+                    const createdMatch = message.match(/(\d+) Actor Links Created/);
+                    const errorsMatch = message.match(/(\d+) Actor Errors/);
+                    
+                    if (skippedMatch && upgradedMatch && createdMatch && errorsMatch) {
+                        consoleMessage = `ACTORS: ${skippedMatch[1]} Actor Links Skipped, ${upgradedMatch[1]} Actor Links Upgraded, ${createdMatch[1]} Actor Links Created, ${errorsMatch[1]} Actor Errors`;
+                    }
+                }
+                
+                if (message.startsWith("ITEMS") && message.includes("Links Skipped") && message.includes("Links Upgraded") && !message.includes("•")) {
+                    // Extract all the numbers and combine
+                    const skippedMatch = message.match(/(\d+) Item Links Skipped/);
+                    const upgradedMatch = message.match(/(\d+) Item Links Upgraded/);
+                    const createdMatch = message.match(/(\d+) Item Links Created/);
+                    const errorsMatch = message.match(/(\d+) Item Errors/);
+                    
+                    if (skippedMatch && upgradedMatch && createdMatch && errorsMatch) {
+                        consoleMessage = `ITEMS: ${skippedMatch[1]} Item Links Skipped, ${upgradedMatch[1]} Item Links Upgraded, ${createdMatch[1]} Item Links Created, ${errorsMatch[1]} Item Errors`;
+                    }
+                }
+                
+                if (message.startsWith("MACROS") && message.includes("Links Skipped") && message.includes("Links Upgraded") && !message.includes("•")) {
+                    // Extract all the numbers and combine
+                    const skippedMatch = message.match(/(\d+) Macro Links Skipped/);
+                    const upgradedMatch = message.match(/(\d+) Macro Links Upgraded/);
+                    const createdMatch = message.match(/(\d+) Macro Links Created/);
+                    const errorsMatch = message.match(/(\d+) Macro Errors/);
+                    
+                    if (skippedMatch && upgradedMatch && createdMatch && errorsMatch) {
+                        consoleMessage = `MACROS: ${skippedMatch[1]} Macro Links Skipped, ${upgradedMatch[1]} Macro Links Upgraded, ${createdMatch[1]} Macro Links Created, ${errorsMatch[1]} Macro Errors`;
+                    }
+                }
+                
+                // Condense settings section
+                if (message.startsWith("SETTINGS")) {
+                    // Keep as is - already condensed
+                }
+                
+                // Skip individual setting lines (they'll be combined in the main SETTINGS line)
+                if (message.startsWith("- Actors=") || message.startsWith("- Items=") || message.startsWith("- Macros=") || 
+                    message.startsWith("- Search World Items First:") || message.startsWith("- Search World Actors First:") ||
+                    message.startsWith("- Search World Items Last:") || message.startsWith("- Search World Actors Last:")) {
+                    return;
+                }
+                
+                // Skip individual totals lines (they'll be combined in the main TOTALS line)
+                if (message.startsWith("- ") && (message.includes("Pages Processed") || message.includes("Entities Processed") || 
+                    message.includes("Links Skipped") || message.includes("Links Upgraded") || 
+                    message.includes("Links Created") || message.includes("Errors"))) {
+                    return;
+                }
+                
+                // Condense totals section
+                if (message.startsWith("TOTALS")) {
+                    // Keep as is - already condensed
+                }
+                
+                // Skip sub-bullet points in final report
+                if (message.trim().startsWith("•")) {
+                    return;
+                }
+                
+                // Skip sub-headers in final report
+                if (message === "ACTORS" || message === "ITEMS" || message === "MACROS" || message === "SETTINGS" || message === "TOTALS") {
+                    return;
+                }
+                
+                // Skip processing headers
+                if (message.startsWith("PROCESSING:")) {
+                    return;
+                }
+                
+                // Skip results headers
+                if (message.startsWith("RESULTS:")) {
+                    return;
+                }
+                
+                postConsoleAndNotification("Journal Tools: " + consoleMessage, "", false, false, false);
             };
             
             const updateOverallProgress = (percentage, message) => {
@@ -288,15 +413,15 @@ export class JournalTools {
                 
                 const page = pages[pageIndex];
                 const overallProgress = 10 + (pageIndex / pages.length) * 80; // 10-90% for pages
-                updateOverallProgress(overallProgress, `Processing page ${pageIndex + 1}/${pages.length} ${page.name}`);
+                updateOverallProgress(overallProgress, `Processing Entry ${pageIndex + 1} of ${pages.length}: ${page.name}`);
                 updatePageProgress(0, `Starting page: ${page.name}`);
                 let pageContent = page.text.content;
                 if (!pageContent) {
-                    logStatus(`Skipping empty page: ${page.name}`, "warning");
+                    logStatus(`Skipping empty entry: ${page.name}`, "warning");
                     continue;
                 }
                 
-                logStatus(`Processing page: ${page.name} (${pageContent.length} chars)`);
+                logStatus(`Processing entry: ${page.name} (${pageContent.length} chars)`);
                 
                 // Force UI update after each page starts
                 await new Promise(resolve => setTimeout(resolve, 10));
