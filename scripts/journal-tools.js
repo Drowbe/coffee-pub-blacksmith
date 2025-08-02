@@ -1608,6 +1608,9 @@ export class JournalTools {
 
     // Determine entity type based on context and existing links
     static _determineEntityTypeFromContext(entity, pageContent, allEntities) {
+        // Get entity position early since it's used in multiple places
+        const entityPosition = entity.startIndex;
+        
         // If we have a detected entity type from UUID analysis, use it (100% accurate)
         if (entity.detectedEntityType) {
             postConsoleAndNotification(`Journal Tools: Using detected entity type from UUID`, 
@@ -1624,29 +1627,90 @@ export class JournalTools {
             }
         }
         
-        // Look for section headers and immediate context
-        const entityPosition = entity.startIndex;
-        const contextStart = Math.max(0, entityPosition - 2000);
-        const contextEnd = Math.min(pageContent.length, entityPosition + 2000);
+        // HIGHEST PRIORITY: Check if this entity is part of a list and use list-based logic
+        if (entity.type === 'html-list' || entity.type === 'bullet-list') {
+            // Find the previous entity in the same list
+            let previousEntityInList = null;
+            let minDistance = Infinity;
+            
+            for (const otherEntity of allEntities) {
+                if (otherEntity === entity) continue; // Skip self
+                
+                // Only consider entities that are in the same list (similar distance from start)
+                const distance = Math.abs(otherEntity.startIndex - entityPosition);
+                if (distance < minDistance && distance < 200) { // Within 200 chars = same list
+                    // Check if this other entity is before the current entity
+                    if (otherEntity.startIndex < entityPosition) {
+                        minDistance = distance;
+                        previousEntityInList = otherEntity;
+                    }
+                }
+            }
+            
+            if (previousEntityInList) {
+                postConsoleAndNotification(`Journal Tools: Found previous entity in list for ${entity.name}`, 
+                    `${previousEntityInList.name} (${previousEntityInList.type})`, false, true, false);
+                
+                // Determine the type of the previous entity
+                if (previousEntityInList.type === 'existing-link') {
+                    if (previousEntityInList.fullMatch.includes('@Actor[') || previousEntityInList.fullMatch.includes('Actor.')) {
+                        postConsoleAndNotification(`Journal Tools: List-based bias towards actor`, 
+                            `${entity.name}: Previous entity ${previousEntityInList.name} is actor`, false, true, false);
+                        return 'actor';
+                    } else if (previousEntityInList.fullMatch.includes('@Item[') || previousEntityInList.fullMatch.includes('Item.')) {
+                        postConsoleAndNotification(`Journal Tools: List-based bias towards item`, 
+                            `${entity.name}: Previous entity ${previousEntityInList.name} is item`, false, true, false);
+                        return 'item';
+                    }
+                }
+            }
+        }
+        
+        // Look for section headers and immediate context - use smaller context for more precise detection
+        const contextStart = Math.max(0, entityPosition - 1000);
+        const contextEnd = Math.min(pageContent.length, entityPosition + 1000);
         const contextContent = pageContent.substring(contextStart, contextEnd);
         
-        // Check for section headers that indicate entity type
-        const treasurePattern = /<h[1-6][^>]*>.*?[Tt]reasure.*?<\/h[1-6]>/gi;
-        const encounterPattern = /<h[1-6][^>]*>.*?[Ee]ncounters?.*?<\/h[1-6]>/gi;
-        const monsterPattern = /<h[1-6][^>]*>.*?[Mm]onsters?.*?<\/h[1-6]>/gi;
-        const itemPattern = /<h[1-6][^>]*>.*?[Ii]tems?.*?<\/h[1-6]>/gi;
+        // Debug: Log the context content to help diagnose issues
+        postConsoleAndNotification(`Journal Tools: Context analysis for ${entity.name}`, 
+            `Context length: ${contextContent.length}, Position: ${entityPosition}`, false, true, false);
         
-        if (treasurePattern.test(contextContent) || itemPattern.test(contextContent)) {
+        // Check for section headers that indicate entity type - look for both HTML headers and strong/bold text
+        const treasurePattern = /<(?:h[1-6]|strong|b)[^>]*>.*?[Tt]reasure.*?<\/(?:h[1-6]|strong|b)>/gi;
+        const encounterPattern = /<(?:h[1-6]|strong|b)[^>]*>.*?[Ee]ncounters?.*?<\/(?:h[1-6]|strong|b)>/gi;
+        const monsterPattern = /<(?:h[1-6]|strong|b)[^>]*>.*?[Mm]onsters?.*?<\/(?:h[1-6]|strong|b)>/gi;
+        const itemPattern = /<(?:h[1-6]|strong|b)[^>]*>.*?[Ii]tems?.*?<\/(?:h[1-6]|strong|b)>/gi;
+        
+        // Also look for plain text patterns that might indicate sections
+        const plainTreasurePattern = /[Tt]reasure[^<]*/gi;
+        const plainEncounterPattern = /[Ee]ncounters?[^<]*/gi;
+        const plainMonsterPattern = /[Mm]onsters?[^<]*/gi;
+        const plainItemPattern = /[Ii]tems?[^<]*/gi;
+        
+        // Debug: Test each pattern and log results
+        const treasureMatch = treasurePattern.test(contextContent) || plainTreasurePattern.test(contextContent);
+        const itemMatch = itemPattern.test(contextContent) || plainItemPattern.test(contextContent);
+        const encounterMatch = encounterPattern.test(contextContent) || plainEncounterPattern.test(contextContent);
+        const monsterMatch = monsterPattern.test(contextContent) || plainMonsterPattern.test(contextContent);
+        
+        postConsoleAndNotification(`Journal Tools: Section header analysis for ${entity.name}`, 
+            `Treasure: ${treasureMatch}, Item: ${itemMatch}, Encounter: ${encounterMatch}, Monster: ${monsterMatch}`, false, true, false);
+        
+        // Check actor patterns FIRST (higher priority)
+        if (encounterMatch || monsterMatch) {
+            postConsoleAndNotification(`Journal Tools: Context bias towards actor (section header)`, 
+                `${entity.name}: Found Encounters/Monsters section`, false, true, false);
+            return 'actor';
+        }
+        
+        // Then check item patterns
+        if (treasureMatch || itemMatch) {
             postConsoleAndNotification(`Journal Tools: Context bias towards item (section header)`, 
                 `${entity.name}: Found Treasure/Items section`, false, true, false);
             return 'item';
         }
         
-        if (encounterPattern.test(contextContent) || monsterPattern.test(contextContent)) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards actor (section header)`, 
-                `${entity.name}: Found Encounters/Monsters section`, false, true, false);
-            return 'actor';
-        }
+
         
         // Look for immediate neighbors (previous and next entities in the same list)
         let previousEntity = null;
@@ -1676,12 +1740,26 @@ export class JournalTools {
         let neighborActorCount = 0;
         let neighborItemCount = 0;
         
+        // Debug: Log neighbor information
+        if (previousEntity) {
+            postConsoleAndNotification(`Journal Tools: Previous entity for ${entity.name}`, 
+                `${previousEntity.name} (${previousEntity.type}) at distance ${minPrevDistance}`, false, true, false);
+        }
+        if (nextEntity) {
+            postConsoleAndNotification(`Journal Tools: Next entity for ${entity.name}`, 
+                `${nextEntity.name} (${nextEntity.type}) at distance ${minNextDistance}`, false, true, false);
+        }
+        
         if (previousEntity && minPrevDistance < 500) { // Within 500 chars
             if (previousEntity.type === 'existing-link') {
                 if (previousEntity.fullMatch.includes('@Actor[') || previousEntity.fullMatch.includes('Actor.')) {
                     neighborActorCount += 2; // Weight previous entity more heavily
+                    postConsoleAndNotification(`Journal Tools: Previous entity is actor`, 
+                        `${previousEntity.name} -> +2 actor bias`, false, true, false);
                 } else if (previousEntity.fullMatch.includes('@Item[') || previousEntity.fullMatch.includes('Item.')) {
                     neighborItemCount += 2;
+                    postConsoleAndNotification(`Journal Tools: Previous entity is item`, 
+                        `${previousEntity.name} -> +2 item bias`, false, true, false);
                 }
             }
         }
@@ -1690,8 +1768,12 @@ export class JournalTools {
             if (nextEntity.type === 'existing-link') {
                 if (nextEntity.fullMatch.includes('@Actor[') || nextEntity.fullMatch.includes('Actor.')) {
                     neighborActorCount += 1;
+                    postConsoleAndNotification(`Journal Tools: Next entity is actor`, 
+                        `${nextEntity.name} -> +1 actor bias`, false, true, false);
                 } else if (nextEntity.fullMatch.includes('@Item[') || nextEntity.fullMatch.includes('Item.')) {
                     neighborItemCount += 1;
+                    postConsoleAndNotification(`Journal Tools: Next entity is item`, 
+                        `${nextEntity.name} -> +1 item bias`, false, true, false);
                 }
             }
         }
