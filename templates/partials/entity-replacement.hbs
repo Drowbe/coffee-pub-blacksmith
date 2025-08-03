@@ -25,31 +25,40 @@
     <div class="journal-tools-section-header">
       <i class="fas fa-tools"></i> Entities to Replace
     </div>
-    <div class="journal-tools-options"
-      data-tooltip="Finds and replaces ACTOR links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
-      <div class="journal-tools-option">
-        <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
-        <label for="upgrade-actors">
-          <i class="fas fa-dragon"></i>
-          <span>Actors</span>
-        </label>
+    
+    <div class="journal-tools-section-column-wrapper">
+      
+      <div class="journal-tools-section-column">                  
+        <div class="journal-tools-option" data-tooltip="Finds and replaces ACTOR links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
+
+          <input type="checkbox" id="upgrade-actors" name="upgradeActors" value="true">
+          <label for="upgrade-actors">
+            <i class="fas fa-dragon"></i>
+            <span>Actors</span>
+          </label>
+        </div>
       </div>
-      <div class="journal-tools-option"
-        data-tooltip="Finds and replaces ITEM links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
-        <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
-        <label for="upgrade-items">
-          <i class="fas fa-sword"></i>
-          <span>Items</span>
-        </label>
+
+      <div class="journal-tools-section-column">   
+        <div class="journal-tools-option" data-tooltip="Finds and replaces ITEM links per your compenium and world settings. Upgrades exising links, fixes broken links, and tries to convert plain text where appropriate.">
+          <input type="checkbox" id="upgrade-items" name="upgradeItems" value="true">
+          <label for="upgrade-items">
+            <i class="fas fa-sword"></i>
+            <span>Items</span>
+          </label>
+        </div>
+      </div>  
+        
+      <div class="journal-tools-section-column">     
+        <div class="journal-tools-option" data-tooltip="Macro links in journals only work with imported macros, so this option will upgrade and fix macros to use in-world macros, if present.">
+          <input type="checkbox" id="upgrade-macros" name="upgradeMacros" value="true">
+          <label for="upgrade-macros">
+            <i class="fas fa-magic"></i>
+            <span>World Macros</span>
+          </label>
+        </div>
       </div>
-      <div class="journal-tools-option"
-        data-tooltip="Macro links in journals only work with imported macros, so this option will upgrade and fix macros to use in-world macros, if present.">
-        <input type="checkbox" id="upgrade-macros" name="upgradeMacros" value="true">
-        <label for="upgrade-macros">
-          <i class="fas fa-magic"></i>
-          <span>World Macros</span>
-        </label>
-      </div>
+
     </div>
   </div>
   <!-- Processing Settings -->

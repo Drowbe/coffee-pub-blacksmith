@@ -168,6 +168,7 @@ div#journal-tools-window .window-content {
   min-width: 120px;
   font-size: 1em;
   color: #e0e0e0;
+
 }
 
 .journal-tools-summary-item label {
@@ -191,6 +192,8 @@ div#journal-tools-window .window-content {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: nowrap;
+  
 }
 
 .journal-tools-summary-item select.journal-tools-selector {
@@ -202,7 +205,7 @@ div#journal-tools-window .window-content {
   padding: 4px 8px;
   min-width: 200px;
   font-family: inherit;
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .journal-tools-summary-item select.journal-tools-selector:focus {
@@ -239,6 +242,7 @@ div#journal-tools-window .window-content {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .journal-tools-summary-item .open-journal-btn:hover {
