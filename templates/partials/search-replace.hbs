@@ -1,46 +1,25 @@
 
   
-
+  <!-- Folder Selection -->
 <div class="journal-tools-summary-row">
   <div class="journal-tools-summary-item">
-    <span class="label">Folder Filter</span>
-    <div class="journal-tools-selector-container">
+    <div class="journal-tools-selector-container journal-tools-input-group">
+      <label for="journal-tools-selector-search-folder">Folder Filter</label>
       <select id="journal-tools-selector-search-folder" class="journal-tools-selector">
-        {{#each type}}
-        <optgroup label="{{type}}">
-          <option value="">(All Folders)</option>
-          {{#each availableFolders}}
-          <option value="{{id}}">{{name}}</option>
+        <option value="">All Folders and Types</option>
+        {{#each availableFolders}}
+          <optgroup label="{{type}}">
+            {{#each folders}}
+              <option value="{{id}}">{{name}}</option>
+            {{/each}}
+          </optgroup>
           {{/each}}
-        </optgroup>
-        {{/each}}
       </select>
-      <button type="button" class="open-journal-btn" id="open-journal-btn" title="Open selected journal">
-        <i class="fas fa-feather"></i>
-      </button>
     </div>
   </div>
 </div>
 
 
-
-
-
-
-  <!-- Folder Selection -->
-  <div class="journal-tools-section">
-    <div class="journal-tools-input-group">
-      <label for="folder-filter">Folder Filter</label>
-      <select id="folder-filter" name="folderFilter">
-        <option value="">(All Folders)</option>
-        {{#each availableFolders}}
-        <option value="{{id}}">{{name}} ({{type}})</option>
-        {{/each}}
-      </select>
-    </div>
-  </div>
-  
-  
 
 <div class="journal-tools-body-wrapper">
 
@@ -62,18 +41,18 @@
           <input type="text" id="new-text" name="newText" placeholder="e.g. newplace/newfolder" />
         </div>
 
-
       </div>
 
-        <div class="journal-tools-input-group">
-          <label for="match-mode">Match Mode</label>
-          <select id="match-mode" name="matchMode">
+      <div class="journal-tools-summary-item">
+        <div class="journal-tools-selector-container journal-tools-input-group">
+          <label for="journal-tools-selector-match-mode">Match Mode</label>
+          <select id="journal-tools-selector-match-mode" name="matchMode" class="journal-tools-selector">
             <option value="all">All Text</option>
             <option value="path">Paths Only</option>
             <option value="filename">Filenames Only</option>
           </select>
         </div>
-      
+      </div>
     </div>
   </div>
 

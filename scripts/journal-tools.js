@@ -2361,13 +2361,30 @@ export class JournalToolsWindow extends FormApplication {
             journals: journalFolders[folderName].sort((a, b) => a.name.localeCompare(b.name))
         })).sort((a, b) => a.folderName.localeCompare(b.folderName));
         
-        // Get all folders for search/replace
+        // Get all folders for search/replace, grouped by type
         const allFolders = game.folders.contents.filter(f => f.documentName && f.contents.length);
-        const availableFolders = allFolders.map(folder => ({
-            id: folder.id,
-            name: folder.name,
-            type: this._getFolderTypeDisplay(folder)
-        })).sort((a, b) => a.name.localeCompare(b.name));
+        const folderGroups = {};
+        
+        allFolders.forEach(folder => {
+            const type = this._getFolderTypeDisplay(folder);
+            if (!folderGroups[type]) {
+                folderGroups[type] = [];
+            }
+            folderGroups[type].push({
+                id: folder.id,
+                name: folder.name
+            });
+        });
+        
+        // Sort folders within each type and sort types
+        Object.keys(folderGroups).forEach(type => {
+            folderGroups[type].sort((a, b) => a.name.localeCompare(b.name));
+        });
+        
+        const availableFolders = Object.keys(folderGroups).sort().map(type => ({
+            type: type,
+            folders: folderGroups[type]
+        }));
         
         return {
             journalName: this.journal.name,
@@ -2699,7 +2716,7 @@ export class JournalToolsWindow extends FormApplication {
         this.element.find('#current-text').val("");
         this.element.find('#new-text').val("");
         this.element.find('#journal-tools-selector-search-folder').val("");
-        this.element.find('#match-mode').val("all");
+        this.element.find('#journal-tools-selector-match-mode').val("all");
         
         // Reset checkboxes
         this.element.find('#update-actors, #update-items, #update-scenes, #update-journals, #update-tables, #update-playlists').prop('checked', false);
@@ -2758,7 +2775,7 @@ export class JournalToolsWindow extends FormApplication {
         const currentText = this.element.find('#current-text').val()?.trim();
         const newText = this.element.find('#new-text').val() ?? "";
         const folderFilter = this.element.find('#journal-tools-selector-search-folder').val();
-        const matchMode = this.element.find('#match-mode').val();
+        const matchMode = this.element.find('#journal-tools-selector-match-mode').val();
         const resultsArea = this.element.find('#results-search');
         
         // Target field checkboxes
