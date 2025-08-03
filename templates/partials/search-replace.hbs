@@ -1,8 +1,35 @@
-<div class="journal-tools-body-wrapper">
+
   
+
+<div class="journal-tools-summary-row">
+  <div class="journal-tools-summary-item">
+    <span class="label">Folder Filter</span>
+    <div class="journal-tools-selector-container">
+      <select id="journal-tools-selector-search-folder" class="journal-tools-selector">
+        {{#each type}}
+        <optgroup label="{{type}}">
+          <option value="">(All Folders)</option>
+          {{#each availableFolders}}
+          <option value="{{id}}">{{name}}</option>
+          {{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <button type="button" class="open-journal-btn" id="open-journal-btn" title="Open selected journal">
+        <i class="fas fa-feather"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
   <!-- Folder Selection -->
   <div class="journal-tools-section">
-    <div class="search-input-group">
+    <div class="journal-tools-input-group">
       <label for="folder-filter">Folder Filter</label>
       <select id="folder-filter" name="folderFilter">
         <option value="">(All Folders)</option>
@@ -14,6 +41,9 @@
   </div>
   
   
+
+<div class="journal-tools-body-wrapper">
+
   <!-- Search Configuration -->
   <div class="journal-tools-section">
     <div class="journal-tools-section-header">
@@ -22,33 +52,31 @@
     <div class="journal-tools-section-column-wrapper"><!-- journal-tools-search-config -->
       <div class="journal-tools-section-column">
 
-        <div class="search-input-group">
+        <div class="journal-tools-input-group">
           <label for="current-text">Current Text</label>
           <input type="text" id="current-text" name="currentText" placeholder="e.g. modules/assets" />
         </div>
-      </div>
-      <div class="journal-tools-section-column">
-        <div class="search-input-group">
+
+        <div class="journal-tools-input-group">
           <label for="new-text">New Text</label>
           <input type="text" id="new-text" name="newText" placeholder="e.g. newplace/newfolder" />
         </div>
+
+
       </div>
+
+        <div class="journal-tools-input-group">
+          <label for="match-mode">Match Mode</label>
+          <select id="match-mode" name="matchMode">
+            <option value="all">All Text</option>
+            <option value="path">Paths Only</option>
+            <option value="filename">Filenames Only</option>
+          </select>
+        </div>
+      
     </div>
   </div>
 
-  
-
-
-  <div class="journal-tools-section">
-    <div class="search-input-group">
-      <label for="match-mode">Match Mode</label>
-      <select id="match-mode" name="matchMode">
-        <option value="all">All Text</option>
-        <option value="path">Paths Only</option>
-        <option value="filename">Filenames Only</option>
-      </select>
-    </div>
-  </div>
 
   <!-- Document Types -->
   <div class="journal-tools-section">
@@ -133,19 +161,6 @@
           <span>Audio</span>
         </label>
       </div>
-    </div>
-
-
-
-
-
-    <div class="search-input-group">
-      <label for="match-mode">Match Mode</label>
-      <select id="match-mode" name="matchMode">
-        <option value="all">All Text</option>
-        <option value="path">Paths Only</option>
-        <option value="filename">Filenames Only</option>
-      </select>
     </div>
 
   </div>

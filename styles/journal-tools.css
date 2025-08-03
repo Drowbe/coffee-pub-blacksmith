@@ -184,13 +184,13 @@ div#journal-tools-window .window-content {
 }
 
 /* Journal Selector */
-.journal-tools-summary-item .journal-selector-container {
+.journal-tools-summary-item .journal-tools-selector-container {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.journal-tools-summary-item select#journal-selector {
+.journal-tools-summary-item select.journal-tools-selector {
   background: #2a2a2a;
   border: 1px solid #555;
   border-radius: 4px;
@@ -202,19 +202,19 @@ div#journal-tools-window .window-content {
   flex: 1;
 }
 
-.journal-tools-summary-item select#journal-selector:focus {
+.journal-tools-summary-item select.journal-tools-selector:focus {
   outline: none;
   border-color: rgba(255, 47, 47, 0.8);
   box-shadow: 0 0 0 2px rgba(255, 47, 47, 0.2);
 }
 
-.journal-tools-summary-item select#journal-selector optgroup {
+.journal-tools-summary-item select.journal-tools-selector optgroup {
   font-weight: 600;
   color: rgba(255, 47, 47, 0.8);
   background: #1a1a1a;
 }
 
-.journal-tools-summary-item select#journal-selector option {
+.journal-tools-summary-item select.journal-tools-selector option {
   background: #2a2a2a;
   color: #e0e0e0;
   padding: 2px 4px;
@@ -629,21 +629,21 @@ div#journal-tools-window .window-content {
   gap: 12px;
 }
 
-.search-input-group {
+.journal-tools .journal-tools-input-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.search-input-group label {
+.journal-tools .journal-tools-input-group label {
   font-size: 0.9em;
   font-weight: 600;
   color: rgba(145, 133, 107, 1.0);
   text-transform: uppercase;
 }
 
-.search-input-group input,
-.search-input-group select {
+.journal-tools .journal-tools-input-group input,
+.journal-tools .journal-tools-input-group select {
   background: #2a2a2a;
   border: 1px solid #555;
   border-radius: 4px;
@@ -653,8 +653,8 @@ div#journal-tools-window .window-content {
   font-family: inherit;
 }
 
-.search-input-group input:focus,
-.search-input-group select:focus {
+.journal-tools .journal-tools-input-group input:focus,
+.journal-tools .journal-tools-input-group select:focus {
   outline: none;
   border-color: rgba(255, 47, 47, 0.8);
   box-shadow: 0 0 0 2px rgba(255, 47, 47, 0.2);

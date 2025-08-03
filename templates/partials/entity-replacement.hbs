@@ -1,8 +1,10 @@
+
+<!-- Journal Selection -->
 <div class="journal-tools-summary-row">
   <div class="journal-tools-summary-item">
     <span class="label">Journal</span>
-    <div class="journal-selector-container">
-      <select id="journal-selector" name="selectedJournalId">
+    <div class="journal-tools-selector-container">
+      <select id="journal-tools-selector-entity-journal" class="journal-tools-selector" name="selectedJournalId">
         {{#each availableJournals}}
         <optgroup label="{{folderName}}">
           {{#each journals}}

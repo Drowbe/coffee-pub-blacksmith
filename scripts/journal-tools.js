@@ -2667,7 +2667,7 @@ export class JournalToolsWindow extends FormApplication {
         
         try {
             // Get the selected journal ID from the dropdown
-            const selectedJournalId = this.element.find('#journal-selector').val();
+            const selectedJournalId = this.element.find('#journal-tools-selector-entity-journal').val();
             
             if (!selectedJournalId) {
                 ui.notifications.warn("No journal selected");
@@ -2698,7 +2698,7 @@ export class JournalToolsWindow extends FormApplication {
         // Reset all input fields
         this.element.find('#current-text').val("");
         this.element.find('#new-text').val("");
-        this.element.find('#folder-filter').val("");
+        this.element.find('#journal-tools-selector-search-folder').val("");
         this.element.find('#match-mode').val("all");
         
         // Reset checkboxes
@@ -2757,7 +2757,7 @@ export class JournalToolsWindow extends FormApplication {
     async _handleSearchReplace(doReplace = false) {
         const currentText = this.element.find('#current-text').val()?.trim();
         const newText = this.element.find('#new-text').val() ?? "";
-        const folderFilter = this.element.find('#folder-filter').val();
+        const folderFilter = this.element.find('#journal-tools-selector-search-folder').val();
         const matchMode = this.element.find('#match-mode').val();
         const resultsArea = this.element.find('#results-search');
         

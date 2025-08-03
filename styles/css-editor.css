@@ -50,7 +50,7 @@
     width: 100%;
 }
 
-.blacksmith-css-editor .search-input-group {
+.blacksmith-css-editor .journal-tools-input-group {
     display: flex;
     flex-direction: row;
     gap: 4px;
