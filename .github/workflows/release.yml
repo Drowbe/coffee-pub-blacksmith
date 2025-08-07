@@ -35,6 +35,8 @@ jobs:
             images/ \
             sounds/ \
             packs/ \
+            prompts/ \
+            resources/ \
             -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*"
 
       # Create release
