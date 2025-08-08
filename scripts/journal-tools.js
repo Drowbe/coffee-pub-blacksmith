@@ -3093,7 +3093,7 @@ export class JournalToolsWindow extends FormApplication {
     _boldSearch(str, search) {
         if (!search) return str;
         const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return str.replace(new RegExp(esc, 'gi'), match => `<span style="font-weight:bold;color:#12409f">${match}</span>`);
+        return str.replace(new RegExp(esc, 'gi'), match => `<span class="replace-result-searchstring">${match}</span>`);
     }
 
     _allContextsWithBold(str, search, replace) {
@@ -3123,12 +3123,12 @@ export class JournalToolsWindow extends FormApplication {
             }
             let context = plain.slice(start, end).trim();
             // For old: bold the matched search term
-            let oldContext = context.replace(new RegExp(esc, 'gi'), mm => `<span style="font-weight:bold;color:#12409f">${mm}</span>`);
+            let oldContext = context.replace(new RegExp(esc, 'gi'), mm => `<span class="replace-result-searchstring">${mm}</span>`);
             // For new: replace only the matched occurrence in this context, bold the replacement
             let relIndex = m.index - start;
             let before = context.slice(0, relIndex);
             let after = context.slice(relIndex + search.length);
-            let newContext = before + `<span style="font-weight:bold;color:#12409f">${replace}</span>` + after;
+            let newContext = before + `<span class="replace-result-searchstring">${replace}</span>` + after;
             result.push({old: oldContext, new: newContext});
         }
         return result.length ? result : [{old: plain, new: plain}];

@@ -751,9 +751,9 @@ div#journal-tools-window .window-content {
 }
 
 .replace-result-title {
-  border: 0px dotted #000000;
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 3px;
-  background-color: rgba(228, 222, 216, 0.2);
+  background-color: rgba(255, 255, 255, 0.1);
   padding: 4px 5px;
   display: flex;
   align-items: center;
@@ -768,11 +768,16 @@ div#journal-tools-window .window-content {
   cursor: pointer;
   margin-right: 8px;
   text-transform: uppercase;
-  color: rgba(255, 47, 47, 1.0);
+  color: rgba(255, 255, 255, 1.0);
 }
 
 .replace-title:hover {
   color: rgba(255, 47, 47, 0.8);
+}
+
+.replace-result-searchstring {
+    font-weight: bold;
+    color: rgba(255, 173, 110, 0.9);
 }
 
 .replace-result-tag {
@@ -805,7 +810,7 @@ div#journal-tools-window .window-content {
   display: inline-block;
   width: 40px;
   text-align: right;
-  background-color: rgba(222, 219, 210, 0.3);
+  background-color: rgba(222, 219, 210, 0.9);
   border-radius: 3px;
   font-size: 0.9em;
 }
@@ -815,15 +820,15 @@ div#journal-tools-window .window-content {
 }
 
 .code-old-label {
-  color: rgba(102, 0, 0, 1.0);
+  color: rgba(91, 3, 10, 1.0);
 }
 
 .code-new {
-  color: rgba(0, 102, 0, 1.0);
+  color: rgba(105, 205, 108, 0.9);
 }
 
 .code-old {
-  color: rgba(102, 0, 0, 1.0);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Scrollbar styling for Foundry look */
