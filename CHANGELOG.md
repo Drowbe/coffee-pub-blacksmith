@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Token Grid Positioning:** Fixed token deployment to properly snap to grid square positions instead of grid intersections. All deployment patterns (line, circle, scatter, grid, sequential) now correctly place tokens within grid squares using the proper FoundryVTT coordinate system.
 
+### Changed
+- **Skill Roll Routing (DnD5e 4.4.4):** Updated skill check execution to use the DnD5e Actions API first (`game.dnd5e.actions.rollSkill`), with safe fallbacks to `rollSkillV2` and `doRollSkill`, and legacy `rollSkill` only as a last resort. This ensures v2 paths are used on 4.4.4 and prepares for removal of deprecated hooks in 5.0.
+
+### Compatibility
+- **Deprecation Warning Mitigation:** On DnD5e 4.4.4, skill checks now route through the v2 API to avoid triggering the deprecated `dnd5e.rollSkill` hook warning.
+
 ## [12.0.20] - Encounter Toolbar and Token Deployment
 
 ### NOTE: Bumped the version to 12 to align with the Foundry version.
