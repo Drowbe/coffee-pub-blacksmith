@@ -170,11 +170,12 @@ div#journal-tools-window .window-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-width: 120px;
+  min-width: 0px;
   font-size: 1em;
   color: #e0e0e0;
 
 }
+
 
 .journal-tools-summary-item label {
   font-size: 0.8em;
@@ -185,6 +186,17 @@ div#journal-tools-window .window-content {
   border: 0px solid #987347;
   width: 100%;
 }
+
+.journal-tools-icon-container {
+  border: 0px solid #ffffff;
+  height: 100%;
+  padding-top: 12px;
+}
+
+.journal-tools-icon-container i:hover{
+  color: rgb(185, 30, 10);
+}
+
 
 .journal-tools-summary-item .journal-name {
   color: rgba(255, 255, 255, 1.0);
