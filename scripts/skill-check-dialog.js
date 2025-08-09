@@ -1606,9 +1606,14 @@ export class SkillCheckDialog extends Application {
                     if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor);
                     break;
                 case 'skill':
-                    if (typeof actor.rollSkillV2 === 'function') {
+                    if (typeof game.dnd5e?.actions?.rollSkill === 'function') {
+                        roll = await game.dnd5e.actions.rollSkill({ actor, skill: value, options: rollOptions });
+                    } else if (typeof actor.rollSkillV2 === 'function') {
                         roll = await actor.rollSkillV2(value, rollOptions);
+                    } else if (typeof actor.doRollSkill === 'function') {
+                        roll = await actor.doRollSkill(value, rollOptions);
                     } else {
+                        // Legacy fallback (may emit deprecation warnings in dnd5e >= 4.1)
                         roll = await actor.rollSkill(value, rollOptions);
                     }
                     if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
