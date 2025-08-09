@@ -3177,41 +3177,45 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     _allContextsWithBold(str, search, replace) {
-        if (!search) return [{old: str, new: str}];
-        // Strip HTML tags for context extraction
+        if (!search) return [{ old: str, new: str }];
+        // Strip HTML tags for context extraction only; keep indices stable
         const plain = str.replace(/<[^>]+>/g, '');
         const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(esc, 'gi');
-        let result = [];
+        const results = [];
         let m;
         while ((m = regex.exec(plain)) !== null) {
-            // Find sentence boundaries
-            let start = plain.lastIndexOf('.', m.index);
-            let excl = plain.lastIndexOf('!', m.index);
-            let quest = plain.lastIndexOf('?', m.index);
-            let br = plain.lastIndexOf('\n', m.index);
-            start = Math.max(start, excl, quest, br);
+            // Determine soft sentence boundaries around the match
+            let start = Math.max(
+                plain.lastIndexOf('.', m.index),
+                plain.lastIndexOf('!', m.index),
+                plain.lastIndexOf('?', m.index),
+                plain.lastIndexOf('\n', m.index)
+            );
             start = start === -1 ? 0 : start + 1;
-            let endDot = plain.indexOf('.', m.index + search.length);
-            let endExcl = plain.indexOf('!', m.index + search.length);
-            let endQuest = plain.indexOf('?', m.index + search.length);
-            let endBr = plain.indexOf('\n', m.index + search.length);
-            let ends = [endDot, endExcl, endQuest, endBr].filter(e => e !== -1);
-            let end = ends.length ? Math.min(...ends) : plain.length;
-            if (end === plain.length && plain.indexOf('\n', m.index + search.length) !== -1) {
-                end = plain.indexOf('\n', m.index + search.length);
-            }
-            let context = plain.slice(start, end).trim();
-            // For old: bold the matched search term
-            let oldContext = context.replace(new RegExp(esc, 'gi'), mm => `<span class="replace-result-searchstring">${mm}</span>`);
-            // For new: replace only the matched occurrence in this context, bold the replacement
-            let relIndex = m.index - start;
-            let before = context.slice(0, relIndex);
-            let after = context.slice(relIndex + search.length);
-            let newContext = before + `<span class="replace-result-searchstring">${replace}</span>` + after;
-            result.push({old: oldContext, new: newContext});
+
+            const afterStart = m.index + search.length;
+            const ends = [
+                plain.indexOf('.', afterStart),
+                plain.indexOf('!', afterStart),
+                plain.indexOf('?', afterStart),
+                plain.indexOf('\n', afterStart)
+            ].filter(e => e !== -1);
+            const end = ends.length ? Math.min(...ends) : plain.length;
+
+            // Do not trim; preserve offsets so the slices align with m.index
+            const context = plain.slice(start, end);
+            const relIndex = m.index - start;
+            const before = context.slice(0, relIndex);
+            const matched = context.substr(relIndex, search.length);
+            const after = context.slice(relIndex + search.length);
+
+            const oldContext = `${before}<span class="replace-result-searchstring">${matched}</span>${after}`;
+            const newContext = `${before}<span class="replace-result-searchstring">${replace}</span>${after}`;
+
+            results.push({ old: oldContext, new: newContext });
         }
-        return result.length ? result : [{old: plain, new: plain}];
+        return results.length ? results : [{ old: plain, new: plain }];
     }
 
     async _performMassReplace(changes) {
