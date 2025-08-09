@@ -2341,10 +2341,11 @@ export class JournalToolsWindow extends FormApplication {
         // Get all journals organized by folder
         const allJournals = game.journal.contents;
         const journalFolders = {};
+        const ROOT_LABEL = '..Journal Root';
         
         // Group journals by folder
         allJournals.forEach(journal => {
-            const folder = journal.folder?.name || 'No Folder';
+            const folder = journal.folder?.name || ROOT_LABEL;
             if (!journalFolders[folder]) {
                 journalFolders[folder] = [];
             }
@@ -2355,11 +2356,13 @@ export class JournalToolsWindow extends FormApplication {
             });
         });
         
-        // Convert to array format for template
-        const availableJournals = Object.keys(journalFolders).map(folderName => ({
-            folderName: folderName,
-            journals: journalFolders[folderName].sort((a, b) => a.name.localeCompare(b.name))
-        })).sort((a, b) => a.folderName.localeCompare(b.folderName));
+        // Convert to array format for template, keeping ROOT_LABEL first
+        const availableJournals = Object.keys(journalFolders)
+            .sort((a, b) => (a === ROOT_LABEL ? -1 : b === ROOT_LABEL ? 1 : a.localeCompare(b)))
+            .map(folderName => ({
+                folderName: folderName,
+                journals: journalFolders[folderName].sort((a, b) => a.name.localeCompare(b.name))
+            }));
         
         // Get all folders for search/replace, grouped by type
         const allFolders = game.folders.contents.filter(f => f.documentName && f.contents.length);
