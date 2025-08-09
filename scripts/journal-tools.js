@@ -2434,7 +2434,7 @@ export class JournalToolsWindow extends FormApplication {
         html.find('.cancel-tools').click(this._onCancelTools.bind(this));
         html.find('#copy-results-entity').click(this._onCopyStatus.bind(this));
         html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));
-        html.find('.open-journal-btn').click(this._onOpenJournal.bind(this));
+        html.find('#open-journal-btn').click(this._onOpenJournal.bind(this));
         
         // Tab switching
         html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));

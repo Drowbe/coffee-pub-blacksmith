@@ -102,35 +102,40 @@ div#journal-tools-window .window-content {
 /* Tabs */
 .journal-tools-tabs {
   display: flex;
-  background: #18181c;
+  background: rgba(75, 36, 37, 0.9);
   border-bottom: 1px solid #444;
+  gap: 2px;
+  padding: 4px 2px 0px 2px;
 }
 
 .journal-tools-tab {
-  background: none;
-  border: none;
-  color: rgba(145, 133, 107, 0.7);
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(159, 146, 117, 1.0);
   font-weight: 600;
-  font-size: 0.9em;
-  padding: 0.75em 1em;
+  font-size: 1.0em;
+  padding: 4px 2px 4px 2px ;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
+  display: block;
   align-items: center;
-  gap: 6px;
   text-transform: uppercase;
-  border-bottom: 2px solid transparent;
+  border-top: 0px solid rgba(159, 146, 117, 0.3);
+  border-bottom: 3px solid rgba(159, 146, 117, 0.3);
+  border-left: 0px solid rgba(159, 146, 117, 0.3);
+  border-right: 0px solid rgba(159, 146, 117, 0.3);
+  border-radius: 6px 6px 0px 0px;
 }
 
 .journal-tools-tab:hover {
-  color: rgba(145, 133, 107, 1.0);
-  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(159, 146, 117, 0.4);
+  
 }
 
 .journal-tools-tab.active {
-  color: rgba(255, 47, 47, 1.0);
-  border-bottom-color: rgba(255, 47, 47, 1.0);
-  background: rgba(255, 47, 47, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 3px solid rgba(159, 146, 117, 1.0);
+  background: rgba(159, 146, 117, 0.4);
 }
 
 .journal-tools-tab i {
@@ -226,30 +231,7 @@ div#journal-tools-window .window-content {
   padding: 2px 4px;
 }
 
-/* Open Journal Button */
-.journal-tools-summary-item .open-journal-btn {
-  background: #2a2a2a;
-  border: 1px solid #555;
-  border-radius: 4px;
-  color: #e0e0e0;
-  cursor: pointer;
-  padding: 6px 8px;
-  transition: all 0.2s ease;
-  font-size: 0.9em;
-  line-height: 1;
-  width: auto;
-  height: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
 
-.journal-tools-summary-item .open-journal-btn:hover {
-  border-color: rgba(255, 47, 47, 0.8);
-  background: #333;
-  color: rgba(255, 47, 47, 1.0);
-}
 
 /* Body */
 .journal-tools-body-wrapper {
@@ -350,9 +332,9 @@ div#journal-tools-window .window-content {
 .journal-tools-option input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: rgba(255, 47, 47, 1.0);
+  accent-color: rgba(158, 145, 116, 0.9);
   cursor: pointer;
-  background: #232323;
+  background: rgb(158, 145, 116, 0.9);
   border: 1px solid #555;
   border-radius: 3px;
 }
@@ -864,4 +846,40 @@ div#journal-tools-window .window-content {
     align-items: flex-start;
     gap: 0.2em 0;
   }
+} 
+
+/* Sticky summary header specific to journal tools pages */
+.journal-tools-summary-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 1em;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #18181c;
+  border-bottom: 1px solid #444;
+  padding: 0.5em 1em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.journal-tools-summary-header .journal-tools-summary-item {
+  display: flex;
+  align-items: center;
+}
+
+.journal-tools-summary-header .journal-tools-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.journal-tools-summary-header .journal-tools-selector {
+  min-width: 220px;
+  flex: 1 1 auto;
+}
+
+.journal-tools-summary-header .journal-tools-icon {
+  flex-shrink: 0;
 } 

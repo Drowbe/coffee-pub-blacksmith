@@ -1,7 +1,7 @@
 
   
-  <!-- Folder Selection -->
-<div class="journal-tools-summary-row">
+  <!-- Folder & Mode Header -->
+<div class="journal-tools-summary-header">
   <div class="journal-tools-summary-item">
     <div class="journal-tools-selector-container journal-tools-input-group">
       <label for="journal-tools-selector-search-folder">Folder Filter</label>
@@ -17,9 +17,18 @@
       </select>
     </div>
   </div>
+
+  <div class="journal-tools-summary-item">
+    <div class="journal-tools-selector-container journal-tools-input-group">
+      <label for="journal-tools-selector-match-mode">Match Mode</label>
+      <select id="journal-tools-selector-match-mode" name="matchMode" class="journal-tools-selector">
+        <option value="all">All Text</option>
+        <option value="path">Paths Only</option>
+        <option value="filename">Filenames Only</option>
+      </select>
+    </div>
+  </div>
 </div>
-
-
 
 <div class="journal-tools-body-wrapper">
 
@@ -41,17 +50,6 @@
           <input type="text" id="new-text" name="newText" placeholder="e.g. newplace/newfolder" />
         </div>
 
-      </div>
-
-      <div class="journal-tools-summary-item">
-        <div class="journal-tools-selector-container journal-tools-input-group">
-          <label for="journal-tools-selector-match-mode">Match Mode</label>
-          <select id="journal-tools-selector-match-mode" name="matchMode" class="journal-tools-selector">
-            <option value="all">All Text</option>
-            <option value="path">Paths Only</option>
-            <option value="filename">Filenames Only</option>
-          </select>
-        </div>
       </div>
     </div>
   </div>
