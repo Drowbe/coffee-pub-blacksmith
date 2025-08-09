@@ -2444,6 +2444,83 @@ export class JournalToolsWindow extends FormApplication {
         html.find('.run-report-btn').click(this._onRunReport.bind(this));
         html.find('.mass-replace-btn').click(this._onMassReplace.bind(this));
         html.find('#copy-results-search').click(this._onCopyResults.bind(this));
+
+        // Delegated click for dynamically generated result titles
+        html.on('click', '.replace-title', this._onResultTitleClick.bind(this));
+    }
+
+    _onResultTitleClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            const target = event.currentTarget;
+            const $t = $(target);
+            const type = $t.data('type');
+            const id = $t.data('id');
+            const pageId = $t.data('page-id');
+            const soundId = $t.data('sound-id');
+
+            if (!type || !id) return;
+
+            const openSheet = (doc) => {
+                if (!doc) return;
+                if (doc.sheet) {
+                    doc.sheet.render(true);
+                } else if (doc.view) {
+                    doc.view();
+                }
+            };
+
+            if (type === 'journal-text' || type === 'journal-image' || type === 'journals') {
+                const journal = game.journal.get(id);
+                if (!journal) return;
+                // Try to show a specific page if available (V10+ supports show with page)
+                if (pageId) {
+                    // Preferred modern API
+                    if (typeof journal.show === 'function') {
+                        journal.show({pageId, force: true});
+                    } else {
+                        // Fallbacks
+                        openSheet(journal);
+                        if (journal.sheet && typeof journal.sheet.viewPage === 'function') {
+                            journal.sheet.viewPage(pageId);
+                        } else {
+                            const page = journal.pages?.get(pageId);
+                            openSheet(page);
+                        }
+                    }
+                } else {
+                    openSheet(journal);
+                }
+                return;
+            }
+
+            if (type === 'actors') {
+                openSheet(game.actors.get(id));
+                return;
+            }
+            if (type === 'items') {
+                openSheet(game.items.get(id));
+                return;
+            }
+            if (type === 'scene' || type === 'scenes') {
+                openSheet(game.scenes.get(id));
+                return;
+            }
+            if (type === 'tables' || type === 'rolltables' || type === 'roll-tables') {
+                openSheet(game.tables.get(id));
+                return;
+            }
+            if (type === 'playlists') {
+                const pl = game.playlists.get(id);
+                if (!pl) return;
+                openSheet(pl);
+                return;
+            }
+        } catch (error) {
+            postConsoleAndNotification("Journal Tools: Error opening result link", error, false, false, false);
+        }
     }
 
     async _onApplyTools(event) {
