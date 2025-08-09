@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.0.22] - Quick Fix
+
+### Fixed
+- **Manifest:** Corrected the manifest download.
+
 ## [12.0.21] - Token Grid Positioning Fix
 
 ### Fixed
