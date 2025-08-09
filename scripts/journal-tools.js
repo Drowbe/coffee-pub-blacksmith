@@ -2856,6 +2856,7 @@ export class JournalToolsWindow extends FormApplication {
         const newText = this.element.find('#new-text').val() ?? "";
         const folderFilter = this.element.find('#journal-tools-selector-search-folder').val();
         const matchMode = this.element.find('#journal-tools-selector-match-mode').val();
+        const caseSensitive = this.element.find('#search-case-sensitive').is(':checked');
         const resultsArea = this.element.find('#results-search');
         
         // Target field checkboxes
@@ -2899,7 +2900,7 @@ export class JournalToolsWindow extends FormApplication {
         resultsArea.html(`<div class="results-message"><strong>${doReplace ? "Running replacements..." : "Generating report..."}</strong></div>`);
 
         try {
-            const changes = await this._collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio);
+            const changes = await this._collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio, caseSensitive);
             
             if (!changes.length) {
                 resultsArea.append(`<div class="results-message"><em>No matching text found.</em></div>`);
@@ -2909,13 +2910,13 @@ export class JournalToolsWindow extends FormApplication {
 
             if (!doReplace) {
                 // Show report
-                const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText);
+                const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText, caseSensitive);
                 resultsArea.append(reportHtml);
                 this.updateSearchProgress(100, "Report complete!");
             } else {
                 // Perform mass replace
-                await this._performMassReplace(changes);
-                const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText);
+                await this._performMassReplace(changes, caseSensitive);
+                const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText, caseSensitive);
                 resultsArea.html(reportHtml + `<div class="results-message" style="color: #4CAF50;"><strong>Success!</strong> ${changes.length} references updated.</div>`);
                 this.updateSearchProgress(100, "Replace complete!");
             }
@@ -2932,7 +2933,7 @@ export class JournalToolsWindow extends FormApplication {
         this.element.find('#search-progress-text').text(message);
     }
 
-    async _collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio) {
+    async _collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio, caseSensitive) {
         const changes = [];
         
         // Helper function to check if value matches search criteria
@@ -2940,19 +2941,19 @@ export class JournalToolsWindow extends FormApplication {
             if (matchMode === "path") {
                 // Only match if value looks like a path: must contain at least one '/' and end in a valid extension
                 const pathRegex = /[\w\-./]+\.[a-zA-Z0-9]{1,4}/g;
-                return pathRegex.test(value) && value.includes(currentText);
+                return pathRegex.test(value) && (caseSensitive ? value.includes(currentText) : value.toLowerCase().includes(currentText.toLowerCase()));
             }
             if (matchMode === "filename") {
                 // Only match if value contains a filename (no '/' in the match, ends in valid extension)
                 const filename = value.split("/").pop();
-                const lastDot = filename.lastIndexOf('.');
+                const lastDot = filename.lastIndexOf('.')
                 if (lastDot === -1) return false;
                 const base = filename.slice(0, lastDot);
                 const ext = filename.slice(lastDot + 1);
                 if (ext.length < 1 || ext.length > 4) return false;
-                return base.includes(currentText);
+                return caseSensitive ? base.includes(currentText) : base.toLowerCase().includes(currentText.toLowerCase());
             }
-            return value.includes(currentText);
+            return caseSensitive ? value.includes(currentText) : value.toLowerCase().includes(currentText.toLowerCase());
         };
 
         // Helper function to get folder contents recursively
@@ -2989,8 +2990,8 @@ export class JournalToolsWindow extends FormApplication {
                 const img = foundry.utils.getProperty(doc, imgField);
                 if (typeof img === "string" && match(img)) {
                     let newVal = (matchMode === "filename")
-                        ? img.replace(currentText, newText)
-                        : img.replaceAll(currentText, newText);
+                        ? (caseSensitive ? img.replace(currentText, newText) : img.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), (m)=> m.replace(new RegExp(currentText,'i'), newText)))
+                        : (caseSensitive ? img.replaceAll(currentText, newText) : img.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText));
                     changes.push({ type, name: doc.name, field: imgField, old: img, new: newVal, id: doc.id, docClass: collection.documentClass, folder: doc.folder, fieldTag: "IMAGES" });
                 }
                 // For actors, also check the token path
@@ -2998,8 +2999,8 @@ export class JournalToolsWindow extends FormApplication {
                     const tokenPath = foundry.utils.getProperty(doc, 'prototypeToken.texture.src');
                     if (typeof tokenPath === "string" && match(tokenPath)) {
                         let newVal = (matchMode === "filename")
-                            ? tokenPath.replace(currentText, newText)
-                            : tokenPath.replaceAll(currentText, newText);
+                            ? (caseSensitive ? tokenPath.replace(currentText, newText) : tokenPath.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText))
+                            : (caseSensitive ? tokenPath.replaceAll(currentText, newText) : tokenPath.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText));
                         changes.push({ type, name: doc.name, field: 'prototypeToken.texture.src', old: tokenPath, new: newVal, id: doc.id, docClass: collection.documentClass, folder: doc.folder, fieldTag: "IMAGES" });
                     }
                 }
@@ -3028,8 +3029,8 @@ export class JournalToolsWindow extends FormApplication {
                 const bg = scene.background?.src;
                 if (typeof bg === "string" && match(bg)) {
                     let newVal = (matchMode === "filename")
-                        ? bg.replace(currentText, newText)
-                        : bg.replaceAll(currentText, newText);
+                        ? (caseSensitive ? bg.replace(currentText, newText) : bg.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText))
+                        : (caseSensitive ? bg.replaceAll(currentText, newText) : bg.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText));
                     changes.push({ type: "scene", name: scene.name, field: "background.src", old: bg, new: newVal, id: scene.id, folder: scene.folder, fieldTag: "IMAGES" });
                 }
             }
@@ -3051,36 +3052,38 @@ export class JournalToolsWindow extends FormApplication {
                 for (const page of journal.pages.contents) {
                     if (page.type === "image" && targetImages && match(page.src)) {
                         let newVal = (matchMode === "filename")
-                            ? page.src.replace(currentText, newText)
-                            : page.src.replaceAll(currentText, newText);
+                            ? (caseSensitive ? page.src.replace(currentText, newText) : page.src.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText))
+                            : (caseSensitive ? page.src.replaceAll(currentText, newText) : page.src.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText));
                         changes.push({ type: "journal-image", name: `${journal.name} → ${page.name}`, field: "src", old: page.src, new: newVal, id: journal.id, pageId: page.id, folder: journal.folder, fieldTag: "IMAGES" });
                     }
-                    if (page.type === "text" && targetText && page.text?.content?.includes(currentText)) {
-                        let matches = [];
+                    if (page.type === "text" && targetText && (caseSensitive ? (page.text?.content?.includes(currentText)) : (page.text?.content?.toLowerCase()?.includes(currentText.toLowerCase())))) {
+                        let hasMatch = false;
                         if (matchMode === "filename") {
                             const filenameRegex = /\b([\w\-\.]+)\.([a-zA-Z0-9]{1,4})\b/g;
                             let m;
                             while ((m = filenameRegex.exec(page.text.content)) !== null) {
                                 const base = m[1];
                                 const ext = m[2];
-                                if (base.includes(currentText)) matches.push(`${base}.${ext}`);
+                                const candidate = `${base}.${ext}`;
+                                if (caseSensitive ? candidate.includes(currentText) : candidate.toLowerCase().includes(currentText.toLowerCase())) {
+                                    hasMatch = true; break;
+                                }
                             }
                         } else if (matchMode === "path") {
                             const pathRegex = /[\w\-./]+\.[a-zA-Z0-9]{1,4}/g;
                             let m;
                             while ((m = pathRegex.exec(page.text.content)) !== null) {
-                                if (m[0].includes(currentText)) matches.push(m[0]);
+                                if (caseSensitive ? m[0].includes(currentText) : m[0].toLowerCase().includes(currentText.toLowerCase())) {
+                                    hasMatch = true; break;
+                                }
                             }
                         } else {
-                            const regex = new RegExp(currentText, "g");
-                            let m;
-                            while ((m = regex.exec(page.text.content)) !== null) {
-                                matches.push(currentText);
-                            }
+                            const flags = caseSensitive ? 'g' : 'gi';
+                            const regex = new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+                            hasMatch = regex.test(page.text.content);
                         }
-                        for (const matchText of matches) {
-                            let newVal = matchText.replace(currentText, newText);
-                            changes.push({ type: "journal-text", name: `${journal.name} → ${page.name}`, field: "text.content", old: matchText, new: newVal, id: journal.id, pageId: page.id, fullText: page.text.content, folder: journal.folder, fieldTag: "TEXT" });
+                        if (hasMatch) {
+                            changes.push({ type: "journal-text", name: `${journal.name} → ${page.name}`, field: "text.content", old: currentText, new: newText, id: journal.id, pageId: page.id, fullText: page.text.content, folder: journal.folder, fieldTag: "TEXT", pattern: currentText });
                         }
                     }
                 }
@@ -3103,8 +3106,8 @@ export class JournalToolsWindow extends FormApplication {
                 for (const sound of playlist.sounds.contents) {
                     if (typeof sound.path === "string" && match(sound.path)) {
                         let newVal = (matchMode === "filename")
-                            ? sound.path.replace(currentText, newText)
-                            : sound.path.replaceAll(currentText, newText);
+                            ? (caseSensitive ? sound.path.replace(currentText, newText) : sound.path.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText))
+                            : (caseSensitive ? sound.path.replaceAll(currentText, newText) : sound.path.replace(new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), newText));
                         changes.push({ type: "playlists", name: `${playlist.name} → ${sound.name}`, field: "path", old: sound.path, new: newVal, id: playlist.id, soundId: sound.id, folder: playlist.folder, fieldTag: "AUDIO" });
                     }
                 }
@@ -3114,7 +3117,7 @@ export class JournalToolsWindow extends FormApplication {
         return changes;
     }
 
-    _renderSearchResults(changes, matchMode, currentText, newText) {
+    _renderSearchResults(changes, matchMode, currentText, newText, caseSensitive) {
         let html = '';
         html += changes.map(c => {
             let title = c.name;
@@ -3131,7 +3134,7 @@ export class JournalToolsWindow extends FormApplication {
             let isTextField = c.type === 'journal-text';
             if (matchMode === 'all' && isTextField) {
                 // Show all matches with context for text fields
-                const contexts = this._allContextsWithBold(c.fullText || c.old, currentText, newText);
+                const contexts = this._allContextsWithBold(c.fullText || c.old, currentText, newText, caseSensitive);
                 return contexts.map(ctx => `
                     <div class="replace-result">
                         <div class="replace-result-title">
@@ -3148,8 +3151,8 @@ export class JournalToolsWindow extends FormApplication {
                         </div>
                     </div>`).join('');
             } else {
-                let oldDisplay = this._boldSearch(c.old, currentText);
-                let newDisplay = this._boldSearch(c.new, newText);
+                let oldDisplay = this._boldSearch(c.old, currentText, caseSensitive);
+                let newDisplay = this._boldSearch(c.new, newText, caseSensitive);
                 return `
                     <div class="replace-result">
                         <div class="replace-result-title">
@@ -3170,22 +3173,23 @@ export class JournalToolsWindow extends FormApplication {
         return html;
     }
 
-    _boldSearch(str, search) {
+    _boldSearch(str, search, caseSensitive = false) {
         if (!search) return str;
         const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return str.replace(new RegExp(esc, 'gi'), match => `<span class="replace-result-searchstring">${match}</span>`);
+        const flags = caseSensitive ? 'g' : 'gi';
+        return str.replace(new RegExp(esc, flags), match => `<span class="replace-result-searchstring">${match}</span>`);
     }
 
-    _allContextsWithBold(str, search, replace) {
+    _allContextsWithBold(str, search, replace, caseSensitive = false) {
         if (!search) return [{ old: str, new: str }];
         // Strip HTML tags for context extraction only; keep indices stable
         const plain = str.replace(/<[^>]+>/g, '');
         const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(esc, 'gi');
+        const flags = caseSensitive ? 'g' : 'gi';
+        const regex = new RegExp(esc, flags);
         const results = [];
         let m;
         while ((m = regex.exec(plain)) !== null) {
-            // Determine soft sentence boundaries around the match
             let start = Math.max(
                 plain.lastIndexOf('.', m.index),
                 plain.lastIndexOf('!', m.index),
@@ -3203,7 +3207,6 @@ export class JournalToolsWindow extends FormApplication {
             ].filter(e => e !== -1);
             const end = ends.length ? Math.min(...ends) : plain.length;
 
-            // Do not trim; preserve offsets so the slices align with m.index
             const context = plain.slice(start, end);
             const relIndex = m.index - start;
             const before = context.slice(0, relIndex);
@@ -3218,9 +3221,32 @@ export class JournalToolsWindow extends FormApplication {
         return results.length ? results : [{ old: plain, new: plain }];
     }
 
-    async _performMassReplace(changes) {
+    async _performMassReplace(changes, caseSensitive) {
+        // Batch updates per document/page to avoid repeated overwrites
+        const pageUpdates = new Map(); // key: journalId|pageId, value: {journalId, pageId, content}
+
+        // Helper to get or init page content buffer
+        const keyFor = (jid, pid) => `${jid}|${pid}`;
+
         for (const c of changes) {
             try {
+                if (c.type === 'journal-text') {
+                    const journal = game.journal.get(c.id);
+                    if (!journal || !c.pageId) continue;
+                    const page = journal.pages.get(c.pageId);
+                    if (!page) continue;
+                    const key = keyFor(c.id, c.pageId);
+                    if (!pageUpdates.has(key)) {
+                        pageUpdates.set(key, { journalId: c.id, pageId: c.pageId, content: c.fullText });
+                    }
+                    const entry = pageUpdates.get(key);
+                    const safe = (c.pattern || c.old).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const flags = caseSensitive ? 'g' : 'gi';
+                    entry.content = entry.content.replace(new RegExp(safe, flags), c.new);
+                    continue;
+                }
+
+                // Non-journal text updates proceed as before
                 if (c.type === 'actors') {
                     const doc = game.actors.get(c.id);
                     if (doc) await doc.update({ [c.field]: c.new });
@@ -3249,21 +3275,22 @@ export class JournalToolsWindow extends FormApplication {
                         const page = journal.pages.get(c.pageId);
                         if (page) await page.update({ src: c.new });
                     }
-                } else if (c.type === 'journal-text') {
-                    const journal = game.journal.get(c.id);
-                    if (journal && c.pageId) {
-                        const page = journal.pages.get(c.pageId);
-                        if (page) {
-                            let content = c.fullText;
-                            const esc = c.old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            const regex = new RegExp(esc, 'i');
-                            content = content.replace(regex, c.new);
-                            await page.update({ 'text.content': content });
-                        }
-                    }
                 }
             } catch (err) {
-                postConsoleAndNotification("Journal Tools: Error updating document", `${c.name}: ${err.message}`, false, false, false);
+                postConsoleAndNotification("Journal Tools: Error staging update", `${c.name}: ${err.message}`, false, false, false);
+            }
+        }
+
+        // Apply aggregated page text updates
+        for (const [, upd] of pageUpdates) {
+            try {
+                const journal = game.journal.get(upd.journalId);
+                if (!journal) continue;
+                const page = journal.pages.get(upd.pageId);
+                if (!page) continue;
+                await page.update({ 'text.content': upd.content });
+            } catch (err) {
+                postConsoleAndNotification("Journal Tools: Error updating journal page", `${upd.journalId}/${upd.pageId}: ${err.message}`, false, false, false);
             }
         }
     }
