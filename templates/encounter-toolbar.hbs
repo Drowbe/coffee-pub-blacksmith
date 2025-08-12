@@ -1,85 +1,90 @@
-<div class="encounter-toolbar-compact">
-  <div class="encounter-toolbar-header">
-    <div class="encounter-toolbar-left">
-      <span class="encounter-toolbar-title">DEPLOY </span>
-        <span class="badge-deploy deploy-type" data-tooltip="Click to cycle deployment pattern">
-          <i class="fas fa-grid-2-plus"></i>{{deploymentPattern}}
-        </span>
-        <span class="badge-deploy deploy-visibility" data-tooltip="Click to toggle deployment visibility">
-          <i class="fas fa-eye"></i>{{deploymentVisibility}}
-        </span>
-    </div>
-    <div class="encounter-badges">
-      <span class="encounter-toolbar-title">CANVAS</span>
-      {{#if partyCR}}
-        <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
-          <i class="fas fa-helmet-battle"></i>{{partyCR}}
-        </span>
-      {{/if}}
-      {{#if monsterCR}}
-        <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
-          <i class="fas fa-dragon"></i>{{monsterCR}}
-        </span>
-      {{/if}}
-      {{#if difficulty}}
-        <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
-          <i class="fa-solid fa-swords"></i>{{difficulty}}
-        </span>
-      {{/if}}
-    </div>
-  </div>
 
-  <div class="encounter-toolbar-actions">
-    {{! ENCOUNTER TOOLBAR ACTIONS }}
-    {{#if hasEncounterData}}
-      {{! HAS NPCS TO DEPLOY }}
-      {{#if hasNpcs}}
-        <div class="encounter-icons-npc">
-          {{#each npcs}}
-          <div class="encounter-icon-npc" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
-            {{#if portrait}}
-            <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
-            {{else}}
-            <i class="fas fa-user"></i>
-            {{/if}}
+{{#if isGM}}
+
+  <div class="encounter-toolbar-compact">
+    <div class="encounter-toolbar-header">
+      <div class="encounter-toolbar-left">
+
+        <span class="encounter-toolbar-title">DEPLOY </span>
+          <span class="badge-deploy deploy-type" data-tooltip="Click to cycle deployment pattern">
+            <i class="fas fa-grid-2-plus"></i>{{deploymentPattern}}
+          </span>
+          <span class="badge-deploy deploy-visibility" data-tooltip="Click to toggle deployment visibility">
+            <i class="fas fa-eye"></i>{{deploymentVisibility}}
+          </span>
+
+      </div>
+      <div class="encounter-badges">
+        <span class="encounter-toolbar-title">CANVAS</span>
+        {{#if partyCR}}
+          <span class="cr-badge encounter-party-cr" data-tooltip="Party CR">
+            <i class="fas fa-helmet-battle"></i>{{partyCR}}
+          </span>
+        {{/if}}
+        {{#if monsterCR}}
+          <span class="cr-badge encounter-monster-cr" data-tooltip="Monster CR">
+            <i class="fas fa-dragon"></i>{{monsterCR}}
+          </span>
+        {{/if}}
+        {{#if difficulty}}
+          <span class="difficulty-badge {{difficultyClass}}" data-tooltip="Encounter Difficulty: {{difficulty}}">
+            <i class="fa-solid fa-swords"></i>{{difficulty}}
+          </span>
+        {{/if}}
+      </div>
+    </div>
+
+
+    <div class="encounter-toolbar-actions">
+      {{! ENCOUNTER TOOLBAR ACTIONS }}
+      {{#if hasEncounterData}}
+        {{! HAS NPCS TO DEPLOY }}
+        {{#if hasNpcs}}
+          <div class="encounter-icons-npc">
+            {{#each npcs}}
+            <div class="encounter-icon-npc" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
+              {{#if portrait}}
+              <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
+              {{else}}
+              <i class="fas fa-user"></i>
+              {{/if}}
+            </div>
+            {{/each}}
           </div>
-          {{/each}}
-        </div>
-      {{/if}}
-      {{! HAS MONSTERS TO DEPLOY }}
-      {{#if hasMonsters}}
-        <div class="encounter-icons-monster">
-          {{#each monsters}}
-          <div class="encounter-icon-monster" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
-            {{#if portrait}}
-            <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
-            {{else}}
-            <i class="fas fa-dragon"></i>
-            {{/if}}
+        {{/if}}
+        {{! HAS MONSTERS TO DEPLOY }}
+        {{#if hasMonsters}}
+          <div class="encounter-icons-monster">
+            {{#each monsters}}
+            <div class="encounter-icon-monster" data-uuid="{{uuid}}" data-tooltip="Deploy {{name}} (CR {{cr}}) - CTRL: Multiple, ALT: Hidden">
+              {{#if portrait}}
+              <img src="{{portrait}}" alt="{{name}}" class="encounter-icon-portrait" />
+              {{else}}
+              <i class="fas fa-dragon"></i>
+              {{/if}}
+            </div>
+            {{/each}}
           </div>
-          {{/each}}
-        </div>
-      {{/if}}
-      {{#if isGM}}
+        {{/if}}
         <button class="encounter-btn deploy-monsters" data-tooltip="Deploy Monsters and NPCs - ALT: Hidden">
           <i class="fas fa-dragon"></i>Deploy All
         </button>
         <button class="encounter-btn create-combat" data-tooltip="Deploy all and create combat - ALT: Hidden">
           <i class="fas fa-swords"></i>Combat
         </button>
+      {{else}}
+        {{! NO ENCOUNTER DATA }}
+        <div class="encounter-icons-none">
+          <p><i class="fas fa-users"></i> Nothing to Deploy</p>
+        </div>
       {{/if}}
-    {{else}}
-      {{! NO ENCOUNTER DATA }}
-      <div class="encounter-icons-none">
-        <p><i class="fas fa-users"></i> Nothing to Deploy</p>
-      </div>
-    {{/if}}
 
-    {{! ALWAYS SHOWN BUTTONS}}
-    {{#if isGM}}
+      {{! ALWAYS SHOWN BUTTONS}}
       <button class="encounter-btn toggle-visibility" data-tooltip="Reveal hidden monster tokens">
         <i class="fas fa-eye"></i>Reveal
       </button>
-    {{/if}}
+    </div>
+
   </div>
-</div>
+
+{{/if}}
