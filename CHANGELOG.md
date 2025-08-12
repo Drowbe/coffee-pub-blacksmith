@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.0.23] - Suppress Combat Deployment from Players
+
+### Fixed
+- **Player Deployment Panel Access:** Fixed issue where the deployment panel (CODEX) was visible to players in journal entries. The entire deployment interface is now restricted to GMs only.
+- **Deployment Panel Security:** Wrapped the complete deployment section in GM permission checks, preventing players from seeing:
+  - DEPLOY section with deployment pattern and visibility settings
+  - "Nothing to Deploy" messages
+  - Deployment action buttons and monster/NPC icons
+  - Deployment controls and settings
+- **Canvas Information Visibility:** Maintained visibility of canvas information (Party CR, Monster CR, encounter difficulty) for all users while restricting deployment functionality to GMs only.
+
+### Changed
+- **Template Structure:** Restructured `encounter-toolbar.hbs` template to wrap the entire deployment interface in `{{#if isGM}}` conditional blocks.
+- **Permission Enforcement:** Consolidated individual GM permission checks into comprehensive section-level protection for better security and maintainability.
 
 ## [12.0.22] - Quick Fix
 
