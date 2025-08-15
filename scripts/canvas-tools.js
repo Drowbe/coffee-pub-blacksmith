@@ -57,7 +57,96 @@ export class CanvasTools {
 
     // *** TOKEN NAMING ***
     static _initializeTokenNaming() {
+        // Hook for token behavior overrides (runs before token creation)
+        Hooks.on('preCreateToken', this._onPreCreateToken.bind(this));
+        // Hook for token behavior overrides on updates (runs before token updates)
+        Hooks.on('preUpdateToken', this._onPreUpdateToken.bind(this));
+        // Hook for token naming and other post-creation modifications
         Hooks.on('createToken', this._onCreateToken.bind(this));
+        // Hook for when tokens are added to the scene (runs after token creation but before rendering)
+        Hooks.on('createToken', this._onTokenAddedToScene.bind(this));
+    }
+
+    // *** TOKEN BEHAVIOR OVERRIDES ***
+    static _onPreCreateToken(tokenData, options, userId) {
+        // Apply token behavior overrides based on settings
+        let changesMade = [];
+        
+        if (game.settings.get(MODULE_ID, 'unlockTokenRotation')) {
+            tokenData.lockRotation = false;
+            changesMade.push('unlocked rotation');
+        }
+        if (game.settings.get(MODULE_ID, 'disableTokenRing')) {
+            // Ensure ring object exists and set enabled to false
+            if (!tokenData.ring) {
+                tokenData.ring = {};
+            }
+            tokenData.ring.enabled = false;
+            changesMade.push('disabled ring');
+        }
+        
+        // Log changes if any were made
+        if (changesMade.length > 0) {
+            const tokenName = tokenData.name || 'Unknown Token';
+            postConsoleAndNotification(`Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+        }
+        
+        return true;
+    }
+
+    static _onPreUpdateToken(tokenDocument, changes, options, userId) {
+        // Apply token behavior overrides on updates to maintain settings
+        let changesMade = [];
+        
+        if (game.settings.get(MODULE_ID, 'unlockTokenRotation') && changes.lockRotation === true) {
+            changes.lockRotation = false;
+            changesMade.push('maintained unlocked rotation');
+        }
+        if (game.settings.get(MODULE_ID, 'disableTokenRing') && changes.ring?.enabled === true) {
+            if (!changes.ring) {
+                changes.ring = {};
+            }
+            changes.ring.enabled = false;
+            changesMade.push('maintained disabled ring');
+        }
+        
+        // Log changes if any were made
+        if (changesMade.length > 0) {
+            const tokenName = tokenDocument.name || 'Unknown Token';
+            postConsoleAndNotification(`Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+        }
+        
+        return true;
+    }
+
+    // *** TOKEN SCENE OVERRIDES ***
+    static async _onTokenAddedToScene(tokenDocument, options, userId) {
+        // Apply token behavior overrides after token is created but before it's fully rendered
+        let changesMade = [];
+        let updates = {};
+        
+        if (game.settings.get(MODULE_ID, 'unlockTokenRotation') && tokenDocument.lockRotation === true) {
+            updates.lockRotation = false;
+            changesMade.push('unlocked rotation');
+        }
+        if (game.settings.get(MODULE_ID, 'disableTokenRing') && tokenDocument.ring?.enabled === true) {
+            if (!updates.ring) {
+                updates.ring = { ...tokenDocument.ring };
+            }
+            updates.ring.enabled = false;
+            changesMade.push('disabled ring');
+        }
+        
+        // Apply updates if any changes were made
+        if (changesMade.length > 0) {
+            try {
+                await tokenDocument.update(updates);
+                const tokenName = tokenDocument.name || 'Unknown Token';
+                postConsoleAndNotification(`Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+            } catch (error) {
+                postConsoleAndNotification(`Error applying token overrides: ${error}`, "", false, true, false);
+            }
+        }
     }
 
     static async _onCreateToken(document, options, userId) {

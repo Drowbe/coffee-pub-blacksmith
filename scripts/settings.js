@@ -1389,6 +1389,29 @@ export const registerSettings = async () => {
 		choices: nameplateChoices,
 	});
 
+	// *** TOKEN BEHAVIOR OVERRIDES ***
+	// These settings override Foundry's default token behavior when tokens are dropped from compendiums
+
+	game.settings.register(MODULE_ID, 'unlockTokenRotation', {
+		name: 'Unlock Token Rotation',
+		hint: 'Override Foundry\'s default "lock rotation" setting for all new tokens. This will allow tokens to be rotated freely.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, 'disableTokenRing', {
+		name: 'Disable Token Ring',
+		hint: 'Override Foundry\'s default "enable ring" setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry\'s ring system and will not remove rings that are part of the token image itself.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
 	// ---------- Dead Tokens ----------
 	game.settings.register(MODULE_ID, "headingH3TokenActions", {
 		name: 'Token Actions',

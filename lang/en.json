@@ -161,6 +161,12 @@
 		"fuzzyMatch-Label": "Fuzzy Match",
 		"fuzzyMatch-Hint": "If checked, if any part of the token contains the word it will be ignored. If unchecked, and exact match is required to ignore the token.",
 
+		"unlockTokenRotation-Label": "Unlock Token Rotation",
+		"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
+
+		"disableTokenRing-Label": "Disable Token Ring",
+		"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display.",
+
 		"headingH3Nameplate-Label": "Nameplate",
 		"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",
 
