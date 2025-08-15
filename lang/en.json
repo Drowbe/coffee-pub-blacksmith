@@ -174,7 +174,7 @@
 		"tokenImageReplacementEnabled-Hint": "Master toggle for the token image replacement feature.",
 
 		"tokenImageReplacementPath-Label": "Replacement Images Folder",
-		"tokenImageReplacementPath-Hint": "Base folder path for replacement images. Use Foundry relative paths (e.g., assets/images/tokens/FA_Tokens_Webp).",
+		"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
 
 		"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
 		"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",

@@ -53,6 +53,11 @@ export class TokenImageReplacement {
             if (game.user.isGM) {
                 game.TokenImageReplacement = this;
                 postConsoleAndNotification("Token Image Replacement: Debug functions available via game.TokenImageReplacement", "", false, false, false);
+                postConsoleAndNotification("Token Image Replacement: Available test functions:", "", false, false, false);
+                postConsoleAndNotification("  - testCacheStructure() - Test basic cache functionality", "", false, false, false);
+                postConsoleAndNotification("  - testMatchingAlgorithm() - Test matching logic", "", false, false, false);
+                postConsoleAndNotification("  - refreshCache() - Manually refresh the cache", "", false, false, false);
+                postConsoleAndNotification("  - getCacheStats() - View cache statistics", "", false, false, false);
             }
         });
     }
@@ -91,11 +96,17 @@ export class TokenImageReplacement {
         }
         
         this.cache.isScanning = true;
+        const startTime = Date.now();
         postConsoleAndNotification("Token Image Replacement: Starting folder scan...", "", false, false, false);
         
         try {
             // Use Foundry's FilePicker to get directory contents
             const files = await this._getDirectoryContents(basePath);
+            
+            if (files.length === 0) {
+                postConsoleAndNotification("Token Image Replacement: No supported image files found", "", false, false, false);
+                return;
+            }
             
             // Process and categorize files
             this._processFiles(files, basePath);
@@ -103,12 +114,39 @@ export class TokenImageReplacement {
             this.cache.lastScan = Date.now();
             this.cache.totalFiles = this.cache.files.size;
             
-            postConsoleAndNotification(`Token Image Replacement: Cache built successfully. Found ${this.cache.totalFiles} files.`, "", false, false, false);
+            const scanTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            postConsoleAndNotification(`Token Image Replacement: Cache built successfully in ${scanTime}s. Found ${this.cache.totalFiles} files across ${this.cache.folders.size} folders.`, "", false, false, false);
+            
+            // Log some statistics about the cache
+            this._logCacheStatistics();
             
         } catch (error) {
             postConsoleAndNotification(`Token Image Replacement: Error scanning folders: ${error.message}`, "", false, true, false);
         } finally {
             this.cache.isScanning = false;
+        }
+    }
+    
+    /**
+     * Log cache statistics for debugging
+     */
+    static _logCacheStatistics() {
+        if (this.cache.creatureTypes.size > 0) {
+            postConsoleAndNotification("Token Image Replacement: Creature type breakdown:", "", false, false, false);
+            for (const [creatureType, files] of this.cache.creatureTypes) {
+                postConsoleAndNotification(`  ${creatureType}: ${files.length} files`, "", false, false, false);
+            }
+        }
+        
+        if (this.cache.folders.size > 0) {
+            postConsoleAndNotification(`Token Image Replacement: Top folders by file count:`, "", false, false, false);
+            const sortedFolders = Array.from(this.cache.folders.entries())
+                .sort((a, b) => b[1].length - a[1].length)
+                .slice(0, 5);
+            
+            for (const [folder, files] of sortedFolders) {
+                postConsoleAndNotification(`  ${folder}: ${files.length} files`, "", false, false, false);
+            }
         }
     }
     
@@ -119,20 +157,130 @@ export class TokenImageReplacement {
         const files = [];
         
         try {
-            // For now, we'll use a simple approach - in a real implementation,
-            // we'd need to recursively scan directories
-            // This is a placeholder for the actual directory scanning logic
+            postConsoleAndNotification(`Token Image Replacement: Scanning directory: ${basePath}`, "", false, false, false);
             
-            // TODO: Implement actual directory scanning
-            // For Phase 2, we'll focus on the cache structure and basic functionality
+            // Use Foundry's FilePicker to browse the directory
+            const response = await FilePicker.browse("data", basePath);
             
-            postConsoleAndNotification("Token Image Replacement: Directory scanning placeholder - will implement in next phase", "", false, false, false);
+            // Log what we found for debugging
+            postConsoleAndNotification(`Token Image Replacement: Directory scan results - Files: ${response.files?.length || 0}, Subdirectories: ${response.dirs?.length || 0}`, "", false, false, false);
+            
+            // Process files in the base directory (if any)
+            if (response.files && response.files.length > 0) {
+                postConsoleAndNotification(`Token Image Replacement: Found ${response.files.length} files in base directory`, "", false, false, false);
+                
+                for (const filePath of response.files) {
+                    const fileInfo = await this._processFileInfo(filePath, basePath);
+                    if (fileInfo) {
+                        files.push(fileInfo);
+                    }
+                }
+            }
+            
+            // Always scan subdirectories (this is where most token files will be)
+            if (response.dirs && response.dirs.length > 0) {
+                postConsoleAndNotification(`Token Image Replacement: Found ${response.dirs.length} subdirectories, scanning recursively...`, "", false, false, false);
+                
+                for (let i = 0; i < response.dirs.length; i++) {
+                    const subDir = response.dirs[i];
+                    postConsoleAndNotification(`Token Image Replacement: Scanning subdirectory ${i + 1} of ${response.dirs.length}: ${subDir}`, "", false, false, false);
+                    const subDirFiles = await this._scanSubdirectory(subDir, basePath);
+                    files.push(...subDirFiles);
+                    
+                    // Log progress every few subdirectories
+                    if ((i + 1) % 2 === 0 || i === response.dirs.length - 1) {
+                        postConsoleAndNotification(`Token Image Replacement: Progress: ${i + 1}/${response.dirs.length} subdirectories scanned, ${files.length} files found so far`, "", false, false, false);
+                    }
+                }
+            }
+            
+            if (files.length === 0) {
+                postConsoleAndNotification(`Token Image Replacement: No supported image files found in ${basePath} or its subdirectories`, "", false, false, false);
+            }
             
         } catch (error) {
-            postConsoleAndNotification(`Token Image Replacement: Error getting directory contents: ${error.message}`, "", false, true, false);
+            postConsoleAndNotification(`Token Image Replacement: Error scanning directory ${basePath}: ${error.message}`, "", false, true, false);
         }
         
         return files;
+    }
+    
+    /**
+     * Scan a subdirectory recursively
+     */
+    static async _scanSubdirectory(subDir, basePath) {
+        const files = [];
+        
+        try {
+            const response = await FilePicker.browse("data", subDir);
+            
+            if (response.files && response.files.length > 0) {
+                postConsoleAndNotification(`Token Image Replacement: Found ${response.files.length} files in ${subDir}`, "", false, false, false);
+                
+                for (const filePath of response.files) {
+                    const fileInfo = await this._processFileInfo(filePath, basePath);
+                    if (fileInfo) {
+                        files.push(fileInfo);
+                    }
+                }
+            }
+            
+            // Recursively scan deeper subdirectories
+            if (response.dirs && response.dirs.length > 0) {
+                postConsoleAndNotification(`Token Image Replacement: Found ${response.dirs.length} deeper subdirectories in ${subDir}`, "", false, false, false);
+                
+                for (const deeperDir of response.dirs) {
+                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
+                    files.push(...deeperFiles);
+                }
+            }
+            
+        } catch (error) {
+            postConsoleAndNotification(`Token Image Replacement: Error scanning subdirectory ${subDir}: ${error.message}`, "", false, false, false);
+        }
+        
+        return files;
+    }
+    
+    /**
+     * Process file information and filter for supported formats
+     */
+    static async _processFileInfo(filePath, basePath) {
+        // Check if file has supported extension
+        const extension = filePath.split('.').pop()?.toLowerCase();
+        if (!this.SUPPORTED_FORMATS.includes(`.${extension}`)) {
+            return null;
+        }
+        
+        // Extract relative path from base path
+        const relativePath = filePath.replace(`${basePath}/`, '');
+        const fileName = filePath.split('/').pop();
+        
+        // Get file stats if possible
+        let fileSize = 0;
+        let lastModified = Date.now();
+        
+        try {
+            // Try to get file information using FilePicker
+            const fileInfo = await FilePicker.browse("data", filePath);
+            if (fileInfo && fileInfo.files && fileInfo.files.length > 0) {
+                // For now, we'll use basic info - in a real implementation,
+                // we might want to get actual file size and modification date
+                fileSize = 0; // Placeholder
+                lastModified = Date.now(); // Placeholder
+            }
+        } catch (error) {
+            // File info not available, use defaults
+            postConsoleAndNotification(`Token Image Replacement: Could not get file info for ${filePath}: ${error.message}`, "", false, false, false);
+        }
+        
+        return {
+            name: fileName,
+            path: relativePath,
+            fullPath: filePath,
+            size: fileSize,
+            lastModified: lastModified
+        };
     }
     
     /**
@@ -278,12 +426,17 @@ export class TokenImageReplacement {
             terms.push(baseName);
         }
         
-        // Priority 4: Creature type for folder optimization
+        // Priority 4: Individual words from the name for better matching
+        const words = tokenDocument.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
+        terms.push(...words);
+        
+        // Priority 5: Creature type for folder optimization
         if (tokenDocument.actor?.system?.details?.type) {
             terms.push(tokenDocument.actor.system.details.type);
         }
         
-        return terms;
+        // Remove duplicates and empty terms
+        return [...new Set(terms.filter(term => term && term.trim().length > 0))];
     }
     
     /**
@@ -306,66 +459,88 @@ export class TokenImageReplacement {
             }
         }
         
-        // Try exact matches first
-        for (const term of searchTerms) {
-            if (!term) continue;
-            
-            const exactMatch = this._findExactMatch(term, searchScope);
-            if (exactMatch) {
-                return exactMatch;
-            }
-        }
+        // Score-based matching system
+        let bestMatch = null;
+        let bestScore = 0;
         
-        // Try partial matches
-        for (const term of searchTerms) {
-            if (!term) continue;
-            
-            const partialMatch = this._findPartialMatch(term, searchScope);
-            if (partialMatch) {
-                return partialMatch;
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Find exact match for a search term
-     */
-    static _findExactMatch(term, searchScope) {
-        const termLower = term.toLowerCase();
-        
-        // Try exact filename match
-        if (searchScope.has(termLower)) {
-            return searchScope.get(termLower);
-        }
-        
-        // Try exact match with file extension
-        for (const ext of this.SUPPORTED_FORMATS) {
-            const fileNameWithExt = termLower + ext;
-            if (searchScope.has(fileNameWithExt)) {
-                return searchScope.get(fileNameWithExt);
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Find partial match for a search term
-     */
-    static _findPartialMatch(term, searchScope) {
-        const termLower = term.toLowerCase();
-        
-        // Look for files that contain the search term
         for (const [fileName, fileInfo] of searchScope) {
-            if (fileName.includes(termLower)) {
-                return fileInfo;
+            const score = this._calculateMatchScore(fileName, searchTerms, tokenDocument);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = fileInfo;
             }
+        }
+        
+        // Only return matches with a reasonable score
+        if (bestScore >= 0.3) {
+            postConsoleAndNotification(`Token Image Replacement: Best match for ${tokenDocument.name}: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`, "", false, false, false);
+            return bestMatch;
         }
         
         return null;
     }
+    
+    /**
+     * Calculate a match score for a filename against search terms
+     */
+    static _calculateMatchScore(fileName, searchTerms, tokenDocument) {
+        const fileNameLower = fileName.toLowerCase();
+        let totalScore = 0;
+        let termCount = 0;
+        
+        for (const term of searchTerms) {
+            if (!term || term.length < 2) continue;
+            
+            const termLower = term.toLowerCase();
+            let termScore = 0;
+            
+            // Exact filename match (highest priority)
+            if (fileNameLower === termLower) {
+                termScore = 1.0;
+            }
+            // Exact match without extension
+            else if (fileNameLower.replace(/\.[^.]*$/, '') === termLower) {
+                termScore = 0.9;
+            }
+            // Filename starts with term
+            else if (fileNameLower.startsWith(termLower)) {
+                termScore = 0.8;
+            }
+            // Filename ends with term
+            else if (fileNameLower.endsWith(termLower)) {
+                termScore = 0.7;
+            }
+            // Term is contained within filename
+            else if (fileNameLower.includes(termLower)) {
+                termScore = 0.6;
+            }
+            // Partial word match (for compound terms)
+            else {
+                const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
+                for (const word of fileNameWords) {
+                    if (word.includes(termLower) || termLower.includes(word)) {
+                        termScore = Math.max(termScore, 0.4);
+                    }
+                }
+            }
+            
+            // Bonus for creature type matches
+            if (tokenDocument.actor?.system?.details?.type) {
+                const creatureType = tokenDocument.actor.system.details.type.toLowerCase();
+                if (fileNameLower.includes(creatureType) || fileNameLower.includes(creatureType + 's')) {
+                    termScore += 0.2;
+                }
+            }
+            
+            totalScore += termScore;
+            termCount++;
+        }
+        
+        // Normalize score by number of terms
+        return termCount > 0 ? totalScore / termCount : 0;
+    }
+    
+
     
     /**
      * Hook for when tokens are created
@@ -454,7 +629,7 @@ export class TokenImageReplacement {
         
         this._processFiles(testFiles, 'test/path');
         
-        postConsoleAndNotification(`Token Image Replacement: Test cache built. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false, false);
+        postConsoleAndNotification(`Token Image Replacement: Test cache built. Files: ${this.cache.files.size}, Folders: ${this.cache.files.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false, false);
         
         // Test categorization
         if (this.cache.creatureTypes.has('humanoid')) {
@@ -464,5 +639,56 @@ export class TokenImageReplacement {
         // Clear test data
         this.clearCache();
         postConsoleAndNotification("Token Image Replacement: Test cache cleared", "", false, false, false);
+    }
+    
+    /**
+     * Test the matching algorithm with a mock token
+     */
+    static testMatchingAlgorithm() {
+        postConsoleAndNotification("Token Image Replacement: Testing matching algorithm...", "", false, false, false);
+        
+        // First build a test cache
+        const testFiles = [
+            { name: 'goblin_warrior_01.webp', path: 'creatures/goblin_warrior_01.webp' },
+            { name: 'orc_berserker_01.webp', path: 'creatures/orc_berserker_01.webp' },
+            { name: 'red_dragon_01.webp', path: 'creatures/red_dragon_01.webp' },
+            { name: 'skeleton_01.webp', path: 'creatures/skeleton_01.webp' },
+            { name: 'zombie_01.webp', path: 'creatures/zombie_01.webp' }
+        ];
+        
+        this._processFiles(testFiles, 'test/path');
+        
+        // Test with different token types
+        const testTokens = [
+            {
+                name: "Goblin Warrior",
+                actor: { type: "npc", system: { details: { type: "humanoid" } } }
+            },
+            {
+                name: "Red Dragon",
+                actor: { type: "npc", system: { details: { type: "dragon" } } }
+            },
+            {
+                name: "Skeleton Archer",
+                actor: { type: "npc", system: { details: { type: "undead" } } }
+            }
+        ];
+        
+        for (const token of testTokens) {
+            postConsoleAndNotification(`Token Image Replacement: Testing token: ${token.name}`, "", false, false, false);
+            const searchTerms = this._getSearchTerms(token);
+            postConsoleAndNotification(`  Search terms: ${searchTerms.join(', ')}`, "", false, false, false);
+            
+            const match = this.findMatchingImage(token);
+            if (match) {
+                postConsoleAndNotification(`  Found match: ${match.name}`, "", false, false, false);
+            } else {
+                postConsoleAndNotification(`  No match found`, "", false, false, false);
+            }
+        }
+        
+        // Clear test data
+        this.clearCache();
+        postConsoleAndNotification("Token Image Replacement: Test matching completed and cache cleared", "", false, false, false);
     }
 }
