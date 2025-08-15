@@ -1412,6 +1412,87 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// *** TOKEN IMAGE REPLACEMENT ***
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementEnabled', {
+		name: 'Enable Token Image Replacement',
+		hint: 'Replace token images with custom images from a specified folder when tokens are dropped from compendiums.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementPath', {
+		name: 'Image Replacement Folder',
+		hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: '',
+		onChange: (value) => {
+			// Trigger cache rebuild when path changes
+			if (value && game.modules.get(MODULE_ID)?.active) {
+				// We'll implement this in Phase 2
+				console.log('Token image replacement path changed to:', value);
+			}
+		}
+	});
+
+
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateMonsters', {
+		name: 'Update Monsters',
+		hint: 'Replace images for monster tokens (non-NPC creatures with Challenge Rating).',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateNPCs', {
+		name: 'Update NPCs', 
+		hint: 'Replace images for friendly NPC tokens (non-hostile NPCs).',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateVehicles', {
+		name: 'Update Vehicles',
+		hint: 'Replace images for vehicle tokens.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateActors', {
+		name: 'Update Actors',
+		hint: 'Replace images for character/actor tokens (usually player characters).',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementSkipLinked', {
+		name: 'Skip Linked Tokens',
+		hint: 'Do not replace images for tokens linked to actors (usually player characters).',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
 	// ---------- Dead Tokens ----------
 	game.settings.register(MODULE_ID, "headingH3TokenActions", {
 		name: 'Token Actions',
