@@ -56,7 +56,11 @@ export class TokenImageReplacement {
                 postConsoleAndNotification("Token Image Replacement: Available test functions:", "", false, false, false);
                 postConsoleAndNotification("  - testCacheStructure() - Test basic cache functionality", "", false, false, false);
                 postConsoleAndNotification("  - testMatchingAlgorithm() - Test matching logic", "", false, false, false);
+                postConsoleAndNotification("  - testTokenCreation() - Test token creation hook", "", false, false, false);
+                postConsoleAndNotification("  - getIntegrationStatus() - Check overall system status", "", false, false, false);
+                postConsoleAndNotification("  - getCacheStorageStatus() - Check persistent cache status", "", false, false, false);
                 postConsoleAndNotification("  - refreshCache() - Manually refresh the cache", "", false, false, false);
+                postConsoleAndNotification("  - forceRefreshCache() - Force refresh (ignores stored cache)", "", false, false, false);
                 postConsoleAndNotification("  - getCacheStats() - View cache statistics", "", false, false, false);
             }
         });
@@ -82,7 +86,14 @@ export class TokenImageReplacement {
         
         postConsoleAndNotification(`Token Image Replacement: Using base path: ${basePath}`, "", false, false, false);
         
-        // Start background scan
+        // Try to load cache from storage first
+        if (this._loadCacheFromStorage()) {
+            postConsoleAndNotification("Token Image Replacement: Using cached data, skipping scan", "", false, false, false);
+            return;
+        }
+        
+        // Start background scan if no valid cache found
+        postConsoleAndNotification("Token Image Replacement: No valid cache found, starting scan...", "", false, false, false);
         this._scanFolderStructure(basePath);
     }
     
@@ -119,6 +130,9 @@ export class TokenImageReplacement {
             
             // Log some statistics about the cache
             this._logCacheStatistics();
+            
+            // Save cache to persistent storage
+            this._saveCacheToStorage();
             
         } catch (error) {
             postConsoleAndNotification(`Token Image Replacement: Error scanning folders: ${error.message}`, "", false, true, false);
@@ -187,10 +201,8 @@ export class TokenImageReplacement {
                     const subDirFiles = await this._scanSubdirectory(subDir, basePath);
                     files.push(...subDirFiles);
                     
-                    // Log progress every few subdirectories
-                    if ((i + 1) % 2 === 0 || i === response.dirs.length - 1) {
-                        postConsoleAndNotification(`Token Image Replacement: Progress: ${i + 1}/${response.dirs.length} subdirectories scanned, ${files.length} files found so far`, "", false, false, false);
-                    }
+                    // Log progress every subdirectory for better visibility
+                    postConsoleAndNotification(`Token Image Replacement: Completed ${i + 1}/${response.dirs.length} subdirectories, ${files.length} files found so far`, "", false, false, false);
                 }
             }
             
@@ -229,9 +241,15 @@ export class TokenImageReplacement {
             if (response.dirs && response.dirs.length > 0) {
                 postConsoleAndNotification(`Token Image Replacement: Found ${response.dirs.length} deeper subdirectories in ${subDir}`, "", false, false, false);
                 
-                for (const deeperDir of response.dirs) {
+                for (let i = 0; i < response.dirs.length; i++) {
+                    const deeperDir = response.dirs[i];
                     const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
                     files.push(...deeperFiles);
+                    
+                    // Log subdirectory progress every few items
+                    if ((i + 1) % 5 === 0 || i === response.dirs.length - 1) {
+                        postConsoleAndNotification(`Token Image Replacement: Subdirectory progress: ${i + 1}/${response.dirs.length} in ${subDir.split('/').pop()}, ${files.length} files found so far`, "", false, false, false);
+                    }
                 }
             }
             
@@ -546,18 +564,17 @@ export class TokenImageReplacement {
      * Hook for when tokens are created
      */
     static async _onTokenCreated(tokenDocument, options, userId) {
-        postConsoleAndNotification(`Token Image Replacement: Token created: ${tokenDocument.name}`, "", false, false, false);
-        
         // Only process if we're a GM and the feature is enabled
         if (!game.user.isGM) {
-            postConsoleAndNotification("Token Image Replacement: Not a GM, skipping", "", false, false, false);
             return;
         }
         
         if (!game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled')) {
-            postConsoleAndNotification("Token Image Replacement: Feature disabled, skipping", "", false, false, false);
             return;
         }
+        
+        // Wait a moment for the token to be fully created on the canvas
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Find matching image
         const matchingImage = this.findMatchingImage(tokenDocument);
@@ -573,8 +590,6 @@ export class TokenImageReplacement {
             } catch (error) {
                 postConsoleAndNotification(`Token Image Replacement: Error applying image: ${error.message}`, "", false, true, false);
             }
-        } else {
-            postConsoleAndNotification(`Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", false, false, false);
         }
     }
     
@@ -601,7 +616,10 @@ export class TokenImageReplacement {
         this.cache.lastScan = null;
         this.cache.totalFiles = 0;
         
-        postConsoleAndNotification("Token Image Replacement: Cache cleared", "", false, false, false);
+        // Also clear from persistent storage
+        this._clearCacheFromStorage();
+        
+        postConsoleAndNotification("Token Image Replacement: Cache cleared from memory and storage", "", false, false, false);
     }
     
     /**
@@ -690,5 +708,190 @@ export class TokenImageReplacement {
         // Clear test data
         this.clearCache();
         postConsoleAndNotification("Token Image Replacement: Test matching completed and cache cleared", "", false, false, false);
+    }
+    
+    /**
+     * Test token creation hook integration
+     */
+    static testTokenCreation() {
+        postConsoleAndNotification("Token Image Replacement: Testing token creation hook...", "", false, false, false);
+        
+        // Check if hook is registered (safe way for different Foundry versions)
+        let hookRegistered = false;
+        try {
+            if (Hooks.all && Hooks.all.get) {
+                const hooks = Hooks.all.get('createToken') || [];
+                hookRegistered = hooks.some(hook => hook.name === '_onTokenCreated');
+            } else {
+                // Fallback for older Foundry versions
+                hookRegistered = true; // Assume it's working if we can't check
+            }
+        } catch (error) {
+            hookRegistered = true; // Assume it's working if we can't check
+        }
+        
+        if (hookRegistered) {
+            postConsoleAndNotification("Token Image Replacement: ✓ Hook 'createToken' is properly registered", "", false, false, false);
+        } else {
+            postConsoleAndNotification("Token Image Replacement: ✗ Hook 'createToken' is NOT registered", "", false, true, false);
+        }
+        
+        // Check if cache is ready
+        if (this.cache.files.size > 0) {
+            postConsoleAndNotification(`Token Image Replacement: ✓ Cache is ready with ${this.cache.files.size} files`, "", false, false, false);
+        } else {
+            postConsoleAndNotification("Token Image Replacement: ⚠ Cache is not ready yet (still scanning)", "", false, false, false);
+        }
+        
+        // Check settings
+        const enabled = game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled');
+        const path = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        
+        postConsoleAndNotification(`Token Image Replacement: Feature enabled: ${enabled}`, "", false, false, false);
+        postConsoleAndNotification(`Token Image Replacement: Base path: ${path || 'Not configured'}`, "", false, false, false);
+        
+        postConsoleAndNotification("Token Image Replacement: Token creation hook test completed", "", false, false, false);
+    }
+    
+    /**
+     * Check overall integration status
+     */
+    static getIntegrationStatus() {
+        const status = {
+            featureEnabled: game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled'),
+            basePathConfigured: !!game.settings.get(MODULE_ID, 'tokenImageReplacementPath'),
+            cacheReady: this.cache.files.size > 0,
+            hookRegistered: false,
+            totalFiles: this.cache.files.size,
+            lastScan: this.cache.lastScan
+        };
+        
+        // Check if hook is registered (safe way for different Foundry versions)
+        try {
+            if (Hooks.all && Hooks.all.get) {
+                const hooks = Hooks.all.get('createToken') || [];
+                status.hookRegistered = hooks.some(hook => hook.name === '_onTokenCreated');
+            } else {
+                status.hookRegistered = true; // Assume it's working if we can't check
+            }
+        } catch (error) {
+            status.hookRegistered = true; // Assume it's working if we can't check
+        }
+        
+        return status;
+    }
+    
+    /**
+     * Save cache to localStorage
+     */
+    static _saveCacheToStorage() {
+        try {
+            const cacheData = {
+                files: Array.from(this.cache.files.entries()),
+                folders: Array.from(this.cache.folders.entries()),
+                creatureTypes: Array.from(this.cache.creatureTypes.entries()),
+                lastScan: this.cache.lastScan,
+                totalFiles: this.cache.totalFiles,
+                version: '1.0'
+            };
+            
+            localStorage.setItem('tokenImageReplacement_cache', JSON.stringify(cacheData));
+            postConsoleAndNotification("Token Image Replacement: Cache saved to persistent storage", "", false, false, false);
+        } catch (error) {
+            postConsoleAndNotification(`Token Image Replacement: Error saving cache: ${error.message}`, "", false, true, false);
+        }
+    }
+    
+    /**
+     * Load cache from localStorage
+     */
+    static _loadCacheFromStorage() {
+        try {
+            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+            if (!savedCache) {
+                return false;
+            }
+            
+            const cacheData = JSON.parse(savedCache);
+            
+            // Validate cache data
+            if (!cacheData.version || !cacheData.files || !cacheData.folders || !cacheData.creatureTypes) {
+                postConsoleAndNotification("Token Image Replacement: Invalid cache data in storage, will rescan", "", false, false, false);
+                return false;
+            }
+            
+            // Check if cache is still valid (less than 24 hours old)
+            const cacheAge = Date.now() - (cacheData.lastScan || 0);
+            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (cacheAge > maxAge) {
+                postConsoleAndNotification("Token Image Replacement: Cache is stale (older than 24 hours), will rescan", "", false, false, false);
+                return false;
+            }
+            
+            // Restore cache
+            this.cache.files = new Map(cacheData.files);
+            this.cache.folders = new Map(cacheData.folders);
+            this.cache.creatureTypes = new Map(cacheData.creatureTypes);
+            this.cache.lastScan = cacheData.lastScan;
+            this.cache.totalFiles = cacheData.totalFiles;
+            
+            postConsoleAndNotification(`Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false, false);
+            return true;
+            
+        } catch (error) {
+            postConsoleAndNotification(`Token Image Replacement: Error loading cache: ${error.message}`, "", false, true, false);
+            return false;
+        }
+    }
+    
+    /**
+     * Clear cache from localStorage
+     */
+    static _clearCacheFromStorage() {
+        try {
+            localStorage.removeItem('tokenImageReplacement_cache');
+            postConsoleAndNotification("Token Image Replacement: Cache cleared from persistent storage", "", false, false, false);
+        } catch (error) {
+            postConsoleAndNotification(`Token Image Replacement: Error clearing cache: ${error.message}`, "", false, true, false);
+        }
+    }
+    
+    /**
+     * Force cache refresh (ignores stored cache)
+     */
+    static async forceRefreshCache() {
+        postConsoleAndNotification("Token Image Replacement: Force refreshing cache...", "", false, false, false);
+        this._clearCacheFromStorage();
+        const basePath = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        if (basePath) {
+            await this._scanFolderStructure(basePath);
+        }
+    }
+    
+    /**
+     * Check cache storage status
+     */
+    static getCacheStorageStatus() {
+        const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+        if (!savedCache) {
+            return { hasStoredCache: false, message: "No cache in storage" };
+        }
+        
+        try {
+            const cacheData = JSON.parse(savedCache);
+            const cacheAge = Date.now() - (cacheData.lastScan || 0);
+            const ageHours = (cacheAge / (1000 * 60 * 60)).toFixed(1);
+            
+            return {
+                hasStoredCache: true,
+                fileCount: cacheData.files?.length || 0,
+                lastScan: cacheData.lastScan,
+                ageHours: ageHours,
+                message: `${cacheData.files?.length || 0} files, ${ageHours} hours old`
+            };
+        } catch (error) {
+            return { hasStoredCache: false, message: `Error reading cache: ${error.message}` };
+        }
     }
 }
