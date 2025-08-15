@@ -42,11 +42,14 @@ export class TokenImageReplacement {
     };
     
     static initialize() {
+        postConsoleAndNotification("Token Image Replacement: Initializing system...", "", false, false, false);
+        
         // Initialize the caching system when the module is ready
         Hooks.once('ready', this._initializeCache.bind(this));
         
         // Hook into token creation for image replacement
         Hooks.on('createToken', this._onTokenCreated.bind(this));
+        postConsoleAndNotification("Token Image Replacement: Hook 'createToken' registered", "", false, false, false);
         
         // Add test function to global scope for debugging (moved to ready hook)
         Hooks.once('ready', () => {
@@ -450,11 +453,24 @@ export class TokenImageReplacement {
         
         // Priority 5: Creature type for folder optimization
         if (tokenDocument.actor?.system?.details?.type) {
-            terms.push(tokenDocument.actor.system.details.type);
+            const creatureType = tokenDocument.actor.system.details.type;
+            // Handle both string and object formats
+            if (typeof creatureType === 'string') {
+                terms.push(creatureType);
+            } else if (creatureType && typeof creatureType === 'object' && creatureType.value) {
+                terms.push(creatureType.value);
+            }
         }
         
+        // Debug: log all terms before filtering
+        postConsoleAndNotification(`Token Image Replacement: Raw search terms: ${JSON.stringify(terms)}`, "", false, false, false);
+        
         // Remove duplicates and empty terms
-        return [...new Set(terms.filter(term => term && term.trim().length > 0))];
+        const filteredTerms = [...new Set(terms.filter(term => term && typeof term === 'string' && term.trim().length > 0))];
+        
+        postConsoleAndNotification(`Token Image Replacement: Filtered search terms: ${JSON.stringify(filteredTerms)}`, "", false, false, false);
+        
+        return filteredTerms;
     }
     
     /**
@@ -462,7 +478,13 @@ export class TokenImageReplacement {
      */
     static _findBestMatch(searchTerms, tokenDocument) {
         // First, try to optimize search scope using creature type
-        const creatureType = tokenDocument.actor?.system?.details?.type?.toLowerCase();
+        let creatureType = tokenDocument.actor?.system?.details?.type;
+        // Handle both string and object formats
+        if (creatureType && typeof creatureType === 'object' && creatureType.value) {
+            creatureType = creatureType.value;
+        }
+        creatureType = creatureType?.toLowerCase();
+        
         let searchScope = this.cache.files;
         
         if (creatureType && this.cache.creatureTypes.has(creatureType)) {
@@ -544,8 +566,14 @@ export class TokenImageReplacement {
             
             // Bonus for creature type matches
             if (tokenDocument.actor?.system?.details?.type) {
-                const creatureType = tokenDocument.actor.system.details.type.toLowerCase();
-                if (fileNameLower.includes(creatureType) || fileNameLower.includes(creatureType + 's')) {
+                let creatureType = tokenDocument.actor.system.details.type;
+                // Handle both string and object formats
+                if (creatureType && typeof creatureType === 'object' && creatureType.value) {
+                    creatureType = creatureType.value;
+                }
+                creatureType = creatureType?.toLowerCase();
+                
+                if (creatureType && (fileNameLower.includes(creatureType) || fileNameLower.includes(creatureType + 's'))) {
                     termScore += 0.2;
                 }
             }
@@ -564,14 +592,26 @@ export class TokenImageReplacement {
      * Hook for when tokens are created
      */
     static async _onTokenCreated(tokenDocument, options, userId) {
+        postConsoleAndNotification(`Token Image Replacement: Hook fired for token: ${tokenDocument.name}`, "", false, false, false);
+        
         // Only process if we're a GM and the feature is enabled
         if (!game.user.isGM) {
+            postConsoleAndNotification("Token Image Replacement: Skipping - not GM", "", false, false, false);
             return;
         }
         
         if (!game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled')) {
+            postConsoleAndNotification("Token Image Replacement: Skipping - feature disabled", "", false, false, false);
             return;
         }
+        
+        // Check if cache is ready
+        if (this.cache.files.size === 0) {
+            postConsoleAndNotification("Token Image Replacement: Skipping - cache not ready", "", false, false, false);
+            return;
+        }
+        
+        postConsoleAndNotification(`Token Image Replacement: Processing token: ${tokenDocument.name}`, "", false, false, false);
         
         // Wait a moment for the token to be fully created on the canvas
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -590,6 +630,8 @@ export class TokenImageReplacement {
             } catch (error) {
                 postConsoleAndNotification(`Token Image Replacement: Error applying image: ${error.message}`, "", false, true, false);
             }
+        } else {
+            postConsoleAndNotification(`Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", false, false, false);
         }
     }
     
