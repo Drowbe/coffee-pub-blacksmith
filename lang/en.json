@@ -165,7 +165,40 @@
 		"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
 
 		"disableTokenRing-Label": "Disable Token Ring",
-		"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display.",
+		"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This will not turn off rings that are part of the token image itself.",
+
+		"headingH3TokenImageReplacement-Label": "Token Image Replacement",
+		"headingH3TokenImageReplacement-Hint": "Automatically replace token images with custom images from your specified folder.",
+
+		"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
+		"tokenImageReplacementEnabled-Hint": "Master toggle for the token image replacement feature.",
+
+		"tokenImageReplacementPath-Label": "Replacement Images Folder",
+		"tokenImageReplacementPath-Hint": "Base folder path for replacement images. Use Foundry relative paths (e.g., assets/images/tokens/FA_Tokens_Webp).",
+
+		"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
+		"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
+
+		"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
+		"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
+
+		"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
+		"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
+
+		"tokenImageReplacementUpdateActors-Label": "Update Actors",
+		"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
+
+		"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
+		"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
+
+		"tokenImageReplacementCacheStats-Label": "Cache Status",
+		"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+
+		"tokenImageReplacementRefreshCache-Label": "Refresh Cache",
+		"tokenImageReplacementRefreshCache-Hint": "Manually refresh the token image replacement cache.",
+
+		"tokenImageReplacementClearCache-Label": "Clear Cache",
+		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache.",
 
 		"headingH3Nameplate-Label": "Nameplate",
 		"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",

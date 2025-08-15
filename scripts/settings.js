@@ -1493,6 +1493,56 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// Cache Management Buttons
+	game.settings.register(MODULE_ID, 'tokenImageReplacementCacheStats', {
+		name: 'Cache Status',
+		hint: 'Current status of the token image replacement cache.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'Cache not initialized',
+		onChange: (value) => {
+			// This will be updated dynamically
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementRefreshCache', {
+		name: 'Refresh Cache',
+		hint: 'Manually refresh the token image replacement cache.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'Click to refresh cache',
+		onChange: (value) => {
+			// This will be updated dynamically
+		}
+	});
+
+	game.settings.register(MODULE_ID, 'tokenImageReplacementClearCache', {
+		name: 'Clear Cache',
+		hint: 'Clear the token image replacement cache.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'Click to clear cache',
+		onChange: (value) => {
+			// This will be updated dynamically
+		}
+	});
+
+	// ---------- Token Image Replacement ----------
+	game.settings.register(MODULE_ID, "headingH3TokenImageReplacement", {
+		name: 'Token Image Replacement',
+		hint: 'Automatically replace token images with custom images from your specified folder.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+
 	// ---------- Dead Tokens ----------
 	game.settings.register(MODULE_ID, "headingH3TokenActions", {
 		name: 'Token Actions',

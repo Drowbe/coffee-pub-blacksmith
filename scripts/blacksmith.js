@@ -43,6 +43,7 @@ import { JournalTools } from './journal-tools.js';
 import { CSSEditor } from './css-editor.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
 import { XpManager } from './xp-manager.js';
+import { TokenImageReplacement } from './token-image-replacement.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -395,6 +396,9 @@ Hooks.once('init', async function() {
 
     // Initialize CanvasTools
     CanvasTools.initialize();
+    
+    // Initialize TokenImageReplacement
+    TokenImageReplacement.initialize();
 });
 
 // Initialize WrapperManager after libWrapper is ready
