@@ -443,7 +443,7 @@ export class TokenImageReplacement {
         
         // Priority 3: Base name (remove parentheticals and numbers)
         const baseName = tokenDocument.name.replace(/\([^)]*\)/g, '').replace(/\s*\d+$/, '').trim();
-        if (baseName && baseName !== tokenDocument.name) {
+        if (baseName && baseName !== tokenDocument.name && baseName !== tokenDocument.actor?.name) {
             terms.push(baseName);
         }
         
@@ -451,16 +451,8 @@ export class TokenImageReplacement {
         const words = tokenDocument.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
         terms.push(...words);
         
-        // Priority 5: Creature type for folder optimization
-        if (tokenDocument.actor?.system?.details?.type) {
-            const creatureType = tokenDocument.actor.system.details.type;
-            // Handle both string and object formats
-            if (typeof creatureType === 'string') {
-                terms.push(creatureType);
-            } else if (creatureType && typeof creatureType === 'object' && creatureType.value) {
-                terms.push(creatureType.value);
-            }
-        }
+        // Priority 5: Creature type for folder optimization (REMOVED - too broad for matching)
+        // We'll use creature type only for search scope optimization, not for search terms
         
         // Debug: log all terms before filtering
         postConsoleAndNotification(`Token Image Replacement: Raw search terms: ${JSON.stringify(terms)}`, "", false, false, false);
@@ -503,7 +495,14 @@ export class TokenImageReplacement {
         let bestMatch = null;
         let bestScore = 0;
         
-        for (const [fileName, fileInfo] of searchScope) {
+        // Debug logging to see search scope contents
+        postConsoleAndNotification(`[TokenImageReplacement] Search scope size: ${searchScope.size}`, false, false, true);
+        if (searchScope.size > 0) {
+            const firstFew = Array.from(searchScope.keys()).slice(0, 5);
+            postConsoleAndNotification(`[TokenImageReplacement] First few items in search scope: ${firstFew.join(', ')}`, false, false, true);
+        }
+        
+        for (const [fileName, fileInfo] of searchScope.entries()) {
             const score = this._calculateMatchScore(fileName, searchTerms, tokenDocument);
             if (score > bestScore) {
                 bestScore = score;
@@ -512,7 +511,7 @@ export class TokenImageReplacement {
         }
         
         // Only return matches with a reasonable score
-        if (bestScore >= 0.3) {
+        if (bestScore >= 0.5) {
             postConsoleAndNotification(`Token Image Replacement: Best match for ${tokenDocument.name}: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`, "", false, false, false);
             return bestMatch;
         }
@@ -564,19 +563,8 @@ export class TokenImageReplacement {
                 }
             }
             
-            // Bonus for creature type matches
-            if (tokenDocument.actor?.system?.details?.type) {
-                let creatureType = tokenDocument.actor.system.details.type;
-                // Handle both string and object formats
-                if (creatureType && typeof creatureType === 'object' && creatureType.value) {
-                    creatureType = creatureType.value;
-                }
-                creatureType = creatureType?.toLowerCase();
-                
-                if (creatureType && (fileNameLower.includes(creatureType) || fileNameLower.includes(creatureType + 's'))) {
-                    termScore += 0.2;
-                }
-            }
+            // Bonus for creature type matches (REMOVED - too broad and misleading)
+            // Focus purely on filename text matching
             
             totalScore += termScore;
             termCount++;
