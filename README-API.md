@@ -3,7 +3,23 @@
 ## Overview
 Coffee Pub Blacksmith serves as the central hub for all Coffee Pub modules, providing core functionality and managing inter-module communication. This document outlines the API available to other Coffee Pub modules and how to integrate with Blacksmith.
 
-## Getting Started
+## Table of Contents
+- [Getting Started](#getting-started)
+- [API Methods](#api-methods)
+  - [Module Management](#module-management)
+  - [Global Utilities](#global-utilities)
+  - [Feature Types](#feature-types)
+  - [BLACKSMITH Global Object](#blacksmith-global-object)
+- [Events](#events)
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+- [Version Compatibility](#version-compatibility)
+- [Error Handling](#error-handling)
+- [Testing](#testing)
+- [Stats API](#stats-api)
+- [Enhanced Image Guessing](#enhanced-image-guessing)
+
+## Getting Started {#getting-started}
 
 ### Accessing the API
 ```javascript
@@ -43,19 +59,22 @@ Hooks.once('init', async function() {
 });
 ```
 
-## API Methods
+## API Methods {#api-methods}
 
-### Module Management
+### Module Management {#module-management}
 - `registerModule(moduleId, config)`: Register your module with Blacksmith
 - `isModuleActive(moduleId)`: Check if a specific Coffee Pub module is active
 - `getModuleFeatures(moduleId)`: Get all features registered by a specific module
 
-### Global Utilities
+### Global Utilities {#global-utilities}
 Blacksmith provides a set of shared utility functions that all Coffee Pub modules can use:
 
 #### Console and Notifications
 ```javascript
-// Instead of using console.log or ui.notifications directly
+// Basic usage
+blacksmith.utils.postConsoleAndNotification("Required message");
+
+// With all parameters
 blacksmith.utils.postConsoleAndNotification(
     message,           // The message to display (mandatory)
     result = "",       // Optional data to show in console
@@ -64,54 +83,24 @@ blacksmith.utils.postConsoleAndNotification(
     blnNotification = false, // Show as UI notification
     strModuleTitle = "BLACKSMITH" // Optional module title for styling
 );
-
-// Example usage:
-blacksmith.utils.postConsoleAndNotification(
-    "Initializing module",     // Required message
-    { version: "1.0.0" },      // Optional result data
-    false,                     // No divider
-    true,                      // Debug mode
-    false,                     // No notification
-    "BIBLIOSOPH"              // Custom module title
-);
-
-// Minimal usage (using defaults):
-blacksmith.utils.postConsoleAndNotification("Required message");
 ```
 
-#### Time and Formatting
+#### Utility Functions
 ```javascript
-// Format time values
+// Time and formatting
 blacksmith.utils.formatTime(ms, format = "colon");
-
-// Generate formatted dates
 blacksmith.utils.generateFormattedDate(format);
-```
 
-#### String Manipulation
-```javascript
-// Trim strings to length with ellipsis
+// String manipulation
 blacksmith.utils.trimString(str, maxLength);
-
-// Convert to sentence case
 blacksmith.utils.toSentenceCase(str);
-```
 
-#### Game Entity Helpers
-```javascript
-// Get actor ID from name
+// Game entity helpers
 blacksmith.utils.getActorId(actorName);
-
-// Get token image
 blacksmith.utils.getTokenImage(tokenDoc);
-
-// Get portrait image
 blacksmith.utils.getPortraitImage(actor);
-```
 
-#### Sound Management
-```javascript
-// Play sounds with volume control
+// Sound management
 blacksmith.utils.playSound(sound, volume = 0.7, loop = false, broadcast = true);
 ```
 
@@ -219,22 +208,7 @@ Hooks.once('ready', async () => {
 - **Professional quality** - users get a consistent, crash-free experience
 - **Automatic availability** - functions load with every dependent module
 
-### Feature Types
-
-#### Chat Panel Icons
-Add icons to the chat panel toolbar:
-```javascript
-{
-    type: 'chatPanelIcon',
-    data: {
-        icon: 'fas fa-icon-name',    // FontAwesome icon class
-        tooltip: 'Tool Tip Text',    // Hover text
-        onClick: () => {}            // Click handler
-    }
-}
-```
-
-### BLACKSMITH Global Object
+### BLACKSMITH Global Object {#blacksmith-global-object}
 The BLACKSMITH object is now accessible through the API, providing access to various shared resources and settings:
 
 ```javascript
@@ -300,9 +274,28 @@ Hooks.once('init', async function() {
         default: 'default'
     });
 });
+
+## Feature Types {#feature-types}
+
+### Chat Panel Icons
+Add icons to the chat panel toolbar:
+```javascript
+{
+    type: 'chatPanelIcon',
+    data: {
+        icon: 'fas fa-icon-name',    // FontAwesome icon class
+        tooltip: 'Tool Tip Text',    // Hover text
+        onClick: () => {}            // Click handler
+    }
+}
 ```
 
-## Events
+**Available Feature Types:**
+- **`chatPanelIcon`**: Adds icons to the chat panel toolbar
+- **More types coming soon** as the API expands
+```
+
+## Events {#events}
 Blacksmith emits several events that your module can listen to:
 
 ```javascript
@@ -317,42 +310,45 @@ Hooks.on('blacksmithUpdated', (blacksmith) => {
 });
 ```
 
-## Examples
+## Examples {#examples}
 
-### Adding a Chat Panel Icon
+### Complete Module Registration
 ```javascript
-const feature = {
-    type: 'chatPanelIcon',
-    data: {
-        icon: 'fas fa-dice',
-        tooltip: 'Roll Dice',
-        onClick: () => {
-            // Your dice rolling logic
-        }
-    }
-};
+Hooks.once('init', async function() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
 
-blacksmith.registerModule('your-module-id', {
-    name: 'YOUR_MODULE',
-    version: '1.0.0',
-    features: [feature]
+    blacksmith.registerModule('your-module-id', {
+        name: 'YOUR_MODULE',
+        version: '1.0.0',
+        features: [{
+            type: 'chatPanelIcon',
+            data: {
+                icon: 'fas fa-dice',
+                tooltip: 'Roll Dice',
+                onClick: () => {
+                    // Your dice rolling logic
+                }
+            }
+        }]
+    });
 });
 ```
 
-## Best Practices
+## Best Practices {#best-practices}
 1. Always check if Blacksmith is available before using its API
 2. Register your module during the 'init' hook
 3. Use the provided event system for inter-module communication
 4. Follow the naming conventions for module IDs and titles
 5. When using BLACKSMITH object properties, check if they exist before using them
 
-## Version Compatibility
+## Version Compatibility {#version-compatibility}
 - Foundry VTT: v12 (with v13 readiness)
 - Required Libraries:
   - socketlib
   - libWrapper
 
-## Error Handling
+## Error Handling {#error-handling}
 The API includes built-in error handling, but you should still implement your own error handling:
 
 ```javascript
@@ -366,89 +362,30 @@ try {
 }
 ```
 
-## Testing in Console
-You can test the Blacksmith API integration directly in your browser's console. Each command below can be run independently:
+## Testing {#testing}
+You can test the Blacksmith API integration directly in your browser's console:
 
 ```javascript
-// 1. Basic API availability test
+// Basic API availability test
 const api = game.modules.get('coffee-pub-blacksmith')?.api;
 console.log(api); // Should show all available API methods
 
-// 2. Test ModuleManager directly
-console.log(api?.ModuleManager?.registeredModules);
-console.log(api?.ModuleManager?.features);
-console.log(api?.ModuleManager?.isModuleActive('coffee-pub-bibliosoph'));
-
-// 3. Test utility functions
-// First, store utils reference
+// Test utility functions
 const utils = api?.utils;
-
-// Console and notifications
 utils?.postConsoleAndNotification("Test Message", "", false, true, false);
-
-// Time formatting (returns formatted string)
 utils?.formatTime(3600000); // Should show "01:00:00"
 
-// String manipulation
-utils?.toSentenceCase("test string"); // Should show "Test string"
-
-// 4. Test version
+// Test ModuleManager
+console.log(api?.ModuleManager?.registeredModules);
 console.log(api?.version); // Should show current API version
-
-// 5. View chat panel icons in DOM
-document.querySelector('.blacksmith-chat-panel .toolbar-icons')?.children;
 ```
 
-Expected Output:
-```javascript
-// API check:
-{
-    ModuleManager: {...},
-    registerModule: [Function],
-    isModuleActive: [Function],
-    getModuleFeatures: [Function],
-    utils: {...},
-    version: "1.0.0"
-}
+**Common Issues:**
+- If `api` is undefined, ensure Blacksmith is installed and active
+- If `utils` methods return undefined, check if UtilsManager is initialized
+- If ModuleManager shows empty Maps, verify modules are registered during initialization
 
-// ModuleManager.registeredModules:
-Map(n) {
-    'coffee-pub-blacksmith' => {...},
-    'coffee-pub-bibliosoph' => {...},
-    // etc...
-}
-
-// Utils tests:
-"Test Message" // In console and notification
-"01:00:00"    // formatTime result
-"Test string" // toSentenceCase result
-
-// Version:
-"1.0.0"
-
-// Chat panel icons:
-HTMLCollection(n) [i.fas.fa-icon-name, ...]
-```
-
-Common Issues:
-1. If `api` is undefined, ensure Blacksmith is installed and active
-2. If `utils` methods return undefined, check if UtilsManager is initialized
-3. If ModuleManager shows empty Maps, verify modules are registered during initialization
-4. If chat panel icons are not visible, check if features are properly registered
-
-For more complex testing, you can store the API reference in a variable:
-```javascript
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-if (blacksmith?.utils) {
-    // Now you can chain multiple tests
-    blacksmith.utils.postConsoleAndNotification("Multiple tests starting...");
-    console.log('API Version:', blacksmith.version);
-    console.log('Registered Modules:', blacksmith.ModuleManager.registeredModules);
-    // etc...
-} 
-```
-
-### Stats API
+### Stats API {#stats-api}
 The Stats API provides access to both player and combat statistics tracked by Blacksmith. This API allows other modules to retrieve and analyze player performance, combat data, and notable moments.
 
 #### Accessing the Stats API
@@ -574,70 +511,21 @@ function displayPlayerStats(stats) {
 }
 ```
 
-### AI-Friendly Integration Guide
+### Integration Best Practices
 
-For AI assistants integrating with the Stats API:
+**Data Access Patterns:**
+- Always use `await` with async methods
+- Check for null/undefined returns
+- Handle errors appropriately
+- Cache results when appropriate
+- Unsubscribe from updates when no longer needed
+- Clean up subscriptions on module disable/unload
 
-1. **Initial Setup**:
-   ```javascript
-   // Check for Blacksmith and Stats API availability
-   const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-   if (!blacksmith?.stats) {
-       console.error("Stats API not available");
-       return;
-   }
-   ```
+## Enhanced Image Guessing {#enhanced-image-guessing}
 
-2. **Data Access Patterns**:
-   - Always use `await` with async methods
-   - Check for null/undefined returns
-   - Handle errors appropriately
-   ```javascript
-   try {
-       const stats = await blacksmith.stats.player.getStats(actorId);
-       if (!stats) {
-           console.warn("No stats available for actor");
-           return;
-       }
-       // Process stats
-   } catch (error) {
-       console.error("Error accessing stats:", error);
-   }
-   ```
+The Blacksmith module includes an advanced image guessing system that automatically selects appropriate images for imported items.
 
-3. **Best Practices**:
-   - Cache results when appropriate
-   - Unsubscribe from updates when no longer needed
-   - Use utility functions for consistent formatting
-   - Validate actor IDs before querying
-
-4. **Performance Considerations**:
-   - Batch stat requests when possible
-   - Limit update subscription frequency
-   - Clean up subscriptions on module disable/unload
-
-This documentation should help both human developers and AI assistants effectively integrate with the Blacksmith Stats API.
-
-## Enhanced Image Guessing
-
-The Blacksmith module now includes an advanced image guessing system that automatically selects appropriate images for imported items based on their names and descriptions.
-
-### How It Works
-
-The system uses a comprehensive synonym-to-folder mapping (`resources/item-mapping.json`) that maps keywords to relevant icon folders. When importing items, the system:
-
-1. **Exact Keyword Matching**: Searches for exact synonyms in item names and descriptions
-2. **Partial Word Matching**: Handles plurals and compound words (e.g., "swords" matches "sword")
-3. **Loot Type Matching**: Uses the item's loot type as a fallback
-4. **Filename Matching**: Searches for synonyms in actual image filenames
-5. **Fallback Selection**: Uses treasure/misc folders if no specific matches found
-
-### Settings
-
-- **Enhanced Image Guessing**: Enable/disable the advanced synonym mapping (default: enabled)
-- **Image Guessing Debug Mode**: Show detailed console logs about image selection process
-
-### Usage Examples
+### API Usage
 
 ```javascript
 // Test image guessing for a specific item
@@ -645,42 +533,26 @@ await testImageGuessing("Ancient Ring", "A mysterious ring with arcane symbols")
 
 // Get all available synonyms
 const synonyms = await getAvailableSynonyms();
-console.log("Available synonyms:", synonyms);
 ```
+
+### Settings
+
+- **Enhanced Image Guessing**: Enable/disable the advanced synonym mapping
+- **Image Guessing Debug Mode**: Show detailed console logs about image selection process
 
 ### Synonym Categories
 
-The mapping includes synonyms for:
+The system includes mappings for weapons, equipment, commodities, containers, consumables, and sundries. You can customize the mapping by modifying `resources/item-mapping.json`.
 
-- **Weapons**: swords, axes, bows, crossbows, daggers, etc.
-- **Equipment**: armor, shields, tools, instruments, etc.
-- **Commodities**: gems, metals, currency, materials, etc.
-- **Containers**: bags, barrels, boxes, chests, etc.
-- **Consumables**: potions, food, plants, mushrooms, etc.
-- **Sundries**: books, documents, scrolls, gaming items, etc.
+## Summary
 
-### Customization
+This API provides a comprehensive foundation for Coffee Pub modules to integrate with Blacksmith's core functionality. Key benefits include:
 
-You can modify `resources/item-mapping.json` to:
-- Add new synonyms
-- Change folder mappings
-- Create custom categories
+- **Safe Settings Access**: Prevents startup crashes with robust settings handling
+- **Shared Utilities**: Common functions available to all dependent modules
+- **Module Management**: Centralized registration and feature system
+- **Event System**: Inter-module communication and updates
+- **Stats API**: Access to player and combat statistics
+- **Image Guessing**: Advanced item image selection
 
-The file structure is:
-```json
-{
-  "synonym": ["folder1", "folder2"],
-  "sword": ["weapons/swords", "weapons/melee"],
-  "gem": ["commodities/gems", "commodities/treasure"]
-}
-```
-
-### Debugging
-
-Enable debug mode to see detailed logs about:
-- Which synonyms were matched
-- Which folders were searched
-- Which images were selected
-- Fallback decisions
-
-This helps understand why specific images are chosen and troubleshoot any issues.
+For questions or contributions, refer to the main README.md or create an issue in the repository.
