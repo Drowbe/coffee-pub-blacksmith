@@ -12,7 +12,7 @@ import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './global.js';
 // -- Global utilities --
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';
+import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds, getSettingSafely} from './global.js';
 // *** END: GLOBAL IMPORTS ***
 
 // -- COMMON Imports --
@@ -168,8 +168,18 @@ export function getCachedSetting(settingKey, defaultValue = null) {
         }
     }
     
-    // Setting not cached or expired, retrieve it
-    const value = game.settings.get(MODULE_ID, settingKey);
+    // Setting not cached or expired, retrieve it safely
+    let value;
+    try {
+        if (game.settings.settings.has(`${MODULE_ID}.${settingKey}`)) {
+            value = game.settings.get(MODULE_ID, settingKey);
+        } else {
+            value = defaultValue;
+        }
+    } catch (error) {
+        console.warn(`Blacksmith: Error accessing setting ${settingKey}:`, error);
+        value = defaultValue;
+    }
     
     // Store in cache with timestamp
     settingsCache.set(settingKey, {
@@ -202,32 +212,186 @@ BLACKSMITH.updateValue = function(key, value) {
 // Ensure the settings are registered before anything else
 // Register the Blacksmith hook
 registerBlacksmithUpdatedHook();
-// Register the settings
-    
-await registerSettings();
 
 // ================================================================== 
 // ===== REGISTER HOOKS =============================================
 // ================================================================== 
 
-Hooks.once('ready', () => {
-    // Initialize combat stats tracking
-    CombatStats.initialize();
+// Defer all hook registration until after settings are ready
+Hooks.once('init', async function() {
+    // Register settings FIRST before any other initialization
+    await registerSettings();
+    
+    // Now that settings are registered, we can safely register hooks
+    // that might access settings
+});
 
-    // Initialize player stats tracking
-    CPBPlayerStats.initialize();
+// Consolidate all settings-dependent initialization into a single ready hook
+Hooks.once('ready', async () => {
+    try {
+        // Wait a bit to ensure settings are fully processed
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Double-check that settings are ready
+        let retries = 0;
+        while (!game.settings.settings.has(`${MODULE_ID}.trackCombatStats`) && retries < 10) {
+            console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries++;
+        }
+        
+        if (!game.settings.settings.has(`${MODULE_ID}.trackCombatStats`)) {
+            console.error('Blacksmith: Settings failed to load after multiple attempts, skipping initialization');
+            return;
+        }
 
-    // Initialize XP manager
-    XpManager.initialize();
+        // Initialize combat stats tracking
+        CombatStats.initialize();
 
-    // Apply any existing custom CSS
-    const editor = new CSSEditor();
-    const css = game.settings.get(MODULE_ID, 'customCSS');
-    const transition = game.settings.get(MODULE_ID, 'cssTransition');
-    if (css) {
-        editor.applyCSS(css, transition);
+        // Initialize player stats tracking
+        CPBPlayerStats.initialize();
+
+        // Initialize XP manager
+        XpManager.initialize();
+
+        // Apply any existing custom CSS
+        const editor = new CSSEditor();
+        const css = getSettingSafely(MODULE_ID, 'customCSS', null);
+        const transition = getSettingSafely(MODULE_ID, 'cssTransition', null);
+        if (css) {
+            editor.applyCSS(css, transition);
+        }
+
+        // Initialize other components that depend on settings
+        WrapperManager.initialize();
+        
+        // Initialize latency checker
+        LatencyChecker.initialize();
+        
+        // ENCOUNTER TOOLBAR
+        EncounterToolbar.init();
+        
+        // JOURNAL TOOLS
+        JournalTools.init();
+
+        // Initialize CanvasTools
+        CanvasTools.initialize();
+        
+        // Initialize TokenImageReplacement
+        TokenImageReplacement.initialize();
+
+        // Update nameplates
+        updateNameplates();
+
+        // Initialize other settings-dependent features
+        initializeSettingsDependentFeatures();
+
+        // Initialize scene interactions
+        initializeSceneInteractions();
+
+    } catch (error) {
+        console.error('Error during Blacksmith initialization:', error);
     }
 });
+
+// Function to initialize all settings-dependent features
+function initializeSettingsDependentFeatures() {
+    // RICH CONSOLE
+    const blnFancyConsole = getCachedSetting('globalFancyConsole');
+    BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
+    COFFEEPUB.blnFancyConsole = blnFancyConsole;
+
+    // DEBUG ON/OFF
+    const blnDebugOn = getCachedSetting('globalDebugMode');
+    BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
+    
+    // DEBUG STYLE
+    const strConsoleDebugStyle = getCachedSetting('globalConsoleDebugStyle');
+    BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
+    
+    // OPENAI SETTINGS
+    // Macro
+    const strOpenAIMacro = getCachedSetting('openAIMacro');
+    BLACKSMITH.updateValue('strOpenAIMacro', strOpenAIMacro);
+    
+    // API Key
+    const strOpenAIAPIKey = getCachedSetting('openAIAPIKey');
+    BLACKSMITH.updateValue('strOpenAIAPIKey', strOpenAIAPIKey);
+    // Model 
+    const strOpenAIModel = getCachedSetting('openAIModel');
+    BLACKSMITH.updateValue('strOpenAIModel', strOpenAIModel);
+    // Game Systems
+    const strOpenAIGameSystems = getCachedSetting('openAIGameSystems');
+    BLACKSMITH.updateValue('strOpenAIGameSystems', strOpenAIGameSystems);
+    // Prompt 
+    const strOpenAIPrompt = getCachedSetting('openAIPrompt');
+    BLACKSMITH.updateValue('strOpenAIPrompt', strOpenAIPrompt);
+    // Temperature 
+    const strOpenAITemperature = getCachedSetting('openAITemperature');
+    BLACKSMITH.updateValue('strOpenAITemperature', strOpenAITemperature);
+
+    // Update the Chat Spacing per settings
+    updateChatStyles();
+    // Update any scene overrides
+    updateSceneStyles();
+    // Update any link style overrides
+    updateObjectLinkStyles();
+    // Update any link style overrides
+    updateWindowStyles();
+    // Update the Margin per settings
+    updateMargins();
+    
+    // Set default card theme
+    let strDefaultCardTheme = getSettingSafely(MODULE_ID, 'defaultCardTheme', 'default');
+    BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
+
+    // *** CHECK FOR MACRO BUTTONS ***
+    // OPEN AI WINDOW
+    if(strOpenAIMacro) {
+        let OpenAIMacro = game.macros.getName(strOpenAIMacro);
+        if(OpenAIMacro) {
+            OpenAIMacro.execute = async () => {
+                buildButtonEventRegent();
+            };
+        } else {
+            postConsoleAndNotification("OpenAI Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenAIMacro, false, true, true);
+        }
+            } else {
+            postConsoleAndNotification("Macro for OpenAI not set.", "", false, true, true);
+        }
+    }
+
+    // Function to initialize scene interactions
+    function initializeSceneInteractions() {
+        const blnShowIcons = getSettingSafely(MODULE_ID, 'enableSceneInteractions', false);
+        const blnCustomClicks = getSettingSafely(MODULE_ID, 'enableSceneClickBehaviors', false);
+        
+        // Initial icon update if enabled
+        if (blnShowIcons) {
+            WrapperManager._updateSceneIcons();
+        }
+
+        // Register for scene updates
+        if (blnShowIcons || blnCustomClicks) {
+            // Register canvas hooks
+            if (blnCustomClicks) {
+                // Keep the canvasInit hook to initialize the toolbar
+                Hooks.once('canvasInit', () => {
+                    // Canvas initialization complete
+                });
+
+                // Keep the canvasReady hook to check for the layer
+                Hooks.on('canvasReady', (canvas) => {
+                    const blacksmithLayer = canvas['blacksmith-utilities-layer'];
+                    // Layer availability checked silently
+                });
+            }
+
+            // Register scene update hooks
+            Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
+            Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
+        }
+    }
 
 // ***************************************************
 // ** INIT
@@ -401,149 +565,32 @@ Hooks.once('init', async function() {
     TokenImageReplacement.initialize();
 });
 
-// Initialize WrapperManager after libWrapper is ready
-Hooks.once('ready', async function() {
-
-    WrapperManager.initialize();
-    
-    // Initialize combat stats tracking
-    CombatStats.initialize();
-
-    // Initialize player stats tracking
-    CPBPlayerStats.initialize();
-
-    // Initialize latency checker
-    LatencyChecker.initialize();
-    
-    // ENCOUNTER TOOLBAR
-    EncounterToolbar.init();
-    
-    // JOURNAL TOOLS
-    JournalTools.init();
-});
+// This initialization is now handled in the main ready hook above
 
 // ***************************************************
 // ** UTILITY Scene Clicks
 // ***************************************************
 
-Hooks.on("ready", function () {
-    let blnShowIcons = game.settings.get(MODULE_ID, 'enableSceneInteractions');
-    let blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
-    
-    // Initial icon update if enabled
-    if (blnShowIcons) {
-        WrapperManager._updateSceneIcons();
-    }
-
-    // Register for scene updates
-    if (blnShowIcons || blnCustomClicks) {
-        // Register canvas hooks
-        if (blnCustomClicks) {
-            // Keep the canvasInit hook to initialize the toolbar
-            Hooks.once('canvasInit', () => {
-                // Canvas initialization complete
-            });
-
-            // Keep the canvasReady hook to check for the layer
-            Hooks.on('canvasReady', (canvas) => {
-             
-                const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-                // Layer availability checked silently
-            });
-        }
-
-        // Register scene update hooks
-        Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
-        Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
-    }
-});
+// Scene interactions are now handled in the main ready hook above
 
 // ***************************************************
 // ** Customize the Token Nameplates
 // ***************************************************
 
-Hooks.once('ready', updateNameplates);
+// Nameplates are now updated in the main ready hook
 Hooks.on('updateToken', updateNameplates);
 
 // ***************************************************
 // ** ADD TOKEN NAMES
 // ***************************************************
 
-Hooks.once('ready', function() {
-
-    // RICH CONSOLE
-    const blnFancyConsole = getCachedSetting('globalFancyConsole');
- 
-    BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
-    COFFEEPUB.blnFancyConsole = blnFancyConsole;
-
-    // DEBUG ON/OFF
-    const blnDebugOn = getCachedSetting('globalDebugMode');
- 
-    BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
-    
-    // DEBUG STYLE
-    const strConsoleDebugStyle = getCachedSetting('globalConsoleDebugStyle');
- 
-    BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
-    
-    // OPENAI SETTINGS
-    // Macro
-    const strOpenAIMacro = getCachedSetting('openAIMacro');
-    BLACKSMITH.updateValue('strOpenAIMacro', strOpenAIMacro);
-    // API Key
-    const strOpenAIAPIKey = getCachedSetting('openAIAPIKey');
-    BLACKSMITH.updateValue('strOpenAIAPIKey', strOpenAIAPIKey);
-    // Model 
-    const strOpenAIModel = getCachedSetting('openAIModel');
-    BLACKSMITH.updateValue('strOpenAIModel', strOpenAIModel);
-    // Model 
-    const strOpenAIGameSystems = getCachedSetting('openAIGameSystems');
-    BLACKSMITH.updateValue('strOpenAIGameSystems', strOpenAIGameSystems);
-    // Prompt 
-    const strOpenAIPrompt = getCachedSetting('openAIPrompt');
-    BLACKSMITH.updateValue('strOpenAIPrompt', strOpenAIPrompt);
-    // Temperature 
-    const strOpenAITemperature = getCachedSetting('openAITemperature');
-    BLACKSMITH.updateValue('strOpenAITemperature', strOpenAITemperature);
-
-    // Update the Chat Spacing per settings
-    updateChatStyles();
-    // Update any scene overrides
-    updateSceneStyles();
-    // Update any link style overrides
-    updateObjectLinkStyles();
-    // Update any link style overrides
-    updateWindowStyles();
-    // Update the Margin per settings
-    updateMargins();
-});
+// These settings are now handled in the main ready hook above
 
 // ***************************************************
 // ** READY Open AI
 // ***************************************************
 
-Hooks.on("ready", () => {
-    // Set defaults
-    let strDefaultCardTheme = game.settings.get(MODULE_ID, 'defaultCardTheme');
-    BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
-
-    // *** CHECK FOR MACRO BUTTONS ***
-    // OPEN AI WINDOW
-    var strOpenAIMacro = getCachedSetting('openAIMacro');
-    if(strOpenAIMacro) {
-        let OpenAIMacro = game.macros.getName(strOpenAIMacro);
-        if(OpenAIMacro) {
-            OpenAIMacro.execute = async () => {
-                buildButtonEventRegent();
-            };
-        } else {
-            postConsoleAndNotification("OpenAI Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenAIMacro, false, true, true);
-        }
-    } else {
-        postConsoleAndNotification("Macro for OpenAI not set.", "", false, true, true);
-    } 
-});
+// This is now handled in the main ready hook above
 
 
 

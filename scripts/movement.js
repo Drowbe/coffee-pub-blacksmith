@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { ChatPanel } from "./chat-panel.js";
 
@@ -58,8 +58,8 @@ const STATUS = {
 
 // Validate if token movement is allowed and return movement context
 function validateMovement(tokenDocument, changes, userId) {
-    const currentMovement = game.settings.get(MODULE_ID, 'movementType');
-    const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
+    const currentMovement = getSettingSafely(MODULE_ID, 'movementType', 'none');
+    const partyLeaderUserId = getSettingSafely(MODULE_ID, 'partyLeader', null);
     const movedByLeader = userId === partyLeaderUserId;
     const movedByGM = game.users.get(userId)?.isGM;
     

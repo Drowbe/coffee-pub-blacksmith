@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { ChatPanel } from './chat-panel.js';
 
@@ -164,8 +164,8 @@ export class VoteManager {
     static async startVote(type, customData = null) {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
-        const isLeader = game.user.id === leaderId;
+        const leaderId = getSettingSafely(MODULE_ID, 'partyLeader', null);
+        const isLeader = leaderId ? game.user.id === leaderId : false;
         const canStartVote = isGM || isLeader;
 
         postConsoleAndNotification('Vote Manager | Starting Vote:', {

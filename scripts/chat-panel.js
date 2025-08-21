@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './module-manager.js';
@@ -750,20 +750,20 @@ class ChatPanel {
     }
 
     // Socket receiver functions
-    static receiveLeaderUpdate(data) {
+    static async receiveLeaderUpdate(data) {
 
         if (!game?.user) return;
         
-
         ChatPanel.currentLeader = data.leader;
 
         // Update local leader data if provided
         if (data.leaderData) {
-    
-            game.settings.set(MODULE_ID, 'partyLeader', data.leaderData).then(() => {
-
+            const success = await setSettingSafely(MODULE_ID, 'partyLeader', data.leaderData);
+            if (success) {
                 ChatPanel.updateLeaderDisplay();
-            });
+            } else {
+                postConsoleAndNotification('Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false, true);
+            }
         } else {
             ChatPanel.updateLeaderDisplay();
         }
@@ -784,13 +784,16 @@ class ChatPanel {
             const socket = ThirdPartyManager.getSocket();
 
             // Get the current leader data to send
-            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
-            await socket.executeForOthers("updateLeader", { 
-                leader,  // for backward compatibility
-                leaderData // full leader data
-            });
-            this.updateLeaderDisplay();
-
+            const leaderData = getSettingSafely(MODULE_ID, 'partyLeader', null);
+            if (leaderData) {
+                await socket.executeForOthers("updateLeader", { 
+                    leader,  // for backward compatibility
+                    leaderData // full leader data
+                });
+                this.updateLeaderDisplay();
+            } else {
+                postConsoleAndNotification('Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false, true);
+            }
         }
     }
 
@@ -838,7 +841,11 @@ class ChatPanel {
 
 
             // Store in settings
-            await game.settings.set(MODULE_ID, 'partyLeader', leaderData);
+            const success = await setSettingSafely(MODULE_ID, 'partyLeader', leaderData);
+            if (!success) {
+                postConsoleAndNotification('Chat Panel | Error', 'Settings not yet registered, cannot set leader', false, true, false);
+                return false;
+            }
 
 
             // Update the static currentLeader and display

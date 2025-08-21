@@ -1,6 +1,6 @@
 // Import MODULE variables
 import { MODULE_TITLE, MODULE_ID } from './const.js';
-import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound } from './global.js';
+import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './global.js';
 import { PlanningTimer } from './planning-timer.js';
 import { CombatTimer } from './combat-timer.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
@@ -73,10 +73,9 @@ class CombatStats {
 
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
-1
+        if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
 
-        postConsoleAndNotification("Initializing Combat Stats | trackCombatStats:", game.settings.get(MODULE_ID, 'trackCombatStats'), false, true, false);
+        postConsoleAndNotification("Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE_ID, 'trackCombatStats', false), false, true, false);
 
         // Check for existing stats in combat flags
         const existingStats = game.combat?.getFlag(MODULE_ID, 'stats');
@@ -104,7 +103,7 @@ class CombatStats {
 
     static async _onUpdateCombat(combat, changed, options, userId) {
         // Only process combat updates if this is the GM
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
 
         postConsoleAndNotification('Combat Stats - Combat Update:', {
@@ -139,7 +138,7 @@ class CombatStats {
 
     static _onRoundStart(combat) {
         // Handle stats tracking if enabled
-        if (game.user.isGM && game.settings.get(MODULE_ID, 'trackCombatStats')) {
+        if (game.user.isGM && getSettingSafely(MODULE_ID, 'trackCombatStats', false)) {
             // Initialize new round stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
             // Ensure Maps are properly initialized
@@ -165,7 +164,7 @@ class CombatStats {
         }
 
         // Handle round announcement if enabled (independent of stats tracking)
-        if (game.user.isGM && game.settings.get(MODULE_ID, 'announceNewRounds')) {
+        if (game.user.isGM && getSettingSafely(MODULE_ID, 'announceNewRounds', false)) {
             this._announceNewRound(combat);
         }
     }

@@ -14,6 +14,43 @@
 
 // CORE CONSTANTS
 export const MODULE_AUTHOR = 'COFFEE PUB'
+
+// ================================================================== 
+// ===== SAFE SETTINGS ACCESS =======================================
+// ================================================================== 
+
+/**
+ * Safely get a setting value, returning a default if the setting isn't registered yet
+ * @param {string} moduleId - The module ID
+ * @param {string} settingKey - The setting key
+ * @param {*} defaultValue - Default value to return if setting isn't ready
+ * @returns {*} The setting value or default
+ */
+export function getSettingSafely(moduleId, settingKey, defaultValue = null) {
+    if (!game?.settings?.settings?.has(`${moduleId}.${settingKey}`)) {
+        return defaultValue;
+    }
+    return game.settings.get(moduleId, settingKey);
+}
+
+/**
+ * Safely set a setting value, only if the setting is registered
+ * @param {string} moduleId - The module ID
+ * @param {string} settingKey - The setting key
+ * @param {*} value - The value to set
+ * @returns {Promise<boolean>} True if successful, false if setting not ready
+ */
+export async function setSettingSafely(moduleId, settingKey, value) {
+    if (!game?.settings?.settings?.has(`${moduleId}.${settingKey}`)) {
+        return false;
+    }
+    try {
+        await game.settings.set(moduleId, settingKey, value);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
 // GLOBAL VARS
 export const COFFEEPUB = {
     // SHARED MODULE VARIABLES
