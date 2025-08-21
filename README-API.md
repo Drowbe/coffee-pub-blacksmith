@@ -115,6 +115,66 @@ blacksmith.utils.getPortraitImage(actor);
 blacksmith.utils.playSound(sound, volume = 0.7, loop = false, broadcast = true);
 ```
 
+#### Safe Settings Access
+Blacksmith provides robust, timing-safe functions for accessing FoundryVTT settings that prevent startup crashes:
+
+```javascript
+// Safe settings getter - won't crash if settings aren't registered yet
+const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultValue);
+
+// Safe settings setter - won't crash if settings aren't registered yet
+const success = blacksmith.utils.setSettingSafely(moduleId, settingKey, value);
+
+// Cached settings getter with expiration
+const cachedValue = blacksmith.utils.getCachedSetting(settingKey, defaultValue);
+```
+
+**Why Use Safe Settings Access?**
+- **Prevents startup crashes** from "not a registered game setting" errors
+- **Handles timing issues** between hooks and settings registration
+- **Provides graceful fallbacks** to default values
+- **Built-in retry logic** for edge cases
+- **Consistent error handling** across all modules
+
+**Example Usage:**
+```javascript
+// OLD (risky - can crash during startup)
+const autoRoll = game.settings.get('my-module', 'autoRoll');
+
+// NEW (safe - won't crash, provides fallback)
+const autoRoll = blacksmith.utils.getSettingSafely('my-module', 'autoRoll', false);
+
+// Safe settings setter
+const success = blacksmith.utils.setSettingSafely('my-module', 'autoRoll', true);
+if (success) {
+    console.log('Setting updated successfully');
+} else {
+    console.warn('Setting not yet registered, update skipped');
+}
+```
+
+**Perfect for Module Initialization:**
+```javascript
+Hooks.once('ready', async () => {
+    try {
+        // Safe settings access - won't crash if settings aren't ready
+        const featureEnabled = blacksmith.utils.getSettingSafely('my-module', 'featureEnabled', false);
+        const soundEnabled = blacksmith.utils.getSettingSafely('my-module', 'soundEnabled', true);
+        
+        if (featureEnabled) {
+            initializeFeature();
+        }
+        
+        if (soundEnabled) {
+            setupSoundEffects();
+        }
+        
+    } catch (error) {
+        console.error('Module initialization failed:', error);
+    }
+});
+```
+
 ### Using Global Utilities
 In your module, access these utilities through the Blacksmith API:
 
@@ -131,6 +191,33 @@ if (blacksmith) {
     );
 }
 ```
+
+### Dependency Benefits
+Since **Blacksmith is a dependency** on all Coffee Pub modules, these safe settings functions are **automatically available** to all of them without additional imports:
+
+```javascript
+// In any Coffee Pub module (no import needed!)
+Hooks.once('ready', async () => {
+    // Safe settings access - automatically available through dependency!
+    const featureEnabled = window.getSettingSafely('my-module', 'featureEnabled', false);
+    const soundEnabled = window.getSettingSafely('my-module', 'soundEnabled', true);
+    
+    if (featureEnabled) {
+        initializeFeature();
+    }
+    
+    if (soundEnabled) {
+        setupSoundEffects();
+    }
+});
+```
+
+**Why This Matters:**
+- **No startup crashes** across your entire module ecosystem
+- **Consistent behavior** - all modules use the same robust settings handling
+- **Easier maintenance** - fix settings issues in one place (Blacksmith)
+- **Professional quality** - users get a consistent, crash-free experience
+- **Automatic availability** - functions load with every dependent module
 
 ### Feature Types
 
