@@ -1,3 +1,4 @@
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class BlacksmithLayer extends CanvasLayer {
