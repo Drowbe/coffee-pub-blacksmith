@@ -63,7 +63,7 @@ export class SkillCheckDialog extends Application {
 
         // Get tools directly using _getToolProficiencies
         const tools = this._getToolProficiencies();
-        postConsoleAndNotification('Tools data being passed to template:', tools, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Tools data being passed to template:', tools, true, false);
 
         // Create a map of skill descriptions
         const skillDescriptions = {
@@ -145,7 +145,7 @@ export class SkillCheckDialog extends Application {
             userPreferences: this.userPreferences
         };
 
-        postConsoleAndNotification('Final template data:', templateData, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Final template data:', templateData, true, false);
         return templateData;
     }
 
@@ -156,7 +156,7 @@ export class SkillCheckDialog extends Application {
         
         if (selectedCount === 0) return [];
 
-        postConsoleAndNotification('Selected actors count:', selectedCount, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Selected actors count:', selectedCount, true, false);
         
         selectedActors.each((i, el) => {
             const tokenId = el.dataset.tokenId; // Updated to use new data attribute name
@@ -169,7 +169,7 @@ export class SkillCheckDialog extends Application {
 
             // Get tool proficiencies from the actor
             const tools = actor.items.filter(i => i.type === "tool");
-            postConsoleAndNotification(`Actor ${actor.name} tools:`, tools.map(t => t.name), false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Actor ${actor.name} tools:`, tools.map(t => t.name), true, false);
             tools.forEach(tool => {
                 // If we've already processed a tool with this name for this actor, skip it
                 if (processedTools.has(tool.name)) return;
@@ -194,7 +194,7 @@ export class SkillCheckDialog extends Application {
         const result = Array.from(toolProfs.entries())
             .map(([name, data]) => {
                 const isCommon = data.count === selectedCount;
-                postConsoleAndNotification(`Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`, "", true, false);
                 return {
                     name,
                     isCommon,
@@ -203,14 +203,14 @@ export class SkillCheckDialog extends Application {
             })
             .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
 
-        postConsoleAndNotification('Final tool list:', result, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Final tool list:', result, true, false);
         return result;
     }
 
     activateListeners(html) {
         super.activateListeners(html);
 
-        postConsoleAndNotification("BLACKSMITH | SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
 
         // If we have an initial skill selection, trigger a click on it
         if (this.selectedType === 'skill' && this.selectedValue) {
@@ -225,14 +225,14 @@ export class SkillCheckDialog extends Application {
         }
 
         // Debug: Check if classes are being applied
-        postConsoleAndNotification('Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length, true, false);
         html.find('.cpb-check-item[data-type="tool"]').each((i, el) => {
-            postConsoleAndNotification('Tool item:', {
+            postConsoleAndNotification(MODULE.NAME, 'Tool item:', {
                 name: el.querySelector('span').textContent,
                 hasUnavailableClass: el.classList.contains('cpb-tool-unavailable'),
                 dataCommon: el.dataset.common,
                 classList: Array.from(el.classList)
-            }, false, true, false);
+            }, true, false);
         });
 
         // Apply initial filter if there are selected tokens
@@ -431,7 +431,7 @@ export class SkillCheckDialog extends Application {
                     });
                 } else if (rollType === 'contested') {
                     // Contested roll: set up both challenger and defender skills
-                    postConsoleAndNotification('CPB | Setting up contested roll:', { value, defenderSkillAttr }, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, 'CPB | Setting up contested roll:', { value, defenderSkillAttr }, true, false);
                     
                     // Set the challenger skill selection
                     const quickRollMap = {
@@ -631,7 +631,7 @@ export class SkillCheckDialog extends Application {
                         description: customSkillData.description,
                         link: `@UUID[${uuid}]{${title}}`
                     };
-                    postConsoleAndNotification("Skill Info set:", this.skillInfo, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Skill Info set:", this.skillInfo, true, false);
                 }
             }
         });
@@ -923,7 +923,7 @@ export class SkillCheckDialog extends Application {
                 isCinematic: html.find('input[name="isCinematic"]').is(':checked')
             };
 
-            postConsoleAndNotification('CPB | Cinematic Mode flag set to:', messageData.isCinematic, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
 
             // Create the chat message
             ChatMessage.create({
@@ -1089,7 +1089,7 @@ export class SkillCheckDialog extends Application {
                             }
                         }
                     } catch (error) {
-                        postConsoleAndNotification('Error in tool selection', error, false, false, true);
+                        console.error('Error in tool selection', error);
                         ui.notifications.error('There was an error processing the tool selection.');
                     }
                 });
@@ -1465,16 +1465,16 @@ export class SkillCheckDialog extends Application {
                 }
             }
             
-            postConsoleAndNotification('CPB | Cinematic Display - Roll result:', result, false, true, false);
-            postConsoleAndNotification('CPB | Cinematic Display - d20Roll value:', d20Roll, false, true, false);
-            postConsoleAndNotification('CPB | Cinematic Display - Terms structure:', result?.terms, false, true, false);
-            postConsoleAndNotification('CPB | Cinematic Display - Dice structure:', result?.dice, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Roll result:', result, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - d20Roll value:', d20Roll, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Terms structure:', result?.terms, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Dice structure:', result?.dice, true, false);
             
             if (d20Roll === 20) {
-                postConsoleAndNotification('CPB | Cinematic Display - CRITICAL DETECTED!', "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - CRITICAL DETECTED!', "", true, false);
                 playSound(COFFEEPUB.SOUNDROLLCRITICAL, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else if (d20Roll === 1) {
-                postConsoleAndNotification('CPB | Cinematic Display - FUMBLE DETECTED!', "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - FUMBLE DETECTED!', "", true, false);
                 playSound(COFFEEPUB.SOUNDROLLFUMBLE, COFFEEPUB.SOUNDVOLUMENORMAL);
             } else {
                 playSound(COFFEEPUB.SOUNDROLLCOMPLETE, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -1635,10 +1635,10 @@ export class SkillCheckDialog extends Application {
                     // Attempt to use the modern dnd5e API for tool checks
                     if (typeof actor.rollToolCheck === 'function') {
                         try {
-                            postConsoleAndNotification(`Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", true, false);
                             roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
                         } catch (err) {
-                            postConsoleAndNotification(`COFFEEPUB | actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, `actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, true, false);
                             roll = undefined; // Ensure roll is undefined for the next check
                         }
                     }
@@ -1720,7 +1720,7 @@ export class SkillCheckDialog extends Application {
             }
 
         } catch (err) {
-            postConsoleAndNotification("Blacksmith | Error handling skill roll:", err, false, false, true);
+            console.error("Blacksmith | Error handling skill roll:", err);
             ui.notifications.error("An error occurred while processing the roll. See the console for details.");
         }
     }

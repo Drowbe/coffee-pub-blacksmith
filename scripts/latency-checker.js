@@ -16,24 +16,24 @@ export class LatencyChecker {
     }
 
     static async initialize() {
-        postConsoleAndNotification("BLACKSMITH | Latency: Initializing LatencyChecker", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Latency: Initializing LatencyChecker", "", true, false);
         
         try {
             // Check if latency is enabled in settings
             if (!game.settings.get(MODULE_ID, 'enableLatency')) {
-                postConsoleAndNotification("BLACKSMITH | Latency: Latency display is disabled in settings", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Latency: Latency display is disabled in settings", "", true, false);
                 return;
             }
 
             // Wait for socket to be ready
             if (!game.socket?.connected) {
-                postConsoleAndNotification("BLACKSMITH | Latency: Socket not connected!", "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Latency: Socket not connected!", "", false, true);
                 return;
             }
 
             // Register socket handlers using game.socket.on
             game.socket.on("module.coffee-pub-blacksmith", this.#handleSocketMessage.bind(this));
-            postConsoleAndNotification("BLACKSMITH | Latency: Socket handlers registered successfully", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Socket handlers registered successfully", "", true, false);
             
             // Only start operations after handlers are registered
             this.#initialized = true;
@@ -52,15 +52,15 @@ export class LatencyChecker {
             
             // Initial update
             this.#updateLatencyDisplay();
-            postConsoleAndNotification("BLACKSMITH | Latency: LatencyChecker initialized successfully", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Latency: LatencyChecker initialized successfully", "", true, false);
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Latency: Error initializing LatencyChecker:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error initializing LatencyChecker:", error, false, true);
         }
     }
 
     static startPeriodicCheck() {
         if (!this.#initialized) {
-            postConsoleAndNotification("BLACKSMITH | Latency: Cannot start periodic checks - LatencyChecker not initialized", "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Cannot start periodic checks - LatencyChecker not initialized", "", false, true);
             return;
         }
 
@@ -72,7 +72,7 @@ export class LatencyChecker {
         // Get interval from settings (convert from seconds to milliseconds)
         const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
 
-        postConsoleAndNotification(`BLACKSMITH | Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, true);
         
         // Initial update to show "--ms" for all players
         this.#updateLatencyDisplay();
@@ -112,7 +112,7 @@ export class LatencyChecker {
                 time: startTime
             });
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Latency: Error measuring latency:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error measuring latency:", error, false, true);
         }
     }
 
@@ -208,7 +208,7 @@ export class LatencyChecker {
                 }
             });
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Latency: Error updating latency display:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error updating latency display:", error, false, true);
         }
     }
 
@@ -243,7 +243,7 @@ export class LatencyChecker {
                 }
             }
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Latency: Error checking users:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error checking users:", error, false, true);
         }
     }
 

@@ -27,11 +27,11 @@ class CombatTimer {
         Hooks.once('ready', () => {
             try {
                 if (!game.settings.get(MODULE_ID, 'combatTimerEnabled')) {
-                    postConsoleAndNotification("Combat Timer is disabled", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Combat Timer is disabled", "", true, false);
                     return;
                 }
 
-                postConsoleAndNotification("Initializing Combat Timer", "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Initializing Combat Timer", "", false, false);
                 
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -64,7 +64,7 @@ class CombatTimer {
                     
                     // Check if this is the current combatant's token and it actually moved
                     if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
-                        postConsoleAndNotification("Combat Timer: Token movement detected, resuming timer", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Combat Timer: Token movement detected, resuming timer", "", true, false);
                         CombatTimer.state.showingMessage = false;
                         $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
@@ -81,7 +81,7 @@ class CombatTimer {
                     
                     // Check if this is the current combatant's action
                     if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
-                        postConsoleAndNotification("Combat Timer: Attack roll detected, resuming timer", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Combat Timer: Attack roll detected, resuming timer", "", true, false);
                         CombatTimer.state.showingMessage = false;
                         $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
@@ -98,7 +98,7 @@ class CombatTimer {
                     
                     // Check if this is the current combatant's action
                     if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
-                        postConsoleAndNotification("Combat Timer: Damage roll detected, resuming timer", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Combat Timer: Damage roll detected, resuming timer", "", true, false);
                         CombatTimer.state.showingMessage = false;
                         $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
@@ -122,7 +122,7 @@ class CombatTimer {
                                                   (user.id === game.user.id);
                     
                     if (isCurrentCombatantUser && CombatTimer.state.isPaused) {
-                        postConsoleAndNotification("Combat Timer: Token targeting detected, resuming timer", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Combat Timer: Token targeting detected, resuming timer", "", true, false);
                         CombatTimer.state.showingMessage = false;
                         $('.combat-timer-text').text('');
                         CombatTimer.resumeTimer();
@@ -130,19 +130,18 @@ class CombatTimer {
                 });
 
             } catch (error) {
-                postConsoleAndNotification(`Blacksmith | Could not initialize Combat Timer`, error, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, true);
             }
         });
 
         // Add socket ready check
         Hooks.once('blacksmith.socketReady', () => {
-            postConsoleAndNotification("Combat Timer | Socket is ready", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer | Socket is ready", "", true, false);
         });
     }
 
     static async syncState() {
         if (game.user.isGM) {
-            // postConsoleAndNotification("Combat Timer: GM syncing state to players", "", false, true, false);
             const socket = ThirdPartyManager.getSocket();
             await socket.executeForOthers("syncTimerState", this.state);
             this.updateUI();
@@ -209,7 +208,7 @@ class CombatTimer {
 
             this.updateUI();
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Combat Timer: Error rendering combat tracker", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error rendering combat tracker", error, false, true);
         }
     }
 
@@ -356,11 +355,11 @@ class CombatTimer {
     }
 
     static async _onUpdateCombat(combat, changed, options, userId) {
-        postConsoleAndNotification("Combat Timer: IN ONUPDATECOMBAT!!!", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Combat Timer: IN ONUPDATECOMBAT!!!", "", true, false);
         
         if (!game.user.isGM) return;
         
-        postConsoleAndNotification("Combat Timer: _onUpdateCombat called with:", { 
+        postConsoleAndNotification(MODULE.NAME, "Combat Timer: _onUpdateCombat called with:", { 
             round: combat.round,
             turn: combat.turn,
             changed,
@@ -374,7 +373,7 @@ class CombatTimer {
 
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
-            postConsoleAndNotification("Combat Timer: Skipping update while ending planning timer", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Skipping update while ending planning timer", "", true, false);
             return;
         }
 
@@ -382,11 +381,11 @@ class CombatTimer {
         const isRoundChanged = ("round" in changed) || (combat.round > 0 && combat.round !== this._lastProcessedRound);
         
         if (isRoundChanged) {
-            postConsoleAndNotification("Combat Timer: Round change detected from " + this._lastProcessedRound + " to " + combat.round, "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Round change detected from " + this._lastProcessedRound + " to " + combat.round, "", true, false);
             
             // Record the end of the last turn of the previous round
             if (combat.combatant) {
-                postConsoleAndNotification("Combat Timer: Recording end of last turn for round change:", combat.combatant.name, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Recording end of last turn for round change:", combat.combatant.name, true, false);
                 CombatStats.recordTurnEnd(combat.combatant);
             }
             
@@ -407,11 +406,11 @@ class CombatTimer {
             this.state.isPaused = !autoStart;
             
             if (combat.turn === 0) {
-                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Planning phase - forcing pause", "", true, false);
                 this.state.isPaused = true;
                 this.pauseTimer();
             } else if (autoStart) {
-                postConsoleAndNotification("Combat Timer: Auto-starting timer for new round", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Auto-starting timer for new round", "", true, false);
                 this.resumeTimer();
                 
                 // Play start sound if configured
@@ -420,7 +419,7 @@ class CombatTimer {
                     playSound(startSound, this.getTimerVolume());
                 }
             } else {
-                postConsoleAndNotification("Combat Timer: Keeping timer paused for new round", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Keeping timer paused for new round", "", true, false);
                 this.pauseTimer();
             }
             return;  // Don't process other changes on round change
@@ -432,13 +431,13 @@ class CombatTimer {
             const previousTurn = combat.turn - 1;
             const previousCombatant = combat.turns?.[previousTurn];
             if (previousCombatant && previousTurn >= 0) {
-                postConsoleAndNotification("Combat Timer: Recording end of previous turn for:", previousCombatant.name, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Recording end of previous turn for:", previousCombatant.name, true, false);
                 CombatStats.recordTurnEnd(previousCombatant);
             }
 
             // Check if this is turn 0 (planning phase)
             if (combat.turn === 0) {
-                postConsoleAndNotification("Combat Timer: Planning phase - forcing pause", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Planning phase - forcing pause", "", true, false);
                 this.resetTimer();
                 this.state.isPaused = true;
                 this.pauseTimer();
@@ -446,11 +445,11 @@ class CombatTimer {
             }
             
             // For all other turns
-            postConsoleAndNotification("Combat Timer: Regular turn change detected", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Regular turn change detected", "", true, false);
             
             // Check auto-start setting
             const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
-            postConsoleAndNotification("Combat Timer: Auto-start setting:", autoStart, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Auto-start setting:", autoStart, true, false);
             
             // Reset timer first
             this.resetTimer();
@@ -460,7 +459,7 @@ class CombatTimer {
             
             // Start or pause based on setting
             if (autoStart) {
-                postConsoleAndNotification("Combat Timer: Auto-starting timer for new turn", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Auto-starting timer for new turn", "", true, false);
                 this.resumeTimer();
                 
                 // Play start sound if configured
@@ -469,7 +468,7 @@ class CombatTimer {
                     playSound(startSound, this.getTimerVolume());
                 }
             } else {
-                postConsoleAndNotification("Combat Timer: Keeping timer paused for new turn", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Keeping timer paused for new turn", "", true, false);
                 this.pauseTimer();
             }
         }
@@ -481,7 +480,7 @@ class CombatTimer {
 
     static startTimer(duration = null) {
         try {
-            postConsoleAndNotification("Combat Timer: startTimer called with duration:", duration, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: startTimer called with duration:", duration, true, false);
             
             // If no duration provided, get from settings and update DEFAULTS
             if (duration === null) {
@@ -492,11 +491,11 @@ class CombatTimer {
             this.state.remaining = duration;
             this.state.duration = duration;  // Store duration in state
             
-            postConsoleAndNotification("Combat Timer: startTimer state before interval:", { 
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: startTimer state before interval:", { 
                 isPaused: this.state.isPaused, 
                 remaining: this.state.remaining,
                 duration: this.state.duration
-            }, false, true, false);
+            }, true, false);
             
             if (this.timer) clearInterval(this.timer);
             
@@ -505,7 +504,7 @@ class CombatTimer {
             
             // Only start interval if not paused
             if (!this.state.isPaused) {
-                postConsoleAndNotification("Combat Timer: Starting interval as timer is not paused", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Starting interval as timer is not paused", "", true, false);
                 this.timer = setInterval(() => this.tick(), 1000);
                 
                 // Send start message if GM and setting enabled
@@ -523,7 +522,7 @@ class CombatTimer {
                     remaining: this.state.remaining
                 });
             } else {
-                postConsoleAndNotification("Combat Timer: Not starting interval as timer is paused", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer: Not starting interval as timer is paused", "", true, false);
                 // Emit paused state
                 Hooks.callAll('combatTimerStateChange', {
                     isPaused: true,
@@ -532,12 +531,12 @@ class CombatTimer {
                 });
             }
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Combat Timer: Error in startTimer", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error in startTimer", error, false, true);
         }
     }
 
     static pauseTimer() {
-        postConsoleAndNotification("Combat Timer: Pausing timer", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Combat Timer: Pausing timer", "", true, false);
         this.state.isPaused = true;
         this.state.showingMessage = false;
 
@@ -575,11 +574,11 @@ class CombatTimer {
     }
 
     static resumeTimer() {
-        postConsoleAndNotification("Combat Timer | Resuming timer", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Combat Timer | Resuming timer", "", true, false);
         
         // If we're in planning phase (turn 0), end the planning timer gracefully
         if (game.combat?.turn === 0 && !this._endingPlanningTimer) {
-            postConsoleAndNotification("Combat Timer: Ending planning timer gracefully as combat timer is being resumed", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Ending planning timer gracefully as combat timer is being resumed", "", true, false);
             // Set flag to prevent recursion
             this._endingPlanningTimer = true;
             
@@ -716,7 +715,6 @@ class CombatTimer {
 
     static updateUI() {
         try {
-            // postConsoleAndNotification("Combat Timer: Updating UI with state", this.state, false, true, false);
             // Update progress bar using state duration
             const percentage = (this.state.remaining / this.state.duration) * 100;
             const bar = $('.combat-timer-bar');
@@ -753,7 +751,6 @@ class CombatTimer {
             
             // Update timer text
             const timerText = $('.combat-timer-text');
-            // postConsoleAndNotification("Combat Timer: Setting timer text, isPaused:", this.state.isPaused, false, true, false);
             if (this.state.isPaused) {
                 timerText.text('COMBAT TIMER PAUSED');
             } else if (this.state.remaining <= 0) {
@@ -767,7 +764,7 @@ class CombatTimer {
             }
 
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Combat Timer: Error updating UI", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error updating UI", error, false, true);
         }
     }
 
@@ -856,7 +853,7 @@ class CombatTimer {
     }
 
     static resetTimer() {
-        postConsoleAndNotification("[TIMER_DEBUG] resetTimer called - Current state:", { 
+        postConsoleAndNotification(MODULE.NAME, "[TIMER_DEBUG] resetTimer called - Current state:", { 
             isPaused: this.state.isPaused, 
             remaining: this.state.remaining,
             timer: this.timer ? "active" : "null"
@@ -881,11 +878,11 @@ class CombatTimer {
             });
         }
         
-        postConsoleAndNotification("[TIMER_DEBUG] About to call startTimer", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "[TIMER_DEBUG] About to call startTimer", "", true, false);
         // Start fresh timer
         this.startTimer();
 
-        postConsoleAndNotification("[TIMER_DEBUG] resetTimer completed - New state:", { 
+        postConsoleAndNotification(MODULE.NAME, "[TIMER_DEBUG] resetTimer completed - New state:", { 
             isPaused: this.state.isPaused, 
             remaining: this.state.remaining,
             timer: this.timer ? "active" : "null"
@@ -910,14 +907,13 @@ class CombatTimer {
 
     // Add logState method for debugging
     static logState(context = "") {
-        postConsoleAndNotification(`Combat Timer: State [${context}]`, this.state, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Combat Timer: State [${context}]`, this.state, true, false);
     }
 
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
         if (!game?.user) return;
         
-        // postConsoleAndNotification("Combat Timer: Received timer sync:", state, false, true, false);
         if (!game.user.isGM) {
             CombatTimer.state = foundry.utils.deepClone(state);
             CombatTimer.updateUI();

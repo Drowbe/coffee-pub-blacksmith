@@ -75,7 +75,7 @@ class CombatStats {
         // Only initialize if this is the GM and stats tracking is enabled
         if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
 
-        postConsoleAndNotification("Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE_ID, 'trackCombatStats', false), false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE_ID, 'trackCombatStats', false), true, false);
 
         // Check for existing stats in combat flags
         const existingStats = game.combat?.getFlag(MODULE_ID, 'stats');
@@ -88,7 +88,7 @@ class CombatStats {
         this.currentStats.turnStartTimes = new Map();
         this.currentStats.turnEndTimes = new Map();
 
-        postConsoleAndNotification('Combat Stats:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats:', {
             currentStats: this.currentStats,
             notableMoments: this.currentStats.notableMoments,
             existingStats: existingStats
@@ -106,7 +106,7 @@ class CombatStats {
         if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
 
-        postConsoleAndNotification('Combat Stats - Combat Update:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Combat Update:', {
             changed,
             currentStats: this.currentStats,
             combatStats: this.combatStats
@@ -117,7 +117,7 @@ class CombatStats {
 
         // Track round changes - only trigger at the end of a round
         if (changed.round && changed.round > combat.previous.round) {
-            postConsoleAndNotification('Combat Stats - Round Change Detected:', {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Round Change Detected:', {
                 from: combat.previous.round,
                 to: changed.round,
                 currentStats: this.currentStats
@@ -151,7 +151,7 @@ class CombatStats {
             // Save the stats to combat flags
             game.combat.setFlag(MODULE_ID, 'stats', this.currentStats);
 
-            postConsoleAndNotification("Round Started | Combat:", {
+            postConsoleAndNotification(MODULE.NAME, "Round Started | Combat:", {
                 round: {
                     number: combat.round,
                     startTime: this.currentStats.roundStartTime,
@@ -200,7 +200,7 @@ class CombatStats {
                 playSound(soundId, volume);
             }
         } catch (error) {
-            postConsoleAndNotification('Blacksmith | Error announcing new round', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error announcing new round', error, false, true);
         }
     }
 
@@ -226,7 +226,7 @@ class CombatStats {
         // Update timing stats
         this.currentStats.turnStartTime = Date.now();
 
-        postConsoleAndNotification("Turn Changed | Stats:", {
+        postConsoleAndNotification(MODULE.NAME, "Turn Changed | Stats:", {
             turn: {
                 current: currentCombatant?.name,
                 previous: previousCombatant?.name,
@@ -260,7 +260,7 @@ class CombatStats {
             this.currentStats.partyStats.averageTurnTime = 
                 turnTimes.reduce((a, b) => a + b, 0) / turnTimes.length;
 
-            postConsoleAndNotification('Average Turn Time Update:', {
+            postConsoleAndNotification(MODULE.NAME, 'Average Turn Time Update:', {
                 turnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
             }, false, true, false);
@@ -272,7 +272,7 @@ class CombatStats {
 
         const combatDuration = Date.now() - this.combatStats.startTime;
         
-        postConsoleAndNotification("Combat Ended | Stats:", {
+        postConsoleAndNotification(MODULE.NAME, "Combat Ended | Stats:", {
             combat: {
                 duration: combatDuration,
                 rounds: combat.round,
@@ -525,7 +525,7 @@ class CombatStats {
             const actorId = uuid.split('.')[1];
             return game.actors.get(actorId);
         } catch (error) {
-            postConsoleAndNotification('Blacksmith | Combat Stats - Error getting actor from UUID', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error getting actor from UUID', error, false, true);
             return null;
         }
     }
@@ -559,11 +559,11 @@ class CombatStats {
     // Helper method to calculate MVP
     static async _calculateMVP(playerCharacters) {
         if (!playerCharacters?.length) {
-            postConsoleAndNotification('MVP - No Players:', { message: 'No player characters for MVP calculation' }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'MVP - No Players:', { message: 'No player characters for MVP calculation' }, true, false);
             return null;
         }
 
-        postConsoleAndNotification('MVP - Starting Calculation:', { playerCharacters }, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'MVP - Starting Calculation:', { playerCharacters }, true, false);
 
         // Process each character asynchronously
         const mvpCandidates = await Promise.all(playerCharacters.map(async (detail) => {
@@ -575,7 +575,7 @@ class CombatStats {
             const actor = await this._getActorFromUuid(detail.uuid);
             if (!actor) return null;
 
-            postConsoleAndNotification('MVP - Processing Character:', {
+            postConsoleAndNotification(MODULE.NAME, 'MVP - Processing Character:', {
                 name: actor.name,
                 score,
                 stats: {
@@ -588,7 +588,7 @@ class CombatStats {
             // Generate MVP description
             const description = MVPDescriptionGenerator.generateDescription(detail);
 
-            postConsoleAndNotification('MVP - Generated Description:', {
+            postConsoleAndNotification(MODULE.NAME, 'MVP - Generated Description:', {
                 name: actor.name,
                 description,
                 score
@@ -608,7 +608,7 @@ class CombatStats {
         const mvp = validCandidates.reduce((max, current) => 
             (!max || current.score > max.score) ? current : max, null);
 
-        postConsoleAndNotification('MVP - Final Selection:', {
+        postConsoleAndNotification(MODULE.NAME, 'MVP - Final Selection:', {
             selectedMVP: mvp?.name,
             score: mvp?.score,
             description: mvp?.description,
@@ -639,7 +639,7 @@ class CombatStats {
             return input.hasPlayerOwner || input.type === 'character';
         }
 
-        postConsoleAndNotification('Blacksmith | Timer Debug - Invalid input for _isPlayerCharacter', input, false, false, false);
+        postConsoleAndNotification(MODULE.NAME, 'Timer Debug - Invalid input for _isPlayerCharacter', input, false, false);
         return false;
     }
 
@@ -668,11 +668,11 @@ class CombatStats {
         // Only process damage rolls if this is the GM
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) {
-            postConsoleAndNotification('Combat Stats - Skipping damage roll (combat not started)', "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
             return;
         }
 
-        postConsoleAndNotification('Combat Stats - Processing Damage Roll (FULL):', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Processing Damage Roll (FULL):', {
             roll,
             rollJSON: roll[0]?.toJSON(),
             terms: roll[0]?.terms,
@@ -689,7 +689,7 @@ class CombatStats {
 
         const actor = item.actor;
         if (!actor) {
-            postConsoleAndNotification('Combat Stats - Skipping damage roll (no actor)', "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no actor)', "", true, false);
             return;
         }
         
@@ -754,7 +754,7 @@ class CombatStats {
         // Get the amount - roll is an array of rolls, get the first one's total
         const amount = roll[0]?.total || 0;
 
-        postConsoleAndNotification('Combat Stats - Damage Roll Details:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll Details:', {
             actor: actor.name,
             isHealing,
             amount,
@@ -827,7 +827,7 @@ class CombatStats {
             attackerStats.damage.dealt += amount;
             attackerCombatStats.damage.dealt += amount;
 
-            postConsoleAndNotification('Combat Stats - Updated Damage Stats:', {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Updated Damage Stats:', {
                 actor: actor.name,
                 newDamageDealt: attackerStats.damage.dealt,
                 amount,
@@ -882,7 +882,7 @@ class CombatStats {
             }
         }
 
-        postConsoleAndNotification(isHealing ? "Healing Roll Processed | Combat:" : "Damage Roll Processed | Combat:", {
+        postConsoleAndNotification(MODULE.NAME, isHealing ? "Healing Roll Processed | Combat:" : "Damage Roll Processed | Combat:", {
             actor: actor.name,
             roll: {
                 total: amount,
@@ -899,7 +899,7 @@ class CombatStats {
 
         if (config.critical) {
             this._lastRollWasCritical = true;
-            postConsoleAndNotification('Combat Stats - Critical hit detected', "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Critical hit detected', "", true, false);
         }
     }
 
@@ -1034,7 +1034,7 @@ class CombatStats {
         // Store the critical hit state for damage roll
         this._lastRollWasCritical = isCritical;
 
-        postConsoleAndNotification('Combat Stats - Attack Roll processed', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll processed', {
             actor: actor.name,
             roll: {
                 total: attackRoll,
@@ -1062,33 +1062,33 @@ class CombatStats {
         Hooks.on('endCombat', this._onCombatEnd.bind(this));
 
         // Register damage tracking hooks
-        postConsoleAndNotification('Combat Stats - Registering attack and damage hooks', "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Registering attack and damage hooks', "", true, false);
         
         // Attack roll hooks
         Hooks.on('dnd5e.preRollAttack', (item, config) => {
-            postConsoleAndNotification('Combat Stats - Pre-Attack Roll detected:', { item, config }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Attack Roll detected:', { item, config }, true, false);
         });
         
         Hooks.on('dnd5e.rollAttack', (item, roll) => {
-            postConsoleAndNotification('Combat Stats - Attack Roll detected:', { item, roll }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', { item, roll }, true, false);
             this._onAttackRoll(item, roll);
         });
 
         // Damage roll hooks
         Hooks.on('dnd5e.preRollDamage', (item, config) => {
-            postConsoleAndNotification('Combat Stats - Pre-Damage Roll detected:', { item, config }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Damage Roll detected:', { item, config }, true, false);
             this._onPreDamageRoll(item, config);
         });
         
         Hooks.on('dnd5e.rollDamage', (item, roll) => {
-            postConsoleAndNotification('Combat Stats - Damage Roll detected:', { item, roll }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', { item, roll }, true, false);
             this._onDamageRoll(item, roll);
         });
 
         // Additional debug hooks
         Hooks.on('createChatMessage', (message) => {
             if (message.isRoll) {
-                postConsoleAndNotification('Combat Stats - Roll Chat Message:', {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Roll Chat Message:', {
                     flavor: message.flavor,
                     type: message.type,
                     roll: message.roll
@@ -1096,14 +1096,14 @@ class CombatStats {
             }
         });
 
-        postConsoleAndNotification('Combat Stats - Hooks registered', "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Hooks registered', "", true, false);
     }
 
 
     static recordHit(hitData) {
         if (!game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        postConsoleAndNotification('Combat Stats - Recording hit:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Recording hit:', {
             hitData,
             currentStats: this.currentStats,
             combatStats: this.combatStats,
@@ -1137,7 +1137,7 @@ class CombatStats {
             timestamp: Date.now()
         };
 
-        postConsoleAndNotification('Combat Stats - Processed hit data:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Processed hit data:', {
             original: hitData,
             processed: processedHitData,
             currentHits: this.currentStats.hits.length
@@ -1167,7 +1167,7 @@ class CombatStats {
             this.combatStats.participantStats[hitData.targetId].damage.taken += processedHitData.amount;
         }
 
-        postConsoleAndNotification('Combat Stats - Stats after hit:', {
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Stats after hit:', {
             currentStats: {
                 hits: this.currentStats.hits.length,
                 lastHit: this.currentStats.hits[this.currentStats.hits.length - 1]
@@ -1189,14 +1189,14 @@ class CombatStats {
 
     // Helper method for debug logging
     static _debugLog(title, data) {
-        postConsoleAndNotification(`${title} | Stats Debug:`, data, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `${title} | Stats Debug:`, data, true, false);
     }
 
     // Combat flow tracking methods
     static _onCombatStart(combat) {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
 
-        postConsoleAndNotification("Combat Started | Stats:", {
+        postConsoleAndNotification(MODULE.NAME, "Combat Started | Stats:", {
             combat: {
                 id: combat.id,
                 round: combat.round,
@@ -1222,13 +1222,13 @@ class CombatStats {
         if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        postConsoleAndNotification('Round End - Starting MVP calculation', "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Round End - Starting MVP calculation', "", true, false);
 
         // Record the last turn's duration using the last combatant in the turns array
         const lastTurn = game.combat.turns?.length - 1;
         const lastCombatant = game.combat.turns?.[lastTurn];
         if (lastCombatant) {
-            postConsoleAndNotification('Recording last turn of round:', {
+            postConsoleAndNotification(MODULE.NAME, 'Recording last turn of round:', {
                 combatant: lastCombatant.name,
                 id: lastCombatant.id,
                 turn: lastTurn
@@ -1252,7 +1252,7 @@ class CombatStats {
                 uuid: `Actor.${id}`  // Create UUID for the actor
             }));
 
-        postConsoleAndNotification('Round End - Player Stats for MVP:', playerStats, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Round End - Player Stats for MVP:', playerStats, true, false);
 
         // Calculate MVP only if there are player stats
         const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : {
@@ -1264,7 +1264,7 @@ class CombatStats {
             })
         };
 
-        postConsoleAndNotification('Round End - MVP Calculated:', mvp, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Round End - MVP Calculated:', mvp, true, false);
 
         // Calculate total round duration (real wall-clock time)
         const roundEndTimestamp = Date.now();
@@ -1314,12 +1314,12 @@ class CombatStats {
             this.currentStats.activePlanningTime = 0;
 
         } catch (error) {
-            postConsoleAndNotification('Blacksmith | Round End - Error', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Round End - Error', error, false, true);
         }
     }
 
     static async _prepareTemplateData(participantStats) {
-        postConsoleAndNotification(`Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
+        postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
             hasParticipantStats: !!this.currentStats.participantStats,
             participantCount: this.currentStats.participantStats ? Object.keys(this.currentStats.participantStats).length : 0,
             rawStats: this.currentStats.participantStats,
@@ -1341,7 +1341,7 @@ class CombatStats {
                 // Get this combatant's specific turn duration
                 const turnDuration = this.currentStats.partyStats.turnTimes[id] || 0;
 
-                postConsoleAndNotification(`Turn Duration for ${turn.actor.name}:`, {
+                postConsoleAndNotification(MODULE.NAME, `Turn Duration for ${turn.actor.name}:`, {
                     turnDuration,
                     combatantId: id,
                     actorId: turn.actor.id,
@@ -1451,7 +1451,7 @@ class CombatStats {
         // Calculate total party time by summing all turn durations
         const totalPartyTime = Object.values(this.currentStats.partyStats.turnTimes).reduce((sum, duration) => sum + duration, 0);
 
-        postConsoleAndNotification('Planning Time Debug:', {
+        postConsoleAndNotification(MODULE.NAME, 'Planning Time Debug:', {
             activePlanningTime: this.currentStats.activePlanningTime,
             totalPartyTime: totalPartyTime,
             formattedTime: this._formatTime(this.currentStats.activePlanningTime)
@@ -1495,23 +1495,23 @@ class CombatStats {
                 .some(moment => moment.amount > 0 || moment.duration > 0)
         };
 
-        postConsoleAndNotification('Notable Moments Debug:', {
+        postConsoleAndNotification(MODULE.NAME, 'Notable Moments Debug:', {
             notableMoments: this.currentStats.notableMoments
         }, false, true, false);
 
-        postConsoleAndNotification('Template Settings:', {
+        postConsoleAndNotification(MODULE.NAME, 'Template Settings:', {
             settings: templateData.settings
         }, false, true, false);
 
-        postConsoleAndNotification('Round Duration Debug - Template Prep:', {
+        postConsoleAndNotification(MODULE.NAME, 'Round Duration Debug - Template Prep:', {
             roundStartTime: this.currentStats.roundStartTime,
             roundEndTime: Date.now(),
             duration: this.currentStats.roundDuration
         }, false, true, false);
 
-        postConsoleAndNotification(`Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
+        postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
             templateData
-        }, false, true, false);
+        }, true, false);
 
         return templateData;
     }
@@ -1523,14 +1523,14 @@ class CombatStats {
 
     // Add new method to track notable moments
     static _updateNotableMoments(type, data) {
-        postConsoleAndNotification('Update Notable Moments:', {
+        postConsoleAndNotification(MODULE.NAME, 'Update Notable Moments:', {
             type,
             data,
             currentMoments: this.currentStats.notableMoments
         }, false, true, false);
 
         if (!this.currentStats?.notableMoments) {
-            postConsoleAndNotification('Blacksmith | Notable Moments structure not initialized', "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'Notable Moments structure not initialized', "", false, false);
             return;
         }
         
@@ -1721,7 +1721,7 @@ class MVPDescriptionGenerator {
         // Calculate derived stats
         const stats = this.calculateStats(rawStats);
         
-        postConsoleAndNotification("MVP Description - Processing:", {
+        postConsoleAndNotification(MODULE.NAME, "MVP Description - Processing:", {
             rawStats,
             calculatedStats: stats
         }, false, true, false);
@@ -1735,7 +1735,7 @@ class MVPDescriptionGenerator {
         // Format the description with actual values
         const description = this.formatDescription(template, stats);
         
-        postConsoleAndNotification("MVP Description - Result:", {
+        postConsoleAndNotification(MODULE.NAME, "MVP Description - Result:", {
             pattern,
             description
         }, false, true, false);

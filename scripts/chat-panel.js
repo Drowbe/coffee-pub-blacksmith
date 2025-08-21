@@ -102,7 +102,7 @@ class ChatPanel {
                     currentMovementData = movementTypes[currentMovement] || movementTypes['normal-movement'];
                 }
             } catch (err) {
-                postConsoleAndNotification('Blacksmith | Movement type setting not registered yet, using default', "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, 'Movement type setting not registered yet, using default', "", false, false);
             }
 
             // Prepare template data
@@ -115,7 +115,7 @@ class ChatPanel {
                     isLeader = game.user.id === leaderData?.userId;
                 }
             } catch (err) {
-                postConsoleAndNotification('Blacksmith | Party leader setting not registered yet, using default', "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, 'Party leader setting not registered yet, using default', "", false, false);
             }
 
             const templateData = {
@@ -234,7 +234,7 @@ class ChatPanel {
             });
             
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Chat Panel: Error rendering panel:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error rendering panel:", error, false, true);
         }
     }
 
@@ -426,7 +426,7 @@ class ChatPanel {
         } catch (error) {
             // If we can't access the setting, assume no leader
             leaderData = { userId: '', actorId: '' };
-            postConsoleAndNotification('Blacksmith | Chat Panel | Could not load leader data:', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Could not load leader data:', error, false, true);
         }
         
 
@@ -460,7 +460,7 @@ class ChatPanel {
             }
     
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Chat Panel: Error loading timer:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error loading timer:", error, false, true);
             this.sessionEndTime = null;
             this.sessionStartTime = null;
         }
@@ -582,7 +582,7 @@ class ChatPanel {
             this.previousRemainingMinutes = remainingMinutes;
 
         } catch (error) {
-            postConsoleAndNotification("Error in timer warning check", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Error in timer warning check", error, false, true);
             // If settings aren't registered yet, just use default styling
             timerInfo.classList.remove('warning', 'expired');
             timerInfo.style.setProperty('--progress-color', '#c1bfb5');
@@ -762,7 +762,7 @@ class ChatPanel {
             if (success) {
                 ChatPanel.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification('Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, true);
             }
         } else {
             ChatPanel.updateLeaderDisplay();
@@ -792,7 +792,7 @@ class ChatPanel {
                 });
                 this.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification('Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, true);
             }
         }
     }
@@ -830,10 +830,10 @@ class ChatPanel {
             const actor = game.actors.get(leaderData.actorId);
             
             if (!user || !actor) {
-                postConsoleAndNotification('BLACKSMITH | CHAT | Failed to find user or actor:', { user, actor }, false, false, true);
-                postConsoleAndNotification("Chat Panel | Error", 
+                postConsoleAndNotification(MODULE.NAME, 'CHAT | Failed to find user or actor:', { user, actor }, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
                     `Failed to set leader: User or character not found`, 
-                    false, true, false
+                    true, false
                 );
                 return false;
             }
@@ -843,7 +843,7 @@ class ChatPanel {
             // Store in settings
             const success = await setSettingSafely(MODULE_ID, 'partyLeader', leaderData);
             if (!success) {
-                postConsoleAndNotification('Chat Panel | Error', 'Settings not yet registered, cannot set leader', false, true, false);
+                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Error', 'Settings not yet registered, cannot set leader', true, false);
                 return false;
             }
 
@@ -902,10 +902,10 @@ class ChatPanel {
 
             return true;
         } catch (error) {
-            postConsoleAndNotification('BLACKSMITH | CHAT | Error in setNewLeader:', error, false, false, true);
-            postConsoleAndNotification("Chat Panel | Error", 
+            postConsoleAndNotification(MODULE.NAME, 'CHAT | Error in setNewLeader:', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
                 `Failed to set leader: ${error.message}`, 
-                false, true, false
+                true, false
             );
             return false;
         }

@@ -1,6 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 // ================================================================== 
@@ -15,13 +16,13 @@ export class TokenHandler {
     static hookId = null; // Store the hook ID for later unregistration
 
     static async updateSkillCheckFromToken(id, token, item = null) {
-        postConsoleAndNotification("Updating skill check", `id: ${id}, token: ${token?.name}, item: ${item?.name}`, false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "Updating skill check", `id: ${id}, token: ${token?.name}, item: ${item?.name}`, true, false);
         
         // Handle item drops
         if (item) {
             const data = this.getItemData(item);
             if (!data) {
-                postConsoleAndNotification("No data returned from getItemData", "", false, true, false, MODULE_TITLE);
+                postConsoleAndNotification(MODULE.NAME, "No data returned from getItemData", "", true, false);
                 return;
             }
             await this.updateFormFromItemData(id, data);
@@ -31,7 +32,7 @@ export class TokenHandler {
         // Handle token drops (existing functionality)
         const data = this.getTokenData(token);
         if (!data) {
-            postConsoleAndNotification("No data returned from getTokenData", "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "No data returned from getTokenData", "", true, false);
             return;
         }
 
@@ -54,12 +55,12 @@ export class TokenHandler {
                 skillSelect: !!skillSelect,
                 diceSelect: !!diceSelect
             };
-            postConsoleAndNotification("Missing form elements", JSON.stringify(missingElements), false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "Missing form elements", JSON.stringify(missingElements), true, false);
             return;
         }
 
         // Update form based on actor type
-        postConsoleAndNotification("Actor type check", `Actor Type: ${data.actor.type}, Disposition: ${token.document.disposition}, isCharacter: ${data.isCharacter}`, false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "Actor type check", `Actor Type: ${data.actor.type}, Disposition: ${token.document.disposition}, isCharacter: ${data.isCharacter}`, true, false);
 
         // Set type based on disposition
         if (data.actor.type === 'npc') {
@@ -142,11 +143,11 @@ export class TokenHandler {
         skillSelect.value = selectedSkill;
         diceSelect.value = '1d20';
 
-        postConsoleAndNotification("Form updated successfully", `Token: ${token.name}`, false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "Form updated successfully", `Token: ${token.name}`, true, false);
     }
 
     static registerTokenHooks(workspaceId) {
-        postConsoleAndNotification("Registering token hooks", `workspaceId: ${workspaceId}`, false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "Registering token hooks", `workspaceId: ${workspaceId}`, true, false);
 
         // Unregister any existing hooks first
         this.unregisterTokenHooks();
@@ -155,16 +156,16 @@ export class TokenHandler {
         if (workspaceId === 'assistant' || workspaceId === 'character') {
             // Wait for canvas to be ready
             if (!canvas?.ready) {
-                postConsoleAndNotification(`Canvas not ready, skipping initial token check`, "", false, true, false, MODULE_TITLE);
+                postConsoleAndNotification(MODULE.NAME, `Canvas not ready, skipping initial token check`, "", true, false);
                 return;
             }
 
             const selectedTokens = canvas.tokens?.controlled || [];
-            postConsoleAndNotification(`Checking for selected tokens: ${selectedTokens.length} found`, "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, `Checking for selected tokens: ${selectedTokens.length} found`, "", true, false);
             
             if (selectedTokens.length > 0) {
                 const selectedToken = selectedTokens[0];
-                postConsoleAndNotification(`Found selected token: ${selectedToken.name}`, "", false, true, false, MODULE_TITLE);
+                postConsoleAndNotification(MODULE.NAME, `Found selected token: ${selectedToken.name}`, "", true, false);
                 
                 // Use setTimeout to ensure DOM is ready
                 setTimeout(() => {
@@ -182,13 +183,13 @@ export class TokenHandler {
         this.hookId = Hooks.on('controlToken', (token, controlled) => {
             if (!controlled) return;
             
-            postConsoleAndNotification("Token control hook fired", `workspaceId: ${workspaceIdClosure}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "Token control hook fired", `workspaceId: ${workspaceIdClosure}, token: ${token?.name}`, true, false);
             
             if (workspaceIdClosure === 'assistant') {
-                postConsoleAndNotification("Token controlled, updating skill check form", "", false, true, false, MODULE_TITLE);
+                postConsoleAndNotification(MODULE.NAME, "Token controlled, updating skill check form", "", true, false);
                 this.updateSkillCheckFromToken(workspaceIdClosure, token);
             } else if (workspaceIdClosure === 'character') {
-                postConsoleAndNotification("Token controlled, updating character panel", "", false, true, false, MODULE_TITLE);
+                postConsoleAndNotification(MODULE.NAME, "Token controlled, updating character panel", "", true, false);
                 this.updateCharacterBiography(workspaceIdClosure, token);
             }
         });
@@ -198,24 +199,24 @@ export class TokenHandler {
 
     static unregisterTokenHooks() {
         if (this.hookId !== null) {
-            postConsoleAndNotification("Unregistering token hooks", "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "Unregistering token hooks", "", true, false);
             Hooks.off('controlToken', this.hookId);
             this.hookId = null;
         }
     }
 
     static async updateCharacterBiography(id, token) {
-        postConsoleAndNotification("CHARACTER | Updating character biography", `id: ${id}, token: ${token?.name}`, false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "CHARACTER | Updating character biography", `id: ${id}, token: ${token?.name}`, true, false);
         
         if (!token?.actor) {
-            postConsoleAndNotification("CHARACTER | No actor data available", "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "CHARACTER | No actor data available", "", true, false);
             return;
         }
 
         // Get complete token data using our existing method
         const tokenData = this.getTokenData(token);
         if (!tokenData) {
-            postConsoleAndNotification("CHARACTER | Failed to get token data", "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "CHARACTER | Failed to get token data", "", true, false);
             return;
         }
 
@@ -279,15 +280,15 @@ export class TokenHandler {
                         // Replace the entire element with the new content
                         element.replaceWith(temp.firstElementChild);
                     } catch (error) {
-                        postConsoleAndNotification(`Error rendering section ${section.id}:`, error, false, false, true);
+                        postConsoleAndNotification(MODULE.NAME, `Error rendering section ${section.id}:`, error, false, true);
                     }
                 }
             }
         } catch (error) {
-            postConsoleAndNotification("CHARACTER | Error updating sections:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "CHARACTER | Error updating sections:", error, false, true);
         }
 
-        postConsoleAndNotification("CHARACTER | Panel updated successfully", "", false, true, false, MODULE_TITLE);
+        postConsoleAndNotification(MODULE.NAME, "CHARACTER | Panel updated successfully", "", true, false);
     }
 
     static getTokenData(token) {
@@ -522,7 +523,7 @@ export class TokenHandler {
         const diceSelect = document.querySelector(`#optionDiceType-${id}`);
         
         if (!typeSelect || !nameInput || !detailsInput || !biographyInput || !skillCheck || !skillSelect || !diceSelect) {
-            postConsoleAndNotification("Missing form elements for item update", "", false, true, false, MODULE_TITLE);
+            postConsoleAndNotification(MODULE.NAME, "Missing form elements for item update", "", true, false);
             return;
         }
 

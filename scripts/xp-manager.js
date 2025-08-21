@@ -78,11 +78,11 @@ export class XpManager {
         
         const xpData = await this.calculateXpData(combat);
         
-        postConsoleAndNotification('XP Manager: XP data calculated', { 
+        postConsoleAndNotification(MODULE.NAME, 'XP data calculated', { 
             totalXp: xpData.totalXp, 
             monsters: xpData.monsters.length, 
             players: xpData.players.length 
-        }, false, true, false);
+        }, true, false);
         
         // Create and show the XP distribution window
         const xpWindow = new XpDistributionWindow(xpData);
@@ -305,7 +305,7 @@ export class XpManager {
             // Get the GM user for the speaker (messages always appear from GM)
             const gmUser = game.users.find(u => u.isGM);
             if (!gmUser) {
-                postConsoleAndNotification('XP Manager: No GM user found', "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'No GM user found', "", false, true);
                 return;
             }
             
@@ -328,7 +328,7 @@ export class XpManager {
             
 
         } catch (error) {
-            postConsoleAndNotification('XP Manager: Error posting XP results', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error posting XP results', error, false, true);
             
             // Fallback: post a simple text message instead
             const fallbackMessage = `XP Distribution Complete!\nTotal XP: ${xpData.adjustedTotalXp}\nPlayers: ${results.map(r => `${r.name}: +${r.xpGained} XP`).join(', ')}`;
@@ -350,7 +350,7 @@ export class XpManager {
      */
     static async generateXpChatMessage(xpData, results) {
         try {
-            postConsoleAndNotification('XP Manager: Rendering template with data', { 
+            postConsoleAndNotification(MODULE.NAME, 'Rendering template with data', { 
                 xpDataKeys: Object.keys(xpData),
                 resultsLength: results.length 
             }, false, true, false);
@@ -363,7 +363,7 @@ export class XpManager {
 
             return template;
         } catch (error) {
-            postConsoleAndNotification('XP Manager: Error rendering template', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error rendering template', error, false, true);
             throw error;
         }
     }
@@ -513,7 +513,7 @@ class XpDistributionWindow extends FormApplication {
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
         } catch (error) {
-            postConsoleAndNotification('XP Manager: Error in _updateObject', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error in _updateObject', error, false, true);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
         }
     }
@@ -589,7 +589,7 @@ class XpDistributionWindow extends FormApplication {
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
         } catch (error) {
-            postConsoleAndNotification('XP Manager: Error applying XP', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error applying XP', error, false, true);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
         }
     }

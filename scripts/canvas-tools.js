@@ -32,7 +32,7 @@ export class CanvasTools {
     }
 
     static _updateNameplates() {
-        postConsoleAndNotification("Modifying Nameplates...", "", false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", false, false);
         let tokens = canvas.tokens.placeables;
         let strNameplateFontsize = game.settings.get(MODULE_ID, 'nameplateFontSize') + "px";
 
@@ -88,7 +88,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenData.name || 'Unknown Token';
-            postConsoleAndNotification(`Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
         }
         
         return true;
@@ -113,7 +113,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenDocument.name || 'Unknown Token';
-            postConsoleAndNotification(`Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
         }
         
         return true;
@@ -142,9 +142,9 @@ export class CanvasTools {
             try {
                 await tokenDocument.update(updates);
                 const tokenName = tokenDocument.name || 'Unknown Token';
-                postConsoleAndNotification(`Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
             } catch (error) {
-                postConsoleAndNotification(`Error applying token overrides: ${error}`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Error applying token overrides: ${error}`, "", true, false);
             }
         }
     }
@@ -155,7 +155,7 @@ export class CanvasTools {
             return;
         }
         
-        postConsoleAndNotification("Token(s) created on the scene. Modifying non-linked tokens...", "", false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Token(s) created on the scene. Modifying non-linked tokens...", "", false, false);
         const actorLink = document.actor?.isToken === false;
         let updatedName;
         let strTokenNameFormat = game.settings.get(MODULE_ID, 'tokenNameFormat');
@@ -180,7 +180,7 @@ export class CanvasTools {
 
         // if it is ignored, exit the function
         if (isIgnoredToken) {
-            postConsoleAndNotification("Ignored token ", tokenName + "detected per settings. Skipping token renaming.", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Ignored token " + tokenName + " detected per settings. Skipping token renaming.", "", false, false);
             return;
         }
 
@@ -204,7 +204,7 @@ export class CanvasTools {
                         } else {
                             // If we can't find the text in either place, use a default value
                             strName = "Unknown";
-                            postConsoleAndNotification("Unable to retrieve name from roll table result", "", false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, "Unable to retrieve name from roll table result", "", true, false);
                         }
                         let strToken = document.actor.name;
                         if (strTokenNameFormat == "name-append-start") {
@@ -223,11 +223,11 @@ export class CanvasTools {
                             updatedName = strToken + " " + strName;
                         }
                     } else {
-                        postConsoleAndNotification("Result from name table came back empty.", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Result from name table came back empty.", "", true, false);
                         updatedName = document.actor.name;
                     }
                 } else {
-                    postConsoleAndNotification("No roll table selected in settings.", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "No roll table selected in settings.", "", true, false);
                     updatedName = document.actor.name;
                 }
             } else if (strTokenNameFormat == "number-append-end" || strTokenNameFormat == "number-append-end-parenthesis" || strTokenNameFormat == "number-append-end-dash") {
@@ -269,15 +269,15 @@ export class CanvasTools {
             if (document.actor && !document.actor.isToken) {
                 // Update the linked actor's name
                 await document.parent.update({name: updatedName});
-                postConsoleAndNotification("Update the linked actor's name:", updatedName + ".", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Update the linked actor's name: " + updatedName, "", false, false);
             } else {
                 // Update only the token's name
                 await document.update({name: updatedName});
-                postConsoleAndNotification("Update only the token's name:", updatedName + ".", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Update only the token's name: " + updatedName, "", false, false);
             }
-            postConsoleAndNotification("The token name has been changed to ", updatedName + ".", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "The token name has been changed to " + updatedName, "", false, false);
         } else {
-            postConsoleAndNotification("The token is LINKED so the name has not been changed.", "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "The token is LINKED so the name has not been changed.", "", false, false);
         }
     }
 
@@ -285,7 +285,7 @@ export class CanvasTools {
     static _initializeTokenConversion() {
         // Check if Item Piles is installed
         if (!game.modules.get("item-piles")?.active) {
-            postConsoleAndNotification("Item Piles module not installed. Token conversion disabled.", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Item Piles module not installed. Token conversion disabled.", "", true, false);
             return;
         }
         
@@ -313,7 +313,7 @@ export class CanvasTools {
             const delay = game.settings.get(MODULE_ID, 'tokenConvertDelay') * 1000;
             setTimeout(() => this._convertTokenToLoot(token), delay);
         } catch (error) {
-            postConsoleAndNotification("Error checking token death:", error, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Error checking token death:", error, true, false);
         }
     }
 
@@ -321,7 +321,7 @@ export class CanvasTools {
         try {
             // Check if user has permission to update tokens
             if (!game.user.isGM) {
-                postConsoleAndNotification("Only Game Masters can convert tokens to loot.", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Only Game Masters can convert tokens to loot.", "", true, false);
                 return;
             }
             
@@ -346,7 +346,7 @@ export class CanvasTools {
                             }
                         });
                     } catch (error) {
-                        postConsoleAndNotification(`Error rolling loot table ${tableName}:`, error, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Error rolling loot table ${tableName}:`, error, true, false);
                         continue; // Continue with next table even if this one fails
                     }
                 }
@@ -413,7 +413,7 @@ export class CanvasTools {
                 });
             }
         } catch (error) {
-            postConsoleAndNotification("Error converting token to loot:", error, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Error converting token to loot:", error, true, false);
         }
     }
 
@@ -440,7 +440,7 @@ export class CanvasTools {
             
             await token.TMFXaddUpdateFilters(params);
         } catch (error) {
-            postConsoleAndNotification("Error applying token effect:", error, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Error applying token effect:", error, true, false);
         }
     }
 
@@ -481,12 +481,12 @@ export class CanvasTools {
                 "system.currency.pp": currency.pp + rolls.pp.total
             });
             
-            postConsoleAndNotification("Added coins:", 
+            postConsoleAndNotification(MODULE.NAME, "Added coins:", 
                 `CP: ${rolls.cp.total}, SP: ${rolls.sp.total}, GP: ${rolls.gp.total}, PP: ${rolls.pp.total}`, 
                 false, false, false);
                 
         } catch (error) {
-            postConsoleAndNotification("Error adding coins:", error, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Error adding coins:", error, true, false);
         }
     }
 }

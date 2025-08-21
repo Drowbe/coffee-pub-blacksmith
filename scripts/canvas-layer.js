@@ -1,5 +1,4 @@
 import { postConsoleAndNotification } from './global.js';
-import { MODULE } from './const.js';
 
 export class BlacksmithLayer extends CanvasLayer {
     constructor() {
@@ -8,17 +7,17 @@ export class BlacksmithLayer extends CanvasLayer {
     }
 
     async _draw() {
-        postConsoleAndNotification("BlacksmithLayer: Drawing layer", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Drawing layer", "", true, false);
         // Add your drawing logic here
     }
 
     activate() {
-        postConsoleAndNotification("BlacksmithLayer: Activated", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Activated", "", true, false);
         // Add any custom activation logic here
     }
 
     deactivate() {
-        postConsoleAndNotification("BlacksmithLayer: Deactivated", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Deactivated", "", true, false);
         // Add any custom deactivation logic here
     }
 }

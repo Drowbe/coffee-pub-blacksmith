@@ -11,7 +11,7 @@ export class RoundTimer {
     static isActive = false;
 
     static initialize() {
-        postConsoleAndNotification(`Round Timer | Initializing`);
+        postConsoleAndNotification(MODULE.NAME, `Round Timer | Initializing`, "", false, false);
         
         // Wait for ready to ensure settings are registered
         Hooks.once('ready', () => {

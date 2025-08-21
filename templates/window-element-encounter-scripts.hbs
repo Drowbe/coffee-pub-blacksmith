@@ -13,9 +13,7 @@ function updateTotalNPCCR(id, npcTokens = null) {
     
     let totalCR = 0;
     if (npcTokens) {
-        console.log("BLACKSMITH updateTotalNPCCR", id);
         npcTokens.forEach(token => {
-            postConsoleAndNotification("BLACKSMITH updateTotalNPCCR token", token, false, true, false);
             // Check if it's an NPC (non-hostile)
             if (token.actor.type === 'npc' && token.document.disposition >= 0) {
                 const crValue = parseFloat(token.actor.system.details.cr);
@@ -27,7 +25,6 @@ function updateTotalNPCCR(id, npcTokens = null) {
             }
         });
     } else {
-        console.log("BLACKSMITH updateTotalNPCCR else", id);
         const npcElements = document.querySelectorAll(`#workspace-section-npcs-content-${id} .player-card[data-type="npc"]`);
         npcElements.forEach(element => {
             const crValue = parseFloat(element.getAttribute('data-cr'));

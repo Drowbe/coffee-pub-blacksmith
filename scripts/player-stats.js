@@ -65,7 +65,7 @@ class CPBPlayerStats {
     static initialize() {
         if (!game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
         
-        postConsoleAndNotification(`Player Stats - Initializing player statistics tracking`);
+        postConsoleAndNotification(MODULE.NAME, `Player Stats - Initializing player statistics tracking`, "", false, false);
         
         // Initialize stats for all player characters
         game.actors.forEach(actor => {
@@ -98,7 +98,7 @@ class CPBPlayerStats {
 
         const existingStats = await actor.getFlag(MODULE_ID, 'playerStats');
         if (!existingStats) {
-            postConsoleAndNotification(`Initializing stats for actor:`, actor.name);
+            postConsoleAndNotification(MODULE.NAME, `Initializing stats for actor:`, actor.name, false, false);
             await actor.setFlag(MODULE_ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
         }
     }
@@ -306,7 +306,7 @@ class CPBPlayerStats {
             }
 
         } catch (error) {
-            postConsoleAndNotification(`${MODULE_ID} | Error processing attack roll:`, error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, true);
         }
     }
 
@@ -510,10 +510,10 @@ class CPBPlayerStats {
             await this.updatePlayerStats(actor.id, updates);
 
         } catch (error) {
-            postConsoleAndNotification(`${MODULE_ID} | Error processing damage roll:`, error, false, false, true);
-            postConsoleAndNotification('Actor:', actor, false, false, true);
-            postConsoleAndNotification('Combat:', game.combat, false, false, true);
-            postConsoleAndNotification('Roll:', roll, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Error processing damage roll:`, error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Actor:', actor, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'Combat:', game.combat, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'Roll:', roll, false, false);
         }
     }
 

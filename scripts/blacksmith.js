@@ -104,7 +104,7 @@ async function getNoteConfigIcons() {
             return customIcons;
         }
     } catch (error) {
-        postConsoleAndNotification("Error browsing folder", error, false, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Error browsing folder", error, false, true);
     }
     
     return [];
@@ -136,7 +136,7 @@ export async function getCachedTemplate(templatePath) {
         
         return template;
     } catch (error) {
-        postConsoleAndNotification(`Error loading template ${templatePath}`, error, false, false, true);
+        postConsoleAndNotification(MODULE.NAME, `Error loading template ${templatePath}`, error, false, true);
         throw error;
     }
 }
@@ -354,10 +354,10 @@ function initializeSettingsDependentFeatures() {
                 buildButtonEventRegent();
             };
         } else {
-            postConsoleAndNotification("OpenAI Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenAIMacro, false, true, true);
+            postConsoleAndNotification(MODULE.NAME, "OpenAI Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenAIMacro, true, true);
         }
             } else {
-            postConsoleAndNotification("Macro for OpenAI not set.", "", false, true, true);
+            postConsoleAndNotification(MODULE.NAME, "Macro for OpenAI not set.", "", true, true);
         }
     }
 
@@ -461,10 +461,10 @@ Hooks.once('init', async function() {
             // Store socket for use in other parts of the module
             game.modules.get(MODULE_ID).socket = socket;
         } else {
-            postConsoleAndNotification('Blacksmith | SocketLib API not found, some features may be limited', "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'SocketLib API not found, some features may be limited', "", false, false);
         }
     } else {
-        postConsoleAndNotification('Blacksmith | SocketLib module not active, some features may be limited', "", false, false, false);
+        postConsoleAndNotification(MODULE.NAME, 'SocketLib module not active, some features may be limited', "", false, false);
     }
     
     // Register chat message click handler for skill rolls
@@ -544,7 +544,7 @@ Hooks.once('init', async function() {
     });
     
 
-    postConsoleAndNotification("Canvas is ready. Initializing toolbar...", "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing toolbar...", "", false, false);
 
     // COMBAT TIMER
     CombatTimer.initialize();
@@ -647,11 +647,11 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
                 // Set the default icon
                 entryIconField.val(strIconUrl);
             } else {
-                postConsoleAndNotification("Entry Icon field not found", "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, true);
             }
         }
     } catch (error) {
-        postConsoleAndNotification("Error loading note config icons", error, false, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, true);
     }
 
 
@@ -737,7 +737,7 @@ async function runMacro(macroName) {
     try {
       return await macro.execute();
     } catch (error) {
-      postConsoleAndNotification("Error when executing macro " + macroName, error, false, false, false);
+              postConsoleAndNotification(MODULE.NAME, "Error when executing macro " + macroName, error, false, false);
       throw error;
     }
 }
@@ -891,10 +891,10 @@ case "INJURY":
     await buildInjuryJournalEntry(journalData);
                             break;
                         default:
-                            postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
+                            postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
                     }
               } catch (e) {
-                postConsoleAndNotification("Failed to parse JSON", e, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Failed to parse JSON", e, false, true);
               }
             },
           },
@@ -1964,9 +1964,9 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
                         }
                         // Validate and create items
                         const created = await Item.createDocuments(itemsToImport, {keepId: false});
-                        postConsoleAndNotification(`Imported ${created.length} item(s) successfully.`, "", false, false, true);
+                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} item(s) successfully.`, "", false, true);
                     } catch (e) {
-                        postConsoleAndNotification("Failed to import items", e, false, false, true);
+                        postConsoleAndNotification(MODULE.NAME, "Failed to import items", e, false, true);
                         ui.notifications.error("Failed to import items: " + e.message);
                     }
                 }

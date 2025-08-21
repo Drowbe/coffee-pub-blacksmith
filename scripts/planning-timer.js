@@ -23,7 +23,7 @@ export class PlanningTimer {
     };
 
     static initialize() {
-        postConsoleAndNotification("Planning Timer | Initializing", "", false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Planning Timer | Initializing", "", false, false);
         
         // Initialize state
         this.state = foundry.utils.deepClone(this.DEFAULTS.state);
@@ -556,7 +556,7 @@ export class PlanningTimer {
                 timerText.text(`${timeString} ${label}`);
             }
         } catch (error) {
-            postConsoleAndNotification(`${MODULE_TITLE} | Planning Timer | Error updating UI:`, error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, true);
         }
     }
 
@@ -648,8 +648,7 @@ export class PlanningTimer {
     // Function that will be called on non-GM clients
     static receiveTimerSync(state) {
         if (!game?.user) return;
-        
-        // postConsoleAndNotification("Planning Timer: Received timer sync:", state, false, true, false);
+    
         if (!game.user.isGM) {
             PlanningTimer.state = foundry.utils.deepClone(state);
             PlanningTimer.updateUI();
@@ -657,7 +656,7 @@ export class PlanningTimer {
     }
 
     static forceEnd() {
-        postConsoleAndNotification("Planning Timer | Force ending timer", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Planning Timer | Force ending timer", "", true, false);
         // Make sure we're unpaused and active
         this.state.isPaused = false;
         this.state.isActive = true;

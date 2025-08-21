@@ -45,15 +45,15 @@ export class EncounterToolbar {
         if (moduleId === MODULE_ID) {
             if (key === 'enableEncounterToolbarRealTimeUpdates') {
                 this._setupTokenChangeHooks();
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", true, false);
             } else if (key === 'encounterToolbarDeploymentPattern') {
                 // Update all open journal toolbars when deployment pattern changes
                 this._updateAllToolbarCRs();
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern setting changed", value, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern setting changed", value, true, false);
             } else if (key === 'encounterToolbarDeploymentHidden') {
                 // Update all open journal toolbars when deployment visibility changes
                 this._updateAllToolbarCRs();
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment visibility setting changed", value, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility setting changed", value, true, false);
             }
         }
     }
@@ -84,7 +84,7 @@ export class EncounterToolbar {
                 }
             }
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error updating CR values", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating CR values", error, false, true);
         }
     }
 
@@ -122,11 +122,11 @@ export class EncounterToolbar {
                     $toolbar.find('.difficulty-badge').html(`<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`);
                     $toolbar.find('.difficulty-badge').removeClass().addClass(`difficulty-badge ${difficultyData.difficultyClass}`);
                     
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, true, false);
                 }
             });
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error updating toolbar CRs", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating toolbar CRs", error, false, true);
         }
     }
 
@@ -153,7 +153,7 @@ export class EncounterToolbar {
         if (!this._isEditMode(html)) {
             // Try immediately first
             this._updateToolbarContent(html).catch(error => {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error in initial update", error, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in initial update", error, false, true);
             });
             
             // Retry after delay if requested (for renderJournalSheet)
@@ -162,9 +162,9 @@ export class EncounterToolbar {
                 const retryDelays = [500, 1000, 2000];
                 retryDelays.forEach((delay, index) => {
                     setTimeout(() => {
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Retrying metadata search after delay", `Attempt ${index + 2}`, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Retrying metadata search after delay", `Attempt ${index + 2}`, true, false);
                         this._updateToolbarContent(html).catch(error => {
-                            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Error in retry ${index + 2}`, error, false, false, true);
+                                                          postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error in retry ${index + 2}`, error, false, true);
                         });
                     }, delay);
                 });
@@ -184,20 +184,20 @@ export class EncounterToolbar {
             // Check if it's a valid UUID format for actors
             // Accept both compendium references (Compendium.module.collection.Actor.id) and world actors (Actor.id)
             if (!uuid.includes('Compendium.') && !uuid.startsWith('Actor.')) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Invalid UUID format`, uuid, false, false, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Invalid UUID format`, uuid, false, false);
                 return null;
             }
             
             // Try to load the actor to validate it exists
             const actor = await fromUuid(uuid);
             if (!actor) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not load actor with UUID`, uuid, false, false, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not load actor with UUID`, uuid, false, false);
                 return null;
             }
             
             return uuid;
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Error validating UUID`, { uuid, error }, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error validating UUID`, { uuid, error }, false, true);
             return null;
         }
     }
@@ -214,25 +214,25 @@ export class EncounterToolbar {
                 
                 // Check if it's from a monster compendium
                 if (actor.pack && actor.pack.includes('monster')) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as monster (monster compendium)`, "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as monster (monster compendium)`, "", true, false);
                     return true;
                 }
                 
                 // Check disposition (hostile = monster, friendly/neutral = NPC)
                 if (actor.prototypeToken && actor.prototypeToken.disposition !== undefined) {
                     const isMonster = actor.prototypeToken.disposition <= -1; // Hostile
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as ${isMonster ? 'monster' : 'npc'} (disposition: ${actor.prototypeToken.disposition})`, "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as ${isMonster ? 'monster' : 'npc'} (disposition: ${actor.prototypeToken.disposition})`, "", true, false);
                     return isMonster;
                 }
                 
                 // Default: assume it's a monster if we can't determine
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${actor.name} classified as monster (default)`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as monster (default)`, "", true, false);
                 return true;
             }
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Actor ${uuid} classified as monster (no actor found)`, "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${uuid} classified as monster (no actor found)`, "", true, false);
             return true; // Default to monster if we can't determine
         } catch (error) {
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Error checking actor type for ${uuid}`, error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error checking actor type for ${uuid}`, error, false, true);
             return true; // Default to monster on error
         }
     }
@@ -267,10 +267,10 @@ export class EncounterToolbar {
                     }
                     
                     monsterDetails.push({ uuid, name, cr, portrait });
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster details", { name, cr, portrait }, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster details", { name, cr, portrait }, true, false);
                 }
             } catch (error) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Error getting details for ${uuid}`, error, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error getting details for ${uuid}`, error, false, true);
             }
         }
         
@@ -279,7 +279,7 @@ export class EncounterToolbar {
 
     // Enhanced method to scan journal content for encounter data
     static async _scanJournalContent(html, pageId) {
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Starting content scan for page", pageId, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Starting content scan for page", pageId, true, false);
         
         // Get the journal page content - try different selectors
         let pageContent = html.find(`article[data-page-id="${pageId}"] section.journal-page-content`);
@@ -308,13 +308,13 @@ export class EncounterToolbar {
         }
         
         if (pageContent.length === 0) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No page content found", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page content found", "", false, true);
             return null;
         }
 
         // Check if content scanning is enabled
         if (!game.settings.get(MODULE_ID, 'enableEncounterContentScanning')) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Content scanning disabled", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scanning disabled", "", false, true);
             return null;
         }
 
@@ -322,24 +322,24 @@ export class EncounterToolbar {
         const textContent = pageContent.text() || '';
         const htmlContent = pageContent.html() || '';
         
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Text content length", textContent.length, false, true, false);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: HTML content length", htmlContent.length, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Text content length", textContent.length, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: HTML content length", htmlContent.length, false, true);
 
         // Try JSON format first (for structured data)
         let encounterData = this._parseJSONEncounter(htmlContent);
         if (encounterData) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found JSON encounter data", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found JSON encounter data", "", false, true);
             return encounterData;
         }
 
         // Use the new pattern-based detection
         encounterData = await this._parsePatternBasedEncounter(textContent, htmlContent);
         if (encounterData) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found pattern-based encounter data", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found pattern-based encounter data", "", false, true);
             return encounterData;
         }
 
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No encounter data found", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found", "", false, true);
         return null;
     }
 
@@ -351,23 +351,23 @@ export class EncounterToolbar {
             difficulty: null
         };
 
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Scanning text content for patterns", { textLength: textContent.length, htmlLength: htmlContent.length }, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Scanning text content for patterns", { textLength: textContent.length, htmlLength: htmlContent.length }, false, true);
 
         // 1. Find all data-uuid attributes in the content (Foundry renders links as <a> tags)
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for data-uuid attributes in HTML content", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for data-uuid attributes in HTML content", "", false, true);
         const uuidMatches = htmlContent.match(/data-uuid="([^"]+)"/g);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found UUID matches", uuidMatches?.length || 0, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found UUID matches", uuidMatches?.length || 0, false, true);
 
         if (uuidMatches) {
             for (const match of uuidMatches) {
                 const uuidMatch = match.match(/data-uuid="([^"]+)"/);
                 if (uuidMatch) {
                     const uuid = uuidMatch[1];
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Processing UUID", uuid, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing UUID", uuid, false, true);
                     
                     // 2. Check if this UUID contains "Actor" (case-insensitive)
                     if (uuid.toLowerCase().includes('actor')) {
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found Actor UUID", uuid, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found Actor UUID", uuid, false, true);
                         
                         // 3. Look for quantity indicators near this UUID
                         let quantity = 1;
@@ -378,7 +378,7 @@ export class EncounterToolbar {
                         const contextEnd = Math.min(htmlContent.length, uuidIndex + match.length + 100);
                         const context = htmlContent.substring(contextStart, contextEnd);
                         
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Context around UUID", context.substring(0, 100), false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Context around UUID", context.substring(0, 100), false, true);
 
                         // Look for quantity patterns
                         const quantityPatterns = [
@@ -392,7 +392,7 @@ export class EncounterToolbar {
                             const quantityMatch = context.match(pattern);
                             if (quantityMatch) {
                                 quantity = parseInt(quantityMatch[1]);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found quantity", quantity, false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found quantity", quantity, false, true);
                                 break;
                             }
                         }
@@ -407,14 +407,14 @@ export class EncounterToolbar {
                             }
                         }
                     } else {
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: UUID is not an Actor type", uuid, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: UUID is not an Actor type", uuid, false, true);
                     }
                 }
             }
         }
 
         // 4. Look for difficulty patterns (case-insensitive)
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Looking for difficulty patterns", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for difficulty patterns", "", false, true);
         const difficultyPatterns = [
             /difficulty\s*:\s*(easy|medium|hard|deadly)/i,
             /difficulty\s*=\s*(easy|medium|hard|deadly)/i,
@@ -425,12 +425,12 @@ export class EncounterToolbar {
             const difficultyMatch = textContent.match(pattern);
             if (difficultyMatch) {
                 encounterData.difficulty = difficultyMatch[1].toLowerCase();
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found difficulty", encounterData.difficulty, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found difficulty", encounterData.difficulty, false, true);
                 break;
             }
         }
 
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Final encounter data", encounterData, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final encounter data", encounterData, false, true);
         return (encounterData.monsters.length > 0 || encounterData.npcs.length > 0 || encounterData.difficulty) ? encounterData : null;
     }
 
@@ -478,7 +478,7 @@ export class EncounterToolbar {
         const pageId = journalPage.data('page-id');
         
         if (!pageId) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No page ID found", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page ID found", "", false, true);
             return; // Can't create toolbar without page ID
         }
         
@@ -495,7 +495,7 @@ export class EncounterToolbar {
                 const toolbarContainer = $(`<div class="encounter-toolbar" data-page-id="${pageId}"></div>`);
                 journalHeader.after(toolbarContainer);
                 toolbar = toolbarContainer;
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, false, true);
             } else {
                 return; // Can't create toolbar
             }
@@ -503,11 +503,11 @@ export class EncounterToolbar {
 
         // Try content scanning for encounter data (check all journals, not just encounter type)
         let encounterData = await this._scanJournalContent(html, pageId);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Content scan result", encounterData, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scan result", encounterData, false, true);
         
         if (encounterData) {
             // We have encounter data - use the full toolbar
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Found encounter data, updating toolbar", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found encounter data, updating toolbar", "", false, true);
             
             try {
                 // Check if we have monsters and NPCs
@@ -560,19 +560,19 @@ export class EncounterToolbar {
                     // Add event listeners to the buttons
                     this._addEventListeners(toolbar, encounterData);
                     
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with encounter data", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with encounter data", "", false, true);
                 });
                 
                 return; // Exit early since we're handling this asynchronously
                 
             } catch (error) {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error processing encounter data", error, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error processing encounter data", error, false, true);
                 // Fall through to create "no encounter" toolbar
             }
         }
         
         // If we don't have encounter data or there was an error, create a "no encounter" toolbar using the template
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No encounter data found, showing placeholder", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found, showing placeholder", "", false, true);
         
         // Calculate CR values even when there's no encounter data
         const partyCR = this.getPartyCR();
@@ -606,18 +606,18 @@ export class EncounterToolbar {
             // Add event listeners even when there's no encounter data (for the Reveal button)
             this._addEventListeners(toolbar, { monsters: [], npcs: [] });
             
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Updated with no encounter data", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with no encounter data", "", false, true);
         });
     }
 
     static _addEventListeners(toolbar, metadata) {
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Setting up event listeners with metadata", metadata, false, true, false);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Metadata monsters array", metadata.monsters || [], false, true, false);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Metadata npcs array", metadata.npcs || [], false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up event listeners with metadata", metadata, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata monsters array", metadata.monsters || [], false, true);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata npcs array", metadata.npcs || [], false, true);
         
         // Deploy monsters button - scope to this toolbar only
         toolbar.find('.deploy-monsters').off('click').on('click', async (event) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deploy monsters button clicked!", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", false, true);
             event.preventDefault();
             event.stopPropagation();
             EncounterToolbar._deployMonsters(metadata);
@@ -625,7 +625,7 @@ export class EncounterToolbar {
         
         // Create combat button - scope to this toolbar only
         toolbar.find('.create-combat').off('click').on('click', async (event) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Create combat button clicked!", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", false, true);
             event.preventDefault();
             event.stopPropagation();
             
@@ -638,7 +638,7 @@ export class EncounterToolbar {
 
         // Toggle visibility button - scope to this toolbar only
         toolbar.find('.toggle-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Toggle visibility button clicked!", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", false, true);
             event.preventDefault();
             event.stopPropagation();
             
@@ -647,7 +647,7 @@ export class EncounterToolbar {
 
         // Deployment type badge - cycle through deployment patterns
         toolbar.find('.deploy-type').off('click').on('click', async (event) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment type badge clicked!", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", false, true);
             event.preventDefault();
             event.stopPropagation();
             
@@ -656,7 +656,7 @@ export class EncounterToolbar {
 
         // Deployment visibility badge - toggle visibility setting
         toolbar.find('.deploy-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment visibility badge clicked!", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", false, true);
             event.preventDefault();
             event.stopPropagation();
             
@@ -673,7 +673,7 @@ export class EncounterToolbar {
             
             if (monsterUUID) {
                 const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, true);
                 
                 // Create metadata for just this one monster
                 const singleMonsterMetadata = {
@@ -701,7 +701,7 @@ export class EncounterToolbar {
             
             if (npcUUID) {
                 const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, false, true);
                 
                 // Create metadata for just this one NPC
                 const singleNpcMetadata = {
@@ -729,9 +729,9 @@ export class EncounterToolbar {
         // Combine monsters and NPCs for deployment
         const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
         
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], false, true, false);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], false, true, false);
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment - combined allTokens", allTokens, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], false, true);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], false, true);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - combined allTokens", allTokens, false, true);
         
         if (allTokens.length === 0) {
             return [];
@@ -739,7 +739,7 @@ export class EncounterToolbar {
 
         // Get the deployment pattern setting
         const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Deployment pattern", deploymentPattern, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, false, true);
 
         // Create tooltip for non-sequential deployments
         let tooltip = null;
@@ -798,15 +798,15 @@ export class EncounterToolbar {
                 // Get the target position (where the user clicked)
                 const positionResult = await this._getTargetPosition(isSingleToken);
                 
-                if (!positionResult) {
-                    // User cancelled or no position obtained
-                    if (isSingleToken) {
-                        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Token deployment cancelled.`, '', false, true, false);
-                    } else {
-                        postConsoleAndNotification(`Please click on the canvas to place tokens.`, '', false, false, true);
+                                    if (!positionResult) {
+                        // User cancelled or no position obtained
+                        if (isSingleToken) {
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Token deployment cancelled.`, '', false, true);
+                        } else {
+                            postConsoleAndNotification(MODULE.NAME, `Please click on the canvas to place tokens.`, '', false, true);
+                        }
+                        return [];
                     }
-                    return [];
-                }
                 
                 const position = positionResult.position;
                 const isAltHeld = positionResult.isAltHeld;
@@ -833,7 +833,7 @@ export class EncounterToolbar {
                         // Validate the UUID
                         const validatedId = await this._validateUUID(tokenId);
                         if (!validatedId) {
-                            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false);
                             continue;
                         }
                         
@@ -843,7 +843,7 @@ export class EncounterToolbar {
                             // First, create a world copy of the actor if it's from a compendium
                             let worldActor = actor;
                             if (actor.pack) {
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor", "", false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", false, true);
                                 const actorData = actor.toObject();
                                 
                                 // Get or create the encounter folder
@@ -855,27 +855,27 @@ export class EncounterToolbar {
                                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                                     
                                     if (!encounterFolder) {
-                                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating encounter folder", folderName, false, true, false);
+                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, false, true);
                                         encounterFolder = await Folder.create({
                                             name: folderName,
                                             type: 'Actor',
                                             color: '#ff0000'
                                         });
-                                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Encounter folder created", encounterFolder.id, false, true, false);
+                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, false, true);
                                     }
                                 }
                                 
                                 // Create the world actor
                                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                                 worldActor = await Actor.create(actorData, createOptions);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: World actor created", worldActor.id, false, true, false);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Actor folder", worldActor.folder, false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, false, true);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder", worldActor.folder, false, true);
                                 
                                 // Ensure folder is assigned (sometimes it doesn't get set during creation)
                                 if (encounterFolder && !worldActor.folder) {
-                                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Folder not assigned during creation, updating actor...", "", false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", false, true);
                                     await worldActor.update({ folder: encounterFolder.id });
-                                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Actor folder after update", worldActor.folder, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder after update", worldActor.folder, false, true);
                                 }
                                 
                                 // Update the prototype token to honor GM defaults
@@ -930,24 +930,24 @@ export class EncounterToolbar {
                             
                             // Create the token on the canvas
                             const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token creation result", createdTokens, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token creation result", createdTokens, false, true);
                             
                             // Verify the token was created and is visible
                             if (createdTokens && createdTokens.length > 0) {
                                 const token = createdTokens[0];
                                 deployedTokens.push(token);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created token", token, false, true, false);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token position", {x: token.x, y: token.y}, false, true, false);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token visible", token.visible, false, true, false);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token actor", token.actor, false, true, false);
-                                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Token actorId", token.actorId, false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created token", token, false, true);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token position", {x: token.x, y: token.y}, false, true);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token visible", token.visible, false, true);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actor", token.actor, false, true);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actorId", token.actorId, false, true);
                                 
                                 // Increment the valid token index for pattern positioning
                                 validTokenIndex++;
                             }
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Failed to deploy monster ${monsterId}`, error, false, false, true);
+                        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to deploy monster ${monsterId}`, error, false, true);
                     }
                 }
                 
@@ -974,7 +974,7 @@ export class EncounterToolbar {
             }
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying monsters", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying monsters", error, false, true);
             return [];
         } finally {
             // Clean up tooltip and handlers for non-sequential deployments
@@ -1014,7 +1014,7 @@ export class EncounterToolbar {
             // Validate the UUID
             const validatedId = await this._validateUUID(tokenUUID);
             if (!validatedId) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID`, tokenUUID, false, false, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID`, tokenUUID, false, false);
                 return [];
             }
             
@@ -1050,7 +1050,7 @@ export class EncounterToolbar {
             // First, create a world copy of the actor if it's from a compendium
             let worldActor = actor;
             if (actor.pack) {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating world copy of compendium actor", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", false, true);
                 const actorData = actor.toObject();
                 
                 // Get or create the encounter folder
@@ -1061,20 +1061,20 @@ export class EncounterToolbar {
                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                     
                     if (!encounterFolder) {
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Creating encounter folder", folderName, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, false, true);
                         encounterFolder = await Folder.create({
                             name: folderName,
                             type: 'Actor',
                             color: '#ff0000'
                         });
-                        postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Encounter folder created", encounterFolder.id, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, false, true);
                     }
                 }
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                 worldActor = await Actor.create(actorData, createOptions);
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: World actor created", worldActor.id, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, false, true);
                 
                 // Ensure folder is assigned
                 if (encounterFolder && !worldActor.folder) {
@@ -1132,13 +1132,13 @@ export class EncounterToolbar {
                 
                 // Create the token on the canvas
                 const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Single monster token creation result", createdTokens, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Single monster token creation result", createdTokens, false, true);
                 
                 // Verify the token was created
                 if (createdTokens && createdTokens.length > 0) {
                     const token = createdTokens[0];
                     deployedTokens.push(token);
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created single monster token", token, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created single monster token", token, false, true);
                     
                     // Update tooltip to show success and continue instruction
                     tooltip.innerHTML = `
@@ -1149,7 +1149,7 @@ export class EncounterToolbar {
             }
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error deploying single monster multiple times", error, false, true, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying single monster multiple times", error, false, true);
         } finally {
             // Clean up tooltip and handlers
             if (tooltip && tooltip.parentNode) {
@@ -1175,7 +1175,7 @@ export class EncounterToolbar {
             const allTokens = canvas.tokens.placeables;
             
             if (allTokens.length === 0) {
-                postConsoleAndNotification("No tokens found on the canvas.", "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "No tokens found on the canvas.", "", false, true);
                 return;
             }
 
@@ -1194,7 +1194,7 @@ export class EncounterToolbar {
             });
             
             if (hiddenMonsterTokens.length === 0) {
-                postConsoleAndNotification("No hidden tokens found on the canvas.", "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "No hidden tokens found on the canvas.", "", false, true);
                 return;
             }
 
@@ -1204,10 +1204,10 @@ export class EncounterToolbar {
             }
             
             // Show notification with results
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, true, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, true);
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error making monster tokens visible", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error making monster tokens visible", error, false, true);
         }
     }
 
@@ -1229,7 +1229,7 @@ export class EncounterToolbar {
         
         // If this is the first token (index 0), place it exactly at the clicked position
         if (index === 0) {
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (first token at clicked position)`, centerPosition, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position ${index} (first token at clicked position)`, centerPosition, false, true);
             return centerPosition;
         }
         
@@ -1241,7 +1241,7 @@ export class EncounterToolbar {
         // Calculate the total grid area
         const totalGridCells = gridWidth * gridHeight;
         
-        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, false, true);
         
         // Create an array of all possible positions
         const allPositions = [];
@@ -1263,7 +1263,7 @@ export class EncounterToolbar {
         // Get the position for this specific token (index - 1 because first token is already placed)
         const tokenPosition = selectedPositions[index - 1];
         
-        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, true);
         
         // Calculate the actual position using scene grid size - snap to top-left of grid squares
         // Calculate the base position in grid coordinates (offset from center)
@@ -1276,7 +1276,7 @@ export class EncounterToolbar {
         
         // Check if this position is already occupied by an existing token
         if (this._isGridSquareOccupied(x, y, gridSize)) {
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Position occupied, trying next available position`, { x, y }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Position occupied, trying next available position`, { x, y }, false, true);
             
             // Find the next available position
             for (let i = index; i < selectedPositions.length; i++) {
@@ -1288,7 +1288,7 @@ export class EncounterToolbar {
                 nextY = Math.floor(nextY / gridSize) * gridSize;
                 
                 if (!this._isGridSquareOccupied(nextX, nextY, gridSize)) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, false, true);
                     return { x: nextX, y: nextY };
                 }
             }
@@ -1307,11 +1307,11 @@ export class EncounterToolbar {
                 case 3: fallbackY -= randomOffset * gridSize; break; // Up
             }
             
-            postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, false, true);
             return { x: fallbackX, y: fallbackY };
         }
         
-        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, true);
         return { x, y };
     }
 
@@ -1348,7 +1348,7 @@ export class EncounterToolbar {
         x = Math.floor(x / gridSize) * gridSize;
         y = Math.floor(y / gridSize) * gridSize;
         
-        postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize})`, { x, y }, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize})`, { x, y }, false, true);
         return { x, y };
     }
 
@@ -1428,7 +1428,7 @@ export class EncounterToolbar {
             this._updateAllToolbarCRs();
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error cycling deployment pattern", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error cycling deployment pattern", error, false, true);
         }
     }
 
@@ -1456,7 +1456,7 @@ export class EncounterToolbar {
             
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error toggling deployment visibility", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error toggling deployment visibility", error, false, true);
         }
     }
 
@@ -1486,12 +1486,12 @@ export class EncounterToolbar {
             for (let i = 0; i < allTokens.length; i++) {
                 const tokenId = allTokens[i];
                 
-                // Validate the UUID
-                const validatedId = await this._validateUUID(tokenId);
-                if (!validatedId) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false, false);
-                    continue;
-                }
+                                        // Validate the UUID
+                        const validatedId = await this._validateUUID(tokenId);
+                        if (!validatedId) {
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false);
+                            continue;
+                        }
                 
                 const actor = await fromUuid(validatedId);
                 
@@ -1516,7 +1516,7 @@ export class EncounterToolbar {
                                         color: '#ff0000'
                                     });
                                 } catch (error) {
-                                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Failed to create encounter folder", error, false, false, true);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Failed to create encounter folder", error, false, true);
                                     encounterFolder = null;
                                 }
                             }
@@ -1566,7 +1566,7 @@ export class EncounterToolbar {
                 
                 // Check if user cancelled (ESC pressed)
                 if (!positionResult) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Sequential deployment cancelled by user", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Sequential deployment cancelled by user", "", false, true);
                     break; // Exit the loop and return deployed tokens so far
                 }
                 
@@ -1596,7 +1596,7 @@ export class EncounterToolbar {
             }
                      
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error in sequential deployment", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in sequential deployment", error, false, true);
         } finally {
             // Clean up
             canvas.stage.off('mousemove', mouseMoveHandler);
@@ -1609,12 +1609,12 @@ export class EncounterToolbar {
 
     static async _getTargetPosition(allowMultiple = false) {
         return new Promise((resolve) => {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, false, true);
             
             // Use FoundryVTT's canvas pointer handling
             const handler = (event) => {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Canvas pointer event! Event type", event.type, false, true, false);
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Event global", event.global, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Canvas pointer event! Event type", event.type, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global", event.global, false, true);
                 
                 // Only handle pointerdown events (clicks)
                 if (event.type !== 'pointerdown') {
@@ -1623,7 +1623,7 @@ export class EncounterToolbar {
                 
                 // Ignore right-clicks (button 2) - let the rightClickHandler deal with them
                 if (event.data.originalEvent && event.data.originalEvent.button === 2) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Right-click ignored by main handler", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click ignored by main handler", "", false, true);
                     return;
                 }
                 
@@ -1633,8 +1633,8 @@ export class EncounterToolbar {
                 const globalPoint = new PIXI.Point(event.global.x, event.global.y);
                 const localPoint = stage.toLocal(globalPoint);
                 
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Event global coordinates", event.global, false, true, false);
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Local coordinates from stage", localPoint, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global coordinates", event.global, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Local coordinates from stage", localPoint, false, true);
                 
                 // Use the exact click position first, then snap to grid square center
                 let position = { x: localPoint.x, y: localPoint.y };
@@ -1647,7 +1647,7 @@ export class EncounterToolbar {
                 const snappedY = Math.floor(localPoint.y / gridSize) * gridSize;
                 
                 position = { x: snappedX, y: snappedY };
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Grid square top-left position", position, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Grid square top-left position", position, false, true);
                 
                 // Check if CTRL is held down for multiple deployments
                 const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
@@ -1658,9 +1658,9 @@ export class EncounterToolbar {
                 if (!allowMultiple || !isCtrlHeld) {
                     canvas.stage.off('pointerdown', handler);
                     document.removeEventListener('keyup', keyUpHandler);
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Click handler removed, resolving position", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Click handler removed, resolving position", "", false, true);
                 } else {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", false, true);
                 }
                 
                 // Resolve with the position and key states
@@ -1669,10 +1669,10 @@ export class EncounterToolbar {
                         position: position,
                         isAltHeld: isAltHeld
                     };
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Resolving position", result, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Resolving position", result, false, true);
                     resolve(result);
                 } else {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: No valid position obtained, resolving null", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No valid position obtained, resolving null", "", false, false);
                     resolve(null);
                 }
             };
@@ -1689,7 +1689,7 @@ export class EncounterToolbar {
             // Right-click handler to detect cancellation
             const rightClickHandler = (event) => {
                 if (event.data.originalEvent && event.data.originalEvent.button === 2) { // Right mouse button
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Right-click detected, cancelling deployment", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click detected, cancelling deployment", "", false, true);
                     canvas.stage.off('pointerdown', handler);
                     canvas.stage.off('pointerdown', rightClickHandler);
                     document.removeEventListener('keyup', keyUpHandler);
@@ -1715,7 +1715,7 @@ export class EncounterToolbar {
         }
         
         if (!deployedTokens || deployedTokens.length === 0) {
-            postConsoleAndNotification("No tokens were deployed.", "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No tokens were deployed.", "", false, true);
             return;
         }
 
@@ -1730,9 +1730,9 @@ export class EncounterToolbar {
                     name: metadata.title || "Encounter",
                     active: true
                 });
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Created new combat encounter", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created new combat encounter", "", false, true);
             } else {
-                postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Adding to existing combat encounter", "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Adding to existing combat encounter", "", false, true);
             }
 
             // Add deployed tokens to combat using their actual IDs
@@ -1743,16 +1743,16 @@ export class EncounterToolbar {
                         actorId: token.actor.id,
                         sceneId: canvas.scene.id
                     }]);
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Added ${token.name} to combat`, "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", false, true);
                 } catch (error) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false);
                 }
             }
 
             const action = combat === game.combats.active ? "added to existing" : "created new";
             
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error creating combat", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, false, true);
         }
     }
 
@@ -1771,7 +1771,7 @@ export class EncounterToolbar {
             const deployedTokens = await this._deployMonsters(metadata);
             
             if (!deployedTokens || deployedTokens.length === 0) {
-                postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", false, true);
                 
                 return;
             }
@@ -1800,7 +1800,7 @@ export class EncounterToolbar {
                 });
                 
                 if (!createCombatWithPartial) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Combat creation cancelled by user.`, "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Combat creation cancelled by user.`, "", false, true);
                     return;
                 }
             }
@@ -1820,14 +1820,14 @@ export class EncounterToolbar {
                         actorId: token.actor.id,
                         sceneId: canvas.scene.id
                     }]);
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Added ${token.name} to combat`, "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", false, true);
                 } catch (error) {
-                    postConsoleAndNotification(`BLACKSMITH | Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false);
                 }
             }
 
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error creating combat", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, false, true);
         }
     }
 
@@ -1876,7 +1876,7 @@ export class EncounterToolbar {
             
             return this.formatCR(partyCR);
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error calculating party CR", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error calculating party CR", error, false, true);
             return "0";
         }
     }
@@ -1904,13 +1904,13 @@ export class EncounterToolbar {
                         if (!isNaN(crValue)) {
                             totalCR += crValue;
                             monsterCount++;
-                            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, false, true);
                         } else {
-                            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Warning", `No CR found for ${actor.name}`, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Warning", `No CR found for ${actor.name}`, false, false);
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, false, true);
                 }
             }
 
@@ -1921,7 +1921,7 @@ export class EncounterToolbar {
             // Return total CR for multiple monsters (not average)
             return this.formatCR(totalCR);
         } catch (error) {
-            postConsoleAndNotification("BLACKSMITH | Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, false, true);
             return "0";
         }
     }

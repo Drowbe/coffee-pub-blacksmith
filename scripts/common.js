@@ -43,7 +43,7 @@ export async function createJournalEntry(journalData) {
     var compiledHtml = "";
     let folder;
 
-    postConsoleAndNotification("BLACKSMITH: createJournalEntry journalData", journalData, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "createJournalEntry journalData", journalData, true, false);
 
     // ---------- CHECK & CREATE THE FOLDER ----------
     if (strFolderName) {
@@ -571,7 +571,7 @@ export async function copyToClipboard(text) {
             ui.notifications.info('Copied to clipboard!');
             return true;
         } catch (error) {
-            postConsoleAndNotification('Modern clipboard API failed', error, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'Modern clipboard API failed', error, false, false);
         }
     }
     // Method 2: Try legacy execCommand approach
@@ -591,7 +591,7 @@ export async function copyToClipboard(text) {
             return true;
         }
     } catch (error) {
-        postConsoleAndNotification('Legacy clipboard method failed', error, false, false, false);
+        postConsoleAndNotification(MODULE.NAME, 'Legacy clipboard method failed', error, false, false);
     }
     // Method 3: Show dialog with text for manual copying
     new Dialog({

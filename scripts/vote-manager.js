@@ -30,9 +30,9 @@ export class VoteManager {
         // Register Handlebars helper for checking current user's GM status
         Handlebars.registerHelper('isCurrentUserGM', function() {
             const isGM = game.user.isGM;
-            postConsoleAndNotification("Vote Manager | Checking GM Status", 
+            postConsoleAndNotification(MODULE.NAME, "Vote Manager | Checking GM Status", 
                 `Current User: ${game.user.name}\nIs GM: ${isGM}`, 
-                false, true, false
+                true, false
             );
             return isGM;
         });
@@ -168,7 +168,7 @@ export class VoteManager {
         const isLeader = leaderId ? game.user.id === leaderId : false;
         const canStartVote = isGM || isLeader;
 
-        postConsoleAndNotification('Vote Manager | Starting Vote:', {
+        postConsoleAndNotification(MODULE.NAME, 'Vote Manager | Starting Vote:', {
             type,
             userId: game.user.id,
             isGM,
@@ -176,7 +176,7 @@ export class VoteManager {
             isLeader,
             canStartVote,
             activeVote: this.activeVote
-        });
+        }, true, false);
 
         if (!canStartVote) {
             ui.notifications.warn("Only the GM or party leader can start votes.");
@@ -709,7 +709,7 @@ export class VoteManager {
             currentUserIsGM: game.user.isGM
         };
 
-        postConsoleAndNotification("Vote Manager | Template Data", 
+        postConsoleAndNotification(MODULE.NAME, "Vote Manager | Template Data", 
             `Template Variables:\n` +
             `-------------------\n` +
             `userId: ${messageData.userId}\n` +
@@ -717,7 +717,7 @@ export class VoteManager {
             `vote.type: ${messageData.vote.type}\n` +
             `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
             `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
-            false, true, false
+            true, false
         );
 
         const content = await renderTemplate(
@@ -758,7 +758,7 @@ export class VoteManager {
             currentUserIsGM: game.user.isGM
         };
 
-        postConsoleAndNotification("Vote Manager | Template Data", 
+        postConsoleAndNotification(MODULE.NAME, "Vote Manager | Template Data", 
             `Template Variables:\n` +
             `-------------------\n` +
             `userId: ${messageData.userId}\n` +
@@ -766,7 +766,7 @@ export class VoteManager {
             `vote.type: ${messageData.vote.type}\n` +
             `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
             `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
-            false, true, false
+            true, false
         );
 
         const content = await renderTemplate(

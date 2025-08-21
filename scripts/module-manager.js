@@ -6,7 +6,7 @@ export class ModuleManager {
     static features = new Map();
 
     static initialize() {
-        postConsoleAndNotification("Coffee Pub Blacksmith | ModuleManager initializing", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "ModuleManager initializing", "", true, false);
         this._detectInstalledModules();
     }
 
@@ -15,7 +15,7 @@ export class ModuleManager {
         Object.entries(COFFEE_PUB_MODULES).forEach(([key, moduleId]) => {
             const module = game.modules.get(moduleId);
             if (module?.active) {
-                postConsoleAndNotification(`Coffee Pub Blacksmith | Detected active module: ${moduleId}`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Detected active module: ${moduleId}`, "", true, false);
                 this.registeredModules.set(moduleId, {
                     id: moduleId,
                     name: module.title,
@@ -36,7 +36,7 @@ export class ModuleManager {
      */
     static registerModule(moduleId, config) {
         if (!this.registeredModules.has(moduleId)) {
-            postConsoleAndNotification(`Coffee Pub Blacksmith | Error: Module ${moduleId} not found or not active`, "", true, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Error: Module ${moduleId} not found or not active`, "", true, false);
             return false;
         }
 
@@ -53,7 +53,7 @@ export class ModuleManager {
             }
         });
 
-        postConsoleAndNotification(`Coffee Pub Blacksmith | Registered module: ${moduleId}`, "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Registered module: ${moduleId}`, "", true, false);
         return true;
     }
 

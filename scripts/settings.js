@@ -83,7 +83,7 @@ function checkInstalledModules() {
 
 // -- COMPENDIUM CHOICES  --
 function getCompendiumChoices() {
-    postConsoleAndNotification("Building Compendium List...", "", false, false, false);
+    postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
 
     const choicesArray = Array.from(game.packs.values()).map(compendium => {
         // Try to get a human-readable package label, fallback to package name
@@ -110,7 +110,7 @@ function getCompendiumChoices() {
     // BLACKSMITH UPDATER - Make the Compendium Array available to ALL Coffee Pub modules
 
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
-    postConsoleAndNotification("Updated BLACKSMITH.arrCompendiumChoices to:", BLACKSMITH.arrCompendiumChoices, false, false, false);
+    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrCompendiumChoices to:", BLACKSMITH.arrCompendiumChoices, false, false);
     // Make the array available to these settings.
     return choices;
 }
@@ -118,7 +118,7 @@ function getCompendiumChoices() {
 
 // -- TABLE CHOICES  --
 function getTableChoices() {
-	postConsoleAndNotification("Building Table List...", "", false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Building Table List...", "", false, false);
     const choices = { "none":"-- Choose a Table --" };
     Array.from(game.tables.values()).reduce((choices, table) => {
       choices[table.name] = table.name;
@@ -128,13 +128,13 @@ function getTableChoices() {
 	// BLACKSMITH UPDATER - Make the Table Array available to ALL Coffee Pub modules
 
 	BLACKSMITH.updateValue('arrTableChoices', choices);
-	postConsoleAndNotification("Updated BLACKSMITH.arrTableChoices to:", BLACKSMITH.arrTableChoices, false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrTableChoices to:", BLACKSMITH.arrTableChoices, false, false);
 	// Make the array available to these settings.
     return choices;
  }
 // -- MACRO CHOICES --
 function getMacroChoices() {
-	postConsoleAndNotification("Building Maco List...", "", false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Building Macro List...", "", false, false);
     let choiceObject = { "none":"-- Create A New Macro --" };
     let choiceKeys = Array.from(game.macros.values()).map(macro => macro.name);
     choiceKeys.sort().forEach(key => {
@@ -143,26 +143,26 @@ function getMacroChoices() {
 
 	// BLACKSMITH UPDATER - Make the Macro Array available to ALL Coffee Pub modules
 	BLACKSMITH.updateValue('arrMacroChoices', choiceObject);
-	postConsoleAndNotification("Updated BLACKSMITH.arrMacroChoices to:", BLACKSMITH.arrMacroChoices, false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrMacroChoices to:", BLACKSMITH.arrMacroChoices, false, false);
 	// Make the array available to these settings.
     return choiceObject;
 }
 // -- NAMEPLATE CHOICES --
 function getNameplateChoices() {
-	postConsoleAndNotification("Building Nameplate List...", "", false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Building Nameplate List...", "", false, false);
 	let choices = {};
 	for(const data of dataNameplate.names) {
 		choices[data.id] = data.name;
 	}
 	BLACKSMITH.updateValue('arrNameChoices', choices);
-	postConsoleAndNotification("Updated BLACKSMITH.arrNameChoices to:", BLACKSMITH.arrNameChoices, false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrNameChoices to:", BLACKSMITH.arrNameChoices, false, false);
 	return choices;
 }
 
 // -- THEME CHOICES  --
 // Build the shared theme array to be use by other modules.
 function getThemeChoices() {
-	postConsoleAndNotification("Building Theme List...", "", false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Building Theme List...", "", false, false);
 	let choices = {};
     // Initialize arrThemeChoicesEnabled array
     BLACKSMITH.arrThemeChoicesEnabled = []; 
@@ -183,7 +183,7 @@ function getThemeChoices() {
     }
     // BLACKSMITH UPDATER - Make the Themes Array available to ALL Coffee Pub modules
     BLACKSMITH.updateValue('arrThemeChoices', choices);
-	postConsoleAndNotification("Updated BLACKSMITH.arrThemeChoices to:", BLACKSMITH.arrThemeChoices, false, false, false);
+	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrThemeChoices to:", BLACKSMITH.arrThemeChoices, false, false);
     // Return it to this modules settings.
     return choices; 
 }
@@ -210,7 +210,7 @@ function registerThemes() {
 
 // -- BACKGROUND IMAGE CHOICES --
 function getBackgroundImageChoices() {
-    postConsoleAndNotification("Building Background Image List...", "", false, false, false);
+    postConsoleAndNotification(MODULE.NAME, "Building Background Image List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrBackgroundImageChoicesEnabled = [];
     let sortedImages = dataBackgroundImages.images;
@@ -227,14 +227,14 @@ function getBackgroundImageChoices() {
     }
     // BLACKSMITH UPDATER
     BLACKSMITH.updateValue('arrBackgroundImageChoices', choices);
-    postConsoleAndNotification("Updated BLACKSMITH.arrBackgroundImageChoices to:", BLACKSMITH.arrBackgroundImageChoices, false, false, false);    
+    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrBackgroundImageChoices to:", BLACKSMITH.arrBackgroundImageChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }
 
 // -- ICON CHOICES --
 function getIconChoices() {
-    postConsoleAndNotification("Building Icon List...", "", false, false, false);
+    postConsoleAndNotification(MODULE.NAME, "Building Icon List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrIconChoicesEnabled = [];
     let sortedIcons = dataIcons.icons;
@@ -251,14 +251,14 @@ function getIconChoices() {
     }
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrIconChoices', choices);
-    postConsoleAndNotification("Updated BLACKSMITH.arrIconChoices to:", BLACKSMITH.arrIconChoices, false, false, false);    
+    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrIconChoices to:", BLACKSMITH.arrIconChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }
 
 // -- SOUND CHOICES --
 function getSoundChoices() {
-    postConsoleAndNotification("Building Sound List...", "", false, false, false);
+    postConsoleAndNotification(MODULE.NAME, "Building Sound List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrSoundChoicesEnabled = [];
     let sortedSounds = dataSounds.sounds;
@@ -274,7 +274,7 @@ function getSoundChoices() {
     }
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrSoundChoices', choices);
-    postConsoleAndNotification("Updated BLACKSMITH.arrSoundChoices to:", BLACKSMITH.arrSoundChoices, false, false, false);    
+    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrSoundChoices to:", BLACKSMITH.arrSoundChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }

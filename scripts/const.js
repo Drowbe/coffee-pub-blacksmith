@@ -5,22 +5,27 @@
 export const MODULE = {
     ID: 'coffee-pub-blacksmith',
     NAME: 'BLACKSMITH',
-    TITLE: 'Coffee Pub Blacksmith'
+    TITLE: 'Coffee Pub Blacksmith',
+    AUTHOR: 'COFFEE PUB'
 };
 
 
 export const MODULE_TITLE = 'BLACKSMITH';
 export const MODULE_ID = 'coffee-pub-blacksmith';
 
+// and we need to migrate us of const MODULE_AUTHOR = 'COFFEE PUB' from global.js to MODULE.AUTHOR and add it to all other modules.
+
+
 // Coffee Pub Module IDs
+
+// I think this should become COFFEEPUB.MODULES at some point
 export const COFFEE_PUB_MODULES = {
-    BLACKSMITH: MODULE_ID,
+    BLACKSMITH: 'coffee-pub-blacksmith',
     BIBLIOSOPH: 'coffee-pub-bibliosoph',
     CRIER: 'coffee-pub-crier',
     SCRIBE: 'coffee-pub-scribe',
     SQUIRE: 'coffee-pub-squire',
     MONARCH: 'coffee-pub-monarch'
-
 };
 
 // API Version

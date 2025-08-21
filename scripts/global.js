@@ -430,7 +430,7 @@ export function objectToString(obj) {
 // ************************************
 
 export function stringToObject(str) {
-    //postConsoleAndNotification("Converting string to object: ", str, false, true, false);
+
     let obj = {};
     if (str) {
         let pairs = str.split('|');
@@ -439,7 +439,7 @@ export function stringToObject(str) {
             obj[key] = value;
         }
     } else {
-        postConsoleAndNotification("Can't convert an empty string: ", str, false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Can't convert an empty string: ", str, false, false);
     }
     return obj;
 }
@@ -491,8 +491,6 @@ export function getTokenImage(tokenDoc) {
 export function getPortraitImage(actor) {
     // Get the actor's portrait data.
     const portraitData = actor.img || actor.prototypeToken.texture.src; // Check both possible fields
-
-    //postConsoleAndNotification("IN getPortraitImage. portraitData:", portraitData, false, true, false);
 
     // If the portrait data is not set, return an empty string.
     if (!portraitData) {
@@ -573,61 +571,48 @@ export function generateFormattedDate(format) {
 export function resetModuleSettings(moduleId) {
     // Get the module
     const module = game.modules.get(moduleId);
-    postConsoleAndNotification("A Setting Reset has been called for: ", module, false, false, true) 
+            postConsoleAndNotification(MODULE.NAME, "A Setting Reset has been called for: ", module, false, true) 
     // Reset all settings to their default values
     module.settings.reset();
-    postConsoleAndNotification("Module settings reset: ", module, false, false, true) 
+            postConsoleAndNotification(MODULE.NAME, "Module settings reset: ", module, false, true) 
 } 
 
 // ************************************
 // ** BLACKSMITH VARIABLE SHARING
 // ************************************
 // This code will be executed whenever any BLACKSMITH variable in the "coffee-pub-blacksmith" module is pushed
-// postConsoleAndNotification("The updated BLACKSMITH object is...", newBlacksmith, false, true, false);
 export function registerBlacksmithUpdatedHook() {
     Hooks.on("blacksmithUpdated", (newBlacksmith) => {
         // BLACKSMITH VARIABLE COLLECTION
         // RICH CONSOLE
         COFFEEPUB.blnFancyConsole = newBlacksmith.blnFancyConsole;
-        //postConsoleAndNotification("The updated COFFEEPUB.blnFancyConsole: ", COFFEEPUB.blnFancyConsole, false, true, false);
         // DEBUG ON/OFF
         COFFEEPUB.blnDebugOn = newBlacksmith.blnDebugOn;
-        //postConsoleAndNotification("The updated COFFEEPUB.blnDebugOn: ", COFFEEPUB.blnDebugOn, false, true, false);
         // DEBUG STYLE
         COFFEEPUB.strConsoleDebugStyle = newBlacksmith.strConsoleDebugStyle;
-        //postConsoleAndNotification("The updated COFFEEPUB.strConsoleDebugStyle: ", COFFEEPUB.strConsoleDebugStyle, false, true, false);
         // Get the default theme
         COFFEEPUB.strDEFAULTCARDTHEME = newBlacksmith.strDefaultCardTheme;
-        //postConsoleAndNotification("The updated COFFEEPUB.strDEFAULTCARDTHEME: ", COFFEEPUB.strDEFAULTCARDTHEME, false, true, false);
         // Get the Themes list
         COFFEEPUB.arrTHEMECHOICES = newBlacksmith.arrThemeChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrTHEMECHOICES: ", COFFEEPUB.arrTHEMECHOICES, false, true, false);
         // Get the Macro list
         COFFEEPUB.arrMACROCHOICES = newBlacksmith.arrMacroChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrMACROCHOICES: ", COFFEEPUB.arrMACROCHOICES, false, true, false);
         // Get the Table list
         COFFEEPUB.arrCOMPENDIUMCHOICES = newBlacksmith.arrCompendiumChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrCOMPENDIUMCHOICES: ", COFFEEPUB.arrCOMPENDIUMCHOICES, false, true, false);
         // Get the Table list
         COFFEEPUB.arrTABLECHOICES = newBlacksmith.arrTableChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrTABLECHOICES: ", COFFEEPUB.arrTABLECHOICES, false, true, false);
         // Get the Image list
         COFFEEPUB.arrBACKGROUNDIMAGECHOICES = newBlacksmith.arrBackgroundImageChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrBACKGROUNDIMAGECHOICES: ", COFFEEPUB.arrBACKGROUNDIMAGECHOICES, false, true, false)
         // Get the Image list
         COFFEEPUB.arrICONCHOICES = newBlacksmith.arrIconChoices;
-        //postConsoleAndNotification("The updated COFFEEPUB.arrICONCHOICES: ", COFFEEPUB.arrICONCHOICES, false, true, false);
         // Get the Sound list
         COFFEEPUB.arrSOUNDCHOICES = newBlacksmith.arrSoundChoices;
-        postConsoleAndNotification("The updated COFFEEPUB.arrSOUNDCHOICES: ", COFFEEPUB.arrSOUNDCHOICES, false, true, false);
         // Get the OpenAI Variables
         COFFEEPUB.strOpenAIAPIKey = newBlacksmith.strOpenAIAPIKey;
         COFFEEPUB.strOpenAIModel = newBlacksmith.strOpenAIModel;
         COFFEEPUB.strOpenAIGameSystems = newBlacksmith.strOpenAIGameSystems;
         COFFEEPUB.strOpenAIPrompt = newBlacksmith.strOpenAIPrompt;
         COFFEEPUB.strOpenAITemperature = newBlacksmith.strOpenAITemperature;
-        //postConsoleAndNotification("Updated the OpenAI Variables.", "", false, true, false);
-        postConsoleAndNotification("Completed updating the BLACKSMITH object.", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Completed updating the BLACKSMITH object.", "", true, false);
     });
 }
 
@@ -666,7 +651,7 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
             loop: loop
         }, broadcast);
     } catch (error) {
-        postConsoleAndNotification(`Blacksmith | Global.js | Failed to play sound: ${sound}`, error, false, false, true);
+        postConsoleAndNotification(MODULE.NAME, `Global.js | Failed to play sound: ${sound}`, error, false, true);
     }
 }
 
@@ -705,7 +690,7 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
         else if (typeof roll === 'string') {
             roll = await new Roll(roll).evaluate();
         }
-        //postConsoleAndNotification(`BIBLIOSOPH: rollCoffeePubDice roll`, roll, false, true, false);
+
         var user = game.user;
         var synchronize = true;
         var whisper = null;
@@ -717,11 +702,11 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
         try {
             let displayed = await game.dice3d.showForRoll(roll, user, synchronize, whisper, blind, chatMessageID, speaker, {ghost:false, secret:false});
             if(!displayed) {
-                postConsoleAndNotification(`Dice So Nice roll was not displayed for dice type ${roll}`, undefined, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Dice So Nice roll was not displayed for dice type ${roll}`, undefined, true, false);
             }
         } catch(err) {
             // Use my custom error function
-            postConsoleAndNotification(`Error occurred in Dice So Nice`, err.message, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Error occurred in Dice So Nice`, err.message, true, false);
         };
     }
 }
@@ -774,7 +759,7 @@ async function callGptApiText(query) {
         max_tokens = 4096;  // Default for other models
     }
 
-    postConsoleAndNotification(`BLACKSMITH: Using model ${model} with max_tokens ${max_tokens}`, "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Using model ${model} with max_tokens ${max_tokens}`, "", true, false);
 
     const requestBody = {
         model,
@@ -840,7 +825,7 @@ async function callGptApiText(query) {
         for (let retries = 0, backoffTime = 2000; retries < 4; retries++, backoffTime *= 2) {
             if (retries > 0) {
                 await new Promise(r => setTimeout(r, backoffTime));
-                postConsoleAndNotification(`BLACKSMITH: Retry attempt ${retries} after ${backoffTime}ms wait`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Retry attempt ${retries} after ${backoffTime}ms wait`, "", true, false);
             }
             
             try {
@@ -880,7 +865,7 @@ async function callGptApiText(query) {
                     throw fetchError;
                 }
                 // For timeout errors, continue with retry
-                postConsoleAndNotification(`BLACKSMITH: Request timed out, will retry`, "", false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Request timed out, will retry`, "", true, false);
             }
         }
         
@@ -892,7 +877,6 @@ async function callGptApiText(query) {
 }
 // -- FUNCTION TO CALL OPENAI IMAGE --
 async function callGptApiImage(query) {
-    //postConsoleAndNotification("In callGptApiImage(): query =", query, false, true, false);    
     const apiKey = COFFEEPUB.strOpenAIAPIKey;
     const apiUrl = 'https://api.openai.com/v1/images';
     const requestBody = {
@@ -910,17 +894,14 @@ async function callGptApiImage(query) {
         body: JSON.stringify(requestBody),
     };
     const response = await fetch(apiUrl, requestOptions);
-    //postConsoleAndNotification("In callGptApiImage(): response =", response, false, true, false);   
     const data = await response.json();
-    //postConsoleAndNotification("In callGptApiImage(): data =", data, false, true, false);   
     const image_url = data.data[0].url;
-    //postConsoleAndNotification("In callGptApiImage(): image_url =", image_url, false, true, false); 
     return image_url;  // Returns an URL to the Draft response where it could be used 
 }
 // This is Exported
 // -- CALL FOR OPENAI QUERY --
 export async function getOpenAIReplyAsHtml(query) {
-    postConsoleAndNotification("In getOpenAIReplyAsHtml(query): query =", query, false, true, false);  
+            postConsoleAndNotification(MODULE.NAME, "In getOpenAIReplyAsHtml(query): query =", query, true, false);  
 	
     const response = await callGptApiText(query);
     
@@ -960,7 +941,7 @@ export async function getOpenAIReplyAsHtml(query) {
             // Convert back to string
             content = JSON.stringify(jsonObj, null, 2);
         } catch (e) {
-            postConsoleAndNotification("Error processing JSON", e, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Error processing JSON", e, false, true);
             // Keep the original content if JSON processing fails
         }
     } else {
@@ -981,7 +962,6 @@ export async function getOpenAIReplyAsHtml(query) {
 // ************************************
 // ** UTILITY Post to Console
 // ************************************
-// postConsoleAndNotification("This is the message.", Variable Goes Here, Divider (true/false), Debug (true/false), Notification (true/false))
 // Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
 
 export function postConsoleAndNotification(strModuleTitle = "BLACKSMITH", message = "No Message.", result = "", blnDebug = false, blnNotification = false) {
@@ -1238,14 +1218,14 @@ export function postConsoleAndNotification(strModuleTitle = "BLACKSMITH", messag
  * @returns {boolean} - True if the entity is a player character
  */
 export function isPlayerCharacter(entity) {
-    postConsoleAndNotification('isPlayerCharacter - Checking entity:', entity, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Checking entity:', entity, true, false);
 
     // If we're passed a combatant, check its actor
     if (entity?.actor) {
         const result = entity.actor.hasPlayerOwner || 
                       entity.actor.type === 'character' ||
                       game.users.find(u => u.character?.name === entity.name);
-        postConsoleAndNotification('isPlayerCharacter - Combatant check result:', {
+        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Combatant check result:', {
             name: entity.name,
             hasPlayerOwner: entity.actor.hasPlayerOwner,
             type: entity.actor.type,
@@ -1259,7 +1239,7 @@ export function isPlayerCharacter(entity) {
         const result = entity.hasPlayerOwner || 
                       entity.type === 'character' ||
                       game.users.find(u => u.character?.id === entity.id);
-        postConsoleAndNotification('isPlayerCharacter - Actor check result:', {
+        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Actor check result:', {
             name: entity.name,
             hasPlayerOwner: entity.hasPlayerOwner,
             type: entity.type,
@@ -1279,7 +1259,7 @@ export function isPlayerCharacter(entity) {
         // If no player character found, check if any user has this character name
         const isUserCharacter = game.users.some(u => u.character?.name === entity);
         
-        postConsoleAndNotification('isPlayerCharacter - Name check result:', {
+        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Name check result:', {
             name: entity,
             foundPlayerActor: !!playerActor,
             isUserCharacter,
@@ -1289,6 +1269,6 @@ export function isPlayerCharacter(entity) {
         return !!playerActor || isUserCharacter;
     }
     
-    postConsoleAndNotification('isPlayerCharacter - No valid entity type found', "", false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - No valid entity type found', "", true, false);
     return false;
 }

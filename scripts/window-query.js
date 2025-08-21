@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
                 });
             } else {
-                postConsoleAndNotification(`Blacksmith | Elements not found for workspace: ${workspace}`, "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Elements not found for workspace: ${workspace}`, "", false, true);
             }
         });
 
@@ -273,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add event listeners after rendering
                     addEventListeners();
                 } else {
-                    postConsoleAndNotification('Blacksmith | Element with ID "blacksmith-workspace-wrapper" not found.', "", false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Element with ID "blacksmith-workspace-wrapper" not found.', "", false, true);
                 }
             });
         } catch (error) {
-            postConsoleAndNotification('Blacksmith | Error loading partial templates:', error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error loading partial templates:', error, false, true);
         }
     };
 
@@ -311,7 +311,7 @@ window.toggleSection = function(sectionId, button) {
         }
 
     } else {
-        postConsoleAndNotification("Section content not found for ID:", sectionId, false, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Section content not found for ID:", sectionId, false, true);
     }
 };
 
@@ -710,7 +710,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                                 page = await fromUuid(data.uuid);
                                 if (!page) {
-                                    postConsoleAndNotification('BLACKSMITH | Regent: Page not found for UUID:', data.uuid, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, 'Regent: Page not found for UUID:', data.uuid, true, false);
                                     return;
                                 }
                                 journal = page.parent;
@@ -719,7 +719,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
                                 journal = await fromUuid(data.uuid);
                                 if (!journal) {
-                                    postConsoleAndNotification('BLACKSMITH | Regent: Journal not found for UUID:', data.uuid, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, 'Regent: Journal not found for UUID:', data.uuid, true, false);
                                     return;
                                 }
 
@@ -870,8 +870,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification('Error processing dropped item:', error, false, false, true);
-                    postConsoleAndNotification('Error stack:', error.stack, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped item:', error, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error stack:', error.stack, false, true);
                 }
             });
         });
@@ -980,7 +980,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification('Error processing dropped journal:', error, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped journal:', error, false, true);
                 }
             });
         });
@@ -1083,7 +1083,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         const toggleButton = document.getElementById('blacksmith-toggle-workspace');
         
         if (!workspace || !windowElement) {
-            postConsoleAndNotification('Could not find workspace or window elements', "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Could not find workspace or window elements', "", false, true);
             return;
         }
 
@@ -1155,12 +1155,12 @@ export class BlacksmithWindowQuery extends FormApplication {
             const partyHeroCRElement = partyHeroCRContainer.querySelector('.big-number.bold-badge');
             if (partyHeroCRElement) {
                 heroCR = partyHeroCRElement.innerText.trim();
-                postConsoleAndNotification(`Party Benchmark for id ${id}:`, heroCR, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Party Benchmark for id ${id}:`, heroCR, true, false);
             } else {
-                postConsoleAndNotification(`Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`, "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`, "", false, true);
             }
         } else {
-            postConsoleAndNotification(`Element with id worksheet-party-partycr-${id} not found.`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-party-partycr-${id} not found.`, "", false, true);
         }
         // Update the Hero CR on the PARTY sheet
 
@@ -1170,21 +1170,21 @@ export class BlacksmithWindowQuery extends FormApplication {
             const npcHeroCrElement = npcHeroCrContainer.querySelector('.big-number.bold-badge');
             if (npcHeroCrElement) {
                 heroCR = npcHeroCrElement.innerText.trim();
-                postConsoleAndNotification(`NPC Hero CR for id ${id}:`, heroCR, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `NPC Hero CR for id ${id}:`, heroCR, true, false);
             } else {
-                postConsoleAndNotification(`Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`, "", false, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`, "", false, true);
             }
         } else {
-            postConsoleAndNotification(`Element with id worksheet-npc-herocr-${id} not found.`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-npc-herocr-${id} not found.`, "", false, true);
         }
         // MONSTER CR 
         const monsterCRValueElement = document.querySelector(`#monsterCRValue-${id}`);
         let monsterCRValue = 0;
         if (monsterCRValueElement) {
             monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
-            postConsoleAndNotification(`Monster CR Value for id ${id}:`, monsterCRValue, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Monster CR Value for id ${id}:`, monsterCRValue, true, false);
         } else {
-            postConsoleAndNotification(`Blacksmith | Element with id monsterCRValue-${id} not found.`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id monsterCRValue-${id} not found.`, "", false, true);
             monsterCRValue = 0;
         }
 
@@ -1208,7 +1208,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     }
 
     async addTokensToContainer(id, type = 'player', providedTokens = null) {
-        postConsoleAndNotification(`Adding ${type} tokens to container for ID:`, id, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Adding ${type} tokens to container for ID:`, id, true, false);
         const intHPThreshold = 50;
         
         // Get the appropriate container based on type
@@ -1222,7 +1222,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (!tokensContainer) {
-            postConsoleAndNotification(`Blacksmith | Container not found for type ${type} and ID ${id}`, "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Container not found for type ${type} and ID ${id}`, "", false, true);
             return;
         }
     
@@ -1275,7 +1275,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                        !isItemPile;
             }
         });
-        postConsoleAndNotification(`Filtered ${type} tokens:`, tokens, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Filtered ${type} tokens:`, tokens, true, false);
     
         if (tokens.length === 0) {
             if (!tokensContainer.hasChildNodes()) {
@@ -1289,7 +1289,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (!foundry.utils.hasProperty(token.actor, "system")) return;
             
             const actorData = token.actor.system;
-            postConsoleAndNotification("Actor Data:", actorData, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Actor Data:", actorData, true, false);
             const name = token.name;
             const strName = trimString(name, 16);
     
@@ -1386,7 +1386,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 // Add to NPC container
                 tokensContainer.insertAdjacentHTML('beforeend', tokenHTML);
             } else {
-                postConsoleAndNotification("BLACKSMITH: Building Monster Card", strName, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Building Monster Card", strName, true, false);
                 // Get CR from actor data
                 let cr = actorData.details?.cr;
                 // If CR exists but is a number, format it properly
@@ -1406,12 +1406,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                 const uuid = token.document.uuid || 'UUID Unknown';
 
                 // For debugging
-                postConsoleAndNotification("Monster CR Data:", {
+                postConsoleAndNotification(MODULE.NAME, "Monster CR Data:", {
                     name: strName,
                     rawCR: actorData.details?.cr,
                     formattedCR: cr,
                     type: monsterType
-                }, false, true, false);
+                }, true, false);
 
                 type = 'Monster';
 
@@ -1444,13 +1444,13 @@ export class BlacksmithWindowQuery extends FormApplication {
         if (type === 'player') {
             this._applyTokenDataToButtons(tokens);
             // update the level and total monster CR    
-            postConsoleAndNotification("Update Character Level.", id, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Update Character Level.", id, true, false);
             updateTotalPlayerCounts(id);
             // HIDE THE TOKENS ADDED MESSAGE
             // Display the message and hide the rest of the content
             document.getElementById(`tokens-added-message-${id}`).style.display = 'block';
         } else if (type === 'monster') {
-            postConsoleAndNotification("Update Monster CR.", id, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Update Monster CR.", id, true, false);
             updateTotalMonsterCR(id, tokens);
         }
     }
@@ -1484,20 +1484,20 @@ export class BlacksmithWindowQuery extends FormApplication {
             switch (strJournalType.toUpperCase()) {
                 case "NARRATIVE":
                 case "ENCOUNTER":
-                    postConsoleAndNotification("Creating an NARRATIVE or ENCOUNTER journal entry.", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Creating an NARRATIVE or ENCOUNTER journal entry.", "", false, false);
                     await createJournalEntry(journalData);
-                    postConsoleAndNotification("completed NARRATIVE or ENCOUNTER journal entry creation.", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "completed NARRATIVE or ENCOUNTER journal entry creation.", "", false, false);
                     break;
                 case "INJURY":
-                    postConsoleAndNotification("Creating an INJURY journal entry.", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Creating an INJURY journal entry.", "", false, false);
                     await buildInjuryJournalEntry(journalData);
-                    postConsoleAndNotification("completed INJURY journal entry creation.", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "completed INJURY journal entry creation.", "", false, false);
                     break;
                 default:
-                    postConsoleAndNotification("Can't create the journal entry. The journal type was not found.", strJournalType, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
             }
         } catch (error) {
-            postConsoleAndNotification("Blacksmith | Error processing JSON:", error, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Error processing JSON:", error, false, true);
 
         }
     }
@@ -1512,8 +1512,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         const messageId = button.data('message-id');
         const contentElement = $(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
         const content = contentElement.length ? contentElement.html() : null;
-        postConsoleAndNotification("Content Element:", contentElement, false, true, false);
-        postConsoleAndNotification("Content:", content, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Content:", content, true, false);
         playSound(COFFEEPUB.SOUNDPOP02,COFFEEPUB.SOUNDVOLUMESOFT);
         if (content && content.trim() !== "") {
             await ChatMessage.create({
@@ -1521,7 +1521,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 speaker: ChatMessage.getSpeaker()
             });
         } else {
-            postConsoleAndNotification("Blacksmith | No content found to send to chat.", "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "No content found to send to chat.", "", false, true);
             ui.notifications.error("No content found to send to chat.");
         }
     }
@@ -1537,8 +1537,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         const messageId = button.data('message-id');
         const contentElement = $(`#blacksmith-message-content[data-message-id="${messageId}"]`);
         let content = contentElement.length ? contentElement.html() : null;
-        postConsoleAndNotification("Content Element:", contentElement, false, false, false);
-        postConsoleAndNotification("Content:", content, false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Content:", content, false, false);
         playSound(COFFEEPUB.SOUNDPOP02,COFFEEPUB.SOUNDVOLUMESOFT);
         if (content && content.trim() !== "") {
             // Sanitize content to remove unnecessary whitespace and line breaks
@@ -1551,11 +1551,11 @@ export class BlacksmithWindowQuery extends FormApplication {
                 await navigator.clipboard.writeText(content);
                 ui.notifications.info("Content copied to clipboard.");
             } catch (err) {
-                postConsoleAndNotification("Blacksmith | Failed to copy content: ", err, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Failed to copy content: ", err, false, true);
                 ui.notifications.error("Blacksmith | Failed to copy content to clipboard.");
             }
         } else {
-            postConsoleAndNotification("Blacksmith | No content found to copy.", "", false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "No content found to copy.", "", false, true);
             ui.notifications.error("Blacksmith | No content found to copy.");
         }
     }
@@ -1590,7 +1590,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // INPUT MESSAGE - NORMAL QUESTION
         const inputMessage = form.querySelector('textarea[name="blacksmith-input-message"]').value.trim();
-        postConsoleAndNotification('Form submitted with message:', inputMessage, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Form submitted with message:', inputMessage, true, false);
 
 
         //  LOOKUPS
@@ -1633,7 +1633,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         let targetRating = ""; // Initialize the variable
         if (targetRatingElement) {
             targetRating = targetRatingElement.textContent; // Set targetRating to the text content
-            postConsoleAndNotification(targetRating, "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, targetRating, "", true, false);
         }
         const inputNarrativeEncounterDetails = form.querySelector('#inputNarrativeEncounterDetails-' + id)?.value ?? null;
 
@@ -2252,7 +2252,7 @@ Key encounter requirements:`;
                     strPromptNarration += `\n\nIMPORTANT: Make sure to include ALL linked encounters in your JSON response. The linkedEncounters array MUST include all encounters listed above, with proper uuid, name, synopsis, and keyMoments fields for each encounter. DO NOT omit any fields.`;
                 }
             } catch (e) {
-                postConsoleAndNotification('Error parsing encounters data:', e, false, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Error parsing encounters data:', e, false, true);
             }
         }
 
@@ -2341,7 +2341,7 @@ Key encounter requirements:`;
         // If they added something to the input, use it.
         if (inputMessage){
             // Normal Question
-            postConsoleAndNotification("Using Input Message, ignoring workspace: ", inputMessage, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Using Input Message, ignoring workspace: ", inputMessage, true, false);
             // Prompt
             strFinalPrompt += inputMessage + `\n\n`;
             // GM Context
@@ -2359,7 +2359,7 @@ Key encounter requirements:`;
                     case "encounter":
                         // ENCOUNTER
                         // Prompt
-                        postConsoleAndNotification("SWITCH: Encounter", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "SWITCH: Encounter", "", true, false);
                         strFinalPrompt += strPromtGMMindset + "\n\n" + strPromptEncounter;
                         // GM Context
                         strGmContext += addTableRow('<b>GENERAL</b>', null);
@@ -2389,7 +2389,7 @@ Key encounter requirements:`;
                     case "narrative":
                         // NARRATIVE
                         // Prompt
-                        postConsoleAndNotification("SWITCH: Narrative", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "SWITCH: Narrative", "", true, false);
                         strFinalPrompt += strPromtGMMindset + "\n\n" + strPromptNarration;
                         // GM Context
                         strGmContext += addTableRow('<b>GENERAL</b>', null);
@@ -2419,7 +2419,7 @@ Key encounter requirements:`;
                     case "lookup":
                         // LOOKUP
                         // Prompt
-                        postConsoleAndNotification("SWITCH: lookup", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "SWITCH: lookup", "", true, false);
                         strPromtGMMindset = strPromtGMMindset + "\n\nYou going to provide context about features, spells, rules, actions or other details for the players. Use the data that follows to answer the question being clear and instructional.";
                         strFinalPrompt += strPromtGMMindset + "\n\n" + strPromtFeatures;
                         // GM Context
@@ -2448,7 +2448,7 @@ Key encounter requirements:`;
                     case "assistant":
                         // SKILL CHECK
                         // Prompt
-                        postConsoleAndNotification("SWITCH: assistant", "", false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, "SWITCH: assistant", "", true, false);
                         strPromtGMMindset = strPromtGMMindset + "\n\nYou are generating descriptions and details for the GM and Players, as is applicable. You will provide a detailed response to the question being asked. You will include details, stats, and other information as needed.";
                         strFinalPrompt += strPromtGMMindset;
                         strFinalPrompt += "\n\n" + strPromptSkillCheck; // Skill Check
@@ -2574,12 +2574,6 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
             }
         }
 
-
-        //postConsoleAndNotification("BLACKSMITH strFinalContext", strFinalContext, false, true, false);
-        //postConsoleAndNotification("BLACKSMITH strFinalPrompt", strFinalPrompt, false, true, false);
-
-
-
         // ==============================================================
         // == PROCESS THE PROMPTS
         // ==============================================================
@@ -2593,7 +2587,6 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         if (inputMessage || isWorkspaceSet) {
             // Only clear the inputs
             this.messages.push(strFinalPrompt);
-           //postConsoleAndNotification("CLEAR FORMS: blnClearForm", blnClearForm, false, true, false);
            const inputs = form.querySelectorAll('input, textarea, select');
 
             // Clear all input elements in the form except 'enterSubmits'
@@ -2609,7 +2602,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
                 // Pass the message to the callback
                 // This sends the data to ChatGPT via buildQueryCard in blacksmith.js
-                postConsoleAndNotification("BLACKSMITH Submitting to ChatGPT: strFinalPrompt", strFinalPrompt, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Submitting to ChatGPT: strFinalPrompt", strFinalPrompt, true, false);
                 await this.onFormSubmit(strFinalPrompt, strFinalContext);
 
                 // Hide the divs with the class "blacksmith-processing"
@@ -2621,7 +2614,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
                 // Check if the user is  a GM
                 // et the GM know that the user is using the Regent to generate a prompt.
                 if (!game.user.isGM) {
-                    postConsoleAndNotification("Someone is using the Regent to generate a prompt.", "", false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Someone is using the Regent to generate a prompt.", "", true, false);
                     // Whisper the final prompt to the GM
                     const gmUsers = game.users.filter(user => user.isGM);
                     for (const gmUser of gmUsers) {
@@ -3058,7 +3051,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     const content = page.text.content;
     
     // Log the content for debugging
-    postConsoleAndNotification('BLACKSMITH | Regent: Parsing encounter content for:', page.name, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'Regent: Parsing encounter content for:', page.name, true, false);
     
     // First try to find the Summary and Setup section
     const setupMatch = content.match(/<h4>Summary and Setup<\/h4>([\s\S]*?)(?=<h4>|$)/i);
@@ -3068,7 +3061,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
     }
 
     const setupContent = setupMatch[1];
-    postConsoleAndNotification('BLACKSMITH | Regent: Setup content found, length:', setupContent.length, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'Regent: Setup content found, length:', setupContent.length, true, false);
     
     // Extract synopsis - handle multiple possible patterns
     let synopsis = "";
@@ -3085,7 +3078,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
             break;
         }
     }
-    postConsoleAndNotification('BLACKSMITH | Regent: Extracted synopsis:', synopsis, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'Regent: Extracted synopsis:', synopsis, true, false);
     
     // Extract key moments - handle multiple possible patterns
     let keyMoments = [];
@@ -3115,7 +3108,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
             break;
         }
     }
-    postConsoleAndNotification('BLACKSMITH | Regent: Extracted key moments:', keyMoments, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'Regent: Extracted key moments:', keyMoments, true, false);
 
     // Create the encounter card
     const strName = trimString(page.name, 24);
@@ -3188,7 +3181,7 @@ function updateEncountersData(id, newEncounterData) {
     // Update the input value with the formatted data
     encountersInput.value = JSON.stringify(encountersData);
     
-    postConsoleAndNotification('BLACKSMITH | Regent: Updated encounters data:', encountersData, false, true, false);
+    postConsoleAndNotification(MODULE.NAME, 'Regent: Updated encounters data:', encountersData, true, false);
 }
 
 function formatCharacterData(tokenData) {

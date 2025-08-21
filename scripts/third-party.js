@@ -54,7 +54,7 @@ class ThirdPartyManager {
 
     static getSocket() {
         if (!this.isSocketReady) {
-            postConsoleAndNotification("Third Party Manager | Error: Socket not ready", "", true, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Third Party Manager | Error: Socket not ready", "", true, false);
             return null;
         }
         return this.socket;

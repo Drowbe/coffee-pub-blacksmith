@@ -26,14 +26,6 @@ export class VoteConfig extends Application {
         const isLeader = game.user.id === leaderId;
         const canStartVote = isGM || isLeader;
 
-        postConsoleAndNotification('Vote Config | User Status:', {
-            userId: game.user.id,
-            isGM,
-            leaderId,
-            isLeader,
-            canStartVote
-        });
-
         if (!canStartVote) {
             ui.notifications.warn("Only the GM or party leader can start votes.");
             this.close();
@@ -100,12 +92,7 @@ export class VoteConfig extends Application {
             event.preventDefault();
             const type = event.currentTarget.dataset.type;
             
-            postConsoleAndNotification('Vote Config | Click Handler:', {
-                type,
-                isGM: game.user.isGM,
-                currentLeader: ChatPanel.currentLeader,
-                isLeader: game.user.id === ChatPanel.currentLeader
-            });
+
 
             if (type === 'leader' && !game.user.isGM) {
                 ui.notifications.warn("Only the GM can start leader votes.");
@@ -119,7 +106,7 @@ export class VoteConfig extends Application {
                     await VoteManager._showCharacterVoteDialog();
                     this.close();
                 } catch (error) {
-                    postConsoleAndNotification('Vote Config | Error starting character vote:', error, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error starting character vote:', error, false, true);
                     ui.notifications.error("Error starting character vote. Check the console for details.");
                 }
             } else {
@@ -127,7 +114,7 @@ export class VoteConfig extends Application {
                     await VoteManager.startVote(type);
                     this.close();
                 } catch (error) {
-                    postConsoleAndNotification('Vote Config | Error starting vote:', error, false, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error starting vote:', error, false, true);
                     ui.notifications.error("Error starting vote. Check the console for details.");
                 }
             }

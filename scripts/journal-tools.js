@@ -24,9 +24,9 @@ export class JournalTools {
             const searchReplaceTemplate = await fetch(BLACKSMITH.JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL).then(response => response.text());
             Handlebars.registerPartial('partials/search-replace', searchReplaceTemplate);
             
-            postConsoleAndNotification("Journal Tools: Partials registered successfully", "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Partials registered successfully", "", false, false);
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error registering partials", error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error registering partials", error.message, false, false);
         }
     }
 
@@ -46,12 +46,12 @@ export class JournalTools {
     static async _onRenderJournalSheet(app, html, data) {
         // Only add the tools icon if the feature is enabled
         const enableJournalTools = game.settings.get('coffee-pub-blacksmith', 'enableJournalTools');
-        postConsoleAndNotification("Journal Tools: renderJournalSheet hook called", 
-            `enableJournalTools: ${enableJournalTools}`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Journal Tools: renderJournalSheet hook called", 
+            `enableJournalTools: ${enableJournalTools}`, true, false);
         
         if (!enableJournalTools) {
-            postConsoleAndNotification("Journal Tools: Feature disabled", 
-                "enableJournalTools setting is false", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Feature disabled", 
+                "enableJournalTools setting is false", false, true);
             return;
         }
 
@@ -92,8 +92,8 @@ export class JournalTools {
                 <i class="fas fa-feather"></i>
             </a>
         `);
-        postConsoleAndNotification("Journal Tools: Created tools icon", 
-            "Icon element created", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Journal Tools: Created tools icon", 
+            "Icon element created", true, false);
 
         // Add click handler
         toolsIcon.on('click', (event) => {
@@ -114,7 +114,7 @@ export class JournalTools {
             windowHeader.append(toolsIcon);
         }
 
-        postConsoleAndNotification("Journal Tools: Added tools icon to journal window", "", false, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Journal Tools: Added tools icon to journal window", "", false, false);
     }
 
     static _openToolsDialog(html) {
@@ -128,13 +128,13 @@ export class JournalTools {
             } else {
                 // Fallback: try to get from the HTML data
                 journal = html.data('journal');
-                postConsoleAndNotification("Journal Tools: Found journal via HTML data", 
-                    journal ? `Journal: ${journal.name}` : 'No journal found', false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Found journal via HTML data", 
+                    journal ? `Journal: ${journal.name}` : 'No journal found', true, false);
             }
 
             if (!journal) {
-                postConsoleAndNotification("Journal Tools: Could not find journal entry", 
-                    `Primary: ${app?.document?.name}, Alternative: ${html.data('journal')?.name}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Could not find journal entry", 
+                    `Primary: ${app?.document?.name}, Alternative: ${html.data('journal')?.name}`, false, true);
                 ui.notifications.error("Could not find journal entry");
                 return;
             }
@@ -143,8 +143,8 @@ export class JournalTools {
             new JournalToolsWindow(journal).render(true);
 
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error opening tools dialog", 
-                error.message, false, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening tools dialog", 
+                error.message, false, true);
             ui.notifications.error(`Error opening journal tools: ${error.message}`);
         }
     }
@@ -153,14 +153,14 @@ export class JournalTools {
     static async _processToolRequest(journal, upgradeActors, upgradeItems) {
         try {
             if (upgradeActors || upgradeItems) {
-                postConsoleAndNotification("Journal Tools: Starting unified upgrade", 
-                    `Journal: ${journal.name}, Actors: ${upgradeActors}, Items: ${upgradeItems}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Starting unified upgrade", 
+                    `Journal: ${journal.name}, Actors: ${upgradeActors}, Items: ${upgradeItems}`, true, false);
                 await this._upgradeJournalLinksUnified(journal, upgradeActors, upgradeItems);
             }
 
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error processing tool request", 
-                error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error processing tool request", 
+                error.message, false, false);
             throw error;
         }
     }
@@ -169,8 +169,8 @@ export class JournalTools {
     static async _upgradeJournalLinks(journal, entityType) {
         try {
             const entityLabel = entityType === 'actor' ? 'Actor' : 'Item';
-            postConsoleAndNotification(`Journal Tools: Starting ${entityType} link upgrade`, 
-                `Journal: ${journal.name}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Starting ${entityType} link upgrade`, 
+                `Journal: ${journal.name}`, true, false);
             
             // Get all pages in the journal
             const pages = journal.pages.contents;
@@ -183,8 +183,8 @@ export class JournalTools {
                 if (!pageContent) continue;
                 
                 // Debug: Show the content we're working with
-                postConsoleAndNotification(`Journal Tools: Page content preview`, 
-                    `Page: ${page.name}, Content length: ${pageContent.length}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Page content preview`, 
+                    `Page: ${page.name}, Content length: ${pageContent.length}`, true, false);
                 
                 // Scan for existing links in this page
                 const existingLinks = this._scanJournalForLinks(pageContent, entityType);
@@ -206,8 +206,8 @@ export class JournalTools {
                     ...htmlEntities
                 ];
                 
-                postConsoleAndNotification(`Journal Tools: Found ${allEntities.length} ${entityType}s to process`, 
-                    `Page: ${page.name}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${allEntities.length} ${entityType}s to process`, 
+                    `Page: ${page.name}`, true, false);
                 
                 // Process each entity
                 let contentChanged = false;
@@ -223,8 +223,8 @@ export class JournalTools {
                             totalSkipped++;
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`Journal Tools: Error upgrading ${entityType}`, 
-                            `${entity.name}: ${error.message}`, false, false, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error upgrading ${entityType}`, 
+                            `${entity.name}: ${error.message}`, false, false);
                         totalErrors++;
                     }
                 }
@@ -232,17 +232,17 @@ export class JournalTools {
                 // Update the page if content changed
                 if (contentChanged) {
                     await page.update({ 'text.content': pageContent });
-                    postConsoleAndNotification(`Journal Tools: Updated page`, 
-                        `${page.name} - ${totalUpgraded} ${entityType}s upgraded`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Updated page`, 
+                        `${page.name} - ${totalUpgraded} ${entityType}s upgraded`, true, false);
                 }
             }
             
-            postConsoleAndNotification(`Journal Tools: ${entityLabel} upgrade complete`, 
-                `Upgraded: ${totalUpgraded}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: ${entityLabel} upgrade complete`, 
+                `Upgraded: ${totalUpgraded}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`, true, false);
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error in ${entityType} upgrade`, 
-                error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error in ${entityType} upgrade`, 
+                error.message, false, false);
             throw error;
         }
     }
@@ -377,7 +377,7 @@ export class JournalTools {
                     return;
                 }
                 
-                postConsoleAndNotification("Journal Tools: " + consoleMessage, "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: " + consoleMessage, "", false, false);
             };
             
             const updateOverallProgress = (percentage, message) => {
@@ -667,8 +667,8 @@ export class JournalTools {
                         } catch (error) {
                             totalErrors++;
                             // Log errors to console instead of UI
-                            postConsoleAndNotification(`Journal Tools: Error processing entity`, 
-                                `${entity.name}: ${error.message}`, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error processing entity`, 
+                                `${entity.name}: ${error.message}`, false, false);
                             logStatus(`✗ Error processing ${entity.name}`, "error");
                             
                             // Track actor vs item errors
@@ -842,8 +842,8 @@ export class JournalTools {
             logStatus("========================================================", "report-line-thick");
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error in unified upgrade`, 
-                error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error in unified upgrade`, 
+                error.message, false, false);
             throw error;
         }
     }
@@ -905,8 +905,8 @@ export class JournalTools {
             if (isRelevantSection) {
                 inRelevantSection = true;
                 foundAnySection = true;
-                postConsoleAndNotification(`Journal Tools: Found relevant section`, 
-                    `${line}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found relevant section`, 
+                    `${line}`, true, false);
                 continue;
             }
             
@@ -920,8 +920,8 @@ export class JournalTools {
             
             // Check if this is a bullet list item
             if (this._isBulletListItem(line)) {
-                postConsoleAndNotification(`Journal Tools: Found bullet item`, 
-                    `Line ${i}: "${line}"`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found bullet item`, 
+                    `Line ${i}: "${line}"`, true, false);
                 
                 // First, try to extract from the bullet line itself
                 let entityName = this._extractEntityNameFromBullet(line, entityType);
@@ -931,8 +931,8 @@ export class JournalTools {
                     // Look ahead up to 3 lines to find the entity name
                     for (let j = 1; j <= 3 && i + j < lines.length; j++) {
                         const nextLine = lines[i + j].trim();
-                        postConsoleAndNotification(`Journal Tools: Checking line ${i + j}`, 
-                            `"${nextLine}"`, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Checking line ${i + j}`, 
+                            `"${nextLine}"`, true, false);
                         
                         // If we hit another bullet or heading, stop looking
                         if (this._isBulletListItem(nextLine) || this._isHeading(nextLine)) {
@@ -944,8 +944,8 @@ export class JournalTools {
                             entityName = this._extractEntityNameFromPlainText(nextLine, entityType);
                             
                             if (entityName) {
-                                postConsoleAndNotification(`Journal Tools: Found entity on line ${i + j}`, 
-                                    `${entityName}`, false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found entity on line ${i + j}`, 
+                                    `${entityName}`, true, false);
                                 entities.push({
                                     type: 'bullet-list',
                                     name: entityName,
@@ -958,8 +958,8 @@ export class JournalTools {
                         }
                     }
                 } else if (entityName) {
-                    postConsoleAndNotification(`Journal Tools: Found entity on bullet line`, 
-                        `${entityName}`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found entity on bullet line`, 
+                        `${entityName}`, true, false);
                     entities.push({
                         type: 'bullet-list',
                         name: entityName,
@@ -1037,16 +1037,16 @@ export class JournalTools {
                                 if (strippedContent.toLowerCase().includes('actor')) {
                                     detectedEntityType = 'actor';
                                     previousEntityType = 'actor';
-                                    postConsoleAndNotification(`Journal Tools: Found Actor UUID`, 
-                                        `"${displayName}" - bypassing validation`, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found Actor UUID`, 
+                                        `"${displayName}" - bypassing validation`, true, false);
                                 } else if (strippedContent.toLowerCase().includes('item')) {
                                     detectedEntityType = 'item';
                                     previousEntityType = 'item';
-                                    postConsoleAndNotification(`Journal Tools: Found Item UUID`, 
-                                        `"${displayName}" - bypassing validation`, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found Item UUID`, 
+                                        `"${displayName}" - bypassing validation`, true, false);
                                 } else {
-                                    postConsoleAndNotification(`Journal Tools: Found generic UUID`, 
-                                        `"${displayName}" - processing as potential entity`, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found generic UUID`, 
+                                        `"${displayName}" - processing as potential entity`, true, false);
                                 }
                             }
                             
@@ -1066,8 +1066,8 @@ export class JournalTools {
                     } else {
                         // Check if this li tag contains actual entity candidates before processing
                         if (!this._containsEntityCandidates(liContent)) {
-                            postConsoleAndNotification(`Journal Tools: Skipping li tag - no entity candidates`, 
-                                `"${strippedContent}"`, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Skipping li tag - no entity candidates`, 
+                                `"${strippedContent}"`, true, false);
                             continue;
                         }
                         
@@ -1116,8 +1116,8 @@ export class JournalTools {
                                 entityName = this._extractEntityNameFromPlainText(strippedContent, previousEntityType);
                                 if (entityName) {
                                     currentEntityType = previousEntityType;
-                                    postConsoleAndNotification(`Journal Tools: Using contextual bias`, 
-                                        `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Using contextual bias`, 
+                                        `"${strippedContent}" -> ${previousEntityType} (previous was ${previousEntityType})`, true, false);
                                 }
                             }
                             
@@ -1147,8 +1147,8 @@ export class JournalTools {
                                 });
                             } else {
                                 // Debug logging for rejected entities
-                                postConsoleAndNotification(`Journal Tools: Rejected entity in HTML list`, 
-                                    `"${strippedContent}" -> null`, false, true, false);
+                                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected entity in HTML list`, 
+                                    `"${strippedContent}" -> null`, true, false);
                             }
                         }
                     }
@@ -1319,27 +1319,27 @@ export class JournalTools {
         let entityName = line.trim();
         
         // Debug logging for entity extraction
-        postConsoleAndNotification(`Journal Tools: Extracting entity from plain text`, 
-            `"${entityName}" (${entityType})`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Extracting entity from plain text`, 
+            `"${entityName}" (${entityType})`, true, false);
         
         // Skip if it's too short or too long
         if (entityName.length < 2 || entityName.length > 100) {
-            postConsoleAndNotification(`Journal Tools: Rejected - length check`, 
-                `${entityName.length} chars`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected - length check`, 
+                `${entityName.length} chars`, true, false);
             return null;
         }
         
         // Skip if it's just whitespace
         if (entityName === '') {
-            postConsoleAndNotification(`Journal Tools: Rejected - empty`, 
-                `"${entityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected - empty`, 
+                `"${entityName}"`, true, false);
             return null;
         }
         
         // Skip if it ends with a period (likely a sentence)
         if (entityName.endsWith('.')) {
-            postConsoleAndNotification(`Journal Tools: Rejected - ends with period`, 
-                `"${entityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected - ends with period`, 
+                `"${entityName}"`, true, false);
             return null;
         }
         
@@ -1358,18 +1358,18 @@ export class JournalTools {
         
         // Skip if it looks like a category label (ends with colon and no content after)
         if (entityName.endsWith(':') && entityName.split(':').length === 2 && entityName.split(':')[1].trim() === '') {
-            postConsoleAndNotification(`Journal Tools: Rejected - category label`, 
-                `"${entityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected - category label`, 
+                `"${entityName}"`, true, false);
             return null;
         }
         
         const result = entityName.length > 0 ? entityName : null;
         if (result) {
-            postConsoleAndNotification(`Journal Tools: Accepted entity`, 
-                `"${entityName}" -> "${result}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Accepted entity`, 
+                `"${entityName}" -> "${result}"`, true, false);
         } else {
-            postConsoleAndNotification(`Journal Tools: Rejected - final check`, 
-                `"${entityName}" -> null`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Rejected - final check`, 
+                `"${entityName}" -> null`, true, false);
         }
         return result;
     }
@@ -1377,22 +1377,22 @@ export class JournalTools {
     // Generic method to upgrade a single entity link
     static async _upgradeEntityLink(entity, content, entityType) {
         try {
-            postConsoleAndNotification(`Journal Tools: Processing ${entityType}`, 
-                `${entity.name} (${entity.type})`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Processing ${entityType}`, 
+                `${entity.name} (${entity.type})`, true, false);
             
             // Find the entity in compendiums
             let uuid = await this._findEntityInCompendiums(entity.name, entityType);
             
             // If not found in the specific entity type compendiums, try searching both
             if (!uuid) {
-                postConsoleAndNotification(`Journal Tools: ${entityType} not found, trying both compendiums`, 
-                    entity.name, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: ${entityType} not found, trying both compendiums`, 
+                    entity.name, true, false);
                 uuid = await this._findEntityInBothCompendiums(entity.name);
             }
             
             if (!uuid) {
-                            postConsoleAndNotification(`Journal Tools: Entity not found in any compendium`, 
-                entity.name, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Entity not found in any compendium`, 
+                entity.name, true, false);
             return content;
         }
         
@@ -1423,14 +1423,14 @@ export class JournalTools {
             newContent = content.substring(0, entity.startIndex) + newLink + content.substring(entity.endIndex);
         }
             
-            postConsoleAndNotification(`Journal Tools: Successfully upgraded ${entityType}`, 
-                `${entity.name} -> ${newLink}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Successfully upgraded ${entityType}`, 
+                `${entity.name} -> ${newLink}`, true, false);
             
             return newContent;
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error upgrading ${entityType}`, 
-                `${entity.name}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error upgrading ${entityType}`, 
+                `${entity.name}: ${error.message}`, false, false);
             return content;
         }
     }
@@ -1448,8 +1448,8 @@ export class JournalTools {
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
             // Console only - debug only
-            postConsoleAndNotification(`Journal Tools: Searching for ${entityType}`, 
-                `"${strEntityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Searching for ${entityType}`, 
+                `"${strEntityName}"`, true, false);
             
             // Get settings based on entity type
             const searchWorldFirst = entityType === 'actor' 
@@ -1464,8 +1464,8 @@ export class JournalTools {
                 );
                 
                 if (worldEntity) {
-                    postConsoleAndNotification(`Journal Tools: Found ${entityType} in world`, 
-                        `${strEntityName} -> ${worldEntity.uuid}`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${entityType} in world`, 
+                        `${strEntityName} -> ${worldEntity.uuid}`, true, false);
                     return worldEntity.uuid;
                 }
             }
@@ -1501,8 +1501,8 @@ export class JournalTools {
                         const pack = game.packs.get(compendiumName);
                         if (!pack) {
                             // Only warn if the compendium is configured but doesn't exist
-                            postConsoleAndNotification(`Journal Tools: Configured compendium not found`, 
-                                `${compendiumName} (${settingKey})`, false, false, true);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Configured compendium not found`, 
+                                `${compendiumName} (${settingKey})`, false, true);
                             continue;
                         }
                         
@@ -1515,29 +1515,29 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show successful finds
-                            postConsoleAndNotification(`Journal Tools: Found ${entityType} in compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${entityType} in compendium`, 
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
                             return `Compendium.${compendiumName}.${entityType === 'actor' ? 'Actor' : 'Item'}.${entry._id}`;
                         } else {
                             // Console only - debug only
-                            postConsoleAndNotification(`Journal Tools: ${entityType} not found in compendium`, 
-                                `${searchName} not found in ${compendiumName}`, false, true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: ${entityType} not found in compendium`, 
+                                `${searchName} not found in ${compendiumName}`, true, false);
                         }
                     } catch (error) {
-                        postConsoleAndNotification(`Journal Tools: Error searching compendium`, 
-                            `${compendiumName}: ${error.message}`, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error searching compendium`, 
+                            `${compendiumName}: ${error.message}`, true, false);
                     }
                 }
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`Journal Tools: ${entityType} not found in any compendium`, 
-                strEntityName, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: ${entityType} not found in any compendium`, 
+                strEntityName, true, false);
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error finding ${entityType} in compendiums`, 
-                `${entityName}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error finding ${entityType} in compendiums`, 
+                `${entityName}: ${error.message}`, false, false);
             return null;
         }
     }
@@ -1554,8 +1554,8 @@ export class JournalTools {
             // Remove common suffixes like "(CR X)" or "(number)"
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
-            postConsoleAndNotification(`Journal Tools: Searching both compendiums`, 
-                `"${strEntityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Searching both compendiums`, 
+                `"${strEntityName}"`, true, false);
             
             // Handle colon-separated names (e.g., "Gem: Diamond")
             let searchNames = [strEntityName];
@@ -1587,9 +1587,9 @@ export class JournalTools {
                         let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
-                            // Console only - always show
-                            postConsoleAndNotification(`Journal Tools: Found in actor compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
+                                                    // Console only - always show
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in actor compendium`, 
+                            `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
                     } catch (error) {
@@ -1615,9 +1615,9 @@ export class JournalTools {
                         let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
                         
                         if (entry) {
-                            // Console only - always show
-                            postConsoleAndNotification(`Journal Tools: Found in item compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
+                                                    // Console only - always show
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in item compendium`, 
+                            `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
                     } catch (error) {
@@ -1627,13 +1627,13 @@ export class JournalTools {
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`Journal Tools: Not found in any compendium`, 
-                strEntityName, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Not found in any compendium`, 
+                strEntityName, true, false);
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error searching both compendiums`, 
-                `${entityName}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error searching both compendiums`, 
+                `${entityName}: ${error.message}`, false, false);
             return null;
         }
     }
@@ -1645,8 +1645,8 @@ export class JournalTools {
         
         // If we have a detected entity type from UUID analysis, use it (100% accurate)
         if (entity.detectedEntityType) {
-            postConsoleAndNotification(`Journal Tools: Using detected entity type from UUID`, 
-                `${entity.name}: ${entity.detectedEntityType}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Using detected entity type from UUID`, 
+                `${entity.name}: ${entity.detectedEntityType}`, true, false);
             return entity.detectedEntityType;
         }
         
@@ -1680,18 +1680,18 @@ export class JournalTools {
             }
             
             if (previousEntityInList) {
-                postConsoleAndNotification(`Journal Tools: Found previous entity in list for ${entity.name}`, 
-                    `${previousEntityInList.name} (${previousEntityInList.type})`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found previous entity in list for ${entity.name}`, 
+                    `${previousEntityInList.name} (${previousEntityInList.type})`, true, false);
                 
                 // Determine the type of the previous entity
                 if (previousEntityInList.type === 'existing-link') {
                     if (previousEntityInList.fullMatch.includes('@Actor[') || previousEntityInList.fullMatch.includes('Actor.')) {
-                        postConsoleAndNotification(`Journal Tools: List-based bias towards actor`, 
-                            `${entity.name}: Previous entity ${previousEntityInList.name} is actor`, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: List-based bias towards actor`, 
+                            `${entity.name}: Previous entity ${previousEntityInList.name} is actor`, true, false);
                         return 'actor';
                     } else if (previousEntityInList.fullMatch.includes('@Item[') || previousEntityInList.fullMatch.includes('Item.')) {
-                        postConsoleAndNotification(`Journal Tools: List-based bias towards item`, 
-                            `${entity.name}: Previous entity ${previousEntityInList.name} is item`, false, true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: List-based bias towards item`, 
+                            `${entity.name}: Previous entity ${previousEntityInList.name} is item`, true, false);
                         return 'item';
                     }
                 }
@@ -1704,8 +1704,8 @@ export class JournalTools {
         const contextContent = pageContent.substring(contextStart, contextEnd);
         
         // Debug: Log the context content to help diagnose issues
-        postConsoleAndNotification(`Journal Tools: Context analysis for ${entity.name}`, 
-            `Context length: ${contextContent.length}, Position: ${entityPosition}`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context analysis for ${entity.name}`, 
+            `Context length: ${contextContent.length}, Position: ${entityPosition}`, true, false);
         
         // Check for section headers that indicate entity type - look for both HTML headers and strong/bold text
         const treasurePattern = /<(?:h[1-6]|strong|b)[^>]*>.*?[Tt]reasure.*?<\/(?:h[1-6]|strong|b)>/gi;
@@ -1725,20 +1725,20 @@ export class JournalTools {
         const encounterMatch = encounterPattern.test(contextContent) || plainEncounterPattern.test(contextContent);
         const monsterMatch = monsterPattern.test(contextContent) || plainMonsterPattern.test(contextContent);
         
-        postConsoleAndNotification(`Journal Tools: Section header analysis for ${entity.name}`, 
-            `Treasure: ${treasureMatch}, Item: ${itemMatch}, Encounter: ${encounterMatch}, Monster: ${monsterMatch}`, false, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Section header analysis for ${entity.name}`, 
+            `Treasure: ${treasureMatch}, Item: ${itemMatch}, Encounter: ${encounterMatch}, Monster: ${monsterMatch}`, true, false);
         
         // Check actor patterns FIRST (higher priority)
         if (encounterMatch || monsterMatch) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards actor (section header)`, 
-                `${entity.name}: Found Encounters/Monsters section`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards actor (section header)`, 
+                `${entity.name}: Found Encounters/Monsters section`, true, false);
             return 'actor';
         }
         
         // Then check item patterns
         if (treasureMatch || itemMatch) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards item (section header)`, 
-                `${entity.name}: Found Treasure/Items section`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards item (section header)`, 
+                `${entity.name}: Found Treasure/Items section`, true, false);
             return 'item';
         }
         
@@ -1774,24 +1774,24 @@ export class JournalTools {
         
         // Debug: Log neighbor information
         if (previousEntity) {
-            postConsoleAndNotification(`Journal Tools: Previous entity for ${entity.name}`, 
-                `${previousEntity.name} (${previousEntity.type}) at distance ${minPrevDistance}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Previous entity for ${entity.name}`, 
+                `${previousEntity.name} (${previousEntity.type}) at distance ${minPrevDistance}`, true, false);
         }
         if (nextEntity) {
-            postConsoleAndNotification(`Journal Tools: Next entity for ${entity.name}`, 
-                `${nextEntity.name} (${nextEntity.type}) at distance ${minNextDistance}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Next entity for ${entity.name}`, 
+                `${nextEntity.name} (${nextEntity.type}) at distance ${minNextDistance}`, true, false);
         }
         
         if (previousEntity && minPrevDistance < 500) { // Within 500 chars
             if (previousEntity.type === 'existing-link') {
                 if (previousEntity.fullMatch.includes('@Actor[') || previousEntity.fullMatch.includes('Actor.')) {
                     neighborActorCount += 2; // Weight previous entity more heavily
-                    postConsoleAndNotification(`Journal Tools: Previous entity is actor`, 
-                        `${previousEntity.name} -> +2 actor bias`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Previous entity is actor`, 
+                        `${previousEntity.name} -> +2 actor bias`, true, false);
                 } else if (previousEntity.fullMatch.includes('@Item[') || previousEntity.fullMatch.includes('Item.')) {
                     neighborItemCount += 2;
-                    postConsoleAndNotification(`Journal Tools: Previous entity is item`, 
-                        `${previousEntity.name} -> +2 item bias`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Previous entity is item`, 
+                        `${previousEntity.name} -> +2 item bias`, true, false);
                 }
             }
         }
@@ -1800,24 +1800,24 @@ export class JournalTools {
             if (nextEntity.type === 'existing-link') {
                 if (nextEntity.fullMatch.includes('@Actor[') || nextEntity.fullMatch.includes('Actor.')) {
                     neighborActorCount += 1;
-                    postConsoleAndNotification(`Journal Tools: Next entity is actor`, 
-                        `${nextEntity.name} -> +1 actor bias`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Next entity is actor`, 
+                        `${nextEntity.name} -> +1 actor bias`, true, false);
                 } else if (nextEntity.fullMatch.includes('@Item[') || nextEntity.fullMatch.includes('Item.')) {
                     neighborItemCount += 1;
-                    postConsoleAndNotification(`Journal Tools: Next entity is item`, 
-                        `${nextEntity.name} -> +1 item bias`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Next entity is item`, 
+                        `${nextEntity.name} -> +1 item bias`, true, false);
                 }
             }
         }
         
         // If neighbors provide clear bias, use it
         if (neighborItemCount > neighborActorCount) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards item (neighbors)`, 
-                `${entity.name}: ${neighborItemCount} item neighbors vs ${neighborActorCount} actor neighbors`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards item (neighbors)`, 
+                `${entity.name}: ${neighborItemCount} item neighbors vs ${neighborActorCount} actor neighbors`, true, false);
             return 'item';
         } else if (neighborActorCount > neighborItemCount) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards actor (neighbors)`, 
-                `${entity.name}: ${neighborActorCount} actor neighbors vs ${neighborItemCount} item neighbors`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards actor (neighbors)`, 
+                `${entity.name}: ${neighborActorCount} actor neighbors vs ${neighborItemCount} item neighbors`, true, false);
             return 'actor';
         }
         
@@ -1862,17 +1862,17 @@ export class JournalTools {
         
         // Determine bias based on broader context
         if (actorLinks > itemLinks) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards actor (broad context)`, 
-                `${entity.name}: ${actorLinks} actor links vs ${itemLinks} item links in context`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards actor (broad context)`, 
+                `${entity.name}: ${actorLinks} actor links vs ${itemLinks} item links in context`, true, false);
             return 'actor';
         } else if (itemLinks > actorLinks) {
-            postConsoleAndNotification(`Journal Tools: Context bias towards item (broad context)`, 
-                `${entity.name}: ${itemLinks} item links vs ${actorLinks} actor links in context`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Context bias towards item (broad context)`, 
+                `${entity.name}: ${itemLinks} item links vs ${actorLinks} actor links in context`, true, false);
             return 'item';
         } else {
             // No clear bias, default to searching actors first, then items
-            postConsoleAndNotification(`Journal Tools: No context bias, defaulting to actor-first search`, 
-                `${entity.name}: ${actorLinks} actor links, ${itemLinks} item links in context`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: No context bias, defaulting to actor-first search`, 
+                `${entity.name}: ${actorLinks} actor links, ${itemLinks} item links in context`, true, false);
             return 'both';
         }
     }
@@ -1880,8 +1880,8 @@ export class JournalTools {
     // Unified method to upgrade a single entity link
     static async _upgradeEntityLinkUnified(entity, content, entityType) {
         try {
-            postConsoleAndNotification(`Journal Tools: Processing unified entity`, 
-                `${entity.name} (${entity.type}, ${entityType})`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Processing unified entity`, 
+                `${entity.name} (${entity.type}, ${entityType})`, true, false);
             
             let uuid = null;
             let foundEntityType = null;
@@ -1895,8 +1895,8 @@ export class JournalTools {
                 const isAlreadyOptimal = await this._isLinkAlreadyOptimal(existingUuid, entity.name);
                 
                 if (isAlreadyOptimal) {
-                    postConsoleAndNotification(`Journal Tools: Link already optimal`, 
-                        `${entity.name} -> ${existingUuid}`, false, true, false);
+                                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Link already optimal`, 
+                    `${entity.name} -> ${existingUuid}`, true, false);
                     return { 
                         newContent: content, 
                         compendiumName: null, 
@@ -1907,8 +1907,8 @@ export class JournalTools {
                     };
                 }
                 
-                postConsoleAndNotification(`Journal Tools: Upgrading existing link to first compendium`, 
-                    `${entity.name} -> ${entity.uuid}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Upgrading existing link to first compendium`, 
+                    `${entity.name} -> ${entity.uuid}`, true, false);
             }
             
             // Search based on entity type
@@ -1949,14 +1949,14 @@ export class JournalTools {
                     uuid = worldEntity.uuid;
                     foundInWorld = true;
                     foundEntityType = foundEntityType || (worldEntity.type === 'Item' ? 'item' : 'actor');
-                    postConsoleAndNotification(`Journal Tools: Found entity in world`, 
-                        `${entity.name} -> ${worldEntity.uuid}`, false, true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found entity in world`, 
+                        `${entity.name} -> ${worldEntity.uuid}`, true, false);
                 }
             }
             
             if (!uuid) {
-                postConsoleAndNotification(`Journal Tools: Entity not found in any compendium or world`, 
-                    entity.name, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Entity not found in any compendium or world`, 
+                    entity.name, true, false);
                 return { 
                     newContent: content, 
                     compendiumName: null, 
@@ -2004,14 +2004,14 @@ export class JournalTools {
                 }
             }
             
-            postConsoleAndNotification(`Journal Tools: Successfully upgraded unified entity`, 
-                `${entity.name} -> ${newLink} (${foundEntityType})`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Successfully upgraded unified entity`, 
+                `${entity.name} -> ${newLink} (${foundEntityType})`, true, false);
             
             return { newContent, compendiumName, foundEntityType, foundInWorld, foundInCompendium };
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error upgrading unified entity`, 
-                `${entity.name}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error upgrading unified entity`, 
+                `${entity.name}: ${error.message}`, false, false);
             return { newContent: content, compendiumName: null, foundEntityType: null, foundInWorld: false, foundInCompendium: false };
         }
     }
@@ -2029,8 +2029,8 @@ export class JournalTools {
             strEntityName = strEntityName.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
             // Console only - debug only
-            postConsoleAndNotification(`Journal Tools: Searching both compendiums with type detection`, 
-                `"${strEntityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Searching both compendiums with type detection`, 
+                `"${strEntityName}"`, true, false);
             
             // Handle colon-separated names (e.g., "Gem: Diamond")
             let searchNames = [strEntityName];
@@ -2052,8 +2052,8 @@ export class JournalTools {
                 if (searchWorldActorsFirst) {
                     const worldActor = game.actors.getName(searchName);
                     if (worldActor) {
-                        postConsoleAndNotification(`Journal Tools: Found in world actors (first)`, 
-                            `${searchName} -> ${worldActor.name}`, false, false, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world actors (first)`, 
+                            `${searchName} -> ${worldActor.name}`, false, false);
                         return `Actor.${worldActor.id}`;
                     }
                 }
@@ -2062,8 +2062,8 @@ export class JournalTools {
                 if (searchWorldItemsFirst) {
                     const worldItem = game.items.getName(searchName);
                     if (worldItem) {
-                        postConsoleAndNotification(`Journal Tools: Found in world items (first)`, 
-                            `${searchName} -> ${worldItem.name}`, false, false, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world items (first)`, 
+                            `${searchName} -> ${worldItem.name}`, false, false);
                         return `Item.${worldItem.id}`;
                     }
                 }
@@ -2087,8 +2087,8 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`Journal Tools: Found in actor compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in actor compendium (type detection)`, 
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
                             return `Compendium.${compendiumName}.Actor.${entry._id}`;
                         }
                     } catch (error) {
@@ -2115,8 +2115,8 @@ export class JournalTools {
                         
                         if (entry) {
                             // Console only - always show
-                            postConsoleAndNotification(`Journal Tools: Found in item compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in item compendium (type detection)`, 
+                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
                             return `Compendium.${compendiumName}.Item.${entry._id}`;
                         }
                     } catch (error) {
@@ -2132,8 +2132,8 @@ export class JournalTools {
                 if (searchWorldActorsLast) {
                     const worldActor = game.actors.getName(searchName);
                     if (worldActor) {
-                        postConsoleAndNotification(`Journal Tools: Found in world actors (last)`, 
-                            `${searchName} -> ${worldActor.name}`, false, false, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world actors (last)`, 
+                            `${searchName} -> ${worldActor.name}`, false, false);
                         return `Actor.${worldActor.id}`;
                     }
                 }
@@ -2142,22 +2142,22 @@ export class JournalTools {
                 if (searchWorldItemsLast) {
                     const worldItem = game.items.getName(searchName);
                     if (worldItem) {
-                        postConsoleAndNotification(`Journal Tools: Found in world items (last)`, 
-                            `${searchName} -> ${worldItem.name}`, false, false, false);
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world items (last)`, 
+                            `${searchName} -> ${worldItem.name}`, false, false);
                         return `Item.${worldItem.id}`;
                     }
                 }
             }
             
             // Console only - debug only
-            postConsoleAndNotification(`Journal Tools: Entity not found in any compendium or world`, 
-                `"${strEntityName}"`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Entity not found in any compendium or world`, 
+                `"${strEntityName}"`, true, false);
             
             return null;
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error searching compendiums with type detection`, 
-                `${entityName}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error searching compendiums with type detection`, 
+                `${entityName}: ${error.message}`, false, false);
             return null;
         }
     }
@@ -2195,8 +2195,8 @@ export class JournalTools {
             return existingCompendium === firstCompendium;
             
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error checking if link is optimal`, 
-                `${entityName}: ${error.message}`, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error checking if link is optimal`, 
+                `${entityName}: ${error.message}`, false, false);
             return false;
         }
     }
@@ -2279,8 +2279,8 @@ export class JournalTools {
                                  newLink + 
                                  content.substring(macro.endIndex);
                 
-                postConsoleAndNotification(`Journal Tools: Macro upgraded`, 
-                    `"${macroName}" -> ${worldMacro.id}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Macro upgraded`, 
+                    `"${macroName}" -> ${worldMacro.id}`, true, false);
                 
                 return {
                     success: true,
@@ -2291,8 +2291,8 @@ export class JournalTools {
                     macroId: worldMacro.id
                 };
             } else {
-                postConsoleAndNotification(`Journal Tools: Macro not found in world`, 
-                    `"${macroName}" not found`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Journal Tools: Macro not found in world`, 
+                    `"${macroName}" not found`, true, false);
                 
                 return {
                     success: false,
@@ -2301,8 +2301,8 @@ export class JournalTools {
                 };
             }
         } catch (error) {
-            postConsoleAndNotification(`Journal Tools: Error upgrading macro`, 
-                `${macro.name}: ${error.message}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error upgrading macro`, 
+                `${macro.name}: ${error.message}`, true, false);
             
             return {
                 success: false,
@@ -2522,7 +2522,7 @@ export class JournalToolsWindow extends FormApplication {
                 return;
             }
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error opening result link", error, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening result link", error, false, false);
         }
     }
 
@@ -2558,8 +2558,8 @@ export class JournalToolsWindow extends FormApplication {
             this.addStatusMessage("Ready to process...", "info");
 
             // Debug logging
-            postConsoleAndNotification("Journal Tools: Form data debug", 
-                `upgradeActors: ${upgradeActors}, upgradeItems: ${upgradeItems}, upgradeMacros: ${upgradeMacros}`, false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Form data debug", 
+                `upgradeActors: ${upgradeActors}, upgradeItems: ${upgradeItems}, upgradeMacros: ${upgradeMacros}`, true, false);
 
             // Fallback: read checkbox values directly if FormData fails
             if (!upgradeActors && !upgradeItems && !upgradeMacros) {
@@ -2567,8 +2567,8 @@ export class JournalToolsWindow extends FormApplication {
                 const itemsChecked = this.element.find('#upgrade-items').is(':checked');
                 const macrosChecked = this.element.find('#upgrade-macros').is(':checked');
                 
-                postConsoleAndNotification("Journal Tools: Fallback checkbox reading", 
-                    `actors: ${actorsChecked}, items: ${itemsChecked}, macros: ${macrosChecked}`, false, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Fallback checkbox reading", 
+                    `actors: ${actorsChecked}, items: ${itemsChecked}, macros: ${macrosChecked}`, true, false);
                 
                 if (!actorsChecked && !itemsChecked && !macrosChecked) {
                     ui.notifications.warn("Please select at least one tool to run");
@@ -2661,7 +2661,7 @@ export class JournalToolsWindow extends FormApplication {
             this.shouldStop = false;
             
             // Success message - console only
-            postConsoleAndNotification("Journal Tools: Processing completed successfully", "", false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Processing completed successfully", "", false, false);
             
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
@@ -2677,7 +2677,7 @@ export class JournalToolsWindow extends FormApplication {
             this.isProcessing = false;
             this.shouldStop = false;
             
-            postConsoleAndNotification("Journal Tools: Error applying tools", error, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error applying tools", error, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
         }
     }
@@ -2724,15 +2724,15 @@ export class JournalToolsWindow extends FormApplication {
                     ui.notifications.info("Status content copied to clipboard");
                     
                     // Console log for confirmation
-                    postConsoleAndNotification("Journal Tools: Status copied to clipboard", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Journal Tools: Status copied to clipboard", "", false, false);
                 }).catch(err => {
-                    postConsoleAndNotification("Journal Tools: Failed to copy status", err.message, false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Journal Tools: Failed to copy status", err.message, false, false);
                 });
             } else {
-                postConsoleAndNotification("Journal Tools: No status content to copy", "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: No status content to copy", "", false, false);
             }
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error copying status", error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error copying status", error.message, false, false);
         }
     }
 
@@ -2783,8 +2783,7 @@ export class JournalToolsWindow extends FormApplication {
             journal.sheet.render(true);
             
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error opening journal", error, false, false, false);
-            ui.notifications.error(`Error opening journal: ${error.message}`);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening journal", error, false, false);
         }
     }
 
@@ -2839,15 +2838,15 @@ export class JournalToolsWindow extends FormApplication {
             if (resultsText && resultsText.trim()) {
                 navigator.clipboard.writeText(resultsText).then(() => {
                     ui.notifications.info("Results copied to clipboard");
-                    postConsoleAndNotification("Journal Tools: Results copied to clipboard", "", false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Journal Tools: Results copied to clipboard", "", false, false);
                 }).catch(err => {
-                    postConsoleAndNotification("Journal Tools: Failed to copy results", err.message, false, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Journal Tools: Failed to copy results", err.message, false, false);
                 });
             } else {
-                postConsoleAndNotification("Journal Tools: No results to copy", "", false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: No results to copy", "", false, false);
             }
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error copying results", error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error copying results", error.message, false, false);
         }
     }
 
@@ -2922,7 +2921,7 @@ export class JournalToolsWindow extends FormApplication {
             }
             
         } catch (error) {
-            postConsoleAndNotification("Journal Tools: Error in search/replace", error.message, false, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error in search/replace", error.message, false, false);
             resultsArea.append(`<div class="results-message" style="color: #ff4444;"><strong>Error:</strong> ${error.message}</div>`);
             this.updateSearchProgress(100, "Error!");
         }
@@ -3277,7 +3276,7 @@ export class JournalToolsWindow extends FormApplication {
                     }
                 }
             } catch (err) {
-                postConsoleAndNotification("Journal Tools: Error staging update", `${c.name}: ${err.message}`, false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error staging update", `${c.name}: ${err.message}`, false, false);
             }
         }
 
@@ -3290,7 +3289,7 @@ export class JournalToolsWindow extends FormApplication {
                 if (!page) continue;
                 await page.update({ 'text.content': upd.content });
             } catch (err) {
-                postConsoleAndNotification("Journal Tools: Error updating journal page", `${upd.journalId}/${upd.pageId}: ${err.message}`, false, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error updating journal page", `${upd.journalId}/${upd.pageId}: ${err.message}`, false, false);
             }
         }
     }

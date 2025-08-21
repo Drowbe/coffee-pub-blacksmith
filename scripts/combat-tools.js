@@ -7,7 +7,7 @@ import { postConsoleAndNotification } from './global.js';
 
 // Register hooks after settings are initialized
 Hooks.once('ready', () => {
-    postConsoleAndNotification("CombatTools | Ready", "", false, true, false);
+            postConsoleAndNotification(MODULE.NAME, "CombatTools | Ready", "", true, false);
 
     // Move the renderCombatTracker hook inside the ready hook to ensure settings are registered
     Hooks.on('renderCombatTracker', (app, html, data) => {
@@ -283,4 +283,4 @@ const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
     return above.initiative - ((above.initiative - below.initiative) / 2);
 };
 
-postConsoleAndNotification("CombatTools | Module loaded", "", false, true, false); 
+        postConsoleAndNotification(MODULE.NAME, "CombatTools | Module loaded", "", true, false); 
