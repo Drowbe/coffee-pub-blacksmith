@@ -251,7 +251,7 @@ class FeatureManager {
             
         } catch (error) {
             // 4. Log error
-            console.error(`${MODULE_ID} | Error in FeatureManager:`, error);
+            console.error(`${MODULE.ID} | Error in FeatureManager:`, error);
             
             // 5. Notify user
             ui.notifications.error(game.i18n.localize('ERROR.OperationFailed'));
@@ -304,7 +304,7 @@ Hooks.once('ready', () => {
 ```javascript
 export const BLACKSMITH = {
     // Module identification
-    MODULE_ID: 'coffee-pub-blacksmith',
+    MODULE.ID: 'coffee-pub-blacksmith',
     
     // Template paths
     TEMPLATES: {
@@ -634,7 +634,7 @@ try {
     // Operation
 } catch (error) {
     // Log error
-    console.error(`${MODULE_ID} | Error:`, error);
+    console.error(`${MODULE.ID} | Error:`, error);
     // Notify user
     ui.notifications.error("Operation failed");
     // Graceful fallback
@@ -700,7 +700,7 @@ game.settings.set('coffee-pub-blacksmith', 'debugMode', true);
 // Debug logging
 function log(message, data = null) {
     if (BLACKSMITH.DEBUG.enabled) {
-        console.log(`${MODULE_ID} | ${message}`, data);
+        console.log(`${MODULE.ID} | ${message}`, data);
     }
 }
 ```
@@ -1049,7 +1049,7 @@ class EventManager {
                 try {
                     handlerData.handler(data);
                 } catch (error) {
-                    console.error(`${MODULE_ID} | Error in event handler:`, error);
+                    console.error(`${MODULE.ID} | Error in event handler:`, error);
                 }
             }
         }
@@ -1084,7 +1084,7 @@ class StateSyncManager {
             Object.assign(this.state, updates);
             
             // Sync with other clients
-            await game.socket.emit(`module.${MODULE_ID}`, {
+            await game.socket.emit(`module.${MODULE.ID}`, {
                 type: 'stateSync',
                 updates
             });
@@ -1093,7 +1093,7 @@ class StateSyncManager {
             this._notifySubscribers(updates);
             
         } catch (error) {
-            console.error(`${MODULE_ID} | State sync failed:`, error);
+            console.error(`${MODULE.ID} | State sync failed:`, error);
             // Requeue failed updates
             for (const [key, value] of Object.entries(updates)) {
                 this.syncQueue.set(key, value);
@@ -1351,7 +1351,7 @@ class AIQueryManager {
             await this._handleResponse(response);
             
         } catch (error) {
-            console.error(`${MODULE_ID} | AI Query Error:`, error);
+            console.error(`${MODULE.ID} | AI Query Error:`, error);
             ui.notifications.error("AI query failed. Check console for details.");
         }
     }
@@ -1361,7 +1361,7 @@ class AIQueryManager {
             ...context,
             system: {
                 version: game.version,
-                module: game.modules.get(MODULE_ID).version
+                module: game.modules.get(MODULE.ID).version
             },
             user: {
                 isGM: game.user.isGM,
