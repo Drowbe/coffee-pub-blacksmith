@@ -2,6 +2,13 @@
 // ===== EXPORTS ====================================================
 // ================================================================== 
 
+export const MODULE = {
+    ID: 'coffee-pub-blacksmith',
+    NAME: 'BLACKSMITH',
+    TITLE: 'Coffee Pub Blacksmith'
+};
+
+
 export const MODULE_TITLE = 'BLACKSMITH';
 export const MODULE_ID = 'coffee-pub-blacksmith';
 

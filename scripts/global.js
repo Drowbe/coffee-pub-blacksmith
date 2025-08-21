@@ -984,7 +984,7 @@ export async function getOpenAIReplyAsHtml(query) {
 // postConsoleAndNotification("This is the message.", Variable Goes Here, Divider (true/false), Debug (true/false), Notification (true/false))
 // Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
 
-export function postConsoleAndNotification(message, result = "", blnDivider = false, blnDebug = true, blnNotification = false, strModuleTitle = "BLACKSMITH") {
+export function postConsoleAndNotification(strModuleTitle = "BLACKSMITH", message, result = "", blnDebug = false, blnNotification = false) {
 
     // Set default styles based on module
     let moduleStyles = {
@@ -1065,20 +1065,7 @@ export function postConsoleAndNotification(message, result = "", blnDivider = fa
     var MODULE_CONSOLE_NORMAL_STYLE_TEXT = [
         'color: #c1c1c1',
     ].join(';');
-    var MODULE_CONSOLE_COMMON_DIVIDER = '%c=';
-    var MODULE_CONSOLE_COMMON_STYLE_DIVIDER = [
-        strFancyCaptionFontColor,
-        'background: ' + strFancyCaptionFontColor,
-        'font-size: 1px',
-        'border: 1px solid ' + strFancyCaptionFontColor,
-        'border-radius: 1px',
-        'padding-top: 0px',
-        'padding-bottom: 0px',
-        'padding-left: 200px',
-        'padding-right: 200px',
-        'margin-top: 4px',
-        'margin-bottom: 4px',
-    ].join(';');
+
 
     // === DEBUG CONSOLE STYLES ===
     
@@ -1181,9 +1168,7 @@ export function postConsoleAndNotification(message, result = "", blnDivider = fa
     } 
     // Build the Debug
     strNotificationMessage = MODULE_AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleTitle + ": " + strMessage + " | " + strResult;
-    if (blnDivider) {
-        console.info(MODULE_CONSOLE_COMMON_DIVIDER, MODULE_CONSOLE_COMMON_STYLE_DIVIDER);
-    }
+
     if (blnDebug == true) {
         // It is a debug message.
         if (COFFEEPUB.blnDebugOn) {

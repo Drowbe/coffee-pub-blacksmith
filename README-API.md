@@ -72,16 +72,15 @@ Blacksmith provides a set of shared utility functions that all Coffee Pub module
 #### Console and Notifications
 ```javascript
 // Basic usage
-blacksmith.utils.postConsoleAndNotification("Required message");
+blacksmith.utils.postConsoleAndNotification("BLACKSMITH", "Required message");
 
 // With all parameters
 blacksmith.utils.postConsoleAndNotification(
-    message,           // The message to display (mandatory)
-    result = "",       // Optional data to show in console
-    blnDivider = false,// Show divider in console
-    blnDebug = true,   // Is this a debug message
-    blnNotification = false, // Show as UI notification
-    strModuleTitle = "BLACKSMITH" // Optional module title for styling
+    strModuleTitle = "BLACKSMITH", // Module title for styling (optional)
+    message,                        // The message to display (mandatory)
+    result = "",                    // Optional data to show in console
+    blnDebug = false,              // Is this a debug message (defaults to false)
+    blnNotification = false         // Show as UI notification
 );
 ```
 
@@ -172,9 +171,9 @@ In your module, access these utilities through the Blacksmith API:
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 if (blacksmith) {
     blacksmith.utils.postConsoleAndNotification(
-        "YOURMODULE | Initializing",
+        "YOURMODULE",
+        "Initializing",
         "",
-        false,
         true,
         false
     );
@@ -372,7 +371,7 @@ console.log(api); // Should show all available API methods
 
 // Test utility functions
 const utils = api?.utils;
-utils?.postConsoleAndNotification("Test Message", "", false, true, false);
+utils?.postConsoleAndNotification("TEST", "Test Message", "", true, false);
 utils?.formatTime(3600000); // Should show "01:00:00"
 
 // Test ModuleManager

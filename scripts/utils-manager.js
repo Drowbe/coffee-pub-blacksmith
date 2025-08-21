@@ -32,9 +32,9 @@ export class UtilsManager {
     }
 
     // Console and Notifications
-    static postConsoleAndNotification(message, result = "", blnDivider = false, blnDebug = false, blnNotification = false, strModuleTitle = "BLACKSMITH") {
+    static postConsoleAndNotification(strModuleTitle = "BLACKSMITH", message, result = "", blnDebug = false, blnNotification = false) {
         this.checkInitialized();
-        return GlobalUtils.postConsoleAndNotification(message, result, blnDivider, blnDebug, blnNotification, strModuleTitle);
+        return GlobalUtils.postConsoleAndNotification(strModuleTitle, message, result, blnDebug, blnNotification);
     }
 
     // Time and Formatting
@@ -90,8 +90,8 @@ export class UtilsManager {
         }
 
         return {
-            postConsoleAndNotification: (message, result = "", blnDivider = false, blnDebug = false, blnNotification = false, strModuleTitle = "BLACKSMITH") => 
-                this.postConsoleAndNotification(message, result, blnDivider, blnDebug, blnNotification, strModuleTitle),
+            postConsoleAndNotification: (strModuleTitle = "BLACKSMITH", message, result = "", blnDebug = false, blnNotification = false) => 
+                this.postConsoleAndNotification(strModuleTitle, message, result, blnDebug, blnNotification),
             formatTime: this.formatTime.bind(this),
             generateFormattedDate: this.generateFormattedDate.bind(this),
             trimString: this.trimString.bind(this),
