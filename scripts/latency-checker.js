@@ -2,7 +2,7 @@
 // ===== LATENCY CHECKER ==============================================
 // ================================================================== 
 
-import { MODULE_ID } from './const.js';
+import { MODULE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class LatencyChecker {

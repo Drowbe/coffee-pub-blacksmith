@@ -2,7 +2,7 @@
 // ===== TOKEN IMAGE REPLACEMENT CACHING SYSTEM =====================
 // ================================================================== 
 
-import { MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class TokenImageReplacement {

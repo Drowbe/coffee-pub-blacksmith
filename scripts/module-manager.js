@@ -1,4 +1,4 @@
-import { MODULE_ID, COFFEE_PUB_MODULES } from './const.js';
+import { MODULE, MODULE_ID, COFFEE_PUB_MODULES } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class ModuleManager {

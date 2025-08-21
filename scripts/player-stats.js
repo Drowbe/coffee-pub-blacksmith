@@ -1,5 +1,5 @@
 // Import MODULE variables
-import { MODULE_ID } from './const.js';
+import { MODULE, MODULE_ID } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './global.js';
 
 // Default stats structure

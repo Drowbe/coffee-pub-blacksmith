@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 import { COFFEEPUB } from './global.js';
 // -- Load the shared GLOBAL functions --

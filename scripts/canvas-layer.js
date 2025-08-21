@@ -1,9 +1,10 @@
 import { postConsoleAndNotification } from './global.js';
+import { MODULE } from './const.js';
 
 export class BlacksmithLayer extends CanvasLayer {
     constructor() {
         super();
-        postConsoleAndNotification("BlacksmithLayer: Initialized", "", false, true, false);
+        postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Initialized", "", true, false);
     }
 
     async _draw() {

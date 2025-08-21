@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
 import { ThirdPartyManager } from './third-party.js';

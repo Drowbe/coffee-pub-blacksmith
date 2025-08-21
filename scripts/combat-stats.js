@@ -1,5 +1,5 @@
 // Import MODULE variables
-import { MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
 import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './global.js';
 import { PlanningTimer } from './planning-timer.js';
 import { CombatTimer } from './combat-timer.js';

@@ -1,7 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
-import { MODULE_ID } from './const.js';
+import { MODULE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { CombatTimer } from './combat-timer.js';
 import { PlanningTimer } from './planning-timer.js';

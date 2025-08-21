@@ -1,4 +1,4 @@
-import { MODULE_ID } from './const.js';
+import { MODULE, MODULE_ID } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR, postConsoleAndNotification } from './global.js';
 import { buildButtonEventRegent } from './blacksmith.js';
 import { CSSEditor } from './css-editor.js';

@@ -2,7 +2,7 @@
 // ===== XP MANAGER =================================================
 // ================================================================== 
 
-import { MODULE_ID } from './const.js';
+import { MODULE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 
 export class XpManager {

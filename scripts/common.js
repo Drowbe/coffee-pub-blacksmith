@@ -22,7 +22,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 // get the common utilities
 import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';

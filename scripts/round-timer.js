@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
 import { CombatStats } from './combat-stats.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, formatTime } from './global.js';
 

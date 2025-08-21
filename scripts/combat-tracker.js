@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound } from './global.js';
 
 /**

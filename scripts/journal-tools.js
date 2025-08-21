@@ -2,7 +2,7 @@
 // ===== JOURNAL TOOLS ==============================================
 // ================================================================== 
 
-import { MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, MODULE_ID, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class JournalTools {

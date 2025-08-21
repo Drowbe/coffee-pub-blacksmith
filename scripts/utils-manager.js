@@ -1,7 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
-import { MODULE_ID, MODULE_TITLE, API_VERSION } from './const.js';
+import { MODULE, MODULE_ID, MODULE_TITLE, API_VERSION } from './const.js';
 import * as GlobalUtils from './global.js';
 import { postConsoleAndNotification } from './global.js';
 

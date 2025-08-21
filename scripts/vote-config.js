@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { VoteManager } from "./vote-manager.js";
 import { ChatPanel } from "./chat-panel.js";

@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE_TITLE, MODULE_ID, BLACKSMITH, API_VERSION } from './const.js';
+import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH, API_VERSION } from './const.js';
 
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
