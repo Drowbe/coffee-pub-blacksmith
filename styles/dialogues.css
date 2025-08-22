@@ -1233,8 +1233,7 @@ div#blacksmith-message-options label {
 /* -------- THINGS BELOW HAVE NOT BEEN ORGANIZED ----------- */
 /* -------- ------------------------------------ ----------- */
 
-#blacksmith-input-message,
-	button[type="submit"] {
+#blacksmith-input-message button[type="submit"] {
 	flex: none; 
 }
 
