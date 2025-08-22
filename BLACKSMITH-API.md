@@ -76,11 +76,11 @@ blacksmith.utils.postConsoleAndNotification("BLACKSMITH", "Required message");
 
 // With all parameters
 blacksmith.utils.postConsoleAndNotification(
-    strModuleID = "BLACKSMITH", // Module title for styling (optional)
-    message,                        // The message to display (mandatory)
-    result = "",                    // Optional data to show in console
-    blnDebug = false,              // Is this a debug message (defaults to false)
-    blnNotification = false         // Show as UI notification
+    strModuleName = "BLACKSMITH", // Module name for styling (optional)
+    message,                      // The message to display (mandatory)
+    result = "",                  // data/object to show in console (optional)
+    blnDebug = false,            // true for debug, false for system (defaults to false)
+    blnNotification = false       // Show as UI notification
 );
 ```
 
@@ -181,14 +181,17 @@ if (blacksmith) {
 ```
 
 ### Dependency Benefits
-Since **Blacksmith is a dependency** on all Coffee Pub modules, these safe settings functions are **automatically available** to all of them without additional imports:
+Since **Blacksmith is a dependency** on all Coffee Pub modules, these safe settings functions are **automatically available** to all of them through the Blacksmith API:
 
 ```javascript
-// In any Coffee Pub module (no import needed!)
+// In any Coffee Pub module - access through the Blacksmith API
 Hooks.once('ready', async () => {
-    // Safe settings access - automatically available through dependency!
-    const featureEnabled = window.getSettingSafely('my-module', 'featureEnabled', false);
-    const soundEnabled = window.getSettingSafely('my-module', 'soundEnabled', true);
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
+    
+    // Safe settings access through the Blacksmith API
+    const featureEnabled = blacksmith.utils.getSettingSafely('my-module', 'featureEnabled', false);
+    const soundEnabled = blacksmith.utils.getSettingSafely('my-module', 'soundEnabled', true);
     
     if (featureEnabled) {
         initializeFeature();
@@ -438,25 +441,98 @@ try {
 ## Testing {#testing}
 You can test the Blacksmith API integration directly in your browser's console:
 
+### Basic API Availability Test
 ```javascript
-// Basic API availability test
+// Check if Blacksmith API is available
 const api = game.modules.get('coffee-pub-blacksmith')?.api;
-console.log(api); // Should show all available API methods
-
-// Test utility functions
-const utils = api?.utils;
-utils?.postConsoleAndNotification("TEST", "Test Message", "", true, false);
-utils?.formatTime(3600000); // Should show "01:00:00"
-
-// Test ModuleManager
-console.log(api?.ModuleManager?.registeredModules);
-console.log(api?.version); // Should show current API version
+console.log('Blacksmith API:', api); // Should show all available API methods
 ```
+
+### Test Utility Functions
+```javascript
+// Test the postConsoleAndNotification function
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.utils) {
+    blacksmith.utils.postConsoleAndNotification("TEST", "Testing Blacksmith Integration", "", true, false);
+    console.log('✅ postConsoleAndNotification working');
+} else {
+    console.log('❌ Utils not available');
+}
+
+// Test formatTime function
+if (blacksmith?.utils?.formatTime) {
+    const formatted = blacksmith.utils.formatTime(3600000); // Should show "01:00:00"
+    console.log('✅ formatTime working:', formatted);
+}
+```
+
+### Test Safe Settings Access
+```javascript
+// Test getSettingSafely function
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.utils) {
+    const testValue = blacksmith.utils.getSettingSafely('coffee-pub-blacksmith', 'defaultCardTheme', 'fallback');
+    console.log('✅ getSettingSafely working, value:', testValue);
+} else {
+    console.log('❌ Utils not available');
+}
+```
+
+### Test BLACKSMITH Object Access
+```javascript
+// Check if BLACKSMITH object is populated
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.BLACKSMITH) {
+    console.log('✅ BLACKSMITH object available');
+    console.log('Theme choices:', blacksmith.BLACKSMITH.arrThemeChoices);
+    console.log('Sound choices:', blacksmith.BLACKSMITH.arrSoundChoices);
+} else {
+    console.log('❌ BLACKSMITH object not available');
+}
+```
+
+### Test Module Registration
+```javascript
+// Check if your module is registered
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.ModuleManager) {
+    console.log('✅ ModuleManager available');
+    console.log('Registered modules:', blacksmith.ModuleManager.registeredModules);
+} else {
+    console.log('❌ ModuleManager not available');
+}
+```
+
+### One-Liner Quick Test
+```javascript
+// Quick comprehensive test - copy and paste this entire block
+(() => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return console.log('❌ Blacksmith not found');
+    
+    console.log('✅ Blacksmith API found');
+    console.log('✅ Utils available:', !!blacksmith.utils);
+    console.log('✅ BLACKSMITH object:', !!blacksmith.BLACKSMITH);
+    console.log('✅ ModuleManager:', !!blacksmith.ModuleManager);
+    
+    // Test a utility function
+    if (blacksmith.utils?.postConsoleAndNotification) {
+        blacksmith.utils.postConsoleAndNotification("TEST", "Integration Test Successful!", "", true, false);
+        console.log('✅ All systems working!');
+    }
+})();
+```
+
+**What to Look For:**
+- **✅ Success**: You should see styled console messages and no errors
+- **❌ Errors**: Check if Blacksmith is installed, active, and loaded
+- **Empty objects**: Choice arrays might be empty if accessed too early (use the `blacksmithUpdated` hook instead)
 
 **Common Issues:**
 - If `api` is undefined, ensure Blacksmith is installed and active
 - If `utils` methods return undefined, check if UtilsManager is initialized
 - If ModuleManager shows empty Maps, verify modules are registered during initialization
+- If choice arrays are empty, you may be testing too early in the Foundry lifecycle
 
 ### Stats API {#stats-api}
 The Stats API provides access to both player and combat statistics tracked by Blacksmith. This API allows other modules to retrieve and analyze player performance, combat data, and notable moments.

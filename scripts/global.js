@@ -975,7 +975,7 @@ export async function getOpenAIReplyAsHtml(query) {
 // ************************************
 // Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
 
-export function postConsoleAndNotification(strModuleName = "BLACKSMITH", message = "No Message.", result = "", blnDebug = false, blnNotification = false) {
+export function postConsoleAndNotification(strModuleName = "BLACKSMITH", message = "No Message", result = "", blnDebug = false, blnNotification = false) {
 
     // Set default styles based on module
     let moduleStyles = {
