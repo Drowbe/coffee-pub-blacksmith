@@ -306,7 +306,7 @@ class CPBPlayerStats {
             }
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, false);
         }
     }
 
@@ -510,7 +510,7 @@ class CPBPlayerStats {
             await this.updatePlayerStats(actor.id, updates);
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Error processing damage roll:`, error, false, true);
+            postConsoleAndNotification(MODULE.NAME, `Error processing damage roll:`, error, false, false);
             postConsoleAndNotification(MODULE.NAME, 'Actor:', actor, false, false);
             postConsoleAndNotification(MODULE.NAME, 'Combat:', game.combat, false, false);
             postConsoleAndNotification(MODULE.NAME, 'Roll:', roll, false, false);

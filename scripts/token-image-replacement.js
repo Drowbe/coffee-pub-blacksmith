@@ -65,8 +65,37 @@ export class TokenImageReplacement {
                 postConsoleAndNotification(MODULE.NAME, "  - refreshCache() - Manually refresh the cache", "", false, false);
                 postConsoleAndNotification(MODULE.NAME, "  - forceRefreshCache() - Force refresh (ignores stored cache)", "", false, false);
                 postConsoleAndNotification(MODULE.NAME, "  - getCacheStats() - View cache statistics", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "  - cleanupInvalidPaths() - Remove invalid file paths from cache", "", false, false);
+                
+                // Add the cleanup function to the global scope
+                game.TokenImageReplacement.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);
             }
         });
+    }
+    
+    /**
+     * Clean up invalid file paths from the cache
+     */
+    static _cleanupInvalidPaths() {
+        let cleanedCount = 0;
+        const invalidPaths = [];
+        
+        for (const [fileName, fileInfo] of this.cache.files.entries()) {
+            if (this._isInvalidFilePath(fileInfo.fullPath)) {
+                invalidPaths.push(fileInfo.fullPath);
+                this.cache.files.delete(fileName);
+                cleanedCount++;
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cleaned up ${cleanedCount} invalid file paths from cache`, "", false, false);
+            if (invalidPaths.length > 0) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid paths found: ${invalidPaths.join(', ')}`, "", false, false);
+            }
+        }
+        
+        return cleanedCount;
     }
     
     /**
@@ -92,6 +121,13 @@ export class TokenImageReplacement {
         // Try to load cache from storage first
         if (this._loadCacheFromStorage()) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Using cached data, skipping scan", "", false, false);
+            
+            // Clean up any invalid paths that might be in the cached data
+            const cleanedCount = this._cleanupInvalidPaths();
+            if (cleanedCount > 0) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cleaned up ${cleanedCount} invalid paths from cached data`, "", false, false);
+            }
+            
             return;
         }
         
@@ -273,6 +309,12 @@ export class TokenImageReplacement {
             return null;
         }
         
+        // Validate file path - check for invalid characters
+        if (this._isInvalidFilePath(filePath)) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping invalid file path: ${filePath}`, "", false, false);
+            return null;
+        }
+        
         // Extract relative path from base path
         const relativePath = filePath.replace(`${basePath}/`, '');
         const fileName = filePath.split('/').pop();
@@ -305,6 +347,33 @@ export class TokenImageReplacement {
     }
     
     /**
+     * Check if a file path contains invalid characters or patterns
+     */
+    static _isInvalidFilePath(filePath) {
+        // Check if strict validation is enabled
+        if (!game.settings.get(MODULE_ID, 'tokenImageReplacementStrictValidation')) {
+            return false; // Skip validation if strict mode is disabled
+        }
+        
+        // Check for wildcards and other invalid characters
+        if (filePath.includes('*') || filePath.includes('?') || filePath.includes('[') || filePath.includes(']')) {
+            return true;
+        }
+        
+        // Check for other potentially problematic patterns
+        if (filePath.includes('..') || filePath.includes('//')) {
+            return true;
+        }
+        
+        // Check if the path looks like a valid Foundry path
+        if (!filePath.startsWith('modules/') && !filePath.startsWith('assets/') && !filePath.startsWith('data/')) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Process and categorize files for the cache
      */
     static _processFiles(files, basePath) {
@@ -313,23 +382,38 @@ export class TokenImageReplacement {
         this.cache.folders.clear();
         this.cache.creatureTypes.clear();
         
+        let validFiles = 0;
+        let skippedFiles = 0;
+        
         for (const file of files) {
             // Extract filename and path information
             const fileName = file.name || file;
             const filePath = file.path || file;
             
+            // Validate the full path before storing
+            const fullPath = `${basePath}/${filePath}`;
+            if (this._isInvalidFilePath(fullPath)) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping invalid full path: ${fullPath}`, "", false, false);
+                skippedFiles++;
+                continue;
+            }
+            
             // Store in main files cache
             this.cache.files.set(fileName.toLowerCase(), {
                 name: fileName,
                 path: filePath,
-                fullPath: `${basePath}/${filePath}`,
+                fullPath: fullPath,
                 size: file.size || 0,
                 lastModified: file.lastModified || Date.now()
             });
             
+            validFiles++;
+            
             // Categorize by folder
             this._categorizeFile(fileName, filePath);
         }
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", false, false);
     }
     
     /**
@@ -496,10 +580,10 @@ export class TokenImageReplacement {
         let bestScore = 0;
         
         // Debug logging to see search scope contents
-        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Search scope size: ${searchScope.size}`, "", false, true);
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Search scope size: ${searchScope.size}`, "", false, false);
         if (searchScope.size > 0) {
             const firstFew = Array.from(searchScope.keys()).slice(0, 5);
-            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] First few items in search scope: ${firstFew.join(', ')}`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] First few items in search scope: ${firstFew.join(', ')}`, "", false, false);
         }
         
         for (const [fileName, fileInfo] of searchScope.entries()) {
@@ -608,6 +692,12 @@ export class TokenImageReplacement {
         const matchingImage = this.findMatchingImage(tokenDocument);
         
         if (matchingImage) {
+            // Validate the image path before applying
+            if (this._isInvalidFilePath(matchingImage.fullPath)) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cannot apply invalid image path to ${tokenDocument.name}: ${matchingImage.fullPath}`, "", false, false);
+                return;
+            }
+            
             // Apply the image replacement
             try {
                 await tokenDocument.update({
@@ -616,7 +706,12 @@ export class TokenImageReplacement {
                 
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name}`, "", false, false);
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", false, false);
+                
+                // Notify the GM about the failure
+                if (game.user.isGM) {
+                    ui.notifications.warn(`Token Image Replacement failed for ${tokenDocument.name}. Check console for details.`);
+                }
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", false, false);
@@ -763,7 +858,7 @@ export class TokenImageReplacement {
         if (hookRegistered) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: ✓ Hook 'createToken' is properly registered", "", false, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: ✗ Hook 'createToken' is NOT registered", "", false, true);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: ✗ Hook 'createToken' is NOT registered", "", false, false);
         }
         
         // Check if cache is ready

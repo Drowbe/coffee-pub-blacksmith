@@ -651,7 +651,7 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
             loop: loop
         }, broadcast);
     } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, `Global.js | Failed to play sound: ${sound}`, error, false, true);
+        postConsoleAndNotification(MODULE.NAME, `Global.js | Failed to play sound: ${sound}`, error, false, false);
     }
 }
 

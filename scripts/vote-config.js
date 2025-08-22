@@ -106,7 +106,7 @@ export class VoteConfig extends Application {
                     await VoteManager._showCharacterVoteDialog();
                     this.close();
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error starting character vote:', error, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error starting character vote:', error, false, false);
                     ui.notifications.error("Error starting character vote. Check the console for details.");
                 }
             } else {
@@ -114,7 +114,7 @@ export class VoteConfig extends Application {
                     await VoteManager.startVote(type);
                     this.close();
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error starting vote:', error, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error starting vote:', error, false, false);
                     ui.notifications.error("Error starting vote. Check the console for details.");
                 }
             }

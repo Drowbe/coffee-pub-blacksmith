@@ -305,7 +305,7 @@ export class XpManager {
             // Get the GM user for the speaker (messages always appear from GM)
             const gmUser = game.users.find(u => u.isGM);
             if (!gmUser) {
-                postConsoleAndNotification(MODULE.NAME, 'No GM user found', "", false, true);
+                postConsoleAndNotification(MODULE.NAME, 'No GM user found', "", false, false);
                 return;
             }
             
@@ -328,7 +328,7 @@ export class XpManager {
             
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error posting XP results', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error posting XP results', error, false, false);
             
             // Fallback: post a simple text message instead
             const fallbackMessage = `XP Distribution Complete!\nTotal XP: ${xpData.adjustedTotalXp}\nPlayers: ${results.map(r => `${r.name}: +${r.xpGained} XP`).join(', ')}`;
@@ -363,7 +363,7 @@ export class XpManager {
 
             return template;
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error rendering template', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error rendering template', error, false, false);
             throw error;
         }
     }
@@ -513,7 +513,7 @@ class XpDistributionWindow extends FormApplication {
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error in _updateObject', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error in _updateObject', error, false, false);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
         }
     }

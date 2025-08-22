@@ -200,7 +200,7 @@ class CombatStats {
                 playSound(soundId, volume);
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error announcing new round', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error announcing new round', error, false, false);
         }
     }
 
@@ -525,7 +525,7 @@ class CombatStats {
             const actorId = uuid.split('.')[1];
             return game.actors.get(actorId);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error getting actor from UUID', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error getting actor from UUID', error, false, false);
             return null;
         }
     }
@@ -1314,7 +1314,7 @@ class CombatStats {
             this.currentStats.activePlanningTime = 0;
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Round End - Error', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Round End - Error', error, false, false);
         }
     }
 

@@ -283,7 +283,7 @@ class CombatTracker {
                 });
                 
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Tracker`, error, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Tracker`, error, false, false);
             }
         });
     }
@@ -380,7 +380,7 @@ class CombatTracker {
                 // Only set the flag after successfully setting the turn
                 this._hasSetFirstCombatant = true;
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Error setting first combatant", error, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Error setting first combatant", error, false, false);
                 this._hasSetFirstCombatant = false;
             }
         }

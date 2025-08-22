@@ -556,7 +556,7 @@ export class PlanningTimer {
                 timerText.text(`${timeString} ${label}`);
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, false);
         }
     }
 

@@ -130,7 +130,7 @@ class CombatTimer {
                 });
 
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, true);
+                postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, false);
             }
         });
 
@@ -208,7 +208,7 @@ class CombatTimer {
 
             this.updateUI();
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error rendering combat tracker", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error rendering combat tracker", error, false, false);
         }
     }
 
@@ -531,7 +531,7 @@ class CombatTimer {
                 });
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error in startTimer", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error in startTimer", error, false, false);
         }
     }
 
@@ -764,7 +764,7 @@ class CombatTimer {
             }
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error updating UI", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error updating UI", error, false, false);
         }
     }
 

@@ -136,7 +136,7 @@ export async function getCachedTemplate(templatePath) {
         
         return template;
     } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, `Error loading template ${templatePath}`, error, false, true);
+        postConsoleAndNotification(MODULE.NAME, `Error loading template ${templatePath}`, error, false, false);
         throw error;
     }
 }
@@ -647,11 +647,11 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
                 // Set the default icon
                 entryIconField.val(strIconUrl);
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, true);
+                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
             }
         }
     } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, false);
     }
 
 

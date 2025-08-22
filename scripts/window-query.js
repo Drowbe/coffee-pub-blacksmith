@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
                 });
             } else {
-                postConsoleAndNotification(MODULE.NAME, `Elements not found for workspace: ${workspace}`, "", false, true);
+                postConsoleAndNotification(MODULE.NAME, `Elements not found for workspace: ${workspace}`, "", false, false);
             }
         });
 
@@ -273,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add event listeners after rendering
                     addEventListeners();
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, 'Element with ID "blacksmith-workspace-wrapper" not found.', "", false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Element with ID "blacksmith-workspace-wrapper" not found.', "", false, false);
                 }
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error loading partial templates:', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Error loading partial templates:', error, false, false);
         }
     };
 
@@ -311,7 +311,7 @@ window.toggleSection = function(sectionId, button) {
         }
 
     } else {
-        postConsoleAndNotification(MODULE.NAME, "Section content not found for ID:", sectionId, false, true);
+        postConsoleAndNotification(MODULE.NAME, "Section content not found for ID:", sectionId, false, false);
     }
 };
 
@@ -870,8 +870,8 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped item:', error, false, true);
-                    postConsoleAndNotification(MODULE.NAME, 'Error stack:', error.stack, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped item:', error, false, false);
+                    postConsoleAndNotification(MODULE.NAME, 'Error stack:', error.stack, false, false);
                 }
             });
         });
@@ -980,7 +980,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped journal:', error, false, true);
+                    postConsoleAndNotification(MODULE.NAME, 'Error processing dropped journal:', error, false, false);
                 }
             });
         });
@@ -1083,7 +1083,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         const toggleButton = document.getElementById('blacksmith-toggle-workspace');
         
         if (!workspace || !windowElement) {
-            postConsoleAndNotification(MODULE.NAME, 'Could not find workspace or window elements', "", false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Could not find workspace or window elements', "", false, false);
             return;
         }
 
@@ -1157,10 +1157,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                 heroCR = partyHeroCRElement.innerText.trim();
                 postConsoleAndNotification(MODULE.NAME, `Party Benchmark for id ${id}:`, heroCR, true, false);
             } else {
-                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`, "", false, true);
+                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-party-partycr-${id}.`, "", false, false);
             }
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-party-partycr-${id} not found.`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-party-partycr-${id} not found.`, "", false, false);
         }
         // Update the Hero CR on the PARTY sheet
 
@@ -1172,10 +1172,10 @@ export class BlacksmithWindowQuery extends FormApplication {
                 heroCR = npcHeroCrElement.innerText.trim();
                 postConsoleAndNotification(MODULE.NAME, `NPC Hero CR for id ${id}:`, heroCR, true, false);
             } else {
-                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`, "", false, true);
+                postConsoleAndNotification(MODULE.NAME, `Span element with class 'big-number bold-badge' not found within id worksheet-npc-herocr-${id}.`, "", false, false);
             }
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-npc-herocr-${id} not found.`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id worksheet-npc-herocr-${id} not found.`, "", false, false);
         }
         // MONSTER CR 
         const monsterCRValueElement = document.querySelector(`#monsterCRValue-${id}`);
@@ -1184,7 +1184,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
             postConsoleAndNotification(MODULE.NAME, `Monster CR Value for id ${id}:`, monsterCRValue, true, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Element with id monsterCRValue-${id} not found.`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Element with id monsterCRValue-${id} not found.`, "", false, false);
             monsterCRValue = 0;
         }
 
@@ -1222,7 +1222,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (!tokensContainer) {
-            postConsoleAndNotification(MODULE.NAME, `Container not found for type ${type} and ID ${id}`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Container not found for type ${type} and ID ${id}`, "", false, false);
             return;
         }
     
@@ -1494,7 +1494,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                     postConsoleAndNotification(MODULE.NAME, "completed INJURY journal entry creation.", "", false, false);
                     break;
                 default:
-                    postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
+                    postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, false);
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error processing JSON:", error, false, true);
@@ -1521,7 +1521,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 speaker: ChatMessage.getSpeaker()
             });
         } else {
-            postConsoleAndNotification(MODULE.NAME, "No content found to send to chat.", "", false, true);
+            postConsoleAndNotification(MODULE.NAME, "No content found to send to chat.", "", false, false);
             ui.notifications.error("No content found to send to chat.");
         }
     }
@@ -1551,11 +1551,11 @@ export class BlacksmithWindowQuery extends FormApplication {
                 await navigator.clipboard.writeText(content);
                 ui.notifications.info("Content copied to clipboard.");
             } catch (err) {
-                postConsoleAndNotification(MODULE.NAME, "Failed to copy content: ", err, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Failed to copy content: ", err, false, false);
                 ui.notifications.error("Blacksmith | Failed to copy content to clipboard.");
             }
         } else {
-            postConsoleAndNotification(MODULE.NAME, "No content found to copy.", "", false, true);
+            postConsoleAndNotification(MODULE.NAME, "No content found to copy.", "", false, false);
             ui.notifications.error("Blacksmith | No content found to copy.");
         }
     }
@@ -2252,7 +2252,7 @@ Key encounter requirements:`;
                     strPromptNarration += `\n\nIMPORTANT: Make sure to include ALL linked encounters in your JSON response. The linkedEncounters array MUST include all encounters listed above, with proper uuid, name, synopsis, and keyMoments fields for each encounter. DO NOT omit any fields.`;
                 }
             } catch (e) {
-                postConsoleAndNotification(MODULE.NAME, 'Error parsing encounters data:', e, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Error parsing encounters data:', e, false, false);
             }
         }
 

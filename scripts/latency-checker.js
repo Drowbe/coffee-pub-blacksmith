@@ -27,7 +27,7 @@ export class LatencyChecker {
 
             // Wait for socket to be ready
             if (!game.socket?.connected) {
-                postConsoleAndNotification(MODULE.NAME, "Latency: Socket not connected!", "", false, true);
+                postConsoleAndNotification(MODULE.NAME, "Latency: Socket not connected!", "", false, false);
                 return;
             }
 
@@ -54,13 +54,13 @@ export class LatencyChecker {
             this.#updateLatencyDisplay();
             postConsoleAndNotification(MODULE.NAME, "Latency: LatencyChecker initialized successfully", "", true, false);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Latency: Error initializing LatencyChecker:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error initializing LatencyChecker:", error, false, false);
         }
     }
 
     static startPeriodicCheck() {
         if (!this.#initialized) {
-            postConsoleAndNotification(MODULE.NAME, "Latency: Cannot start periodic checks - LatencyChecker not initialized", "", false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Cannot start periodic checks - LatencyChecker not initialized", "", false, false);
             return;
         }
 
@@ -72,7 +72,7 @@ export class LatencyChecker {
         // Get interval from settings (convert from seconds to milliseconds)
         const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
 
-        postConsoleAndNotification(MODULE.NAME, `Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, true);
+        postConsoleAndNotification(MODULE.NAME, `Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, false);
         
         // Initial update to show "--ms" for all players
         this.#updateLatencyDisplay();
@@ -112,7 +112,7 @@ export class LatencyChecker {
                 time: startTime
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Latency: Error measuring latency:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error measuring latency:", error, false, false);
         }
     }
 
@@ -208,7 +208,7 @@ export class LatencyChecker {
                 }
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Latency: Error updating latency display:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error updating latency display:", error, false, false);
         }
     }
 
@@ -243,7 +243,7 @@ export class LatencyChecker {
                 }
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Latency: Error checking users:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Latency: Error checking users:", error, false, false);
         }
     }
 

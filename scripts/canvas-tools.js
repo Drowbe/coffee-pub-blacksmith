@@ -88,7 +88,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenData.name || 'Unknown Token';
-            postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
         }
         
         return true;
@@ -113,7 +113,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenDocument.name || 'Unknown Token';
-            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
+            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
         }
         
         return true;
@@ -142,7 +142,7 @@ export class CanvasTools {
             try {
                 await tokenDocument.update(updates);
                 const tokenName = tokenDocument.name || 'Unknown Token';
-                postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, true);
+                postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Error applying token overrides: ${error}`, "", true, false);
             }

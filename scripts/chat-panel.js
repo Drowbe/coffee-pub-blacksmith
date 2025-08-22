@@ -234,7 +234,7 @@ class ChatPanel {
             });
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error rendering panel:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error rendering panel:", error, false, false);
         }
     }
 
@@ -426,7 +426,7 @@ class ChatPanel {
         } catch (error) {
             // If we can't access the setting, assume no leader
             leaderData = { userId: '', actorId: '' };
-            postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Could not load leader data:', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Could not load leader data:', error, false, false);
         }
         
 
@@ -460,7 +460,7 @@ class ChatPanel {
             }
     
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error loading timer:", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error loading timer:", error, false, false);
             this.sessionEndTime = null;
             this.sessionStartTime = null;
         }
@@ -582,7 +582,7 @@ class ChatPanel {
             this.previousRemainingMinutes = remainingMinutes;
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Error in timer warning check", error, false, true);
+            postConsoleAndNotification(MODULE.NAME, "Error in timer warning check", error, false, false);
             // If settings aren't registered yet, just use default styling
             timerInfo.classList.remove('warning', 'expired');
             timerInfo.style.setProperty('--progress-color', '#c1bfb5');
@@ -762,7 +762,7 @@ class ChatPanel {
             if (success) {
                 ChatPanel.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }
         } else {
             ChatPanel.updateLeaderDisplay();
@@ -792,7 +792,7 @@ class ChatPanel {
                 });
                 this.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }
         }
     }
@@ -830,7 +830,7 @@ class ChatPanel {
             const actor = game.actors.get(leaderData.actorId);
             
             if (!user || !actor) {
-                postConsoleAndNotification(MODULE.NAME, 'CHAT | Failed to find user or actor:', { user, actor }, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'CHAT | Failed to find user or actor:', { user, actor }, false, false);
                 postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
                     `Failed to set leader: User or character not found`, 
                     true, false
@@ -902,7 +902,7 @@ class ChatPanel {
 
             return true;
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'CHAT | Error in setNewLeader:', error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'CHAT | Error in setNewLeader:', error, false, false);
             postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
                 `Failed to set leader: ${error.message}`, 
                 true, false
