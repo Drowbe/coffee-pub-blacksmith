@@ -7,7 +7,7 @@ import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
 // -- Load the shared GLOBAL functions --
-import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings} from './global.js';
+import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './global.js';
 // -- Import special page variables --
 // Load the data sets for the settings dropdowns
 import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages, dataTheme } from './data-collections.js';
@@ -174,8 +174,8 @@ function getThemeChoices() {
       }); 
 
     for(let theme of sortedThemes) { 
-      // Check if the theme is enabled
-      if(game.settings.get(MODULE_ID, theme.id)) {
+      // Check if the theme is enabled - use safe settings function
+      if(getSettingSafely(MODULE_ID, theme.id, true)) {
         choices[theme.id] = theme.name;
         // Add the enabled theme to arrThemeChoicesEnabled array
         BLACKSMITH.arrThemeChoicesEnabled.push(theme.name);
@@ -287,20 +287,22 @@ function getSoundChoices() {
 
 //export const registerSettings = () => {
 export const registerSettings = async () => {
-// --------------------------------------------------------
-	Hooks.once('ready', async() => {
-	// --------------------------------------------------------
+    // Settings registration function - called during the 'ready' phase when Foundry is ready
+    
+    console.log('Blacksmith: Starting settings registration...');
+    
+    // 'world' scope settings are available only to GMs
 
-		// 'world' scope settings are available only to GMs
+    // Build the Dropdown choices
+    getCompendiumChoices();
+    getTableChoices();
+    getMacroChoices();
+    getBackgroundImageChoices();
+    getIconChoices();
+    getSoundChoices();
+    const nameplateChoices = getNameplateChoices();
+    
 
-		// Build the Dropdown choices
-		getCompendiumChoices();
-		getTableChoices();
-		getMacroChoices();
-		getBackgroundImageChoices();
-		getIconChoices();
-		getSoundChoices();
-		const nameplateChoices = getNameplateChoices();
 
 		// *** INTRODUCTION ***
 		// ---------- TITLE ----------
@@ -603,7 +605,7 @@ export const registerSettings = async () => {
 			config: true,
 			type: String,
 			default: 'none',
-			choices: dataSounds.sounds.reduce((obj, sound) => {
+			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
 				obj[sound.id] = sound.name;
 				return obj;
 			}, {})
@@ -625,7 +627,7 @@ export const registerSettings = async () => {
 			config: true,
 			type: String,
 			default: 'none',
-			choices: dataSounds.sounds.reduce((obj, sound) => {
+			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
 				obj[sound.id] = sound.name;
 				return obj;
 			}, {})
@@ -1343,6 +1345,7 @@ export const registerSettings = async () => {
 		type: String,
 	});
 	// -------------------------------------
+	
 	// -- Rename Table --
 	game.settings.register(MODULE_ID, 'tokenNameTable', {
 		name: MODULE_ID + '.tokenNameTable-Label',
@@ -1732,7 +1735,7 @@ export const registerSettings = async () => {
 		config: true,
 		requiresReload: true,
 		default: '-- Choose a Macro --',
-		choices: COFFEEPUB.arrMACROCHOICES
+		choices: BLACKSMITH.arrMacroChoices
 	});
 
 	// -- API KEY --
@@ -2297,18 +2300,18 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// -- Monster Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= 8; i++) {
-		game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
-			name: `Monster Lookup ${i}`,
-			hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
-		});
-	}
+			// -- Monster Lookup Compendiums (up to 8) --
+		for (let i = 1; i <= 8; i++) {
+			game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
+				name: `Monster Lookup ${i}`,
+				hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrCompendiumChoices
+			});
+		}
 
 
 	// -- Search World Items First --
@@ -2331,18 +2334,18 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// -- Item Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= 8; i++) {
-		game.settings.register(MODULE_ID, `itemCompendium${i}` , {
-			name: `Item Lookup ${i}`,
-			hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: COFFEEPUB.arrCOMPENDIUMCHOICES
-		});
-	}
+			// -- Item Lookup Compendiums (up to 8) --
+		for (let i = 1; i <= 8; i++) {
+			game.settings.register(MODULE_ID, `itemCompendium${i}` , {
+				name: `Item Lookup ${i}`,
+				hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrCompendiumChoices
+			});
+		}
 
 	// *** ROUND ANNOUNCMENTS ***
 
@@ -2370,19 +2373,19 @@ export const registerSettings = async () => {
 	});
 
 	// New Round Sound Setting
-	game.settings.register(MODULE_ID, 'newRoundSound', {
-		name: "New Round Sound",
-		hint: "Sound to play when a new round begins",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: dataSounds.sounds.reduce((obj, sound) => {
-			obj[sound.id] = sound.name;
-			return obj;
-		}, {}),
-		default: "none"
-	});
+			game.settings.register(MODULE_ID, 'newRoundSound', {
+			name: "New Round Sound",
+			hint: "Sound to play when a new round begins",
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
+				obj[sound.id] = sound.name;
+				return obj;
+			}, {}),
+			default: "none"
+		});
 	// -------------------------------------
 
 	// *** COMBAT TRACKER SETTINGS ***
@@ -2565,7 +2568,7 @@ export const registerSettings = async () => {
 		scope: "world",
 		config: true,
 		type: String,
-		choices: dataSounds.sounds.reduce((obj, sound) => {
+		choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
 			obj[sound.id] = sound.name;
 			return obj;
 		}, {}),
@@ -2579,7 +2582,7 @@ export const registerSettings = async () => {
 		scope: "world",
 		config: true,
 		type: String,
-		choices: dataSounds.sounds.reduce((obj, sound) => {
+		choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
 			obj[sound.id] = sound.name;
 			return obj;
 		}, {}),
@@ -2885,7 +2888,7 @@ export const registerSettings = async () => {
 		config: true,
 		type: String,
 		default: 'none',
-		choices: COFFEEPUB.arrSOUNDCHOICES,
+		choices: BLACKSMITH.arrSoundChoices,
 	});
 
 
@@ -2922,7 +2925,7 @@ export const registerSettings = async () => {
 		config: true,
 		type: String,
 		default: 'none',
-		choices: COFFEEPUB.arrSOUNDCHOICES,
+		choices: BLACKSMITH.arrSoundChoices,
 	});
 
 	// -- Critical Threshold --
@@ -2958,7 +2961,7 @@ export const registerSettings = async () => {
 		config: true,
 		type: String,
 		default: 'none',
-		choices: COFFEEPUB.arrSOUNDCHOICES,
+		choices: BLACKSMITH.arrSoundChoices,
 	});
 
 
@@ -2980,7 +2983,7 @@ export const registerSettings = async () => {
 		config: true,
 		type: String,
 		default: 'none',
-		choices: COFFEEPUB.arrSOUNDCHOICES,
+		choices: BLACKSMITH.arrSoundChoices,
 	});
 
 
@@ -3350,7 +3353,8 @@ export const registerSettings = async () => {
 	
 
 	// --------------------------------------------------------
-	}); // END OF "Hooks.once('ready', async()"
+    console.log('Blacksmith: Settings registration complete');
+    // Settings registration complete
 	// --------------------------------------------------------
 
 	

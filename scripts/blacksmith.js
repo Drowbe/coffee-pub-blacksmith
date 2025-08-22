@@ -219,16 +219,16 @@ registerBlacksmithUpdatedHook();
 
 // Defer all hook registration until after settings are ready
 Hooks.once('init', async function() {
-    // Register settings FIRST before any other initialization
-    await registerSettings();
-    
-    // Now that settings are registered, we can safely register hooks
-    // that might access settings
+    // Settings will be registered during the 'ready' phase
+    // This phase is just for preparing hooks and other initialization
 });
 
 // Consolidate all settings-dependent initialization into a single ready hook
 Hooks.once('ready', async () => {
     try {
+        // Register settings FIRST during the ready phase
+        await registerSettings();
+        
         // Wait a bit to ensure settings are fully processed
         await new Promise(resolve => setTimeout(resolve, 100));
         
