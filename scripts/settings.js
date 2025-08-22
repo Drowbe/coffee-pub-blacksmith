@@ -605,10 +605,7 @@ export const registerSettings = async () => {
 			config: true,
 			type: String,
 			default: 'none',
-			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
-				obj[sound.id] = sound.name;
-				return obj;
-			}, {})
+			choices: BLACKSMITH.arrSoundChoices
 		});
 
 		game.settings.register(MODULE_ID, 'sessionTimerWarningMessage', {
@@ -627,10 +624,7 @@ export const registerSettings = async () => {
 			config: true,
 			type: String,
 			default: 'none',
-			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
-				obj[sound.id] = sound.name;
-				return obj;
-			}, {})
+			choices: BLACKSMITH.arrSoundChoices
 		});
 
 		game.settings.register(MODULE_ID, 'sessionTimerExpiredMessage', {
@@ -2380,10 +2374,7 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			type: String,
-			choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
-				obj[sound.id] = sound.name;
-				return obj;
-			}, {}),
+			choices: BLACKSMITH.arrSoundChoices,
 			default: "none"
 		});
 	// -------------------------------------
@@ -2568,10 +2559,7 @@ export const registerSettings = async () => {
 		scope: "world",
 		config: true,
 		type: String,
-		choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
-			obj[sound.id] = sound.name;
-			return obj;
-		}, {}),
+		choices: BLACKSMITH.arrSoundChoices,
 		default: "none"
 	});
 
@@ -2582,10 +2570,7 @@ export const registerSettings = async () => {
 		scope: "world",
 		config: true,
 		type: String,
-		choices: getSettingSafely(MODULE_ID, 'arrSoundChoices', {}) || dataSounds.sounds.reduce((obj, sound) => {
-			obj[sound.id] = sound.name;
-			return obj;
-		}, {}),
+		choices: BLACKSMITH.arrSoundChoices,
 		default: "none"
 	});
 
