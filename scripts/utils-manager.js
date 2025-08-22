@@ -81,6 +81,17 @@ export class UtilsManager {
         return GlobalUtils.playSound(sound, volume, loop, broadcast);
     }
 
+    // Safe Settings Access
+    static getSettingSafely(moduleId, settingKey, defaultValue = null) {
+        this.checkInitialized();
+        return GlobalUtils.getSettingSafely(moduleId, settingKey, defaultValue);
+    }
+
+    static setSettingSafely(moduleId, settingKey, value) {
+        this.checkInitialized();
+        return GlobalUtils.setSettingSafely(moduleId, settingKey, value);
+    }
+
     // Get all utilities as an object
     static getUtils(requiredVersion = API_VERSION) {
         this.checkInitialized();
@@ -99,7 +110,10 @@ export class UtilsManager {
             getActorId: this.getActorId.bind(this),
             getTokenImage: this.getTokenImage.bind(this),
             getPortraitImage: this.getPortraitImage.bind(this),
-            playSound: this.playSound.bind(this)
+            playSound: this.playSound.bind(this),
+            // Safe Settings Access
+            getSettingSafely: this.getSettingSafely.bind(this),
+            setSettingSafely: this.setSettingSafely.bind(this)
         };
     }
 } 

@@ -22,7 +22,7 @@ Coffee Pub Blacksmith serves as the central hub for all Coffee Pub modules, prov
 - [Stats API](#stats-api)
 - [Enhanced Image Guessing](#enhanced-image-guessing)
 
-## Getting Started {#getting-started}
+## Getting Started
 
 ### Accessing the API
 ```javascript
@@ -62,7 +62,7 @@ Hooks.once('init', async function() {
 });
 ```
 
-## API Availability and Timing {#api-availability}
+## API Availability and Timing
 
 **CRITICAL**: The Blacksmith API is not immediately available when your module loads. You must check availability before using any functions to prevent crashes.
 
@@ -76,7 +76,7 @@ Hooks.once('init', async function() {
 - ❌ During the `setupGame` hook  
 - ❌ Before Blacksmith has finished initializing
 
-### Safe API Usage Patterns {#safe-usage-patterns}
+### Safe API Usage Patterns
 
 **ALWAYS check availability before using the API:**
 
@@ -98,7 +98,7 @@ if (blacksmith?.utils?.getSettingSafely) {
 const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultValue);
 ```
 
-### Common Crashes and Fixes {#common-crashes}
+### Common Crashes and Fixes
 
 **Error: `blacksmith.utils.getSettingSafely is not a function`**
 
@@ -115,14 +115,14 @@ const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultVal
 **Cause:** Accessing the API during the wrong Foundry lifecycle phase
 **Fix:** Use the `ready` hook instead of `setupGame` or `init` for API access
 
-## API Methods {#api-methods}
+## API Methods
 
-### Module Management {#module-management}
+### Module Management
 - `registerModule(moduleId, config)`: Register your module with Blacksmith
 - `isModuleActive(moduleId)`: Check if a specific Coffee Pub module is active
 - `getModuleFeatures(moduleId)`: Get all features registered by a specific module
 
-### Global Utilities {#global-utilities}
+### Global Utilities
 Blacksmith provides a set of shared utility functions that all Coffee Pub modules can use:
 
 #### Console and Notifications
@@ -157,7 +157,24 @@ blacksmith.utils.getPortraitImage(actor);
 
 // Sound management
 blacksmith.utils.playSound(sound, volume = 0.7, loop = false, broadcast = true);
+
+// Safe settings access
+blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultValue);
+blacksmith.utils.setSettingSafely(moduleId, settingKey, value);
 ```
+
+**Complete List of Available Utils:**
+- `postConsoleAndNotification()` - Console logging and notifications
+- `formatTime()` - Time formatting utilities
+- `generateFormattedDate()` - Date formatting
+- `trimString()` - String truncation
+- `toSentenceCase()` - Text case conversion
+- `getActorId()` - Get actor ID by name
+- `getTokenImage()` - Get token image
+- `getPortraitImage()` - Get actor portrait
+- `playSound()` - Sound playback
+- `getSettingSafely()` - Safe settings access ✅
+- `setSettingSafely()` - Safe settings modification ✅
 
 #### Safe Settings Access
 Blacksmith provides robust, timing-safe functions for accessing FoundryVTT settings that prevent startup crashes:
@@ -168,10 +185,9 @@ const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultVal
 
 // Safe settings setter - won't crash if settings aren't registered yet
 const success = blacksmith.utils.setSettingSafely(moduleId, settingKey, value);
-
-// Cached settings getter with expiration
-const cachedValue = blacksmith.utils.getCachedSetting(settingKey, defaultValue);
 ```
+
+**✅ FULLY FUNCTIONAL**: These functions are properly exposed through the API and ready for use.
 
 **Why Use Safe Settings Access?**
 - **Prevents startup crashes** from "not a registered game setting" errors
@@ -266,7 +282,7 @@ Hooks.once('ready', async () => {
 - **Professional quality** - users get a consistent, crash-free experience
 - **Automatic availability** - functions load with every dependent module
 
-### BLACKSMITH Global Object {#blacksmith-global-object}
+### BLACKSMITH Global Object
 The BLACKSMITH object is accessible through the API, providing access to various shared resources and settings. This object is populated during the module initialization and updated through the hook system.
 
 ```javascript
@@ -338,7 +354,7 @@ Hooks.once('init', async function() {
     });
 });
 
-## Feature Types {#feature-types}
+## Feature Types
 
 ### Chat Panel Icons
 Add icons to the chat panel toolbar:
@@ -358,7 +374,7 @@ Add icons to the chat panel toolbar:
 - **More types coming soon** as the API expands
 ```
 
-## Events {#events}
+## Events
 Blacksmith emits several events that your module can listen to:
 
 ```javascript
@@ -376,7 +392,7 @@ Hooks.on('blacksmithUpdated', (newBlacksmith) => {
 });
 ```
 
-### BLACKSMITH Object Update Hook {#blacksmith-update-hook}
+### BLACKSMITH Object Update Hook
 The `blacksmithUpdated` hook is triggered whenever the BLACKSMITH object is updated with new data. This happens during:
 
 1. **Settings Registration**: When choice arrays are populated
@@ -395,7 +411,7 @@ Hooks.on('blacksmithUpdated', (newBlacksmith) => {
 });
 ```
 
-## Examples {#examples}
+## Examples
 
 ### Complete Module Registration
 ```javascript
@@ -420,14 +436,33 @@ Hooks.once('init', async function() {
 });
 ```
 
-## Best Practices {#best-practices}
+## Best Practices
 1. Always check if Blacksmith is available before using its API
 2. Register your module during the 'init' hook
 3. Use the provided event system for inter-module communication
 4. Follow the naming conventions for module IDs and titles
 5. When using BLACKSMITH object properties, check if they exist before using them
+6. **Use a standardized MODULE constant object** for consistent module identification
 
-### Initialization Timing {#initialization-timing}
+### Standardized Module Constants
+Blacksmith and other Coffee Pub modules depend on consistent module identification. Use this pattern:
+
+```javascript
+export const MODULE = {
+    ID: 'your-module-id',
+    NAME: 'YOUR_MODULE_NAME',
+    TITLE: 'Your Module Title',
+    AUTHOR: 'Your Name'
+};
+```
+
+**Why This Matters:**
+- **Blacksmith uses these constants** for module registration and management
+- **Consistent naming** across all Coffee Pub modules
+- **Easy to update** if module details change
+- **Prevents typos** in module IDs and names
+
+### Initialization Timing
 **Important**: The BLACKSMITH object and its choice arrays are populated during the `ready` phase, not during `init`. To ensure you have access to the latest data:
 
 ```javascript
@@ -457,7 +492,7 @@ Hooks.once('init', async () => {
 });
 ```
 
-### Accessing Choice Arrays {#accessing-choice-arrays}
+### Accessing Choice Arrays
 The choice arrays are automatically populated and updated by Blacksmith. You can access them through:
 
 1. **Direct API Access** (after ready phase):
@@ -474,13 +509,13 @@ Hooks.on('blacksmithUpdated', (newBlacksmith) => {
 });
 ```
 
-## Version Compatibility {#version-compatibility}
+## Version Compatibility
 - Foundry VTT: v12 (with v13 readiness)
 - Required Libraries:
   - socketlib
   - libWrapper
 
-## Error Handling {#error-handling}
+## Error Handling
 The API includes built-in error handling, but you should still implement your own error handling:
 
 ```javascript
@@ -494,7 +529,7 @@ try {
 }
 ```
 
-## Testing {#testing}
+## Testing
 You can test the Blacksmith API integration directly in your browser's console:
 
 ### Basic API Availability Test
@@ -590,7 +625,7 @@ if (blacksmith?.ModuleManager) {
 - If ModuleManager shows empty Maps, verify modules are registered during initialization
 - If choice arrays are empty, you may be testing too early in the Foundry lifecycle
 
-### Stats API {#stats-api}
+### Stats API
 The Stats API provides access to both player and combat statistics tracked by Blacksmith. This API allows other modules to retrieve and analyze player performance, combat data, and notable moments.
 
 #### Accessing the Stats API
@@ -726,7 +761,7 @@ function displayPlayerStats(stats) {
 - Unsubscribe from updates when no longer needed
 - Clean up subscriptions on module disable/unload
 
-## Enhanced Image Guessing {#enhanced-image-guessing}
+## Enhanced Image Guessing
 
 The Blacksmith module includes an advanced image guessing system that automatically selects appropriate images for imported items.
 
@@ -749,9 +784,11 @@ const synonyms = await getAvailableSynonyms();
 
 The system includes mappings for weapons, equipment, commodities, containers, consumables, and sundries. You can customize the mapping by modifying `resources/item-mapping.json`.
 
-## Recent Improvements and Fixes {#recent-improvements}
+## Recent Improvements and Fixes
 
-### Global Variable Sharing System {#global-variable-sharing}
+
+
+### Global Variable Sharing System
 The global variable sharing system has been significantly improved to ensure reliable data access across all Coffee Pub modules:
 
 **What Was Fixed:**
@@ -786,7 +823,7 @@ This API provides a comprehensive foundation for Coffee Pub modules to integrate
 
 For questions or contributions, refer to the main README.md or create an issue in the repository.
 
-## AI-Friendly Integration Prompts {#ai-friendly-prompts}
+## AI-Friendly Integration Prompts
 
 ### For CursorAI and Similar AI Coding Assistants
 

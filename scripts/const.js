@@ -2,23 +2,17 @@
 // ===== EXPORTS ====================================================
 // ================================================================== 
 
+// Import module.json
+import moduleData from '../module.json' assert { type: 'json' };
+
 export const MODULE = {
-    ID: 'coffee-pub-blacksmith',
-    NAME: 'BLACKSMITH',
-    TITLE: 'Coffee Pub Blacksmith',
-    AUTHOR: 'COFFEE PUB'
+    ID: moduleData.id, // coffee-pub-blacksmith
+    NAME: 'BLACKSMITH', // BLACKSMITH or moduleData.title.toUpperCase().replace(/\s+/g, '_')
+    TITLE: moduleData.title, // Coffee Pub Blacksmith
+    AUTHOR: moduleData.authors[0]?.name || 'COFFEE PUB',
+    VERSION: moduleData.version, // 12.0.23
+    DESCRIPTION: moduleData.description // Quality of life and aesthetic improvements
 };
-
-
-// I think this should become COFFEEPUB.MODULES at some point
-// export const COFFEE_PUB_MODULES = {
-//     BLACKSMITH: 'coffee-pub-blacksmith',
-//     BIBLIOSOPH: 'coffee-pub-bibliosoph',
-//     CRIER: 'coffee-pub-crier',
-//     SCRIBE: 'coffee-pub-scribe',
-//     SQUIRE: 'coffee-pub-squire',
-//     MONARCH: 'coffee-pub-monarch'
-// };
 
 // API Version
 export const API_VERSION = '1.0.0';
