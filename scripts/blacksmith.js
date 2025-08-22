@@ -8,7 +8,7 @@ import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH, API_VERSION } from './cons
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
+import { COFFEEPUB } from './global.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './global.js';
 // -- Global utilities --

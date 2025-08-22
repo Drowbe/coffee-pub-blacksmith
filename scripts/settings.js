@@ -5,7 +5,7 @@
 // -- Import MODULE variables --
 import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB, MODULE_AUTHOR } from './global.js';
+import { COFFEEPUB } from './global.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './global.js';
 // -- Import special page variables --

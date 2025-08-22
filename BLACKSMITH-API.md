@@ -76,7 +76,7 @@ blacksmith.utils.postConsoleAndNotification("BLACKSMITH", "Required message");
 
 // With all parameters
 blacksmith.utils.postConsoleAndNotification(
-    strModuleTitle = "BLACKSMITH", // Module title for styling (optional)
+    strModuleID = "BLACKSMITH", // Module title for styling (optional)
     message,                        // The message to display (mandatory)
     result = "",                    // Optional data to show in console
     blnDebug = false,              // Is this a debug message (defaults to false)

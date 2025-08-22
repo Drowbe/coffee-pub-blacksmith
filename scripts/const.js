@@ -13,8 +13,6 @@ export const MODULE = {
 export const MODULE_TITLE = 'BLACKSMITH';
 export const MODULE_ID = 'coffee-pub-blacksmith';
 
-// and we need to migrate us of const MODULE_AUTHOR = 'COFFEE PUB' from global.js to MODULE.AUTHOR and add it to all other modules.
-
 
 // Coffee Pub Module IDs
 
