@@ -653,3 +653,82 @@ This API provides a comprehensive foundation for Coffee Pub modules to integrate
 - **Reliable Data Sharing**: Consistent access to choice arrays and shared variables
 
 For questions or contributions, refer to the main README.md or create an issue in the repository.
+
+## AI-Friendly Integration Prompts {#ai-friendly-prompts}
+
+### For CursorAI and Similar AI Coding Assistants
+
+Copy and paste the following prompt into your AI coding assistant to get help integrating with Coffee Pub Blacksmith:
+
+```
+I need to integrate my FoundryVTT module with Coffee Pub Blacksmith. 
+
+Coffee Pub Blacksmith is a central hub module that provides shared utilities, safe settings access, and inter-module communication for the Coffee Pub ecosystem. It's designed for FoundryVTT v12+ and provides a robust API for other modules to use.
+
+Key features I need to understand:
+- Safe settings access that prevents startup crashes
+- Shared utility functions (logging, time formatting, sound management, etc.)
+- Global variable sharing through the BLACKSMITH object
+- Hook system for inter-module communication
+- Module registration system
+
+The full API documentation is available at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
+
+Please help me:
+1. Set up the basic module registration with Blacksmith
+2. Implement safe settings access using Blacksmith's utilities
+3. Access shared choice arrays (themes, sounds, tables, etc.) through the BLACKSMITH object
+4. Set up proper hook listeners for the 'blacksmithUpdated' event
+5. Follow the initialization timing best practices (use 'ready' phase, not 'init' for accessing data)
+
+My module ID is: [YOUR_MODULE_ID]
+My module name is: [YOUR_MODULE_NAME]
+
+Please provide complete, working code examples that I can directly implement.
+```
+
+### For General AI Coding Assistance
+
+```
+I'm developing a FoundryVTT module that needs to integrate with Coffee Pub Blacksmith. 
+
+Blacksmith provides:
+- Safe settings access functions (getSettingSafely, setSettingSafely)
+- Shared utility functions for logging, time formatting, and sound management
+- A global BLACKSMITH object with choice arrays for themes, sounds, tables, etc.
+- Hook system for inter-module communication
+- Module registration and management
+
+The complete API documentation is at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
+
+I need help implementing:
+1. Module registration during the 'init' hook
+2. Accessing shared data during the 'ready' hook
+3. Using the 'blacksmithUpdated' hook for real-time updates
+4. Implementing safe settings access
+5. Accessing choice arrays for dropdown menus
+
+Please provide working code examples and explain the FoundryVTT lifecycle timing considerations.
+```
+
+### Quick Reference for AI Assistants
+
+**Essential Integration Points:**
+- Register module during 'init' hook
+- Access BLACKSMITH object during 'ready' hook
+- Listen to 'blacksmithUpdated' hook for data updates
+- Use getSettingSafely() for safe settings access
+- Access choice arrays via blacksmith.BLACKSMITH.arr[Type]Choices
+
+**FoundryVTT Lifecycle:**
+- 'init': Module registration, basic setup
+- 'ready': Access to populated data, settings registration
+- 'blacksmithUpdated': Real-time data updates
+
+**Key Functions:**
+- blacksmith.registerModule()
+- blacksmith.utils.getSettingSafely()
+- blacksmith.utils.postConsoleAndNotification()
+- Hooks.on('blacksmithUpdated', callback)
+
+**Full Documentation:** https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
