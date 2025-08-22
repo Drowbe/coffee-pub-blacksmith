@@ -5,6 +5,9 @@ Coffee Pub Blacksmith serves as the central hub for all Coffee Pub modules, prov
 
 ## Table of Contents
 - [Getting Started](#getting-started)
+- [API Availability and Timing](#api-availability)
+  - [Safe API Usage Patterns](#safe-usage-patterns)
+  - [Common Crashes and Fixes](#common-crashes)
 - [API Methods](#api-methods)
   - [Module Management](#module-management)
   - [Global Utilities](#global-utilities)
@@ -58,6 +61,59 @@ Hooks.once('init', async function() {
     });
 });
 ```
+
+## API Availability and Timing {#api-availability}
+
+**CRITICAL**: The Blacksmith API is not immediately available when your module loads. You must check availability before using any functions to prevent crashes.
+
+### When the API is Available:
+- ✅ During the `ready` hook
+- ✅ After the `blacksmithUpdated` hook fires
+- ✅ When `blacksmith?.utils?.getSettingSafely` returns a function
+
+### When the API is NOT Available:
+- ❌ During the `init` hook
+- ❌ During the `setupGame` hook  
+- ❌ Before Blacksmith has finished initializing
+
+### Safe API Usage Patterns {#safe-usage-patterns}
+
+**ALWAYS check availability before using the API:**
+
+```javascript
+// SAFE PATTERN - Use this
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.utils?.getSettingSafely) {
+    // API is ready - safe to use
+    const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultValue);
+} else {
+    // API not ready - use fallback
+    const value = defaultValue;
+}
+```
+
+**NEVER do this (will crash):**
+```javascript
+// UNSAFE - Will crash if API not ready
+const value = blacksmith.utils.getSettingSafely(moduleId, settingKey, defaultValue);
+```
+
+### Common Crashes and Fixes {#common-crashes}
+
+**Error: `blacksmith.utils.getSettingSafely is not a function`**
+
+**Cause:** Trying to use the API before it's initialized
+**Fix:** Add null checks and use proper hook timing
+
+**Error: `Cannot read property 'utils' of undefined`**
+
+**Cause:** Blacksmith module not found or not loaded
+**Fix:** Check if Blacksmith is installed and active
+
+**Error: `TypeError: undefined. blacksmith.utils.getSettingSafely is not a function`**
+
+**Cause:** Accessing the API during the wrong Foundry lifecycle phase
+**Fix:** Use the `ready` hook instead of `setupGame` or `init` for API access
 
 ## API Methods {#api-methods}
 
