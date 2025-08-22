@@ -208,22 +208,27 @@ Hooks.once('ready', async () => {
 - **Automatic availability** - functions load with every dependent module
 
 ### BLACKSMITH Global Object {#blacksmith-global-object}
-The BLACKSMITH object is now accessible through the API, providing access to various shared resources and settings:
+The BLACKSMITH object is accessible through the API, providing access to various shared resources and settings. This object is populated during the module initialization and updated through the hook system.
 
 ```javascript
 // Access the BLACKSMITH object
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 const blacksmithObj = blacksmith.BLACKSMITH;
 
-// Access theme choices
-const themeChoices = blacksmithObj.arrThemeChoices;
+// Access choice arrays (populated during settings registration)
+const themeChoices = blacksmithObj.arrThemeChoices;           // Available card themes
+const soundChoices = blacksmithObj.arrSoundChoices;           // Available sound files
+const tableChoices = blacksmithObj.arrTableChoices;           // Available roll tables
+const compendiumChoices = blacksmithObj.arrCompendiumChoices; // Available compendiums
+const macroChoices = blacksmithObj.arrMacroChoices;           // Available macros
+const backgroundImageChoices = blacksmithObj.arrBackgroundImageChoices; // Available background images
+const iconChoices = blacksmithObj.arrIconChoices;             // Available icons
+const nameChoices = blacksmithObj.arrNameChoices;             // Available nameplate options
 
-// Access sound choices
-const soundChoices = blacksmithObj.arrSoundChoices;
-
-// Access default sound settings
-const defaultSoundFile = blacksmithObj.strDEFAULTSOUNDFILE;
-const defaultSoundVolume = blacksmithObj.strDEFAULTSOUNDVOLUME;
+// Access default settings
+const defaultCardTheme = blacksmithObj.strDefaultCardTheme;   // Default card theme
+const defaultSoundFile = blacksmithObj.strDEFAULTSOUNDFILE;   // Default sound file
+const defaultSoundVolume = blacksmithObj.strDEFAULTSOUNDVOLUME; // Default sound volume
 
 // Access volume presets
 const loudVolume = blacksmithObj.SOUNDVOLUMELOUD;     // "0.8"
@@ -303,9 +308,31 @@ Hooks.on('blacksmith.socketReady', () => {
     // Socket is ready for communication
 });
 
-// When a module variable has been updated
-Hooks.on('blacksmithUpdated', (blacksmith) => {
-    // Handle updates
+// When the BLACKSMITH object has been updated with new data
+Hooks.on('blacksmithUpdated', (newBlacksmith) => {
+    // Handle updates to shared variables
+    console.log('Theme choices updated:', newBlacksmith.arrThemeChoices);
+    console.log('Sound choices updated:', newBlacksmith.arrSoundChoices);
+    console.log('Table choices updated:', newBlacksmith.arrTableChoices);
+});
+```
+
+### BLACKSMITH Object Update Hook {#blacksmith-update-hook}
+The `blacksmithUpdated` hook is triggered whenever the BLACKSMITH object is updated with new data. This happens during:
+
+1. **Settings Registration**: When choice arrays are populated
+2. **Module Initialization**: When default values are set
+3. **Runtime Updates**: When settings change
+
+**Important**: Always use the `newBlacksmith` parameter from the hook callback, as it contains the most up-to-date data:
+
+```javascript
+Hooks.on('blacksmithUpdated', (newBlacksmith) => {
+    // CORRECT: Use the updated object
+    const currentThemes = newBlacksmith.arrThemeChoices;
+    
+    // INCORRECT: Don't reference the global BLACKSMITH object directly
+    // const oldThemes = game.modules.get('coffee-pub-blacksmith')?.api?.BLACKSMITH.arrThemeChoices;
 });
 ```
 
@@ -340,6 +367,53 @@ Hooks.once('init', async function() {
 3. Use the provided event system for inter-module communication
 4. Follow the naming conventions for module IDs and titles
 5. When using BLACKSMITH object properties, check if they exist before using them
+
+### Initialization Timing {#initialization-timing}
+**Important**: The BLACKSMITH object and its choice arrays are populated during the `ready` phase, not during `init`. To ensure you have access to the latest data:
+
+```javascript
+// CORRECT: Wait for the ready phase and use the hook system
+Hooks.once('ready', async () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
+
+    // Register for updates to get the latest data
+    Hooks.on('blacksmithUpdated', (newBlacksmith) => {
+        // Now you have access to populated choice arrays
+        const themes = newBlacksmith.arrThemeChoices;
+        const sounds = newBlacksmith.arrSoundChoices;
+        
+        // Use the data to populate your module's settings
+        updateModuleSettings(themes, sounds);
+    });
+});
+
+// INCORRECT: Trying to access choice arrays during init
+Hooks.once('init', async () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith) return;
+    
+    // This will likely be empty or undefined
+    const themes = blacksmith.BLACKSMITH.arrThemeChoices; // Empty during init
+});
+```
+
+### Accessing Choice Arrays {#accessing-choice-arrays}
+The choice arrays are automatically populated and updated by Blacksmith. You can access them through:
+
+1. **Direct API Access** (after ready phase):
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+const themes = blacksmith.BLACKSMITH.arrThemeChoices;
+```
+
+2. **Hook-based Updates** (recommended):
+```javascript
+Hooks.on('blacksmithUpdated', (newBlacksmith) => {
+    // Always get the latest data
+    const currentThemes = newBlacksmith.arrThemeChoices;
+});
+```
 
 ## Version Compatibility {#version-compatibility}
 - Foundry VTT: v12 (with v13 readiness)
@@ -543,6 +617,29 @@ const synonyms = await getAvailableSynonyms();
 
 The system includes mappings for weapons, equipment, commodities, containers, consumables, and sundries. You can customize the mapping by modifying `resources/item-mapping.json`.
 
+## Recent Improvements and Fixes {#recent-improvements}
+
+### Global Variable Sharing System {#global-variable-sharing}
+The global variable sharing system has been significantly improved to ensure reliable data access across all Coffee Pub modules:
+
+**What Was Fixed:**
+- **Timing Issues**: Settings registration now happens during the proper Foundry VTT lifecycle phase
+- **Choice Array Population**: All choice arrays (themes, sounds, tables, etc.) are now properly populated before settings registration
+- **Hook System**: The `blacksmithUpdated` hook now reliably provides updated data to dependent modules
+- **API Consistency**: All modules now receive the same data through the standardized API
+
+**How It Works Now:**
+1. **Settings Registration**: Happens during the `ready` phase when Foundry is ready
+2. **Choice Array Building**: All choice arrays are populated before settings registration
+3. **Hook Updates**: Dependent modules receive updates through the `blacksmithUpdated` hook
+4. **Data Consistency**: All modules access the same, up-to-date data
+
+**Benefits:**
+- **No More Empty Dropdowns**: All settings now properly display their available choices
+- **Reliable Data Sharing**: Other modules consistently receive populated choice arrays
+- **Proper Timing**: No more race conditions between settings registration and data population
+- **Maintainable Code**: Cleaner, more predictable initialization flow
+
 ## Summary
 
 This API provides a comprehensive foundation for Coffee Pub modules to integrate with Blacksmith's core functionality. Key benefits include:
@@ -553,5 +650,6 @@ This API provides a comprehensive foundation for Coffee Pub modules to integrate
 - **Event System**: Inter-module communication and updates
 - **Stats API**: Access to player and combat statistics
 - **Image Guessing**: Advanced item image selection
+- **Reliable Data Sharing**: Consistent access to choice arrays and shared variables
 
 For questions or contributions, refer to the main README.md or create an issue in the repository.
