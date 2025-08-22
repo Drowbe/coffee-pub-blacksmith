@@ -1,5 +1,5 @@
 // Import required modules
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
@@ -938,7 +938,7 @@ export class SkillCheckDialog extends Application {
                     SkillCheckDialog._showCinematicDisplay(messageData, message.id);
 
                     // Emit to other users to show the overlay
-                    game.socket.emit(`module.${MODULE_ID}`, {
+                    game.socket.emit(`module.${MODULE.ID}`, {
                         type: 'showCinematicOverlay',
                         data: {
                             messageId: message.id,
@@ -1559,7 +1559,7 @@ export class SkillCheckDialog extends Application {
     static _hideCinematicDisplay() {
         const overlay = $('#cpb-cinematic-overlay');
         if (game.user.isGM) {
-            game.socket.emit(`module.${MODULE_ID}`, { type: 'closeCinematicOverlay' });
+            game.socket.emit(`module.${MODULE.ID}`, { type: 'closeCinematicOverlay' });
         }
         overlay.removeClass('visible');
         setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition

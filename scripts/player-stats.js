@@ -1,5 +1,5 @@
 // Import MODULE variables
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './global.js';
 
 // Default stats structure
@@ -63,7 +63,7 @@ const CPB_STATS_DEFAULTS = {
 
 class CPBPlayerStats {
     static initialize() {
-        if (!game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         
         postConsoleAndNotification(MODULE.NAME, `Player Stats - Initializing player statistics tracking`, "", false, false);
         
@@ -96,10 +96,10 @@ class CPBPlayerStats {
         const actor = game.actors.get(actorId);
         if (!actor) return;
 
-        const existingStats = await actor.getFlag(MODULE_ID, 'playerStats');
+        const existingStats = await actor.getFlag(MODULE.ID, 'playerStats');
         if (!existingStats) {
             postConsoleAndNotification(MODULE.NAME, `Initializing stats for actor:`, actor.name, false, false);
-            await actor.setFlag(MODULE_ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
+            await actor.setFlag(MODULE.ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
         }
     }
 
@@ -107,10 +107,10 @@ class CPBPlayerStats {
         const actor = game.actors.get(actorId);
         if (!actor) return null;
 
-        const stats = await actor.getFlag(MODULE_ID, 'playerStats');
+        const stats = await actor.getFlag(MODULE.ID, 'playerStats');
         if (!stats) {
             await this.initializeActorStats(actorId);
-            return await actor.getFlag(MODULE_ID, 'playerStats');
+            return await actor.getFlag(MODULE.ID, 'playerStats');
         }
         return stats;
     }
@@ -125,7 +125,7 @@ class CPBPlayerStats {
         const newStats = foundry.utils.mergeObject(currentStats, updates);
         newStats.lifetime.lastUpdated = new Date().toISOString();
         
-        await actor.setFlag(MODULE_ID, 'playerStats', newStats);
+        await actor.setFlag(MODULE.ID, 'playerStats', newStats);
     }
 
     // Session management methods
@@ -144,7 +144,7 @@ class CPBPlayerStats {
 
     // Combat update handler
     static async _onCombatUpdate(combat, changed, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         // Only process if turn changed or combat ended
         if (!changed.turn && !changed.round && !changed.active) return;
@@ -259,7 +259,7 @@ class CPBPlayerStats {
 
     // Attack roll handler
     static async _onAttackRoll(item, roll, ammo) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const actor = item.actor;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
@@ -312,7 +312,7 @@ class CPBPlayerStats {
 
     // Damage roll handler
     static async _onDamageRoll(item, roll) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const actor = item.actor;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
@@ -331,7 +331,7 @@ class CPBPlayerStats {
             // Get the current combat
             const combat = game.combat;
             if (combat?.active) {
-                let combatStats = await combat.getFlag(MODULE_ID, 'combatStats');
+                let combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
                 if (!combatStats) {
                     // Initialize if not exists
                     combatStats = {
@@ -449,7 +449,7 @@ class CPBPlayerStats {
                 }
 
                 // Save combat stats
-                await combat.setFlag(MODULE_ID, 'combatStats', combatStats);
+                await combat.setFlag(MODULE.ID, 'combatStats', combatStats);
             }
 
             if (isHealing) {
@@ -523,10 +523,10 @@ class CPBPlayerStats {
     }
 
     static async _onCombatStart(combat, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         // Initialize combat-wide statistics
-        await combat.setFlag(MODULE_ID, 'combatStats', {
+        await combat.setFlag(MODULE.ID, 'combatStats', {
             startTime: Date.now(),
             rounds: [],
             hits: [],
@@ -538,9 +538,9 @@ class CPBPlayerStats {
     }
 
     static async _onCombatEnd(combat, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackPlayerStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        const combatStats = await combat.getFlag(MODULE_ID, 'combatStats');
+        const combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
         if (!combatStats) return;
 
         // Calculate final statistics

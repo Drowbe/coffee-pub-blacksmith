@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound } from './global.js';
 
 /**
@@ -40,7 +40,7 @@ class CombatTracker {
                     postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatant initiative updated", {
                         combatantName: combatant.name,
                         initiative: data.initiative
-                    }, false, true, false);
+                    }, true, false);
                     
                     // Reset the flag when any initiative is set to null
                     if (data.initiative === null) {
@@ -56,7 +56,7 @@ class CombatTracker {
                     this._hasSetFirstCombatant = false;
                     
                     // Auto-open combat tracker when combat is created
-                    if (game.settings.get(MODULE_ID, 'combatTrackerOpen')) {
+                    if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
                         // Check if this user owns any combatants in the combat
                         if (combat.combatants.find(c => c.isOwner)) {
                             postConsoleAndNotification(MODULE.NAME, "Auto-opening combat tracker for player with combatant in new combat", "", true, false);
@@ -108,7 +108,7 @@ class CombatTracker {
                     if (combat.round <= 1) return;
                     
                     // Check the initiative clearing setting - only proceed if initiative is being cleared
-                    if (!game.settings.get(MODULE_ID, 'combatTrackerClearInitiative')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTrackerClearInitiative')) return;
                     
                     // Add a slight delay to ensure the GM has time to clear initiatives first
                     setTimeout(() => {
@@ -139,7 +139,7 @@ class CombatTracker {
                             combatant.actor.hasPlayerOwner && 
                             combatant.actor.isOwner && 
                             combatant.initiative === null &&
-                            game.settings.get(MODULE_ID, 'combatTrackerRollInitiativePlayer')) {
+                            game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
                             
                             postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", true, false);
                             await combatant.rollInitiative();
@@ -149,10 +149,10 @@ class CombatTracker {
 
                     // Handle GM auto-roll and initiative modes for NPCs
                     // Get NPC initiative setting
-                    const initiativeMode = game.settings.get(MODULE_ID, 'combatTrackerAddInitiative');
+                    const initiativeMode = game.settings.get(MODULE.ID, 'combatTrackerAddInitiative');
                     
                     // Check if we should auto-roll initiative for non-player combatants when added to tracker
-                    const shouldAutoRoll = game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer');
+                    const shouldAutoRoll = game.settings.get(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer');
                     
                     // Skip player-controlled combatants
                     const actor = combatant.actor;
@@ -177,7 +177,7 @@ class CombatTracker {
                     postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NPC/Monster added to combat", {
                         name: combatant.name,
                         mode: initiativeMode
-                    }, false, true, false);
+                    }, true, false);
                     
                     // Process based on setting
                     switch (initiativeMode) {
@@ -239,7 +239,7 @@ class CombatTracker {
                 // Handle auto-open for both new combats and client reloads
                 Hooks.on('renderCombatTracker', () => {
                     // Only proceed if the setting is enabled
-                    if (!game.settings.get(MODULE_ID, 'combatTrackerOpen')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
 
                     const combat = game.combat;
                     // Check if there are combatants in the combat
@@ -297,7 +297,7 @@ class CombatTracker {
         
         // Check if we should clear initiative when round changes
         // ONLY clear initiative when changing to round 2 or higher
-        if (game.settings.get(MODULE_ID, 'combatTrackerClearInitiative') && combat.round > 1) {
+        if (game.settings.get(MODULE.ID, 'combatTrackerClearInitiative') && combat.round > 1) {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Clearing initiative for all combatants (round > 1)", "", true, false);
             
             // Create an array of updates to apply to all combatants
@@ -316,7 +316,7 @@ class CombatTracker {
                 postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Initiative cleared for " + updates.length + " combatants", "", true, false);
                 
                 // After clearing initiative, auto-roll for non-player combatants if enabled
-                if (game.settings.get(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer')) {
+                if (game.settings.get(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer')) {
                     postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-rolling initiative for non-player combatants after clearing", "", true, false);
                     await this._rollInitiativeForNonPlayers(combat);
                 }
@@ -333,7 +333,7 @@ class CombatTracker {
         if (!combat || !game.user.isGM) return;
         
         // Don't proceed if the setting is not enabled
-        if (!game.settings.get(MODULE_ID, 'combatTrackerSetFirstTurn')) {
+        if (!game.settings.get(MODULE.ID, 'combatTrackerSetFirstTurn')) {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Setting not enabled, skipping check", "", true, false);
             return;
         }
@@ -351,7 +351,7 @@ class CombatTracker {
         const combatantsNeedingInitiative = combatants.filter(c => c.initiative === null && !c.isDefeated);
         
         postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatants needing initiative:", 
-            combatantsNeedingInitiative.map(c => c.name), false, true, false);
+            combatantsNeedingInitiative.map(c => c.name), true, false);
         
         // If no combatants need initiative, all have been rolled
         if (combatantsNeedingInitiative.length === 0) {
@@ -429,7 +429,7 @@ class CombatTracker {
         if (game.user.isGM) return;
         
         // Check if the setting is enabled for this user
-        if (!game.settings.get(MODULE_ID, 'combatTrackerRollInitiativePlayer')) {
+        if (!game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-roll for players is disabled", "", true, false);
             return;
         }

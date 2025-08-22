@@ -1,7 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
-import { MODULE, MODULE_ID, MODULE_TITLE, API_VERSION } from './const.js';
+import { MODULE, API_VERSION } from './const.js';
 import * as GlobalUtils from './global.js';
 import { postConsoleAndNotification } from './global.js';
 
@@ -16,7 +16,7 @@ export class UtilsManager {
 
     static checkInitialized() {
         if (!this.isInitialized) {
-            throw new Error(`${MODULE_TITLE} | UtilsManager not initialized`);
+            throw new Error(`${MODULE.TITLE} | UtilsManager not initialized`);
         }
     }
 
@@ -86,7 +86,7 @@ export class UtilsManager {
         this.checkInitialized();
         
         if (!this.checkVersion(requiredVersion)) {
-            throw new Error(`${MODULE_TITLE} | API version mismatch. Required: ${requiredVersion}, Current: ${this.API_VERSION}`);
+            throw new Error(`${MODULE.TITLE} | API version mismatch. Required: ${requiredVersion}, Current: ${this.API_VERSION}`);
         }
 
         return {

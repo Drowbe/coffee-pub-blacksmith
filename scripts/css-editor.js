@@ -1,16 +1,16 @@
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class CSSEditor extends FormApplication {
     static get defaultOptions() {
-        const dark = game.settings.get(MODULE_ID, 'cssDarkMode');
+        const dark = game.settings.get(MODULE.ID, 'cssDarkMode');
         const classes = ['blacksmith-css-editor'];
         if (dark) classes.push('dark-mode');
 
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-css-editor',
             title: 'CSS Editor',
-            template: `modules/${MODULE_ID}/templates/css-editor.hbs`,
+            template: `modules/${MODULE.ID}/templates/css-editor.hbs`,
             width: 800,
             height: 600,
             minWidth: 700,
@@ -33,9 +33,9 @@ export class CSSEditor extends FormApplication {
 
     registerSettingsHandler() {
         // Watch for settings changes
-        game.settings.settings.get(`${MODULE_ID}.customCSS`).onChange = () => {
-            const css = game.settings.get(MODULE_ID, 'customCSS');
-            const transition = game.settings.get(MODULE_ID, 'cssTransition');
+        game.settings.settings.get(`${MODULE.ID}.customCSS`).onChange = () => {
+            const css = game.settings.get(MODULE.ID, 'customCSS');
+            const transition = game.settings.get(MODULE.ID, 'cssTransition');
             this.applyCSS(css, transition);
         };
     }
@@ -146,9 +146,9 @@ export class CSSEditor extends FormApplication {
 
     getData() {
         return {
-            css: game.settings.get(MODULE_ID, 'customCSS'),
-            transition: game.settings.get(MODULE_ID, 'cssTransition'),
-            dark: game.settings.get(MODULE_ID, 'cssDarkMode')
+            css: game.settings.get(MODULE.ID, 'customCSS'),
+            transition: game.settings.get(MODULE.ID, 'cssTransition'),
+            dark: game.settings.get(MODULE.ID, 'cssDarkMode')
         };
     }
 
@@ -159,9 +159,9 @@ export class CSSEditor extends FormApplication {
         const transition = formData.transition;
         const dark = formData.dark;
 
-        await game.settings.set(MODULE_ID, 'customCSS', css);
-        await game.settings.set(MODULE_ID, 'cssTransition', transition);
-        await game.settings.set(MODULE_ID, 'cssDarkMode', dark);
+        await game.settings.set(MODULE.ID, 'customCSS', css);
+        await game.settings.set(MODULE.ID, 'cssTransition', transition);
+        await game.settings.set(MODULE.ID, 'cssDarkMode', dark);
 
         // Apply dark mode
         this.element[0].classList.toggle('dark-mode', dark);
@@ -171,7 +171,7 @@ export class CSSEditor extends FormApplication {
 
         // Notify other clients using built-in socket
         if (game.user.isGM) {
-            game.socket.emit(`module.${MODULE_ID}`, {
+            game.socket.emit(`module.${MODULE.ID}`, {
                 type: 'updateCSS',
                 data: {
                     css: css,
@@ -215,7 +215,7 @@ export class CSSEditor extends FormApplication {
         
         // Only try to access the element after render is complete
         if (this.element && this.element[0]) {
-            const dark = game.settings.get(MODULE_ID, 'cssDarkMode');
+            const dark = game.settings.get(MODULE.ID, 'cssDarkMode');
             this.element[0].classList.toggle('dark-mode', dark);
         }
         

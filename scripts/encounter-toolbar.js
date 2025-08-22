@@ -2,7 +2,7 @@
 // ===== ENCOUNTER TOOLBAR ==========================================
 // ================================================================== 
 
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification } from './global.js';
 
@@ -33,7 +33,7 @@ export class EncounterToolbar {
         Hooks.off('deleteToken', this._onTokenChange);
         
         // Add hooks if setting is enabled
-        if (game.settings.get(MODULE_ID, 'enableEncounterToolbarRealTimeUpdates')) {
+        if (game.settings.get(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates')) {
             Hooks.on('createToken', this._onTokenChange.bind(this));
             Hooks.on('updateToken', this._onTokenChange.bind(this));
             Hooks.on('deleteToken', this._onTokenChange.bind(this));
@@ -42,7 +42,7 @@ export class EncounterToolbar {
 
     // Handle setting changes
     static _onSettingChange(moduleId, key, value) {
-        if (moduleId === MODULE_ID) {
+        if (moduleId === MODULE.ID) {
             if (key === 'enableEncounterToolbarRealTimeUpdates') {
                 this._setupTokenChangeHooks();
                 postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", true, false);
@@ -108,12 +108,12 @@ export class EncounterToolbar {
                     $toolbar.find('.encounter-monster-cr').html(`<i class="fas fa-dragon"></i>${monsterCR}`);
                     
                     // Update the deployment pattern badge
-                    const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+                    const currentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
                     const patternName = this._getDeploymentPatternName(currentPattern);
                     $toolbar.find('.deploy-type').html(`<i class="fas fa-grid-2-plus"></i>${patternName}`);
                     
                     // Update the deployment visibility badge
-                    const currentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                    const currentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
                     const visibilityName = this._getDeploymentVisibilityName(currentHidden);
                     $toolbar.find('.deploy-visibility').html(`<i class="fas fa-eye"></i>${visibilityName}`);
                     
@@ -313,7 +313,7 @@ export class EncounterToolbar {
         }
 
         // Check if content scanning is enabled
-        if (!game.settings.get(MODULE_ID, 'enableEncounterContentScanning')) {
+        if (!game.settings.get(MODULE.ID, 'enableEncounterContentScanning')) {
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scanning disabled", "", false, false);
             return null;
         }
@@ -464,7 +464,7 @@ export class EncounterToolbar {
     // Simple method to update toolbar content
     static async _updateToolbarContent(html) {
         // Check if toolbar is enabled in settings
-        if (!game.settings.get(MODULE_ID, 'enableEncounterToolbar')) {
+        if (!game.settings.get(MODULE.ID, 'enableEncounterToolbar')) {
             return;
         }
 
@@ -534,7 +534,7 @@ export class EncounterToolbar {
                 const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
 
                 // Get the template
-                const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
+                const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
                 getCachedTemplate(templatePath).then(template => {
                     // Prepare the data for the template
                     const templateData = {
@@ -548,8 +548,8 @@ export class EncounterToolbar {
                         difficultyClass: difficultyData.difficultyClass,
                         partyCR: partyCR,
                         monsterCR: monsterCR,
-                        deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
-                        deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden')),
+                        deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern')),
+                        deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden')),
                         isGM: game.user.isGM
                     };
                     
@@ -582,7 +582,7 @@ export class EncounterToolbar {
         const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
         
         // Get the template
-        const templatePath = `modules/${MODULE_ID}/templates/encounter-toolbar.hbs`;
+        const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
         getCachedTemplate(templatePath).then(template => {
             // Prepare the data for the template (no encounter case)
             const templateData = {
@@ -594,8 +594,8 @@ export class EncounterToolbar {
                 difficultyClass: difficultyData.difficultyClass,
                 partyCR: partyCR,
                 monsterCR: monsterCR,
-                deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern')),
-                deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden')),
+                deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern')),
+                deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden')),
                 isGM: game.user.isGM
             };
             
@@ -738,7 +738,7 @@ export class EncounterToolbar {
         }
 
         // Get the deployment pattern setting
-        const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+        const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, false, false);
 
         // Create tooltip for non-sequential deployments
@@ -847,7 +847,7 @@ export class EncounterToolbar {
                                 const actorData = actor.toObject();
                                 
                                 // Get or create the encounter folder
-                                const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
                                 let encounterFolder = null;
                                 
                                 // Only create/find folder if folderName is not empty
@@ -885,8 +885,8 @@ export class EncounterToolbar {
                             }
                             
                             // Get the deployment pattern setting for positioning
-                            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-                            const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                            const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
+                            const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
                             
                             // Calculate position based on pattern
                             let tokenPosition;
@@ -1025,8 +1025,8 @@ export class EncounterToolbar {
             }
 
             // Get the deployment pattern setting for positioning
-            const deploymentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
-            const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+            const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
+            const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
             
             // Create tooltip for deployment
             tooltip = document.createElement('div');
@@ -1054,7 +1054,7 @@ export class EncounterToolbar {
                 const actorData = actor.toObject();
                 
                 // Get or create the encounter folder
-                const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
                 let encounterFolder = null;
                 
                 if (folderName && folderName.trim() !== '') {
@@ -1406,7 +1406,7 @@ export class EncounterToolbar {
 
         try {
             // Get current deployment pattern
-            const currentPattern = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentPattern');
+            const currentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
             
             // Define the order of patterns to cycle through
             const patternOrder = ["circle", "line", "scatter", "grid", "sequential"];
@@ -1419,7 +1419,7 @@ export class EncounterToolbar {
             const nextPattern = patternOrder[nextIndex];
             
             // Update the setting
-            await game.settings.set(MODULE_ID, 'encounterToolbarDeploymentPattern', nextPattern);
+            await game.settings.set(MODULE.ID, 'encounterToolbarDeploymentPattern', nextPattern);
             
             // Get the display name for the new pattern
             const newPatternName = this._getDeploymentPatternName(nextPattern);
@@ -1440,13 +1440,13 @@ export class EncounterToolbar {
 
         try {
             // Get current visibility setting
-            const currentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+            const currentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
             
             // Toggle the setting
             const newHidden = !currentHidden;
             
             // Update the setting
-            await game.settings.set(MODULE_ID, 'encounterToolbarDeploymentHidden', newHidden);
+            await game.settings.set(MODULE.ID, 'encounterToolbarDeploymentHidden', newHidden);
             
             // Get the display name for the new visibility
             const newVisibilityName = this._getDeploymentVisibilityName(newHidden);
@@ -1502,7 +1502,7 @@ export class EncounterToolbar {
                         const actorData = actor.toObject();
                         
                         // Get or create the encounter folder
-                        const folderName = game.settings.get(MODULE_ID, 'encounterFolder');
+                        const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
                         let encounterFolder = null;
                         
                         if (folderName && folderName.trim() !== '') {
@@ -1585,7 +1585,7 @@ export class EncounterToolbar {
                 tokenData.actorLink = actor.prototypeToken.actorLink;
                 
                 // Set hidden based on ALT key or deployment setting
-                const deploymentHidden = game.settings.get(MODULE_ID, 'encounterToolbarDeploymentHidden');
+                const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
                 tokenData.hidden = isAltHeld ? true : deploymentHidden;
                 
                 // Create the token

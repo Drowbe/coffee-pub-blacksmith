@@ -1,7 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { CombatTimer } from './combat-timer.js';
 import { PlanningTimer } from './planning-timer.js';
@@ -19,7 +19,7 @@ class ThirdPartyManager {
         // Move socket initialization to socketlib.ready hook
         Hooks.once('socketlib.ready', () => {
 
-            this.socket = socketlib.registerModule(MODULE_ID);
+            this.socket = socketlib.registerModule(MODULE.ID);
             this.registerSocketFunctions();
             this.isInitialized = true;
             this.isSocketReady = true;

@@ -2,7 +2,7 @@
 // ===== LATENCY CHECKER ==============================================
 // ================================================================== 
 
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class LatencyChecker {
@@ -20,7 +20,7 @@ export class LatencyChecker {
         
         try {
             // Check if latency is enabled in settings
-            if (!game.settings.get(MODULE_ID, 'enableLatency')) {
+            if (!game.settings.get(MODULE.ID, 'enableLatency')) {
                 postConsoleAndNotification(MODULE.NAME, "Latency: Latency display is disabled in settings", "", true, false);
                 return;
             }
@@ -70,7 +70,7 @@ export class LatencyChecker {
         }
 
         // Get interval from settings (convert from seconds to milliseconds)
-        const interval = game.settings.get(MODULE_ID, 'latencyCheckInterval') * 1000;
+        const interval = game.settings.get(MODULE.ID, 'latencyCheckInterval') * 1000;
 
         postConsoleAndNotification(MODULE.NAME, `Latency: Starting periodic checks every ${interval/1000} seconds`, "", false, false);
         

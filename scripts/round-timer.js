@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { CombatStats } from './combat-stats.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, formatTime } from './global.js';
 
@@ -34,11 +34,11 @@ export class RoundTimer {
                     this.isActive = true;
                     // When game becomes active, update the start timestamp to now
                     if (game.combat?.started) {
-                        const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
+                        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
                         if (stats.roundStartTimestamp) {
                             stats.roundStartTimestamp = Date.now();
                             stats.accumulatedTime = stats.accumulatedTime || 0;
-                            game.combat.setFlag(MODULE_ID, 'stats', stats);
+                            game.combat.setFlag(MODULE.ID, 'stats', stats);
                         }
                     }
                 });
@@ -47,10 +47,10 @@ export class RoundTimer {
                     this.isActive = false;
                     // When game becomes inactive, save the accumulated time
                     if (game.combat?.started) {
-                        const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
+                        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
                         if (stats.roundStartTimestamp) {
                             stats.accumulatedTime = (stats.accumulatedTime || 0) + (Date.now() - stats.roundStartTimestamp);
-                            game.combat.setFlag(MODULE_ID, 'stats', stats);
+                            game.combat.setFlag(MODULE.ID, 'stats', stats);
                         }
                     }
                 });
@@ -90,7 +90,7 @@ export class RoundTimer {
             'modules/coffee-pub-blacksmith/templates/round-timer.hbs',
             {
                 roundDurationActual: formattedTime,
-                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer'),
+                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer'),
                 partyStats: {
                     ...CombatStats.currentStats?.partyStats || {},
                     averageTurnTime: formatTime(CombatStats.currentStats?.partyStats?.averageTurnTime || 0, "verbose")
@@ -117,7 +117,7 @@ export class RoundTimer {
                 roundStartTimestamp: Date.now(),
                 accumulatedTime: 0
             };
-            game.combat.setFlag(MODULE_ID, 'stats', stats);
+            game.combat.setFlag(MODULE.ID, 'stats', stats);
             // Force a full re-render when the round changes
             ui.combat.render();
         }
@@ -127,7 +127,7 @@ export class RoundTimer {
         if (!game.combat?.started) return 0;
         
         // Get the current stats from combat flags
-        const stats = game.combat.getFlag(MODULE_ID, 'stats') || {};
+        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
         
         // If no timestamp exists, return 0
         if (!stats.roundStartTimestamp) {

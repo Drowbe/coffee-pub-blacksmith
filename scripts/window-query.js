@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, trimString } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
@@ -2666,7 +2666,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Cookie helper function
         const getCookieValue = (cookieName) => {
-            if (!game.settings.get(MODULE_ID, 'narrativeUseCookies')) return null;
+            if (!game.settings.get(MODULE.ID, 'narrativeUseCookies')) return null;
             const cookiePrefix = 'blacksmith_narrative_';
             const name = cookiePrefix + cookieName + "=";
             const decodedCookie = decodeURIComponent(document.cookie);
@@ -2682,50 +2682,50 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Get values with cookie fallbacks
         const strDefaultNarrativeFolder = getCookieValue('folder_name') || 
-            game.settings.get(MODULE_ID, 'defaultNarrativeFolder');
+            game.settings.get(MODULE.ID, 'defaultNarrativeFolder');
         
         const strDefaultJournalPageTitle = getCookieValue('scene_title') || 
-            game.settings.get(MODULE_ID, 'defaultJournalPageTitle');
+            game.settings.get(MODULE.ID, 'defaultJournalPageTitle');
         
         const strDefaultSceneLocation = getCookieValue('location') || 
-            game.settings.get(MODULE_ID, 'defaultSceneLocation');
+            game.settings.get(MODULE.ID, 'defaultSceneLocation');
         
         const strDefaultSceneParent = getCookieValue('scene_parent') || 
-            game.settings.get(MODULE_ID, 'defaultSceneParent');
+            game.settings.get(MODULE.ID, 'defaultSceneParent');
         
         const strDefaultSceneArea = getCookieValue('scene_area') || 
-            game.settings.get(MODULE_ID, 'defaultSceneArea');
+            game.settings.get(MODULE.ID, 'defaultSceneArea');
         
         const strDefaultSceneEnvironment = getCookieValue('environment') || 
-            game.settings.get(MODULE_ID, 'defaultSceneEnvironment');
+            game.settings.get(MODULE.ID, 'defaultSceneEnvironment');
 
         // Get the new settings with cookie fallbacks
-        const blnNarrativeUseCookies = game.settings.get(MODULE_ID, 'narrativeUseCookies');
+        const blnNarrativeUseCookies = game.settings.get(MODULE.ID, 'narrativeUseCookies');
         
         const strNarrativeDefaultCardImage = getCookieValue('card_image') || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultCardImage');
+            game.settings.get(MODULE.ID, 'narrativeDefaultCardImage');
         
         const strNarrativeDefaultImagePath = getCookieValue('custom_image_path') || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultImagePath');
+            game.settings.get(MODULE.ID, 'narrativeDefaultImagePath');
         
         // Convert string 'true'/'false' from cookie to boolean
         const blnNarrativeDefaultIncludeEncounter = getCookieValue('include_encounter') === 'true' || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultIncludeEncounter');
+            game.settings.get(MODULE.ID, 'narrativeDefaultIncludeEncounter');
         
         const blnNarrativeDefaultIncludeTreasure = getCookieValue('include_rewards') === 'true' || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultIncludeTreasure');
+            game.settings.get(MODULE.ID, 'narrativeDefaultIncludeTreasure');
         
         const strNarrativeDefaultXP = getCookieValue('xp') || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultXP');
+            game.settings.get(MODULE.ID, 'narrativeDefaultXP');
         
         const strNarrativeDefaultTreasureDetails = getCookieValue('reward_details') || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultTreasureDetails');
+            game.settings.get(MODULE.ID, 'narrativeDefaultTreasureDetails');
         
         const strNarrativeDefaultEncounterDetails = getCookieValue('encounter_details') || 
-            game.settings.get(MODULE_ID, 'narrativeDefaultEncounterDetails');
+            game.settings.get(MODULE.ID, 'narrativeDefaultEncounterDetails');
 
         // Get the image display name
-        const imageSettings = game.settings.settings.get(MODULE_ID + '.narrativeDefaultCardImage');
+        const imageSettings = game.settings.settings.get(MODULE.ID + '.narrativeDefaultCardImage');
         const strNarrativeDefaultCardImageName = imageSettings.choices[strNarrativeDefaultCardImage];
 
         // Return all variables in the data object
@@ -2909,7 +2909,7 @@ function formatCR(cr) {
 
 function saveNarrativeCookies(id) {
     // Only save if the setting is enabled
-    if (!game.settings.get(MODULE_ID, 'narrativeUseCookies')) return;
+    if (!game.settings.get(MODULE.ID, 'narrativeUseCookies')) return;
 
     const cookiePrefix = 'blacksmith_narrative_';
     const expiryDays = 30; // Cookies will last for 30 days
@@ -2944,7 +2944,7 @@ function saveNarrativeCookies(id) {
 // Add this function to load from cookies
 function loadNarrativeCookies(id) {
     // Only load if the setting is enabled
-    if (!game.settings.get(MODULE_ID, 'narrativeUseCookies')) return;
+    if (!game.settings.get(MODULE.ID, 'narrativeUseCookies')) return;
 
     const cookiePrefix = 'blacksmith_narrative_';
 

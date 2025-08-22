@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 import { COFFEEPUB } from './global.js';
 // -- Load the shared GLOBAL functions --
@@ -34,12 +34,12 @@ export class CanvasTools {
     static _updateNameplates() {
         postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", false, false);
         let tokens = canvas.tokens.placeables;
-        let strNameplateFontsize = game.settings.get(MODULE_ID, 'nameplateFontSize') + "px";
+        let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
 
-        let strNameplateColor = game.settings.get(MODULE_ID, 'nameplateColor');
-        let strNameplateOutlineSize = game.settings.get(MODULE_ID, 'nameplateOutlineSize');
-        let strNameplateOutlineColor = game.settings.get(MODULE_ID, 'nameplateOutlineColor');
-        let strNameplateFontFamily = game.settings.get(MODULE_ID, 'nameplateFontFamily');
+        let strNameplateColor = game.settings.get(MODULE.ID, 'nameplateColor');
+        let strNameplateOutlineSize = game.settings.get(MODULE.ID, 'nameplateOutlineSize');
+        let strNameplateOutlineColor = game.settings.get(MODULE.ID, 'nameplateOutlineColor');
+        let strNameplateFontFamily = game.settings.get(MODULE.ID, 'nameplateFontFamily');
         let color = parseInt((strNameplateColor.charAt(0) === '#' ? strNameplateColor.slice(1) : strNameplateColor), 16);
         let outlineColor = parseInt((strNameplateOutlineColor.charAt(0) === '#' ? strNameplateOutlineColor.slice(1) : strNameplateOutlineColor), 16);
 
@@ -72,11 +72,11 @@ export class CanvasTools {
         // Apply token behavior overrides based on settings
         let changesMade = [];
         
-        if (game.settings.get(MODULE_ID, 'unlockTokenRotation')) {
+        if (game.settings.get(MODULE.ID, 'unlockTokenRotation')) {
             tokenData.lockRotation = false;
             changesMade.push('unlocked rotation');
         }
-        if (game.settings.get(MODULE_ID, 'disableTokenRing')) {
+        if (game.settings.get(MODULE.ID, 'disableTokenRing')) {
             // Ensure ring object exists and set enabled to false
             if (!tokenData.ring) {
                 tokenData.ring = {};
@@ -98,11 +98,11 @@ export class CanvasTools {
         // Apply token behavior overrides on updates to maintain settings
         let changesMade = [];
         
-        if (game.settings.get(MODULE_ID, 'unlockTokenRotation') && changes.lockRotation === true) {
+        if (game.settings.get(MODULE.ID, 'unlockTokenRotation') && changes.lockRotation === true) {
             changes.lockRotation = false;
             changesMade.push('maintained unlocked rotation');
         }
-        if (game.settings.get(MODULE_ID, 'disableTokenRing') && changes.ring?.enabled === true) {
+        if (game.settings.get(MODULE.ID, 'disableTokenRing') && changes.ring?.enabled === true) {
             if (!changes.ring) {
                 changes.ring = {};
             }
@@ -125,11 +125,11 @@ export class CanvasTools {
         let changesMade = [];
         let updates = {};
         
-        if (game.settings.get(MODULE_ID, 'unlockTokenRotation') && tokenDocument.lockRotation === true) {
+        if (game.settings.get(MODULE.ID, 'unlockTokenRotation') && tokenDocument.lockRotation === true) {
             updates.lockRotation = false;
             changesMade.push('unlocked rotation');
         }
-        if (game.settings.get(MODULE_ID, 'disableTokenRing') && tokenDocument.ring?.enabled === true) {
+        if (game.settings.get(MODULE.ID, 'disableTokenRing') && tokenDocument.ring?.enabled === true) {
             if (!updates.ring) {
                 updates.ring = { ...tokenDocument.ring };
             }
@@ -158,15 +158,15 @@ export class CanvasTools {
         postConsoleAndNotification(MODULE.NAME, "Token(s) created on the scene. Modifying non-linked tokens...", "", false, false);
         const actorLink = document.actor?.isToken === false;
         let updatedName;
-        let strTokenNameFormat = game.settings.get(MODULE_ID, 'tokenNameFormat');
+        let strTokenNameFormat = game.settings.get(MODULE.ID, 'tokenNameFormat');
         
         // Set the token name
         const tokenName = document.actor?.name || document.name;
 
         // String of tokens to be ignored
-        const strIgnoredTokens = game.settings.get(MODULE_ID, 'ignoredTokens');
+        const strIgnoredTokens = game.settings.get(MODULE.ID, 'ignoredTokens');
         // Boolean to determine if Fuzzy Matching is used
-        const blnFuzzyMatch = game.settings.get(MODULE_ID, 'fuzzyMatch');
+        const blnFuzzyMatch = game.settings.get(MODULE.ID, 'fuzzyMatch');
         // Split the string into an array
         const arrIgnoredTokens = strIgnoredTokens.split(',');
         // Check to see if ignored
@@ -188,7 +188,7 @@ export class CanvasTools {
         if (!actorLink) {
             if (strTokenNameFormat == "name-replace" || strTokenNameFormat == "name-append-end" || strTokenNameFormat == "name-append-start" || strTokenNameFormat == "name-append-end-parenthesis" || strTokenNameFormat == "name-append-start-parenthesis" || strTokenNameFormat == "name-append-end-dash" || strTokenNameFormat == "name-append-start-dash" ) {
                 // Append a name from a roll table to the token
-                let strTableName = game.settings.get(MODULE_ID, 'tokenNameTable');
+                let strTableName = game.settings.get(MODULE.ID, 'tokenNameTable');
                 if (strTableName) {
                     const table = game.tables.getName(strTableName);
                     const result = await table.roll({async: true});
@@ -295,7 +295,7 @@ export class CanvasTools {
 
     static async _checkTokenDeath(actor, changes) {
         // Exit if feature is disabled
-        if (!game.settings.get(MODULE_ID, 'tokenConvertDeadToLoot')) return;
+        if (!game.settings.get(MODULE.ID, 'tokenConvertDeadToLoot')) return;
         
         try {
             // Check if HP changed to 0 or below
@@ -310,7 +310,7 @@ export class CanvasTools {
             if (!token) return;
             
             // Start the conversion delay
-            const delay = game.settings.get(MODULE_ID, 'tokenConvertDelay') * 1000;
+            const delay = game.settings.get(MODULE.ID, 'tokenConvertDelay') * 1000;
             setTimeout(() => this._convertTokenToLoot(token), delay);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error checking token death:", error, true, false);
@@ -334,9 +334,9 @@ export class CanvasTools {
             
             // Roll loot from each configured table
             for (const table of tables) {
-                const tableName = game.settings.get(MODULE_ID, table.setting);
+                const tableName = game.settings.get(MODULE.ID, table.setting);
                 if (tableName && tableName !== "none") {
-                    const amount = game.settings.get(MODULE_ID, table.amount);
+                    const amount = game.settings.get(MODULE.ID, table.amount);
                     try {
                         await game.itempiles.API.rollItemTable(tableName, {
                             timesToRoll: amount,
@@ -381,7 +381,7 @@ export class CanvasTools {
             });
             
             // Update the image
-            const newImage = game.settings.get(MODULE_ID, 'tokenLootPileImage');
+            const newImage = game.settings.get(MODULE.ID, 'tokenLootPileImage');
             await token.document.update({img: newImage});
             
             // Apply TokenFX if available
@@ -390,13 +390,13 @@ export class CanvasTools {
             }
             
             // Play sound
-            const sound = game.settings.get(MODULE_ID, 'tokenLootSound');
+            const sound = game.settings.get(MODULE.ID, 'tokenLootSound');
             if (sound) {
                 AudioHelper.play({src: sound, volume: 0.5, autoplay: true, loop: false}, true);
             }
             
             // Send chat message if enabled
-            if (game.settings.get(MODULE_ID, 'tokenLootChatMessage')) {
+            if (game.settings.get(MODULE.ID, 'tokenLootChatMessage')) {
                 const messageData = {
                     isPublic: true,
                     theme: 'default',
@@ -425,7 +425,7 @@ export class CanvasTools {
                 type: 3,
                 padding: 70,
                 magnify: 1,
-                imagePath: game.settings.get(MODULE_ID, 'tokenLootPileImage'),
+                imagePath: game.settings.get(MODULE.ID, 'tokenLootPileImage'),
                 animated: {
                     progress: {
                         active: true,

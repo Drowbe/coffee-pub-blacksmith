@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 import { COFFEEPUB } from './global.js';
 // -- Load the shared GLOBAL functions --
@@ -32,8 +32,8 @@ const formatPrompt = "Always format each answer as HTML code without CSS. Levera
 // ================================================================== 
 
 // -- ENABLED COFFEE PUB MODULES  --
-function formatMODULE_ID(MODULE_ID) {
-	let splitName = MODULE_ID.split('-');
+function formatMODULE_ID(strModuleID) {
+	let splitName = strModuleID.split('-');
 	for (let i = 0; i < splitName.length; i++) {
 	  splitName[i] = splitName[i].charAt(0).toUpperCase() + splitName[i].slice(1);
 	}
@@ -43,7 +43,7 @@ function formatMODULE_ID(MODULE_ID) {
 function checkInstalledModules() {
 	let coffeePubActive = [];
 	let coffeePubMissing = [];
-	let MODULE_IDs = [
+	let arrModuleIDs = [
 		'coffee-pub-blacksmith',
 		'coffee-pub-monarch',
 		'coffee-pub-scribe',
@@ -54,11 +54,11 @@ function checkInstalledModules() {
 		'coffee-pub-lib'
 	];
 
-	for(let MODULE_ID of MODULE_IDs) {
-		if(game.modules.has(MODULE_ID)) {
-		coffeePubActive.push(formatMODULE_ID(MODULE_ID));
+	for(let strModuleID of arrModuleIDs) {
+		if(game.modules.has(strModuleID)) {
+		coffeePubActive.push(formatMODULE_ID(strModuleID));
 		} else {
-		coffeePubMissing.push(formatMODULE_ID(MODULE_ID));
+		coffeePubMissing.push(formatMODULE_ID(strModuleID));
 		}
 	}
 
@@ -175,7 +175,7 @@ function getThemeChoices() {
 
     for(let theme of sortedThemes) { 
       // Check if the theme is enabled - use safe settings function
-      if(getSettingSafely(MODULE_ID, theme.id, true)) {
+      if(getSettingSafely(MODULE.ID, theme.id, true)) {
         choices[theme.id] = theme.name;
         // Add the enabled theme to arrThemeChoicesEnabled array
         BLACKSMITH.arrThemeChoicesEnabled.push(theme.name);
@@ -196,7 +196,7 @@ function registerThemes() {
         return a.name.localeCompare(b.name);
     });
     for(let theme of sortedThemes) {
-        game.settings.register(MODULE_ID, theme.id, {
+        game.settings.register(MODULE.ID, theme.id, {
             name: theme.name,
             hint: theme.description,
             type: Boolean,
@@ -306,9 +306,9 @@ export const registerSettings = async () => {
 
 		// *** INTRODUCTION ***
 		// ---------- TITLE ----------
-		game.settings.register(MODULE_ID, "headingH1Blacksmith", {
-			name: MODULE_ID + '.headingH1Blacksmith-Label',
-			hint: MODULE_ID + '.headingH1Blacksmith-Hint',
+		game.settings.register(MODULE.ID, "headingH1Blacksmith", {
+			name: MODULE.ID + '.headingH1Blacksmith-Label',
+			hint: MODULE.ID + '.headingH1Blacksmith-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -321,7 +321,7 @@ export const registerSettings = async () => {
 		
 
 		// ---------- Installed Modules ----------
-		game.settings.register(MODULE_ID, "headingH4BlacksmithInstalled", {
+		game.settings.register(MODULE.ID, "headingH4BlacksmithInstalled", {
 			name: "Activated Coffee Pub Modules",
 			hint: "The following Coffee Pub modules are activated: " + moduleStatus.activeModules + ". If you don't see a module you are expecting, check to see if you've activated it.",
 			scope: "world",
@@ -332,7 +332,7 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// ---------- Missing Modules ----------
-		game.settings.register(MODULE_ID, "headingH4BlacksmithMissing", {
+		game.settings.register(MODULE.ID, "headingH4BlacksmithMissing", {
 			name: "Other Coffee Pub Modules",
 			hint: "The following Coffee Pub modules are currently not installed or activated:  " + moduleStatus.missingModules + ".",
 			scope: "world",
@@ -347,9 +347,9 @@ export const registerSettings = async () => {
 
 		// *** GENERAL ***
 		// ---------- HEADING - GENERAL  ----------
-		game.settings.register(MODULE_ID, "headingH2General", {
-			name: MODULE_ID + '.headingH2General-Label',
-			hint: MODULE_ID + '.headingH2General-Hint',
+		game.settings.register(MODULE.ID, "headingH2General", {
+			name: MODULE.ID + '.headingH2General-Label',
+			hint: MODULE.ID + '.headingH2General-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -359,7 +359,7 @@ export const registerSettings = async () => {
 
 
 		// *** CSS CUSTOMIZATION ***
-		game.settings.register(MODULE_ID, "headingH3CSS", {
+		game.settings.register(MODULE.ID, "headingH3CSS", {
 			name: "CSS Customization",
 			hint: "Customize the FoundryVTT interface with custom CSS",
 			scope: "world",
@@ -368,14 +368,14 @@ export const registerSettings = async () => {
 			default: "CSS Customization"
 		});
 
-		game.settings.register(MODULE_ID, "customCSS", {
+		game.settings.register(MODULE.ID, "customCSS", {
 			scope: "world",
 			config: false,
 			type: String,
 			default: ""
 		});
 
-		game.settings.register(MODULE_ID, "cssTransition", {
+		game.settings.register(MODULE.ID, "cssTransition", {
 			name: "Smooth Trasnition",
 			hint: "Ease the new css styles into place with a smooth transition",
 			scope: "world",
@@ -384,7 +384,7 @@ export const registerSettings = async () => {
 			default: true
 		});
 
-		game.settings.register(MODULE_ID, "cssDarkMode", {
+		game.settings.register(MODULE.ID, "cssDarkMode", {
 			name: "Dark Mode",
 			hint: "Enable dark mode for the css editor",
 			scope: "world",
@@ -397,9 +397,9 @@ export const registerSettings = async () => {
 
 
 		// ---------- LATENCY CHECKER ----------
-		game.settings.register(MODULE_ID, "headingH3Latency", {
-			name: MODULE_ID + '.headingH3Latency-Label',
-			hint: MODULE_ID + '.headingH3Latency-Hint',
+		game.settings.register(MODULE.ID, "headingH3Latency", {
+			name: MODULE.ID + '.headingH3Latency-Label',
+			hint: MODULE.ID + '.headingH3Latency-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -408,18 +408,18 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// Latency Settings
-		game.settings.register(MODULE_ID, 'enableLatency', {
-			name: MODULE_ID + '.enableLatency-Label',
-			hint: MODULE_ID + '.enableLatency-Hint',
+		game.settings.register(MODULE.ID, 'enableLatency', {
+			name: MODULE.ID + '.enableLatency-Label',
+			hint: MODULE.ID + '.enableLatency-Hint',
 			type: Boolean,
 			scope: 'world',
 			config: true,
 			default: true,
 		});
 
-		game.settings.register(MODULE_ID, 'latencyCheckInterval', {
-			name: MODULE_ID + '.latencyCheckInterval-Label',
-			hint: MODULE_ID + '.latencyCheckInterval-Hint',
+		game.settings.register(MODULE.ID, 'latencyCheckInterval', {
+			name: MODULE.ID + '.latencyCheckInterval-Label',
+			hint: MODULE.ID + '.latencyCheckInterval-Hint',
 			type: Number,
 			scope: 'world',
 			config: true,
@@ -434,9 +434,9 @@ export const registerSettings = async () => {
 
 		// *** THEMES ***
 		// ---------- HEADING - THEMES  ----------
-		game.settings.register(MODULE_ID, "headingH2Themes", {
-			name: MODULE_ID + '.headingH2Themes-Label',
-			hint: MODULE_ID + '.headingH2Themes-Hint',
+		game.settings.register(MODULE.ID, "headingH2Themes", {
+			name: MODULE.ID + '.headingH2Themes-Label',
+			hint: MODULE.ID + '.headingH2Themes-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -444,9 +444,9 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 		// ---------- SUBHEADING - ENABLE/DISABLE ----------
-		game.settings.register(MODULE_ID, "headingH3simpleThemeSelections", {
-			name: MODULE_ID + '.headingH3simpleThemeSelections-Label',
-			hint: MODULE_ID + '.headingH3simpleThemeSelections-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleThemeSelections", {
+			name: MODULE.ID + '.headingH3simpleThemeSelections-Label',
+			hint: MODULE.ID + '.headingH3simpleThemeSelections-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -462,9 +462,9 @@ export const registerSettings = async () => {
 		getThemeChoices();
 
 		// ---------- SUBHEADING - ENABLE/DISABLE ----------
-		game.settings.register(MODULE_ID, "headingH3simpleThemeDefault", {
-			name: MODULE_ID + '.headingH3simpleThemeDefault-Label',
-			hint: MODULE_ID + '.headingH3simpleThemeDefault-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleThemeDefault", {
+			name: MODULE.ID + '.headingH3simpleThemeDefault-Label',
+			hint: MODULE.ID + '.headingH3simpleThemeDefault-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -473,9 +473,9 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// -- Default Card Theme --
-		game.settings.register(MODULE_ID, 'defaultCardTheme', {
-			name: MODULE_ID + '.defaultCardTheme-Label',
-			hint: MODULE_ID + '.defaultCardTheme-Hint',
+		game.settings.register(MODULE.ID, 'defaultCardTheme', {
+			name: MODULE.ID + '.defaultCardTheme-Label',
+			hint: MODULE.ID + '.defaultCardTheme-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: true,
@@ -487,9 +487,9 @@ export const registerSettings = async () => {
 		// *** CHAT ***
 
 		// ---------- HEADING - CHAT  ----------
-		game.settings.register(MODULE_ID, "headingH2Chat", {
-			name: MODULE_ID + '.headingH2Chat-Label',
-			hint: MODULE_ID + '.headingH2Chat-Hint',
+		game.settings.register(MODULE.ID, "headingH2Chat", {
+			name: MODULE.ID + '.headingH2Chat-Label',
+			hint: MODULE.ID + '.headingH2Chat-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -500,7 +500,7 @@ export const registerSettings = async () => {
 
 		// *** CHAT PANEL SETTINGS ***
 		// ---------- SUBHEADING - CHAT PANEL ----------
-		game.settings.register(MODULE_ID, "headingH3simplechatPanel", {
+		game.settings.register(MODULE.ID, "headingH3simplechatPanel", {
 			name: 'BLACKSMITH CHAT PANEL',
 			hint: 'Settings for the panel that appears in the chat log.',
 			scope: "world",
@@ -509,7 +509,7 @@ export const registerSettings = async () => {
 			type: String,
 		});
 
-		game.settings.register(MODULE_ID, 'enableChatPanel', {
+		game.settings.register(MODULE.ID, 'enableChatPanel', {
 			name: 'Show Blacksmith Panel',
 			hint: 'Show the Blacksmith panel in the chat log.',
 			type: Boolean,
@@ -519,7 +519,7 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
-		game.settings.register(MODULE_ID, 'excludedUsersChatPanel', {
+		game.settings.register(MODULE.ID, 'excludedUsersChatPanel', {
 			name: 'Excluded Chat Panel Users',
 			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
 			scope: 'world',
@@ -529,7 +529,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- Party Leader -- 
-		game.settings.register(MODULE_ID, 'partyLeader', {
+		game.settings.register(MODULE.ID, 'partyLeader', {
 			name: 'Party Leader',
 			hint: 'The currently selected party leader',
 			scope: 'world',
@@ -541,7 +541,7 @@ export const registerSettings = async () => {
 
 
 		// Session Timer Settings
-		game.settings.register(MODULE_ID, 'sessionEndTime', {
+		game.settings.register(MODULE.ID, 'sessionEndTime', {
 			name: 'Session End Time',
 			hint: 'When the current session timer will end (in milliseconds)',
 			scope: 'world',
@@ -550,7 +550,7 @@ export const registerSettings = async () => {
 			default: 0
 		});
 
-		game.settings.register(MODULE_ID, 'sessionStartTime', {
+		game.settings.register(MODULE.ID, 'sessionStartTime', {
 			name: 'Session Start Time',
 			hint: 'When the current session timer was started (in milliseconds)',
 			scope: 'world',
@@ -559,7 +559,7 @@ export const registerSettings = async () => {
 			default: 0
 		});
 
-		game.settings.register(MODULE_ID, 'sessionTimerDate', {
+		game.settings.register(MODULE.ID, 'sessionTimerDate', {
 			name: 'Session Timer Date',
 			hint: 'The date when the session timer was last set',
 			scope: 'world',
@@ -569,7 +569,7 @@ export const registerSettings = async () => {
 		});
 
 		// Chat Panel Settings
-		game.settings.register(MODULE_ID, 'sessionTimerDefault', {
+		game.settings.register(MODULE.ID, 'sessionTimerDefault', {
 			name: 'Default Session Time',
 			hint: 'The default duration of the session. (Up to 10 hours)',
 			scope: 'world',
@@ -584,7 +584,7 @@ export const registerSettings = async () => {
 		});
 
 		// Chat Panel Settings
-		game.settings.register(MODULE_ID, 'sessionTimerWarningThreshold', {
+		game.settings.register(MODULE.ID, 'sessionTimerWarningThreshold', {
 			name: 'Session Timer Warning Time',
 			hint: 'How many minutes before the end to show the warning (1-60 minutes)',
 			scope: 'world',
@@ -598,7 +598,7 @@ export const registerSettings = async () => {
 			}
 		});
 
-		game.settings.register(MODULE_ID, 'sessionTimerWarningSound', {
+		game.settings.register(MODULE.ID, 'sessionTimerWarningSound', {
 			name: 'Session Timer Warning Sound',
 			hint: 'Sound to play when time is running out',
 			scope: 'world',
@@ -608,7 +608,7 @@ export const registerSettings = async () => {
 			choices: BLACKSMITH.arrSoundChoices
 		});
 
-		game.settings.register(MODULE_ID, 'sessionTimerWarningMessage', {
+		game.settings.register(MODULE.ID, 'sessionTimerWarningMessage', {
 			name: 'Session Timer Warning Message',
 			hint: 'Message to display when time is running out. Use {time} for remaining time.',
 			scope: 'world',
@@ -617,7 +617,7 @@ export const registerSettings = async () => {
 			default: 'Time is running out in the session. We have about {time} remaining in our session.'
 		});
 
-		game.settings.register(MODULE_ID, 'sessionTimerExpiredSound', {
+		game.settings.register(MODULE.ID, 'sessionTimerExpiredSound', {
 			name: 'Session Timer Expired Sound',
 			hint: 'Sound to play when time has run out',
 			scope: 'world',
@@ -627,7 +627,7 @@ export const registerSettings = async () => {
 			choices: BLACKSMITH.arrSoundChoices
 		});
 
-		game.settings.register(MODULE_ID, 'sessionTimerExpiredMessage', {
+		game.settings.register(MODULE.ID, 'sessionTimerExpiredMessage', {
 			name: 'Session Timer Expired Message',
 			hint: 'Message to display when time has run out',
 			scope: 'world',
@@ -640,7 +640,7 @@ export const registerSettings = async () => {
 
 
 		// Skill Check 
-		game.settings.register(MODULE_ID, 'skillCheckPreferences', {
+		game.settings.register(MODULE.ID, 'skillCheckPreferences', {
 			name: 'Skill Check Preferences',
 			hint: 'Default preferences for skill check dialog',
 			scope: 'client',
@@ -655,7 +655,7 @@ export const registerSettings = async () => {
 		});
 
 		// Movement 
-		game.settings.register(MODULE_ID, 'movementType', {
+		game.settings.register(MODULE.ID, 'movementType', {
 			name: 'Current Movement Type',
 			hint: 'The current movement restriction type for all players',
 			scope: 'world',
@@ -666,9 +666,9 @@ export const registerSettings = async () => {
 
 		// *** CHAT SETTINGS ***
 		// ---------- SUBHEADING - CARD ADJUSTMENTS ----------
-		game.settings.register(MODULE_ID, "headingH3simpleCardAdjustments", {
-			name: MODULE_ID + '.headingH3CardAdjustments-Label',
-			hint: MODULE_ID + '.headingH3CardAdjustments-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleCardAdjustments", {
+			name: MODULE.ID + '.headingH3CardAdjustments-Label',
+			hint: MODULE.ID + '.headingH3CardAdjustments-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -676,9 +676,9 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 		// -- Chat Gap --
-		game.settings.register(MODULE_ID, 'chatSpacing', {
-			name: MODULE_ID + '.chatSpacing-Label',
-			hint: MODULE_ID + '.chatSpacing-Hint',
+		game.settings.register(MODULE.ID, 'chatSpacing', {
+			name: MODULE.ID + '.chatSpacing-Label',
+			hint: MODULE.ID + '.chatSpacing-Hint',
 			scope: "world",
 			requiresReload: true,
 			config: true,
@@ -691,9 +691,9 @@ export const registerSettings = async () => {
 			default: 3,
 		});
 		// -- Top Margin --
-		game.settings.register(MODULE_ID,'cardTopMargin', {
-			name: MODULE_ID + '.cardTopMargin-Label',
-			hint: MODULE_ID + '.cardTopMargin-Hint',
+		game.settings.register(MODULE.ID,'cardTopMargin', {
+			name: MODULE.ID + '.cardTopMargin-Label',
+			hint: MODULE.ID + '.cardTopMargin-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -706,9 +706,9 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 		// -- Bottom Margin --
-		game.settings.register(MODULE_ID,'cardBottomMargin', {
-			name: MODULE_ID + '.cardBottomMargin-Label',
-			hint: MODULE_ID + '.cardBottomMargin-Hint',
+		game.settings.register(MODULE.ID,'cardBottomMargin', {
+			name: MODULE.ID + '.cardBottomMargin-Label',
+			hint: MODULE.ID + '.cardBottomMargin-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -721,9 +721,9 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 		// -- Left Margin --
-		game.settings.register(MODULE_ID,'cardLeftMargin', {
-			name: MODULE_ID + '.cardLeftMargin-Label',
-			hint: MODULE_ID + '.cardLeftMargin-Hint',
+		game.settings.register(MODULE.ID,'cardLeftMargin', {
+			name: MODULE.ID + '.cardLeftMargin-Label',
+			hint: MODULE.ID + '.cardLeftMargin-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -736,9 +736,9 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 		// -- Right Margin --
-		game.settings.register(MODULE_ID,'cardRightMargin', {
-			name: MODULE_ID + '.cardRightMargin-Label',
-			hint: MODULE_ID + '.cardRightMargin-Hint',
+		game.settings.register(MODULE.ID,'cardRightMargin', {
+			name: MODULE.ID + '.cardRightMargin-Label',
+			hint: MODULE.ID + '.cardRightMargin-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -751,9 +751,9 @@ export const registerSettings = async () => {
 			default: 0,
 		});
 		// -- Top Offset --
-		game.settings.register(MODULE_ID,'cardTopOffset', {
-			name: MODULE_ID + '.cardTopOffset-Label',
-			hint: MODULE_ID + '.cardTopOffset-Hint',
+		game.settings.register(MODULE.ID,'cardTopOffset', {
+			name: MODULE.ID + '.cardTopOffset-Label',
+			hint: MODULE.ID + '.cardTopOffset-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -769,9 +769,9 @@ export const registerSettings = async () => {
 		// *** ROLL TABLE OVERRIDES ***
 
 		// ---------- SUBHEADING - CARD SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3simpleCardSettings", {
-			name: MODULE_ID + '.headingH3CardSettings-Label',
-			hint: MODULE_ID + '.headingH3CardSettings-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleCardSettings", {
+			name: MODULE.ID + '.headingH3CardSettings-Label',
+			hint: MODULE.ID + '.headingH3CardSettings-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -780,9 +780,9 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// -- Remove Leading Icon from Roll Tables --
-		game.settings.register(MODULE_ID, 'hideRollTableIcon', {
-			name: MODULE_ID + '.hideRollTableIcon-Label',
-			hint: MODULE_ID + '.hideRollTableIcon-Hint',
+		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
+			name: MODULE.ID + '.hideRollTableIcon-Label',
+			hint: MODULE.ID + '.hideRollTableIcon-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: true,
@@ -790,9 +790,9 @@ export const registerSettings = async () => {
 			default: true,
 		});
 		// *** LINK THEME ***
-		game.settings.register(MODULE_ID, 'objectLinkStyle', {
-			name: MODULE_ID + '.objectLinkStyle-Label',
-			hint: MODULE_ID + '.objectLinkStyle-Hint',
+		game.settings.register(MODULE.ID, 'objectLinkStyle', {
+			name: MODULE.ID + '.objectLinkStyle-Label',
+			hint: MODULE.ID + '.objectLinkStyle-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: true,
@@ -813,9 +813,9 @@ export const registerSettings = async () => {
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - JOURNALS  ----------
-		game.settings.register(MODULE_ID, "headingH2Journals", {
-			name: MODULE_ID + '.headingH2Journals-Label',
-			hint: MODULE_ID + '.headingH2Journals-Hint',
+		game.settings.register(MODULE.ID, "headingH2Journals", {
+			name: MODULE.ID + '.headingH2Journals-Label',
+			hint: MODULE.ID + '.headingH2Journals-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -824,7 +824,7 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// ---------- SUBHEADING - JOURNAL QOL ----------
-		game.settings.register(MODULE_ID, "headingH3simpleJournalQOL", {
+		game.settings.register(MODULE.ID, "headingH3simpleJournalQOL", {
 			name: 'Quality of Life Settings',
 			hint: '',
 			scope: "world",
@@ -836,9 +836,9 @@ export const registerSettings = async () => {
 
 
 		// -- JOURNAL INTERACTIONS --
-		game.settings.register(MODULE_ID, 'enableJournalDoubleClick', {
-			name: MODULE_ID + '.enableJournalDoubleClick-Label',
-			hint: MODULE_ID + '.enableJournalDoubleClick-Hint',
+		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
+			name: MODULE.ID + '.enableJournalDoubleClick-Label',
+			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: true,
@@ -849,7 +849,7 @@ export const registerSettings = async () => {
 
 
 		// ---------- SUBHEADING - AUTOMATED ENCOUNTERS ----------
-		game.settings.register(MODULE_ID, "headingH3simpleEncounterSettings", {
+		game.settings.register(MODULE.ID, "headingH3simpleEncounterSettings", {
 			name: 'Automated Encounter Settings',
 			hint: '',
 			scope: "world",
@@ -861,9 +861,9 @@ export const registerSettings = async () => {
 
 
 		// -- ENCOUNTER TOOLBAR --
-		game.settings.register(MODULE_ID, 'enableEncounterToolbar', {
-			name: MODULE_ID + '.enableEncounterToolbar-Label',
-			hint: MODULE_ID + '.enableEncounterToolbar-Hint',
+		game.settings.register(MODULE.ID, 'enableEncounterToolbar', {
+			name: MODULE.ID + '.enableEncounterToolbar-Label',
+			hint: MODULE.ID + '.enableEncounterToolbar-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -871,7 +871,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- Encounter Folder --
-		game.settings.register(MODULE_ID, 'encounterFolder', {
+		game.settings.register(MODULE.ID, 'encounterFolder', {
 			name: 'Encounter Folder',
 			hint: 'Folder in which to add actors when deloying from the journal. Leave blank to not put them in a folder.',
 			scope: 'world',
@@ -883,9 +883,9 @@ export const registerSettings = async () => {
 
 
 		// -- Deployment Hidden --
-		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentHidden', {
-			name: MODULE_ID + '.encounterToolbarDeploymentHidden-Label',
-			hint: MODULE_ID + '.encounterToolbarDeploymentHidden-Hint',
+		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentHidden', {
+			name: MODULE.ID + '.encounterToolbarDeploymentHidden-Label',
+			hint: MODULE.ID + '.encounterToolbarDeploymentHidden-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -893,9 +893,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- Deployment Pattern --
-		game.settings.register(MODULE_ID, 'encounterToolbarDeploymentPattern', {
-			name: MODULE_ID + '.encounterToolbarDeploymentPattern-Label',
-			hint: MODULE_ID + '.encounterToolbarDeploymentPattern-Hint',
+		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentPattern', {
+			name: MODULE.ID + '.encounterToolbarDeploymentPattern-Label',
+			hint: MODULE.ID + '.encounterToolbarDeploymentPattern-Hint',
 			type: String,
 			choices: {
 				"circle": "Circle Formation",
@@ -910,9 +910,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- Content Scanning --
-		game.settings.register(MODULE_ID, 'enableEncounterContentScanning', {
-			name: MODULE_ID + '.enableEncounterContentScanning-Label',
-			hint: MODULE_ID + '.enableEncounterContentScanning-Hint',
+		game.settings.register(MODULE.ID, 'enableEncounterContentScanning', {
+			name: MODULE.ID + '.enableEncounterContentScanning-Label',
+			hint: MODULE.ID + '.enableEncounterContentScanning-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -920,9 +920,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- Real-time CR Updates --
-		game.settings.register(MODULE_ID, 'enableEncounterToolbarRealTimeUpdates', {
-			name: MODULE_ID + '.enableEncounterToolbarRealTimeUpdates-Label',
-			hint: MODULE_ID + '.enableEncounterToolbarRealTimeUpdates-Hint',
+		game.settings.register(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates', {
+			name: MODULE.ID + '.enableEncounterToolbarRealTimeUpdates-Label',
+			hint: MODULE.ID + '.enableEncounterToolbarRealTimeUpdates-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -932,9 +932,9 @@ export const registerSettings = async () => {
 		// *** JOURNAL TOOLS SETTINGS ***
 
 		// -- Journal Tools --
-		game.settings.register(MODULE_ID, 'enableJournalTools', {
-			name: MODULE_ID + '.enableJournalTools-Label',
-			hint: MODULE_ID + '.enableJournalTools-Hint',
+		game.settings.register(MODULE.ID, 'enableJournalTools', {
+			name: MODULE.ID + '.enableJournalTools-Label',
+			hint: MODULE.ID + '.enableJournalTools-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -946,9 +946,9 @@ export const registerSettings = async () => {
 		// *** SCENE SETTINGS ***
 
 		// ---------- HEADING - SCENES  ----------
-		game.settings.register(MODULE_ID, "headingH2Scenes", {
-			name: MODULE_ID + '.headingH2Scenes-Label',
-			hint: MODULE_ID + '.headingH2Scenes-Hint',
+		game.settings.register(MODULE.ID, "headingH2Scenes", {
+			name: MODULE.ID + '.headingH2Scenes-Label',
+			hint: MODULE.ID + '.headingH2Scenes-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -958,9 +958,9 @@ export const registerSettings = async () => {
 
 
 		// ---------- SUBHEADING - SCENE INTERACTIONS ----------
-		game.settings.register(MODULE_ID, "headingH3simpleSceneInteraction", {
-			name: MODULE_ID + '.headingH3simpleSceneInteraction-Label',
-			hint: MODULE_ID + '.headingH3simpleSceneInteraction-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleSceneInteraction", {
+			name: MODULE.ID + '.headingH3simpleSceneInteraction-Label',
+			hint: MODULE.ID + '.headingH3simpleSceneInteraction-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -968,9 +968,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- SCENE INTERACTIONS --
-		game.settings.register(MODULE_ID, 'enableSceneInteractions', {
-			name: MODULE_ID + '.enableSceneInteractions-Label',
-			hint: MODULE_ID + '.enableSceneInteractions-Hint',
+		game.settings.register(MODULE.ID, 'enableSceneInteractions', {
+			name: MODULE.ID + '.enableSceneInteractions-Label',
+			hint: MODULE.ID + '.enableSceneInteractions-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: true,
@@ -979,9 +979,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- SCENE BEHAVIORS --
-		game.settings.register(MODULE_ID, 'enableSceneClickBehaviors', {
-			name: MODULE_ID + '.enableSceneClickBehaviors-Label',
-			hint: MODULE_ID + '.enableSceneClickBehaviors-Hint',
+		game.settings.register(MODULE.ID, 'enableSceneClickBehaviors', {
+			name: MODULE.ID + '.enableSceneClickBehaviors-Label',
+			hint: MODULE.ID + '.enableSceneClickBehaviors-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: true,
@@ -990,9 +990,9 @@ export const registerSettings = async () => {
 		});
 
 		// ---------- SUBHEADING - SCENE SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3simpleSceneSettings", {
-			name: MODULE_ID + '.headingH3SceneSettings-Label',
-			hint: MODULE_ID + '.headingH3SceneSettings-Hint',
+		game.settings.register(MODULE.ID, "headingH3simpleSceneSettings", {
+			name: MODULE.ID + '.headingH3SceneSettings-Label',
+			hint: MODULE.ID + '.headingH3SceneSettings-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -1000,9 +1000,9 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 		// -- Scene Text Align --
-		game.settings.register(MODULE_ID, 'sceneTextAlign', {
-			name: MODULE_ID + '.sceneTextAlign-Label',
-			hint: MODULE_ID + '.sceneTextAlign-Hint',
+		game.settings.register(MODULE.ID, 'sceneTextAlign', {
+			name: MODULE.ID + '.sceneTextAlign-Label',
+			hint: MODULE.ID + '.sceneTextAlign-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: true,
@@ -1015,9 +1015,9 @@ export const registerSettings = async () => {
 			}
 		});
 		// -- Scene Text Size --
-		game.settings.register(MODULE_ID, 'sceneFontSize', {
-			name: MODULE_ID + '.sceneFontSize-Label',
-			hint: MODULE_ID + '.sceneFontSize-Hint',
+		game.settings.register(MODULE.ID, 'sceneFontSize', {
+			name: MODULE.ID + '.sceneFontSize-Label',
+			hint: MODULE.ID + '.sceneFontSize-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1030,9 +1030,9 @@ export const registerSettings = async () => {
 			default: 1,
 		});
 		// -- Scene Title Padding --
-		game.settings.register(MODULE_ID, 'sceneTitlePadding', {
-			name: MODULE_ID + '.sceneTitlePadding-Label',
-			hint: MODULE_ID + '.sceneTitlePadding-Hint',
+		game.settings.register(MODULE.ID, 'sceneTitlePadding', {
+			name: MODULE.ID + '.sceneTitlePadding-Label',
+			hint: MODULE.ID + '.sceneTitlePadding-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1046,9 +1046,9 @@ export const registerSettings = async () => {
 		});
 
 		// -- Scene Panel Height --
-		game.settings.register(MODULE_ID, 'scenePanelHeight', {
-			name: MODULE_ID + '.scenePanelHeight-Label',
-			hint: MODULE_ID + '.scenePanelHeight-Hint',
+		game.settings.register(MODULE.ID, 'scenePanelHeight', {
+			name: MODULE.ID + '.scenePanelHeight-Label',
+			hint: MODULE.ID + '.scenePanelHeight-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1064,9 +1064,9 @@ export const registerSettings = async () => {
 		// *** TITLEBAR ***
 
 		// ---------- HEADING - WINDOWS  ----------
-		game.settings.register(MODULE_ID, "headingH2Windows", {
-			name: MODULE_ID + '.headingH2Windows-Label',
-			hint: MODULE_ID + '.headingH2Windows-Hint',
+		game.settings.register(MODULE.ID, "headingH2Windows", {
+			name: MODULE.ID + '.headingH2Windows-Label',
+			hint: MODULE.ID + '.headingH2Windows-Hint',
 			scope: "client",
 			config: true,
 			default: "",
@@ -1075,9 +1075,9 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// ---------- SUBHEADING - TITLEBAR SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3TitlebarSettings", {
-			name: MODULE_ID + '.headingH3TitlebarSettings-Label',
-			hint: MODULE_ID + '.headingH3TitlebarSettings-Hint',
+		game.settings.register(MODULE.ID, "headingH3TitlebarSettings", {
+			name: MODULE.ID + '.headingH3TitlebarSettings-Label',
+			hint: MODULE.ID + '.headingH3TitlebarSettings-Hint',
 			scope: "client",
 			config: true,
 			default: "",
@@ -1085,9 +1085,9 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 		// -- Titlebar Text Size --
-		game.settings.register(MODULE_ID, "titlebarTextSize", {
-			name: MODULE_ID + '.titlebarTextSize-Label',
-			hint: MODULE_ID + '.titlebarTextSize-Hint',
+		game.settings.register(MODULE.ID, "titlebarTextSize", {
+			name: MODULE.ID + '.titlebarTextSize-Label',
+			hint: MODULE.ID + '.titlebarTextSize-Hint',
 			scope: "client",
 			config: true,
 			requiresReload: true,
@@ -1100,9 +1100,9 @@ export const registerSettings = async () => {
 			default: 14,
 		});
 		// -- Titlebar Icon Size --
-		game.settings.register(MODULE_ID,"titlebarIconSize", {
-			name: MODULE_ID + '.titlebarIconSize-Label',
-			hint: MODULE_ID + '.titlebarIconSize-Hint',
+		game.settings.register(MODULE.ID,"titlebarIconSize", {
+			name: MODULE.ID + '.titlebarIconSize-Label',
+			hint: MODULE.ID + '.titlebarIconSize-Hint',
 			scope: "client",
 			config: true,
 			requiresReload: true,
@@ -1115,9 +1115,9 @@ export const registerSettings = async () => {
 			default: 14,
 		});
 		// -- Titlebar Spacing --
-		game.settings.register(MODULE_ID,"titlebarSpacing", {
-			name: MODULE_ID + '.titlebarSpacing-Label',
-			hint: MODULE_ID + '.titlebarSpacing-Hint',
+		game.settings.register(MODULE.ID,"titlebarSpacing", {
+			name: MODULE.ID + '.titlebarSpacing-Label',
+			hint: MODULE.ID + '.titlebarSpacing-Hint',
 			scope: "client",
 			config: true,
 			requiresReload: true,
@@ -1133,7 +1133,7 @@ export const registerSettings = async () => {
 		// *** CANVAS ***
 
 		// ---------- HEADING - CANVAS  ----------
-		game.settings.register(MODULE_ID, "headingH2Canvas", {
+		game.settings.register(MODULE.ID, "headingH2Canvas", {
 			name: 'Canvas',
 			hint: 'Blacksmith includes a number of tools that make managing things on the canvas easier.',
 			scope: "client",
@@ -1145,7 +1145,7 @@ export const registerSettings = async () => {
 
 
 		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3CanvasTools", {
+		game.settings.register(MODULE.ID, "headingH3CanvasTools", {
 			name: 'Canvas Tools',
 			hint: 'Control which bits of the interface hide and show when toggled.',
 			scope: "client",
@@ -1157,7 +1157,7 @@ export const registerSettings = async () => {
 
 
 		// -- Left UI --
-		game.settings.register(MODULE_ID, 'canvasToolsHideLeftUI', {
+		game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
 			name: 'Hide Left UI',
 			hint: 'When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
 			type: Boolean,
@@ -1168,7 +1168,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- Bottom UI --
-		game.settings.register(MODULE_ID, 'canvasToolsHideBottomUI', {
+		game.settings.register(MODULE.ID, 'canvasToolsHideBottomUI', {
 			name: 'Hide Bottom UI',
 			hint: 'When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
 			type: Boolean,
@@ -1179,7 +1179,7 @@ export const registerSettings = async () => {
 		});
 
 		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3Movement", {
+		game.settings.register(MODULE.ID, "headingH3Movement", {
 			name: 'Movement',
 			hint: 'Configures the way tokens move around on the canvas specific to the movement modes.',
 			scope: "world",
@@ -1190,7 +1190,7 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// -- Too Far --
-		game.settings.register(MODULE_ID, 'movementTooFarDistance', {
+		game.settings.register(MODULE.ID, 'movementTooFarDistance', {
 			name: '"Too Far" Tiles',
 			hint: 'The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.',
 			scope: "world",
@@ -1206,7 +1206,7 @@ export const registerSettings = async () => {
 		});
 
 
-        game.settings.register(MODULE_ID, 'tokenSpacing', {
+        game.settings.register(MODULE.ID, 'tokenSpacing', {
             name: 'Token Spacing',
             hint: 'Number of grid spaces to maintain between tokens in formation',
             scope: 'world',
@@ -1221,7 +1221,7 @@ export const registerSettings = async () => {
         });
 
 		// -- Movement Type (internal config) --
-        game.settings.register(MODULE_ID, 'movementType', {
+        game.settings.register(MODULE.ID, 'movementType', {
             name: 'Current Movement Type',
             hint: 'The current movement restriction type for all players',
             scope: 'world',
@@ -1235,9 +1235,9 @@ export const registerSettings = async () => {
 		// *** TOKEN NAMEPLATES ***
 
 		// ---------- HEADING - TOKENS  ----------
-		game.settings.register(MODULE_ID, "headingH2Tokens", {
-			name: MODULE_ID + '.headingH2Tokens-Label',
-			hint: MODULE_ID + '.headingH2Tokens-Hint',
+		game.settings.register(MODULE.ID, "headingH2Tokens", {
+			name: MODULE.ID + '.headingH2Tokens-Label',
+			hint: MODULE.ID + '.headingH2Tokens-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -1246,9 +1246,9 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// ---------- SUBHEADING - NAMEPLATE SETTINGS ----------
-		game.settings.register(MODULE_ID, "headingH3Nameplate", {
-			name: MODULE_ID + '.headingH3Nameplate-Label',
-			hint: MODULE_ID + '.headingH3Nameplate-Hint',
+		game.settings.register(MODULE.ID, "headingH3Nameplate", {
+			name: MODULE.ID + '.headingH3Nameplate-Label',
+			hint: MODULE.ID + '.headingH3Nameplate-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -1257,9 +1257,9 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// -- Font Family --
-		game.settings.register(MODULE_ID,'nameplateFontFamily', {
-			name: MODULE_ID + '.nameplateFontFamily-Label',
-			hint: MODULE_ID + '.nameplateFontFamily-Hint',
+		game.settings.register(MODULE.ID,'nameplateFontFamily', {
+			name: MODULE.ID + '.nameplateFontFamily-Label',
+			hint: MODULE.ID + '.nameplateFontFamily-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1277,9 +1277,9 @@ export const registerSettings = async () => {
 			}
 		});
 		// -- Font Size --
-		game.settings.register(MODULE_ID,'nameplateFontSize', {
-			name: MODULE_ID + '.nameplateFontSize-Label',
-			hint: MODULE_ID + '.nameplateFontSize-Hint',
+		game.settings.register(MODULE.ID,'nameplateFontSize', {
+			name: MODULE.ID + '.nameplateFontSize-Label',
+			hint: MODULE.ID + '.nameplateFontSize-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1292,9 +1292,9 @@ export const registerSettings = async () => {
 			default: 24,
 		});
 		// -- Nameplate color --
-		game.settings.register(MODULE_ID, 'nameplateColor', {
-			name: MODULE_ID + '.nameplateColor-Label',
-			hint: MODULE_ID + '.nameplateColor-Hint',
+		game.settings.register(MODULE.ID, 'nameplateColor', {
+			name: MODULE.ID + '.nameplateColor-Label',
+			hint: MODULE.ID + '.nameplateColor-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1302,9 +1302,9 @@ export const registerSettings = async () => {
 			default: '#FFFFFF'
 		});
 		// -- Outline Size --
-		game.settings.register(MODULE_ID,'nameplateOutlineSize', {
-			name: MODULE_ID + '.nameplateOutlineSize-Label',
-			hint: MODULE_ID + '.nameplateOutlineSize-Hint',
+		game.settings.register(MODULE.ID,'nameplateOutlineSize', {
+			name: MODULE.ID + '.nameplateOutlineSize-Label',
+			hint: MODULE.ID + '.nameplateOutlineSize-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1317,9 +1317,9 @@ export const registerSettings = async () => {
 			default: 2,
 		});
 		// -- Nameplate Outline color --
-		game.settings.register(MODULE_ID, 'nameplateOutlineColor', {
-			name: MODULE_ID + '.nameplateOutlineColor-Label',
-			hint: MODULE_ID + '.nameplateOutlineColor-Hint',
+		game.settings.register(MODULE.ID, 'nameplateOutlineColor', {
+			name: MODULE.ID + '.nameplateOutlineColor-Label',
+			hint: MODULE.ID + '.nameplateOutlineColor-Hint',
 			scope: "world",
 			config: true,
 			requiresReload: true,
@@ -1330,9 +1330,9 @@ export const registerSettings = async () => {
 	// *** TOKEN SETTINGS ***
 
 	// ---------- SUBHEADING - TOKEN SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3TokenSettings", {
-		name: MODULE_ID + '.headingH3TokenSettings-Label',
-		hint: MODULE_ID + '.headingH3TokenSettings-Hint',
+	game.settings.register(MODULE.ID, "headingH3TokenSettings", {
+		name: MODULE.ID + '.headingH3TokenSettings-Label',
+		hint: MODULE.ID + '.headingH3TokenSettings-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1341,9 +1341,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 	
 	// -- Rename Table --
-	game.settings.register(MODULE_ID, 'tokenNameTable', {
-		name: MODULE_ID + '.tokenNameTable-Label',
-		hint: MODULE_ID + '.tokenNameTable-Hint',
+	game.settings.register(MODULE.ID, 'tokenNameTable', {
+		name: MODULE.ID + '.tokenNameTable-Label',
+		hint: MODULE.ID + '.tokenNameTable-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -1353,9 +1353,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Ignored Tokens --
-	game.settings.register(MODULE_ID, 'ignoredTokens', {
-		name: MODULE_ID + '.ignoredTokens-Label',
-		hint: MODULE_ID + '.ignoredTokens-Hint',
+	game.settings.register(MODULE.ID, 'ignoredTokens', {
+		name: MODULE.ID + '.ignoredTokens-Label',
+		hint: MODULE.ID + '.ignoredTokens-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1363,9 +1363,9 @@ export const registerSettings = async () => {
 		default: ''
 	});
 	// -- Fuzzy Match --
-	game.settings.register(MODULE_ID, 'fuzzyMatch', {
-		name: MODULE_ID + '.fuzzyMatch-Label',
-		hint: MODULE_ID + '.fuzzyMatch-Hint',
+	game.settings.register(MODULE.ID, 'fuzzyMatch', {
+		name: MODULE.ID + '.fuzzyMatch-Label',
+		hint: MODULE.ID + '.fuzzyMatch-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -1375,9 +1375,9 @@ export const registerSettings = async () => {
 
 	// *** TOKEN NAMING ***
 
-	game.settings.register(MODULE_ID, 'tokenNameFormat', {
-		name: MODULE_ID + '.tokenNameFormat-Label',
-		hint: MODULE_ID + '.tokenNameFormat-Hint',
+	game.settings.register(MODULE.ID, 'tokenNameFormat', {
+		name: MODULE.ID + '.tokenNameFormat-Label',
+		hint: MODULE.ID + '.tokenNameFormat-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -1389,7 +1389,7 @@ export const registerSettings = async () => {
 	// *** TOKEN BEHAVIOR OVERRIDES ***
 	// These settings override Foundry's default token behavior when tokens are dropped from compendiums
 
-	game.settings.register(MODULE_ID, 'unlockTokenRotation', {
+	game.settings.register(MODULE.ID, 'unlockTokenRotation', {
 		name: 'Unlock Token Rotation',
 		hint: 'Override Foundry\'s default "lock rotation" setting for all new tokens. This will allow tokens to be rotated freely.',
 		type: Boolean,
@@ -1399,7 +1399,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE_ID, 'disableTokenRing', {
+	game.settings.register(MODULE.ID, 'disableTokenRing', {
 		name: 'Disable Token Ring',
 		hint: 'Override Foundry\'s default "enable ring" setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry\'s ring system and will not remove rings that are part of the token image itself.',
 		type: Boolean,
@@ -1411,7 +1411,7 @@ export const registerSettings = async () => {
 
 	// *** TOKEN IMAGE REPLACEMENT ***
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementEnabled', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
 		name: 'Enable Token Image Replacement',
 		hint: 'Replace token images with custom images from a specified folder when tokens are dropped from compendiums.',
 		type: Boolean,
@@ -1421,7 +1421,7 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementPath', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
 		name: 'Image Replacement Folder',
 		hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
 		type: String,
@@ -1431,7 +1431,7 @@ export const registerSettings = async () => {
 		default: '',
 		onChange: (value) => {
 			// Trigger cache rebuild when path changes
-			if (value && game.modules.get(MODULE_ID)?.active) {
+			if (value && game.modules.get(MODULE.ID)?.active) {
 				// We'll implement this in Phase 2
 				console.log('Token image replacement path changed to:', value);
 			}
@@ -1440,7 +1440,7 @@ export const registerSettings = async () => {
 
 
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateMonsters', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
 		name: 'Update Monsters',
 		hint: 'Replace images for monster tokens (non-NPC creatures with Challenge Rating).',
 		type: Boolean,
@@ -1450,7 +1450,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateNPCs', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
 		name: 'Update NPCs', 
 		hint: 'Replace images for friendly NPC tokens (non-hostile NPCs).',
 		type: Boolean,
@@ -1460,7 +1460,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateVehicles', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
 		name: 'Update Vehicles',
 		hint: 'Replace images for vehicle tokens.',
 		type: Boolean,
@@ -1470,7 +1470,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementUpdateActors', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
 		name: 'Update Actors',
 		hint: 'Replace images for character/actor tokens (usually player characters).',
 		type: Boolean,
@@ -1480,7 +1480,7 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementSkipLinked', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
 		name: 'Skip Linked Tokens',
 		hint: 'Do not replace images for tokens linked to actors (usually player characters).',
 		type: Boolean,
@@ -1490,7 +1490,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementStrictValidation', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementStrictValidation', {
 		name: 'Strict Path Validation',
 		hint: 'Enable strict validation of file paths to prevent invalid characters and patterns from being used.',
 		type: Boolean,
@@ -1501,7 +1501,7 @@ export const registerSettings = async () => {
 	});
 
 	// Cache Management Buttons
-	game.settings.register(MODULE_ID, 'tokenImageReplacementCacheStats', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementCacheStats', {
 		name: 'Cache Status',
 		hint: 'Current status of the token image replacement cache.',
 		type: String,
@@ -1514,7 +1514,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementRefreshCache', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementRefreshCache', {
 		name: 'Refresh Cache',
 		hint: 'Manually refresh the token image replacement cache.',
 		type: String,
@@ -1527,7 +1527,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'tokenImageReplacementClearCache', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementClearCache', {
 		name: 'Clear Cache',
 		hint: 'Clear the token image replacement cache.',
 		type: String,
@@ -1541,7 +1541,7 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- Token Image Replacement ----------
-	game.settings.register(MODULE_ID, "headingH3TokenImageReplacement", {
+	game.settings.register(MODULE.ID, "headingH3TokenImageReplacement", {
 		name: 'Token Image Replacement',
 		hint: 'Automatically replace token images with custom images from your specified folder.',
 		scope: "world",
@@ -1551,7 +1551,7 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- Dead Tokens ----------
-	game.settings.register(MODULE_ID, "headingH3TokenActions", {
+	game.settings.register(MODULE.ID, "headingH3TokenActions", {
 		name: 'Token Actions',
 		hint: 'Automation of token actions.',
 		scope: "world",
@@ -1562,7 +1562,7 @@ export const registerSettings = async () => {
 
 
 	// -- Fuzzy Match --
-	game.settings.register(MODULE_ID, 'tokenConvertDeadToLoot', {
+	game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
 		name: 'Convert Dead to Loot',
 		hint: 'If you have the module "Item Piles" installed, this will convert dead tokens to loot piles.',
 		type: Boolean,
@@ -1573,7 +1573,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Loot Delay --
-	game.settings.register(MODULE_ID,"tokenConvertDelay", {
+	game.settings.register(MODULE.ID,"tokenConvertDelay", {
 		name: 'Loot Delay',
 		hint: 'How many seconds to wait before the loot is converted to a pile?',
 		scope: "world",
@@ -1590,7 +1590,7 @@ export const registerSettings = async () => {
 
 	// *** TREASURE LOOT ***
 
-	game.settings.register(MODULE_ID,'tokenLootTableTreasure', {
+	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
 		name: 'Treasure Loot Table',
 		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the treasure loot, aside from what they were carrying.',
 		scope: "world",
@@ -1601,7 +1601,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Treasure Loot Amount --
-	game.settings.register(MODULE_ID,"tokenLootTableTreasureAmount", {
+	game.settings.register(MODULE.ID,"tokenLootTableTreasureAmount", {
 		name: 'Treasure Loot Amount',
 		hint: 'How many of this type of treasure should be added to the loot pile?',
 		scope: "world",
@@ -1618,7 +1618,7 @@ export const registerSettings = async () => {
 
 	// *** GEAR LOOT ***
 
-	game.settings.register(MODULE_ID,'tokenLootTableGear', {
+	game.settings.register(MODULE.ID,'tokenLootTableGear', {
 		name: 'Gear Loot Table',
 		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the gear loot, aside from what they were carrying.',
 		scope: "world",
@@ -1629,7 +1629,7 @@ export const registerSettings = async () => {
 	});
 	
 	// -- Gear Loot Amount --
-	game.settings.register(MODULE_ID,"tokenLootTableGearAmount", {
+	game.settings.register(MODULE.ID,"tokenLootTableGearAmount", {
 		name: 'Gear Loot Amount',
 		hint: 'How many of this type of Gear loot should be added to the loot pile?',
 		scope: "world",
@@ -1646,7 +1646,7 @@ export const registerSettings = async () => {
 
 	// *** General LOOT ***
 
-	game.settings.register(MODULE_ID,'tokenLootTableGeneral', {
+	game.settings.register(MODULE.ID,'tokenLootTableGeneral', {
 		name: 'General Loot Table',
 		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the general loot, aside from what they were carrying.',
 		scope: "world",
@@ -1657,7 +1657,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- General Loot Amount --
-	game.settings.register(MODULE_ID,"tokenLootTableGeneralAmount", {
+	game.settings.register(MODULE.ID,"tokenLootTableGeneralAmount", {
 		name: 'General Loot Amount',
 		hint: 'How many of this type of General loot should be added to the loot pile?',
 		scope: "world",
@@ -1672,21 +1672,21 @@ export const registerSettings = async () => {
 		default: 3,
 	});
 
-	game.settings.register(MODULE_ID, 'tokenLootSound', {
+	game.settings.register(MODULE.ID, 'tokenLootSound', {
         scope: 'client',
         config: false,
         type: String,
         default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
     });
 
-	game.settings.register(MODULE_ID, 'tokenLootPileImage', {
+	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
         scope: 'client',
         config: false,
         type: String,
         default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
     });
 
-	game.settings.register(MODULE_ID, 'tokenLootChatMessage', {
+	game.settings.register(MODULE.ID, 'tokenLootChatMessage', {
 		name: 'Loot Chat Message',
 		hint: 'Send loot updates to the chat log.',
 		type: Boolean,
@@ -1700,9 +1700,9 @@ export const registerSettings = async () => {
 
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2OpenAI", {
-		name: MODULE_ID + '.headingH2OpenAI-Label',
-		hint: MODULE_ID + '.headingH2OpenAI-Hint',
+	game.settings.register(MODULE.ID, "headingH2OpenAI", {
+		name: MODULE.ID + '.headingH2OpenAI-Label',
+		hint: MODULE.ID + '.headingH2OpenAI-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1711,9 +1711,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 	
 	// ---------- OpenAI SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3simpleheadingH2OpenAICore", {
-		name: MODULE_ID + '.headingH3simpleheadingH2OpenAICore-Label',
-		hint: MODULE_ID + '.headingH3simpleheadingH2OpenAICore-Hint',
+	game.settings.register(MODULE.ID, "headingH3simpleheadingH2OpenAICore", {
+		name: MODULE.ID + '.headingH3simpleheadingH2OpenAICore-Label',
+		hint: MODULE.ID + '.headingH3simpleheadingH2OpenAICore-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1722,9 +1722,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- OPENAI MACRO --
-	game.settings.register(MODULE_ID,'openAIMacro', {
-		name: MODULE_ID + '.openAIMacro-Label',
-		hint: MODULE_ID + '.openAIMacro-Hint',
+	game.settings.register(MODULE.ID,'openAIMacro', {
+		name: MODULE.ID + '.openAIMacro-Label',
+		hint: MODULE.ID + '.openAIMacro-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
@@ -1733,9 +1733,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- API KEY --
-	game.settings.register(MODULE_ID, 'openAIAPIKey', {
-		name: MODULE_ID + '.openAIAPIKey-Label',
-		hint: MODULE_ID + '.openAIAPIKey-Hint',
+	game.settings.register(MODULE.ID, 'openAIAPIKey', {
+		name: MODULE.ID + '.openAIAPIKey-Label',
+		hint: MODULE.ID + '.openAIAPIKey-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1744,9 +1744,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- MODEL --
-	game.settings.register(MODULE_ID, 'openAIModel', {
-		name: MODULE_ID + '.openAIModel-Label',
-		hint: MODULE_ID + '.openAIModel-Hint',
+	game.settings.register(MODULE.ID, 'openAIModel', {
+		name: MODULE.ID + '.openAIModel-Label',
+		hint: MODULE.ID + '.openAIModel-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -1760,9 +1760,9 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- Context Settings ----------
-	game.settings.register(MODULE_ID, "headingH3simpleheadingH2OpenAIContext", {
-		name: MODULE_ID + '.headingH3simpleheadingH2OpenAIContext-Label',
-		hint: MODULE_ID + '.headingH3simpleheadingH2OpenAIContext-Hint',
+	game.settings.register(MODULE.ID, "headingH3simpleheadingH2OpenAIContext", {
+		name: MODULE.ID + '.headingH3simpleheadingH2OpenAIContext-Label',
+		hint: MODULE.ID + '.headingH3simpleheadingH2OpenAIContext-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1772,9 +1772,9 @@ export const registerSettings = async () => {
 
 
 	// -- GAME SYSTEMS -- IS THIS USED??
-	game.settings.register(MODULE_ID, 'openAIGameSystems', {
-		name: MODULE_ID + '.openAIGameSystems-Label',
-		hint: MODULE_ID + '.openAIGameSystems-Hint',
+	game.settings.register(MODULE.ID, 'openAIGameSystems', {
+		name: MODULE.ID + '.openAIGameSystems-Label',
+		hint: MODULE.ID + '.openAIGameSystems-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -1784,9 +1784,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- PROMPT --
-	game.settings.register(MODULE_ID, 'openAIPrompt', {
-		name: MODULE_ID + '.openAIPrompt-Label',
-		hint: MODULE_ID + '.openAIPrompt-Hint',
+	game.settings.register(MODULE.ID, 'openAIPrompt', {
+		name: MODULE.ID + '.openAIPrompt-Label',
+		hint: MODULE.ID + '.openAIPrompt-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1794,9 +1794,9 @@ export const registerSettings = async () => {
 		default: genericPrompt + " " + formatPrompt 
 	});
 	// -- CONTEXT LENGTH --
-	game.settings.register(MODULE_ID,'openAIContextLength', {
-		name: MODULE_ID + '.openAIContextLength-Label',
-		hint: MODULE_ID + '.openAIContextLength-Hint',
+	game.settings.register(MODULE.ID,'openAIContextLength', {
+		name: MODULE.ID + '.openAIContextLength-Label',
+		hint: MODULE.ID + '.openAIContextLength-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
@@ -1809,9 +1809,9 @@ export const registerSettings = async () => {
 		default: 10,
 	});
 	// -- TEMPERATURE --
-	game.settings.register(MODULE_ID,'openAITemperature', {
-		name: MODULE_ID + '.openAITemperature-Label',
-		hint: MODULE_ID + '.openAITemperature-Hint',
+	game.settings.register(MODULE.ID,'openAITemperature', {
+		name: MODULE.ID + '.openAITemperature-Label',
+		hint: MODULE.ID + '.openAITemperature-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
@@ -1826,7 +1826,7 @@ export const registerSettings = async () => {
 
 	
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2CampaignSettings", {
+	game.settings.register(MODULE.ID, "headingH2CampaignSettings", {
 		name: 'Campaign Settings',
 		hint: 'These settings are used to power both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.',
 		scope: "world",
@@ -1840,7 +1840,7 @@ export const registerSettings = async () => {
 
 	
 	// ---------- CAMPAIGN COMMON ----------
-	game.settings.register(MODULE_ID, "headingH3CampaignCommon", {
+	game.settings.register(MODULE.ID, "headingH3CampaignCommon", {
 		name: 'Campaign Common',
 		hint: 'General campaign settings that are common to all narratives.',
 		scope: "world",
@@ -1852,9 +1852,9 @@ export const registerSettings = async () => {
 
 
 	// -- Use Cookies --
-	game.settings.register(MODULE_ID, 'narrativeUseCookies', {
-		name: MODULE_ID + '.narrativeUseCookies-Label',
-		hint: MODULE_ID + '.narrativeUseCookies-Hint',
+	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
+		name: MODULE.ID + '.narrativeUseCookies-Label',
+		hint: MODULE.ID + '.narrativeUseCookies-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -1863,7 +1863,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Campaign Name --
-	game.settings.register(MODULE_ID, 'defaultCampaignName', {
+	game.settings.register(MODULE.ID, 'defaultCampaignName', {
 		name:'Default Campaign Name',
 		hint: 'The default campaign name to use when creating new narratives.',
 		scope: "world",
@@ -1874,7 +1874,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Party Name --
-	game.settings.register(MODULE_ID, 'defaultPartyName', {
+	game.settings.register(MODULE.ID, 'defaultPartyName', {
 		name:'Default Party Name',
 		hint: 'The default party name to use when creating new narratives.',
 		scope: "world",
@@ -1885,7 +1885,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Party Size --
-	game.settings.register(MODULE_ID, 'defaultPartySize', {
+	game.settings.register(MODULE.ID, 'defaultPartySize', {
 		name:'Default Party Size',
 		hint: 'The default party size to use when creating new narratives.',
 		scope: "world",
@@ -1902,7 +1902,7 @@ export const registerSettings = async () => {
 
 
 	// -- Default Party Makeup --
-	game.settings.register(MODULE_ID, 'defaultPartyMakeup', {
+	game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
 		name:'Default Party Makeup',
 		hint: 'The default party makeup to use when creating new narratives. (e.g. 1 Fighter, 1 Rogue, 1 Wizard, 1 Cleric)',
 		scope: "world",
@@ -1913,7 +1913,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Party Level --
-	game.settings.register(MODULE_ID, 'defaultPartyLevel', {
+	game.settings.register(MODULE.ID, 'defaultPartyLevel', {
 		name:'Default Party Level',
 		hint: 'The default party level to use when creating new narratives.',
 		scope: "world",
@@ -1929,7 +1929,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Rulebooks Folder --
-	game.settings.register(MODULE_ID, 'defaultRulebooks', {
+	game.settings.register(MODULE.ID, 'defaultRulebooks', {
 		name:'Default Rulebooks',
 		hint: 'A comma separated list of default rule books to use when creating new narratives. (e.g. 2024 Monster Manual, 2024 Player\'s Handbook, etc.)',
 		scope: "world",
@@ -1940,9 +1940,9 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- Narratvie Generator ----------
-	game.settings.register(MODULE_ID, "headingH3NarrativeGenerator", {
-		name: MODULE_ID + '.headingH3NarrativeGenerator-Label',
-		hint: MODULE_ID + '.headingH3NarrativeGenerator-Hint',
+	game.settings.register(MODULE.ID, "headingH3NarrativeGenerator", {
+		name: MODULE.ID + '.headingH3NarrativeGenerator-Label',
+		hint: MODULE.ID + '.headingH3NarrativeGenerator-Hint',
 		scope: "world",
 		config: true,
 		default: "",
@@ -1951,9 +1951,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- Default Narrative Folder --
-	game.settings.register(MODULE_ID, 'defaultNarrativeFolder', {
-		name: MODULE_ID + '.defaultNarrativeFolder-Label',
-		hint: MODULE_ID + '.defaultNarrativeFolder-Hint',
+	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
+		name: MODULE.ID + '.defaultNarrativeFolder-Label',
+		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1962,9 +1962,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Journal Page Title --
-	game.settings.register(MODULE_ID, 'defaultJournalPageTitle', {
-		name: MODULE_ID + '.defaultJournalPageTitle-Label',
-		hint: MODULE_ID + '.defaultJournalPageTitle-Hint',
+	game.settings.register(MODULE.ID, 'defaultJournalPageTitle', {
+		name: MODULE.ID + '.defaultJournalPageTitle-Label',
+		hint: MODULE.ID + '.defaultJournalPageTitle-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1973,9 +1973,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Scene Location --
-	game.settings.register(MODULE_ID, 'defaultSceneLocation', {
-		name: MODULE_ID + '.defaultSceneLocation-Label',
-		hint: MODULE_ID + '.defaultSceneLocation-Hint',
+	game.settings.register(MODULE.ID, 'defaultSceneLocation', {
+		name: MODULE.ID + '.defaultSceneLocation-Label',
+		hint: MODULE.ID + '.defaultSceneLocation-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1984,9 +1984,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Scene Parent --
-	game.settings.register(MODULE_ID, 'defaultSceneParent', {
-		name: MODULE_ID + '.defaultSceneParent-Label',
-		hint: MODULE_ID + '.defaultSceneParent-Hint',
+	game.settings.register(MODULE.ID, 'defaultSceneParent', {
+		name: MODULE.ID + '.defaultSceneParent-Label',
+		hint: MODULE.ID + '.defaultSceneParent-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -1995,9 +1995,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Scene Area --
-	game.settings.register(MODULE_ID, 'defaultSceneArea', {
-		name: MODULE_ID + '.defaultSceneArea-Label',
-		hint: MODULE_ID + '.defaultSceneArea-Hint',	
+	game.settings.register(MODULE.ID, 'defaultSceneArea', {
+		name: MODULE.ID + '.defaultSceneArea-Label',
+		hint: MODULE.ID + '.defaultSceneArea-Hint',	
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2006,9 +2006,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Scene Environment --
-	game.settings.register(MODULE_ID, 'defaultSceneEnvironment', {	
-		name: MODULE_ID + '.defaultSceneEnvironment-Label',	
-		hint: MODULE_ID + '.defaultSceneEnvironment-Hint',
+	game.settings.register(MODULE.ID, 'defaultSceneEnvironment', {	
+		name: MODULE.ID + '.defaultSceneEnvironment-Label',	
+		hint: MODULE.ID + '.defaultSceneEnvironment-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2019,9 +2019,9 @@ export const registerSettings = async () => {
 	
 
 	// -- Default Card Image Selection --
-	game.settings.register(MODULE_ID, 'narrativeDefaultCardImage', {
-		name: MODULE_ID + '.narrativeDefaultCardImage-Label',
-		hint: MODULE_ID + '.narrativeDefaultCardImage-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
+		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
+		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -2056,9 +2056,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Image Path --
-	game.settings.register(MODULE_ID, 'narrativeDefaultImagePath', {
-		name: MODULE_ID + '.narrativeDefaultImagePath-Label',
-		hint: MODULE_ID + '.narrativeDefaultImagePath-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
+		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
+		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2067,9 +2067,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Include Encounter by Default --
-	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeEncounter', {
-		name: MODULE_ID + '.narrativeDefaultIncludeEncounter-Label',
-		hint: MODULE_ID + '.narrativeDefaultIncludeEncounter-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeEncounter', {
+		name: MODULE.ID + '.narrativeDefaultIncludeEncounter-Label',
+		hint: MODULE.ID + '.narrativeDefaultIncludeEncounter-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -2078,9 +2078,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Encounter Details --
-	game.settings.register(MODULE_ID, 'narrativeDefaultEncounterDetails', {
-		name: MODULE_ID + '.narrativeDefaultEncounterDetails-Label',
-		hint: MODULE_ID + '.narrativeDefaultEncounterDetails-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultEncounterDetails', {
+		name: MODULE.ID + '.narrativeDefaultEncounterDetails-Label',
+		hint: MODULE.ID + '.narrativeDefaultEncounterDetails-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2090,9 +2090,9 @@ export const registerSettings = async () => {
 
 
 	// -- Include Treasure by Default --
-	game.settings.register(MODULE_ID, 'narrativeDefaultIncludeTreasure', {
-		name: MODULE_ID + '.narrativeDefaultIncludeTreasure-Label',
-		hint: MODULE_ID + '.narrativeDefaultIncludeTreasure-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
+		name: MODULE.ID + '.narrativeDefaultIncludeTreasure-Label',
+		hint: MODULE.ID + '.narrativeDefaultIncludeTreasure-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -2103,9 +2103,9 @@ export const registerSettings = async () => {
 
 
 	// -- Default XP --
-	game.settings.register(MODULE_ID, 'narrativeDefaultXP', {
-		name: MODULE_ID + '.narrativeDefaultXP-Label',
-		hint: MODULE_ID + '.narrativeDefaultXP-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultXP', {
+		name: MODULE.ID + '.narrativeDefaultXP-Label',
+		hint: MODULE.ID + '.narrativeDefaultXP-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2114,9 +2114,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Treasure Details --
-	game.settings.register(MODULE_ID, 'narrativeDefaultTreasureDetails', {
-		name: MODULE_ID + '.narrativeDefaultTreasureDetails-Label',
-		hint: MODULE_ID + '.narrativeDefaultTreasureDetails-Hint',
+	game.settings.register(MODULE.ID, 'narrativeDefaultTreasureDetails', {
+		name: MODULE.ID + '.narrativeDefaultTreasureDetails-Label',
+		hint: MODULE.ID + '.narrativeDefaultTreasureDetails-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2125,7 +2125,7 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- ENCOUNTER DEFAULTS ----------
-	game.settings.register(MODULE_ID, "headingH3EncounterDefaults", {
+	game.settings.register(MODULE.ID, "headingH3EncounterDefaults", {
 		name: 'Encounter Defaults',
 		hint: 'These settings control default values for encounter templates.',
 		scope: "world",
@@ -2136,9 +2136,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- Default Encounter Folder --
-	game.settings.register(MODULE_ID, 'defaultEncounterFolder', {
-		name: MODULE_ID + '.defaultEncounterFolder-Label',
-		hint: MODULE_ID + '.defaultEncounterFolder-Hint',
+	game.settings.register(MODULE.ID, 'defaultEncounterFolder', {
+		name: MODULE.ID + '.defaultEncounterFolder-Label',
+		hint: MODULE.ID + '.defaultEncounterFolder-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2147,9 +2147,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Encounter Card Image Selection --
-	game.settings.register(MODULE_ID, 'encounterDefaultCardImage', {
-		name: MODULE_ID + '.encounterDefaultCardImage-Label',
-		hint: MODULE_ID + '.encounterDefaultCardImage-Hint',
+	game.settings.register(MODULE.ID, 'encounterDefaultCardImage', {
+		name: MODULE.ID + '.encounterDefaultCardImage-Label',
+		hint: MODULE.ID + '.encounterDefaultCardImage-Hint',
 		scope: 'world',
 		config: true,
 		requiresReload: false,
@@ -2224,9 +2224,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- Default Encounter Image Path --
-	game.settings.register(MODULE_ID, 'encounterDefaultImagePath', {
-		name: MODULE_ID + '.encounterDefaultImagePath-Label',
-		hint: MODULE_ID + '.encounterDefaultImagePath-Hint',
+	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
+		name: MODULE.ID + '.encounterDefaultImagePath-Label',
+		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2235,7 +2235,7 @@ export const registerSettings = async () => {
 	});
 	
 	// ---------- ITEM IMPORT ----------
-	game.settings.register(MODULE_ID, "headingH3ItemImport", {
+	game.settings.register(MODULE.ID, "headingH3ItemImport", {
 		name: 'Item Import',
 		hint: 'These settings control how you to import items into the game.',
 		scope: "world",
@@ -2247,9 +2247,9 @@ export const registerSettings = async () => {
 
 
 	// -- Enhanced Image Guessing --
-	game.settings.register(MODULE_ID, 'enableEnhancedImageGuessing', {
-		name: MODULE_ID + '.enableEnhancedImageGuessing-Label',
-		hint: MODULE_ID + '.enableEnhancedImageGuessing-Hint',
+	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
+		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
+		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -2264,7 +2264,7 @@ export const registerSettings = async () => {
 	// *** COMPENDIUM MAPPING ***
 
 	// ---------- HEADING - TOKENS  ----------
-	game.settings.register(MODULE_ID, "headingH2CompendiumMapping", {
+	game.settings.register(MODULE.ID, "headingH2CompendiumMapping", {
 		name: 'Compendium Mapping',
 		hint: 'These settings will allow you to map the compendiums to be leveraged by automatic linking.',
 		scope: "world",
@@ -2275,7 +2275,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- Search World Actors First --
-	game.settings.register(MODULE_ID, 'searchWorldActorsFirst', {
+	game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
 		name: 'Search World Actors First',
 		hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
 		type: Boolean,
@@ -2285,7 +2285,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Search World Actors Last --
-	game.settings.register(MODULE_ID, 'searchWorldActorsLast', {
+	game.settings.register(MODULE.ID, 'searchWorldActorsLast', {
 		name: 'Search World Actors Last',
 		hint: 'When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.',
 		type: Boolean,
@@ -2296,7 +2296,7 @@ export const registerSettings = async () => {
 
 			// -- Monster Lookup Compendiums (up to 8) --
 		for (let i = 1; i <= 8; i++) {
-			game.settings.register(MODULE_ID, `monsterCompendium${i}` , {
+			game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
 				name: `Monster Lookup ${i}`,
 				hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
 				scope: "world",
@@ -2309,7 +2309,7 @@ export const registerSettings = async () => {
 
 
 	// -- Search World Items First --
-	game.settings.register(MODULE_ID, 'searchWorldItemsFirst', {
+	game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
 		name: 'Search World Items First',
 		hint: 'When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
 		type: Boolean,
@@ -2319,7 +2319,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Search World Items Last --
-	game.settings.register(MODULE_ID, 'searchWorldItemsLast', {
+	game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
 		name: 'Search World Items Last',
 		hint: 'When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
 		type: Boolean,
@@ -2330,7 +2330,7 @@ export const registerSettings = async () => {
 
 			// -- Item Lookup Compendiums (up to 8) --
 		for (let i = 1; i <= 8; i++) {
-			game.settings.register(MODULE_ID, `itemCompendium${i}` , {
+			game.settings.register(MODULE.ID, `itemCompendium${i}` , {
 				name: `Item Lookup ${i}`,
 				hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
 				scope: "world",
@@ -2344,7 +2344,7 @@ export const registerSettings = async () => {
 	// *** ROUND ANNOUNCMENTS ***
 
 	// ---------- ROUND ANNOUNCMENTS HEADING ----------
-	game.settings.register(MODULE_ID, "headingH2RoundAnnouncments", {
+	game.settings.register(MODULE.ID, "headingH2RoundAnnouncments", {
 		name: 'ROUND ANNOUNCEMENTS',
 		hint: 'Add anouncements for rounds to the chat.',
 		scope: "world",
@@ -2356,7 +2356,7 @@ export const registerSettings = async () => {
 
 
 	// Announce New Rounds Setting
-	game.settings.register(MODULE_ID, 'announceNewRounds', {
+	game.settings.register(MODULE.ID, 'announceNewRounds', {
 		name: 'Announce New Rounds',
 		hint: 'Post an announcement card to chat when a new round begins',
 		scope: 'world',
@@ -2367,7 +2367,7 @@ export const registerSettings = async () => {
 	});
 
 	// New Round Sound Setting
-			game.settings.register(MODULE_ID, 'newRoundSound', {
+			game.settings.register(MODULE.ID, 'newRoundSound', {
 			name: "New Round Sound",
 			hint: "Sound to play when a new round begins",
 			scope: "world",
@@ -2382,7 +2382,7 @@ export const registerSettings = async () => {
 	// *** COMBAT TRACKER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2CombatTracker", {
+	game.settings.register(MODULE.ID, "headingH2CombatTracker", {
 		name: 'COMBAT TRACKER',
 		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
 		scope: "client",
@@ -2393,7 +2393,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- Set Current Combatant Icon --
-	game.settings.register(MODULE_ID, 'combatTrackerSetCurrentCombatant', {
+	game.settings.register(MODULE.ID, 'combatTrackerSetCurrentCombatant', {
 		name: 'Show Set Current Combatant Icon',
 		hint: 'When enabled an icon will show up for each combatant that allows you to set them as the current combatant.',
 		scope: 'world',
@@ -2403,7 +2403,7 @@ export const registerSettings = async () => {
 	});
 	
 	// -- Clear Initiative --
-	game.settings.register(MODULE_ID, 'combatTrackerClearInitiative', {
+	game.settings.register(MODULE.ID, 'combatTrackerClearInitiative', {
 		name: 'Clear Initiative',
 		hint: 'When enabled the combat tracker will clear the initiative each round.',
 		scope: 'world',
@@ -2413,7 +2413,7 @@ export const registerSettings = async () => {
 	});
 	
 	// -- Set First Combatant --
-	game.settings.register(MODULE_ID, 'combatTrackerSetFirstTurn', {
+	game.settings.register(MODULE.ID, 'combatTrackerSetFirstTurn', {
 		name: 'Set First Combatant',
 		hint: 'When enabled the combat tracker will set the first combatant as the current combatant.',
 		scope: 'world',
@@ -2423,7 +2423,7 @@ export const registerSettings = async () => {
 	});
 	
 	// -- Roll Initiative for Monstars and NPCs --
-	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativeNonPlayer', {
+	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer', {
 		name: 'Roll Monster/NPC Initiative',
 		hint: 'When enabled the combat tracker will roll initiative for all monsters and NPCs automatically each round.',
 		scope: 'world',
@@ -2433,7 +2433,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Roll Initiative for Player Characters --
-	game.settings.register(MODULE_ID, 'combatTrackerRollInitiativePlayer', {
+	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativePlayer', {
 		name: 'Roll Player Character Initiative',
 		hint: 'When enabled, players will automatically roll initiative for their characters each round.',
 		scope: 'client',
@@ -2443,7 +2443,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Monster/NPC Initiative --
-	game.settings.register(MODULE_ID, 'combatTrackerAddInitiative', {
+	game.settings.register(MODULE.ID, 'combatTrackerAddInitiative', {
 		name: 'Monster/NPC Mid-combat Initiative',
 		hint: 'When an NPC or Monster is added to the combat tracker mid combat, this setting will determine what happens to their initiative.',
 		scope: 'world',
@@ -2460,7 +2460,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Open Combat Tracker -- move into tools
-	game.settings.register(MODULE_ID, 'combatTrackerOpen', {
+	game.settings.register(MODULE.ID, 'combatTrackerOpen', {
 		name: 'Open Combat Tracker',
 		hint: 'When enabled, the combat tracker will be open by default when a combat starts',
 		scope: 'client',
@@ -2471,7 +2471,7 @@ export const registerSettings = async () => {
 
 
 	// -- Show Health Bar --
-	game.settings.register(MODULE_ID, 'combatTrackerShowHealthBar', {
+	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {
 		name: 'Show Health Bar',
 		hint: 'When enabled, combatants in the combat tracker will have a health bar around the token.',
 		scope: 'client',
@@ -2481,7 +2481,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Show Health Bar --
-	game.settings.register(MODULE_ID, 'combatTrackerShowPortraits', {
+	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
 		name: 'Show Portraits in Combat Tracker',
 		hint: 'When enabled, combatants in the combat tracker will have a portrait icon.',
 		scope: 'client',
@@ -2497,7 +2497,7 @@ export const registerSettings = async () => {
 	// *** TIMER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2Timers", {
+	game.settings.register(MODULE.ID, "headingH2Timers", {
 		name: 'TIMERS',
 		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
 		scope: "world",
@@ -2510,7 +2510,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3simpleGlobalTimer", {
+	game.settings.register(MODULE.ID, "headingH3simpleGlobalTimer", {
 		name: 'SHARED TIMER SETTINGS',
 		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
 		scope: "world",
@@ -2522,7 +2522,7 @@ export const registerSettings = async () => {
 
 
 	// -- Timer Visibility --
-	game.settings.register(MODULE_ID, 'combatTimerGMOnly', {
+	game.settings.register(MODULE.ID, 'combatTimerGMOnly', {
 		name: 'GM-Only Timers',
 		hint: 'When enabled, the timers will only be visible to the GM in the combat tracker',
 		scope: 'world',
@@ -2533,7 +2533,7 @@ export const registerSettings = async () => {
 
 
 	// Add shared notification setting under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE_ID, 'timerShowNotifications', {
+	game.settings.register(MODULE.ID, 'timerShowNotifications', {
 		name: 'Show Timer Notifications',
 		hint: 'Show notifications for timer events (expiration, warnings, etc.)',
 		scope: 'world',
@@ -2543,7 +2543,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Notification Override List --
-	game.settings.register(MODULE_ID, 'timerNotificationOverride', {
+	game.settings.register(MODULE.ID, 'timerNotificationOverride', {
 		name: 'Notification Override List',
 		hint: 'Always show notifications to these actors (comma-separated names), even if notifications are disabled',
 		scope: 'world',
@@ -2553,7 +2553,7 @@ export const registerSettings = async () => {
 	});
 
 	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE_ID, 'hurryUpSound', {
+	game.settings.register(MODULE.ID, 'hurryUpSound', {
 		name: "Hurry Up Message Sound",
 		hint: "Sound to play when a player sends a hurry up message",
 		scope: "world",
@@ -2564,7 +2564,7 @@ export const registerSettings = async () => {
 	});
 
 	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE_ID, 'timerPauseResumeSound', {
+	game.settings.register(MODULE.ID, 'timerPauseResumeSound', {
 		name: "Timer Pause/Resume Sound",
 		hint: "Sound to play when either timer is paused or resumed",
 		scope: "world",
@@ -2575,7 +2575,7 @@ export const registerSettings = async () => {
 	});
 
 	// Add shared volume control for all timer sounds
-	game.settings.register(MODULE_ID, 'timerSoundVolume', {
+	game.settings.register(MODULE.ID, 'timerSoundVolume', {
 		name: "Timer Sound Volume",
 		hint: "Volume level for timer sounds (0-1)",
 		scope: "client",
@@ -2590,7 +2590,7 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3simpleGlobalTimerMessaging", {
+	game.settings.register(MODULE.ID, "headingH3simpleGlobalTimerMessaging", {
 		name: 'TIMER NOTIFICATIONS',
 		hint: 'These settings will allow you to control the notifications that are sent to the players when the timers are running out.',
 		scope: "world",
@@ -2601,7 +2601,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// Timer Chat Message Settings
-	game.settings.register(MODULE_ID, 'timerChatPauseUnpause', {
+	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
 		name: "Send Pause/Unpause Messages to Chat",
 		hint: "When enabled, sends messages to chat when timers are paused or unpaused",
 		scope: "world",
@@ -2610,7 +2610,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatPlanningStart', {
+	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
 		name: "Send Planning Starting Messages to Chat",
 		hint: "When enabled, sends messages to chat when planning phase begins",
 		scope: "world",
@@ -2619,7 +2619,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatTurnStart', {
+	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
 		name: "Send Turn Starting Messages to Chat",
 		hint: "When enabled, sends messages to chat when a new turn begins",
 		scope: "world",
@@ -2628,7 +2628,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatPlanningRunningOut', {
+	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
 		name: "Send Planning Running Out Messages to Chat",
 		hint: "When enabled, sends warning messages to chat when planning time is running low",
 		scope: "world",
@@ -2637,7 +2637,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatTurnRunningOut', {
+	game.settings.register(MODULE.ID, 'timerChatTurnRunningOut', {
 		name: "Send Turn Running Out Messages to Chat",
 		hint: "When enabled, sends warning messages to chat when turn time is running low",
 		scope: "world",
@@ -2646,7 +2646,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatPlanningEnded', {
+	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
 		name: "Send Planning Ended Messages to Chat",
 		hint: "When enabled, sends messages to chat when planning phase ends",
 		scope: "world",
@@ -2655,7 +2655,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'timerChatTurnEnded', {
+	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
 		name: "Send Turn Ended Messages to Chat",
 		hint: "When enabled, sends messages to chat when a turn ends",
 		scope: "world",
@@ -2672,7 +2672,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- ROUND TIMER ----------
-	game.settings.register(MODULE_ID, "headingH3RoundTimer", {
+	game.settings.register(MODULE.ID, "headingH3RoundTimer", {
 		name: 'ROUND TIMER',
 		hint: 'This timer keeps track of the actual real-world round time.',
 		scope: "world",
@@ -2682,7 +2682,7 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
-	game.settings.register(MODULE_ID, 'showRoundTimer', {
+	game.settings.register(MODULE.ID, 'showRoundTimer', {
 		name: 'Show Round Timer',
 		hint: 'When enabled, the round timer will be displayed during combat.',
 		scope: 'world',
@@ -2698,7 +2698,7 @@ export const registerSettings = async () => {
 
 	
 	// ---------- PLANNING TIMER ----------
-	game.settings.register(MODULE_ID, "headingH3PlanningTimer", {
+	game.settings.register(MODULE.ID, "headingH3PlanningTimer", {
 		name: 'PLANNING TIMER',
 		hint: 'At the start of each round, a planning timer will be displayed. This timer will allow the players to plan their actions for the round.',
 		scope: "world",
@@ -2709,7 +2709,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// Planning Timer Settings
-	game.settings.register(MODULE_ID, 'planningTimerEnabled', {
+	game.settings.register(MODULE.ID, 'planningTimerEnabled', {
 		name: 'Enable Planning Timer',
 		hint: 'Enable or disable the planning timer for the first turn of each round',
 		scope: 'world',
@@ -2718,7 +2718,7 @@ export const registerSettings = async () => {
 		default: true
 	});
 
-	game.settings.register(MODULE_ID, 'planningTimerAutoStart', {
+	game.settings.register(MODULE.ID, 'planningTimerAutoStart', {
 		name: 'Auto-Start Planning Timer',
 		hint: 'When enabled, the planning timer will start automatically instead of being paused by default',
 		scope: 'world',
@@ -2727,7 +2727,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'planningTimerLabel', {
+	game.settings.register(MODULE.ID, 'planningTimerLabel', {
 		name: 'Planning Timer Label',
 		hint: 'Text label shown during planning phase',
 		scope: 'world',
@@ -2736,7 +2736,7 @@ export const registerSettings = async () => {
 		default: 'Planning'
 	});
 
-	game.settings.register(MODULE_ID, 'planningTimerDuration', {
+	game.settings.register(MODULE.ID, 'planningTimerDuration', {
 		name: 'Planning Timer Duration',
 		hint: 'How long the planning timer should run for (in seconds)',
 		scope: 'world',
@@ -2750,7 +2750,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'planningTimerEndingSoonThreshold', {
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonThreshold', {
 		name: 'Planning Timer "Ending Soon" Threshold',
 		hint: 'Percentage of time remaining when "ending soon" warning appears (1-100)',
 		scope: 'world',
@@ -2764,7 +2764,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'planningTimerEndingSoonMessage', {
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonMessage', {
 		name: 'Planning Timer Ending Soon Message',
 		hint: 'Message shown when planning timer is about to expire',
 		scope: 'world',
@@ -2774,7 +2774,7 @@ export const registerSettings = async () => {
 	});
 
 
-	game.settings.register(MODULE_ID, 'planningTimerEndingSoonSound', {
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonSound', {
 		name: 'Planning Timer Ending Soon Sound',
 		hint: 'Sound to play when planning timer is about to expire',
 		scope: 'world',
@@ -2786,7 +2786,7 @@ export const registerSettings = async () => {
 
 
 
-	game.settings.register(MODULE_ID, 'planningTimerExpiredMessage', {
+	game.settings.register(MODULE.ID, 'planningTimerExpiredMessage', {
 		name: 'Planning Timer Expired Message',
 		hint: 'Message shown when planning timer expires',
 		scope: 'world',
@@ -2796,7 +2796,7 @@ export const registerSettings = async () => {
 	});
 
 	
-	game.settings.register(MODULE_ID, 'planningTimerExpiredSound', {
+	game.settings.register(MODULE.ID, 'planningTimerExpiredSound', {
 		name: 'Planning Timer Expired Sound',
 		hint: 'Sound to play when planning timer expires',
 		scope: 'world',
@@ -2809,7 +2809,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- COMBAT TIMER ----------
-	game.settings.register(MODULE_ID, "headingH3CombatTimer", {
+	game.settings.register(MODULE.ID, "headingH3CombatTimer", {
 		name: 'COMBAT TIMER',
 		hint: 'At the start of each round, a combat timer will be displayed. This timer will allow the players to track the time remaining for each combatant.',
 		scope: "world",
@@ -2821,7 +2821,7 @@ export const registerSettings = async () => {
 	
 	// COMBAT TIMER
 	// Add these to your existing settings registration
-	game.settings.register(MODULE_ID, 'combatTimerEnabled', {
+	game.settings.register(MODULE.ID, 'combatTimerEnabled', {
 		name: 'Enable Combat Timer',
 		hint: 'Enable or disable the combat timer',
 		scope: 'world',
@@ -2832,7 +2832,7 @@ export const registerSettings = async () => {
 
 
 	// -- Auto Start Timer --
-	game.settings.register(MODULE_ID, 'combatTimerAutoStart', {
+	game.settings.register(MODULE.ID, 'combatTimerAutoStart', {
 		name: 'Auto Start Timer',
 		hint: 'Automatically start the timer when a new turn begins. If disabled, timer will load paused.',
 		scope: 'world',
@@ -2842,7 +2842,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Activity Starts Timer --
-	game.settings.register(MODULE_ID, 'combatTimerActivityStart', {
+	game.settings.register(MODULE.ID, 'combatTimerActivityStart', {
 		name: 'Activity Starts Timer',
 		hint: 'Automatically start the timer when the active combatant moves their token or takes any action (attack, heal, or roll)',
 		scope: 'world',
@@ -2851,7 +2851,7 @@ export const registerSettings = async () => {
 		default: true
 	});
 
-	game.settings.register(MODULE_ID, 'combatTimerDuration', {
+	game.settings.register(MODULE.ID, 'combatTimerDuration', {
 		name: 'Combat Timer Duration',
 		hint: 'Number of seconds for each turn',
 		scope: 'world',
@@ -2866,7 +2866,7 @@ export const registerSettings = async () => {
 	});
 
 	// Combat Timer Settings
-	game.settings.register(MODULE_ID, 'combatTimerStartSound', {
+	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
 		name: 'Timer Start Sound',
 		hint: 'The sound to play when the timer starts.',
 		scope: 'world',
@@ -2878,7 +2878,7 @@ export const registerSettings = async () => {
 
 
 	// -- Warning Threshold --
-	game.settings.register(MODULE_ID, 'combatTimerWarningThreshold', {
+	game.settings.register(MODULE.ID, 'combatTimerWarningThreshold', {
 		name: 'Warning Threshold',
 		hint: 'Percentage of time remaining when the time warning triggers (default 50%)',
 		scope: 'world',
@@ -2893,7 +2893,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Warning Message --
-	game.settings.register(MODULE_ID, 'combatTimerWarningMessage', {
+	game.settings.register(MODULE.ID, 'combatTimerWarningMessage', {
 		name: 'Warning Message',
 		hint: 'Custom message to show when timer reaches the Warning Threshold. Use {name} to insert current combatant name.',
 		scope: 'world',
@@ -2903,7 +2903,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Warning Sound --
-	game.settings.register(MODULE_ID, 'combatTimerWarningSound', {
+	game.settings.register(MODULE.ID, 'combatTimerWarningSound', {
 		name: 'Warning Sound',
 		hint: 'The sound to play when the timer reaches the Warning Threshold.',
 		scope: 'world',
@@ -2914,7 +2914,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Critical Threshold --
-	game.settings.register(MODULE_ID, 'combatTimerCriticalThreshold', {
+	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {
 		name: 'Critical Threshold',
 		hint: 'Percentage of time remaining when the critical time warning triggers (default 20%)',
 		scope: 'world',
@@ -2929,7 +2929,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Critical Message --
-	game.settings.register(MODULE_ID, 'combatTimerCriticalMessage', {
+	game.settings.register(MODULE.ID, 'combatTimerCriticalMessage', {
 		name: 'Critical Message',
 		hint: 'Custom message to show when timer is running critically low. Use {name} to insert current combatant name.',
 		scope: 'world',
@@ -2939,7 +2939,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Critical Sound --
-	game.settings.register(MODULE_ID, 'combatTimerCriticalSound', {
+	game.settings.register(MODULE.ID, 'combatTimerCriticalSound', {
 		name: 'Critical Sound',
 		hint: 'The sound to play when the timer is critical and has almost run out.',
 		scope: 'world',
@@ -2951,7 +2951,7 @@ export const registerSettings = async () => {
 
 
 	// -- Expired Message --
-	game.settings.register(MODULE_ID, 'combatTimerExpiredMessage', {
+	game.settings.register(MODULE.ID, 'combatTimerExpiredMessage', {
 		name: 'Time Expired Message',
 		hint: 'Custom message to show when timer runs out. Use {name} to insert current combatant name.',
 		scope: 'world',
@@ -2961,7 +2961,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Expired Sound --
-	game.settings.register(MODULE_ID, 'combatTimeisUpSound', {
+	game.settings.register(MODULE.ID, 'combatTimeisUpSound', {
 		name: 'Expired Sound',
 		hint: 'The sound to play when the timer runs out.',
 		scope: 'world',
@@ -2973,7 +2973,7 @@ export const registerSettings = async () => {
 
 
 	// -- End Turn on Timer Expiration --
-	game.settings.register(MODULE_ID, 'combatTimerEndTurn', {
+	game.settings.register(MODULE.ID, 'combatTimerEndTurn', {
 		name: 'End Turn on Expiration',
 		hint: 'Automatically end the current turn when the timer expires',
 		scope: 'world',
@@ -2983,7 +2983,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Auto End Turn Message --
-	game.settings.register(MODULE_ID, 'combatTimerAutoAdvanceMessage', {
+	game.settings.register(MODULE.ID, 'combatTimerAutoAdvanceMessage', {
 		name: 'End Turn Message',
 		hint: 'Message to show when turn is automatically advanced (use {name} for current combatant)',
 		scope: 'world',
@@ -2997,7 +2997,7 @@ export const registerSettings = async () => {
 	// *** STATISTICS ***
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2Statistics", {
+	game.settings.register(MODULE.ID, "headingH2Statistics", {
 		name: 'Combat Statistics',
 		hint: 'These settings will allow you to track and share combat statistics.',
 		scope: "world",
@@ -3008,7 +3008,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// ---------- SHARED STAT SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3SharedStats", {
+	game.settings.register(MODULE.ID, "headingH3SharedStats", {
 		name: 'Global Settings',
 		hint: 'These settings apply to both Round Stats and Combat Stats that can be shared at the end of each round or combat session.',
 		scope: "world",
@@ -3020,7 +3020,7 @@ export const registerSettings = async () => {
 
 
 	// Combat Statistics Settings
-	game.settings.register(MODULE_ID, 'trackCombatStats', {
+	game.settings.register(MODULE.ID, 'trackCombatStats', {
 		name: 'Track Combat Statistics',
 		hint: 'Enable tracking and reporting of combat round statistics (turn durations, timer expirations, etc.)',
 		scope: 'world',
@@ -3031,7 +3031,7 @@ export const registerSettings = async () => {
 
 
 
-	game.settings.register(MODULE_ID, 'trackPlayerStats', {
+	game.settings.register(MODULE.ID, 'trackPlayerStats', {
 		name: 'Track Player Statistics',
 		hint: 'Enable detailed tracking of player statistics including attacks, healing, and more. This data persists between sessions.',
 		scope: 'world',
@@ -3040,7 +3040,7 @@ export const registerSettings = async () => {
 		default: true
 	});
 
-	game.settings.register(MODULE_ID, 'shareCombatStats', {
+	game.settings.register(MODULE.ID, 'shareCombatStats', {
 		name: 'Share With Players',
 		hint: 'If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.',
 		scope: 'world',
@@ -3049,7 +3049,7 @@ export const registerSettings = async () => {
 		default: false
 	});
 
-	game.settings.register(MODULE_ID, 'cookiesRememberCardStates', {
+	game.settings.register(MODULE.ID, 'cookiesRememberCardStates', {
 		name: 'Remember Card States',
 		hint: 'If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.',
 		scope: 'world',
@@ -3061,7 +3061,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- ROUND STATS ----------
-	game.settings.register(MODULE_ID, "headingH3RoundStats", {
+	game.settings.register(MODULE.ID, "headingH3RoundStats", {
 		name: 'ROUND Statistics',
 		hint: 'These settings apply to the End-of-Round statistics.',
 		scope: "world",
@@ -3071,7 +3071,7 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
-	game.settings.register(MODULE_ID, 'showRoundSummary', {
+	game.settings.register(MODULE.ID, 'showRoundSummary', {
 		name: 'Show Round Summary',
 		hint: 'Show the round summary section with duration, planning, accuracy, and other key metrics.',
 		scope: 'world',
@@ -3080,7 +3080,7 @@ export const registerSettings = async () => {
 		default: true
 	}); 
 
-	game.settings.register(MODULE_ID, 'showRoundMVP', {
+	game.settings.register(MODULE.ID, 'showRoundMVP', {
 		name: 'Show Round MVP',
 		hint: 'Show the MVP section highlighting the best performer of the round.',
 		scope: 'world',
@@ -3089,7 +3089,7 @@ export const registerSettings = async () => {
 		default: true
 	}); 
 
-	game.settings.register(MODULE_ID, 'showNotableMoments', {
+	game.settings.register(MODULE.ID, 'showNotableMoments', {
 		name: 'Show Notable Moments',
 		hint: 'Show the notable moments section in combat statistics.',
 		scope: 'world',
@@ -3098,7 +3098,7 @@ export const registerSettings = async () => {
 		default: true
 	}); 
 
-	game.settings.register(MODULE_ID, 'showPartyBreakdown', {
+	game.settings.register(MODULE.ID, 'showPartyBreakdown', {
 		name: 'Show Party Breakdown',
 		hint: 'Show the detailed breakdown of each party member performance.',
 		scope: 'world',
@@ -3111,7 +3111,7 @@ export const registerSettings = async () => {
 	// THESE ARE OLD SETTINGS FOR COMBAT STATS THAT WE HAVEN"T USED YET. THEY ARE IN THE COMBAT_STATS.JS FILE, BUT WE WILL REUILB IT.
 
 	// ---------- COMBAT STATS ----------
-	game.settings.register(MODULE_ID, "headingH3CombatStats", {
+	game.settings.register(MODULE.ID, "headingH3CombatStats", {
 		name: 'Combat Stats',
 		hint: '(COMIN SOON) These settings apply to Combat Stats that can be shared at the end of each combat session.',
 		scope: "world",
@@ -3124,7 +3124,7 @@ export const registerSettings = async () => {
 // *** XP DISTRIBUTION SETTINGS ***
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2XpDistribution", {
+	game.settings.register(MODULE.ID, "headingH2XpDistribution", {
 		name: 'XP DISTRIBUTION',
 		hint: 'These settings control the automatic XP distribution system that triggers when combat ends.',
 		scope: "world",
@@ -3135,7 +3135,7 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- Enable XP Distribution --
-	game.settings.register(MODULE_ID, 'enableXpDistribution', {
+	game.settings.register(MODULE.ID, 'enableXpDistribution', {
 		name: 'Enable XP Distribution',
 		hint: 'When enabled, automatically show XP distribution window when combat ends',
 		scope: 'world',
@@ -3145,7 +3145,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Auto-distribute XP --
-	game.settings.register(MODULE_ID, 'autoDistributeXp', {
+	game.settings.register(MODULE.ID, 'autoDistributeXp', {
 		name: 'Auto-distribute XP',
 		hint: 'When enabled, automatically distribute XP without showing the distribution window',
 		scope: 'world',
@@ -3155,7 +3155,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Share XP Results --
-	game.settings.register(MODULE_ID, 'shareXpResults', {
+	game.settings.register(MODULE.ID, 'shareXpResults', {
 		name: 'Share XP Results',
 		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
 		scope: 'world',
@@ -3165,7 +3165,7 @@ export const registerSettings = async () => {
 	});
 	
 	// -- XP Calculation Method --
-	game.settings.register(MODULE_ID, 'xpCalculationMethod', {
+	game.settings.register(MODULE.ID, 'xpCalculationMethod', {
 		name: 'XP Calculation Method',
 		hint: 'Choose the method for calculating XP from monster CR. "Narrative/Goal-Based XP" allows you to enter XP for each player directly.',
 		scope: 'world',
@@ -3179,7 +3179,7 @@ export const registerSettings = async () => {
 	});
 
 	// -- Party Size Handling --
-	game.settings.register(MODULE_ID, 'xpPartySizeHandling', {
+	game.settings.register(MODULE.ID, 'xpPartySizeHandling', {
 		name: 'Party Size Handling',
 		hint: 'Choose how XP is divided among the party. "D&D 5e RAW (No Multipliers)" divides total base XP among players (official rules). "House Rules (Scale for Party Size)" applies a party size multiplier to XP awarded (not RAW).',
 		scope: 'world',
@@ -3194,7 +3194,7 @@ export const registerSettings = async () => {
 
 
 	// -- Resolution Type XP Multipliers --
-	game.settings.register(MODULE_ID, 'xpMultiplierDefeated', {
+	game.settings.register(MODULE.ID, 'xpMultiplierDefeated', {
 		name: 'Defeated XP Multiplier',
 		hint: 'Multiplier for defeated monsters (Default: 1.0)',
 		scope: 'world',
@@ -3208,7 +3208,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierNegotiated', {
+	game.settings.register(MODULE.ID, 'xpMultiplierNegotiated', {
 		name: 'Negotiated XP Multiplier',
 		hint: 'Multiplier for negotiated monsters (Default: 1.0)',
 		scope: 'world',
@@ -3222,7 +3222,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierEscaped', {
+	game.settings.register(MODULE.ID, 'xpMultiplierEscaped', {
 		name: 'Escaped XP Multiplier',
 		hint: 'Multiplier for monsters that escaped (Default: 1.0)',
 		scope: 'world',
@@ -3236,7 +3236,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierIgnored', {
+	game.settings.register(MODULE.ID, 'xpMultiplierIgnored', {
 		name: 'Ignored XP Multiplier',
 		hint: 'Multiplier for ignored monsters (Default: 0.0)',
 		scope: 'world',
@@ -3250,7 +3250,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'xpMultiplierCaptured', {
+	game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
 		name: 'Captured XP Multiplier',
 		hint: 'Multiplier for captured monsters (Default: 1.0)',
 		scope: 'world',
@@ -3267,9 +3267,9 @@ export const registerSettings = async () => {
 	// *** DEBUG SETTINGS ***
 
 	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE_ID, "headingH2Debug", {
-		name: MODULE_ID + '.headingH2Debug-Label',
-		hint: MODULE_ID + '.headingH2Debug-Hint',
+	game.settings.register(MODULE.ID, "headingH2Debug", {
+		name: MODULE.ID + '.headingH2Debug-Label',
+		hint: MODULE.ID + '.headingH2Debug-Hint',
 		scope: "client",
 		config: true,
 		default: "",
@@ -3278,9 +3278,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 	
 	// ---------- CONSOLE SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3simpleConsole", {
-		name: MODULE_ID + '.headingH3simpleConsole-Label',
-		hint: MODULE_ID + '.headingH3simpleConsole-Hint',
+	game.settings.register(MODULE.ID, "headingH3simpleConsole", {
+		name: MODULE.ID + '.headingH3simpleConsole-Label',
+		hint: MODULE.ID + '.headingH3simpleConsole-Hint',
 		scope: "client",
 		config: true,
 		default: "",
@@ -3289,9 +3289,9 @@ export const registerSettings = async () => {
 	// -------------------------------------
 
 	// -- LOG FANCY CONSOLE --
-	game.settings.register(MODULE_ID, 'globalFancyConsole', {
-		name: MODULE_ID + '.globalFancyConsole-Label',
-		hint: MODULE_ID + '.globalFancyConsole-Hint',
+	game.settings.register(MODULE.ID, 'globalFancyConsole', {
+		name: MODULE.ID + '.globalFancyConsole-Label',
+		hint: MODULE.ID + '.globalFancyConsole-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: true,
@@ -3299,9 +3299,9 @@ export const registerSettings = async () => {
 		default: true,
 	});
 	// ---------- DEBUG SETTINGS ----------
-	game.settings.register(MODULE_ID, "headingH3simpleDebug", {
-		name: MODULE_ID + '.headingH3simpleDebug-Label',
-		hint: MODULE_ID + '.headingH3simpleDebug-Hint',
+	game.settings.register(MODULE.ID, "headingH3simpleDebug", {
+		name: MODULE.ID + '.headingH3simpleDebug-Label',
+		hint: MODULE.ID + '.headingH3simpleDebug-Hint',
 		scope: "client",
 		config: true,
 		default: "",
@@ -3309,9 +3309,9 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 	// -- LOG DEBUG SETTINGS --
-	game.settings.register(MODULE_ID, 'globalDebugMode', {
-		name: MODULE_ID + '.globalDebugMode-Label',
-		hint: MODULE_ID + '.globalDebugMode-Hint',
+	game.settings.register(MODULE.ID, 'globalDebugMode', {
+		name: MODULE.ID + '.globalDebugMode-Label',
+		hint: MODULE.ID + '.globalDebugMode-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: true,
@@ -3320,9 +3320,9 @@ export const registerSettings = async () => {
 	});
 
 	// -- LOG DEBUG STYLE--
-	game.settings.register(MODULE_ID, 'globalConsoleDebugStyle', {
-		name: MODULE_ID + '.globalConsoleDebugStyle-Label',
-		hint: MODULE_ID + '.globalConsoleDebugStyle-Hint',
+	game.settings.register(MODULE.ID, 'globalConsoleDebugStyle', {
+		name: MODULE.ID + '.globalConsoleDebugStyle-Label',
+		hint: MODULE.ID + '.globalConsoleDebugStyle-Hint',
 		type: String,
 		config: true,
 		requiresReload: true,

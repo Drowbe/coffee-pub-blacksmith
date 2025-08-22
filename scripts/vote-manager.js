@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { ChatPanel } from './chat-panel.js';
@@ -16,7 +16,7 @@ export class VoteManager {
      * @returns {boolean} True if the user is excluded
      */
     static _isUserExcluded(userId) {
-        const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
         const user = game.users.get(userId);
         return excludedUsers.includes(userId) || excludedUsers.includes(user?.name);
     }
@@ -164,7 +164,7 @@ export class VoteManager {
     static async startVote(type, customData = null) {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderId = getSettingSafely(MODULE_ID, 'partyLeader', null);
+        const leaderId = getSettingSafely(MODULE.ID, 'partyLeader', null);
         const isLeader = leaderId ? game.user.id === leaderId : false;
         const canStartVote = isGM || isLeader;
 
@@ -504,7 +504,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
         const isLeader = game.user.id === leaderId;
 
         if ((isGM || isLeader) && isInitiator) {
@@ -803,7 +803,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
         const isLeader = game.user.id === leaderId;
         
         if ((isGM || isLeader) && isInitiator) {
@@ -830,7 +830,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
         const isLeader = game.user.id === leaderId;
 
         if ((isGM || isLeader) && isInitiator) {

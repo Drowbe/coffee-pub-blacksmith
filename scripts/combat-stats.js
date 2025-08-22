@@ -1,5 +1,5 @@
 // Import MODULE variables
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './global.js';
 import { PlanningTimer } from './planning-timer.js';
 import { CombatTimer } from './combat-timer.js';
@@ -73,12 +73,12 @@ class CombatStats {
 
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
-        if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
+        if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
 
-        postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE_ID, 'trackCombatStats', false), true, false);
+        postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE.ID, 'trackCombatStats', false), true, false);
 
         // Check for existing stats in combat flags
-        const existingStats = game.combat?.getFlag(MODULE_ID, 'stats');
+        const existingStats = game.combat?.getFlag(MODULE.ID, 'stats');
         
         // Initialize stats objects - use existing stats if available, otherwise use defaults
         this.currentStats = existingStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -92,7 +92,7 @@ class CombatStats {
             currentStats: this.currentStats,
             notableMoments: this.currentStats.notableMoments,
             existingStats: existingStats
-        }, false, true, false);
+        }, true, false);
 
         // Register Handlebars helpers
         this.registerHelpers();
@@ -103,14 +103,14 @@ class CombatStats {
 
     static async _onUpdateCombat(combat, changed, options, userId) {
         // Only process combat updates if this is the GM
-        if (!game.user.isGM || !getSettingSafely(MODULE_ID, 'trackCombatStats', false)) return;
+        if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Combat Update:', {
             changed,
             currentStats: this.currentStats,
             combatStats: this.combatStats
-        }, false, true, false);
+        }, true, false);
 
         const currentCombatant = combat.combatant;
         const previousCombatant = combat.turns[combat.previous?.turn] || null;
@@ -121,7 +121,7 @@ class CombatStats {
                 from: combat.previous.round,
                 to: changed.round,
                 currentStats: this.currentStats
-            }, false, true, false);
+            }, true, false);
             
             // Only call _onRoundEnd when we're actually ending a round (not starting a new one)
             if (combat.previous.round > 0) {
@@ -138,7 +138,7 @@ class CombatStats {
 
     static _onRoundStart(combat) {
         // Handle stats tracking if enabled
-        if (game.user.isGM && getSettingSafely(MODULE_ID, 'trackCombatStats', false)) {
+        if (game.user.isGM && getSettingSafely(MODULE.ID, 'trackCombatStats', false)) {
             // Initialize new round stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
             // Ensure Maps are properly initialized
@@ -149,7 +149,7 @@ class CombatStats {
             this.currentStats.planningStartTime = Date.now();
 
             // Save the stats to combat flags
-            game.combat.setFlag(MODULE_ID, 'stats', this.currentStats);
+            game.combat.setFlag(MODULE.ID, 'stats', this.currentStats);
 
             postConsoleAndNotification(MODULE.NAME, "Round Started | Combat:", {
                 round: {
@@ -160,11 +160,11 @@ class CombatStats {
                         initiative: t.initiative
                     }))
                 }
-            }, false, true, false);
+            }, true, false);
         }
 
         // Handle round announcement if enabled (independent of stats tracking)
-        if (game.user.isGM && getSettingSafely(MODULE_ID, 'announceNewRounds', false)) {
+        if (game.user.isGM && getSettingSafely(MODULE.ID, 'announceNewRounds', false)) {
             this._announceNewRound(combat);
         }
     }
@@ -181,7 +181,7 @@ class CombatStats {
             };
 
             // Render the template
-            const content = await renderTemplate('modules/' + MODULE_ID + '/templates/chat-cards.hbs', {
+            const content = await renderTemplate('modules/' + MODULE.ID + '/templates/chat-cards.hbs', {
                 ...templateData,
                 isPublic: true,
                 isRoundAnnouncement: true
@@ -194,9 +194,9 @@ class CombatStats {
             });
 
             // Play sound if configured
-            const soundId = game.settings.get(MODULE_ID, 'newRoundSound');
+            const soundId = game.settings.get(MODULE.ID, 'newRoundSound');
             if (soundId && soundId !== 'none') {
-                const volume = game.settings.get(MODULE_ID, 'timerSoundVolume');
+                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
                 playSound(soundId, volume);
             }
         } catch (error) {
@@ -205,10 +205,10 @@ class CombatStats {
     }
 
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         // Calculate duration based on progress bar position or expiration
-        const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
+        const totalAllowedTime = game.settings.get(MODULE.ID, 'combatTimerDuration');
         const isExpired = CombatTimer.state?.expired || CombatTimer.state?.remaining === 0;
         const duration = isExpired 
             ? totalAllowedTime * 1000  // Use full duration if expired
@@ -234,7 +234,7 @@ class CombatStats {
                 duration: duration,
                 expired: isExpired
             }
-        }, false, true, false);
+        }, true, false);
 
         // Add notable moment tracking for turn duration
         if (previousCombatant) {
@@ -263,12 +263,12 @@ class CombatStats {
             postConsoleAndNotification(MODULE.NAME, 'Average Turn Time Update:', {
                 turnTimes: this.currentStats.partyStats.turnTimes,
                 newAverage: this.currentStats.partyStats.averageTurnTime
-            }, false, true, false);
+            }, true, false);
         }
     }
 
     static _onCombatEnd(combat, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         const combatDuration = Date.now() - this.combatStats.startTime;
         
@@ -280,7 +280,7 @@ class CombatStats {
                 expiredTurns: this.currentStats.expiredTurns.length,
                 participantStats: this.combatStats.participantStats
             }
-        }, false, true, false);
+        }, true, false);
 
         // Reset stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -289,15 +289,15 @@ class CombatStats {
 
     // Method to record when a turn starts
     static recordTurnStart(combatant) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
     }
 
     // Method to record when a turn ends
     static recordTurnEnd(combatant) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         if (combatant) {
-            const totalAllowedTime = game.settings.get(MODULE_ID, 'combatTimerDuration');
+            const totalAllowedTime = game.settings.get(MODULE.ID, 'combatTimerDuration');
             const remainingTime = CombatTimer.state?.remaining ?? 0;
             const timeUsed = totalAllowedTime - remainingTime;
             const duration = timeUsed * 1000;
@@ -334,12 +334,12 @@ class CombatStats {
 
         if (this.planningDuration !== undefined && this.planningDuration === ms) {
             if (ms === 0) return 'SKIPPED';
-            const maxPlanningTime = game.settings.get(MODULE_ID, 'planningTimerDuration') * 1000;
+            const maxPlanningTime = game.settings.get(MODULE.ID, 'planningTimerDuration') * 1000;
             if (ms >= maxPlanningTime) return 'EXPIRED';
         }
         else if (this.id !== undefined && this.turnDuration === ms) {
             if (ms === 0) return 'SKIPPED';
-            const maxTurnTime = game.settings.get(MODULE_ID, 'combatTimerDuration') * 1000;
+            const maxTurnTime = game.settings.get(MODULE.ID, 'combatTimerDuration') * 1000;
             if (ms >= maxTurnTime) return 'EXPIRED';
         }
         
@@ -348,7 +348,7 @@ class CombatStats {
     }
 
     static recordPlanningStart() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         const now = Date.now();
         this.currentStats.actualPlanningStartTime = now;
@@ -359,18 +359,18 @@ class CombatStats {
     }
 
     static recordPlanningEnd() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         const now = Date.now();
         this.currentStats.actualPlanningEndTime = now;
         
-        const totalDuration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const totalDuration = game.settings.get(MODULE.ID, 'planningTimerDuration');
         const remainingTime = PlanningTimer.state.remaining;
         this.currentStats.activePlanningTime = (totalDuration - remainingTime) * 1000;
     }
 
     static recordTimerPause() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         const now = Date.now();
         if (this.currentStats.lastUnpauseTime) {
@@ -384,12 +384,12 @@ class CombatStats {
     }
 
     static recordTimerUnpause() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         this.currentStats.lastUnpauseTime = Date.now();
     }
 
     static recordTimerExpired(isPlanningPhase = false) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         const now = Date.now();
         if (isPlanningPhase) {
@@ -583,7 +583,7 @@ class CombatStats {
                     damage: detail.damage,
                     healing: detail.healing
                 }
-            }, false, true, false);
+            }, true, false);
 
             // Generate MVP description
             const description = MVPDescriptionGenerator.generateDescription(detail);
@@ -592,7 +592,7 @@ class CombatStats {
                 name: actor.name,
                 description,
                 score
-            }, false, true, false);
+            }, true, false);
 
             return {
                 ...detail,
@@ -617,7 +617,7 @@ class CombatStats {
                 score: c.score,
                 description: c.description
             }))
-        }, false, true, false);
+        }, true, false);
 
         return mvp;
     }
@@ -666,7 +666,7 @@ class CombatStats {
     // Add new method to track damage rolls
     static async _onDamageRoll(item, roll) {
         // Only process damage rolls if this is the GM
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
             return;
@@ -685,7 +685,7 @@ class CombatStats {
                 actionType: item.system.actionType,
                 damage: item.system.damage
             }
-        }, false, true, false);
+        }, true, false);
 
         const actor = item.actor;
         if (!actor) {
@@ -760,7 +760,7 @@ class CombatStats {
             amount,
             currentDamageDealt: attackerStats.damage.dealt,
             statsBeforeUpdate: { ...attackerStats }
-        }, false, true, false);
+        }, true, false);
 
         // Update the appropriate stats
         if (isHealing) {
@@ -832,7 +832,7 @@ class CombatStats {
                 newDamageDealt: attackerStats.damage.dealt,
                 amount,
                 statsAfterUpdate: { ...attackerStats }
-            }, false, true, false);
+            }, true, false);
 
             // Get targets safely
             const targets = game.user.targets;
@@ -889,12 +889,12 @@ class CombatStats {
                 isHealing
             },
             attackerStats
-        }, false, true, false);
+        }, true, false);
     }
 
     // Add new method to track pre-damage rolls
     static _onPreDamageRoll(item, config) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
         if (config.critical) {
@@ -906,7 +906,7 @@ class CombatStats {
     // Add new method to track attack rolls
     static async _onAttackRoll(item, roll) {
         // Only process attack rolls if this is the GM
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
         const actor = item.actor;
@@ -1043,7 +1043,7 @@ class CombatStats {
                 isHit
             },
             attackerStats
-        }, false, true, false);
+        }, true, false);
 
         if (this._isPlayerCharacter(actor)) {
             if (isHit) {
@@ -1092,7 +1092,7 @@ class CombatStats {
                     flavor: message.flavor,
                     type: message.type,
                     roll: message.roll
-                }, false, true, false);
+                }, true, false);
             }
         });
 
@@ -1101,7 +1101,7 @@ class CombatStats {
 
 
     static recordHit(hitData) {
-        if (!game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Recording hit:', {
             hitData,
@@ -1110,7 +1110,7 @@ class CombatStats {
             currentRound: game.combat?.round,
             currentTurn: game.combat?.turn,
             currentCombatant: game.combat?.combatant?.name
-        }, false, true, false);
+        }, true, false);
 
         // Initialize stats objects if they don't exist
         if (!this.currentStats) {
@@ -1141,7 +1141,7 @@ class CombatStats {
             original: hitData,
             processed: processedHitData,
             currentHits: this.currentStats.hits.length
-        }, false, true, false);
+        }, true, false);
 
         // Add hit to current round stats
         this.currentStats.hits.push(processedHitData);
@@ -1184,7 +1184,7 @@ class CombatStats {
                     ])
                 )
             }
-        }, false, true, false);
+        }, true, false);
     }
 
     // Helper method for debug logging
@@ -1194,7 +1194,7 @@ class CombatStats {
 
     // Combat flow tracking methods
     static _onCombatStart(combat) {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
         postConsoleAndNotification(MODULE.NAME, "Combat Started | Stats:", {
             combat: {
@@ -1207,7 +1207,7 @@ class CombatStats {
                     initiative: c.initiative
                 }))
             }
-        }, false, true, false);
+        }, true, false);
 
         // Initialize combat stats
         this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
@@ -1219,7 +1219,7 @@ class CombatStats {
     }
 
     static async _onRoundEnd() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
         postConsoleAndNotification(MODULE.NAME, 'Round End - Starting MVP calculation', "", true, false);
@@ -1232,7 +1232,7 @@ class CombatStats {
                 combatant: lastCombatant.name,
                 id: lastCombatant.id,
                 turn: lastTurn
-            }, false, true, false);
+            }, true, false);
             this.recordTurnEnd(lastCombatant);
         }
 
@@ -1301,7 +1301,7 @@ class CombatStats {
             const content = await this.generateRoundSummary(templateData);
 
             // Post to chat
-            const isShared = game.settings.get(MODULE_ID, 'shareCombatStats');
+            const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
             const chatMessage = await ChatMessage.create({
                 content: content,
                 whisper: isShared ? [] : [game.user.id],
@@ -1324,10 +1324,10 @@ class CombatStats {
             participantCount: this.currentStats.participantStats ? Object.keys(this.currentStats.participantStats).length : 0,
             rawStats: this.currentStats.participantStats,
             turnTimes: this.currentStats.partyStats.turnTimes
-        }, false, true, false);
+        }, true, false);
 
         const participantMap = new Map();
-        const timerDuration = game.settings.get(MODULE_ID, 'combatTimerDuration');
+        const timerDuration = game.settings.get(MODULE.ID, 'combatTimerDuration');
 
         // First pass: Get all player characters from the combat
         if (game.combat?.turns) {
@@ -1346,7 +1346,7 @@ class CombatStats {
                     combatantId: id,
                     actorId: turn.actor.id,
                     turnTimes: this.currentStats.partyStats.turnTimes
-                }, false, true, false);
+                }, true, false);
 
                 // Safely get stats, defaulting to empty structure if not found
                 const stats = this.currentStats?.participantStats?.[turn.actor.id] || {
@@ -1455,7 +1455,7 @@ class CombatStats {
             activePlanningTime: this.currentStats.activePlanningTime,
             totalPartyTime: totalPartyTime,
             formattedTime: this._formatTime(this.currentStats.activePlanningTime)
-        }, false, true, false);
+        }, true, false);
 
         // Calculate active duration by combining total party time and planning time
         const activeRoundDuration = totalPartyTime + (this.currentStats.activePlanningTime || 0);
@@ -1481,13 +1481,13 @@ class CombatStats {
                 fumbles: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.fumbles || 0), 0),
             },
             settings: {
-                showRoundSummary: game.settings.get(MODULE_ID, 'showRoundSummary'),
-                showRoundMVP: game.settings.get(MODULE_ID, 'showRoundMVP'),
-                showNotableMoments: game.settings.get(MODULE_ID, 'showNotableMoments'),
-                showPartyBreakdown: game.settings.get(MODULE_ID, 'showPartyBreakdown'),
-                showRoundTimer: game.settings.get(MODULE_ID, 'showRoundTimer'),
-                planningTimerEnabled: game.settings.get(MODULE_ID, 'planningTimerEnabled'),
-                combatTimerEnabled: game.settings.get(MODULE_ID, 'combatTimerEnabled')
+                showRoundSummary: game.settings.get(MODULE.ID, 'showRoundSummary'),
+                showRoundMVP: game.settings.get(MODULE.ID, 'showRoundMVP'),
+                showNotableMoments: game.settings.get(MODULE.ID, 'showNotableMoments'),
+                showPartyBreakdown: game.settings.get(MODULE.ID, 'showPartyBreakdown'),
+                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer'),
+                planningTimerEnabled: game.settings.get(MODULE.ID, 'planningTimerEnabled'),
+                combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
             },
             sectionStates: this.sectionStates,
             notableMoments: this.currentStats.notableMoments,
@@ -1497,17 +1497,17 @@ class CombatStats {
 
         postConsoleAndNotification(MODULE.NAME, 'Notable Moments Debug:', {
             notableMoments: this.currentStats.notableMoments
-        }, false, true, false);
+        }, true, false);
 
         postConsoleAndNotification(MODULE.NAME, 'Template Settings:', {
             settings: templateData.settings
-        }, false, true, false);
+        }, true, false);
 
         postConsoleAndNotification(MODULE.NAME, 'Round Duration Debug - Template Prep:', {
             roundStartTime: this.currentStats.roundStartTime,
             roundEndTime: Date.now(),
             duration: this.currentStats.roundDuration
-        }, false, true, false);
+        }, true, false);
 
         postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
             templateData
@@ -1517,7 +1517,7 @@ class CombatStats {
     }
 
     static async generateRoundSummary(templateData) {
-        const content = await renderTemplate('modules/' + MODULE_ID + '/templates/stats-round.hbs', templateData);
+        const content = await renderTemplate('modules/' + MODULE.ID + '/templates/stats-round.hbs', templateData);
         return content;
     }
 
@@ -1527,7 +1527,7 @@ class CombatStats {
             type,
             data,
             currentMoments: this.currentStats.notableMoments
-        }, false, true, false);
+        }, true, false);
 
         if (!this.currentStats?.notableMoments) {
             postConsoleAndNotification(MODULE.NAME, 'Notable Moments structure not initialized', "", false, false);
@@ -1618,7 +1618,7 @@ class CombatStats {
 
     // Record when first player's turn starts
     static recordFirstPlayerStart() {
-        if (!game.user.isGM || !game.settings.get(MODULE_ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         const now = Date.now();
         this.currentStats.firstPlayerStartTime = now;
@@ -1724,7 +1724,7 @@ class MVPDescriptionGenerator {
         postConsoleAndNotification(MODULE.NAME, "MVP Description - Processing:", {
             rawStats,
             calculatedStats: stats
-        }, false, true, false);
+        }, true, false);
         
         // Determine which pattern to use
         const pattern = this.determinePattern(stats);
@@ -1738,7 +1738,7 @@ class MVPDescriptionGenerator {
         postConsoleAndNotification(MODULE.NAME, "MVP Description - Result:", {
             pattern,
             description
-        }, false, true, false);
+        }, true, false);
         
         return description;
     }

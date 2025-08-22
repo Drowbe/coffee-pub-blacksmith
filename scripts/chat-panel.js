@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { VoteConfig } from './vote-config.js';
@@ -88,8 +88,8 @@ class ChatPanel {
             
             try {
                 // Only try to get the setting if it's registered
-                if (game.settings.settings.get(`${MODULE_ID}.movementType`)) {
-                    currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
+                if (game.settings.settings.get(`${MODULE.ID}.movementType`)) {
+                    currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
                     
                     const movementTypes = {
                         'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
@@ -110,8 +110,8 @@ class ChatPanel {
             let isLeader = false;
             try {
                 // Only try to get the setting if it's registered
-                if (game.settings.settings.get(`${MODULE_ID}.partyLeader`)) {
-                    leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+                if (game.settings.settings.get(`${MODULE.ID}.partyLeader`)) {
+                    leaderData = game.settings.get(MODULE.ID, 'partyLeader');
                     isLeader = game.user.id === leaderData?.userId;
                 }
             } catch (err) {
@@ -153,7 +153,7 @@ class ChatPanel {
                 event.stopPropagation();
                 
                 const isGM = game.user.isGM;
-                const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+                const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
                 const isLeader = game.user.id === leaderId;
                 const canStartVote = isGM || isLeader;
 
@@ -217,8 +217,8 @@ class ChatPanel {
                 const isEitherHidden = isLeftHidden || isBottomHidden;
 
                 // Get the settings
-                const hideLeftUI = game.settings.get(MODULE_ID, 'canvasToolsHideLeftUI');
-                const hideBottomUI = game.settings.get(MODULE_ID, 'canvasToolsHideBottomUI');
+                const hideLeftUI = game.settings.get(MODULE.ID, 'canvasToolsHideLeftUI');
+                const hideBottomUI = game.settings.get(MODULE.ID, 'canvasToolsHideBottomUI');
 
                 if (isEitherHidden) {
                     ui.notifications.info("Showing the Interface...");
@@ -277,7 +277,7 @@ class ChatPanel {
         const isGM = game.user.isGM;
         let isLeader = false;
         try {
-            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             isLeader = game.user.id === leaderData.userId;
         } catch (error) {
             isLeader = false;
@@ -330,7 +330,7 @@ class ChatPanel {
     static async showLeaderDialog() {
 
         // Get all player-owned characters that aren't excluded
-        const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
         
         // Get all character actors and their owners
         const characterEntries = game.actors
@@ -402,7 +402,7 @@ class ChatPanel {
                         } else {
                     
                             // Handle clearing the leader if none selected
-                            await game.settings.set(MODULE_ID, 'partyLeader', { userId: '', actorId: '' });
+                            await game.settings.set(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
                             this.currentLeader = null;
                             await this.updateLeader(null);
                         }
@@ -421,7 +421,7 @@ class ChatPanel {
 
         let leaderData = null;
         try {
-            leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            leaderData = game.settings.get(MODULE.ID, 'partyLeader');
 
         } catch (error) {
             // If we can't access the setting, assume no leader
@@ -444,9 +444,9 @@ class ChatPanel {
 
     static async loadTimer() {
         try {
-            const endTime = await game.settings.get(MODULE_ID, 'sessionEndTime');
-            const startTime = await game.settings.get(MODULE_ID, 'sessionStartTime');
-            const timerDate = await game.settings.get(MODULE_ID, 'sessionTimerDate');
+            const endTime = await game.settings.get(MODULE.ID, 'sessionEndTime');
+            const startTime = await game.settings.get(MODULE.ID, 'sessionStartTime');
+            const timerDate = await game.settings.get(MODULE.ID, 'sessionTimerDate');
             const today = new Date().toDateString();
 
             if (timerDate === today && endTime > Date.now()) {
@@ -547,7 +547,7 @@ class ChatPanel {
             // Check if we're in warning state
             let warningThreshold = 15; // Default value
             try {
-                warningThreshold = game.settings.get(MODULE_ID, 'sessionTimerWarningThreshold');
+                warningThreshold = game.settings.get(MODULE.ID, 'sessionTimerWarningThreshold');
             } catch (error) {
         
             }
@@ -597,14 +597,14 @@ class ChatPanel {
     static async handleTimerWarning() {
         try {
             // Play warning sound if configured (for all clients)
-            const warningSound = game.settings.get(MODULE_ID, 'sessionTimerWarningSound');
+            const warningSound = game.settings.get(MODULE.ID, 'sessionTimerWarningSound');
             if (warningSound !== 'none') {
                 playSound(warningSound, 0.8);
             }
 
             // Only send warning message from GM client
             if (game.user.isGM) {
-                const message = game.settings.get(MODULE_ID, 'sessionTimerWarningMessage')
+                const message = game.settings.get(MODULE.ID, 'sessionTimerWarningMessage')
                     .replace('{time}', this.getTimerText());
 
                 await this.sendTimerMessage({
@@ -620,14 +620,14 @@ class ChatPanel {
     static async handleTimerExpired() {
         try {
             // Play expired sound if configured (for all clients)
-            const expiredSound = game.settings.get(MODULE_ID, 'sessionTimerExpiredSound');
+            const expiredSound = game.settings.get(MODULE.ID, 'sessionTimerExpiredSound');
             if (expiredSound !== 'none') {
                 playSound(expiredSound, 0.8);
             }
 
             // Only send expired message from GM client
             if (game.user.isGM) {
-                const message = game.settings.get(MODULE_ID, 'sessionTimerExpiredMessage');
+                const message = game.settings.get(MODULE.ID, 'sessionTimerExpiredMessage');
                 await this.sendTimerMessage({
                     isTimerExpired: true,
                     expiredMessage: message
@@ -651,7 +651,7 @@ class ChatPanel {
             }
         } else {
             // Use default session time from settings
-            const defaultMinutes = game.settings.get(MODULE_ID, 'sessionTimerDefault');
+            const defaultMinutes = game.settings.get(MODULE.ID, 'sessionTimerDefault');
             currentHours = Math.floor(defaultMinutes / 60);
             currentMinutes = defaultMinutes % 60;
         }
@@ -699,13 +699,13 @@ class ChatPanel {
                         this.sessionEndTime = this.sessionStartTime + duration;
                         
                         // Store both start and end time in settings
-                        await game.settings.set(MODULE_ID, 'sessionEndTime', this.sessionEndTime);
-                        await game.settings.set(MODULE_ID, 'sessionStartTime', this.sessionStartTime);
-                        await game.settings.set(MODULE_ID, 'sessionTimerDate', new Date().toDateString());
+                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
+                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
+                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
 
                         // If checkbox was checked, save as new default
                         if (setAsDefault) {
-                            await game.settings.set(MODULE_ID, 'sessionTimerDefault', hours * 60 + minutes);
+                            await game.settings.set(MODULE.ID, 'sessionTimerDefault', hours * 60 + minutes);
                         }
                         
                         // Update all clients and send message since this is an explicit timer set
@@ -758,7 +758,7 @@ class ChatPanel {
 
         // Update local leader data if provided
         if (data.leaderData) {
-            const success = await setSettingSafely(MODULE_ID, 'partyLeader', data.leaderData);
+            const success = await setSettingSafely(MODULE.ID, 'partyLeader', data.leaderData);
             if (success) {
                 ChatPanel.updateLeaderDisplay();
             } else {
@@ -784,7 +784,7 @@ class ChatPanel {
             const socket = ThirdPartyManager.getSocket();
 
             // Get the current leader data to send
-            const leaderData = getSettingSafely(MODULE_ID, 'partyLeader', null);
+            const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
             if (leaderData) {
                 await socket.executeForOthers("updateLeader", { 
                     leader,  // for backward compatibility
@@ -841,7 +841,7 @@ class ChatPanel {
 
 
             // Store in settings
-            const success = await setSettingSafely(MODULE_ID, 'partyLeader', leaderData);
+            const success = await setSettingSafely(MODULE.ID, 'partyLeader', leaderData);
             if (!success) {
                 postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Error', 'Settings not yet registered, cannot set leader', true, false);
                 return false;
@@ -913,7 +913,7 @@ class ChatPanel {
 
     async getData() {
         const isGM = game.user.isGM;
-        const currentMovement = game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
+        const currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
         
         const movementTypes = {
             'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
@@ -925,8 +925,8 @@ class ChatPanel {
 
         const data = {
             isGM: game.user.isGM,
-            leader: game.settings.get(MODULE_ID, 'partyLeader') || 'No Leader',
-            timer: this._formatTime(game.settings.get(MODULE_ID, 'sessionTimer') || 0),
+            leader: game.settings.get(MODULE.ID, 'partyLeader') || 'No Leader',
+            timer: this._formatTime(game.settings.get(MODULE.ID, 'sessionTimer') || 0),
             progress: this._calculateProgress(),
             isWarning: this._isWarning(),
             isExpired: this._isExpired(),

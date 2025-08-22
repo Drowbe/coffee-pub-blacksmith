@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
 import { ThirdPartyManager } from './third-party.js';
@@ -26,7 +26,7 @@ class CombatTimer {
     static initialize() {
         Hooks.once('ready', () => {
             try {
-                if (!game.settings.get(MODULE_ID, 'combatTimerEnabled')) {
+                if (!game.settings.get(MODULE.ID, 'combatTimerEnabled')) {
                     postConsoleAndNotification(MODULE.NAME, "Combat Timer is disabled", "", true, false);
                     return;
                 }
@@ -35,7 +35,7 @@ class CombatTimer {
                 
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
-                this.state.remaining = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? 60;
+                this.state.remaining = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? 60;
                 
                 // Add debounce for round changes
                 this._lastRoundChange = 0;
@@ -55,7 +55,7 @@ class CombatTimer {
 
                 // Add hooks for token movement and actions
                 Hooks.on('updateToken', (token, changes, options, userId) => {
-                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
                     if (!game.combat?.started) return;
                     
                     // Check if token belongs to current combatant
@@ -73,7 +73,7 @@ class CombatTimer {
 
                 // Monitor attack rolls
                 Hooks.on('dnd5e.rollAttack', (item, roll) => {
-                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
                     if (!game.combat?.started) return;
                     
                     const currentActor = game.combat.combatant?.actor;
@@ -90,7 +90,7 @@ class CombatTimer {
 
                 // Monitor damage rolls
                 Hooks.on('dnd5e.rollDamage', (item, roll) => {
-                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
                     if (!game.combat?.started) return;
                     
                     const currentActor = game.combat.combatant?.actor;
@@ -107,7 +107,7 @@ class CombatTimer {
 
                 // Monitor token targeting
                 Hooks.on('targetToken', (user, token, targeted) => {
-                    if (!game.settings.get(MODULE_ID, 'combatTimerActivityStart')) return;
+                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
                     if (!game.combat?.started) return;
                     
                     // Only process if a token is being targeted (not untargeted)
@@ -152,14 +152,14 @@ class CombatTimer {
         // Don't handle the expiration if we're manually ending the planning timer
         if (this._endingPlanningTimer) return;
 
-        const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+        const autoStart = game.settings.get(MODULE.ID, 'combatTimerAutoStart');
         
         this.resetTimer();
         this.state.isPaused = !autoStart;
         
         if (autoStart) {
             this.resumeTimer();
-            const resumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+            const resumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
             if (resumeSound !== 'none') {
                 playSound(resumeSound, this.getTimerVolume());
             }
@@ -172,8 +172,8 @@ class CombatTimer {
         try {
             if (!game.combat?.started || game.combat.round === 0) return;
 
-            const isEnabled = game.settings.get(MODULE_ID, 'combatTimerEnabled');
-            const isGMOnly = game.settings.get(MODULE_ID, 'combatTimerGMOnly');
+            const isEnabled = game.settings.get(MODULE.ID, 'combatTimerEnabled');
+            const isGMOnly = game.settings.get(MODULE.ID, 'combatTimerGMOnly');
 
             if (isGMOnly && !game.user.isGM) return;
             
@@ -290,7 +290,7 @@ class CombatTimer {
                     });
 
                     // Play hurry up sound if configured
-                    const hurryUpSound = game.settings.get(MODULE_ID, 'hurryUpSound');
+                    const hurryUpSound = game.settings.get(MODULE.ID, 'hurryUpSound');
                     if (hurryUpSound !== 'none') {
                         playSound(hurryUpSound, CombatTimer.getTimerVolume());
                     }
@@ -310,7 +310,7 @@ class CombatTimer {
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
         
-        const timeLimit = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
+        const timeLimit = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
         const newTime = Math.round(timeLimit * percentage);
         
         this.setTime(newTime);
@@ -369,7 +369,7 @@ class CombatTimer {
                 timer: this.timer ? "active" : "null"
             },
             lastProcessedRound: this._lastProcessedRound
-        }, false, true, false);
+        }, true, false);
 
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
@@ -399,7 +399,7 @@ class CombatTimer {
             }
 
             // Reset timer and set initial state based on auto-start setting
-            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+            const autoStart = game.settings.get(MODULE.ID, 'combatTimerAutoStart');
             
             // Always reset to full time on round change
             this.resetTimer();
@@ -414,7 +414,7 @@ class CombatTimer {
                 this.resumeTimer();
                 
                 // Play start sound if configured
-                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
                 if (startSound !== 'none') {
                     playSound(startSound, this.getTimerVolume());
                 }
@@ -448,7 +448,7 @@ class CombatTimer {
             postConsoleAndNotification(MODULE.NAME, "Combat Timer: Regular turn change detected", "", true, false);
             
             // Check auto-start setting
-            const autoStart = game.settings.get(MODULE_ID, 'combatTimerAutoStart');
+            const autoStart = game.settings.get(MODULE.ID, 'combatTimerAutoStart');
             postConsoleAndNotification(MODULE.NAME, "Combat Timer: Auto-start setting:", autoStart, true, false);
             
             // Reset timer first
@@ -463,7 +463,7 @@ class CombatTimer {
                 this.resumeTimer();
                 
                 // Play start sound if configured
-                const startSound = game.settings.get(MODULE_ID, 'combatTimerStartSound');
+                const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
                 if (startSound !== 'none') {
                     playSound(startSound, this.getTimerVolume());
                 }
@@ -475,7 +475,7 @@ class CombatTimer {
     }
 
     static getTimerVolume() {
-        return game.settings.get(MODULE_ID, 'timerSoundVolume');
+        return game.settings.get(MODULE.ID, 'timerSoundVolume');
     }
 
     static startTimer(duration = null) {
@@ -484,7 +484,7 @@ class CombatTimer {
             
             // If no duration provided, get from settings and update DEFAULTS
             if (duration === null) {
-                duration = game.settings.get(MODULE_ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
+                duration = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
                 this.DEFAULTS.timeLimit = duration;
             }
             
@@ -508,7 +508,7 @@ class CombatTimer {
                 this.timer = setInterval(() => this.tick(), 1000);
                 
                 // Send start message if GM and setting enabled
-                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnStart')) {
+                if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnStart')) {
                     this.sendChatMessage({
                         isTimerStart: true,
                         duration: Math.floor(duration / 60)
@@ -549,13 +549,13 @@ class CombatTimer {
         CombatStats.recordTimerPause();
 
         // Play pause/resume sound if configured (for all clients)
-        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+        const pauseResumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
 
         // Send chat message if GM and setting enabled
-        if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatPauseUnpause')) {
+        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
             this.sendChatMessage({
                 isTimerPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -605,7 +605,7 @@ class CombatTimer {
             CombatStats.recordTimerUnpause();
             
             // Send chat message for resume if setting enabled
-            if (game.settings.get(MODULE_ID, 'timerChatPauseUnpause')) {
+            if (game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
                 this.sendChatMessage({
                     isTimerResumed: true,
                     timeRemaining: this.formatTime(this.state.remaining)
@@ -616,7 +616,7 @@ class CombatTimer {
         }
 
         // Play pause/resume sound if configured (for all clients)
-        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+        const pauseResumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
@@ -655,26 +655,26 @@ class CombatTimer {
         this.updateUI();
 
         // Calculate percentage of time remaining
-        const timeLimit = game.settings.get(MODULE_ID, 'combatTimerDuration');
+        const timeLimit = game.settings.get(MODULE.ID, 'combatTimerDuration');
         const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
         // Check warning threshold
-        const warningThreshold = game.settings.get(MODULE_ID, 'combatTimerWarningThreshold');
+        const warningThreshold = game.settings.get(MODULE.ID, 'combatTimerWarningThreshold');
         if (percentRemaining <= warningThreshold && percentRemaining > warningThreshold - 1) {
             // Play warning sound
-            const warningSound = game.settings.get(MODULE_ID, 'combatTimerWarningSound');
+            const warningSound = game.settings.get(MODULE.ID, 'combatTimerWarningSound');
             if (warningSound !== 'none') {
                 playSound(warningSound, this.getTimerVolume());
             }
             
             // Show warning notification
             if (this.shouldShowNotification()) {
-                const message = game.settings.get(MODULE_ID, 'combatTimerWarningMessage');
+                const message = game.settings.get(MODULE.ID, 'combatTimerWarningMessage');
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
 
                 // Send warning chat message if GM and setting enabled
-                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnRunningOut')) {
+                if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerWarning: true,
                         warningMessage: message
@@ -684,22 +684,22 @@ class CombatTimer {
         }
 
         // Check critical threshold
-        const criticalThreshold = game.settings.get(MODULE_ID, 'combatTimerCriticalThreshold');
+        const criticalThreshold = game.settings.get(MODULE.ID, 'combatTimerCriticalThreshold');
         if (percentRemaining <= criticalThreshold && percentRemaining > criticalThreshold - 1) {
             // Play critical warning sound
-            const criticalSound = game.settings.get(MODULE_ID, 'combatTimerCriticalSound');
+            const criticalSound = game.settings.get(MODULE.ID, 'combatTimerCriticalSound');
             if (criticalSound !== 'none') {
                 playSound(criticalSound, this.getTimerVolume());
             }
             
             // Show critical warning notification
             if (this.shouldShowNotification()) {
-                const message = game.settings.get(MODULE_ID, 'combatTimerCriticalMessage');
+                const message = game.settings.get(MODULE.ID, 'combatTimerCriticalMessage');
                 const formattedMessage = this.getFormattedMessage(message);
                 ui.notifications.warn(formattedMessage);
 
                 // Send critical warning chat message if GM and setting enabled
-                if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnRunningOut')) {
+                if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerExpiringSoon: true,
                         expiringSoonMessage: message
@@ -742,7 +742,7 @@ class CombatTimer {
             if (this.state.showingMessage) {
                 // Show expired message if timer is at 0
                 if (this.state.remaining <= 0) {
-                    const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
+                    const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                         .replace('{name}', game.combat?.combatant?.name || '');
                     $('.combat-timer-text').text(message);
                 }
@@ -754,7 +754,7 @@ class CombatTimer {
             if (this.state.isPaused) {
                 timerText.text('COMBAT TIMER PAUSED');
             } else if (this.state.remaining <= 0) {
-                const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage')
+                const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                     .replace('{name}', game.combat?.combatant?.name || '');
                 timerText.text(message);
             } else {
@@ -790,18 +790,18 @@ class CombatTimer {
         }
 
         // Play sound if configured
-        const timeUpSound = game.settings.get(MODULE_ID, 'combatTimeisUpSound');
+        const timeUpSound = game.settings.get(MODULE.ID, 'combatTimeisUpSound');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
 
         // Show notification and send chat message if enabled
         if (this.shouldShowNotification() && game.user.isGM) {
-            const message = game.settings.get(MODULE_ID, 'combatTimerExpiredMessage');
+            const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage');
             ui.notifications.warn(message.replace('{name}', game.combat?.combatant?.name || ''));
 
             // Send expired chat message if setting enabled
-            if (game.settings.get(MODULE_ID, 'timerChatTurnEnded')) {
+            if (game.settings.get(MODULE.ID, 'timerChatTurnEnded')) {
                 this.sendChatMessage({
                     isTimerExpired: true,
                     expiredMessage: message
@@ -810,10 +810,10 @@ class CombatTimer {
         }
 
         // Auto-advance turn if enabled
-        if (game.settings.get(MODULE_ID, 'combatTimerEndTurn')) {
+        if (game.settings.get(MODULE.ID, 'combatTimerEndTurn')) {
             game.combat?.nextTurn();
             if (this.shouldShowNotification()) {
-                const message = game.settings.get(MODULE_ID, 'combatTimerAutoAdvanceMessage');
+                const message = game.settings.get(MODULE.ID, 'combatTimerAutoAdvanceMessage');
                 ui.notifications.info(message.replace('{name}', game.combat?.combatant?.name || ''));
             }
         }
@@ -834,7 +834,7 @@ class CombatTimer {
 
     static shouldShowNotification() {
         // Check override list first
-        const overrideList = game.settings.get(MODULE_ID, 'timerNotificationOverride');
+        const overrideList = game.settings.get(MODULE.ID, 'timerNotificationOverride');
         if (overrideList.trim()) {
             // Get current combatant name
             const combat = game.combat;
@@ -849,7 +849,7 @@ class CombatTimer {
         }
         
         // If not in override list, use general setting
-        return game.settings.get(MODULE_ID, 'timerShowNotifications');
+        return game.settings.get(MODULE.ID, 'timerShowNotifications');
     }
 
     static resetTimer() {
@@ -857,7 +857,7 @@ class CombatTimer {
             isPaused: this.state.isPaused, 
             remaining: this.state.remaining,
             timer: this.timer ? "active" : "null"
-        }, false, true, false);
+        }, true, false);
 
         // Clear any existing timer
         if (this.timer) clearInterval(this.timer);
@@ -870,8 +870,8 @@ class CombatTimer {
         $('.combat-timer-progress').removeClass('expired');
         
         // Start fresh timer with chat message
-        if (game.user.isGM && game.settings.get(MODULE_ID, 'timerChatTurnStart')) {
-            const duration = Math.floor(game.settings.get(MODULE_ID, 'combatTimerDuration') / 60);
+        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnStart')) {
+            const duration = Math.floor(game.settings.get(MODULE.ID, 'combatTimerDuration') / 60);
             this.sendChatMessage({
                 isTimerStart: true,
                 duration: duration
@@ -886,7 +886,7 @@ class CombatTimer {
             isPaused: this.state.isPaused, 
             remaining: this.state.remaining,
             timer: this.timer ? "active" : "null"
-        }, false, true, false);
+        }, true, false);
     }
 
     endTurn() {

@@ -2,7 +2,7 @@
 // ===== TOKEN IMAGE REPLACEMENT CACHING SYSTEM =====================
 // ================================================================== 
 
-import { MODULE, MODULE_ID, MODULE_TITLE, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class TokenImageReplacement {
@@ -105,12 +105,12 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing cache system...", "", false, false);
         
         // Only initialize if the feature is enabled
-        if (!game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled')) {
+        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Feature disabled in settings", "", false, false);
             return;
         }
         
-        const basePath = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         if (!basePath) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No base path configured", "", false, false);
             return;
@@ -351,7 +351,7 @@ export class TokenImageReplacement {
      */
     static _isInvalidFilePath(filePath) {
         // Check if strict validation is enabled
-        if (!game.settings.get(MODULE_ID, 'tokenImageReplacementStrictValidation')) {
+        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementStrictValidation')) {
             return false; // Skip validation if strict mode is disabled
         }
         
@@ -457,7 +457,7 @@ export class TokenImageReplacement {
      */
     static findMatchingImage(tokenDocument) {
         // Check if feature is enabled
-        if (!game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled')) {
+        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
             return null;
         }
         
@@ -491,7 +491,7 @@ export class TokenImageReplacement {
      */
     static _shouldUpdateToken(tokenDocument) {
         // Skip linked tokens if setting is enabled
-        if (game.settings.get(MODULE_ID, 'tokenImageReplacementSkipLinked') && tokenDocument.actorLink) {
+        if (game.settings.get(MODULE.ID, 'tokenImageReplacementSkipLinked') && tokenDocument.actorLink) {
             return false;
         }
         
@@ -500,14 +500,14 @@ export class TokenImageReplacement {
         
         switch (actorType) {
             case 'npc':
-                return game.settings.get(MODULE_ID, 'tokenImageReplacementUpdateNPCs');
+                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateNPCs');
             case 'vehicle':
-                return game.settings.get(MODULE_ID, 'tokenImageReplacementUpdateVehicles');
+                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateVehicles');
             case 'character':
-                return game.settings.get(MODULE_ID, 'tokenImageReplacementUpdateActors');
+                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateActors');
             default:
                 // Assume monster for other types
-                return game.settings.get(MODULE_ID, 'tokenImageReplacementUpdateMonsters');
+                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateMonsters');
         }
     }
     
@@ -672,7 +672,7 @@ export class TokenImageReplacement {
             return;
         }
         
-        if (!game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled')) {
+        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", false, false);
             return;
         }
@@ -751,7 +751,7 @@ export class TokenImageReplacement {
      * Refresh the cache
      */
     static async refreshCache() {
-        const basePath = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
@@ -869,8 +869,8 @@ export class TokenImageReplacement {
         }
         
         // Check settings
-        const enabled = game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled');
-        const path = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        const enabled = game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled');
+        const path = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Feature enabled: ${enabled}`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Base path: ${path || 'Not configured'}`, "", false, false);
@@ -883,8 +883,8 @@ export class TokenImageReplacement {
      */
     static getIntegrationStatus() {
         const status = {
-            featureEnabled: game.settings.get(MODULE_ID, 'tokenImageReplacementEnabled'),
-            basePathConfigured: !!game.settings.get(MODULE_ID, 'tokenImageReplacementPath'),
+            featureEnabled: game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled'),
+            basePathConfigured: !!game.settings.get(MODULE.ID, 'tokenImageReplacementPath'),
             cacheReady: this.cache.files.size > 0,
             hookRegistered: false,
             totalFiles: this.cache.files.size,
@@ -988,7 +988,7 @@ export class TokenImageReplacement {
     static async forceRefreshCache() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
         this._clearCacheFromStorage();
-        const basePath = game.settings.get(MODULE_ID, 'tokenImageReplacementPath');
+        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }

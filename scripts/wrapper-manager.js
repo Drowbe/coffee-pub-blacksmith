@@ -1,4 +1,4 @@
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 
 /**
@@ -70,7 +70,7 @@ export class WrapperManager {
                         }
 
                         // Only handle if custom clicks are enabled
-                        const blnCustomClicks = game.settings.get(MODULE_ID, 'enableSceneClickBehaviors');
+                        const blnCustomClicks = game.settings.get(MODULE.ID, 'enableSceneClickBehaviors');
 
                         
                         if (!blnCustomClicks) {
@@ -124,7 +124,7 @@ export class WrapperManager {
             for (const reg of wrapperRegistrations) {
                 try {
     
-                    libWrapper.register(MODULE_ID, reg.target, reg.callback, reg.type);
+                    libWrapper.register(MODULE.ID, reg.target, reg.callback, reg.type);
 
                 } catch (wrapError) {
                     console.error(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError);
@@ -241,7 +241,7 @@ export class WrapperManager {
      * @private
      */
     static _updateSceneIcons() {
-        const blnShowIcons = game.settings.get(MODULE_ID, 'enableSceneInteractions');
+        const blnShowIcons = game.settings.get(MODULE.ID, 'enableSceneInteractions');
         if (!blnShowIcons) return;
 
         game.scenes.forEach(scene => {

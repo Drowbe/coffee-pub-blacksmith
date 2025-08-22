@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
 import { ThirdPartyManager } from './third-party.js';
 import { ChatPanel } from "./chat-panel.js";
@@ -58,8 +58,8 @@ const STATUS = {
 
 // Validate if token movement is allowed and return movement context
 function validateMovement(tokenDocument, changes, userId) {
-    const currentMovement = getSettingSafely(MODULE_ID, 'movementType', 'none');
-    const partyLeaderUserId = getSettingSafely(MODULE_ID, 'partyLeader', null);
+    const currentMovement = getSettingSafely(MODULE.ID, 'movementType', 'none');
+    const partyLeaderUserId = getSettingSafely(MODULE.ID, 'partyLeader', null);
     const movedByLeader = userId === partyLeaderUserId;
     const movedByGM = game.users.get(userId)?.isGM;
     
@@ -119,7 +119,7 @@ function getSortedFollowers() {
 // Check if a token is being moved as part of automated movement
 function isAutomatedMovement(token, changes) {
     return tokenFollowers.has(token.id) && 
-           (processingCongaMovement || changes.flags?.[MODULE_ID]?.congaMovement);
+           (processingCongaMovement || changes.flags?.[MODULE.ID]?.congaMovement);
 }
 
 // Handle initial setup or GM reordering of tokens
@@ -154,7 +154,7 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
 // Remove or comment out the ready hook and replace with init hook for socket setup only
 Hooks.once('init', () => {
     // Register socket listeners for movement changes
-    game.socket.on(`module.${MODULE_ID}`, (message) => {
+    game.socket.on(`module.${MODULE.ID}`, (message) => {
         if (message.type === 'movementChange' && !game.user.isGM) {
             ui.notifications.info(`Movement type changed to: ${message.data.name}`);
             
@@ -205,7 +205,7 @@ export class MovementConfig extends Application {
     getData() {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const currentSpacing = game.settings.get(MODULE_ID, 'tokenSpacing') || 0;
+        const currentSpacing = game.settings.get(MODULE.ID, 'tokenSpacing') || 0;
 
         return {
             currentSpacing,
@@ -256,7 +256,7 @@ export class MovementConfig extends Application {
         // Add change handler for spacing slider
         html.find('.token-spacing-slider').on('input change', async (event) => {
             const spacing = parseInt(event.currentTarget.value);
-            await game.settings.set(MODULE_ID, 'tokenSpacing', spacing);
+            await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
             tokenSpacing = spacing; // Update the local variable
             
             // Update the display value
@@ -275,7 +275,7 @@ export class MovementConfig extends Application {
         processingCongaMovement = false;
 
         // Store the movement type in game settings
-        await game.settings.set(MODULE_ID, 'movementType', movementId);
+        await game.settings.set(MODULE.ID, 'movementType', movementId);
 
         // Play movement change sound
         playSound(COFFEEPUB.SOUNDBUTTON05, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -286,7 +286,7 @@ export class MovementConfig extends Application {
 
         // Special handling for conga/follow movement
         if (movementId === 'conga-movement' || movementId === 'follow-movement') {
-            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             if (!leaderData?.actorId) {
                 ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
             } else {
@@ -340,7 +340,7 @@ export class MovementConfig extends Application {
         if (movementLabel) movementLabel.textContent = movementType.name;
 
         // Notify all users about the movement change
-        game.socket.emit(`module.${MODULE_ID}`, {
+        game.socket.emit(`module.${MODULE.ID}`, {
             type: 'movementChange',
             data: {
                 movementId,
@@ -354,12 +354,12 @@ export class MovementConfig extends Application {
 
     // Helper method to get current movement type
     static getCurrentMovementType() {
-        return game.settings.get(MODULE_ID, 'movementType') || 'normal-movement';
+        return game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
     }
 
     static getLeaderToken() {
         try {
-            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             if (!leaderData?.actorId) return null;
 
             // Find the first token for this actor in the current scene
@@ -373,7 +373,7 @@ export class MovementConfig extends Application {
 
     static isLeaderToken(token) {
         try {
-            const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             return token.actor?.id === leaderData?.actorId;
         } catch (error) {
             return false;
@@ -383,7 +383,7 @@ export class MovementConfig extends Application {
 
 // Add debug function to check the current leader
 function checkPartyLeader() {
-    const leaderData = game.settings.get(MODULE_ID, 'partyLeader');
+    const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
     
     if (!leaderData?.actorId) {
         ui.notifications.warn("No party leader set. Please set a party leader in settings.");
@@ -411,12 +411,12 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
     if (!changes.x && !changes.y) return true;
 
     try {
-        if (!game.settings.settings.get(`${MODULE_ID}.movementType`)) {
+        if (!game.settings.settings.get(`${MODULE.ID}.movementType`)) {
             // If setting doesn't exist yet, allow movement
             return true;
         }
 
-        const currentMovement = game.settings.get(MODULE_ID, 'movementType');
+        const currentMovement = game.settings.get(MODULE.ID, 'movementType');
         
         // Check if this is conga or follow mode
         if (currentMovement === 'conga-movement' || currentMovement === 'follow-movement') {
@@ -424,7 +424,7 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
             if (game.user.isGM) return true;
             
             // Get party leader user
-            const partyLeaderUserId = game.settings.get(MODULE_ID, 'partyLeader');
+            const partyLeaderUserId = game.settings.get(MODULE.ID, 'partyLeader');
             
             // If the moving user is the party leader, allow movement
             if (game.user.id === partyLeaderUserId) {
@@ -661,7 +661,7 @@ async function processFollowMovement(sortedFollowers) {
                 const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
                 const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
                 const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-                const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+                const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
 
                 if (distance > distanceThreshold) {
                     if (state.status !== STATUS.TOO_FAR) {
@@ -690,7 +690,7 @@ async function processFollowMovement(sortedFollowers) {
     }
 
         // Calculate target position based on marching order
-        const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+        const spacing = game.settings.get(MODULE.ID, 'tokenSpacing');
         const targetIndex = Math.min(state.marchPosition * (spacing + 1), leaderMovementPath.length - 1);
         const targetPoint = leaderMovementPath[targetIndex];
         
@@ -719,7 +719,7 @@ async function processFollowMovement(sortedFollowers) {
                     x: step.x,
                     y: step.y,
         flags: {
-            [MODULE_ID]: {
+            [MODULE.ID]: {
                             followMovement: true
                         }
                     }
@@ -871,7 +871,7 @@ function processCongaMovement(sortedFollowers) {
                 x: position.x,
                 y: position.y,
                 flags: {
-                    [MODULE_ID]: {
+                    [MODULE.ID]: {
                         congaMovement: true
                     }
                 }
@@ -914,7 +914,7 @@ async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMo
         const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
         const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
         const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-        const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+        const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
         
 
         
@@ -1018,7 +1018,7 @@ async function postMarchingOrder() {
     if (!leaderToken) return;
 
     // Get current movement type
-    const currentMovement = game.settings.get(MODULE_ID, 'movementType');
+    const currentMovement = game.settings.get(MODULE.ID, 'movementType');
     const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === currentMovement);
     
     // Create marching order array
@@ -1063,7 +1063,7 @@ async function postMarchingOrder() {
     });
 
     // Get spacing text
-    const spacing = game.settings.get(MODULE_ID, 'tokenSpacing');
+    const spacing = game.settings.get(MODULE.ID, 'tokenSpacing');
     const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
 
     // Create chat message
@@ -1089,7 +1089,7 @@ async function checkTokenStatus(token, leaderToken) {
     const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
     const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
     const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-    const distanceThreshold = game.settings.get(MODULE_ID, 'movementTooFarDistance');
+    const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
     
     if (distance > distanceThreshold) {
         return STATUS.TOO_FAR;
@@ -1133,7 +1133,7 @@ Hooks.on('createCombat', async (combat) => {
         if (!game.user.isGM) return;
         
         // Store current movement mode
-        preCombatMovementMode = game.settings.get(MODULE_ID, 'movementType');
+        preCombatMovementMode = game.settings.get(MODULE.ID, 'movementType');
         
         // Get the previous mode's name
         const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
@@ -1142,7 +1142,7 @@ Hooks.on('createCombat', async (combat) => {
         
         // Switch to combat movement mode
         if (preCombatMovementMode !== 'combat-movement') {
-            await game.settings.set(MODULE_ID, 'movementType', 'combat-movement');
+            await game.settings.set(MODULE.ID, 'movementType', 'combat-movement');
             
             // For combat start
             const combatTemplateData = {
@@ -1168,7 +1168,7 @@ Hooks.on('createCombat', async (combat) => {
             if (movementLabel) movementLabel.textContent = 'Combat';
             
             // Notify other clients
-            game.socket.emit(`module.${MODULE_ID}`, {
+            game.socket.emit(`module.${MODULE.ID}`, {
                 type: 'movementChange',
                 data: {
                     movementId: 'combat-movement',
@@ -1193,7 +1193,7 @@ Hooks.on('deleteCombat', async (combat) => {
         if (!movementType) return;
         
         // Restore previous movement mode
-        await game.settings.set(MODULE_ID, 'movementType', preCombatMovementMode);
+        await game.settings.set(MODULE.ID, 'movementType', preCombatMovementMode);
         
         // For combat end
         const endCombatTemplateData = {
@@ -1219,7 +1219,7 @@ Hooks.on('deleteCombat', async (combat) => {
         if (movementLabel) movementLabel.textContent = movementType.name;
         
         // Notify other clients
-        game.socket.emit(`module.${MODULE_ID}`, {
+        game.socket.emit(`module.${MODULE.ID}`, {
             type: 'movementChange',
             data: {
                 movementId: preCombatMovementMode,

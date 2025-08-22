@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH, API_VERSION } from './const.js';
+import { MODULE, BLACKSMITH, API_VERSION } from './const.js';
 
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
@@ -171,8 +171,8 @@ export function getCachedSetting(settingKey, defaultValue = null) {
     // Setting not cached or expired, retrieve it safely
     let value;
     try {
-        if (game.settings.settings.has(`${MODULE_ID}.${settingKey}`)) {
-            value = game.settings.get(MODULE_ID, settingKey);
+        if (game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+            value = game.settings.get(MODULE.ID, settingKey);
         } else {
             value = defaultValue;
         }
@@ -234,13 +234,13 @@ Hooks.once('ready', async () => {
         
         // Double-check that settings are ready
         let retries = 0;
-        while (!game.settings.settings.has(`${MODULE_ID}.trackCombatStats`) && retries < 10) {
+        while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 10) {
             console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
             await new Promise(resolve => setTimeout(resolve, 500));
             retries++;
         }
         
-        if (!game.settings.settings.has(`${MODULE_ID}.trackCombatStats`)) {
+        if (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`)) {
             console.error('Blacksmith: Settings failed to load after multiple attempts, skipping initialization');
             return;
         }
@@ -256,8 +256,8 @@ Hooks.once('ready', async () => {
 
         // Apply any existing custom CSS
         const editor = new CSSEditor();
-        const css = getSettingSafely(MODULE_ID, 'customCSS', null);
-        const transition = getSettingSafely(MODULE_ID, 'cssTransition', null);
+        const css = getSettingSafely(MODULE.ID, 'customCSS', null);
+        const transition = getSettingSafely(MODULE.ID, 'cssTransition', null);
         if (css) {
             editor.applyCSS(css, transition);
         }
@@ -342,7 +342,7 @@ function initializeSettingsDependentFeatures() {
     updateMargins();
     
     // Set default card theme
-    let strDefaultCardTheme = getSettingSafely(MODULE_ID, 'defaultCardTheme', 'default');
+    let strDefaultCardTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
 
     // *** CHECK FOR MACRO BUTTONS ***
@@ -363,8 +363,8 @@ function initializeSettingsDependentFeatures() {
 
     // Function to initialize scene interactions
     function initializeSceneInteractions() {
-        const blnShowIcons = getSettingSafely(MODULE_ID, 'enableSceneInteractions', false);
-        const blnCustomClicks = getSettingSafely(MODULE_ID, 'enableSceneClickBehaviors', false);
+        const blnShowIcons = getSettingSafely(MODULE.ID, 'enableSceneInteractions', false);
+        const blnCustomClicks = getSettingSafely(MODULE.ID, 'enableSceneClickBehaviors', false);
         
         // Initial icon update if enabled
         if (blnShowIcons) {
@@ -431,7 +431,7 @@ Hooks.once('init', async function() {
     if (socketlibModule?.active) {
         const socketlib = socketlibModule.api;
         if (socketlib) {
-            const socket = socketlib.registerModule(MODULE_ID);
+            const socket = socketlib.registerModule(MODULE.ID);
             
             // Register skill roll handler
             socket.register('updateSkillRoll', (data) => {
@@ -459,7 +459,7 @@ Hooks.once('init', async function() {
             });
 
             // Store socket for use in other parts of the module
-            game.modules.get(MODULE_ID).socket = socket;
+            game.modules.get(MODULE.ID).socket = socket;
         } else {
             postConsoleAndNotification(MODULE.NAME, 'SocketLib API not found, some features may be limited', "", false, false);
         }
@@ -489,13 +489,13 @@ Hooks.once('init', async function() {
     
     // Clear settings cache when settings change
     Hooks.on('settingChange', (moduleId, settingKey, value) => {
-        if (moduleId === MODULE_ID) {
+        if (moduleId === MODULE.ID) {
             clearSettingsCache();
         }
     });
     
     // Expose our API on the module
-    const module = game.modules.get(MODULE_ID);
+    const module = game.modules.get(MODULE.ID);
     module.api = {
         ModuleManager,
         registerModule: ModuleManager.registerModule.bind(ModuleManager),
@@ -513,7 +513,7 @@ Hooks.once('init', async function() {
     addToolbarButton();
 
     // Set up socket handler for CSS updates
-    game.socket.on(`module.${MODULE_ID}`, data => {
+    game.socket.on(`module.${MODULE.ID}`, data => {
         switch (data.type) {
             case 'updateCSS':
                 const editor = new CSSEditor();
@@ -699,7 +699,7 @@ export function buildButtonEventRegent(worksheet = 'default') {
 // ***************************************************
 
 Hooks.on('renderJournalSheet', (app, html, data) => {
-    let blnJournalDoubleClick = game.settings.get(MODULE_ID, 'enableJournalDoubleClick');
+    let blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
     // See if they want to enable double-click
     if (blnJournalDoubleClick) {
         // Enable the double-click
@@ -785,13 +785,13 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
   for (const { placeholder, key } of settings) {
     let value = undefined;
     try {
-      value = game.settings.get(MODULE_ID, key);
+      value = game.settings.get(MODULE.ID, key);
     } catch (e) {}
     // Special logic for image path
     if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
       if (value === 'custom') {
         try {
-          value = game.settings.get(MODULE_ID, 'narrativeDefaultImagePath');
+          value = game.settings.get(MODULE.ID, 'narrativeDefaultImagePath');
         } catch (e) {}
       }
     }
@@ -818,13 +818,13 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
   for (const { placeholder, key } of settings) {
     let value = undefined;
     try {
-      value = game.settings.get(MODULE_ID, key);
+      value = game.settings.get(MODULE.ID, key);
     } catch (e) {}
     // Special logic for image path
     if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
       if (value === 'custom') {
         try {
-          value = game.settings.get(MODULE_ID, 'encounterDefaultImagePath');
+          value = game.settings.get(MODULE.ID, 'encounterDefaultImagePath');
         } catch (e) {}
       }
     }
@@ -1460,7 +1460,7 @@ export class ThirdPartyManager {
             });
 
             // Broadcast the final result to all clients for UI updates (like cinematic mode)
-            game.socket.emit(`module.${MODULE_ID}`, {
+            game.socket.emit(`module.${MODULE.ID}`, {
                 type: 'skillRollFinalized',
                 data: {
                     messageId: message.id,
@@ -1598,7 +1598,7 @@ export async function handleSkillRollUpdate(data) {
     });
 
     // Broadcast the final result to all clients for UI updates (like cinematic mode)
-    game.socket.emit(`module.${MODULE_ID}`, {
+    game.socket.emit(`module.${MODULE.ID}`, {
         type: 'skillRollFinalized',
         data: {
             messageId: message.id,
@@ -1631,7 +1631,7 @@ export async function handleSkillRollUpdate(data) {
 async function getItemPromptWithDefaults(itemPrompt) {
   let value = '';
   try {
-    value = game.settings.get(MODULE_ID, 'defaultCampaignName');
+    value = game.settings.get(MODULE.ID, 'defaultCampaignName');
   } catch (e) {}
   if (value) {
     return itemPrompt.split('[ADD-ITEM-SOURCE-HERE]').join(value);
@@ -1684,7 +1684,7 @@ async function guessIconPath(item) {
   const lootType = (item.itemLootType || '').toLowerCase();
 
   // Check if enhanced image guessing is enabled
-  const enhancedEnabled = game.settings.get(MODULE_ID, 'enableEnhancedImageGuessing');
+  const enhancedEnabled = game.settings.get(MODULE.ID, 'enableEnhancedImageGuessing');
 
   // Load the comprehensive synonym mapping
   let synonymMapping = {};

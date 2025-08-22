@@ -1,5 +1,5 @@
 // Import required modules
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { CPBPlayerStats } from './player-stats.js';
 import { CombatStats } from './combat-stats.js';
 

@@ -22,7 +22,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB } from './global.js';
 // get the common utilities
 import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';
@@ -385,7 +385,7 @@ export async function createJournalEntry(journalData) {
 async function findMonsterUUID(monsterData) {
     // If we're passed a string, use the same logic as buildCompendiumLinkActor
     if (typeof monsterData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldActorsFirst');
+        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldActorsFirst');
         // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
         const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
         
@@ -404,7 +404,7 @@ async function findMonsterUUID(monsterData) {
         
         // Check up to 8 compendium settings in order
         for (let i = 1; i <= 8; i++) {
-            const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
+            const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             
             const compendium = game.packs.get(compendiumSetting);
@@ -448,7 +448,7 @@ export async function createHTMLList(monsterString) {
 export async function buildCompendiumLinkActor(monsterData) {
     // If we're passed a string, use the legacy behavior
     if (typeof monsterData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldActorsFirst');
+        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldActorsFirst');
         // Extract the count if it exists (matches the last parenthetical number)
         const countMatch = monsterData.match(/\((\d+)\)[^(]*$/);
         const count = countMatch ? countMatch[1] : null;
@@ -477,7 +477,7 @@ export async function buildCompendiumLinkActor(monsterData) {
         // Check up to 8 compendium settings in order
         let found = false;
         for (let i = 1; i <= 8; i++) {
-            const compendiumSetting = game.settings.get(MODULE_ID, `monsterCompendium${i}`);
+            const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);
             if (compendium) {
@@ -509,7 +509,7 @@ export async function buildCompendiumLinkActor(monsterData) {
 
 export async function buildCompendiumLinkItem(itemData) {
     if (typeof itemData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE_ID, 'searchWorldItemsFirst');
+        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldItemsFirst');
         const originalName = itemData;
         const strItemName = itemData.trim();
         let strItemID;
@@ -529,7 +529,7 @@ export async function buildCompendiumLinkItem(itemData) {
         }
         // Check up to 8 compendium settings in order
         for (let i = 1; i <= 8; i++) {
-            const compendiumSetting = game.settings.get(MODULE_ID, `itemCompendium${i}`);
+            const compendiumSetting = game.settings.get(MODULE.ID, `itemCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);
             if (compendium) {

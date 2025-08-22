@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, MODULE_TITLE, MODULE_ID, BLACKSMITH } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
 import { ThirdPartyManager } from './third-party.js';
@@ -43,7 +43,7 @@ export class PlanningTimer {
             // Check if we're loading into an active combat with planning phase
             if (game.combat?.started && game.combat.turn === 0) {
         
-                const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
                 this.startTimer(duration, true);
                 ui.combat.render(true);
             }
@@ -123,7 +123,7 @@ export class PlanningTimer {
 
         // Safely check if planning timer is enabled
         try {
-            if (!game.settings.get(MODULE_ID, 'planningTimerEnabled')) return;
+            if (!game.settings.get(MODULE.ID, 'planningTimerEnabled')) return;
         } catch (error) {
             return;
         }
@@ -158,7 +158,7 @@ export class PlanningTimer {
         this.state.isExpired = false;
         this.cleanupTimer();
 
-        const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
         this.startTimer(duration, true);
 
         requestAnimationFrame(() => ui.combat.render(true));
@@ -171,7 +171,7 @@ export class PlanningTimer {
         // Ensure combat timer is cleaned up
         Hooks.callAll('combatTimerCleanup');
 
-        const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
         this.startTimer(duration, true);
 
         setTimeout(() => ui.combat.render(true), 100);
@@ -183,7 +183,7 @@ export class PlanningTimer {
             this.cleanupTimer();
             Hooks.callAll('combatTimerCleanup');
 
-            const duration = game.settings.get(MODULE_ID, 'planningTimerDuration');
+            const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
             this.startTimer(duration, true);
 
             setTimeout(() => ui.combat.render(true), 100);
@@ -208,7 +208,7 @@ export class PlanningTimer {
         if (!this.verifyTimerConditions()) return;
 
         // Get label from settings
-        const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+        const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
         
         const timerHtml = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/planning-timer.hbs',
@@ -257,7 +257,7 @@ export class PlanningTimer {
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
         
-        const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+        const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
         const newTime = Math.round(timeLimit * percentage);
         
         this.setTime(newTime);
@@ -277,7 +277,7 @@ export class PlanningTimer {
         CombatStats.recordTimerPause();
 
         // Play pause/resume sound if configured (for all clients)
-        const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+        const pauseResumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
         if (pauseResumeSound !== 'none') {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
@@ -309,21 +309,21 @@ export class PlanningTimer {
                 this.syncState();
 
                 // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
                 const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
                 // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
+                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
                 if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
                     // Play ending soon sound (for all clients)
-                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
+                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
                     
                     // Show ending soon notification and send chat message (GM only)
                     if (this.shouldShowNotification() && game.user.isGM) {
-                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
+                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
                         ui.notifications.warn(message);
                         this.sendChatMessage({
                             isTimerWarning: true,
@@ -341,7 +341,7 @@ export class PlanningTimer {
             CombatStats.recordTimerUnpause();
             
             // Play pause/resume sound (for all clients)
-            const pauseResumeSound = game.settings.get(MODULE_ID, 'timerPauseResumeSound');
+            const pauseResumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
             if (pauseResumeSound !== 'none') {
                 playSound(pauseResumeSound, this.getTimerVolume());
             }
@@ -379,21 +379,21 @@ export class PlanningTimer {
                 this.syncState();
 
                 // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
                 const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
                 // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
+                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
                 if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
                     // Play ending soon sound
-                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
+                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
                     
                     // Show ending soon notification
                     if (this.shouldShowNotification()) {
-                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
+                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
                         ui.notifications.warn(message);
                     }
                 }
@@ -417,12 +417,12 @@ export class PlanningTimer {
     }
 
     static getTimerVolume() {
-        return game.settings.get(MODULE_ID, 'timerSoundVolume');
+        return game.settings.get(MODULE.ID, 'timerSoundVolume');
     }
 
     static verifyTimerConditions() {
         try {
-            if (!game.settings.get(MODULE_ID, 'planningTimerEnabled')) return false;
+            if (!game.settings.get(MODULE.ID, 'planningTimerEnabled')) return false;
         } catch (error) {
             return false;
         }
@@ -431,7 +431,7 @@ export class PlanningTimer {
         if (game.combat.turn !== 0) return false;
         if (this.state.isExpired) return false;
 
-        const isGMOnly = game.settings.get(MODULE_ID, 'combatTimerGMOnly');
+        const isGMOnly = game.settings.get(MODULE.ID, 'combatTimerGMOnly');
         if (isGMOnly && !game.user.isGM) return false;
 
         return true;
@@ -447,20 +447,20 @@ export class PlanningTimer {
 
         // If no duration provided, get from settings
         if (duration === null) {
-            duration = game.settings.get(MODULE_ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
+            duration = game.settings.get(MODULE.ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
         }
 
         this.state.remaining = duration;
         this.state.duration = duration;  // Store duration in state
         this.state.isActive = true;
-        this.state.isPaused = !game.settings.get(MODULE_ID, 'planningTimerAutoStart');
+        this.state.isPaused = !game.settings.get(MODULE.ID, 'planningTimerAutoStart');
         this.state.showingMessage = false;
         this.state.isExpired = false;
 
         // Send chat message for planning start if GM and timer is at full duration
-        if (game.user.isGM && duration === game.settings.get(MODULE_ID, 'planningTimerDuration')) {
+        if (game.user.isGM && duration === game.settings.get(MODULE.ID, 'planningTimerDuration')) {
             // Check if the setting is enabled before sending the message
-            if (game.settings.get(MODULE_ID, 'timerChatPlanningStart')) {
+            if (game.settings.get(MODULE.ID, 'timerChatPlanningStart')) {
                 this.sendChatMessage({
                     isPlanningStart: true,
                     duration: Math.floor(duration / 60)
@@ -479,21 +479,21 @@ export class PlanningTimer {
                 this.syncState();
 
                 // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE_ID, 'planningTimerDuration');
+                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
                 const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
                 // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE_ID, 'planningTimerEndingSoonThreshold');
+                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
                 if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
                     // Play ending soon sound (for all clients)
-                    const endingSoonSound = game.settings.get(MODULE_ID, 'planningTimerEndingSoonSound');
+                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
                     
                     // Show ending soon notification and send chat message (GM only)
                     if (this.shouldShowNotification() && game.user.isGM) {
-                        const message = game.settings.get(MODULE_ID, 'planningTimerEndingSoonMessage');
+                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
                         ui.notifications.warn(message);
                         this.sendChatMessage({
                             isTimerWarning: true,
@@ -545,10 +545,10 @@ export class PlanningTimer {
             const timerText = $('.planning-timer-text');
             if (!timerText.length) return;
             
-            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
 
             if (this.state.remaining <= 0) {
-                timerText.text(game.settings.get(MODULE_ID, 'planningTimerExpiredMessage'));
+                timerText.text(game.settings.get(MODULE.ID, 'planningTimerExpiredMessage'));
             } else if (this.state.isPaused) {
                 timerText.text(`${label} TIMER PAUSED`);
             } else {
@@ -568,7 +568,7 @@ export class PlanningTimer {
 
     static shouldShowNotification() {
         // Planning timer just uses the general notification setting
-        return game.settings.get(MODULE_ID, 'timerShowNotifications');
+        return game.settings.get(MODULE.ID, 'timerShowNotifications');
     }
 
     static async timeExpired() {
@@ -579,20 +579,20 @@ export class PlanningTimer {
         this.cleanupTimer();
             
         // Play expiration sound if configured
-        const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
+        const timeUpSound = game.settings.get(MODULE.ID, 'planningTimerExpiredSound');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
             
         // Show notification if enabled
         if (this.shouldShowNotification()) {
-            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
         }
 
         // Send chat message for timer expiration if GM
         if (game.user.isGM) {
-            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
             await this.sendChatMessage({
                 isTimerExpired: true,
                 expiredMessage: `${label} Has Ended`
@@ -664,14 +664,14 @@ export class PlanningTimer {
         this.state.remaining = 0;
         
         // Play expiration sound if configured
-        const timeUpSound = game.settings.get(MODULE_ID, 'planningTimerExpiredSound');
+        const timeUpSound = game.settings.get(MODULE.ID, 'planningTimerExpiredSound');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
         
         // Show notification if enabled
         if (this.shouldShowNotification()) {
-            const label = game.settings.get(MODULE_ID, 'planningTimerLabel');
+            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
             ui.notifications.info(`${label} Has Ended`);
         }
         
@@ -704,7 +704,7 @@ export class PlanningTimer {
         if (!gmUser) return;
 
         // Get the timer label from settings
-        const timerLabel = game.settings.get(MODULE_ID, 'planningTimerLabel');
+        const timerLabel = game.settings.get(MODULE.ID, 'planningTimerLabel');
 
         // Format duration to include minutes and seconds if it exists
         if (data.duration) {

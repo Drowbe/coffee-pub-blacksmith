@@ -2,7 +2,7 @@
 // ===== XP MANAGER =================================================
 // ================================================================== 
 
-import { MODULE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
 
 export class XpManager {
@@ -59,7 +59,7 @@ export class XpManager {
         }
         
         // Check if XP distribution is enabled
-        const isEnabled = game.settings.get(MODULE_ID, 'enableXpDistribution');
+        const isEnabled = game.settings.get(MODULE.ID, 'enableXpDistribution');
         if (!isEnabled) {
             return;
         }
@@ -98,8 +98,8 @@ export class XpManager {
         const monsters = this.getCombatMonsters(combat);
         const players = this.getCombatPlayers(combat);
 
-        const xpCalculationMethod = game.settings.get(MODULE_ID, 'xpCalculationMethod');
-        const partySizeHandling = game.settings.get(MODULE_ID, 'xpPartySizeHandling');
+        const xpCalculationMethod = game.settings.get(MODULE.ID, 'xpCalculationMethod');
+        const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
         let monsterXpData = [];
         let totalXp = 0;
@@ -309,7 +309,7 @@ export class XpManager {
                 return;
             }
             
-            const isShared = game.settings.get(MODULE_ID, 'shareXpResults');
+            const isShared = game.settings.get(MODULE.ID, 'shareXpResults');
             
             // Create chat message using the same pattern as other systems
             await ChatMessage.create({
@@ -353,7 +353,7 @@ export class XpManager {
             postConsoleAndNotification(MODULE.NAME, 'Rendering template with data', { 
                 xpDataKeys: Object.keys(xpData),
                 resultsLength: results.length 
-            }, false, true, false);
+            }, true, false);
             
             const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
                 xpData: xpData,
@@ -373,11 +373,11 @@ export class XpManager {
      */
     static getResolutionMultipliers() {
         return {
-            DEFEATED: game.settings.get(MODULE_ID, 'xpMultiplierDefeated'),
-            NEGOTIATED: game.settings.get(MODULE_ID, 'xpMultiplierNegotiated'),
-            ESCAPED: game.settings.get(MODULE_ID, 'xpMultiplierEscaped'),
-            IGNORED: game.settings.get(MODULE_ID, 'xpMultiplierIgnored'),
-            CAPTURED: game.settings.get(MODULE_ID, 'xpMultiplierCaptured')
+            DEFEATED: game.settings.get(MODULE.ID, 'xpMultiplierDefeated'),
+            NEGOTIATED: game.settings.get(MODULE.ID, 'xpMultiplierNegotiated'),
+            ESCAPED: game.settings.get(MODULE.ID, 'xpMultiplierEscaped'),
+            IGNORED: game.settings.get(MODULE.ID, 'xpMultiplierIgnored'),
+            CAPTURED: game.settings.get(MODULE.ID, 'xpMultiplierCaptured')
         };
     }
 
@@ -385,7 +385,7 @@ export class XpManager {
      * Get party size multipliers based on settings
      */
     static getPartySizeMultipliers() {
-        const handling = game.settings.get(MODULE_ID, 'xpPartySizeHandling');
+        const handling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
         
         if (handling === 'equal') {
             // Equal division - no multipliers

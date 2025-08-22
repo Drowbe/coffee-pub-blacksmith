@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
-import { MODULE, MODULE_TITLE, MODULE_ID } from './const.js';
+import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { VoteManager } from "./vote-manager.js";
 import { ChatPanel } from "./chat-panel.js";
@@ -22,7 +22,7 @@ export class VoteConfig extends Application {
     getData() {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE_ID, 'partyLeader');
+        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
         const isLeader = game.user.id === leaderId;
         const canStartVote = isGM || isLeader;
 
@@ -33,7 +33,7 @@ export class VoteConfig extends Application {
         }
 
         // Check if user is excluded
-        const excludedUsers = game.settings.get(MODULE_ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
         const isExcluded = excludedUsers.includes(game.user.id) || excludedUsers.includes(game.user.name);
 
         if (isExcluded && !isGM) {

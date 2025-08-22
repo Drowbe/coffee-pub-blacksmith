@@ -1,5 +1,5 @@
-import { MODULE, MODULE_ID, COFFEE_PUB_MODULES } from './const.js';
-import { postConsoleAndNotification } from './global.js';
+import { MODULE } from './const.js';
+import { COFFEEPUB, postConsoleAndNotification } from './global.js';
 
 export class ModuleManager {
     static registeredModules = new Map();
@@ -12,7 +12,7 @@ export class ModuleManager {
 
     static _detectInstalledModules() {
         // Check for each Coffee Pub module
-        Object.entries(COFFEE_PUB_MODULES).forEach(([key, moduleId]) => {
+        Object.entries(COFFEEPUB.MODULES).forEach(([key, moduleId]) => {
             const module = game.modules.get(moduleId);
             if (module?.active) {
                 postConsoleAndNotification(MODULE.NAME, `Detected active module: ${moduleId}`, "", true, false);
