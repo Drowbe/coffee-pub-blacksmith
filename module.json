@@ -2,10 +2,10 @@
   "id": "coffee-pub-blacksmith",
   "title": "Coffee Pub Blacksmith",
   "description": "Quality of life and aesthetic improvements",
-  "version": "12.0.23",
+  "version": "12.1.0",
   
   "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
-  "download": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/download/v12.0.23/module.zip",
+  "download": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/download/v12.1.0/module.zip",
   "url": "https://github.com/Drowbe/coffee-pub-blacksmith",
   "bugs": "https://github.com/Drowbe/coffee-pub-blacksmith/issues",
   "readme": "README.md",
@@ -14,7 +14,8 @@
   
   "compatibility": {
     "minimum": "12",
-    "verified": "12"
+    "verified": "12",
+    "maximum": "12"
   },
   "socket": true,
   "library": true,
@@ -129,6 +130,33 @@
   ],
   
   "relationships": {
+    "recommends": [
+      {
+        "id": "coffee-pub-bibliosoph",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-bibliosoph/releases/latest/download/module.json"
+      },
+      {
+        "id": "coffee-pub-crier",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-crier/releases/latest/download/module.json"
+      },
+      {
+        "id": "coffee-pub-monarch",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-monarch/releases/latest/download/module.json"
+      },
+      {
+        "id": "coffee-pub-scribe",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-scribe/releases/latest/download/module.json"
+      },
+      {
+        "id": "coffee-pub-squire",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-squire/releases/latest/download/module.json"
+      }
+    ],
     "requires": [
       {
         "id": "socketlib",
