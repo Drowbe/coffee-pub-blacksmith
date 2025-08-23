@@ -42,10 +42,21 @@ export class PlanningTimer {
             
             // Check if we're loading into an active combat with planning phase
             if (game.combat?.started && game.combat.turn === 0) {
-        
-                const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                this.startTimer(duration, true);
-                ui.combat.render(true);
+                // Defer planning restoration until CombatStats is ready to prevent race condition
+                if (CombatStats.currentStats) {
+                    const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
+                    this.startTimer(duration, true);
+                    ui.combat.render(true);
+                } else {
+                    // Wait for CombatStats to be ready before restoring planning state
+                    Hooks.once('blacksmithUpdated', () => {
+                        if (game.combat?.started && game.combat.turn === 0) {
+                            const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
+                            this.startTimer(duration, true);
+                            ui.combat.render(true);
+                        }
+                    });
+                }
             }
         });
 
@@ -90,8 +101,8 @@ export class PlanningTimer {
                 this.timer = null;
             }
 
-            // Record planning end for stats if we were active
-            if (this.state.isActive) {
+            // Record planning end for stats if we were active and CombatStats is ready
+            if (this.state.isActive && CombatStats.currentStats) {
                 CombatStats.recordPlanningEnd();
             }
 
@@ -440,8 +451,8 @@ export class PlanningTimer {
     static startTimer(duration = null) {
         if (!this.verifyTimerConditions()) return;
 
-        // Record planning start for stats
-        if (game.user.isGM) {
+        // Record planning start for stats - only if CombatStats is ready
+        if (game.user.isGM && CombatStats.currentStats) {
             CombatStats.recordPlanningStart();
         }
 
@@ -630,8 +641,8 @@ export class PlanningTimer {
             this.timer = null;
         }
 
-        // Record planning end for stats if we were active
-        if (this.state.isActive) {
+        // Record planning end for stats if we were active and CombatStats is ready
+        if (this.state.isActive && CombatStats.currentStats) {
             CombatStats.recordPlanningEnd();
         }
 

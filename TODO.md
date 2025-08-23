@@ -99,13 +99,14 @@
 - **Issue**: Encounter toolbar code exists but is not visible in UI
 - **Location**: `scripts/encounter-toolbar.js`
 
-### 13. CombatStats Initialization Race Condition 🟡 TODO
+### 13. CombatStats Initialization Race Condition ✅ COMPLETED
 - **Issue**: PlanningTimer tries to access CombatStats.currentStats before it's fully initialized
 - **Location**: `scripts/planning-timer.js` line 444 calls `CombatStats.recordPlanningStart()`
 - **Impact**: "Cannot set properties of undefined" error when reloading module during combat
-- **Status**: 🟡 TODO
+- **Status**: ✅ COMPLETED
 - **Plan**: Ensure CombatStats is fully initialized before PlanningTimer tries to use it
 - **Notes**: Race condition between CombatStats.initialize() and PlanningTimer.initialize() during module reload
+- **Solution**: Added safety checks in startTimer(), timerCleanup(), cleanupTimer(), and initialize() methods to defer operations until CombatStats.currentStats is available
 - **Status**: ✅ COMPLETED
 - **Plan**: Implemented persistent toolbar that always shows, with "no encounter" message when metadata is missing
 - **Notes**: Toolbar now appears consistently across all journal entries, ready for future quick encounter creation feature
