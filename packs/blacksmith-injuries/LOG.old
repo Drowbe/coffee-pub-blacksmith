@@ -1,3 +1,7 @@
-2025/08/21-22:20:02.066 6a8c Recovering log #1991
-2025/08/21-22:20:02.072 6a8c Delete type=0 #1991
-2025/08/21-22:20:02.072 6a8c Delete type=3 #1990
+2025/08/22-08:14:15.519 7c58 Recovering log #1993
+2025/08/22-08:14:15.528 7c58 Delete type=0 #1993
+2025/08/22-08:14:15.528 7c58 Delete type=3 #1992
+2025/08/23-16:58:28.217 7ca8 Level-0 table #1997: started
+2025/08/23-16:58:28.217 7ca8 Level-0 table #1997: 0 bytes OK
+2025/08/23-16:58:28.219 7ca8 Delete type=0 #1995
+2025/08/23-16:58:28.223 7ca8 Manual compaction at level-0 from '!journal!AHcl2eLZo5VWNKCD' @ 72057594037927935 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at (end)
