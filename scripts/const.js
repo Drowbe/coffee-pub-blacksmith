@@ -33,6 +33,11 @@ export const BLACKSMITH = {
     // These get overriden as soon as the settings and everything else loads.
     blnDebugOn: false, // Display debug messages
     blnFancyConsole: false, // Display Colorful Console
-    strConsoleDebugStyle: "simple" // Display colors but not boxes
+    strConsoleDebugStyle: "simple", // Display colors but not boxes
+    
+    // Unified Roll System API
+    rolls: {
+        execute: null // Will be set during initialization
+    }
 }
 

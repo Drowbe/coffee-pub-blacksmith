@@ -288,6 +288,10 @@ Hooks.once('ready', async () => {
 
         // Initialize scene interactions
         initializeSceneInteractions();
+        
+        // Initialize the unified roll system API
+        const { executeRoll } = await import('./utils-rolls.js');
+        BLACKSMITH.rolls.execute = executeRoll;
 
     } catch (error) {
         console.error('Error during Blacksmith initialization:', error);

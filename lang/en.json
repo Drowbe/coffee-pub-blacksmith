@@ -99,6 +99,36 @@
 		"journalToolsItemCompendium-Label": "Item Compendium for Link Upgrades",
 		"journalToolsItemCompendium-Hint": "Compendium to use when upgrading item links in journals. Leave empty to skip item link upgrades.",
 
+		"headingH2RollSystem-Label": "Roll System",
+		"headingH2RollSystem-Hint": "Configure the unified roll system and its integrations with other modules.",
+
+		"headingH3RollIntegrations-Label": "Module Integrations",
+		"headingH3RollIntegrations-Hint": "Configure how the roll system integrates with other Foundry modules.",
+
+		"enableDiceSoNice-Label": "Enable Dice So Nice Integration",
+		"enableDiceSoNice-Hint": "When enabled, the roll system will integrate with Dice So Nice for animated dice displays. Requires Dice So Nice module to be installed and active.",
+
+		"enableMidiQOL-Label": "Enable MidiQOL Integration",
+		"enableMidiQOL-Hint": "When enabled, the roll system will leverage MidiQOL for enhanced roll processing and automation. Requires MidiQOL module to be installed and active.",
+
+		"headingH3RollBehavior-Label": "Roll Behavior",
+		"headingH3RollBehavior-Hint": "Configure default roll behavior and available features.",
+
+		"defaultShowDialog-Label": "Default: Show Roll Dialog",
+		"defaultShowDialog-Hint": "When enabled, rolls will show the Foundry roll configuration dialog by default. When disabled, rolls will bypass the dialog and execute immediately.",
+
+		"enableCustomModifiers-Label": "Enable Custom Modifiers",
+		"enableCustomModifiers-Hint": "Allow users to add custom bonuses and penalties to rolls through the roll system.",
+
+		"enableSituationalBonuses-Label": "Enable Situational Bonuses",
+		"enableSituationalBonuses-Hint": "Allow users to add simple numeric bonuses (e.g., +2 for high ground) to rolls.",
+
+		"enableAdvantageDisadvantage-Label": "Enable Advantage/Disadvantage",
+		"enableAdvantageDisadvantage-Hint": "Allow users to roll with advantage or disadvantage through the roll system.",
+
+		"enableCustomFormulas-Label": "Enable Custom Formulas",
+		"enableCustomFormulas-Hint": "Allow users to override the default roll formula with custom calculations.",
+
 		"headingH2Scenes-Label": "Scenes",
 		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 

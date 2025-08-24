@@ -2,6 +2,7 @@
 import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
+import { executeRoll } from './utils-rolls.js';
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
@@ -1592,108 +1593,16 @@ export class SkillCheckDialog extends Application {
                 return;
             }
 
-            const rollOptions = { chatMessage: false, createMessage: false, ...options };
-            let roll;
-
-            switch (type) {
-                case 'dice':
-                    let formula = value;
-                    if (options.advantage) formula = `2d20kh`;
-                    else if (options.disadvantage) formula = `2d20kl`;
-                    roll = new Roll(formula, actor.getRollData());
-                    await roll.evaluate({ async: true });
-                    rollCoffeePubDice(roll);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor);
-                    break;
-                case 'skill':
-                    if (typeof game.dnd5e?.actions?.rollSkill === 'function') {
-                        roll = await game.dnd5e.actions.rollSkill({ actor, skill: value, options: rollOptions });
-                    } else if (typeof actor.rollSkillV2 === 'function') {
-                        roll = await actor.rollSkillV2(value, rollOptions);
-                    } else if (typeof actor.doRollSkill === 'function') {
-                        roll = await actor.doRollSkill(value, rollOptions);
-                    } else {
-                        // Legacy fallback (may emit deprecation warnings in dnd5e >= 4.1)
-                        roll = await actor.rollSkill(value, rollOptions);
-                    }
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
-                    break;
-                case 'ability':
-                    roll = await actor.rollAbilityTest(value, rollOptions);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, value);
-                    break;
-                case 'save':
-                    roll = (value === 'death') 
-                        ? await actor.rollDeathSave(rollOptions) 
-                        : await actor.rollSavingThrow(value, rollOptions);
-                    if (roll) roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, value);
-                    break;
-                case 'tool': {
-                    const toolIdentifier = value; // Use the value passed from the click handler
-                    if (!toolIdentifier) throw new Error(`No tool identifier provided for actor ${actor.name}`);
-                    
-                    // Attempt to use the modern dnd5e API for tool checks
-                    if (typeof actor.rollToolCheck === 'function') {
-                        try {
-                            postConsoleAndNotification(MODULE.NAME, `Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", true, false);
-                            roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
-                        } catch (err) {
-                            postConsoleAndNotification(MODULE.NAME, `actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, true, false);
-                            roll = undefined; // Ensure roll is undefined for the next check
-                        }
-                    }
-
-                    // If rollToolCheck is not available or failed, construct the roll manually.
-                    if (!roll) {
-                        // The toolIdentifier might be a baseItem string or an item ID. Find the item either way.
-                        const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
-                        if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
-                        
-                        const rollData = actor.getRollData();
-                        const ability = item.system.ability || "int";
-                        
-                        const parts = [];
-                        if (options.advantage) parts.push('2d20kh');
-                        else if (options.disadvantage) parts.push('2d20kl');
-                        else parts.push("1d20");
-
-                        const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                        if (abilityMod !== 0) parts.push(abilityMod);
-                        
-                        const profBonus = actor.system.attributes.prof || 0;
-                        let actualProfBonus = 0;
-                        
-                        // In dnd5e, proficiency is a number (0=No, 1=Prof, 2=Expert). Check must be > 0.
-                        if (item.system.proficient > 0) {
-                            // For now, we just add the standard proficiency bonus.
-                            // In the future, this could be expanded to handle expertise (item.system.proficient === 2).
-                            actualProfBonus = profBonus;
-                        } else { // Fallback to actor's tools data if available
-                            const baseItem = item.system.type?.baseItem; 
-                            if (baseItem) {
-                                const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
-                                if (toolProf > 0) {
-                                    actualProfBonus = Math.floor(toolProf * profBonus);
-                                }
-                            }
-                        }
-
-                        if (actualProfBonus > 0) {
-                            parts.push(actualProfBonus);
-                        }
-
-                        const formula = parts.join(" + ");
-                        roll = new Roll(formula, rollData);
-                        await roll.evaluate({ async: true });
-                        rollCoffeePubDice(roll);
-
-                        roll.verboseFormula = SkillCheckDialog._buildVerboseFormula(roll, actor, ability);
-                    }
-                    break;
-                }
-                default:
-                    return;
-            }
+            // Determine if we should show dialog based on cinematic mode
+            const isCinematic = flags?.isCinematic || false;
+            
+            // Use the new unified roll system
+            const roll = await executeRoll(actor, type, value, {
+                useDialog: !isCinematic,  // Show dialog for chat rolls, bypass for cinematic
+                advantage: options.advantage,
+                disadvantage: options.disadvantage,
+                ...options
+            });
 
             if (!roll) return;
 
@@ -1753,61 +1662,5 @@ export class SkillCheckDialog extends Application {
         });
     }
 
-    /**
-     * Builds a verbose formula string for tooltips from a Roll object.
-     * Example: "12 (Roll) + 3 (Dexterity) + 2 (Proficiency) = 17"
-     * @param {Roll} roll - The Roll object to parse.
-     * @param {Actor} actor - The Actor performing the roll.
-     * @param {string|null} abilityKey - The key for the ability score used (e.g., 'dex').
-     * @returns {string} The verbose formula string.
-     * @private
-     */
-    static _buildVerboseFormula(roll, actor, abilityKey = null) {
-        if (!roll || !roll.dice || !roll.dice[0] || !roll.dice[0].results) return roll.formula;
 
-        const d20Result = roll.dice[0].results[0].result;
-        const tooltipParts = [`${d20Result} (Dice Roll)`];
-        
-        const terms = roll.terms.filter(t => t instanceof foundry.dice.terms.NumericTerm);
-        
-        if (!actor) {
-             terms.forEach(term => {
-                tooltipParts.push(term.number > 0 ? `+ ${term.number}` : `- ${Math.abs(term.number)}`);
-            });
-            tooltipParts.push(`= ${roll.total}`);
-            return tooltipParts.join(' ');
-        }
-        
-        const abilityMod = abilityKey ? foundry.utils.getProperty(actor.system.abilities, `${abilityKey}.mod`) : null;
-        const profBonus = foundry.utils.getProperty(actor.system, `attributes.prof`);
-        
-        let abilityModUsed = false;
-        let profBonusUsed = false;
-
-        for (const term of terms) {
-            const sign = term.number >= 0 ? "+" : "-";
-            const number = Math.abs(term.number);
-            let label = term.options.flavor || null;
-
-            if (!label) {
-                if (abilityMod !== null && !abilityModUsed && number === Math.abs(abilityMod)) {
-                    label = CONFIG.DND5E.abilities[abilityKey]?.label || abilityKey?.toUpperCase() || "MOD";
-                    abilityModUsed = true;
-                } else if (profBonus !== null && !profBonusUsed && number === Math.abs(profBonus)) {
-                    label = "Proficiency";
-                    profBonusUsed = true;
-                }
-            }
-
-            if (label) {
-                tooltipParts.push(`${sign} ${number} (${label})`);
-            } else {
-                tooltipParts.push(`${sign} ${number}`);
-            }
-        }
-        
-        tooltipParts.push(`= ${roll.total}`);
-
-        return tooltipParts.join(" ");
-    }
 } 

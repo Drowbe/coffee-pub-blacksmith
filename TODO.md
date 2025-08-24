@@ -107,6 +107,14 @@
 - **Plan**: Ensure CombatStats is fully initialized before PlanningTimer tries to use it
 - **Notes**: Race condition between CombatStats.initialize() and PlanningTimer.initialize() during module reload
 - **Solution**: Added safety checks in startTimer(), timerCleanup(), cleanupTimer(), and initialize() methods to defer operations until CombatStats.currentStats is available
+
+### 14. DnD5e rollSkill Deprecation Warning ✅ COMPLETED
+- **Issue**: Using deprecated `actor.rollSkill(value, rollOptions)` method signature from DnD5e < 4.1
+- **Location**: `scripts/skill-check-dialog.js` line 1617 in fallback code
+- **Impact**: Deprecation warnings in console, future compatibility issues with DnD5e 5.0
+- **Status**: ✅ COMPLETED
+- **Plan**: Use DnD5e's built-in "skip-dialog" methods that bypass configuration windows
+- **Notes**: Implemented `actor.rollSkill({ skill: value })`, `actor.rollAbilityCheck({ ability: value })`, and `actor.rollSavingThrow({ ability: value })` - these are modern equivalents to "fast-forward" rolls with no dialogs
 - **Status**: ✅ COMPLETED
 - **Plan**: Implemented persistent toolbar that always shows, with "no encounter" message when metadata is missing
 - **Notes**: Toolbar now appears consistently across all journal entries, ready for future quick encounter creation feature
