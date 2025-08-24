@@ -1597,8 +1597,8 @@ export class SkillCheckDialog extends Application {
             const isCinematic = flags?.isCinematic || false;
             
             // Use the new unified roll system
+            // All rolls now use manual Roll creation for complete control and chat suppression
             const roll = await executeRoll(actor, type, value, {
-                useDialog: !isCinematic,  // Show dialog for chat rolls, bypass for cinematic
                 advantage: options.advantage,
                 disadvantage: options.disadvantage,
                 ...options
