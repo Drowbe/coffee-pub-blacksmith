@@ -210,11 +210,11 @@
 		"tokenImageReplacementCacheStats-Label": "Cache Status",
 		"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
 
-		"tokenImageReplacementRefreshCache-Label": "Refresh Cache",
-		"tokenImageReplacementRefreshCache-Hint": "Manually refresh the token image replacement cache.",
+		"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
+		"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
 
-		"tokenImageReplacementClearCache-Label": "Clear Cache",
-		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache.",
+		"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
+		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
 
 		"headingH3Nameplate-Label": "Nameplate",
 		"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",

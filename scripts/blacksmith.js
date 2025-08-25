@@ -280,6 +280,12 @@ Hooks.once('ready', async () => {
         // Initialize TokenImageReplacement
         TokenImageReplacement.initialize();
 
+        // Handle cache management settings
+        handleCacheManagementSettings();
+        
+        // Update cache status display
+        updateCacheStatusDisplay();
+
         // Update nameplates
         updateNameplates();
 
@@ -1992,3 +1998,59 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
     });
     $(html).find(".header-actions.action-buttons").prepend(button);
 });
+
+/**
+ * Handle cache management settings on module load
+ */
+async function handleCacheManagementSettings() {
+    try {
+        // Check if refresh cache is requested
+        const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
+        if (shouldRefresh) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Refresh cache requested, executing...", "", false, false);
+            
+            // Execute the refresh
+            if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement.forceRefreshCache) {
+                await TokenImageReplacement.forceRefreshCache();
+            }
+            
+            // Reset the setting to false
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache refresh completed and setting reset", "", false, false);
+        }
+
+        // Check if clear cache is requested
+        const shouldClear = game.settings.get(MODULE.ID, 'tokenImageReplacementClearCache');
+        if (shouldClear) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Clear cache requested, executing...", "", false, false);
+            
+            // Execute the clear
+            if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement._clearCacheFromStorage) {
+                TokenImageReplacement._clearCacheFromStorage();
+            }
+            
+            // Reset the setting to false
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache cleared and setting reset", "", false, false);
+    }
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error handling cache settings: ${error.message}`, "", true, false);
+    }
+}
+
+/**
+ * Update the cache status display in settings
+ */
+function updateCacheStatusDisplay() {
+    try {
+        if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement.getCacheStorageStatus) {
+            const status = TokenImageReplacement.getCacheStorageStatus();
+            const statusText = status.message || "Cache not initialized";
+            
+            // Update the setting value to show current status
+            game.settings.set(MODULE.ID, 'tokenImageReplacementCacheStats', statusText);
+        }
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status display: ${error.message}`, "", true, false);
+    }
+}

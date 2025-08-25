@@ -40,6 +40,9 @@ function formatMODULE_ID(strModuleID) {
 	return splitName.join(' ');
 }
 
+
+
+
 function checkInstalledModules() {
 	let coffeePubActive = [];
 	let coffeePubMissing = [];
@@ -80,6 +83,18 @@ function checkInstalledModules() {
 		missingModules: strCoffeePubMissing
 	};
 }
+
+
+
+// -- CACHE STATUS
+function getTokenImageReplacementCacheStats() {
+	postConsoleAndNotification(MODULE.NAME, "Getting Cache Status...", "", false, false);
+    let strImageReplacementCacheStats = "Cache not initialized.";
+	// ADD THE LOGIC STATUS HERE
+    return strImageReplacementCacheStats;
+}
+
+
 
 // -- COMPENDIUM CHOICES  --
 function getCompendiumChoices() {
@@ -1563,44 +1578,47 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	// Cache Management Buttons
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCacheStats', {
-		name: 'Cache Status',
-		hint: 'Current status of the token image replacement cache.',
-		type: String,
+	// Cache Management Settings
+	// game.settings.register(MODULE.ID, 'tokenImageReplacementCacheStats', {
+	// 	name: 'Cache Status',
+	// 	hint: 'Current status of the token image replacement cache.',
+	// 	type: String,
+	// 	config: true,
+	// 	requiresReload: false,
+	// 	scope: 'world',
+	// 	default: 'Cache not initialized',
+	// });
+
+	// headingH4tokenImageReplacementCacheStats
+	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+		name: "Cache Status",
+		hint: "Current status of the token image replacement cache: " + getTokenImageReplacementCacheStats() + ".",
+		scope: "world",
 		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'Cache not initialized',
-		onChange: (value) => {
-			// This will be updated dynamically
-		}
+		default: "",
+		type: String,
 	});
 
+
+
 	game.settings.register(MODULE.ID, 'tokenImageReplacementRefreshCache', {
-		name: 'Refresh Cache',
-		hint: 'Manually refresh the token image replacement cache.',
-		type: String,
+		name: 'Refresh Cache on Next Load',
+		hint: 'Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.',
+		type: Boolean,
 		config: true,
 		requiresReload: false,
 		scope: 'world',
-		default: 'Click to refresh cache',
-		onChange: (value) => {
-			// This will be updated dynamically
-		}
+		default: false,
 	});
 
 	game.settings.register(MODULE.ID, 'tokenImageReplacementClearCache', {
-		name: 'Clear Cache',
-		hint: 'Clear the token image replacement cache.',
-		type: String,
+		name: 'Clear Cache on Next Load',
+		hint: 'Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.',
+		type: Boolean,
 		config: true,
 		requiresReload: false,
 		scope: 'world',
-		default: 'Click to clear cache',
-		onChange: (value) => {
-			// This will be updated dynamically
-		}
+		default: false,
 	});
 
 	// ---------- Token Image Replacement ----------
