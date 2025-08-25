@@ -408,7 +408,7 @@ export async function showRollDialog(actor, type, value, options = {}) {
         postConsoleAndNotification(MODULE.NAME, `showRollDialog: Built roll data:`, rollData, true, false);
         
         // Create and render the dialog
-        const dialog = new RollDialog(rollData);
+        const dialog = new RollDialog({ rollData });
         await dialog.render(true);
         
         // Wait for the dialog to close and return the options
@@ -450,12 +450,12 @@ async function _buildRollData(actor, type, value, options) {
     rollFormula = formulaParts.join(' + ');
     
     return {
-        rollTitle: `${type.charAt(0).toUpperCase() + type.slice(1)} Check`,
+        rollTitle: `Dice Roll`,
         actorName: actor.name || 'Unknown Actor',
-        rollType: type === 'skill' ? `Skill: ${skillData?.label || value || 'Unknown'}` : 
-                  type === 'ability' ? `Ability: ${(value || 'Unknown').toUpperCase()}` :
-                  type === 'save' ? `Saving Throw: ${(value || 'Unknown').toUpperCase()}` :
-                  type === 'tool' ? `Tool: ${value || 'Unknown'}` : `Dice: ${value || 'Unknown'}`,
+        rollType: type === 'skill' ? `Dice Roll: ${skillData?.label || value || 'Unknown'}` : 
+                  type === 'ability' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
+                  type === 'save' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
+                  type === 'tool' ? `Dice Roll: ${value || 'Unknown'}` : `Dice Roll: ${value || 'Unknown'}`,
         rollFormula: rollFormula || '1d20',
         rollTotal: rollTotal || '?',
         baseRoll: baseRoll || '1d20',
@@ -467,134 +467,159 @@ async function _buildRollData(actor, type, value, options) {
 }
 
 /**
- * Roll Dialog Application class for handling the roll configuration UI.
+ * Roll Dialog Application V2 class for handling the roll configuration UI.
+ * Based on the working SkillCheckDialog pattern.
  */
-class RollDialog extends Application {
-    constructor(rollData) {
+export class RollDialog extends Application {
+    constructor(data = {}) {
         super();
-        this.rollData = rollData;
-        this.options = {
-            advantage: false,
-            disadvantage: false,
-            situationalBonus: 0,
-            customModifier: '',
-            rollMode: 'public',
+        this.rollData = data.rollData || {};
+        
+        // Set default preferences (no settings call needed)
+        this.userPreferences = {
+            showRollExplanation: true,
+            showDC: true,
             useDiceSoNice: true
         };
     }
-    
+
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'roll-dialog-window',
-            template: 'modules/coffee-pub-blacksmith/templates/window-roll.hbs',
-            popOut: true,
-            minimizable: false,
-            resizable: true,
-            width: 600,
-            height: 500,
-            classes: ['roll-dialog-window']
+            template: 'modules/coffee-pub-blacksmith/templates/roll-dialog.hbs',
+            classes: ['coffee-pub-blacksmith', 'roll-dialog-window'],
+            title: 'Roll Configuration',
+            width: 800,
+            height: 650,
+            resizable: true
         });
     }
-    
+
     getData() {
-        try {
-            // Ensure all required fields have fallback values
-            const safeData = {
-                rollTitle: this.rollData?.rollTitle || 'Roll Check',
-                actorName: this.rollData?.actorName || 'Unknown Actor',
-                rollType: this.rollData?.rollType || 'Unknown Type',
-                rollFormula: this.rollData?.rollFormula || '1d20',
-                rollTotal: this.rollData?.rollTotal || '?',
-                baseRoll: this.rollData?.baseRoll || '1d20',
-                abilityMod: this.rollData?.abilityMod || 0,
-                proficiencyBonus: this.rollData?.proficiencyBonus || 0,
-                otherModifiers: this.rollData?.otherModifiers || 0,
-                diceSoNiceEnabled: this.rollData?.diceSoNiceEnabled ?? true
-            };
-            
-            postConsoleAndNotification(MODULE.NAME, `RollDialog getData:`, safeData, true, false);
-            return safeData;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog getData error:`, error, true, false);
-            // Return safe fallback data
-            return {
-                rollTitle: 'Roll Check',
-                actorName: 'Unknown Actor',
-                rollType: 'Unknown Type',
-                rollFormula: '1d20',
-                rollTotal: '?',
-                baseRoll: '1d20',
-                abilityMod: 0,
-                proficiencyBonus: 0,
-                otherModifiers: 0,
-                diceSoNiceEnabled: true
-            };
-        }
+        // Debug: Log what we actually have
+        postConsoleAndNotification(MODULE.NAME, `RollDialog getData: this.rollData =`, this.rollData, true, false);
+        postConsoleAndNotification(MODULE.NAME, `RollDialog getData: this.rollData keys =`, Object.keys(this.rollData), true, false);
+        
+        // Return the roll data for the template
+        return {
+            rollTitle: this.rollData.rollTitle || 'Roll Check',
+            actorName: this.rollData.actorName || 'Unknown Actor',
+            rollType: this.rollData.rollType || 'Unknown Type',
+            rollFormula: this.rollData.rollFormula || '1d20',
+            rollTotal: this.rollData.rollTotal || '?',
+            baseRoll: this.rollData.baseRoll || '1d20',
+            abilityMod: this.rollData.abilityMod || 0,
+            proficiencyBonus: this.rollData.proficiencyBonus || 0,
+            otherModifiers: this.rollData.otherModifiers || 0,
+            diceSoNiceEnabled: this.rollData.diceSoNiceEnabled ?? true
+        };
     }
-    
+
     activateListeners(html) {
         super.activateListeners(html);
         
-        // Situational bonus input
-        html.find('.roll-situational-bonus').on('change', (event) => {
-            this.options.situationalBonus = parseInt(event.target.value) || 0;
-        });
-        
-        // Custom modifier input
-        html.find('.roll-custom-modifier').on('change', (event) => {
-            this.options.customModifier = event.target.value;
-        });
-        
-        // Roll mode select
-        html.find('.roll-mode-select').on('change', (event) => {
-            this.options.rollMode = event.target.value;
-        });
-        
-        // Dice So Nice checkbox
-        html.find('.roll-dice-so-nice').on('change', (event) => {
-            this.options.useDiceSoNice = event.target.checked;
-        });
-        
-        
-        
-        // Roll buttons
-        html.find('.roll-advantage').on('click', () => {
-            this.options.advantage = true;
-            this.options.disadvantage = false;
-            if (this.options.onClose) this.options.onClose(this.options);
+        // Find and bind the cancel button
+        html.find('.cancel-roll').on('click', () => {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog: Cancel button clicked`, null, true, false);
             this.close();
+        });
+        
+        // Find and bind the roll buttons
+        html.find('.roll-advantage').on('click', () => {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog: Roll Advantage clicked`, null, true, false);
+            // Execute the roll with advantage
+            this._executeRoll('advantage');
         });
         
         html.find('.roll-normal').on('click', () => {
-            this.options.advantage = false;
-            this.options.disadvantage = false;
-            if (this.options.onClose) this.options.onClose(this.options);
-            this.close();
+            postConsoleAndNotification(MODULE.NAME, `RollDialog: Roll Normal clicked`, null, true, false);
+            // Execute the roll normally
+            this._executeRoll('normal');
         });
         
         html.find('.roll-disadvantage').on('click', () => {
-            this.options.advantage = false;
-            this.options.disadvantage = true;
-            if (this.options.onClose) this.options.onClose(this.options);
-            this.close();
+            postConsoleAndNotification(MODULE.NAME, `RollDialog: Roll Disadvantage clicked`, null, true, false);
+            // Execute the roll with disadvantage
+            this._executeRoll('disadvantage');
         });
         
-        html.find('.cancel-roll').on('click', () => {
-            if (this.options.onClose) this.options.onClose(null);
-            this.close();
-        });
+        postConsoleAndNotification(MODULE.NAME, `RollDialog activateListeners: All buttons bound`, null, true, false);
     }
     
-    async close(options = {}) {
-        await super.close(options);
-        return this.options;
-    }
-    
-    async render(force = false, options = {}) {
+    /**
+     * Execute the actual roll based on the selected option
+     * @param {string} rollType - 'normal', 'advantage', or 'disadvantage'
+     */
+    async _executeRoll(rollType) {
         try {
-            return await super.render(force, options);
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Starting ${rollType} roll`, null, true, false);
+            
+            // Get situational bonus from input
+            const situationalBonus = parseInt(this.element.find('.roll-situational-bonus').val()) || 0;
+            
+            // Create roll options
+            const rollOptions = {
+                advantage: rollType === 'advantage',
+                disadvantage: rollType === 'disadvantage',
+                situationalBonus: situationalBonus
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll options:`, rollOptions, true, false);
+            
+            // Close the dialog
+            this.close();
+            
+            // Actually execute the roll using the existing roll system
+            const rollResult = await this._performRoll(rollOptions);
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll completed:`, rollResult, true, false);
+            
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog render error:`, error, true, false);
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll error:`, error, true, false);
+        }
+    }
+    
+    /**
+     * Perform the actual roll using the existing roll system
+     * @param {object} rollOptions - The roll options (advantage, disadvantage, situationalBonus)
+     * @returns {object} The roll result
+     */
+    async _performRoll(rollOptions) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
+            
+            // Get the roll data we have
+            const rollData = this.rollData;
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
+            
+            // Create a Roll object using Foundry's system
+            const roll = new Roll(rollData.rollFormula);
+            
+            // Apply situational bonus if any
+            if (rollOptions.situationalBonus !== 0) {
+                roll.terms.push(rollOptions.situationalBonus);
+            }
+            
+            // Roll the dice
+            await roll.evaluate();
+            
+            // Get the result
+            const result = {
+                total: roll.total,
+                formula: roll.formula,
+                results: roll.results,
+                advantage: rollOptions.advantage,
+                disadvantage: rollOptions.disadvantage,
+                situationalBonus: rollOptions.situationalBonus
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
+            
+            // TODO: Send result back to the calling system
+            // For now, just return the result
+            return result;
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll error:`, error, true, false);
             throw error;
         }
     }
