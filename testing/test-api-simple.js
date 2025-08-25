@@ -3,6 +3,7 @@ console.log('=== SIMPLE BLACKSMITH API TEST ===');
 
 // Check if module exists
 const module = game.modules.get('coffee-pub-blacksmith');
+
 console.log('Module found:', !!module);
 
 if (module) {

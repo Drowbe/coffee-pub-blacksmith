@@ -3,7 +3,7 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, BLACKSMITH, API_VERSION } from './const.js';
+import { MODULE, BLACKSMITH } from './const.js';
 
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
@@ -301,8 +301,6 @@ Hooks.once('ready', async () => {
         const { executeRoll } = await import('./utils-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
-
-                
         // JOURNAL TOOLS
         JournalTools.init();
         
@@ -522,7 +520,7 @@ Hooks.once('init', async function() {
         isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
         getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
         utils: UtilsManager.getUtils(),
-        version: API_VERSION,
+        version: MODULE.APIVERSION,
         BLACKSMITH: BLACKSMITH,
         stats: StatsAPI
     };

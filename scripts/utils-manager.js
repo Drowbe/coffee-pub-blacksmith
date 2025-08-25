@@ -1,13 +1,13 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
-import { MODULE, API_VERSION } from './const.js';
+import { MODULE } from './const.js';
 import * as GlobalUtils from './global.js';
 import { postConsoleAndNotification } from './global.js';
 
 export class UtilsManager {
     static isInitialized = false;
-    static API_VERSION = API_VERSION;
+    static API_VERSION = MODULE.APIVERSION;
 
     static initialize() {
 
@@ -93,7 +93,7 @@ export class UtilsManager {
     }
 
     // Get all utilities as an object
-    static getUtils(requiredVersion = API_VERSION) {
+    static getUtils(requiredVersion = this.API_VERSION) {
         this.checkInitialized();
         
         if (!this.checkVersion(requiredVersion)) {
