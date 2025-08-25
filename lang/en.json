@@ -216,6 +216,9 @@
 		"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
 		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
 
+		"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
+		"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+
 		"headingH3Nameplate-Label": "Nameplate",
 		"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",
 

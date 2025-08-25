@@ -225,6 +225,7 @@ Hooks.once('init', async function() {
 
 // Consolidate all settings-dependent initialization into a single ready hook
 Hooks.once('ready', async () => {
+    postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
     try {
         // Register settings FIRST during the ready phase
         await registerSettings();
@@ -268,12 +269,7 @@ Hooks.once('ready', async () => {
         // Initialize latency checker
         LatencyChecker.initialize();
         
-        // ENCOUNTER TOOLBAR
-        EncounterToolbar.init();
-        
-        // JOURNAL TOOLS
-        JournalTools.init();
-
+      
         // Initialize CanvasTools
         CanvasTools.initialize();
         
@@ -281,10 +277,16 @@ Hooks.once('ready', async () => {
         TokenImageReplacement.initialize();
 
         // Handle cache management settings
-        handleCacheManagementSettings();
+        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
+        await handleCacheManagementSettings();
         
-        // Update cache status display
-        updateCacheStatusDisplay();
+        // Always reset both cache settings to false after function completes
+        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to reset cache settings", "", false, false);
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
+        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Cache settings reset completed", "", false, false);
+
 
         // Update nameplates
         updateNameplates();
@@ -298,6 +300,14 @@ Hooks.once('ready', async () => {
         // Initialize the unified roll system API
         const { executeRoll } = await import('./utils-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
+
+
+                
+        // JOURNAL TOOLS
+        JournalTools.init();
+        
+        // ENCOUNTER TOOLBAR
+        EncounterToolbar.init();
 
     } catch (error) {
         console.error('Error during Blacksmith initialization:', error);
@@ -2003,54 +2013,55 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
  * Handle cache management settings on module load
  */
 async function handleCacheManagementSettings() {
+    console.log("handleCacheManagementSettings: Function called");
     try {
         // Check if refresh cache is requested
         const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
+        console.log("handleCacheManagementSettings: shouldRefresh =", shouldRefresh);
+        
         if (shouldRefresh) {
+            console.log("handleCacheManagementSettings: Starting refresh");
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Refresh cache requested, executing...", "", false, false);
             
             // Execute the refresh
             if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement.forceRefreshCache) {
+                console.log("handleCacheManagementSettings: Calling forceRefreshCache");
                 await TokenImageReplacement.forceRefreshCache();
+                console.log("handleCacheManagementSettings: forceRefreshCache completed");
+            } else {
+                console.log("handleCacheManagementSettings: TokenImageReplacement.forceRefreshCache not available");
             }
-            
-            // Reset the setting to false
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache refresh completed and setting reset", "", false, false);
         }
 
         // Check if clear cache is requested
         const shouldClear = game.settings.get(MODULE.ID, 'tokenImageReplacementClearCache');
+        console.log("handleCacheManagementSettings: shouldClear =", shouldClear);
+        
         if (shouldClear) {
+            console.log("handleCacheManagementSettings: Starting clear");
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Clear cache requested, executing...", "", false, false);
             
             // Execute the clear
             if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement._clearCacheFromStorage) {
+                console.log("handleCacheManagementSettings: Calling _clearCacheFromStorage");
                 TokenImageReplacement._clearCacheFromStorage();
+                console.log("handleCacheManagementSettings: _clearCacheFromStorage completed");
+            } else {
+                console.log("handleCacheManagementSettings: TokenImageReplacement._clearCacheFromStorage not available");
             }
-            
-            // Reset the setting to false
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache cleared and setting reset", "", false, false);
-    }
+        }
+
+        console.log("handleCacheManagementSettings: About to reset settings");
+        // Always reset both settings to false, regardless of their current state
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
+        
+        console.log("handleCacheManagementSettings: Settings reset completed");
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache settings reset to unchecked", "", false, false);
+        
     } catch (error) {
+        console.error("handleCacheManagementSettings: Error occurred:", error);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error handling cache settings: ${error.message}`, "", true, false);
     }
 }
 
-/**
- * Update the cache status display in settings
- */
-function updateCacheStatusDisplay() {
-    try {
-        if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement.getCacheStorageStatus) {
-            const status = TokenImageReplacement.getCacheStorageStatus();
-            const statusText = status.message || "Cache not initialized";
-            
-            // Update the setting value to show current status
-            game.settings.set(MODULE.ID, 'tokenImageReplacementCacheStats', statusText);
-        }
-    } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status display: ${error.message}`, "", true, false);
-    }
-}

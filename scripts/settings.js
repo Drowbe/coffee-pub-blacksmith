@@ -12,6 +12,8 @@ import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, 
 // Load the data sets for the settings dropdowns
 import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages, dataTheme } from './data-collections.js';
 
+
+
 // ================================================================== 
 // ===== CONSTANTS ====================================================
 // ================================================================== 
@@ -88,10 +90,14 @@ function checkInstalledModules() {
 
 // -- CACHE STATUS
 function getTokenImageReplacementCacheStats() {
-	postConsoleAndNotification(MODULE.NAME, "Getting Cache Status...", "", false, false);
-    let strImageReplacementCacheStats = "Cache not initialized.";
-	// ADD THE LOGIC STATUS HERE
-    return strImageReplacementCacheStats;
+	// Read the current cache status from the setting
+	const strCacheStatus = game.settings.get(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus');
+	
+	if(strCacheStatus) {
+		return strCacheStatus;
+	} else {
+		return "Cache not initialized";
+	}
 }
 
 
@@ -1489,6 +1495,17 @@ export const registerSettings = async () => {
 
 	// *** TOKEN IMAGE REPLACEMENT ***
 
+
+	// ---------- Token Image Replacement ----------
+	game.settings.register(MODULE.ID, "headingH3TokenImageReplacement", {
+		name: 'Token Image Replacement',
+		hint: 'Automatically replace token images with custom images from your specified folder.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+
 	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
 		name: 'Enable Token Image Replacement',
 		hint: 'Replace token images with custom images from a specified folder when tokens are dropped from compendiums.',
@@ -1590,9 +1607,28 @@ export const registerSettings = async () => {
 	// });
 
 	// headingH4tokenImageReplacementCacheStats
+	// game.TokenImageReplacement.testMatchingAlgorithm() // Test matching logic 
+	// game.TokenImageReplacement.testTokenCreation() // Test token creation hook 
+	// game.TokenImageReplacement.getIntegrationStatus() // Check overall system status 
+	// game.TokenImageReplacement.getCacheStorageStatus() // Check persistent cache status 
+	// game.TokenImageReplacement.refreshCache() // Manually refresh the cache 
+	// game.TokenImageReplacement.forceRefreshCache() // Force refresh (ignores stored cache) 
+	// game.TokenImageReplacement.getCacheStats() - // cache statistics 
+	// game.TokenImageReplacement.cleanupInvalidPaths() // Remove invalid file paths from cache 
+
+	//getTokenImageReplacementCacheStats()
+	
+
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
+        scope: 'world',
+        config: false,
+        type: String,
+        default: ''
+    });
+
 	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: "Cache Status",
-		hint: "Current status of the token image replacement cache: " + getTokenImageReplacementCacheStats() + ".",
+		name: "Token Image Replacement",
+		hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
 		scope: "world",
 		config: true,
 		default: "",
@@ -1621,15 +1657,7 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// ---------- Token Image Replacement ----------
-	game.settings.register(MODULE.ID, "headingH3TokenImageReplacement", {
-		name: 'Token Image Replacement',
-		hint: 'Automatically replace token images with custom images from your specified folder.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
+
 
 	// ---------- Dead Tokens ----------
 	game.settings.register(MODULE.ID, "headingH3TokenActions", {

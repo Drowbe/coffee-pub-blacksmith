@@ -173,6 +173,9 @@ export class TokenImageReplacement {
             // Save cache to persistent storage
             this._saveCacheToStorage();
             
+            // Update the cache status setting for display
+            this._updateCacheStatusSetting();
+            
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", true, false);
         } finally {
@@ -891,6 +894,8 @@ export class TokenImageReplacement {
             lastScan: this.cache.lastScan
         };
         
+
+
         // Check if hook is registered (safe way for different Foundry versions)
         try {
             if (Hooks.all && Hooks.all.get) {
@@ -961,7 +966,12 @@ export class TokenImageReplacement {
             this.cache.lastScan = cacheData.lastScan;
             this.cache.totalFiles = cacheData.totalFiles;
             
+        
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false);
+            
+            // Update the cache status setting for display
+            this._updateCacheStatusSetting();
+            
             return true;
             
         } catch (error) {
@@ -977,6 +987,9 @@ export class TokenImageReplacement {
         try {
             localStorage.removeItem('tokenImageReplacement_cache');
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache cleared from persistent storage", "", false, false);
+            
+            // Update the cache status setting to reflect cleared state
+            this._updateCacheStatusSetting();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error clearing cache: ${error.message}`, "", true, false);
         }
@@ -1017,6 +1030,21 @@ export class TokenImageReplacement {
             };
         } catch (error) {
             return { hasStoredCache: false, message: `Error reading cache: ${error.message}` };
+        }
+    }
+
+    /**
+     * Update the cache status setting for display in module settings
+     */
+    static _updateCacheStatusSetting() {
+        try {
+            if (game.settings && game.settings.set) {
+                const status = this.getCacheStorageStatus();
+                game.settings.set('coffee-pub-blacksmith', 'tokenImageReplacementDisplayCacheStatus', status.message);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status updated: ${status.message}`, "", false, false);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status setting: ${error.message}`, "", true, false);
         }
     }
 }
