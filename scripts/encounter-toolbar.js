@@ -11,6 +11,9 @@ export class EncounterToolbar {
     // Debounce timer for CR updates
     static _crUpdateTimer = null;
     
+    // Store hook IDs for proper removal
+    static _tokenHookIds = [];
+    
     static init() {
         // Listen for journal sheet rendering (normal view only)
         Hooks.on('renderJournalSheet', this._onRenderJournalSheet.bind(this));
@@ -27,16 +30,19 @@ export class EncounterToolbar {
 
     // Setup or remove token change hooks based on setting
     static _setupTokenChangeHooks() {
-        // Remove existing hooks first
-        Hooks.off('createToken', this._onTokenChange);
-        Hooks.off('updateToken', this._onTokenChange);
-        Hooks.off('deleteToken', this._onTokenChange);
+        // Remove existing hooks first using stored IDs
+        if (this._tokenHookIds.length > 0) {
+            this._tokenHookIds.forEach(id => Hooks.off(id));
+            this._tokenHookIds = [];
+        }
         
-        // Add hooks if setting is enabled
+        // Add hooks if setting is enabled and store IDs
         if (game.settings.get(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates')) {
-            Hooks.on('createToken', this._onTokenChange.bind(this));
-            Hooks.on('updateToken', this._onTokenChange.bind(this));
-            Hooks.on('deleteToken', this._onTokenChange.bind(this));
+            this._tokenHookIds = [
+                Hooks.on('createToken', this._onTokenChange.bind(this)),
+                Hooks.on('updateToken', this._onTokenChange.bind(this)),
+                Hooks.on('deleteToken', this._onTokenChange.bind(this))
+            ];
         }
     }
 
