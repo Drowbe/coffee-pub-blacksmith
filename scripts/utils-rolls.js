@@ -4,6 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, rollCoffeePubDice } from './global.js';
+import { handleSkillRollUpdate } from './blacksmith.js';
 
 /**
  * Unified roll system that can handle both built-in and manual rolls.
@@ -23,6 +24,10 @@ export async function executeRoll(actor, type, value, options = {}) {
     let customFormula = options.customFormula ?? null;
     let additionalModifiers = options.additionalModifiers ?? [];
     let situationalBonus = options.situationalBonus ?? 0;
+    
+    // Extract context for roll dialog
+    const messageId = options.messageId;
+    const tokenId = options.tokenId;
 
     // Debug logging
     postConsoleAndNotification(MODULE.NAME, `executeRoll called with:`, {
@@ -35,7 +40,7 @@ export async function executeRoll(actor, type, value, options = {}) {
 
         // Show roll dialog if using Blacksmith system
         if (useDialog && diceRollToolSystem === 'blacksmith') {
-            const dialogOptions = await showRollDialog(actor, type, value, options);
+            const dialogOptions = await showRollDialog(actor, type, value, options, messageId, tokenId);
             if (dialogOptions) {
                 // Update our options with dialog results
                 advantage = dialogOptions.advantage;
@@ -399,10 +404,10 @@ export async function testRollDialog(actorId, type = 'skill', value = 'ins', sho
  * @param {object} options - Initial roll options.
  * @returns {Promise<object|null>} The configured roll options or null if cancelled.
  */
-export async function showRollDialog(actor, type, value, options = {}) {
+export async function showRollDialog(actor, type, value, options = {}, messageId = null, tokenId = null) {
     try {
         // Build the roll data for the template
-        const rollData = await _buildRollData(actor, type, value, options);
+        const rollData = await _buildRollData(actor, type, value, options, messageId, tokenId);
         
         // Debug logging
         postConsoleAndNotification(MODULE.NAME, `showRollDialog: Built roll data:`, rollData, true, false);
@@ -425,7 +430,7 @@ export async function showRollDialog(actor, type, value, options = {}) {
  * Builds the data needed for the roll dialog template.
  * @private
  */
-async function _buildRollData(actor, type, value, options) {
+async function _buildRollData(actor, type, value, options, messageId = null, tokenId = null) {
     const skillData = type === 'skill' ? CONFIG.DND5E.skills[value] : null;
     const abilityKey = skillData?.ability || (type === 'ability' ? value : 'int');
     const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${abilityKey}.mod`) || 0;
@@ -462,7 +467,10 @@ async function _buildRollData(actor, type, value, options) {
         abilityMod: abilityMod || 0,
         proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
         otherModifiers: options.situationalBonus || 0,
-        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true
+        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true,
+        // CRITICAL: Add context for existing system
+        messageId: messageId,
+        tokenId: tokenId
     };
 }
 
@@ -583,44 +591,65 @@ export class RollDialog extends Application {
      * @param {object} rollOptions - The roll options (advantage, disadvantage, situationalBonus)
      * @returns {object} The roll result
      */
-    async _performRoll(rollOptions) {
-        try {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
-            
-            // Get the roll data we have
-            const rollData = this.rollData;
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
-            
-            // Create a Roll object using Foundry's system
-            const roll = new Roll(rollData.rollFormula);
-            
-            // Apply situational bonus if any
-            if (rollOptions.situationalBonus !== 0) {
-                roll.terms.push(rollOptions.situationalBonus);
-            }
-            
-            // Roll the dice
-            await roll.evaluate();
-            
-            // Get the result
-            const result = {
-                total: roll.total,
-                formula: roll.formula,
-                results: roll.results,
-                advantage: rollOptions.advantage,
-                disadvantage: rollOptions.disadvantage,
-                situationalBonus: rollOptions.situationalBonus
-            };
-            
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
-            
-            // TODO: Send result back to the calling system
-            // For now, just return the result
-            return result;
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll error:`, error, true, false);
-            throw error;
-        }
-    }
+               async _performRoll(rollOptions) {
+               try {
+                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
+                   
+                   // Get the roll data we have
+                   const rollData = this.rollData;
+                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
+                   
+                   // Create a Roll object using Foundry's system
+                   const roll = new Roll(rollData.rollFormula);
+                   
+                   // Apply situational bonus if any
+                   if (rollOptions.situationalBonus !== 0) {
+                       roll.terms.push(rollOptions.situationalBonus);
+                   }
+                   
+                   // Roll the dice
+                   await roll.evaluate();
+                   
+                   // Get the result
+                   const result = {
+                       total: roll.total,
+                       formula: roll.formula,
+                       results: roll.results,
+                       advantage: rollOptions.advantage,
+                       disadvantage: rollOptions.disadvantage,
+                       situationalBonus: rollOptions.situationalBonus
+                   };
+                   
+                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
+                   
+                   // MINIMAL RECONNECTION: Send result through existing system
+                   // Create a plain object for the socket to prevent data loss
+                   const resultForSocket = roll.toJSON();
+                   resultForSocket.verboseFormula = roll.formula; // Simple formula for now
+                   delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
+
+                   const rollDataForSocket = {
+                       messageId: rollData.messageId,
+                       tokenId: rollData.tokenId,
+                       result: resultForSocket
+                   };
+
+                   // Emit the update to the GM (same as old system)
+                   game.socket.emit('module.coffee-pub-blacksmith', {
+                       type: 'updateSkillRoll',
+                       data: rollDataForSocket
+                   });
+
+                   // If GM, call the handler directly with the same prepared data
+                   if (game.user.isGM) {
+                       await handleSkillRollUpdate(rollDataForSocket);
+                   }
+                   
+                   return result;
+                   
+               } catch (error) {
+                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll error:`, error, true, false);
+                   throw error;
+               }
+           }
 }

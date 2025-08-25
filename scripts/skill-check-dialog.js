@@ -1601,6 +1601,8 @@ export class SkillCheckDialog extends Application {
             const roll = await executeRoll(actor, type, value, {
                 advantage: options.advantage,
                 disadvantage: options.disadvantage,
+                messageId: message.id,
+                tokenId: tokenId,
                 ...options
             });
 
