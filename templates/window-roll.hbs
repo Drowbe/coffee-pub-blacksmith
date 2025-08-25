@@ -1,0 +1,89 @@
+{{!-- Roll Configuration Window Template --}}
+<div class="roll-dialog foundry-style-window">
+  <div class="roll-header-sticky">
+    <div class="roll-header">
+      <i class="fas fa-dice-d20"></i>
+      <span>{{rollTitle}}</span>
+    </div>
+    <div class="roll-summary-row">
+      <div class="roll-summary-item"><span class="label">Actor</span><span>{{actorName}}</span></div>
+      <div class="roll-summary-item"><span class="label">Type</span><span>{{rollType}}</span></div>
+      <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
+      <div class="roll-summary-item"><span class="label">Total</span><span class="roll-total">{{rollTotal}}</span></div>
+    </div>
+  </div>
+  
+  <div class="roll-body-scroll">
+    <div class="roll-section">
+      <div class="roll-section-header"><i class="fas fa-cog"></i> Roll Configuration</div>
+      
+      <div class="roll-config-grid">
+        <div class="roll-config-item">
+          <label class="roll-config-label">Situational Bonus</label>
+          <input type="number" class="roll-situational-bonus" name="situational-bonus" value="0" min="-20" max="20" placeholder="0">
+        </div>
+        
+        <div class="roll-config-item">
+          <label class="roll-config-label">Custom Modifier</label>
+          <input type="text" class="roll-custom-modifier" name="custom-modifier" placeholder="e.g., +2 for cover">
+        </div>
+      </div>
+    </div>
+
+    <div class="roll-section">
+      <div class="roll-section-header"><i class="fas fa-dice"></i> Roll Options</div>
+      
+      <div class="roll-options-grid">
+        <div class="roll-option-item">
+          <label class="roll-option-label">Roll Mode</label>
+          <select class="roll-mode-select" name="roll-mode">
+            <option value="public">Public Roll</option>
+            <option value="private">Private Roll</option>
+            <option value="blind">Blind Roll</option>
+            <option value="self">Self Roll</option>
+          </select>
+        </div>
+        
+        <div class="roll-option-item">
+          <label class="roll-option-label">Dice So Nice</label>
+          <input type="checkbox" class="roll-dice-so-nice" name="dice-so-nice" {{#if diceSoNiceEnabled}}checked{{/if}}>
+        </div>
+        
+        <div class="roll-option-item">
+          <label class="roll-option-label">MidiQOL</label>
+          <input type="checkbox" class="roll-midiqol" name="midiqol" {{#if midiQOLEnabled}}checked{{/if}}>
+        </div>
+      </div>
+    </div>
+
+    <div class="roll-section">
+      <div class="roll-section-header"><i class="fas fa-info-circle"></i> Roll Details</div>
+      
+      <div class="roll-details-grid">
+        <div class="roll-detail-item">
+          <span class="detail-label">Base Roll:</span>
+          <span class="detail-value">{{baseRoll}}</span>
+        </div>
+        <div class="roll-detail-item">
+          <span class="detail-label">Ability Modifier:</span>
+          <span class="detail-value">{{abilityMod}}</span>
+        </div>
+        <div class="roll-detail-item">
+          <span class="detail-label">Proficiency:</span>
+          <span class="detail-value">{{proficiencyBonus}}</span>
+        </div>
+        <div class="roll-detail-item">
+          <span class="detail-label">Other Modifiers:</span>
+          <span class="detail-value">{{otherModifiers}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="roll-footer">
+    <button type="button" class="roll-btn cancel-roll"><i class="fas fa-times"></i> Cancel</button>
+    <button type="button" class="roll-btn roll-disadvantage"><i class="fas fa-arrow-down"></i> Disadvantage</button>
+    <button type="button" class="roll-btn roll-normal"><i class="fas fa-circle"></i> Normal</button>
+    <button type="button" class="roll-btn roll-advantage"><i class="fas fa-arrow-up"></i> Advantage</button>
+  </div>
+</div>
