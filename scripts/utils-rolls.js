@@ -15,41 +15,50 @@ import { postConsoleAndNotification, rollCoffeePubDice } from './global.js';
  */
 export async function executeRoll(actor, type, value, options = {}) {
     // Get user preferences for roll system integrations
-    const useDialog = options.useDialog ?? game.settings.get('coffee-pub-blacksmith', 'rollSystemDefaultShowDialog') ?? false;
+    const diceRollToolSystem = game.settings.get('coffee-pub-blacksmith', 'diceRollToolSystem') ?? 'blacksmith';
+    const useDialog = options.useDialog ?? (diceRollToolSystem === 'blacksmith');
     let advantage = options.advantage ?? false;
     let disadvantage = options.disadvantage ?? false;
-    let useDiceSoNice = options.useDiceSoNice ?? game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableDiceSoNice') ?? true;
-    let useMidiQOL = options.useMidiQOL ?? game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableMidiQOL') ?? true;
+    let useDiceSoNice = options.useDiceSoNice ?? game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true;
     let customFormula = options.customFormula ?? null;
     let additionalModifiers = options.additionalModifiers ?? [];
     let situationalBonus = options.situationalBonus ?? 0;
-    const enableCustomModifiers = game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableCustomModifiers') ?? true;
-    const enableSituationalBonuses = game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableSituationalBonuses') ?? true;
-    const enableAdvantageDisadvantage = game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableAdvantageDisadvantage') ?? true;
-    const enableCustomFormulas = game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableCustomFormulas') ?? true;
 
     // Debug logging
     postConsoleAndNotification(MODULE.NAME, `executeRoll called with:`, {
-        type, value, useDialog, advantage, disadvantage,
+        type, value, diceRollToolSystem, useDialog, advantage, disadvantage,
         actorName: actor.name, actorType: actor.type
     }, true, false);
 
     try {
         let roll;
 
-        // Show roll dialog if requested
-        if (useDialog) {
+        // Show roll dialog if using Blacksmith system
+        if (useDialog && diceRollToolSystem === 'blacksmith') {
             const dialogOptions = await showRollDialog(actor, type, value, options);
             if (dialogOptions) {
                 // Update our options with dialog results
                 advantage = dialogOptions.advantage;
                 disadvantage = dialogOptions.disadvantage;
                 useDiceSoNice = dialogOptions.useDiceSoNice;
-                useMidiQOL = dialogOptions.useMidiQOL;
                 situationalBonus = dialogOptions.situationalBonus;
                 customFormula = dialogOptions.customModifier;
             } else {
                 // User cancelled the dialog
+                return null;
+            }
+        } else if (diceRollToolSystem === 'foundry') {
+            // TODO: Implement Foundry roll system integration
+            postConsoleAndNotification(MODULE.NAME, `Foundry roll system not yet implemented, falling back to Blacksmith system`, null, true, false);
+            // For now, fall back to Blacksmith system
+            const dialogOptions = await showRollDialog(actor, type, value, options);
+            if (dialogOptions) {
+                advantage = dialogOptions.advantage;
+                disadvantage = dialogOptions.disadvantage;
+                useDiceSoNice = dialogOptions.useDiceSoNice;
+                situationalBonus = dialogOptions.situationalBonus;
+                customFormula = dialogOptions.customModifier;
+            } else {
                 return null;
             }
         }
@@ -61,7 +70,6 @@ export async function executeRoll(actor, type, value, options = {}) {
             advantage, 
             disadvantage, 
             useDiceSoNice, 
-            useMidiQOL,
             situationalBonus,
             customFormula
         });
@@ -365,14 +373,16 @@ export async function testRollDialog(actorId, type = 'skill', value = 'ins', sho
         disadvantage: false
     };
     
-    console.log(`Testing roll dialog for ${actor.name} - ${type}: ${value}`);
+    postConsoleAndNotification(MODULE.NAME, `Testing roll dialog for ${actor.name} - ${type}: ${value}`, null, true, false);
     const result = await executeRoll(actor, type, value, options);
     
     if (result) {
+        postConsoleAndNotification(MODULE.NAME, `Roll result:`, result, true, false);
         console.log('Roll result:', result);
         console.log('Roll total:', result.total);
         console.log('Roll formula:', result.verboseFormula);
     } else {
+        postConsoleAndNotification(MODULE.NAME, `Roll was cancelled or failed`, null, true, false);
         console.log('Roll was cancelled or failed');
     }
     
@@ -390,12 +400,25 @@ export async function testRollDialog(actorId, type = 'skill', value = 'ins', sho
  * @returns {Promise<object|null>} The configured roll options or null if cancelled.
  */
 export async function showRollDialog(actor, type, value, options = {}) {
-    // Build the roll data for the template
-    const rollData = await _buildRollData(actor, type, value, options);
-    
-    // Create and render the dialog
-    const dialog = new RollDialog(rollData);
-    return await dialog.render(true);
+    try {
+        // Build the roll data for the template
+        const rollData = await _buildRollData(actor, type, value, options);
+        
+        // Debug logging
+        postConsoleAndNotification(MODULE.NAME, `showRollDialog: Built roll data:`, rollData, true, false);
+        
+        // Create and render the dialog
+        const dialog = new RollDialog(rollData);
+        await dialog.render(true);
+        
+        // Wait for the dialog to close and return the options
+        return new Promise((resolve) => {
+            dialog.options.onClose = resolve;
+        });
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `showRollDialog error:`, error, true, false);
+        return null;
+    }
 }
 
 /**
@@ -428,19 +451,18 @@ async function _buildRollData(actor, type, value, options) {
     
     return {
         rollTitle: `${type.charAt(0).toUpperCase() + type.slice(1)} Check`,
-        actorName: actor.name,
-        rollType: type === 'skill' ? `Skill: ${skillData?.label || value}` : 
-                  type === 'ability' ? `Ability: ${value.toUpperCase()}` :
-                  type === 'save' ? `Saving Throw: ${value.toUpperCase()}` :
-                  type === 'tool' ? `Tool: ${value}` : `Dice: ${value}`,
-        rollFormula: rollFormula,
-        rollTotal: rollTotal,
-        baseRoll: baseRoll,
-        abilityMod: abilityMod,
-        proficiencyBonus: type === 'skill' || type === 'save' ? profBonus : 0,
+        actorName: actor.name || 'Unknown Actor',
+        rollType: type === 'skill' ? `Skill: ${skillData?.label || value || 'Unknown'}` : 
+                  type === 'ability' ? `Ability: ${(value || 'Unknown').toUpperCase()}` :
+                  type === 'save' ? `Saving Throw: ${(value || 'Unknown').toUpperCase()}` :
+                  type === 'tool' ? `Tool: ${value || 'Unknown'}` : `Dice: ${value || 'Unknown'}`,
+        rollFormula: rollFormula || '1d20',
+        rollTotal: rollTotal || '?',
+        baseRoll: baseRoll || '1d20',
+        abilityMod: abilityMod || 0,
+        proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
         otherModifiers: options.situationalBonus || 0,
-        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableDiceSoNice') ?? true,
-        midiQOLEnabled: game.settings.get('coffee-pub-blacksmith', 'rollSystemEnableMidiQOL') ?? true
+        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true
     };
 }
 
@@ -457,15 +479,14 @@ class RollDialog extends Application {
             situationalBonus: 0,
             customModifier: '',
             rollMode: 'public',
-            useDiceSoNice: true,
-            useMidiQOL: true
+            useDiceSoNice: true
         };
     }
     
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
             id: 'roll-dialog-window',
-            template: 'templates/window-roll.hbs',
+            template: 'modules/coffee-pub-blacksmith/templates/window-roll.hbs',
             popOut: true,
             minimizable: false,
             resizable: true,
@@ -476,7 +497,39 @@ class RollDialog extends Application {
     }
     
     getData() {
-        return this.rollData;
+        try {
+            // Ensure all required fields have fallback values
+            const safeData = {
+                rollTitle: this.rollData?.rollTitle || 'Roll Check',
+                actorName: this.rollData?.actorName || 'Unknown Actor',
+                rollType: this.rollData?.rollType || 'Unknown Type',
+                rollFormula: this.rollData?.rollFormula || '1d20',
+                rollTotal: this.rollData?.rollTotal || '?',
+                baseRoll: this.rollData?.baseRoll || '1d20',
+                abilityMod: this.rollData?.abilityMod || 0,
+                proficiencyBonus: this.rollData?.proficiencyBonus || 0,
+                otherModifiers: this.rollData?.otherModifiers || 0,
+                diceSoNiceEnabled: this.rollData?.diceSoNiceEnabled ?? true
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `RollDialog getData:`, safeData, true, false);
+            return safeData;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog getData error:`, error, true, false);
+            // Return safe fallback data
+            return {
+                rollTitle: 'Roll Check',
+                actorName: 'Unknown Actor',
+                rollType: 'Unknown Type',
+                rollFormula: '1d20',
+                rollTotal: '?',
+                baseRoll: '1d20',
+                abilityMod: 0,
+                proficiencyBonus: 0,
+                otherModifiers: 0,
+                diceSoNiceEnabled: true
+            };
+        }
     }
     
     activateListeners(html) {
@@ -502,32 +555,32 @@ class RollDialog extends Application {
             this.options.useDiceSoNice = event.target.checked;
         });
         
-        // MidiQOL checkbox
-        html.find('.roll-midiqol').on('change', (event) => {
-            this.options.useMidiQOL = event.target.checked;
-        });
+        
         
         // Roll buttons
         html.find('.roll-advantage').on('click', () => {
             this.options.advantage = true;
             this.options.disadvantage = false;
+            if (this.options.onClose) this.options.onClose(this.options);
             this.close();
         });
         
         html.find('.roll-normal').on('click', () => {
             this.options.advantage = false;
             this.options.disadvantage = false;
+            if (this.options.onClose) this.options.onClose(this.options);
             this.close();
         });
         
         html.find('.roll-disadvantage').on('click', () => {
             this.options.advantage = false;
             this.options.disadvantage = true;
+            if (this.options.onClose) this.options.onClose(this.options);
             this.close();
         });
         
         html.find('.cancel-roll').on('click', () => {
-            this.options = null;
+            if (this.options.onClose) this.options.onClose(null);
             this.close();
         });
     }
@@ -535,5 +588,14 @@ class RollDialog extends Application {
     async close(options = {}) {
         await super.close(options);
         return this.options;
+    }
+    
+    async render(force = false, options = {}) {
+        try {
+            return await super.render(force, options);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog render error:`, error, true, false);
+            throw error;
+        }
     }
 }

@@ -213,8 +213,7 @@ div#roll-dialog-window .window-content {
 }
 
 /* Checkbox styling */
-.roll-dice-so-nice,
-.roll-midiqol {
+.roll-dice-so-nice {
   width: 18px;
   height: 18px;
   accent-color: rgba(255, 47, 47, 1.0);

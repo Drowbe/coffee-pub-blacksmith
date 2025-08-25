@@ -639,84 +639,6 @@ export const registerSettings = async () => {
 
 
 
-		// Skill Check 
-		game.settings.register(MODULE.ID, 'skillCheckPreferences', {
-			name: 'Skill Check Preferences',
-			hint: 'Default preferences for skill check dialog',
-			scope: 'client',
-			config: false,
-			type: Object,
-			default: {
-				showRollExplanation: true,
-				showRollExplanationLink: true,
-				showDC: true,
-				groupRoll: true,
-				isCinematic: false
-			}
-		});
-
-		// Roll System Integration Settings - Individual settings to avoid Object type issues
-		game.settings.register(MODULE.ID, 'rollSystemEnableDiceSoNice', {
-			name: 'Enable Dice So Nice Integration',
-			hint: 'When enabled, the roll system will integrate with Dice So Nice for animated dice displays. Requires Dice So Nice module to be installed and active.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemEnableMidiQOL', {
-			name: 'Enable MidiQOL Integration',
-			hint: 'When enabled, the roll system will leverage MidiQOL for enhanced roll processing and automation. Requires MidiQOL module to be installed and active.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemDefaultShowDialog', {
-			name: 'Default: Show Roll Dialog',
-			hint: 'When enabled, rolls will show the Foundry roll configuration dialog by default. When disabled, rolls will bypass the dialog and execute immediately.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: false
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemEnableCustomModifiers', {
-			name: 'Enable Custom Modifiers',
-			hint: 'Allow users to add custom bonuses and penalties to rolls through the roll system.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemEnableSituationalBonuses', {
-			name: 'Enable Situational Bonuses',
-			hint: 'Allow users to add simple numeric bonuses (e.g., +2 for high ground) to rolls.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemEnableAdvantageDisadvantage', {
-			name: 'Enable Advantage/Disadvantage',
-			hint: 'Allow users to roll with advantage or disadvantage through the roll system.',
-			scope: 'world',
-			config: true,
-			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, 'rollSystemEnableCustomFormulas', {
-			name: 'Enable Custom Formulas',
-			hint: 'Allow users to override the default roll formula with custom calculations.',
-			scope: 'world',
-			default: true
-		});
-
 		// Movement 
 		game.settings.register(MODULE.ID, 'movementType', {
 			name: 'Current Movement Type',
@@ -1009,9 +931,9 @@ export const registerSettings = async () => {
 		// *** ROLL SYSTEM SETTINGS ***
 
 		// ---------- HEADING - ROLL SYSTEM  ----------
-		game.settings.register(MODULE.ID, "headingH2RollSystem", {
-			name: MODULE.ID + '.headingH2RollSystem-Label',
-			hint: MODULE.ID + '.headingH2RollSystem-Hint',
+		game.settings.register(MODULE.ID, "headingH2diceRollTool", {
+			name: MODULE.ID + '.headingH2diceRollTool-Label',
+			hint: MODULE.ID + '.headingH2diceRollTool-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -1019,10 +941,36 @@ export const registerSettings = async () => {
 		});
 		// -------------------------------------
 
+
+		// ---------- SUBHEADING - CHAT ROLL SYSTEM ----------
+		game.settings.register(MODULE.ID, "headingH3diceRollToolSystem", {
+			name: MODULE.ID + '.headingH3diceRollToolSystem-Label',
+			hint: MODULE.ID + '.headingH3diceRollToolSystem-Hint',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		// -------------------------------------
+
+		// -- Chat Roll System Choice --
+		game.settings.register(MODULE.ID, 'diceRollToolSystem', {
+			name: 'Chat Roll System',
+			hint: 'Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can\'t be suppressed.',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				'blacksmith': 'Blacksmith Roll System (Default)',
+				'foundry': 'Foundry Roll System'
+			},
+			default: 'blacksmith'
+		});
+
 		// ---------- SUBHEADING - ROLL INTEGRATIONS ----------
-		game.settings.register(MODULE.ID, "headingH3RollIntegrations", {
-			name: MODULE.ID + '.headingH3RollIntegrations-Label',
-			hint: MODULE.ID + '.headingH3RollIntegrations-Hint',
+		game.settings.register(MODULE.ID, "headingH3diceRollToolIntegrations", {
+			name: MODULE.ID + '.headingH3diceRollToolIntegrations-Label',
+			hint: MODULE.ID + '.headingH3diceRollToolIntegrations-Hint',
 			scope: "world",
 			config: true,
 			default: "",
@@ -1031,85 +979,32 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 		// -- Enable Dice So Nice Integration --
-		game.settings.register(MODULE.ID, 'enableDiceSoNice', {
-			name: MODULE.ID + '.enableDiceSoNice-Label',
-			hint: MODULE.ID + '.enableDiceSoNice-Hint',
+		game.settings.register(MODULE.ID, 'diceRollToolEnableDiceSoNice', {
+			name: MODULE.ID + '.diceRollToolEnableDiceSoNice-Label',
+			hint: MODULE.ID + '.diceRollToolEnableDiceSoNice-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
 			default: true,
 		});
 
-		// -- Enable MidiQOL Integration --
-		game.settings.register(MODULE.ID, 'enableMidiQOL', {
-			name: MODULE.ID + '.enableMidiQOL-Label',
-			hint: MODULE.ID + '.enableMidiQOL-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
+
+		// -- Hidden Setting -- Skill Check 
+		game.settings.register(MODULE.ID, 'skillCheckPreferences', {
+			name: 'Skill Check Preferences',
+			hint: 'Default preferences for skill check dialog',
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {
+				showRollExplanation: true,
+				showRollExplanationLink: true,
+				showDC: true,
+				groupRoll: true,
+				isCinematic: false
+			}
 		});
 
-		// ---------- SUBHEADING - ROLL BEHAVIOR ----------
-		game.settings.register(MODULE.ID, "headingH3RollBehavior", {
-			name: MODULE.ID + '.headingH3RollBehavior-Label',
-			hint: MODULE.ID + '.headingH3RollBehavior-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Default Show Roll Dialog --
-		game.settings.register(MODULE.ID, 'defaultShowDialog', {
-			name: MODULE.ID + '.defaultShowDialog-Label',
-			hint: MODULE.ID + '.defaultShowDialog-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: false,
-		});
-
-		// -- Enable Custom Modifiers --
-		game.settings.register(MODULE.ID, 'enableCustomModifiers', {
-			name: MODULE.ID + '.enableCustomModifiers-Label',
-			hint: MODULE.ID + '.enableCustomModifiers-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
-
-		// -- Enable Situational Bonuses --
-		game.settings.register(MODULE.ID, 'enableSituationalBonuses', {
-			name: MODULE.ID + '.enableSituationalBonuses-Label',
-			hint: MODULE.ID + '.enableSituationalBonuses-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
-
-		// -- Enable Advantage/Disadvantage --
-		game.settings.register(MODULE.ID, 'enableAdvantageDisadvantage', {
-			name: MODULE.ID + '.enableAdvantageDisadvantage-Label',
-			hint: MODULE.ID + '.enableAdvantageDisadvantage-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
-
-		// -- Enable Custom Formulas --
-		game.settings.register(MODULE.ID, 'enableCustomFormulas', {
-			name: MODULE.ID + '.enableCustomFormulas-Label',
-			hint: MODULE.ID + '.enableCustomFormulas-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
 		// *** SCENE SETTINGS ***
 
@@ -3276,6 +3171,15 @@ export const registerSettings = async () => {
 	});
 
 
+
+
+
+
+
+
+
+
+
 	// THESE ARE OLD SETTINGS FOR COMBAT STATS THAT WE HAVEN"T USED YET. THEY ARE IN THE COMBAT_STATS.JS FILE, BUT WE WILL REUILB IT.
 
 	// ---------- COMBAT STATS ----------
@@ -3288,6 +3192,14 @@ export const registerSettings = async () => {
 		type: String,
 	});
 	// -------------------------------------
+
+
+
+
+
+
+
+
 
 // *** XP DISTRIBUTION SETTINGS ***
 
