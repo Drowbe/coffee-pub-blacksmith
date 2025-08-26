@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from './chat-panel.js';
 

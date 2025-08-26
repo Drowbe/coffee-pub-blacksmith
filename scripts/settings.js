@@ -5,9 +5,9 @@
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB } from './global.js';
+import { COFFEEPUB } from './api-common.js';
 // -- Load the shared GLOBAL functions --
-import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './global.js';
+import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-common.js';
 // -- Import special page variables --
 // Load the data sets for the settings dropdowns
 import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages, dataTheme } from './data-collections.js';

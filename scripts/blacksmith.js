@@ -8,11 +8,11 @@ import { MODULE, BLACKSMITH } from './const.js';
 // *** BEGIN: GLOBAL IMPORTS ***
 // *** These should be the same across all modules
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB } from './global.js';
+import { COFFEEPUB } from './api-common.js';
 // -- Load the shared GLOBAL functions --
-import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './global.js';
+import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './api-common.js';
 // -- Global utilities --
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds, getSettingSafely} from './global.js';
+import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds, getSettingSafely} from './api-common.js';
 // *** END: GLOBAL IMPORTS ***
 
 // -- COMMON Imports --

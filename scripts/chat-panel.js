@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';

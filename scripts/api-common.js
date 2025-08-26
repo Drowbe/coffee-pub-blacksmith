@@ -1,11 +1,7 @@
 // ================================================================== 
-// ===== GLOBAL =====================================================
+// ===== COMMON API =====================================================
 // ================================================================== 
 // Put any functions or reusable code here for use in ALL modules.
-// This code should be identical in every COFFEEPUB module.
-//
-// If you need to share code withing THIS module, it should go in
-// the "common.js" file.
 // ================================================================== 
 
 

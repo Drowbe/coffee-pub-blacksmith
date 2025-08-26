@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
-import { postConsoleAndNotification } from './global.js';
+import { postConsoleAndNotification } from './api-common.js';
 
 export class EncounterToolbar {
     

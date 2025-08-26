@@ -2,8 +2,8 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 import { MODULE } from './const.js';
-import * as GlobalUtils from './global.js';
-import { postConsoleAndNotification } from './global.js';
+import * as GlobalUtils from './api-common.js';
+import { postConsoleAndNotification } from './api-common.js';
 
 export class UtilsManager {
     static isInitialized = false;

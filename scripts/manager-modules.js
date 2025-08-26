@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification } from './api-common.js';
 
 export class ModuleManager {
     static registeredModules = new Map();

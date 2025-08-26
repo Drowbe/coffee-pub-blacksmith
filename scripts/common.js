@@ -23,9 +23,9 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { COFFEEPUB } from './global.js';
+import { COFFEEPUB } from './api-common.js';
 // get the common utilities
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './global.js';
+import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './api-common.js';
 // Import template caching function
 import { getCachedTemplate } from './blacksmith.js';
 

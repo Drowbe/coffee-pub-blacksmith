@@ -2,7 +2,7 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './global.js';
+import { postConsoleAndNotification } from './api-common.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
 import { ChatPanel } from './chat-panel.js';

@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './global.js';
+import { postConsoleAndNotification } from './api-common.js';
 
 export class LatencyChecker {
     static #latencyData = new Map();

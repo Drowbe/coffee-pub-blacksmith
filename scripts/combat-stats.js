@@ -1,6 +1,6 @@
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './global.js';
+import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './api-common.js';
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';

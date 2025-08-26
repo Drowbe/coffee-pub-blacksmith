@@ -66,7 +66,7 @@
   ],
   "esmodules": [
     "scripts/const.js",
-    "scripts/global.js",
+    "scripts/api-common.js",
     "scripts/settings.js",
     "scripts/blacksmith.js"
   ],

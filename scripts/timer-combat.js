@@ -4,7 +4,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './api-common.js';
 import { CombatStats } from './combat-stats.js';
 import { SocketManager } from './manager-sockets.js';
 

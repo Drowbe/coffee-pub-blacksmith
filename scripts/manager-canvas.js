@@ -5,9 +5,9 @@
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB } from './global.js';
+import { COFFEEPUB } from './api-common.js';
 // -- Load the shared GLOBAL functions --
-import { postConsoleAndNotification, getTokenImage, getTokenId } from './global.js';
+import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-common.js';
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================

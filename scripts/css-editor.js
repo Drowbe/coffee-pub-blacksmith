@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './global.js';
+import { postConsoleAndNotification } from './api-common.js';
 
 export class CSSEditor extends FormApplication {
     static get defaultOptions() {

@@ -17,7 +17,7 @@
  * - Improved module compatibility
  */
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely} from './global.js';
+import { postConsoleAndNotification, getSettingSafely} from './api-common.js';
 
 
 /**

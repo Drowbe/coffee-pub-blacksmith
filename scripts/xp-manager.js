@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './global.js';
+import { postConsoleAndNotification, playSound, COFFEEPUB } from './api-common.js';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping

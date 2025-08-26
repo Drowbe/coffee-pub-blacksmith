@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
+import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
 

@@ -4,7 +4,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, playSound } from './global.js';
+import { postConsoleAndNotification, playSound } from './api-common.js';
 
 /**
  * CombatTracker - Handles combat management functionality for player characters

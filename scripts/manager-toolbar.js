@@ -1,10 +1,10 @@
 import { MODULE } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification } from './global.js';
+import { COFFEEPUB, postConsoleAndNotification } from './api-common.js';
 import { buildButtonEventRegent } from './blacksmith.js';
 import { CSSEditor } from './css-editor.js';
 import { JournalToolsWindow } from './journal-tools.js';
 // -- Global utilities --
-import { rollCoffeePubDice, playSound } from './global.js';
+import { rollCoffeePubDice, playSound } from './api-common.js';
 
 export function addToolbarButton() {
 
