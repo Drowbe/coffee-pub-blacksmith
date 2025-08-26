@@ -290,31 +290,26 @@ export async function executeRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Routing to BLACKSMITH roll system`, null, true, false);
             
             if (useDialog) {
-                const dialogOptions = await showRollDialog(actor, type, value, options, messageId, tokenId);
-                if (dialogOptions) {
-                    // Update our options with dialog results
-                    advantage = dialogOptions.advantage;
-                    disadvantage = dialogOptions.disadvantage;
-                    useDiceSoNice = dialogOptions.useDiceSoNice;
-                    situationalBonus = dialogOptions.situationalBonus;
-                    customFormula = dialogOptions.customModifier;
-                } else {
-                    // User cancelled the dialog
-                    return null;
-                }
+                // Show the RollDialog and let it handle the roll execution
+                // The dialog will call _performRoll() internally and update the chat card
+                postConsoleAndNotification(MODULE.NAME, `Showing RollDialog for Blacksmith system`, null, true, false);
+                await showRollDialog(actor, type, value, options, messageId, tokenId);
+                
+                // The RollDialog handles everything, so we return null
+                // The actual roll result will be processed by the dialog
+                return null;
+            } else {
+                // No dialog requested, execute roll directly
+                postConsoleAndNotification(MODULE.NAME, `Executing Blacksmith roll system without dialog`, null, true, false);
+                roll = await _executeBuiltInRoll(actor, type, value, { 
+                    ...options, 
+                    advantage, 
+                    disadvantage, 
+                    useDiceSoNice, 
+                    situationalBonus,
+                    customFormula
+                });
             }
-            
-            // Execute using Blacksmith system
-            postConsoleAndNotification(MODULE.NAME, `Executing Blacksmith roll system`, null, true, false);
-            roll = await _executeBuiltInRoll(actor, type, value, { 
-                ...options, 
-                advantage, 
-                disadvantage, 
-                useDiceSoNice, 
-                situationalBonus,
-                customFormula
-            });
-            
         } else if (diceRollToolSystem === 'foundry') {
             // FOUNDRY SYSTEM: Use Foundry's built-in roll system
             postConsoleAndNotification(MODULE.NAME, `Routing to FOUNDRY roll system`, null, true, false);
@@ -821,15 +816,21 @@ export class RollDialog extends Application {
             
             postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll options:`, rollOptions, true, false);
             
-            // Close the dialog
-            this.close();
-            
-            // Actually execute the roll using the existing roll system
+            // Actually execute the roll using the Blacksmith roll system
             const rollResult = await this._performRoll(rollOptions);
             postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll completed:`, rollResult, true, false);
             
+            // Only close the dialog after the roll is complete and processed
+            if (rollResult) {
+                postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll successful, closing dialog`, null, true, false);
+                this.close();
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll: Roll failed, keeping dialog open`, null, true, false);
+            }
+            
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `RollDialog _executeRoll error:`, error, true, false);
+            // Keep dialog open on error so user can see what went wrong
         }
     }
     
