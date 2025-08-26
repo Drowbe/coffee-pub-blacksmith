@@ -1485,6 +1485,61 @@ The system includes mappings for weapons, equipment, commodities, containers, co
 
 ## Recent Improvements and Fixes
 
+### File Naming Convention Standardization
+The module has been completely reorganized with a consistent naming convention for better maintainability and clarity:
+
+**New Naming Pattern:**
+- **`manager-*`** → Core management systems (libwrapper, sockets, hooks, rolls, utilities, canvas, modules, toolbar)
+- **`api-*`** → External APIs (common, stats)  
+- **`window-*`** → UI windows (gmtools, skillcheck, query)
+- **`timer-*`** → Timer systems (combat, planning, round)
+- **`stats-*`** → Statistics systems (combat, player)
+
+**Files Renamed:**
+- `global.js` → `api-common.js` (shared utilities API)
+- `wrapper-manager.js` → `manager-libwrapper.js` (libWrapper management)
+- `third-party.js` → `manager-sockets.js` (socket management)
+- `module-manager.js` → `manager-modules.js` (module management)
+- `utils-manager.js` → `manager-utilities.js` (utilities management)
+- `canvas-tools.js` → `manager-canvas.js` (canvas management)
+- `toolbar.js` → `manager-toolbar.js` (toolbar management)
+- `stats-api.js` → `api-stats.js` (statistics API)
+- `combat-stats.js` → `stats-combat.js` (combat statistics)
+- `player-stats.js` → `stats-player.js` (player statistics)
+- `css-editor.js` → `window-gmtools.js` (GM tools window)
+- `skill-check-dialog.js` → `window-skillcheck.js` (skill check window)
+- `combat-timer.js` → `timer-combat.js` (combat timer)
+- `planning-timer.js` → `timer-planning.js` (planning timer)
+- `round-timer.js` → `timer-round.js` (round timer)
+
+**Benefits of New Naming:**
+- **Clear Purpose**: Each file's function is immediately obvious
+- **Logical Grouping**: Related functionality is grouped together
+- **Easier Maintenance**: Developers can quickly find the right file
+- **Consistent Pattern**: All Coffee Pub modules can follow the same convention
+- **Better Organization**: Reduces confusion and improves code navigation
+
+### Module Loading Optimization
+The module loading system has been optimized to prevent race conditions and loading complications:
+
+**What Was Fixed:**
+- **Reduced Entry Points**: Only 4 essential files are loaded by FoundryVTT initially
+- **Sequential Loading**: Core files load in proper order to prevent dependency conflicts
+- **Import Chain Management**: ES6 imports handle dependencies automatically
+- **No More Overwhelm**: FoundryVTT's loader isn't juggling 36+ files simultaneously
+
+**New Loading Strategy:**
+1. **`const.js`** → Constants first
+2. **`api-common.js`** → Global utilities second  
+3. **`settings.js`** → Settings registration third
+4. **`blacksmith.js`** → Main entry point fourth
+
+**Benefits:**
+- **Eliminates Race Conditions**: Files load in proper sequence
+- **Faster Initialization**: No more concurrent loading conflicts
+- **Better Error Handling**: Clear dependency chain for troubleshooting
+- **Improved Stability**: Module loads more reliably across different systems
+
 
 
 ### Global Variable Sharing System

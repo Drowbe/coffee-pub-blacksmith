@@ -2,9 +2,101 @@
 
 ## Overview
 
-Blacksmith serves as the central hub and framework for the Coffee Pub module ecosystem, providing several key service layers:
+Blacksmith serves as the central hub and framework for the Coffee Pub module ecosystem, providing several key service layers. The module has been completely reorganized with a consistent naming convention and optimized loading system to eliminate race conditions and improve performance.
+
+### Recent Architectural Improvements
+
+#### File Naming Convention Standardization
+The module has been completely reorganized with a consistent naming convention for better maintainability and clarity:
+
+**New Naming Pattern:**
+- **`manager-*`** → Core management systems (libwrapper, sockets, hooks, rolls, utilities, canvas, modules, toolbar)
+- **`api-*`** → External APIs (common, stats)  
+- **`window-*`** → UI windows (gmtools, skillcheck, query)
+- **`timer-*`** → Timer systems (combat, planning, round)
+- **`stats-*`** → Statistics systems (combat, player)
+
+**Files Renamed:**
+- `global.js` → `api-common.js` (shared utilities API)
+- `wrapper-manager.js` → `manager-libwrapper.js` (libWrapper management)
+- `third-party.js` → `manager-sockets.js` (socket management)
+- `module-manager.js` → `manager-modules.js` (module management)
+- `utils-manager.js` → `manager-utilities.js` (utilities management)
+- `canvas-tools.js` → `manager-canvas.js` (canvas management)
+- `toolbar.js` → `manager-toolbar.js` (toolbar management)
+- `stats-api.js` → `api-stats.js` (statistics API)
+- `combat-stats.js` → `stats-combat.js` (combat statistics)
+- `player-stats.js` → `stats-player.js` (player statistics)
+- `css-editor.js` → `window-gmtools.js` (GM tools window)
+- `skill-check-dialog.js` → `window-skillcheck.js` (skill check window)
+- `combat-timer.js` → `timer-combat.js` (combat timer)
+- `planning-timer.js` → `timer-planning.js` (planning timer)
+- `round-timer.js` → `timer-round.js` (round timer)
+
+#### Module Loading Optimization
+The module loading system has been optimized to prevent race conditions and loading complications:
+
+**What Was Fixed:**
+- **Reduced Entry Points**: Only 4 essential files are loaded by FoundryVTT initially
+- **Sequential Loading**: Core files load in proper order to prevent dependency conflicts
+- **Import Chain Management**: ES6 imports handle dependencies automatically
+- **No More Overwhelm**: FoundryVTT's loader isn't juggling 36+ files simultaneously
+
+**New Loading Strategy:**
+1. **`const.js`** → Constants first
+2. **`api-common.js`** → Global utilities second  
+3. **`settings.js`** → Settings registration third
+4. **`blacksmith.js`** → Main entry point fourth
+
+**Benefits:**
+- **Eliminates Race Conditions**: Files load in proper sequence
+- **Faster Initialization**: No more concurrent loading conflicts
+- **Better Error Handling**: Clear dependency chain for troubleshooting
+- **Improved Stability**: Module loads more reliably across different systems
 
 ### 1. Core Framework Services
+
+#### File Structure and Organization
+The module now follows a clear, logical file structure that makes development and maintenance easier:
+
+```
+scripts/
+├── const.js                    # Module constants and metadata
+├── api-common.js              # Shared utilities API (formerly global.js)
+├── settings.js                # Module settings registration
+├── blacksmith.js              # Main module entry point
+├── manager-*.js               # Core management systems
+│   ├── manager-libwrapper.js  # libWrapper management
+│   ├── manager-sockets.js     # Socket management
+│   ├── manager-hooks.js       # Hook management
+│   ├── manager-rolls.js       # Roll system management
+│   ├── manager-utilities.js   # Utilities management
+│   ├── manager-canvas.js      # Canvas management
+│   ├── manager-modules.js     # Module management
+│   └── manager-toolbar.js     # Toolbar management
+├── api-*.js                   # External APIs
+│   ├── api-stats.js           # Statistics API
+│   └── api-common.js          # Shared utilities API
+├── window-*.js                # UI windows
+│   ├── window-gmtools.js      # GM tools window
+│   ├── window-skillcheck.js   # Skill check window
+│   └── window-query.js        # Query window
+├── timer-*.js                 # Timer systems
+│   ├── timer-combat.js        # Combat timer
+│   ├── timer-planning.js      # Planning timer
+│   └── timer-round.js         # Round timer
+├── stats-*.js                 # Statistics systems
+│   ├── stats-combat.js        # Combat statistics
+│   └── stats-player.js        # Player statistics
+└── [other specialized files]  # Remaining functionality
+```
+
+**Benefits of New Structure:**
+- **Immediate Understanding**: File purpose is clear from the name
+- **Logical Grouping**: Related functionality is grouped together
+- **Easier Navigation**: Developers can quickly find the right file
+- **Consistent Pattern**: All Coffee Pub modules can follow the same convention
+- **Better Maintenance**: Clear separation of concerns and responsibilities
 - **State Management**: Central BLACKSMITH object for cross-module state sharing
 - **Resource Management**: Shared CSS, utilities, and assets
 - **UI Framework**: Common styling overrides and enhancements
@@ -273,6 +365,36 @@ class FeatureManager {
 ```
 
 ## Getting Started
+
+### Module Loading and Initialization Flow
+The module now uses an optimized loading strategy that eliminates race conditions and improves performance:
+
+#### Loading Strategy
+```javascript
+// FoundryVTT loads these 4 files in sequence:
+1. const.js           → Module constants and metadata
+2. api-common.js      → Global utilities and shared functions  
+3. settings.js        → Settings registration and configuration
+4. blacksmith.js      → Main entry point and module initialization
+```
+
+#### Dependency Chain
+```javascript
+// ES6 imports handle the rest automatically:
+blacksmith.js
+├── imports from api-common.js
+├── imports from manager-*.js files
+├── imports from window-*.js files
+├── imports from timer-*.js files
+└── imports from stats-*.js files
+```
+
+#### Benefits of New Loading Strategy
+- **No More Race Conditions**: Files load in proper sequence
+- **Faster Initialization**: No concurrent loading conflicts
+- **Better Error Handling**: Clear dependency chain for troubleshooting
+- **Improved Stability**: Module loads more reliably across different systems
+- **Easier Debugging**: Clear loading order makes issues easier to trace
 
 ### Initialization Flow
 ```javascript

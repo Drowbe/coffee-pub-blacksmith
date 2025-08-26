@@ -118,26 +118,26 @@ document.addEventListener('DOMContentLoaded', () => {
             Handlebars.registerPartial('window-query-workspace-character', workspaceCharacterTemplate);
 
             // Register character section partials
-            const characterCoreTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-core.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-core', characterCoreTemplate);
+            const characterCoreTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-core.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-core', characterCoreTemplate);
 
-            const characterAbilitiesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-abilities.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-abilities', characterAbilitiesTemplate);
+            const characterAbilitiesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-abilities.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-abilities', characterAbilitiesTemplate);
 
-            const characterSkillsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-skills.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-skills', characterSkillsTemplate);
+            const characterSkillsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-skills.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-skills', characterSkillsTemplate);
 
-            const characterFeaturesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-features.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-features', characterFeaturesTemplate);
+            const characterFeaturesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-features.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-features', characterFeaturesTemplate);
 
-            const characterWeaponsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-weapons.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-weapons', characterWeaponsTemplate);
+            const characterWeaponsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-weapons.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-weapons', characterWeaponsTemplate);
 
-            const characterSpellsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-spells.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-spells', characterSpellsTemplate);
+            const characterSpellsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-spells.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-spells', characterSpellsTemplate);
 
-            const characterBiographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-biography.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-biography', characterBiographyTemplate);
+            const characterBiographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-biography.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-biography', characterBiographyTemplate);
 
             // Assistant        
             const workspaceAssistantTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-assistant.hbs').then(response => response.text());
@@ -162,102 +162,102 @@ document.addEventListener('DOMContentLoaded', () => {
             
 
             // general options -- section sellection, etc.
-            const globalOptionsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-global-options.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-global-options', globalOptionsTemplate); 
+            const globalOptionsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-options.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-global-options', globalOptionsTemplate); 
             
             // general options -- section sellection, etc.
-            const globalFundTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-global-fund.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-global-fund', globalFundTemplate); 
+            const globalFundTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-fund.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-global-fund', globalFundTemplate); 
 
 
             // skill check rolls
-            const globalSkillCheckTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-global-skillcheckrolls.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-global-skillcheckrolls', globalSkillCheckTemplate);
+            const globalSkillCheckTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-skillcheckrolls.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-global-skillcheckrolls', globalSkillCheckTemplate);
 
             // LOOKUP
 
             // lookup - features, etc.
-            const lookupSRDRulesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-lookup-srdrules.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-lookup-srdrules', lookupSRDRulesTemplate);   
+            const lookupSRDRulesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-lookup-srdrules.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-lookup-srdrules', lookupSRDRulesTemplate);   
 
 
 
             // CHARACTER
 
             // character - details
-            const characterDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-details.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-details', characterDetailsTemplate);
+            const characterDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-details.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-details', characterDetailsTemplate);
 
             // character - guidance
-            const characterGuidanceTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-character-guidance.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-character-guidance', characterGuidanceTemplate); 
+            const characterGuidanceTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-guidance.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-character-guidance', characterGuidanceTemplate); 
 
 
             // ASSISTANT
 
-            const assistantCriteriaTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-assistant-criteria.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-assistant-criteria', assistantCriteriaTemplate);   
+            const assistantCriteriaTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-assistant-criteria.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-assistant-criteria', assistantCriteriaTemplate);   
 
             // ENCOUNTER
 
             // narrative encounter
-            //const narrativeEncounterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter.hbs').then(response => response.text());
-            //Handlebars.registerPartial('window-element-narrative-encounter', narrativeEncounterTemplate);   
+            //const narrativeEncounterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter.hbs').then(response => response.text());
+            //Handlebars.registerPartial('partial-narrative-encounter', narrativeEncounterTemplate);   
 
             // encounter scripts
-            const encounterScriptsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-scripts.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-scripts', encounterScriptsTemplate);   
+            const encounterScriptsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-scripts.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-scripts', encounterScriptsTemplate);   
             
             // encounter configuration
-            const encounterConfigurationTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-configuration.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-configuration', encounterConfigurationTemplate);       
+            const encounterConfigurationTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-configuration.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-configuration', encounterConfigurationTemplate);       
 
             // encounter worksheet
-            const encounterWorksheetTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-worksheet.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-worksheet', encounterWorksheetTemplate);       
+            const encounterWorksheetTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-worksheet.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-worksheet', encounterWorksheetTemplate);       
 
             // encounter monsters
-            const encounterMonstersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-monsters.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-monsters', encounterMonstersTemplate);        
+            const encounterMonstersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-monsters.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-monsters', encounterMonstersTemplate);        
 
             // encounter party
-            const encounterPartyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-party.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-party', encounterPartyTemplate);        
+            const encounterPartyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-party.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-party', encounterPartyTemplate);        
 
             // encounter NPCs
-            const encounterNPCTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-encounter-npcs.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-encounter-npcs', encounterNPCTemplate);    
+            const encounterNPCTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-npcs.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-encounter-npcs', encounterNPCTemplate);    
 
             // Journal Narrative TEMPLATES
 
             // image settings   
-            const narrativeImageTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-image.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-image', narrativeImageTemplate);   
+            const narrativeImageTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-image.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-image', narrativeImageTemplate);   
 
             // narrative settings   
-            const narrativeSettingsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-settings.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-settings', narrativeSettingsTemplate);   
+            const narrativeSettingsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-settings.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-settings', narrativeSettingsTemplate);   
 
             // narrative geography
-            const narrativeGeographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-geography.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-geography', narrativeGeographyTemplate);   
+            const narrativeGeographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-geography.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-geography', narrativeGeographyTemplate);   
 
 
             // narrative details
-            const narrativeDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-details.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-details', narrativeDetailsTemplate);   
+            const narrativeDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-details.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-details', narrativeDetailsTemplate);   
 
             // narrative rewards
-            const narrativeRewardsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-rewards.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-rewards', narrativeRewardsTemplate);   
+            const narrativeRewardsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-rewards.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-rewards', narrativeRewardsTemplate);   
 
             // Characters for the narrative
-            const narrativeCharactersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-characters.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-characters', narrativeCharactersTemplate);
+            const narrativeCharactersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-characters.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-characters', narrativeCharactersTemplate);
 
             // Encounters for the narrative
-            const narrativeEncountersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-element-narrative-encounters.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-element-narrative-encounters', narrativeEncountersTemplate);
+            const narrativeEncountersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-encounters.hbs').then(response => response.text());
+            Handlebars.registerPartial('partial-narrative-encounters', narrativeEncountersTemplate);
 
 
 
