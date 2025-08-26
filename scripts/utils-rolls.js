@@ -259,11 +259,117 @@ function buildRollFormula(type, value, options) {
 async function showRollWindow(rollData) {
     postConsoleAndNotification(MODULE.NAME, `showRollWindow: Opening roll window`, rollData, true, false);
     
-    // TODO: Implement roll window display
-    // This will replace the old RollDialog class
-    // For now, just log that we would show the window
-    
-    postConsoleAndNotification(MODULE.NAME, `showRollWindow: Roll window would be displayed`, null, true, false);
+    try {
+        // Create and show the roll window
+        const rollWindow = new RollWindow(rollData);
+        await rollWindow.render(true);
+        
+        postConsoleAndNotification(MODULE.NAME, `showRollWindow: Roll window displayed successfully`, null, true, false);
+        
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `showRollWindow error:`, error, true, false);
+        throw error;
+    }
+}
+
+/**
+ * Roll Window Class - Handles the roll configuration interface
+ */
+class RollWindow extends Application {
+    constructor(rollData) {
+        super();
+        this.rollData = rollData;
+        postConsoleAndNotification(MODULE.NAME, `RollWindow constructor: Created with roll data`, rollData, true, false);
+    }
+
+    static get defaultOptions() {
+        return foundry.utils.mergeObject(super.defaultOptions, {
+            id: 'roll-window',
+            template: 'modules/coffee-pub-blacksmith/templates/window-roll.hbs',
+            title: 'Roll Configuration',
+            width: 450,
+            height: 400,
+            resizable: true,
+            classes: ['roll-window']
+        });
+    }
+
+    getData() {
+        postConsoleAndNotification(MODULE.NAME, `RollWindow getData: Preparing template data`, null, true, false);
+        
+        // Return the roll data for the template
+        return this.rollData;
+    }
+
+    activateListeners(html) {
+        super.activateListeners(html);
+        postConsoleAndNotification(MODULE.NAME, `RollWindow activateListeners: Setting up event handlers`, null, true, false);
+        
+        // Roll buttons - each button triggers a roll with different advantage/disadvantage
+        html.find('.roll-advantage').on('click', async (event) => {
+            event.preventDefault();
+            await this._executeRoll('advantage');
+        });
+        
+        html.find('.roll-normal').on('click', async (event) => {
+            event.preventDefault();
+            await this._executeRoll('normal');
+        });
+        
+        html.find('.roll-disadvantage').on('click', async (event) => {
+            event.preventDefault();
+            await this._executeRoll('disadvantage');
+        });
+        
+        // Cancel button
+        html.find('.cancel-roll').on('click', (event) => {
+            event.preventDefault();
+            postConsoleAndNotification(MODULE.NAME, `RollWindow: Cancel button clicked, closing window`, null, true, false);
+            this.close();
+        });
+    }
+
+    async _executeRoll(rollType) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Starting ${rollType} roll execution`, null, true, false);
+            
+            // Get roll options from the form
+            const advantage = rollType === 'advantage';
+            const disadvantage = rollType === 'disadvantage';
+            const situationalBonus = parseInt(this.element.find('input[name="situational-bonus"]').val()) || 0;
+            const customModifier = this.element.find('input[name="custom-modifier"]').val() || '';
+            
+            const rollOptions = {
+                advantage: advantage,
+                disadvantage: disadvantage,
+                situationalBonus: situationalBonus,
+                customFormula: customModifier || null
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll options collected`, rollOptions, true, false);
+            
+            // Execute the roll using the new unified system
+            const rollResults = await processRoll(this.rollData, rollOptions);
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll completed successfully`, rollResults, true, false);
+            
+            // Deliver the results
+            const context = { 
+                messageId: this.rollData.messageId, 
+                tokenId: this.rollData.tokenId 
+            };
+            await deliverRollResults(rollResults, context);
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Results delivered successfully`, null, true, false);
+            
+            // Close the window after successful roll
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Closing window`, null, true, false);
+            this.close();
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll error:`, error, true, false);
+            // Keep window open on error so user can see what went wrong
+            ui.notifications.error(`Roll execution failed: ${error.message}`);
+        }
+    }
 }
 
 /**
@@ -371,8 +477,15 @@ export async function executeRollAndUpdate(message, tokenId, actorId, type, valu
 
         const context = { messageId: message.id, tokenId, actorId };
         
+        // Add context data to options for rollRoute
+        const optionsWithContext = { 
+            ...options, 
+            messageId: message.id,  // Pass messageId to orchestrateRoll
+            tokenId: tokenId        // Pass tokenId to orchestrateRoll
+        };
+        
         // Use the new unified system
-        const rollData = await orchestrateRoll(actor, type, value, { ...options, messageId: message.id, tokenId, actorId });
+        const rollData = await orchestrateRoll(actor, type, value, optionsWithContext);
         
         postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Bridge function completed successfully`, null, true, false);
         return true;
