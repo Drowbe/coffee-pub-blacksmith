@@ -14,10 +14,10 @@
 @import "window-gmtools.css";
 @import "window-query.css";
 @import "window-skillcheck.css";
-@import "movement.css";
-@import "xp-distribution.css";
-@import "window-roll.css";
-@import "cinematic.css";
+@import "token-movement.css";
+@import "window-xp.css";
+@import "window-roll-normal.css";
+@import "window-roll-cinematic.css";
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
@@ -27,7 +27,7 @@
 /* --- Cards ---------------------- */
 @import "cards-layout.css";
 @import "cards-themes.css";
-@import "chat-cards.css";
+@import "cards-common.css";
 @import "cards-xp.css";
 
 /* --- Chat Panel ---------------------- */

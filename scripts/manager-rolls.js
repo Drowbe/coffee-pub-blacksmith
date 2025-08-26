@@ -607,7 +607,7 @@ class RollWindow extends Application {
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'roll-window',
-            template: 'modules/coffee-pub-blacksmith/templates/window-roll.hbs',
+            template: 'modules/coffee-pub-blacksmith/templates/window-roll-normal.hbs',
             title: 'Roll Configuration',
             width: 450,
             height: 400,

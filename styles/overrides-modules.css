@@ -1,19 +1,5 @@
 
 
-/* ------------------------------------ */
-/* --- CUSTOM CSS ------- */
-/* ------------------------------------ */
-
-/* Turns off the "local" section of the Custom CSS settings */
-.customCssSettings h2:nth-child(2n + 2) {
-	display: none;
-}
-.customCssSettings p {
-	display: none;
-}
-.customCssSettings section.stylesheet-editor:nth-child(2n + 2) {
-	display: none;
-}
 
 
 /* ------------------------------------ */

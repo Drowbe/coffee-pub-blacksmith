@@ -1,7 +1,7 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { CPBPlayerStats } from './player-stats.js';
-import { CombatStats } from './combat-stats.js';
+import { CPBPlayerStats } from './stats-player.js';
+import { CombatStats } from './stats-combat.js';
 
 /**
  * StatsAPI - Provides access to Blacksmith's statistics systems

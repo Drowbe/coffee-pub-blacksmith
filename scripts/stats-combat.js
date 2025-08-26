@@ -181,7 +181,7 @@ class CombatStats {
             };
 
             // Render the template
-            const content = await renderTemplate('modules/' + MODULE.ID + '/templates/chat-cards.hbs', {
+            const content = await renderTemplate('modules/' + MODULE.ID + '/templates/cards-common.hbs', {
                 ...templateData,
                 isPublic: true,
                 isRoundAnnouncement: true

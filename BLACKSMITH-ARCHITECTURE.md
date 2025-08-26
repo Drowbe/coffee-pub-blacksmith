@@ -458,7 +458,7 @@ The combat management system uses two coordinated timers:
 #### Statistics System
 Tracks both combat-level and player-level statistics:
 
-1. **Combat Statistics** (`scripts/combat-stats.js`)
+1. **Combat Statistics** (`scripts/stats-combat.js`)
    ```javascript
    class CombatStats {
        // Combat-level tracking
@@ -472,7 +472,7 @@ Tracks both combat-level and player-level statistics:
    }
    ```
 
-2. **Player Statistics** (`scripts/player-stats.js`)
+2. **Player Statistics** (`scripts/stats-player.js`)
    ```javascript
    class CPBPlayerStats {
        // Lifetime stat tracking

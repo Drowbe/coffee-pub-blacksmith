@@ -404,7 +404,7 @@ export class CanvasTools {
                     tokenName: token.name
                 };
 
-                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
                 await ChatMessage.create({
                     content: messageHtml,

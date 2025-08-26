@@ -5,7 +5,7 @@
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './api-common.js';
-import { CombatStats } from './combat-stats.js';
+import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 
 class CombatTimer {
@@ -961,7 +961,7 @@ class CombatTimer {
             messageData.expiredMessage = data.expiredMessage.replace('{name}', name);
         }
 
-        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
         await ChatMessage.create({
             content: messageHtml,

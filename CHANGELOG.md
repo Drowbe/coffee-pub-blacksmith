@@ -532,7 +532,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Moved MVPTemplates from mvp-templates.js into data-collections.js
-- Moved MVPDescriptionGenerator class from mvp-description-generator.js into combat-stats.js
+- Moved MVPDescriptionGenerator class from mvp-description-generator.js into stats-combat.js
 - Consolidated combat-related functionality into fewer files for better maintainability
 - Modified session timer to use the default time when loading on a new day
 - Updated timer dialog to include option for saving current duration as default

@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { CombatStats } from './combat-stats.js';
+import { CombatStats } from './stats-combat.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, formatTime } from './api-common.js';
 
 export class RoundTimer {

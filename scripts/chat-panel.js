@@ -8,7 +8,7 @@ import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
-import { MovementConfig } from './movement.js';
+import { MovementConfig } from './token-movement.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -26,7 +26,7 @@ class ChatPanel {
         // Load the templates
         loadTemplates([
             'modules/coffee-pub-blacksmith/templates/chat-panel.hbs',
-            'modules/coffee-pub-blacksmith/templates/chat-cards.hbs',
+            'modules/coffee-pub-blacksmith/templates/cards-common.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
@@ -301,7 +301,7 @@ class ChatPanel {
         if (!gmUser) return;
 
         // Render public message
-        const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+        const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
             isPublic: true,
             leaderName: leaderName
         });
@@ -314,7 +314,7 @@ class ChatPanel {
         });
 
         // Render private message
-        const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', {
+        const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
             isPublic: false,
             leaderName: leaderName
         });
@@ -740,7 +740,7 @@ class ChatPanel {
             ...data
         };
 
-        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', messageData);
+        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
         await ChatMessage.create({
             content: messageHtml,
@@ -876,7 +876,7 @@ class ChatPanel {
                     playerName: user.name
                 };
 
-                const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', publicData);
+                const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
                 await ChatMessage.create({
                     content: publicHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
@@ -890,7 +890,7 @@ class ChatPanel {
                     leaderName: actor.name
                 };
 
-                const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-cards.hbs', privateData);
+                const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
                 await ChatMessage.create({
                     content: privateHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
