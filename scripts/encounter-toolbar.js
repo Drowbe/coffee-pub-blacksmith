@@ -90,7 +90,7 @@ export class EncounterToolbar {
                 }
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating CR values", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating CR values", error, true, false);
         }
     }
 
@@ -132,7 +132,7 @@ export class EncounterToolbar {
                 }
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating toolbar CRs", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating toolbar CRs", error, true, false);
         }
     }
 
@@ -159,7 +159,7 @@ export class EncounterToolbar {
         if (!this._isEditMode(html)) {
             // Try immediately first
             this._updateToolbarContent(html).catch(error => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in initial update", error, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in initial update", error, true, false);
             });
             
             // Retry after delay if requested (for renderJournalSheet)
@@ -170,7 +170,7 @@ export class EncounterToolbar {
                     setTimeout(() => {
                         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Retrying metadata search after delay", `Attempt ${index + 2}`, true, false);
                         this._updateToolbarContent(html).catch(error => {
-                                                          postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error in retry ${index + 2}`, error, false, false);
+                                                          postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error in retry ${index + 2}`, error, true, false);
                         });
                     }, delay);
                 });
@@ -314,13 +314,13 @@ export class EncounterToolbar {
         }
         
         if (pageContent.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page content found", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page content found", "", true, false);
             return null;
         }
 
         // Check if content scanning is enabled
         if (!game.settings.get(MODULE.ID, 'enableEncounterContentScanning')) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scanning disabled", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scanning disabled", "", true, false);
             return null;
         }
 
@@ -328,24 +328,24 @@ export class EncounterToolbar {
         const textContent = pageContent.text() || '';
         const htmlContent = pageContent.html() || '';
         
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Text content length", textContent.length, false, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: HTML content length", htmlContent.length, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Text content length", textContent.length, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: HTML content length", htmlContent.length, true, false);
 
         // Try JSON format first (for structured data)
         let encounterData = this._parseJSONEncounter(htmlContent);
         if (encounterData) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found JSON encounter data", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found JSON encounter data", "", true, false);
             return encounterData;
         }
 
         // Use the new pattern-based detection
         encounterData = await this._parsePatternBasedEncounter(textContent, htmlContent);
         if (encounterData) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found pattern-based encounter data", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found pattern-based encounter data", "", true, false);
             return encounterData;
         }
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found", "", true, false);
         return null;
     }
 
@@ -357,23 +357,23 @@ export class EncounterToolbar {
             difficulty: null
         };
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Scanning text content for patterns", { textLength: textContent.length, htmlLength: htmlContent.length }, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Scanning text content for patterns", { textLength: textContent.length, htmlLength: htmlContent.length }, true, false);
 
         // 1. Find all data-uuid attributes in the content (Foundry renders links as <a> tags)
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for data-uuid attributes in HTML content", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for data-uuid attributes in HTML content", "", true, false);
         const uuidMatches = htmlContent.match(/data-uuid="([^"]+)"/g);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found UUID matches", uuidMatches?.length || 0, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found UUID matches", uuidMatches?.length || 0, true, false);
 
         if (uuidMatches) {
             for (const match of uuidMatches) {
                 const uuidMatch = match.match(/data-uuid="([^"]+)"/);
                 if (uuidMatch) {
                     const uuid = uuidMatch[1];
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing UUID", uuid, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing UUID", uuid, true, false);
                     
                     // 2. Check if this UUID contains "Actor" (case-insensitive)
                     if (uuid.toLowerCase().includes('actor')) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found Actor UUID", uuid, false, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found Actor UUID", uuid, true, false);
                         
                         // 3. Look for quantity indicators near this UUID
                         let quantity = 1;
@@ -398,7 +398,7 @@ export class EncounterToolbar {
                             const quantityMatch = context.match(pattern);
                             if (quantityMatch) {
                                 quantity = parseInt(quantityMatch[1]);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found quantity", quantity, false, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found quantity", quantity, true, false);
                                 break;
                             }
                         }
@@ -413,14 +413,14 @@ export class EncounterToolbar {
                             }
                         }
                     } else {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: UUID is not an Actor type", uuid, false, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: UUID is not an Actor type", uuid, true, false);
                     }
                 }
             }
         }
 
         // 4. Look for difficulty patterns (case-insensitive)
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for difficulty patterns", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for difficulty patterns", "", true, false);
         const difficultyPatterns = [
             /difficulty\s*:\s*(easy|medium|hard|deadly)/i,
             /difficulty\s*=\s*(easy|medium|hard|deadly)/i,
@@ -431,12 +431,12 @@ export class EncounterToolbar {
             const difficultyMatch = textContent.match(pattern);
             if (difficultyMatch) {
                 encounterData.difficulty = difficultyMatch[1].toLowerCase();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found difficulty", encounterData.difficulty, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found difficulty", encounterData.difficulty, true, false);
                 break;
             }
         }
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final encounter data", encounterData, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final encounter data", encounterData, true, false);
         return (encounterData.monsters.length > 0 || encounterData.npcs.length > 0 || encounterData.difficulty) ? encounterData : null;
     }
 
@@ -484,7 +484,7 @@ export class EncounterToolbar {
         const pageId = journalPage.data('page-id');
         
         if (!pageId) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page ID found", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page ID found", "", true, false);
             return; // Can't create toolbar without page ID
         }
         
@@ -501,7 +501,7 @@ export class EncounterToolbar {
                 const toolbarContainer = $(`<div class="encounter-toolbar" data-page-id="${pageId}"></div>`);
                 journalHeader.after(toolbarContainer);
                 toolbar = toolbarContainer;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, true, false);
             } else {
                 return; // Can't create toolbar
             }
@@ -509,11 +509,11 @@ export class EncounterToolbar {
 
         // Try content scanning for encounter data (check all journals, not just encounter type)
         let encounterData = await this._scanJournalContent(html, pageId);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scan result", encounterData, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scan result", encounterData, true, false);
         
         if (encounterData) {
             // We have encounter data - use the full toolbar
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found encounter data, updating toolbar", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found encounter data, updating toolbar", "", true, false);
             
             try {
                 // Check if we have monsters and NPCs
@@ -566,19 +566,19 @@ export class EncounterToolbar {
                     // Add event listeners to the buttons
                     this._addEventListeners(toolbar, encounterData);
                     
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with encounter data", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with encounter data", "", true, false);
                 });
                 
                 return; // Exit early since we're handling this asynchronously
                 
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error processing encounter data", error, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error processing encounter data", error, true, false);
                 // Fall through to create "no encounter" toolbar
             }
         }
         
         // If we don't have encounter data or there was an error, create a "no encounter" toolbar using the template
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found, showing placeholder", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found, showing placeholder", "", true, false);
         
         // Calculate CR values even when there's no encounter data
         const partyCR = this.getPartyCR();
@@ -612,18 +612,18 @@ export class EncounterToolbar {
             // Add event listeners even when there's no encounter data (for the Reveal button)
             this._addEventListeners(toolbar, { monsters: [], npcs: [] });
             
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with no encounter data", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with no encounter data", "", true, false);
         });
     }
 
     static _addEventListeners(toolbar, metadata) {
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up event listeners with metadata", metadata, false, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata monsters array", metadata.monsters || [], false, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata npcs array", metadata.npcs || [], false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up event listeners with metadata", metadata, true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata monsters array", metadata.monsters || [], true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata npcs array", metadata.npcs || [], true, false);
         
         // Deploy monsters button - scope to this toolbar only
         toolbar.find('.deploy-monsters').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", true, false);
             event.preventDefault();
             event.stopPropagation();
             EncounterToolbar._deployMonsters(metadata);
@@ -631,7 +631,7 @@ export class EncounterToolbar {
         
         // Create combat button - scope to this toolbar only
         toolbar.find('.create-combat').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", true, false);
             event.preventDefault();
             event.stopPropagation();
             
@@ -644,7 +644,7 @@ export class EncounterToolbar {
 
         // Toggle visibility button - scope to this toolbar only
         toolbar.find('.toggle-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", true, false);
             event.preventDefault();
             event.stopPropagation();
             
@@ -653,7 +653,7 @@ export class EncounterToolbar {
 
         // Deployment type badge - cycle through deployment patterns
         toolbar.find('.deploy-type').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", true, false);
             event.preventDefault();
             event.stopPropagation();
             
@@ -662,7 +662,7 @@ export class EncounterToolbar {
 
         // Deployment visibility badge - toggle visibility setting
         toolbar.find('.deploy-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", true, false);
             event.preventDefault();
             event.stopPropagation();
             
@@ -679,7 +679,7 @@ export class EncounterToolbar {
             
             if (monsterUUID) {
                 const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, true, false);
                 
                 // Create metadata for just this one monster
                 const singleMonsterMetadata = {
@@ -707,7 +707,7 @@ export class EncounterToolbar {
             
             if (npcUUID) {
                 const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, true, false);
                 
                 // Create metadata for just this one NPC
                 const singleNpcMetadata = {
@@ -735,9 +735,9 @@ export class EncounterToolbar {
         // Combine monsters and NPCs for deployment
         const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
         
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], false, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], false, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - combined allTokens", allTokens, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], true, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - combined allTokens", allTokens, true, false);
         
         if (allTokens.length === 0) {
             return [];
@@ -745,7 +745,7 @@ export class EncounterToolbar {
 
         // Get the deployment pattern setting
         const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, false, false);
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, true, false);
 
         // Create tooltip for non-sequential deployments
         let tooltip = null;
@@ -807,7 +807,7 @@ export class EncounterToolbar {
                                     if (!positionResult) {
                         // User cancelled or no position obtained
                         if (isSingleToken) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Token deployment cancelled.`, '', false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Token deployment cancelled.`, '', true, false);
                         } else {
                             postConsoleAndNotification(MODULE.NAME, `Please click on the canvas to place tokens.`, '', false, false);
                         }
@@ -839,7 +839,7 @@ export class EncounterToolbar {
                         // Validate the UUID
                         const validatedId = await this._validateUUID(tokenId);
                         if (!validatedId) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, true, false);
                             continue;
                         }
                         
@@ -849,7 +849,7 @@ export class EncounterToolbar {
                             // First, create a world copy of the actor if it's from a compendium
                             let worldActor = actor;
                             if (actor.pack) {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", false, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
                                 const actorData = actor.toObject();
                                 
                                 // Get or create the encounter folder
@@ -861,27 +861,27 @@ export class EncounterToolbar {
                                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                                     
                                     if (!encounterFolder) {
-                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, false, false);
+                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
                                         encounterFolder = await Folder.create({
                                             name: folderName,
                                             type: 'Actor',
                                             color: '#ff0000'
                                         });
-                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, false, false);
+                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
                                     }
                                 }
                                 
                                 // Create the world actor
                                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                                 worldActor = await Actor.create(actorData, createOptions);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, false, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder", worldActor.folder, false, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder", worldActor.folder, true, false);
                                 
                                 // Ensure folder is assigned (sometimes it doesn't get set during creation)
                                 if (encounterFolder && !worldActor.folder) {
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", false, false);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", true, false);
                                     await worldActor.update({ folder: encounterFolder.id });
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder after update", worldActor.folder, false, false);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder after update", worldActor.folder, true, false);
                                 }
                                 
                                 // Update the prototype token to honor GM defaults
@@ -936,17 +936,17 @@ export class EncounterToolbar {
                             
                             // Create the token on the canvas
                             const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token creation result", createdTokens, false, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token creation result", createdTokens, true, false);
                             
                             // Verify the token was created and is visible
                             if (createdTokens && createdTokens.length > 0) {
                                 const token = createdTokens[0];
                                 deployedTokens.push(token);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created token", token, false, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token position", {x: token.x, y: token.y}, false, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token visible", token.visible, false, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actor", token.actor, false, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actorId", token.actorId, false, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created token", token, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token position", {x: token.x, y: token.y}, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token visible", token.visible, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actor", token.actor, true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actorId", token.actorId, true, false);
                                 
                                 // Increment the valid token index for pattern positioning
                                 validTokenIndex++;
@@ -1020,7 +1020,7 @@ export class EncounterToolbar {
             // Validate the UUID
             const validatedId = await this._validateUUID(tokenUUID);
             if (!validatedId) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID`, tokenUUID, false, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID`, tokenUUID, true, false);
                 return [];
             }
             
@@ -1056,7 +1056,7 @@ export class EncounterToolbar {
             // First, create a world copy of the actor if it's from a compendium
             let worldActor = actor;
             if (actor.pack) {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
                 const actorData = actor.toObject();
                 
                 // Get or create the encounter folder
@@ -1067,20 +1067,20 @@ export class EncounterToolbar {
                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                     
                     if (!encounterFolder) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, false, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
                         encounterFolder = await Folder.create({
                             name: folderName,
                             type: 'Actor',
                             color: '#ff0000'
                         });
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, false, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
                     }
                 }
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                 worldActor = await Actor.create(actorData, createOptions);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
                 
                 // Ensure folder is assigned
                 if (encounterFolder && !worldActor.folder) {
@@ -1138,13 +1138,13 @@ export class EncounterToolbar {
                 
                 // Create the token on the canvas
                 const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Single monster token creation result", createdTokens, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Single monster token creation result", createdTokens, true, false);
                 
                 // Verify the token was created
                 if (createdTokens && createdTokens.length > 0) {
                     const token = createdTokens[0];
                     deployedTokens.push(token);
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created single monster token", token, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created single monster token", token, true, false);
                     
                     // Update tooltip to show success and continue instruction
                     tooltip.innerHTML = `
@@ -1155,7 +1155,7 @@ export class EncounterToolbar {
             }
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying single monster multiple times", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying single monster multiple times", error, true, false);
         } finally {
             // Clean up tooltip and handlers
             if (tooltip && tooltip.parentNode) {
@@ -1210,10 +1210,10 @@ export class EncounterToolbar {
             }
             
             // Show notification with results
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, true, false);
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error making monster tokens visible", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error making monster tokens visible", error, true, false);
         }
     }
 
@@ -1247,7 +1247,7 @@ export class EncounterToolbar {
         // Calculate the total grid area
         const totalGridCells = gridWidth * gridHeight;
         
-        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, false, false);
+        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, true, false);
         
         // Create an array of all possible positions
         const allPositions = [];
@@ -1282,7 +1282,7 @@ export class EncounterToolbar {
         
         // Check if this position is already occupied by an existing token
         if (this._isGridSquareOccupied(x, y, gridSize)) {
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Position occupied, trying next available position`, { x, y }, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Position occupied, trying next available position`, { x, y }, true, false);
             
             // Find the next available position
             for (let i = index; i < selectedPositions.length; i++) {
@@ -1294,7 +1294,7 @@ export class EncounterToolbar {
                 nextY = Math.floor(nextY / gridSize) * gridSize;
                 
                 if (!this._isGridSquareOccupied(nextX, nextY, gridSize)) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, true, false);
                     return { x: nextX, y: nextY };
                 }
             }
@@ -1313,7 +1313,7 @@ export class EncounterToolbar {
                 case 3: fallbackY -= randomOffset * gridSize; break; // Up
             }
             
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, true, false);
             return { x: fallbackX, y: fallbackY };
         }
         
@@ -1434,7 +1434,7 @@ export class EncounterToolbar {
             this._updateAllToolbarCRs();
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error cycling deployment pattern", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error cycling deployment pattern", error, true, false);
         }
     }
 
@@ -1462,7 +1462,7 @@ export class EncounterToolbar {
             
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error toggling deployment visibility", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error toggling deployment visibility", error, true, false);
         }
     }
 
@@ -1495,7 +1495,7 @@ export class EncounterToolbar {
                                         // Validate the UUID
                         const validatedId = await this._validateUUID(tokenId);
                         if (!validatedId) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, false, false);
+                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, true, false);
                             continue;
                         }
                 
@@ -1522,7 +1522,7 @@ export class EncounterToolbar {
                                         color: '#ff0000'
                                     });
                                 } catch (error) {
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Failed to create encounter folder", error, false, false);
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Failed to create encounter folder", error, true, false);
                                     encounterFolder = null;
                                 }
                             }
@@ -1572,7 +1572,7 @@ export class EncounterToolbar {
                 
                 // Check if user cancelled (ESC pressed)
                 if (!positionResult) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Sequential deployment cancelled by user", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Sequential deployment cancelled by user", "", true, false);
                     break; // Exit the loop and return deployed tokens so far
                 }
                 
@@ -1602,7 +1602,7 @@ export class EncounterToolbar {
             }
                      
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in sequential deployment", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in sequential deployment", error, true, false);
         } finally {
             // Clean up
             canvas.stage.off('mousemove', mouseMoveHandler);
@@ -1615,12 +1615,12 @@ export class EncounterToolbar {
 
     static async _getTargetPosition(allowMultiple = false) {
         return new Promise((resolve) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, true, false);
             
             // Use FoundryVTT's canvas pointer handling
             const handler = (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Canvas pointer event! Event type", event.type, false, false);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global", event.global, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Canvas pointer event! Event type", event.type, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global", event.global, true, false);
                 
                 // Only handle pointerdown events (clicks)
                 if (event.type !== 'pointerdown') {
@@ -1629,7 +1629,7 @@ export class EncounterToolbar {
                 
                 // Ignore right-clicks (button 2) - let the rightClickHandler deal with them
                 if (event.data.originalEvent && event.data.originalEvent.button === 2) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click ignored by main handler", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click ignored by main handler", "", true, false);
                     return;
                 }
                 
@@ -1639,8 +1639,8 @@ export class EncounterToolbar {
                 const globalPoint = new PIXI.Point(event.global.x, event.global.y);
                 const localPoint = stage.toLocal(globalPoint);
                 
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global coordinates", event.global, false, false);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Local coordinates from stage", localPoint, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global coordinates", event.global, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Local coordinates from stage", localPoint, true, false);
                 
                 // Use the exact click position first, then snap to grid square center
                 let position = { x: localPoint.x, y: localPoint.y };
@@ -1653,7 +1653,7 @@ export class EncounterToolbar {
                 const snappedY = Math.floor(localPoint.y / gridSize) * gridSize;
                 
                 position = { x: snappedX, y: snappedY };
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Grid square top-left position", position, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Grid square top-left position", position, true, false);
                 
                 // Check if CTRL is held down for multiple deployments
                 const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
@@ -1664,9 +1664,9 @@ export class EncounterToolbar {
                 if (!allowMultiple || !isCtrlHeld) {
                     canvas.stage.off('pointerdown', handler);
                     document.removeEventListener('keyup', keyUpHandler);
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Click handler removed, resolving position", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Click handler removed, resolving position", "", true, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", true, false);
                 }
                 
                 // Resolve with the position and key states
@@ -1675,10 +1675,10 @@ export class EncounterToolbar {
                         position: position,
                         isAltHeld: isAltHeld
                     };
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Resolving position", result, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Resolving position", result, true, false);
                     resolve(result);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No valid position obtained, resolving null", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No valid position obtained, resolving null", "", true, false);
                     resolve(null);
                 }
             };
@@ -1695,7 +1695,7 @@ export class EncounterToolbar {
             // Right-click handler to detect cancellation
             const rightClickHandler = (event) => {
                 if (event.data.originalEvent && event.data.originalEvent.button === 2) { // Right mouse button
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click detected, cancelling deployment", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click detected, cancelling deployment", "", true, false);
                     canvas.stage.off('pointerdown', handler);
                     canvas.stage.off('pointerdown', rightClickHandler);
                     document.removeEventListener('keyup', keyUpHandler);
@@ -1721,7 +1721,7 @@ export class EncounterToolbar {
         }
         
         if (!deployedTokens || deployedTokens.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No tokens were deployed.", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No tokens were deployed.", "", true, false);
             return;
         }
 
@@ -1736,9 +1736,9 @@ export class EncounterToolbar {
                     name: metadata.title || "Encounter",
                     active: true
                 });
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created new combat encounter", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created new combat encounter", "", true, false);
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Adding to existing combat encounter", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Adding to existing combat encounter", "", true, false);
             }
 
             // Add deployed tokens to combat using their actual IDs
@@ -1749,16 +1749,16 @@ export class EncounterToolbar {
                         actorId: token.actor.id,
                         sceneId: canvas.scene.id
                     }]);
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", true, false);
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, true, false);
                 }
             }
 
             const action = combat === game.combats.active ? "added to existing" : "created new";
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, true, false);
         }
     }
 
@@ -1777,7 +1777,7 @@ export class EncounterToolbar {
             const deployedTokens = await this._deployMonsters(metadata);
             
             if (!deployedTokens || deployedTokens.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", true, false);
                 
                 return;
             }
@@ -1806,7 +1806,7 @@ export class EncounterToolbar {
                 });
                 
                 if (!createCombatWithPartial) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Combat creation cancelled by user.`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Combat creation cancelled by user.`, "", true, false);
                     return;
                 }
             }
@@ -1826,14 +1826,14 @@ export class EncounterToolbar {
                         actorId: token.actor.id,
                         sceneId: canvas.scene.id
                     }]);
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", true, false);
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, true, false);
                 }
             }
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, true, false);
         }
     }
 
@@ -1882,7 +1882,7 @@ export class EncounterToolbar {
             
             return this.formatCR(partyCR);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error calculating party CR", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error calculating party CR", error, true, false);
             return "0";
         }
     }
@@ -1910,13 +1910,13 @@ export class EncounterToolbar {
                         if (!isNaN(crValue)) {
                             totalCR += crValue;
                             monsterCount++;
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, false, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, true, false);
                         } else {
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Warning", `No CR found for ${actor.name}`, false, false);
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Warning", `No CR found for ${actor.name}`, true, false);
                         }
                     }
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, true, false);
                 }
             }
 
@@ -1927,7 +1927,7 @@ export class EncounterToolbar {
             // Return total CR for multiple monsters (not average)
             return this.formatCR(totalCR);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, true, false);
             return "0";
         }
     }
