@@ -6,6 +6,197 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, rollCoffeePubDice } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
+// ================================================================== 
+// ===== FOUNDRY ROLL SYSTEM ========================================
+// ================================================================== 
+
+/**
+ * Foundry Roll System - Uses D&D5e APIs with robust fallbacks
+ * This is the system users can choose when they want Foundry's default roll behavior
+ */
+
+/**
+ * Core roll execution method for the Foundry roll system.
+ * This is the robust, battle-tested roll execution logic with D&D5e API integration.
+ * @param {object} message - The chat message object
+ * @param {string} tokenId - The ID of the token being rolled for
+ * @param {string} actorId - The ID of the actor being rolled for
+ * @param {string} type - The type of roll being executed
+ * @param {string} value - The value being rolled
+ * @param {object} options - Roll options (e.g., { advantage: true })
+ * @returns {Promise<object|null>} The roll result or null if failed
+ */
+export async function executeRollAndUpdate(message, tokenId, actorId, type, value, options = {}) {
+    try {
+        const flags = message.flags['coffee-pub-blacksmith'];
+        if (!flags) return null;
+
+        // Get the token and actor
+        const actor = game.actors.get(actorId);
+        if (!actor) {
+            ui.notifications.error(`Could not find the actor (ID: ${actorId}) for this roll.`);
+            return null;
+        }
+        
+        // Check permissions
+        if (!game.user.isGM && !actor.isOwner) {
+            ui.notifications.warn("You don't have permission to roll for this character.");
+            return null;
+        }
+
+        // Create roll options for Foundry with chat suppression
+        const rollOptions = { 
+            chatMessage: false, 
+            createMessage: false,
+            advantage: options.advantage || false,
+            disadvantage: options.disadvantage || false
+        };
+        
+        let roll;
+
+        // Execute the roll based on type (robust fallback system)
+        switch (type) {
+            case 'dice':
+                let formula = value;
+                if (options.advantage) formula = `2d20kh`;
+                else if (options.disadvantage) formula = `2d20kl`;
+                roll = new Roll(formula, actor.getRollData());
+                await roll.evaluate({ async: true });
+                rollCoffeePubDice(roll);
+                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor);
+                break;
+            case 'skill':
+                if (typeof game.dnd5e?.actions?.rollSkill === 'function') {
+                    roll = await game.dnd5e.actions.rollSkill({ actor, skill: value, options: rollOptions });
+                } else if (typeof actor.rollSkillV2 === 'function') {
+                    roll = await actor.rollSkillV2(value, rollOptions);
+                } else if (typeof actor.doRollSkill === 'function') {
+                    roll = await actor.doRollSkill(value, rollOptions);
+                } else {
+                    // Legacy fallback (may emit deprecation warnings in dnd5e >= 4.1)
+                    roll = await actor.rollSkill(value, rollOptions);
+                }
+                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
+                break;
+            case 'ability':
+                roll = await actor.rollAbilityTest(value, rollOptions);
+                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
+                break;
+            case 'save':
+                roll = (value === 'death') 
+                    ? await actor.rollDeathSave(rollOptions) 
+                    : await actor.rollSavingThrow(value, rollOptions);
+                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
+                break;
+            case 'tool': {
+                const toolIdentifier = value;
+                if (!toolIdentifier) throw new Error(`No tool identifier provided for actor ${actor.name}`);
+                
+                // Attempt to use the modern dnd5e API for tool checks
+                if (typeof actor.rollToolCheck === 'function') {
+                    try {
+                        postConsoleAndNotification(MODULE.NAME, `Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", true, false);
+                        roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, `actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, true, false);
+                        roll = undefined;
+                    }
+                }
+
+                // If rollToolCheck is not available or failed, construct the roll manually
+                if (!roll) {
+                    const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
+                    if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
+                    
+                    const rollData = actor.getRollData();
+                    const ability = item.system.ability || "int";
+                    
+                    const parts = [];
+                    if (options.advantage) parts.push('2d20kh');
+                    else if (options.disadvantage) parts.push('2d20kl');
+                    else parts.push("1d20");
+
+                    const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                    if (abilityMod !== 0) parts.push(abilityMod);
+                    
+                    const profBonus = actor.system.attributes.prof || 0;
+                    let actualProfBonus = 0;
+                    
+                    if (item.system.proficient > 0) {
+                        actualProfBonus = profBonus;
+                    } else {
+                        const baseItem = item.system.type?.baseItem; 
+                        if (baseItem) {
+                            const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
+                            if (toolProf > 0) {
+                                actualProfBonus = Math.floor(toolProf * profBonus);
+                            }
+                        }
+                    }
+
+                    if (actualProfBonus > 0) {
+                        parts.push(actualProfBonus);
+                    }
+
+                    const formula = parts.join(" + ");
+                    roll = new Roll(formula, rollData);
+                    await roll.evaluate({ async: true });
+                    rollCoffeePubDice(roll);
+                    roll.verboseFormula = _buildVerboseFormula(roll, actor, ability);
+                }
+                break;
+            }
+            default:
+                postConsoleAndNotification(MODULE.NAME, `Unknown roll type: ${type}`, null, true, false);
+                return null;
+        }
+
+        if (!roll) {
+            postConsoleAndNotification(MODULE.NAME, `Failed to create roll for ${type}: ${value}`, null, true, false);
+            return null;
+        }
+
+        // Create a plain object for the socket to prevent data loss
+        const resultForSocket = roll.toJSON();
+        resultForSocket.verboseFormula = roll.verboseFormula;
+        delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
+
+        const rollData = {
+            messageId: message.id,
+            tokenId: tokenId,
+            result: resultForSocket
+        };
+
+        // Emit the update to the GM
+        game.socket.emit('module.coffee-pub-blacksmith', {
+            type: 'updateSkillRoll',
+            data: rollData
+        });
+
+        // If GM, call the handler directly with the same prepared data
+        if (game.user.isGM) {
+            await handleSkillRollUpdate(rollData);
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Roll completed successfully`, rollData, true, false);
+        return roll;
+
+    } catch (err) {
+        postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate error:`, err, true, false);
+        ui.notifications.error("An error occurred while processing the roll. See the console for details.");
+        return null;
+    }
+}
+
+// ================================================================== 
+// ===== BLACKSMITH ROLL SYSTEM ======================================
+// ================================================================== 
+
+/**
+ * Blacksmith Roll System - Manual Roll creation with complete control
+ * This is our custom system that users can choose for maximum control
+ */
+
 /**
  * Unified roll system that can handle both built-in and manual rolls.
  * @param {Actor} actor - The actor making the roll.
@@ -79,7 +270,7 @@ export async function executeRoll(actor, type, value, options = {}) {
             customFormula
         });
 
-                    if (roll) {
+        if (roll) {
             // Add verbose formula for display
             roll.verboseFormula = _buildVerboseFormula(roll, actor, 
                 type === 'skill' ? CONFIG.DND5E.skills[value]?.ability : value);
@@ -96,7 +287,7 @@ export async function executeRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Roll execution returned null/undefined`, null, true, false);
         }
 
-    return roll;
+        return roll;
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `Roll execution failed:`, error, true, false);
         return null;
@@ -289,10 +480,6 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
     return result;
 }
 
-// Removed _executeManualRoll function - no longer needed since we always use built-in methods
-
-// Removed _buildRollFormula function - no longer needed since we always use built-in methods
-
 /**
  * Builds a verbose formula string for tooltips from a Roll object.
  * Example: "12 (Roll) + 3 (Dexterity) + 2 (Proficiency) = 17"
@@ -357,44 +544,9 @@ function _buildVerboseFormula(roll, actor, abilityKey = null) {
     return parts.length > 0 ? `${parts.join(' + ')} = ${calculatedTotal}` : `Total: ${total}`;
 }
 
-/**
- * Test function to demonstrate the roll dialog functionality.
- * This can be called from the console or used in macros.
- * @param {string} actorId - The actor to roll for.
- * @param {string} type - The type of roll (skill, ability, save, tool, dice).
- * @param {string} value - The value for the roll.
- * @param {boolean} showDialog - Whether to show the roll dialog.
- */
-export async function testRollDialog(actorId, type = 'skill', value = 'ins', showDialog = true) {
-    const actor = game.actors.get(actorId);
-    if (!actor) {
-        console.error('Actor not found:', actorId);
-        return;
-    }
-    
-    const options = {
-        useDialog: showDialog,
-        advantage: false,
-        disadvantage: false
-    };
-    
-    postConsoleAndNotification(MODULE.NAME, `Testing roll dialog for ${actor.name} - ${type}: ${value}`, null, true, false);
-    const result = await executeRoll(actor, type, value, options);
-    
-    if (result) {
-        postConsoleAndNotification(MODULE.NAME, `Roll result:`, result, true, false);
-        console.log('Roll result:', result);
-        console.log('Roll total:', result.total);
-        console.log('Roll formula:', result.verboseFormula);
-    } else {
-        postConsoleAndNotification(MODULE.NAME, `Roll was cancelled or failed`, null, true, false);
-        console.log('Roll was cancelled or failed');
-    }
-    
-    return result;
-}
-
-// All roll types now use manual Roll creation for complete control and chat suppression
+// ================================================================== 
+// ===== ROLL DIALOG SYSTEM =========================================
+// ================================================================== 
 
 /**
  * Shows a roll configuration dialog for the user to configure roll options.
@@ -474,6 +626,10 @@ async function _buildRollData(actor, type, value, options, messageId = null, tok
     };
 }
 
+// ================================================================== 
+// ===== ROLL DIALOG CLASS ===========================================
+// ================================================================== 
+
 /**
  * Roll Dialog Application V2 class for handling the roll configuration UI.
  * Based on the working SkillCheckDialog pattern.
@@ -525,12 +681,6 @@ export class RollDialog extends Application {
 
     activateListeners(html) {
         super.activateListeners(html);
-        
-        // Find and bind the cancel button
-        html.find('.cancel-roll').on('click', () => {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog: Cancel button clicked`, null, true, false);
-            this.close();
-        });
         
         // Find and bind the roll buttons
         html.find('.roll-advantage').on('click', () => {
@@ -591,65 +741,65 @@ export class RollDialog extends Application {
      * @param {object} rollOptions - The roll options (advantage, disadvantage, situationalBonus)
      * @returns {object} The roll result
      */
-               async _performRoll(rollOptions) {
-               try {
-                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
-                   
-                   // Get the roll data we have
-                   const rollData = this.rollData;
-                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
-                   
-                   // Create a Roll object using Foundry's system
-                   const roll = new Roll(rollData.rollFormula);
-                   
-                   // Apply situational bonus if any
-                   if (rollOptions.situationalBonus !== 0) {
-                       roll.terms.push(rollOptions.situationalBonus);
-                   }
-                   
-                   // Roll the dice
-                   await roll.evaluate();
-                   
-                   // Get the result
-                   const result = {
-                       total: roll.total,
-                       formula: roll.formula,
-                       results: roll.results,
-                       advantage: rollOptions.advantage,
-                       disadvantage: rollOptions.disadvantage,
-                       situationalBonus: rollOptions.situationalBonus
-                   };
-                   
-                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
-                   
-                   // MINIMAL RECONNECTION: Send result through existing system
-                   // Create a plain object for the socket to prevent data loss
-                   const resultForSocket = roll.toJSON();
-                   resultForSocket.verboseFormula = roll.formula; // Simple formula for now
-                   delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
+    async _performRoll(rollOptions) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
+            
+            // Get the roll data we have
+            const rollData = this.rollData;
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
+            
+            // Create a Roll object using Foundry's system
+            const roll = new Roll(rollData.rollFormula);
+            
+            // Apply situational bonus if any
+            if (rollOptions.situationalBonus !== 0) {
+                roll.terms.push(rollOptions.situationalBonus);
+            }
+            
+            // Roll the dice
+            await roll.evaluate();
+            
+            // Get the result
+            const result = {
+                total: roll.total,
+                formula: roll.formula,
+                results: roll.results,
+                advantage: rollOptions.advantage,
+                disadvantage: rollOptions.disadvantage,
+                situationalBonus: rollOptions.situationalBonus
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
+            
+            // MINIMAL RECONNECTION: Send result through existing system
+            // Create a plain object for the socket to prevent data loss
+            const resultForSocket = roll.toJSON();
+            resultForSocket.verboseFormula = roll.formula; // Simple formula for now
+            delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
 
-                   const rollDataForSocket = {
-                       messageId: rollData.messageId,
-                       tokenId: rollData.tokenId,
-                       result: resultForSocket
-                   };
+            const rollDataForSocket = {
+                messageId: rollData.messageId,
+                tokenId: rollData.tokenId,
+                result: resultForSocket
+            };
 
-                   // Emit the update to the GM (same as old system)
-                   game.socket.emit('module.coffee-pub-blacksmith', {
-                       type: 'updateSkillRoll',
-                       data: rollDataForSocket
-                   });
+            // Emit the update to the GM (same as old system)
+            game.socket.emit('module.coffee-pub-blacksmith', {
+                type: 'updateSkillRoll',
+                data: rollDataForSocket
+            });
 
-                   // If GM, call the handler directly with the same prepared data
-                   if (game.user.isGM) {
-                       await handleSkillRollUpdate(rollDataForSocket);
-                   }
-                   
-                   return result;
-                   
-               } catch (error) {
-                   postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll error:`, error, true, false);
-                   throw error;
-               }
-           }
+            // If GM, call the handler directly with the same prepared data
+            if (game.user.isGM) {
+                await handleSkillRollUpdate(rollDataForSocket);
+            }
+            
+            return result;
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll error:`, error, true, false);
+            throw error;
+        }
+    }
 }

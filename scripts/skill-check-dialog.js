@@ -2,7 +2,7 @@
 import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
-import { executeRoll } from './utils-rolls.js';
+import { executeRollAndUpdate } from './utils-rolls.js';
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
@@ -1391,7 +1391,7 @@ export class SkillCheckDialog extends Application {
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
-                await SkillCheckDialog._executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, type, value, options);
+                await executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, type, value, options);
             }
         });
 
@@ -1566,75 +1566,7 @@ export class SkillCheckDialog extends Application {
         setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
     }
 
-    /**
-     * Executes the roll for a given actor and updates the message.
-     * @param {object} message - The chat message object.
-     * @param {string} tokenId - The ID of the token being rolled for.
-     * @param {string} actorId - The ID of the actor being rolled for.
-     * @param {string} type - The type of roll being executed.
-     * @param {string} value - The value being rolled.
-     * @param {object} [options={}] - Roll options (e.g., { advantage: true }).
-     */
-    static async _executeRollAndUpdate(message, tokenId, actorId, type, value, options = {}) {
-        try {
-            const flags = message.flags['coffee-pub-blacksmith'];
-            if (!flags) return;
 
-            // Get the token and actor
-            const actor = game.actors.get(actorId);
-            if (!actor) {
-                ui.notifications.error(`Could not find the actor (ID: ${actorId}) for this roll.`);
-                return;
-            }
-            
-            // Check permissions
-            if (!game.user.isGM && !actor.isOwner) {
-                ui.notifications.warn("You don't have permission to roll for this character.");
-                return;
-            }
-
-            // Determine if we should show dialog based on cinematic mode
-            const isCinematic = flags?.isCinematic || false;
-            
-            // Use the new unified roll system
-            // All rolls now use manual Roll creation for complete control and chat suppression
-            const roll = await executeRoll(actor, type, value, {
-                advantage: options.advantage,
-                disadvantage: options.disadvantage,
-                messageId: message.id,
-                tokenId: tokenId,
-                ...options
-            });
-
-            if (!roll) return;
-
-            // Create a plain object for the socket to prevent data loss
-            const resultForSocket = roll.toJSON();
-            resultForSocket.verboseFormula = roll.verboseFormula;
-            delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
-
-            const rollData = {
-                messageId: message.id,
-                tokenId: tokenId,
-                result: resultForSocket
-            };
-
-            // Emit the update to the GM
-            game.socket.emit('module.coffee-pub-blacksmith', {
-                type: 'updateSkillRoll',
-                data: rollData
-            });
-
-            // If GM, call the handler directly with the same prepared data
-            if (game.user.isGM) {
-                await handleSkillRollUpdate(rollData);
-            }
-
-        } catch (err) {
-            console.error("Blacksmith | Error handling skill roll:", err);
-            ui.notifications.error("An error occurred while processing the roll. See the console for details.");
-        }
-    }
 
     /**
      * Attach listeners to chat card roll buttons and handle roll logic.
@@ -1659,7 +1591,7 @@ export class SkillCheckDialog extends Application {
                     return;
                 }
                 // Use the tokenId from the matched actorData
-                await SkillCheckDialog._executeRollAndUpdate(message, tokenId, actorId, type, value, {});
+                await executeRollAndUpdate(message, tokenId, actorId, type, value, {});
             });
         });
     }
