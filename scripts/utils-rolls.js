@@ -6,6 +6,40 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, rollCoffeePubDice } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
+/**
+ * Helper function to process roll results and update the chat message.
+ * Used by both Blacksmith and Foundry systems.
+ * @private
+ */
+async function _processRollResultAndUpdate(message, tokenId, actorId, type, value, roll, options) {
+    if (!roll) {
+        postConsoleAndNotification(MODULE.NAME, `_processRollResultAndUpdate: No roll to process`, null, true, false);
+        return;
+    }
+
+    // Create a plain object for the socket to prevent data loss
+    const resultForSocket = roll.toJSON();
+    resultForSocket.verboseFormula = roll.verboseFormula || roll.formula;
+    delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
+
+    const rollData = {
+        messageId: message.id,
+        tokenId: tokenId,
+        result: resultForSocket
+    };
+
+    // Emit the update to the GM
+    game.socket.emit('module.coffee-pub-blacksmith', {
+        type: 'updateSkillRoll',
+        data: rollData
+    });
+
+    // If GM, call the handler directly with the same prepared data
+    if (game.user.isGM) {
+        await handleSkillRollUpdate(rollData);
+    }
+}
+
 // ================================================================== 
 // ===== FOUNDRY ROLL SYSTEM ========================================
 // ================================================================== 
@@ -44,147 +78,168 @@ export async function executeRollAndUpdate(message, tokenId, actorId, type, valu
             return null;
         }
 
-        // Create roll options for Foundry with chat suppression
-        const rollOptions = { 
-            chatMessage: false, 
-            createMessage: false,
-            advantage: options.advantage || false,
-            disadvantage: options.disadvantage || false
-        };
+        // Get user preference for roll system
+        const diceRollToolSystem = game.settings.get('coffee-pub-blacksmith', 'diceRollToolSystem') ?? 'blacksmith';
         
-        let roll;
+        postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Using ${diceRollToolSystem} system for ${type}: ${value}`, null, true, false);
 
-        // Execute the roll based on type (robust fallback system)
-        switch (type) {
-            case 'dice':
-                let formula = value;
-                if (options.advantage) formula = `2d20kh`;
-                else if (options.disadvantage) formula = `2d20kl`;
-                roll = new Roll(formula, actor.getRollData());
-                await roll.evaluate({ async: true });
-                rollCoffeePubDice(roll);
-                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor);
-                break;
-            case 'skill':
-                if (typeof game.dnd5e?.actions?.rollSkill === 'function') {
-                    roll = await game.dnd5e.actions.rollSkill({ actor, skill: value, options: rollOptions });
-                } else if (typeof actor.rollSkillV2 === 'function') {
-                    roll = await actor.rollSkillV2(value, rollOptions);
-                } else if (typeof actor.doRollSkill === 'function') {
-                    roll = await actor.doRollSkill(value, rollOptions);
-                } else {
-                    // Legacy fallback (may emit deprecation warnings in dnd5e >= 4.1)
-                    roll = await actor.rollSkill(value, rollOptions);
-                }
-                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
-                break;
-            case 'ability':
-                roll = await actor.rollAbilityTest(value, rollOptions);
-                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
-                break;
-            case 'save':
-                roll = (value === 'death') 
-                    ? await actor.rollDeathSave(rollOptions) 
-                    : await actor.rollSavingThrow(value, rollOptions);
-                if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
-                break;
-            case 'tool': {
-                const toolIdentifier = value;
-                if (!toolIdentifier) throw new Error(`No tool identifier provided for actor ${actor.name}`);
-                
-                // Attempt to use the modern dnd5e API for tool checks
-                if (typeof actor.rollToolCheck === 'function') {
-                    try {
-                        postConsoleAndNotification(MODULE.NAME, `Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", true, false);
-                        roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, `actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, true, false);
-                        roll = undefined;
-                    }
-                }
+        // ROUTING LOGIC: Route to the selected system based on setting
+        if (diceRollToolSystem === 'blacksmith') {
+            // BLACKSMITH SYSTEM: Use our custom roll system
+            postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Routing to BLACKSMITH roll system`, null, true, false);
+            
+            // Create roll options for Blacksmith system
+            const rollOptions = { 
+                advantage: options.advantage || false,
+                disadvantage: options.disadvantage || false,
+                situationalBonus: options.situationalBonus || 0,
+                customFormula: options.customFormula || null
+            };
+            
+            // Execute using Blacksmith system
+            const roll = await _executeBuiltInRoll(actor, type, value, rollOptions);
+            
+            if (roll) {
+                // Process the roll result and update the message
+                await _processRollResultAndUpdate(message, tokenId, actorId, type, value, roll, options);
+            }
+            
+        } else if (diceRollToolSystem === 'foundry') {
+            // FOUNDRY SYSTEM: Use Foundry's built-in roll system
+            postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Routing to FOUNDRY roll system`, null, true, false);
+            
+            // Create roll options for Foundry with chat suppression
+            const rollOptions = { 
+                chatMessage: false, 
+                createMessage: false,
+                advantage: options.advantage || false,
+                disadvantage: options.disadvantage || false
+            };
+            
+            let roll;
 
-                // If rollToolCheck is not available or failed, construct the roll manually
-                if (!roll) {
-                    const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
-                    if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
-                    
-                    const rollData = actor.getRollData();
-                    const ability = item.system.ability || "int";
-                    
-                    const parts = [];
-                    if (options.advantage) parts.push('2d20kh');
-                    else if (options.disadvantage) parts.push('2d20kl');
-                    else parts.push("1d20");
-
-                    const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
-                    if (abilityMod !== 0) parts.push(abilityMod);
-                    
-                    const profBonus = actor.system.attributes.prof || 0;
-                    let actualProfBonus = 0;
-                    
-                    if (item.system.proficient > 0) {
-                        actualProfBonus = profBonus;
+            // Execute the roll based on type (robust fallback system)
+            switch (type) {
+                case 'dice':
+                    let formula = value;
+                    if (options.advantage) formula = `2d20kh`;
+                    else if (options.disadvantage) formula = `2d20kl`;
+                    roll = new Roll(formula, actor.getRollData());
+                    await roll.evaluate({ async: true });
+                    rollCoffeePubDice(roll);
+                    if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor);
+                    break;
+                case 'skill':
+                    if (typeof game.dnd5e?.actions?.rollSkill === 'function') {
+                        roll = await game.dnd5e.actions.rollSkill({ actor, skill: value, options: rollOptions });
+                    } else if (typeof actor.rollSkillV2 === 'function') {
+                        roll = await actor.rollSkillV2(value, rollOptions);
+                    } else if (typeof actor.doRollSkill === 'function') {
+                        roll = await actor.doRollSkill(value, rollOptions);
                     } else {
-                        const baseItem = item.system.type?.baseItem; 
-                        if (baseItem) {
-                            const toolProf = foundry.utils.getProperty(actor.system.tools, `${baseItem}.value`) || 0;
-                            if (toolProf > 0) {
-                                actualProfBonus = Math.floor(toolProf * profBonus);
-                            }
+                        // Legacy fallback (may emit deprecation warnings in dnd5e >= 4.1)
+                        roll = await actor.rollSkill(value, rollOptions);
+                    }
+                    if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, CONFIG.DND5E.skills[value]?.ability);
+                    break;
+                case 'ability':
+                    roll = await actor.rollAbilityTest(value, rollOptions);
+                    if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
+                    break;
+                case 'save':
+                    roll = (value === 'death') 
+                        ? await actor.rollDeathSave(rollOptions) 
+                        : await actor.rollSavingThrow(value, rollOptions);
+                    if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor, value);
+                    break;
+                case 'tool': {
+                    const toolIdentifier = value;
+                    if (!toolIdentifier) throw new Error(`No tool identifier provided for actor ${actor.name}`);
+                    
+                    // Attempt to use the modern dnd5e API for tool checks
+                    if (typeof actor.rollToolCheck === 'function') {
+                        try {
+                            postConsoleAndNotification(MODULE.NAME, `Attempting to roll tool '${toolIdentifier}' with rollToolCheck.`, "", true, false);
+                            roll = await actor.rollToolCheck(toolIdentifier, rollOptions);
+                        } catch (err) {
+                            postConsoleAndNotification(MODULE.NAME, `actor.rollToolCheck failed for tool '${toolIdentifier}'. Falling back to manual roll. Error:`, err, true, false);
+                            roll = undefined;
                         }
                     }
 
-                    if (actualProfBonus > 0) {
-                        parts.push(actualProfBonus);
+                    // If rollToolCheck is not available or failed, construct the roll manually
+                    if (!roll) {
+                        const item = actor.items.get(toolIdentifier) || actor.items.find(i => i.system.baseItem === toolIdentifier);
+                        if (!item) throw new Error(`Tool item not found on actor: ${toolIdentifier}`);
+                        
+                        const rollData = actor.getRollData();
+                        const ability = item.system.ability || "int";
+                        
+                        const parts = [];
+                        if (options.advantage) parts.push('2d20kh');
+                        else if (options.disadvantage) parts.push('2d20kl');
+                        else parts.push("1d20");
+
+                        const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
+                        if (abilityMod !== 0) parts.push(abilityMod);
+                        
+                        const profBonus = actor.system.attributes.prof || 0;
+                        let actualProfBonus = 0;
+                        
+                        if (item.system.proficient > 0) {
+                            actualProfBonus = profBonus;
+                        } else {
+                            // Check if the actor has proficiency in this tool
+                            const toolProficiency = foundry.utils.getProperty(actor.system.toolProficiencies, toolIdentifier);
+                            if (toolProficiency) actualProfBonus = profBonus;
+                        }
+                        
+                        if (actualProfBonus !== 0) parts.push(actualProfBonus);
+                        
+                        const formula = parts.join(" + ");
+                        postConsoleAndNotification(MODULE.NAME, `Manual tool roll formula: ${formula}`, "", true, false);
+                        
+                        roll = new Roll(formula, rollData);
+                        await roll.evaluate({ async: true });
+                        rollCoffeePubDice(roll);
+                        if (roll) roll.verboseFormula = _buildVerboseFormula(roll, actor);
                     }
-
-                    const formula = parts.join(" + ");
-                    roll = new Roll(formula, rollData);
-                    await roll.evaluate({ async: true });
-                    rollCoffeePubDice(roll);
-                    roll.verboseFormula = _buildVerboseFormula(roll, actor, ability);
+                    break;
                 }
-                break;
+                default:
+                    throw new Error(`Unsupported roll type: ${type}`);
             }
-            default:
-                postConsoleAndNotification(MODULE.NAME, `Unknown roll type: ${type}`, null, true, false);
-                return null;
+            
+            if (roll) {
+                // Process the roll result and update the message
+                await _processRollResultAndUpdate(message, tokenId, actorId, type, value, roll, options);
+            }
+            
+        } else {
+            // Invalid setting, fall back to Blacksmith
+            postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Invalid diceRollToolSystem setting: ${diceRollToolSystem}, falling back to Blacksmith`, null, true, false);
+            
+            const rollOptions = { 
+                advantage: options.advantage || false,
+                disadvantage: options.disadvantage || false,
+                situationalBonus: options.situationalBonus || 0,
+                customFormula: options.customFormula || null
+            };
+            
+            const roll = await _executeBuiltInRoll(actor, type, value, rollOptions);
+            
+            if (roll) {
+                // Process the roll result and update the message
+                await _processRollResultAndUpdate(message, tokenId, actorId, type, value, roll, options);
+            }
         }
 
-        if (!roll) {
-            postConsoleAndNotification(MODULE.NAME, `Failed to create roll for ${type}: ${value}`, null, true, false);
-            return null;
-        }
-
-        // Create a plain object for the socket to prevent data loss
-        const resultForSocket = roll.toJSON();
-        resultForSocket.verboseFormula = roll.verboseFormula;
-        delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
-
-        const rollData = {
-            messageId: message.id,
-            tokenId: tokenId,
-            result: resultForSocket
-        };
-
-        // Emit the update to the GM
-        game.socket.emit('module.coffee-pub-blacksmith', {
-            type: 'updateSkillRoll',
-            data: rollData
-        });
-
-        // If GM, call the handler directly with the same prepared data
-        if (game.user.isGM) {
-            await handleSkillRollUpdate(rollData);
-        }
-
-        postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Roll completed successfully`, rollData, true, false);
-        return roll;
-
+        postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Roll completed successfully`, { type, value, system: diceRollToolSystem }, true, false);
+        return true;
     } catch (err) {
         postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate error:`, err, true, false);
-        ui.notifications.error("An error occurred while processing the roll. See the console for details.");
-        return null;
+        ui.notifications.error(`Roll execution failed: ${err.message}`);
+        return false;
     }
 }
 
@@ -229,47 +284,85 @@ export async function executeRoll(actor, type, value, options = {}) {
     try {
         let roll;
 
-        // Show roll dialog if using Blacksmith system
-        if (useDialog && diceRollToolSystem === 'blacksmith') {
-            const dialogOptions = await showRollDialog(actor, type, value, options, messageId, tokenId);
-            if (dialogOptions) {
-                // Update our options with dialog results
-                advantage = dialogOptions.advantage;
-                disadvantage = dialogOptions.disadvantage;
-                useDiceSoNice = dialogOptions.useDiceSoNice;
-                situationalBonus = dialogOptions.situationalBonus;
-                customFormula = dialogOptions.customModifier;
-            } else {
-                // User cancelled the dialog
-                return null;
+        // ROUTING LOGIC: Route to the selected system based on setting
+        if (diceRollToolSystem === 'blacksmith') {
+            // BLACKSMITH SYSTEM: Use our custom roll system with dialog
+            postConsoleAndNotification(MODULE.NAME, `Routing to BLACKSMITH roll system`, null, true, false);
+            
+            if (useDialog) {
+                const dialogOptions = await showRollDialog(actor, type, value, options, messageId, tokenId);
+                if (dialogOptions) {
+                    // Update our options with dialog results
+                    advantage = dialogOptions.advantage;
+                    disadvantage = dialogOptions.disadvantage;
+                    useDiceSoNice = dialogOptions.useDiceSoNice;
+                    situationalBonus = dialogOptions.situationalBonus;
+                    customFormula = dialogOptions.customModifier;
+                } else {
+                    // User cancelled the dialog
+                    return null;
+                }
             }
+            
+            // Execute using Blacksmith system
+            postConsoleAndNotification(MODULE.NAME, `Executing Blacksmith roll system`, null, true, false);
+            roll = await _executeBuiltInRoll(actor, type, value, { 
+                ...options, 
+                advantage, 
+                disadvantage, 
+                useDiceSoNice, 
+                situationalBonus,
+                customFormula
+            });
+            
         } else if (diceRollToolSystem === 'foundry') {
-            // TODO: Implement Foundry roll system integration
-            postConsoleAndNotification(MODULE.NAME, `Foundry roll system not yet implemented, falling back to Blacksmith system`, null, true, false);
-            // For now, fall back to Blacksmith system
-            const dialogOptions = await showRollDialog(actor, type, value, options);
-            if (dialogOptions) {
-                advantage = dialogOptions.advantage;
-                disadvantage = dialogOptions.disadvantage;
-                useDiceSoNice = dialogOptions.useDiceSoNice;
-                situationalBonus = dialogOptions.situationalBonus;
-                customFormula = dialogOptions.customModifier;
-            } else {
+            // FOUNDRY SYSTEM: Use Foundry's built-in roll system
+            postConsoleAndNotification(MODULE.NAME, `Routing to FOUNDRY roll system`, null, true, false);
+            
+            // For Foundry system, we need to call executeRollAndUpdate directly
+            // This bypasses the dialog and uses Foundry's system
+            if (messageId && tokenId) {
+                // We have context, use the robust Foundry system
+                postConsoleAndNotification(MODULE.NAME, `Using Foundry system with context (messageId: ${messageId}, tokenId: ${tokenId})`, null, true, false);
+                
+                // Call the Foundry system directly
+                await executeRollAndUpdate(
+                    game.messages.get(messageId), 
+                    tokenId, 
+                    actor.id, 
+                    type, 
+                    value, 
+                    { ...options, advantage, disadvantage, situationalBonus, customFormula }
+                );
+                
+                // Foundry system handles everything, return null to indicate success
                 return null;
+            } else {
+                // No context, fall back to manual roll creation
+                postConsoleAndNotification(MODULE.NAME, `No context for Foundry system, falling back to manual roll`, null, true, false);
+                roll = await _executeBuiltInRoll(actor, type, value, { 
+                    ...options, 
+                    advantage, 
+                    disadvantage, 
+                    useDiceSoNice, 
+                    situationalBonus,
+                    customFormula
+                });
             }
+        } else {
+            // Invalid setting, fall back to Blacksmith
+            postConsoleAndNotification(MODULE.NAME, `Invalid diceRollToolSystem setting: ${diceRollToolSystem}, falling back to Blacksmith`, null, true, false);
+            roll = await _executeBuiltInRoll(actor, type, value, { 
+                ...options, 
+                advantage, 
+                disadvantage, 
+                useDiceSoNice, 
+                situationalBonus,
+                customFormula
+            });
         }
 
-        // Always use manual roll creation for complete control and chat suppression
-        postConsoleAndNotification(MODULE.NAME, `Using manual roll method (complete control)`, null, true, false);
-        roll = await _executeBuiltInRoll(actor, type, value, { 
-            ...options, 
-            advantage, 
-            disadvantage, 
-            useDiceSoNice, 
-            situationalBonus,
-            customFormula
-        });
-
+        // Process roll result if we have one (Blacksmith system or fallback)
         if (roll) {
             // Add verbose formula for display
             roll.verboseFormula = _buildVerboseFormula(roll, actor, 
@@ -622,7 +715,11 @@ async function _buildRollData(actor, type, value, options, messageId = null, tok
         diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true,
         // CRITICAL: Add context for existing system
         messageId: messageId,
-        tokenId: tokenId
+        tokenId: tokenId,
+        // CRITICAL: Add roll type and value for Blacksmith system
+        rollTypeKey: type,
+        rollValueKey: value,
+        actorId: actor.id
     };
 }
 
@@ -737,28 +834,35 @@ export class RollDialog extends Application {
     }
     
     /**
-     * Perform the actual roll using the existing roll system
+     * Perform the actual roll using the Blacksmith roll system
      * @param {object} rollOptions - The roll options (advantage, disadvantage, situationalBonus)
      * @returns {object} The roll result
      */
     async _performRoll(rollOptions) {
         try {
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting roll with options:`, rollOptions, true, false);
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Starting Blacksmith roll with options:`, rollOptions, true, false);
             
             // Get the roll data we have
             const rollData = this.rollData;
             postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll data:`, rollData, true, false);
             
-            // Create a Roll object using Foundry's system
-            const roll = new Roll(rollData.rollFormula);
+            // Use the Blacksmith system to execute the roll
+            // We need to determine the roll type and value from the rollData
+            // For now, we'll use a default skill roll, but this should be enhanced
+            const rollType = rollData.rollTypeKey || 'skill'; // Get from rollData
+            const rollValue = rollData.rollValueKey || 'ins'; // Get from rollData
+            const actor = game.actors.get(rollData.actorId) || game.actors.getName(rollData.actorName);
             
-            // Apply situational bonus if any
-            if (rollOptions.situationalBonus !== 0) {
-                roll.terms.push(rollOptions.situationalBonus);
+            if (!actor) {
+                throw new Error(`Could not find actor for roll: ${rollData.actorName}`);
             }
             
-            // Roll the dice
-            await roll.evaluate();
+            // Execute the roll using the Blacksmith system
+            const roll = await _executeBuiltInRoll(actor, rollType, rollValue, rollOptions);
+            
+            if (!roll) {
+                throw new Error('Roll execution failed');
+            }
             
             // Get the result
             const result = {
@@ -770,12 +874,12 @@ export class RollDialog extends Application {
                 situationalBonus: rollOptions.situationalBonus
             };
             
-            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Roll result:`, result, true, false);
+            postConsoleAndNotification(MODULE.NAME, `RollDialog _performRoll: Blacksmith roll result:`, result, true, false);
             
             // MINIMAL RECONNECTION: Send result through existing system
             // Create a plain object for the socket to prevent data loss
             const resultForSocket = roll.toJSON();
-            resultForSocket.verboseFormula = roll.formula; // Simple formula for now
+            resultForSocket.verboseFormula = roll.verboseFormula || roll.formula;
             delete resultForSocket.class; // Prevent Foundry from reconstituting as a Roll object
 
             const rollDataForSocket = {
