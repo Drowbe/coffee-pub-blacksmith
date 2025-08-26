@@ -30,7 +30,7 @@ export class SkillCheckDialog extends Application {
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'skill-check-dialog',
-            template: 'modules/coffee-pub-blacksmith/templates/skill-check-window.hbs',
+            template: 'modules/coffee-pub-blacksmith/templates/window-skillcheck.hbs',
             classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
             title: 'Checks and Saves',
             width: 800,

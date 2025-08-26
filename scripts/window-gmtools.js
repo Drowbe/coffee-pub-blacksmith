@@ -10,7 +10,7 @@ export class CSSEditor extends FormApplication {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-css-editor',
             title: 'CSS Editor',
-            template: `modules/${MODULE.ID}/templates/css-editor.hbs`,
+            template: `modules/${MODULE.ID}/templates/window-gmtools.hbs`,
             width: 800,
             height: 600,
             minWidth: 700,

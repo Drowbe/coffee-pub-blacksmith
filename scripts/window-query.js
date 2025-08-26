@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, trimString } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
-import { SkillCheckDialog } from './skill-check-dialog.js';
+import { SkillCheckDialog } from './window-skillcheck.js';
 import { getCachedTemplate } from './blacksmith.js';
 
 // -- COMMON Imports --

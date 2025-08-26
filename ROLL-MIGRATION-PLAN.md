@@ -60,7 +60,7 @@ Cinema Mode becomes "Window Mode with a different UI presentation" rather than "
 3. **`processRoll()`** - Executes the actual dice roll
 4. **`deliverRollResults()`** - Updates chat card and cinema overlay
 
-### **PHASE 2: REFACTOR skill-check-dialog.js**
+### **PHASE 2: REFACTOR window-skillcheck.js**
 - Remove all roll execution logic
 - Make it call `requestRoll()` instead of creating chat cards directly
 - Keep only the UI setup and roll request functionality
@@ -110,7 +110,7 @@ Cinema Mode becomes "Window Mode with a different UI presentation" rather than "
 ## **THE RESULT**
 
 - **utils-rolls.js** = Single source of truth for ALL roll functionality
-- **skill-check-dialog.js** = Pure UI setup and roll request initiation
+- **window-skillcheck.js** = Pure UI setup and roll request initiation
 - **Clean, logical flow** with no duplicate paths or confusing names
 - **Both Window and Cinema modes** use the exact same execution logic
 
@@ -118,6 +118,6 @@ Cinema Mode becomes "Window Mode with a different UI presentation" rather than "
 
 1. **Create the 4 core functions** in utils-rolls.js
 2. **Test each function independently** to ensure they work
-3. **Refactor skill-check-dialog.js** to use the new system
+3. **Refactor window-skillcheck.js** to use the new system
 4. **Remove all old code** once new system is working
 5. **Verify both Window and Cinema modes** use identical execution paths

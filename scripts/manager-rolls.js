@@ -3,7 +3,7 @@ import { postConsoleAndNotification } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
 // Import SkillCheckDialog for chat message formatting
-import { SkillCheckDialog } from './skill-check-dialog.js';
+import { SkillCheckDialog } from './window-skillcheck.js';
 
 // ==================================================================
 // ===== CLEAN UNIFIED ROLL SYSTEM ==================================

@@ -29,7 +29,7 @@
 
 ### 4. Excessive Console Logging ✅ COMPLETED
 - **Issue**: ~150+ console messages bypass `postConsoleAndNotification` system
-- **Locations**: Throughout multiple files (skill-check-dialog.js, window-query.js, xp-manager.js, etc.)
+- **Locations**: Throughout multiple files (window-skillcheck.js, window-query.js, xp-manager.js, etc.)
 - **Impact**: Inconsistent logging, performance impact when debug is ON
 - **Status**: ✅ COMPLETED
 - **Plan**: Converted debug messages to use `postConsoleAndNotification` with `blnDebug = true`
@@ -110,7 +110,7 @@
 
 ### 14. DnD5e rollSkill Deprecation Warning ✅ COMPLETED
 - **Issue**: Using deprecated `actor.rollSkill(value, rollOptions)` method signature from DnD5e < 4.1
-- **Location**: `scripts/skill-check-dialog.js` line 1617 in fallback code
+- **Location**: `scripts/window-skillcheck.js` line 1617 in fallback code
 - **Impact**: Deprecation warnings in console, future compatibility issues with DnD5e 5.0
 - **Status**: ✅ COMPLETED
 - **Plan**: Use DnD5e's built-in "skip-dialog" methods that bypass configuration windows

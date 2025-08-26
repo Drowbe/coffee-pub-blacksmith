@@ -7,7 +7,7 @@ import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, set
 import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
-import { SkillCheckDialog } from './skill-check-dialog.js';
+import { SkillCheckDialog } from './window-skillcheck.js';
 import { MovementConfig } from './movement.js';
 
 class ChatPanel {

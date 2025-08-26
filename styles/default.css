@@ -10,9 +10,10 @@
 @import "overrides-modules.css"; 
 
 /* --- Dialogue Boxes / Windows --- */
-@import "dialogues.css";
+@import "window-common.css";
+@import "window-gmtools.css";
 @import "window-query.css";
-@import "skill-check-window.css";
+@import "window-skillcheck.css";
 @import "movement.css";
 @import "xp-distribution.css";
 @import "window-roll.css";
@@ -48,9 +49,6 @@
 
 /* --- Combat Tracker ---------------------- */
 @import "combat-tools.css";
-
-/* --- CSS Editor ---------------------- */
-@import "css-editor.css";
 
 /* --- Panel Assistant ---------------------- */
 @import "panel-assistant.css";
