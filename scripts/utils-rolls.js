@@ -36,9 +36,34 @@ async function rollRouteBlacksmith(actor, type, value, options = {}) {
     const flow = options.flow || 'window';
     
     if (flow === 'cinema') {
-        // Cinema mode - show cinematic overlay
+        // Cinema mode - execute roll directly without dialog
         postConsoleAndNotification(MODULE.NAME, `rollRouteBlacksmith: Cinema mode selected`, null, true, false);
-        return await rollExecute(actor, type, value, { ...options, system: 'blacksmith', flow: 'cinema' });
+        
+        // Execute the roll directly using Blacksmith system
+        const roll = await _executeBuiltInRoll(actor, type, value, options);
+        
+        if (!roll) {
+            throw new Error('Blacksmith roll execution failed');
+        }
+        
+        // Build roll data for the result
+        const rollData = await _buildRollData(actor, type, value, options);
+        
+        // Create roll result object
+        const rollResult = {
+            roll,
+            rollData,
+            system: 'blacksmith',
+            flow: 'cinema'
+        };
+        
+        // Update the chat card directly (bypassing dialog)
+        if (options.messageId && options.tokenId) {
+            const context = { messageId: options.messageId, tokenId: options.tokenId };
+            await rollUpdate(rollResult, context);
+        }
+        
+        return rollResult;
     } else {
         // Window mode - show roll dialog
         postConsoleAndNotification(MODULE.NAME, `rollRouteBlacksmith: Window mode selected`, null, true, false);

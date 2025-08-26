@@ -1,163 +1,123 @@
 # ROLL MIGRATION PLAN
 
-## **Architecture (SIMPLE)**
-- **GM chooses ONE system** in `diceRollToolSystem` setting
-- **BOTH paths use the SAME selected system**
-- **No more confusion about multiple systems**
+## **THE REALITY CHECK**
+**Window Mode already works end-to-end.** We should optimize that flow, then make Cinema Mode use the exact same logic.
 
-## **The Two Paths (SAME SYSTEM)**
-1. **Roll Dialog Path**: GM Request → Chat Card → Player Clicks → **SELECTED SYSTEM** Roll Dialog → **SELECTED SYSTEM** Roll Processing → Update Chat Card
-2. **Cinema Path**: GM Request → Chat Card → Fast Forward to Cinema → **SELECTED SYSTEM** Roll Processing → Update Chat Card
+## **THE UNIFIED APPROACH**
 
-## **Process Map (LOCKED SEQUENCE)**
+### **PHASE 1: OPTIMIZE WINDOW MODE FLOW**
+Since Window Mode already works end-to-end, we should:
+1. **Extract the working roll logic** from the current Window Mode path
+2. **Clean up the function chain** to be more direct
+3. **Make it the single source of truth** for roll execution
 
-### **GM Request Roll → Chat Card Creation**
-1. **GM opens SkillCheckDialog** (skill-check-dialog.js)
-2. **GM selects actors, roll type, options**
-3. **GM clicks "Roll" button**
-4. **System creates ChatMessage** with roll request data
-5. **Chat card appears** in chat with roll buttons for each actor
+### **PHASE 2: MAKE CINEMA USE THE SAME FLOW**
+Cinema Mode should:
+1. **Skip the chat card click** (bypass that step)
+2. **Open the cinema overlay** instead of the roll window
+3. **Use the exact same roll execution logic** from Window Mode
+4. **Resolve the same way** to chat
 
-### **Roll Dialog Path (Player Clicks in Chat)**
-6. **Player clicks roll button** in chat card
-7. **System calls `showRollDialog()`** with actor/roll data
-8. **RollDialog opens** (roll-dialog.hbs template)
-9. **Player selects roll options** (advantage/disadvantage/situational bonus)
-10. **Player clicks roll button** (normal/advantage/disadvantage)
-11. **System calls `_executeRoll()`** → `_performRoll()`
-12. **SELECTED SYSTEM processes roll** (Blacksmith OR Foundry based on setting)
-13. **System calls `handleSkillRollUpdate()`** with roll results
-14. **Chat card updates** with roll results and visual feedback
+## **THE CORRECT ARCHITECTURE**
 
-### **Cinema Path (Fast Forward to Cinema Mode)**
-6. **System detects cinematic mode** from chat card flags
-7. **Cinematic overlay opens** automatically
-8. **Player clicks roll button** in cinematic overlay
-9. **System calls `executeRollAndUpdate()`** directly
-10. **SELECTED SYSTEM processes roll** (Blacksmith OR Foundry based on setting)
-11. **System calls `handleSkillRollUpdate()`** with roll results
-12. **Chat card updates** with roll results and visual feedback
-13. **Cinematic overlay updates** with roll results
+```
+ROLL REQUEST (from GM)
+    ↓
+ROUTE TO SYSTEM (Blacksmith vs Foundry)
+    ↓
+PRESENTATION LAYER:
+    ├── WINDOW: showRollDialog() → RollDialog class
+    └── CINEMA: showCinemaOverlay() → Cinema class
+    ↓
+UNIFIED ROLL EXECUTION (same logic for both)
+    ↓
+UNIFIED ROLL RESOLUTION (same logic for both)
+```
 
-### **Final Result (Both Paths)**
-14. **Chat card shows roll results** for all actors
-15. **Results include**: roll totals, success/failure, DC comparison, group results
-16. **System plays appropriate sounds** (success, failure, critical, etc.)
-17. **GM can see all results** and manage the scene
+## **KEY INSIGHT**
+Cinema Mode is literally just "skip the chat card click and auto-open the cinema overlay." Everything after that should be identical to Window Mode.
 
-## **Current State**
-- **Right now**: Rolling uses **FOUNDRY system** (not our system)
-- **Need to package**: This Foundry code for when users choose "foundry" setting
-- **Need to restore**: Our functional Blacksmith system from backups
+## **WHAT THIS MEANS**
+Instead of having separate execution paths for Window vs Cinema, we should have:
 
-## **The Goal**
-- **Settings control**: `diceRollToolSystem` dropdown chooses system
-- **Unified execution**: Both paths use exact same roll processing based on setting
-- **No more confusion**: One system, two entry points
+- **One unified roll execution system** that both UI methods call
+- **Two different UI presentation methods** that both feed into the same roll logic
+- **One shared resolution system** that both use
 
-## **System Context**
+## **THE RESULT**
+Cinema Mode becomes "Window Mode with a different UI presentation" rather than "a completely different roll system."
 
-### **BLACKSMITH SYSTEM** (Backed Up) - **STUDYING IN PROGRESS** 🔍
-- **Location**: `@AI-SKILLCHECK-BACK.js` and `@AI-UTILSROLLS-BACK.js`
-- **Status**: 100% functional, backed up before my changes broke it
-- **Need**: DEEPLY understand this code to restore our Blacksmith system
+## **CURRENT STATUS**
+- **Window Mode**: Working end-to-end (GM Request → Chat Card → Player Click → Roll Window → Configure → Execute → Resolve)
+- **Cinema Mode**: Blocked because roll window also opens (needs to bypass click and use same execution path)
+- **Goal**: Extract working Window Mode logic, make Cinema Mode use it with different UI presentation
 
-#### **BLACKSMITH SYSTEM FINDINGS** (Updated as I learn)
-- **Core Function**: `executeRoll()` - Main entry point that checks `diceRollToolSystem` setting
-- **Roll Dialog**: `showRollDialog()` → `RollDialog` class → `_executeRoll()` → `_performRoll()`
-- **Manual Roll Creation**: `_executeBuiltInRoll()` - Creates Foundry Roll objects manually for complete control
-- **Formula Building**: Manually builds roll formulas (1d20 + abilityMod + profBonus + situationalBonus)
-- **Advantage/Disadvantage**: Handles 2d20kh/2d20kl for advantage/disadvantage
-- **Roll Types Supported**: skill, ability, save, tool, dice
-- **Chat Suppression**: Uses manual Roll creation to suppress Foundry's default chat messages
-- **Integration**: Calls `handleSkillRollUpdate()` for chat card updates
+## **NEW IMPLEMENTATION PLAN**
 
-### **FOUNDRY SYSTEM** (Current Code) - **STUDYING NEXT** 🔍
-- **Location**: Current `scripts/utils-rolls.js` and related files
-- **Status**: Completely functional, but mixed with legacy/orphaned code
-- **Need**: DEEPLY understand this code to package it cleanly for "foundry" choice
+### **PHASE 1: CREATE THE NEW FUNCTIONS IN utils-rolls.js**
+1. **`requestRoll()`** - Creates chat card and handles initial flow routing
+2. **`orchestrateRoll()`** - Packages data, selects system, chooses mode
+3. **`processRoll()`** - Executes the actual dice roll
+4. **`deliverRollResults()`** - Updates chat card and cinema overlay
 
-#### **FOUNDRY SYSTEM FINDINGS** (Updated as I learn)
-- **Core Function**: `executeRollAndUpdate()` - Robust roll execution with D&D5e API integration
-- **Roll Types Supported**: skill, ability, save, tool, dice (same as Blacksmith)
-- **D&D5e API Integration**: Uses `game.dnd5e.actions.rollSkill`, `actor.rollAbilityTest`, `actor.rollSavingThrow`
-- **Fallback System**: Multiple API versions supported (modern → legacy compatibility)
-- **Permission Checks**: Validates GM/owner permissions before allowing rolls
-- **Chat Suppression**: Uses `chatMessage: false, createMessage: false` to suppress Foundry's default chat
-- **Manual Roll Fallbacks**: Falls back to manual Roll creation when D&D5e APIs fail
-- **Socket Communication**: Emits `updateSkillRoll` events and calls `handleSkillRollUpdate()`
-- **Error Handling**: Comprehensive error handling with user notifications
-- **Integration**: Seamlessly integrates with existing chat card update system
+### **PHASE 2: REFACTOR skill-check-dialog.js**
+- Remove all roll execution logic
+- Make it call `requestRoll()` instead of creating chat cards directly
+- Keep only the UI setup and roll request functionality
 
-## **System Analysis Summary** (What I've Learned)
+### **PHASE 3: REMOVE OLD CODE**
+- Delete my confusing 3-phase system (`rollRoute`, `rollExecute`, `rollUpdate`)
+- Delete the complex `RollDialog` class and `showRollDialog()`
+- Delete `executeRoll()`, `executeRollAndUpdate()`, and all the `_execute*` functions
+- Keep only the new 4-function system
 
-### **Key Differences Between Systems**
+## **FUNCTION SPECIFICATIONS (EXACT NAMES)**
 
-| Aspect | **BLACKSMITH SYSTEM** | **FOUNDRY SYSTEM** |
-|--------|----------------------|-------------------|
-| **Roll Creation** | Manual Roll objects (complete control) | D&D5e API integration + manual fallbacks |
-| **Formula Building** | Manually constructs formulas | Uses D&D5e system formulas |
-| **Chat Suppression** | Manual Roll creation suppresses chat | API options suppress chat |
-| **Advantage/Disadvantage** | 2d20kh/2d20kl in formulas | Handled by D&D5e APIs |
-| **Fallback Strategy** | Always manual (predictable) | API → manual fallback (robust) |
-| **Integration Point** | `_performRoll()` → `handleSkillRollUpdate()` | `executeRollAndUpdate()` → `handleSkillRollUpdate()` |
+**`requestRoll(rollDetails)`**
+- **Input**: Roll details from SkillCheckDialog
+- **Purpose**: Create chat card, route to appropriate flow
+- **Output**: Chat card created, flow initiated
 
-### **What Both Systems Share**
-- **Same roll types**: skill, ability, save, tool, dice
-- **Same final result**: Both call `handleSkillRollUpdate()` for chat card updates
-- **Same socket communication**: Both emit `updateSkillRoll` events
-- **Same permission model**: Both check GM/owner permissions
-- **Same error handling**: Both have comprehensive error handling
+**`orchestrateRoll(actor, type, value, options, messageId, tokenId)`**
+- **Input**: Actor data, roll type, roll value, options, context
+- **Purpose**: Package data, select system (Blacksmith), choose mode (Window/Cinema)
+- **Output**: Prepared roll data and mode selection
 
-## **NEW PLAN: Clean Architecture Implementation** 🔄
+**`processRoll(rollData, rollOptions)`**
+- **Input**: Prepared roll data and user roll options
+- **Purpose**: Execute dice roll, calculate results
+- **Output**: Roll results object
 
-**Status**: IMPLEMENTED - Clean 3-phase system created, old code commented out
+**`deliverRollResults(rollResults, context)`**
+- **Input**: Roll results and context (messageId, tokenId)
+- **Purpose**: Update chat card, update cinema overlay, handle sockets
+- **Output**: Success status
 
-**Problem Identified**: Despite completing the migration phases, the Blacksmith system has:
-- **Confusing function names** that don't match their purpose
-- **Duplicate code paths** for Window Mode vs Cinema Mode
-- **Complex routing logic** that's hard to follow
-- **Still not fully functional** - RollDialog not showing properly
+## **WHAT WE NEED TO ADD**
 
-**Solution**: Replace with clean 3-phase system
+**Socket Communication Functions:**
+- `emitRollUpdate()` - Emit socket events for GM updates
+- `handleRollUpdate()` - Handle incoming socket events
 
-### **New 3-Phase Architecture** ✅
+**Mode-Specific UI Functions:**
+- `showRollWindow(rollData)` - Display the roll configuration window
+- `showCinemaOverlay(rollData)` - Display the cinematic overlay
 
-1. **`rollRoute`** - Routes to selected system + flow (Window/Cinema) ✅
-2. **`rollExecute`** - Executes roll using selected system ✅
-3. **`rollUpdate`** - Updates results (chat card, cinema overlay, group results) ✅
+**Data Preparation Functions:**
+- `prepareRollData(actor, type, value)` - Build roll data for templates
+- `buildRollFormula(type, value, options)` - Construct roll formulas
 
-### **Implementation Plan**
+## **THE RESULT**
 
-1. **✅ Create 3 new clean functions** alongside existing mess
-2. **🔄 Test each phase independently** - IN PROGRESS
-3. **🔄 Replace Window Mode flow first** (the broken one) - NEXT
-4. **🔄 Replace Cinema Mode flow second** (the working one) - PENDING
-5. **🔄 Remove old confusing functions** - PENDING
-6. **🔄 Verify both flows use identical code path** - PENDING
+- **utils-rolls.js** = Single source of truth for ALL roll functionality
+- **skill-check-dialog.js** = Pure UI setup and roll request initiation
+- **Clean, logical flow** with no duplicate paths or confusing names
+- **Both Window and Cinema modes** use the exact same execution logic
 
-### **Current Status**
+## **IMPLEMENTATION ORDER**
 
-**Clean 3-phase system implemented:**
-- **`rollRoute()`** - Routes to Blacksmith/Foundry system + Window/Cinema flow
-- **`rollExecute()`** - Executes rolls using selected system
-- **`rollUpdate()`** - Updates chat cards and cinema overlays
-
-**Old messy code commented out:**
-- **`executeRoll()`** - Old confusing router
-- **`executeRollAndUpdate()`** - Old confusing name
-- **`_executeBuiltInRoll()`** - Old misleading name
-- **All other legacy functions** - Commented out for replacement
-
-### **Next Steps**
-
-**Test the new system:**
-1. **Test `rollRoute()`** - Does it route to correct system and flow?
-2. **Test `rollExecute()`** - Does it execute rolls properly?
-3. **Test `rollUpdate()`** - Does it update results correctly?
-
-**Then replace the flows one at a time.**
-
-### **Expected Result**
-
-**Both Window Mode and Cinema Mode will call the exact same 3 functions in sequence** - no more duplicate paths, no more confusion, actually working properly.
+1. **Create the 4 core functions** in utils-rolls.js
+2. **Test each function independently** to ensure they work
+3. **Refactor skill-check-dialog.js** to use the new system
+4. **Remove all old code** once new system is working
+5. **Verify both Window and Cinema modes** use identical execution paths
