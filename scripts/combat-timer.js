@@ -6,7 +6,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 
 class CombatTimer {
     static ID = 'combat-timer';
@@ -142,7 +142,7 @@ class CombatTimer {
 
     static async syncState() {
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             await socket.executeForOthers("syncTimerState", this.state);
             this.updateUI();
         }
@@ -340,8 +340,8 @@ class CombatTimer {
         if (game.user.isGM) {
             this.syncState();
 
-            // Notify all clients using ThirdPartyManager
-            const socket = ThirdPartyManager.getSocket();
+            // Notify all clients using SocketManager
+            const socket = SocketManager.getSocket();
             if (socket) {
                 socket.executeForOthers("combatTimerAdjusted", this.formatTime(newTime));
             }

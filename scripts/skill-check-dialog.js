@@ -1392,7 +1392,7 @@ export class SkillCheckDialog extends Application {
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
                 // Use the new unified system directly
-                const { orchestrateRoll } = await import('./utils-rolls.js');
+                const { orchestrateRoll } = await import('./manager-rolls.js');
                 await orchestrateRoll({
                     actors: [{ actorId: actorData.actorId, tokenId, name: actorData.name }],
                     challengerRollType: type,
@@ -1608,7 +1608,7 @@ export class SkillCheckDialog extends Application {
                     return;
                 }
                 // Use the new unified system directly
-                const { orchestrateRoll } = await import('./utils-rolls.js');
+                const { orchestrateRoll } = await import('./manager-rolls.js');
                 await orchestrateRoll({
                     actors: [{ actorId, tokenId, name: actorData.name }],
                     challengerRollType: type,

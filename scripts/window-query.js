@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, trimString } from './global.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
 import { getCachedTemplate } from './blacksmith.js';
 

@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from "./chat-panel.js";
 
 // ================================================================== 

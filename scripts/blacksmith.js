@@ -23,7 +23,7 @@ import { createJournalEntry, createHTMLList, buildCompendiumLinkActor, copyToCli
 import { registerSettings } from './settings.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
-import { addToolbarButton } from './toolbar.js';
+import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './combat-timer.js';
 import { PlanningTimer } from './planning-timer.js';
 import { RoundTimer } from './round-timer.js';
@@ -32,10 +32,10 @@ import { CPBPlayerStats } from './player-stats.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './wrapper-manager.js';
-import { ModuleManager } from './module-manager.js';
-import { UtilsManager } from './utils-manager.js';
-import { StatsAPI } from './stats-api.js';
-import { CanvasTools } from './canvas-tools.js';
+import { ModuleManager } from './manager-modules.js';
+import { UtilsManager } from './manager-utilities.js';
+import { StatsAPI } from './api-stats.js';
+import { CanvasTools } from './manager-canvas.js';
 import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
@@ -298,7 +298,7 @@ Hooks.once('ready', async () => {
         initializeSceneInteractions();
         
         // Initialize the unified roll system API
-        const { executeRoll } = await import('./utils-rolls.js');
+        const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
         // JOURNAL TOOLS
@@ -1434,109 +1434,113 @@ function updateMargins() {
 
 }
 
-export class ThirdPartyManager {
-    static socket = null;
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// MIGRATION -- TESTING REMOVEABLE OF THIS FUNCTION AS IT SEEMS TO BE A DUPLICATION OF THE THIRDPARTYMANAGER.JS FILE
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    static registerSocketFunctions() {
-        // Registering socket functions
+// export class ThirdPartyManager {
+//     static socket = null;
+
+//     static registerSocketFunctions() {
+//         // Registering socket functions
         
-        // Combat Timer
-        this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
-        this.socket.register("combatTimerAdjusted", CombatTimer.timerAdjusted);
+//         // Combat Timer
+//         this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
+//         this.socket.register("combatTimerAdjusted", CombatTimer.timerAdjusted);
         
-        // Planning Timer
-        this.socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
-        this.socket.register("planningTimerAdjusted", PlanningTimer.timerAdjusted);
-        this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
+//         // Planning Timer
+//         this.socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);
+//         this.socket.register("planningTimerAdjusted", PlanningTimer.timerAdjusted);
+//         this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
         
-        // Chat Panel
-        this.socket.register("updateLeader", ChatPanel.receiveLeaderUpdate);
-        this.socket.register("updateTimer", ChatPanel.receiveTimerUpdate);
+//         // Chat Panel
+//         this.socket.register("updateLeader", ChatPanel.receiveLeaderUpdate);
+//         this.socket.register("updateTimer", ChatPanel.receiveTimerUpdate);
 
-        // Vote Manager
-        this.socket.register("receiveVoteStart", VoteManager.receiveVoteStart.bind(VoteManager));
-        this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
-        this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
+        // // Vote Manager
+        // this.socket.register("receiveVoteStart", VoteManager.receiveVoteStart.bind(VoteManager));
+        // this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
+        // this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
 
-        // Skill Check
-        this.socket.register("updateSkillRoll", async (data) => {
-            // Only the GM should process this
-            if (!game.user.isGM) return;
+//         // Skill Check
+//         this.socket.register("updateSkillRoll", async (data) => {
+//             // Only the GM should process this
+//             if (!game.user.isGM) return;
 
-            const message = game.messages.get(data.messageId);
-            if (!message) return;
+//             const message = game.messages.get(data.messageId);
+//             if (!message) return;
 
-            const flags = message.flags['coffee-pub-blacksmith'];
-            if (!flags?.type === 'skillCheck') return;
+//             const flags = message.flags['coffee-pub-blacksmith'];
+//             if (!flags?.type === 'skillCheck') return;
 
-            // Use centralized logic from SkillCheckDialog - now expects token ID
-            const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.tokenId, data.data.result);
-            const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
-            await message.update({ 
-                content,
-                flags: { 'coffee-pub-blacksmith': updatedMessageData }
-            });
+//             // Use centralized logic from SkillCheckDialog - now expects token ID
+//             const updatedMessageData = SkillCheckDialog.processRollResult(flags, data.data.tokenId, data.data.result);
+//             const content = await SkillCheckDialog.formatChatMessage(updatedMessageData);
+//             await message.update({ 
+//                 content,
+//                 flags: { 'coffee-pub-blacksmith': updatedMessageData }
+//             });
 
-            // Broadcast the final result to all clients for UI updates (like cinematic mode)
-            game.socket.emit(`module.${MODULE.ID}`, {
-                type: 'skillRollFinalized',
-                data: {
-                    messageId: message.id,
-                    flags: updatedMessageData,
-                    rollData: data // Pass along the specific roll data (tokenId, result)
-                }
-            });
+//             // Broadcast the final result to all clients for UI updates (like cinematic mode)
+//             game.socket.emit(`module.${MODULE.ID}`, {
+//                 type: 'skillRollFinalized',
+//                 data: {
+//                     messageId: message.id,
+//                     flags: updatedMessageData,
+//                     rollData: data // Pass along the specific roll data (tokenId, result)
+//                 }
+//             });
 
-            // Directly update the GM's cinematic UI if it's open
-            if (updatedMessageData.isCinematic) {
-                const cinematicOverlay = $('#cpb-cinematic-overlay');
-                if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
-                    SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
-                }
-            }
+//             // Directly update the GM's cinematic UI if it's open
+//             if (updatedMessageData.isCinematic) {
+//                 const cinematicOverlay = $('#cpb-cinematic-overlay');
+//                 if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
+//                     SkillCheckDialog._updateCinematicDisplay(data.tokenId, data.result, updatedMessageData);
+//                 }
+//             }
 
-            // If this was a requested roll, update the GM's interface
-            if (flags.requesterId === game.user.id) {
-                const windows = getBlacksmithWindows();
-                windows.forEach(window => {
-                    const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
-                    if (inputField) {
-                        inputField.value = data.result.total;
-                    }
-                });
-            }
-        });
+//             // If this was a requested roll, update the GM's interface
+//             if (flags.requesterId === game.user.id) {
+//                 const windows = getBlacksmithWindows();
+//                 windows.forEach(window => {
+//                     const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+//                     if (inputField) {
+//                         inputField.value = data.result.total;
+//                     }
+//                 });
+//             }
+//         });
 
-        // This is received by all clients to update the chat card
-        this.socket.on("skillRollUpdated", (data) => {
-            const message = game.messages.get(data.messageId);
-            if (message) {
-                // We update the content directly to avoid re-rendering chat log
-                const messageElement = $(`#chat-log .message[data-message-id="${data.messageId}"] .message-content`);
-                if (messageElement.length) {
-                    messageElement.html(data.content);
-                }
-                // Update message flags silently in the background
-                message.flags['coffee-pub-blacksmith'] = data.flags;
+//         // This is received by all clients to update the chat card
+//         this.socket.on("skillRollUpdated", (data) => {
+//             const message = game.messages.get(data.messageId);
+//             if (message) {
+//                 // We update the content directly to avoid re-rendering chat log
+//                 const messageElement = $(`#chat-log .message[data-message-id="${data.messageId}"] .message-content`);
+//                 if (messageElement.length) {
+//                     messageElement.html(data.content);
+//                 }
+//                 // Update message flags silently in the background
+//                 message.flags['coffee-pub-blacksmith'] = data.flags;
 
-                // Handle cinematic update
-                if (data.flags.isCinematic && data.rollData) {
-                    SkillCheckDialog._updateCinematicDisplay(data.rollData.tokenId, data.rollData.result, data.flags);
-                }
-            }
-        });
+//                 // Handle cinematic update
+//                 if (data.flags.isCinematic && data.rollData) {
+//                     SkillCheckDialog._updateCinematicDisplay(data.rollData.tokenId, data.rollData.result, data.flags);
+//                 }
+//             }
+//         });
 
-        // Latency checker
-        this.socket.register("checkLatency", (data) => {
-            // Implementation of checkLatency function
-        });
+//         // Latency checker
+//         this.socket.register("checkLatency", (data) => {
+//             // Implementation of checkLatency function
+//         });
 
-        // Show cinematic roll display
-        this.socket.register("showCinematicRoll", (data) => {
-            SkillCheckDialog._showCinematicDisplay(data.messageData, data.messageId);
-        });
-    }
-}
+//         // Show cinematic roll display
+//         this.socket.register("showCinematicRoll", (data) => {
+//             SkillCheckDialog._showCinematicDisplay(data.messageData, data.messageId);
+//         });
+//     }
+// }
 
 export async function handleSkillRollUpdate(data) {
     const { messageId, tokenId, result } = data;

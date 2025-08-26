@@ -8,11 +8,11 @@
 - **Impact**: Memory leak that grows with each token creation
 - **Status**: ✅ COMPLETED
 - **Plan**: Replaced Map with real-time token counting
-- **Notes**: Fixed in both blacksmith.js and canvas-tools.js
+- **Notes**: Fixed in both blacksmith.js and manager-canvas.js
 
 ### 2. Duplicate Token Naming Hooks
-- **Issue**: Token naming logic duplicated in both blacksmith.js and canvas-tools.js
-- **Locations**: Lines 381 (blacksmith.js) and 59 (canvas-tools.js)
+- **Issue**: Token naming logic duplicated in both blacksmith.js and manager-canvas.js
+- **Locations**: Lines 381 (blacksmith.js) and 59 (manager-canvas.js)
 - **Impact**: Duplicate hooks causing potential race conditions and performance issues
 - **Status**: ✅ COMPLETED
 - **Plan**: Removed duplicate hook from blacksmith.js, kept only in CanvasTools

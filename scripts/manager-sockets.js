@@ -8,7 +8,7 @@ import { PlanningTimer } from './planning-timer.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
 
-class ThirdPartyManager {
+class SocketManager {
     static socket = null;
     static isInitialized = false;
     static isSocketReady = false;
@@ -54,7 +54,7 @@ class ThirdPartyManager {
 
     static getSocket() {
         if (!this.isSocketReady) {
-            postConsoleAndNotification(MODULE.NAME, "Third Party Manager | Error: Socket not ready", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Socket Manager | Error: Socket not ready", "", true, false);
             return null;
         }
         return this.socket;
@@ -73,7 +73,7 @@ class ThirdPartyManager {
 
 // Initialize on Foundry load
 Hooks.once('init', () => {
-    ThirdPartyManager.initialize();
+    SocketManager.initialize();
 });
 
-export { ThirdPartyManager }; 
+export { SocketManager }; 

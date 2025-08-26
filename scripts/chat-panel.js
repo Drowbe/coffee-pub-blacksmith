@@ -4,9 +4,9 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './global.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
-import { ModuleManager } from './module-manager.js';
+import { ModuleManager } from './manager-modules.js';
 import { SkillCheckDialog } from './skill-check-dialog.js';
 import { MovementConfig } from './movement.js';
 
@@ -777,11 +777,11 @@ class ChatPanel {
         ChatPanel.updateTimerDisplay();
     }
 
-    // Update existing socket emits to use ThirdPartyManager
+    // Update existing socket emits to use SocketManager
     static async updateLeader(leader) {
 
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
 
             // Get the current leader data to send
             const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
@@ -799,7 +799,7 @@ class ChatPanel {
 
     static async updateTimer(endTime, startTime, sendMessage = false) {
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             await socket.executeForOthers("updateTimer", { endTime, startTime });
             this.updateTimerDisplay();
 

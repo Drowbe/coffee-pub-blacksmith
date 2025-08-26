@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './global.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from './chat-panel.js';
 
 export class VoteManager {
@@ -255,7 +255,7 @@ export class VoteManager {
         await this._createVoteMessage();
 
         // Then notify other clients with the complete vote data
-        const socket = ThirdPartyManager.getSocket();
+        const socket = SocketManager.getSocket();
         await socket.executeForOthers("receiveVoteStart", {
             voteData: this.activeVote,
             messageId: this.activeVote.messageId
@@ -517,7 +517,7 @@ export class VoteManager {
         }
 
         // Notify other clients
-        const socket = ThirdPartyManager.getSocket();
+        const socket = SocketManager.getSocket();
         await socket.executeForOthers("receiveVoteUpdate", {
             votes: this.activeVote.votes
         });
@@ -551,7 +551,7 @@ export class VoteManager {
         playSound(COFFEEPUB.SOUNDNOTIFICATION15, COFFEEPUB.SOUNDVOLUMENORMAL);
 
         // Notify other clients
-        const socket = ThirdPartyManager.getSocket();
+        const socket = SocketManager.getSocket();
         await socket.executeForOthers("receiveVoteClose", {
             results: results
         });

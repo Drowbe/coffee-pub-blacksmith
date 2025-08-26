@@ -6,7 +6,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './global.js';
 import { CombatStats } from './combat-stats.js';
-import { ThirdPartyManager } from './third-party.js';
+import { SocketManager } from './manager-sockets.js';
 
 export class PlanningTimer {
     static DEFAULTS = {
@@ -71,7 +71,7 @@ export class PlanningTimer {
 
     static async syncState() {
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             await socket.executeForOthers("syncPlanningTimerState", this.state);
             this.updateUI();
         }
@@ -118,7 +118,7 @@ export class PlanningTimer {
             // Add fade-out sequence for normal turn changes
             if (!data?.wasExpired) {
                 setTimeout(async () => {
-                    const socket = ThirdPartyManager.getSocket();
+                    const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
                     $('.planning-phase').fadeOut(400, function() {
                         $(this).remove();
@@ -204,7 +204,7 @@ export class PlanningTimer {
             // Add fade-out sequence for player turn transition
             if (game.user.isGM) {
                 setTimeout(async () => {
-                    const socket = ThirdPartyManager.getSocket();
+                    const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
                     $('.planning-phase').fadeOut(400, function() {
                         $(this).remove();
@@ -419,8 +419,8 @@ export class PlanningTimer {
         if (game.user.isGM) {
             this.syncState();
 
-            // Notify all clients using ThirdPartyManager
-            const socket = ThirdPartyManager.getSocket();
+            // Notify all clients using SocketManager
+            const socket = SocketManager.getSocket();
             if (socket) {
                 socket.executeForOthers("planningTimerAdjusted", this.formatTime(newTime));
             }
@@ -612,7 +612,7 @@ export class PlanningTimer {
             
         // Notify all clients
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true });
         }
 
@@ -621,7 +621,7 @@ export class PlanningTimer {
         
         // Remove the timer from view on all clients
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
         }
         $('.planning-phase').fadeOut(400, function() {
@@ -691,11 +691,11 @@ export class PlanningTimer {
         
         // Notify all clients and wait 3 seconds
         if (game.user.isGM) {
-            const socket = ThirdPartyManager.getSocket();
+            const socket = SocketManager.getSocket();
             socket.executeForOthers("timerCleanup", { wasExpired: true });
             setTimeout(async () => {
                 await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
-                $('.planning-phase').fadeOut(400, function() {
+                $('.planning-phase').fadeOut(400, true, function() {
                     $(this).remove();
                 });
             }, 3000);
