@@ -3,8 +3,8 @@
 // ================================================================== 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
-import { CombatTimer } from './combat-timer.js';
-import { PlanningTimer } from './planning-timer.js';
+import { CombatTimer } from './timer-combat.js';
+import { PlanningTimer } from './timer-planning.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
 

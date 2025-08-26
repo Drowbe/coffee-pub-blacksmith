@@ -35,14 +35,10 @@
 /* --- Links ---------------------- */
 @import "links-themes.css";
 
-/* --- Combat Timer ---------------------- */
-@import "combat-timer.css";
-
-/* --- Planning Timer ---------------------- */
-@import "planning-timer.css";   
-
-/* --- Round Timer ---------------------- */
-@import "round-timer.css";   
+/* --- Timers ---------------------- */
+@import "timer-combat.css";
+@import "timer-planning.css";   
+@import "timer-round.css";   
 
 /* --- Voting ---------------------- */
 @import "vote.css";   

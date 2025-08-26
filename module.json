@@ -65,22 +65,10 @@
     "styles/default.css"
   ],
   "esmodules": [
-    "scripts/blacksmith.js",
-    "scripts/manager-toolbar.js",
-    "scripts/combat-stats.js",
-    "scripts/combat-timer.js",
-    "scripts/planning-timer.js",
-    "scripts/round-timer.js",
-    "scripts/window-query.js",
+    "scripts/const.js",
+    "scripts/global.js",
     "scripts/settings.js",
-    "scripts/player-stats.js",
-    "scripts/canvas-layer.js",
-    "scripts/chat-panel.js",
-    "scripts/latency-checker.js",
-    "scripts/combat-tools.js",
-    "scripts/movement.js",
-    "scripts/xp-manager.js",
-    "scripts/journal-tools.js"
+    "scripts/blacksmith.js"
   ],
   "packs": [
     {

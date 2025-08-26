@@ -222,7 +222,7 @@ export class PlanningTimer {
         const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
         
         const timerHtml = await renderTemplate(
-            'modules/coffee-pub-blacksmith/templates/planning-timer.hbs',
+            'modules/coffee-pub-blacksmith/templates/timer-planning.hbs',
             {
                 label,
                 isPaused: this.state.isPaused,

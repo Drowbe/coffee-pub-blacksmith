@@ -178,7 +178,7 @@ class CombatTimer {
             if (isGMOnly && !game.user.isGM) return;
             
             const timerHtml = await renderTemplate(
-                'modules/coffee-pub-blacksmith/templates/combat-timer.hbs',
+                'modules/coffee-pub-blacksmith/templates/timer-combat.hbs',
                 {
                     enabled: isEnabled,
                     isPaused: this.state.isPaused,

@@ -87,7 +87,7 @@ export class RoundTimer {
         const formattedTime = formatTime(duration || 0, "verbose");
         
         const timerHtml = await renderTemplate(
-            'modules/coffee-pub-blacksmith/templates/round-timer.hbs',
+            'modules/coffee-pub-blacksmith/templates/timer-round.hbs',
             {
                 roundDurationActual: formattedTime,
                 showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer'),
