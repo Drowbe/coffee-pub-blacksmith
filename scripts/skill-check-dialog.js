@@ -2,7 +2,7 @@
 import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
-import { executeRollAndUpdate } from './utils-rolls.js';
+
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
@@ -1391,7 +1391,24 @@ export class SkillCheckDialog extends Application {
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
-                await executeRollAndUpdate(chatMessage, tokenId, actorData.actorId, type, value, options);
+                // Use the new unified system directly
+                const { orchestrateRoll } = await import('./utils-rolls.js');
+                await orchestrateRoll({
+                    actors: [{ actorId: actorData.actorId, tokenId, name: actorData.name }],
+                    challengerRollType: type,
+                    challengerRollValue: value,
+                    defenderRollType: null,
+                    defenderRollValue: null,
+                    dc: options.dc || null,
+                    showDC: options.showDC || false,
+                    groupRoll: options.groupRoll || false,
+                    label: options.label || null,
+                    description: options.description || null,
+                    rollMode: options.rollMode || 'roll',
+                    isCinematic: true, // This is cinematic mode
+                    showRollExplanation: options.showRollExplanation || false,
+                    showRollExplanationLink: options.showRollExplanationLink || false
+                });
             }
         });
 
@@ -1590,8 +1607,24 @@ export class SkillCheckDialog extends Application {
                     ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
                     return;
                 }
-                // Use the tokenId from the matched actorData
-                await executeRollAndUpdate(message, tokenId, actorId, type, value, {});
+                // Use the new unified system directly
+                const { orchestrateRoll } = await import('./utils-rolls.js');
+                await orchestrateRoll({
+                    actors: [{ actorId, tokenId, name: actorData.name }],
+                    challengerRollType: type,
+                    challengerRollValue: value,
+                    defenderRollType: null,
+                    defenderRollValue: null,
+                    dc: null,
+                    showDC: false,
+                    groupRoll: false,
+                    label: null,
+                    description: null,
+                    rollMode: 'roll',
+                    isCinematic: false, // This is window mode
+                    showRollExplanation: false,
+                    showRollExplanationLink: false
+                });
             });
         });
     }

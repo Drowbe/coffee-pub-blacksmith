@@ -2,6 +2,9 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './global.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 
+// Import SkillCheckDialog for chat message formatting
+import { SkillCheckDialog } from './skill-check-dialog.js';
+
 // ==================================================================
 // ===== CLEAN UNIFIED ROLL SYSTEM ==================================
 // ==================================================================
@@ -15,12 +18,91 @@ export async function requestRoll(rollDetails) {
     postConsoleAndNotification(MODULE.NAME, `requestRoll: Starting with roll details`, rollDetails, true, false);
     
     try {
-        // TODO: Extract chat card creation logic from skill-check-dialog.js
-        // For now, this is a placeholder that will be implemented
-        // when we refactor skill-check-dialog.js to call this function
+        // Extract the processed actors and roll data from rollDetails
+        const { 
+            actors, 
+            challengerRollType, 
+            challengerRollValue, 
+            defenderRollType, 
+            defenderRollValue,
+            dc,
+            showDC,
+            groupRoll,
+            label,
+            description,
+            rollMode,
+            isCinematic,
+            showRollExplanation,
+            showRollExplanationLink
+        } = rollDetails;
         
-        postConsoleAndNotification(MODULE.NAME, `requestRoll: Chat card created, flow initiated`, null, true, false);
-        return { success: true, messageId: 'placeholder', tokenId: 'placeholder' };
+        // Process actors to extract the data needed for the chat card
+        const processedActors = actors.map(actor => ({
+            id: actor.tokenId || actor.id,
+            actorId: actor.actorId,
+            name: actor.name,
+            group: actor.group || 1,
+            toolId: actor.toolId || null
+        }));
+        
+        // Create message data for the chat card
+        const messageData = {
+            skillName: challengerRollType === 'tool' ? challengerRollValue : challengerRollValue,
+            defenderSkillName: defenderRollType ? (defenderRollType === 'tool' ? defenderRollValue : defenderRollValue) : null,
+            skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
+            defenderSkillAbbr: defenderRollType ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
+            actors: processedActors,
+            requesterId: game.user.id,
+            type: 'skillCheck',
+            dc: dc,
+            showDC: showDC,
+            isGroupRoll: groupRoll,
+            label: label || null,
+            description: description || null,
+            skillDescription: null, // Will be filled by formatChatMessage
+            defenderSkillDescription: null, // Will be filled by formatChatMessage
+            skillLink: null, // Will be filled by formatChatMessage
+            defenderSkillLink: null, // Will be filled by formatChatMessage
+            rollMode,
+            rollType: challengerRollType,
+            defenderRollType: defenderRollType || null,
+            hasMultipleGroups: !!defenderRollType,
+            showRollExplanation: showRollExplanation || false,
+            showRollExplanationLink: showRollExplanationLink || false,
+            isCinematic: isCinematic || false
+        };
+        
+        // Create the chat message
+        const message = await ChatMessage.create({
+            user: game.user.id,
+            speaker: ChatMessage.getSpeaker(),
+            content: await SkillCheckDialog.formatChatMessage(messageData),
+            flags: { 'coffee-pub-blacksmith': messageData }
+        });
+        
+        // Handle cinematic mode if enabled
+        if (messageData.isCinematic) {
+            // Show for the current user who initiated the roll
+            SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+            
+            // Emit to other users to show the overlay
+            game.socket.emit(`module.${MODULE.ID}`, {
+                type: 'showCinematicOverlay',
+                data: {
+                    messageId: message.id,
+                    messageData: messageData
+                }
+            });
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `requestRoll: Chat card created successfully`, { messageId: message.id, tokenId: processedActors[0]?.id }, true, false);
+        
+        return { 
+            success: true, 
+            messageId: message.id, 
+            tokenId: processedActors[0]?.id,
+            messageData: messageData
+        };
         
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `requestRoll error:`, error, true, false);
@@ -30,38 +112,44 @@ export async function requestRoll(rollDetails) {
 
 /**
  * 2. orchestrateRoll() - Packages data, selects system, chooses mode
- * @param {Actor} actor - The actor making the roll
- * @param {string} type - The type of roll (skill, ability, save, tool, dice)
- * @param {string} value - The value for the roll (skill name, ability name, etc.)
- * @param {object} options - Roll options including flow preference
- * @param {string} messageId - Message ID for context
- * @param {string} tokenId - Token ID for context
+ * @param {object} rollDetails - Complete roll details including actors, roll types, etc.
  * @returns {Promise<object>} Prepared roll data and mode selection
  */
-export async function orchestrateRoll(actor, type, value, options = {}, messageId = null, tokenId = null) {
-    // Extract context data from options if not passed as separate parameters
-    const contextMessageId = messageId || options.messageId;
-    const contextTokenId = tokenId || options.tokenId;
-    
-    postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Starting with parameters`, { actor: actor.name, type, value, options, messageId: contextMessageId, tokenId: contextTokenId }, true, false);
+export async function orchestrateRoll(rollDetails) {
+    postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Starting with roll details`, rollDetails, true, false);
     
     try {
+        // First, create the chat card using requestRoll
+        const chatResult = await requestRoll(rollDetails);
+        
+        if (!chatResult.success) {
+            throw new Error('Failed to create chat card');
+        }
+        
+        // Extract the first actor for roll execution
+        const firstActor = rollDetails.actors[0];
+        const actor = game.actors.get(firstActor.actorId);
+        
+        if (!actor) {
+            throw new Error(`Could not find actor: ${firstActor.actorId}`);
+        }
+        
         // Package data for consumption by the rest of the process
-        const rollData = await prepareRollData(actor, type, value);
+        const rollData = await prepareRollData(actor, rollDetails.challengerRollType, rollDetails.challengerRollValue);
         
         // Determine roll system (for now, focus on BLACKSMITH)
         const diceRollToolSystem = game.settings.get('coffee-pub-blacksmith', 'diceRollToolSystem') ?? 'blacksmith';
         postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Using ${diceRollToolSystem} system`, null, true, false);
         
         // Choose mode (Window or Cinema)
-        const mode = options.flow || 'window';
+        const mode = rollDetails.isCinematic ? 'cinema' : 'window';
         postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Mode selected: ${mode}`, null, true, false);
         
         // Add context data to rollData
-        rollData.messageId = contextMessageId;
-        rollData.tokenId = contextTokenId;
-        rollData.rollTypeKey = type;
-        rollData.rollValueKey = value;
+        rollData.messageId = chatResult.messageId;
+        rollData.tokenId = chatResult.tokenId;
+        rollData.rollTypeKey = rollDetails.challengerRollType;
+        rollData.rollValueKey = rollDetails.challengerRollValue;
         rollData.actorId = actor.id;
         rollData.system = diceRollToolSystem;
         rollData.mode = mode;
@@ -798,7 +886,22 @@ export async function executeRollAndUpdate(message, tokenId, actorId, type, valu
         };
         
         // Use the new unified system
-        const rollData = await orchestrateRoll(actor, type, value, optionsWithContext);
+        const rollData = await orchestrateRoll({
+            actors: [{ actorId, tokenId, name: actor.name }],
+            challengerRollType: type,
+            challengerRollValue: value,
+            defenderRollType: null,
+            defenderRollValue: null,
+            dc: options.dc || null,
+            showDC: options.showDC || false,
+            groupRoll: options.groupRoll || false,
+            label: options.label || null,
+            description: options.description || null,
+            rollMode: options.rollMode || 'roll',
+            isCinematic: options.isCinematic || false,
+            showRollExplanation: options.showRollExplanation || false,
+            showRollExplanationLink: options.showRollExplanationLink || false
+        });
         
         postConsoleAndNotification(MODULE.NAME, `executeRollAndUpdate: Bridge function completed successfully`, null, true, false);
         return true;
