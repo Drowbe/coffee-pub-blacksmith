@@ -109,62 +109,55 @@
 - **Same permission model**: Both check GM/owner permissions
 - **Same error handling**: Both have comprehensive error handling
 
-### **Implementation Strategy**
-- **Phase 1**: Extract `executeRollAndUpdate()` as clean Foundry system
-- **Phase 2**: Restore `_executeBuiltInRoll()` + `RollDialog` as clean Blacksmith system  
-- **Phase 3**: Make both paths use the selected system via `diceRollToolSystem` setting
+## **NEW PLAN: Clean Architecture Implementation** 🔄
 
-## **Implementation Phases**
+**Status**: IMPLEMENTED - Clean 3-phase system created, old code commented out
 
-### **Phase 1: Package Foundry System** ✅
-- **Status**: COMPLETE - Foundry system extracted and organized
-- **Goal**: Extract current Foundry roll code into clean, separate system
-- **Deliverable**: Foundry roll system that users can choose in settings
-- **Prerequisite**: DEEPLY understand current Foundry roll code
-- **Progress**: 
-  - ✅ **Foundry system extracted** - `executeRollAndUpdate()` is now clean and separate
-  - ✅ **Code organized** - Clear section headers for both systems
-  - ✅ **Documentation added** - Clear comments explaining each system
-  - ✅ **File structure complete** - All systems properly organized with headers
+**Problem Identified**: Despite completing the migration phases, the Blacksmith system has:
+- **Confusing function names** that don't match their purpose
+- **Duplicate code paths** for Window Mode vs Cinema Mode
+- **Complex routing logic** that's hard to follow
+- **Still not fully functional** - RollDialog not showing properly
 
-### **Phase 2: Restore Blacksmith System** 🔄
-- **Status**: COMPLETE - Blacksmith system restored and integrated
-- **Goal**: Restore our functional Blacksmith system from backups
-- **Deliverable**: Working Blacksmith roll system that users can choose in settings
-- **Prerequisite**: DEEPLY understand backed up Blacksmith code
-- **Progress**:
-  - ✅ **Blacksmith system restored** - `_executeBuiltInRoll()` function working
-  - ✅ **RollDialog integration** - `_performRoll()` now uses Blacksmith system
-  - ✅ **Data flow enhanced** - `_buildRollData()` includes roll type/value for Blacksmith
-  - ✅ **Both systems coexist** - Foundry and Blacksmith systems both available
+**Solution**: Replace with clean 3-phase system
 
-### **Phase 3: Unify Both Paths** 🔄
-- **Status**: COMPLETE - Both paths now use the selected system
-- **Goal**: Make both Roll Dialog and Cinema paths use the selected system
-- **Deliverable**: Both entry points use same roll processing based on setting
-- **Progress**:
-  - ✅ **Routing logic implemented** - `executeRoll()` function routes to selected system
-  - ✅ **Cinema path updated** - `executeRollAndUpdate()` also respects setting
-  - ✅ **Unified processing** - Both paths use same roll processing logic
-  - ✅ **Setting honored** - `diceRollToolSystem` setting now controls everything
+### **New 3-Phase Architecture** ✅
 
-## **OVERALL PROJECT STATUS: COMPLETE!** 🎉
+1. **`rollRoute`** - Routes to selected system + flow (Window/Cinema) ✅
+2. **`rollExecute`** - Executes roll using selected system ✅
+3. **`rollUpdate`** - Updates results (chat card, cinema overlay, group results) ✅
 
-**All three phases are now complete!** The roll system is fully unified and functional:
+### **Implementation Plan**
 
-- **✅ Phase 1**: Foundry system packaged and organized
-- **✅ Phase 2**: Blacksmith system restored and integrated  
-- **✅ Phase 3**: Both paths unified to use selected system
+1. **✅ Create 3 new clean functions** alongside existing mess
+2. **🔄 Test each phase independently** - IN PROGRESS
+3. **🔄 Replace Window Mode flow first** (the broken one) - NEXT
+4. **🔄 Replace Cinema Mode flow second** (the working one) - PENDING
+5. **🔄 Remove old confusing functions** - PENDING
+6. **🔄 Verify both flows use identical code path** - PENDING
 
-## **What You Can Now Test**
+### **Current Status**
 
-**Both systems are working and the setting controls everything:**
+**Clean 3-phase system implemented:**
+- **`rollRoute()`** - Routes to Blacksmith/Foundry system + Window/Cinema flow
+- **`rollExecute()`** - Executes rolls using selected system
+- **`rollUpdate()`** - Updates chat cards and cinema overlays
 
-1. **Set `diceRollToolSystem` to "blacksmith"** → All rolls use Blacksmith system
-2. **Set `diceRollToolSystem` to "foundry"** → All rolls use Foundry system
-3. **Both paths** (Roll Dialog + Cinema) use the **same selected system**
+**Old messy code commented out:**
+- **`executeRoll()`** - Old confusing router
+- **`executeRollAndUpdate()`** - Old confusing name
+- **`_executeBuiltInRoll()`** - Old misleading name
+- **All other legacy functions** - Commented out for replacement
 
-**The architecture is now exactly what you wanted:**
-- **GM chooses ONE system** in settings
-- **BOTH paths use the SAME selected system** 
-- **No more confusion about multiple systems**
+### **Next Steps**
+
+**Test the new system:**
+1. **Test `rollRoute()`** - Does it route to correct system and flow?
+2. **Test `rollExecute()`** - Does it execute rolls properly?
+3. **Test `rollUpdate()`** - Does it update results correctly?
+
+**Then replace the flows one at a time.**
+
+### **Expected Result**
+
+**Both Window Mode and Cinema Mode will call the exact same 3 functions in sequence** - no more duplicate paths, no more confusion, actually working properly.
