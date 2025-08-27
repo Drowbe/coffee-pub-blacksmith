@@ -59,7 +59,6 @@ class CombatTracker {
                     if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
                         // Check if this user owns any combatants in the combat
                         if (combat.combatants.find(c => c.isOwner)) {
-                            postConsoleAndNotification(MODULE.NAME, "Auto-opening combat tracker for player with combatant in new combat", "", true, false);
                             const tabApp = ui["combat"];
                             tabApp.renderPopout(tabApp);
                         }
@@ -246,7 +245,6 @@ class CombatTracker {
                     if (combat?.combatants.size > 0) {
                         // Check if this user owns any combatants in the combat
                         if (combat.combatants.find(c => c.isOwner)) {
-                            postConsoleAndNotification(MODULE.NAME, "Auto-opening combat tracker for player with combatant in combat", "", true, false);
                             const tabApp = ui["combat"];
                             tabApp.renderPopout(tabApp);
                         }

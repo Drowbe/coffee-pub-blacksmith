@@ -131,7 +131,6 @@ function getCompendiumChoices() {
     // BLACKSMITH UPDATER - Make the Compendium Array available to ALL Coffee Pub modules
 
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
-    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrCompendiumChoices to:", BLACKSMITH.arrCompendiumChoices, false, false);
     // Make the array available to these settings.
     return choices;
 }
@@ -149,7 +148,6 @@ function getTableChoices() {
 	// BLACKSMITH UPDATER - Make the Table Array available to ALL Coffee Pub modules
 
 	BLACKSMITH.updateValue('arrTableChoices', choices);
-	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrTableChoices to:", BLACKSMITH.arrTableChoices, false, false);
 	// Make the array available to these settings.
     return choices;
  }
@@ -164,7 +162,6 @@ function getMacroChoices() {
 
 	// BLACKSMITH UPDATER - Make the Macro Array available to ALL Coffee Pub modules
 	BLACKSMITH.updateValue('arrMacroChoices', choiceObject);
-	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrMacroChoices to:", BLACKSMITH.arrMacroChoices, false, false);
 	// Make the array available to these settings.
     return choiceObject;
 }
@@ -176,7 +173,6 @@ function getNameplateChoices() {
 		choices[data.id] = data.name;
 	}
 	BLACKSMITH.updateValue('arrNameChoices', choices);
-	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrNameChoices to:", BLACKSMITH.arrNameChoices, false, false);
 	return choices;
 }
 
@@ -204,7 +200,6 @@ function getThemeChoices() {
     }
     // BLACKSMITH UPDATER - Make the Themes Array available to ALL Coffee Pub modules
     BLACKSMITH.updateValue('arrThemeChoices', choices);
-	postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrThemeChoices to:", BLACKSMITH.arrThemeChoices, false, false);
     // Return it to this modules settings.
     return choices; 
 }
@@ -248,7 +243,6 @@ function getBackgroundImageChoices() {
     }
     // BLACKSMITH UPDATER
     BLACKSMITH.updateValue('arrBackgroundImageChoices', choices);
-    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrBackgroundImageChoices to:", BLACKSMITH.arrBackgroundImageChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }
@@ -272,7 +266,6 @@ function getIconChoices() {
     }
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrIconChoices', choices);
-    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrIconChoices to:", BLACKSMITH.arrIconChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }
@@ -295,7 +288,6 @@ function getSoundChoices() {
     }
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrSoundChoices', choices);
-    postConsoleAndNotification(MODULE.NAME, "Updated BLACKSMITH.arrSoundChoices to:", BLACKSMITH.arrSoundChoices, false, false);    
     // Return it to this modules settings.
     return choices; 
 }

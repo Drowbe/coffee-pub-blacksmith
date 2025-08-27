@@ -106,12 +106,6 @@ class CombatStats {
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
 
-        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Combat Update:', {
-            changed,
-            currentStats: this.currentStats,
-            combatStats: this.combatStats
-        }, true, false);
-
         const currentCombatant = combat.combatant;
         const previousCombatant = combat.turns[combat.previous?.turn] || null;
 

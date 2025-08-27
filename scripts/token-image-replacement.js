@@ -55,17 +55,17 @@ export class TokenImageReplacement {
         Hooks.once('ready', () => {
             if (game.user.isGM) {
                 game.TokenImageReplacement = this;
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Debug functions available via game.TokenImageReplacement", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Available test functions:", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testCacheStructure() - Test basic cache functionality", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testMatchingAlgorithm() - Test matching logic", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testTokenCreation() - Test token creation hook", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getIntegrationStatus() - Check overall system status", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getCacheStorageStatus() - Check persistent cache status", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - refreshCache() - Manually refresh the cache", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - forceRefreshCache() - Force refresh (ignores stored cache)", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getCacheStats() - View cache statistics", "", false, false);
-                postConsoleAndNotification(MODULE.NAME, "  - cleanupInvalidPaths() - Remove invalid file paths from cache", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Debug functions available via game.TokenImageReplacement", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Available test functions:", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - testCacheStructure() - Test basic cache functionality", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - testMatchingAlgorithm() - Test matching logic", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - testTokenCreation() - Test token creation hook", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - getIntegrationStatus() - Check overall system status", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - getCacheStorageStatus() - Check persistent cache status", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - refreshCache() - Manually refresh the cache", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - forceRefreshCache() - Force refresh (ignores stored cache)", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - getCacheStats() - View cache statistics", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "  - cleanupInvalidPaths() - Remove invalid file paths from cache", "", true, false);
                 
                 // Add the cleanup function to the global scope
                 game.TokenImageReplacement.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);

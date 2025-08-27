@@ -43,7 +43,7 @@ import { JournalTools } from './journal-tools.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
-import { TokenImageReplacement } from './token-image-replacement.js';
+// TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
 
 // ================================================================== 
@@ -79,6 +79,11 @@ function getRootElement() {
 
 // Helper function to get cached note config icons
 async function getNoteConfigIcons() {
+    // Only GMs need this cache for token image replacement
+    if (!game.user.isGM) {
+        return [];
+    }
+    
     const now = Date.now();
     
     // Check if cache exists and is still valid
@@ -274,19 +279,27 @@ Hooks.once('ready', async () => {
         // Initialize CanvasTools
         CanvasTools.initialize();
         
-        // Initialize TokenImageReplacement
-        TokenImageReplacement.initialize();
+        // Initialize TokenImageReplacement (GM only)
+        if (game.user.isGM) {
+            import('./token-image-replacement.js').then(({ TokenImageReplacement }) => {
+                TokenImageReplacement.initialize();
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageReplacement", error, true, false);
+            });
+        }
 
-        // Handle cache management settings
-        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
-        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
-        await handleCacheManagementSettings();
-        
-        // Always reset both cache settings to false after function completes
-        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to reset cache settings", "", false, false);
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
-        postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Cache settings reset completed", "", false, false);
+        // Handle cache management settings (GM only)
+        if (game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
+            await handleCacheManagementSettings();
+            
+            // Always reset both cache settings to false after function completes
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to reset cache settings", "", false, false);
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Cache settings reset completed", "", false, false);
+        }
 
 
         // Update nameplates
@@ -488,23 +501,7 @@ Hooks.once('init', async function() {
     };
     
     // Initialize other systems
-ChatPanel.initialize();
-hookCanvas();
-addToolbarButton();
-
-// Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
-// Use dynamic import to ensure SocketManager is loaded
-import('./manager-sockets.js').then(({ SocketManager }) => {
-    SocketManager.initialize();
-}).catch(error => {
-    postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
-});
-
-        // All socket handlers have been consolidated into SocketManager
-    
-
-    postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing components...", "", false, false);
-
+    ChatPanel.initialize();
     // COMBAT TIMER
     CombatTimer.initialize();
     // PLANNING TIMER
@@ -517,11 +514,26 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
     // VOTE MANAGER
     VoteManager.initialize();
 
-    // Initialize CanvasTools
-    CanvasTools.initialize();
+
+
+    hookCanvas();
+    addToolbarButton();
+
+    // Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
+    // Use dynamic import to ensure SocketManager is loaded
+    import('./manager-sockets.js').then(({ SocketManager }) => {
+        SocketManager.initialize();
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
+    });
+
+        // All socket handlers have been consolidated into SocketManager
     
-    // Initialize TokenImageReplacement
-    TokenImageReplacement.initialize();
+
+    postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing components...", "", false, false);
+
+    
+
 });
 
 
@@ -544,6 +556,10 @@ let ctrlKeyActiveDuringRender = false;
 let shiftKeyActiveDuringRender = false;
 let altKeyActiveDuringRender = false;
 Hooks.on('renderNoteConfig', async (app, html, data) => {
+    // Only GMs can configure note icons
+    if (!game.user.isGM) {
+        return;
+    }
 
     // Define the default icon URL
     var strIconUrl = "";
@@ -600,6 +616,10 @@ Hooks.on('renderNoteConfig', async (app, html, data) => {
 
 // Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
 Hooks.on('preCreateNote', async (note, options, userId) => {
+    // Only GMs can set default note icons
+    if (!game.user.isGM) {
+        return;
+    }
     // Note creation hook - silent operation
 });
 
@@ -640,6 +660,11 @@ export function buildButtonEventRegent(worksheet = 'default') {
 // ***************************************************
 
 Hooks.on('renderJournalSheet', (app, html, data) => {
+    // Only GMs can enable journal double-click editing
+    if (!game.user.isGM) {
+        return;
+    }
+    
     let blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
     // See if they want to enable double-click
     if (blnJournalDoubleClick) {
@@ -1482,6 +1507,11 @@ let iconPathsCache = null;
 
 // Recursively collect all image files in icons/ and subdirectories
 async function getIconPaths() {
+  // Only GMs need this cache for item import operations
+  if (!game.user.isGM) {
+    return [];
+  }
+  
   const now = Date.now();
   const CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes in milliseconds
   
@@ -1516,6 +1546,11 @@ async function getIconPaths() {
 
 // Heuristic image guesser using prioritized synonym matching and itemImageTerms support
 async function guessIconPath(item) {
+  // Only GMs need this for item import operations
+  if (!game.user.isGM) {
+    return '';
+  }
+  
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
   const description = (item.itemDescription || '').toLowerCase();
@@ -1759,6 +1794,11 @@ async function parseFlatItemToFoundry(flat) {
 
 // ITEM IMPORT TOOL
 Hooks.on("renderItemDirectory", async (app, html, data) => {
+    // Only GMs can import items
+    if (!game.user.isGM) {
+        return;
+    }
+    
     // Fetch the loot item prompt template at runtime
     const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
 
@@ -1831,6 +1871,12 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
  * Handle cache management settings on module load
  */
 async function handleCacheManagementSettings() {
+    // Only GMs should handle cache management
+    if (!game.user.isGM) {
+        console.log("handleCacheManagementSettings: Skipping - user is not GM");
+        return;
+    }
+    
     console.log("handleCacheManagementSettings: Function called");
     try {
         // Check if refresh cache is requested
@@ -1842,12 +1888,17 @@ async function handleCacheManagementSettings() {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Refresh cache requested, executing...", "", false, false);
             
             // Execute the refresh
-            if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement.forceRefreshCache) {
-                console.log("handleCacheManagementSettings: Calling forceRefreshCache");
-                await TokenImageReplacement.forceRefreshCache();
-                console.log("handleCacheManagementSettings: forceRefreshCache completed");
-            } else {
-                console.log("handleCacheManagementSettings: TokenImageReplacement.forceRefreshCache not available");
+            try {
+                const { TokenImageReplacement } = await import('./token-image-replacement.js');
+                if (TokenImageReplacement.forceRefreshCache) {
+                    console.log("handleCacheManagementSettings: Calling forceRefreshCache");
+                    await TokenImageReplacement.forceRefreshCache();
+                    console.log("handleCacheManagementSettings: forceRefreshCache completed");
+                } else {
+                    console.log("handleCacheManagementSettings: TokenImageReplacement.forceRefreshCache not available");
+                }
+            } catch (error) {
+                console.log("handleCacheManagementSettings: Error importing TokenImageReplacement for refresh:", error);
             }
         }
 
@@ -1860,12 +1911,17 @@ async function handleCacheManagementSettings() {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Clear cache requested, executing...", "", false, false);
             
             // Execute the clear
-            if (typeof TokenImageReplacement !== 'undefined' && TokenImageReplacement._clearCacheFromStorage) {
-                console.log("handleCacheManagementSettings: Calling _clearCacheFromStorage");
-                TokenImageReplacement._clearCacheFromStorage();
-                console.log("handleCacheManagementSettings: _clearCacheFromStorage completed");
-            } else {
-                console.log("handleCacheManagementSettings: TokenImageReplacement._clearCacheFromStorage not available");
+            try {
+                const { TokenImageReplacement } = await import('./token-image-replacement.js');
+                if (TokenImageReplacement._clearCacheFromStorage) {
+                    console.log("handleCacheManagementSettings: Calling _clearCacheFromStorage");
+                    TokenImageReplacement._clearCacheFromStorage();
+                    console.log("handleCacheManagementSettings: _clearCacheFromStorage completed");
+                } else {
+                    console.log("handleCacheManagementSettings: TokenImageReplacement._clearCacheFromStorage not available");
+                }
+            } catch (error) {
+                console.log("handleCacheManagementSettings: Error importing TokenImageReplacement for clear:", error);
             }
         }
 

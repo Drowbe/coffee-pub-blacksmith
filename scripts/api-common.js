@@ -68,7 +68,7 @@ export const COFFEEPUB = {
         MONARCH: 'coffee-pub-monarch'
     },
     // SHARED MODULE VARIABLES
-    blnDebugOn: false, // Display debug bages
+    blnDebugOn: false, // Display debug messages
     blnFancyConsole: false, // Display Colorful Console
     strConsoleDebugStyle: "simple", // Display colors but not boxes
     strDEFAULTCARDTHEME: "cardsdefault", // Default Card Theme
@@ -619,7 +619,7 @@ export function registerBlacksmithUpdatedHook() {
         COFFEEPUB.strOpenAIGameSystems = newBlacksmith.strOpenAIGameSystems;
         COFFEEPUB.strOpenAIPrompt = newBlacksmith.strOpenAIPrompt;
         COFFEEPUB.strOpenAITemperature = newBlacksmith.strOpenAITemperature;
-        postConsoleAndNotification(MODULE.NAME, "Completed updating the BLACKSMITH object.", "", true, false);
+
     });
 }
 
@@ -966,255 +966,7 @@ export async function getOpenAIReplyAsHtml(query) {
     return response;
 }
 
-// ************************************
-// ** UTILITY Post to Console
-// ************************************
-// Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
 
-export function postConsoleAndNotification(strModuleName = "BLACKSMITH", message = "No Message", result = "", blnDebug = false, blnNotification = false) {
-
-    // Set default styles based on module
-    let moduleStyles = {
-        BLACKSMITH: {
-            titleColor: 'color: #FF7340',
-            captionBorder: "border: 1px dotted #A4C76A",
-            captionBackground: "background: #2D3F11",
-            captionFontColor: "color: #A4C76A"
-        },
-        CRIER: {
-            titleColor: 'color: #9999ff',
-            captionBorder: "border: 1px dotted #7B7BBF",
-            captionBackground: "background: #2B2B94",
-            captionFontColor: "color: #9999ff"
-        },
-        BIBLIOSOPH: {
-            titleColor: 'color: #cccc00',
-            captionBorder: "border: 1px dotted #E9E936",
-            captionBackground: "background: #64640A",
-            captionFontColor: "color: #cccc00"
-        },
-        SCRIBE: {
-            titleColor: 'color: #33cccc',
-            captionBorder: "border: 1px dotted #2C9090",
-            captionBackground: "background: #104545",
-            captionFontColor: "color: #33cccc"
-        },
-        SQUIRE: {
-            titleColor: 'color: #A333CC',
-            captionBorder: "border: 1px dotted #732D88",
-            captionBackground: "background: #670B83",
-            captionFontColor: "color: #CAA5DA"
-        },
-        BUBO: {
-            titleColor: 'color: #ff3377',
-            captionBorder: "border: 1px dotted #ED6B96",
-            captionBackground: "background: #550922",
-            captionFontColor: "color: #ff3377"
-        }
-    };
-
-    // Get styles for the current module, defaulting to BLACKSMITH if not found
-    const currentStyles = moduleStyles[strModuleName] || moduleStyles.BLACKSMITH;
-
-    var strTitleColor = currentStyles.titleColor;
-    var strFancyCaptionBorder = currentStyles.captionBorder;
-    var strFancyCaptionBackground = currentStyles.captionBackground;
-    var strFancyCaptionFontColor = currentStyles.captionFontColor;
-
-    // === COMMON ICONS ===
-    const MODULE_CONSOLE_COMMON_ICON_FLAME = String.fromCodePoint(0x1F525);
-    const MODULE_CONSOLE_COMMON_ICON_MARTINI = String.fromCodePoint(0x1F378);
-    const MODULE_CONSOLE_COMMON_ICON_TUMBLER = String.fromCodePoint(0x1F943);
-    const MODULE_CONSOLE_COMMON_ICON_COFFEE = String.fromCodePoint(0x2615);
-    const MODULE_CONSOLE_COMMON_ICON_BUG = String.fromCodePoint(0x1FAB0);
-    const MODULE_CONSOLE_COMMON_ICON_SKULL = String.fromCodePoint(0x1F480);
-    const MODULE_CONSOLE_COMMON_ICON_MAGNIFYING = String.fromCodePoint(0x1F50E);
-    const MODULE_CONSOLE_COMMON_PIPE = '•';
-    const MODULE_CONSOLE_COMMON_STYLE_PIPE = [
-        'color: #D9D7CD',
-        'font-weight:900',
-        'margin-right: 3px',
-        'margin-left: 3px',
-    ].join(';');
-
-    // === NORMAL CONSOLE STYLES ===
-
-    var MODULE_CONSOLE_NORMAL_STYLE_AUTHOR = [
-        strFancyCaptionFontColor,
-        'font-weight:900',
-        'margin-right: 0px',
-    ].join(';');
-    var MODULE_CONSOLE_NORMAL_STYLE_MODULE = [
-        strTitleColor,
-        'font-weight:900',
-        'margin-right: 8px',
-    ].join(';');
-    var MODULE_CONSOLE_NORMAL_STYLE_TEXT = [
-        'color: #c1c1c1',
-    ].join(';');
-
-
-    // === DEBUG CONSOLE STYLES ===
-    
-    // --- FANCY DEBUG ---
-    var MODULE_CONSOLE_DEBUG_STYLE_FANCY_CAPTION = [
-        strFancyCaptionFontColor,
-        strFancyCaptionBackground,
-        strFancyCaptionBorder,
-        'font-size: 14px',
-        'font-weight:900',
-        'border-radius: 4px',
-        'padding-top: 6px',
-        'padding-bottom: 3px',
-        'padding-left: 10px',
-        'padding-right: 10px',
-        'margin-top: 8px',
-        'margin-bottom: 8px',
-        'margin-left: 0px',
-        'margin-right: 8px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE = [
-        'color: #FF7340',
-        'font-weight:900',
-        'margin-right: 3px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE = [
-        // 'color: #D8E8D9',
-        'all: unset;',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT = [
-        'color: #5CC9F5',
-        'font-weight:900',
-        'margin-right: 3px',
-    ].join(';');
-    // not used right now
-    var MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT = [
-        'all: unset;',
-    ].join(';');
-
-    // --- SIMPLE DEBUG ---
-
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR = [
-        strFancyCaptionFontColor,
-        'font-weight:900',
-        'margin-right: 0px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE = [
-        strTitleColor,
-        'font-weight:900',
-        'margin-right: 8px',
-    ].join(';');
-
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE = [
-        strTitleColor,
-        'font-weight:900',
-        'margin-right: 3px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE = [
-        'color: #D8E8D9',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT = [
-        'color: #5CC9F5',
-        'font-weight:900',
-        'margin-right: 3px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT = [
-        'all: unset;',
-    ].join(';');
-
-    // --- PLAIN DEBUG ---
-
-    var MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR = [
-        'color: #A4C76A',
-        'font-weight:900',
-        'margin-right: 0px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE = [
-        strTitleColor,
-        'font-weight:900',
-        'margin-right: 8px',
-    ].join(';');
-    var MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE = [
-       'all: unset;',
-    ].join(';');
-    // Set variables
-    var strConsoleMessage = "";
-    var strNotificationMessage = "";
-    var strResultFlag = "";
-    var strMessageFlag = "";
-    
-    // Check for mandatory message
-    if (!message) {
-        throw new Error("Message parameter is mandatory for postConsoleAndNotification");
-    }
-    
-    var strMessage = message;
-    var strResult = result;
-    if (!strResult){
-        //They are not passing a variable or array
-    } 
-    // Build the Debug
-    strNotificationMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + ": " + strMessage + " | " + strResult;
-
-    if (blnDebug == true && COFFEEPUB.blnDebugOn) {
-        // It is a debug message.
-        if (COFFEEPUB.blnFancyConsole) {
-            // Add the VALUE tag if needed
-            if (strMessage){
-                //They are passing a variable or array
-                strMessageFlag = "%c\nMESSAGE:%c"; // 4,5
-            } else {
-                strMessageFlag = "";
-                MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE = "";
-                MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE = "";
-            }
-            if (strResult){
-                //They are passing a variable or array
-                strResultFlag = "%c\nRESULTS:%c";
-            } else {
-                strResultFlag = "";
-                MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT = "";
-                MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT = "";
-            }
-            if (COFFEEPUB.strConsoleDebugStyle == "fancy") {
-                // FANCY STYLE
-                // BUILD Content
-                strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE  + " " + strModuleName + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
-                // PUBLISH with Styles
-                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_FANCY_CAPTION, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT, strResult);
-            } else if (COFFEEPUB.strConsoleDebugStyle == "simple") {
-                // SIMPLE STYLE
-                // BUILD Content - ensure %c placeholders align with CSS styles
-                strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName  + " DEBUG" + strMessageFlag + "%c" + strMessage + strResultFlag;
-                // PUBLISH with Styles - ensure CSS styles array matches %c placeholders exactly
-                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT, strResult );
-            } else {
-                // PLAIN STYLE
-                strConsoleMessage =  "%c" + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + " DEBUG: %c" + strMessage;
-                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE, strResult);
-            }
-        } else {
-            // UNSTYLED NOT-FANCY CONSOLE
-            strConsoleMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + " DEBUG: " + strMessage;
-            console.info(strConsoleMessage, strResult);
-        }
-        if (blnNotification){
-            ui.notifications.warn(strNotificationMessage, {permanent: true, console: false});
-        }
-    } else {
-        // Normal Mode (NOT DEBUG)
-        if (COFFEEPUB.blnFancyConsole) {
-            strConsoleMessage = "%c" + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + "%c " + strMessage;
-            console.info(strConsoleMessage, MODULE_CONSOLE_NORMAL_STYLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_NORMAL_STYLE_MODULE, MODULE_CONSOLE_NORMAL_STYLE_TEXT, strResult);
-        } else {
-            strConsoleMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + ": " + strMessage;
-            console.info(strConsoleMessage, strResult);
-        }
-        if (blnNotification){
-            ui.notifications.info(strNotificationMessage, {permanent: false, console: false});
-        }
-    }
-}
 
 /**
  * Checks if a combatant or actor is a player character
@@ -1276,3 +1028,280 @@ export function isPlayerCharacter(entity) {
     postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - No valid entity type found', "", true, false);
     return false;
 }
+
+
+
+// ************************************
+// ** UTILITY: Post to Console (+ optional notification)
+// ************************************
+// Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
+
+// USAGE NOTES
+// -----------
+// postConsoleAndNotification("BLACKSMITH", "Auto-opening combat tracker...", null, true, false);
+// postConsoleAndNotification("BLACKSMITH", "Combat Stats - Combat Update:", { rounds: 3 }, true, false);
+// postConsoleAndNotification("SQUIRE", "Loaded.", false, true);
+
+// ENV EXPECTATIONS
+// ----------------
+// - Global MODULE.AUTHOR (string)
+// - Global COFFEEPUB config with:
+//   - blnDebugOn (boolean)
+//   - blnFancyConsole (boolean)
+//   - strConsoleDebugStyle ∈ {"fancy","simple","plain"}  (optional; defaults to "fancy")
+// - Foundry's ui.notifications (optional)
+
+export function postConsoleAndNotification(
+    strModuleName = "BLACKSMITH",
+    message = null,
+    result = null,
+    blnDebug = false,
+    blnNotification = false
+  ) {
+
+    // ----- Validation -----
+    if (!message) {
+        throw new Error("Message parameter is mandatory for the Blacksmith function postConsoleAndNotification.");
+    }
+    const strMessage = message;
+    const hasResult = !(result === "" || result === undefined || result === null);
+
+    // ----- Configurable style packs per module label (key must be uppercase) -----
+    const moduleStyles = {
+      BLACKSMITH: {
+        titleColor: "color: #FF7340",
+        captionBorder: "border: 1px dotted #A4C76A",
+        captionBackground: "background: #2D3F11",
+        captionFontColor: "color: #A4C76A",
+      },
+      CRIER: {
+        titleColor: "color: #9999ff",
+        captionBorder: "border: 1px dotted #7B7BBF",
+        captionBackground: "background: #2B2B94",
+        captionFontColor: "color: #9999ff",
+      },
+      BIBLIOSOPH: {
+        titleColor: "color: #cccc00",
+        captionBorder: "border: 1px dotted #E9E936",
+        captionBackground: "background: #64640A",
+        captionFontColor: "color: #cccc00",
+      },
+      SCRIBE: {
+        titleColor: "color: #33cccc",
+        captionBorder: "border: 1px dotted #2C9090",
+        captionBackground: "background: #104545",
+        captionFontColor: "color: #33cccc",
+      },
+      SQUIRE: {
+        titleColor: "color: #A333CC",
+        captionBorder: "border: 1px dotted #732D88",
+        captionBackground: "background: #670B83",
+        captionFontColor: "color: #CAA5DA",
+      },
+      BUBO: {
+        titleColor: "color: #ff3377",
+        captionBorder: "border: 1px dotted #ED6B96",
+        captionBackground: "background: #550922",
+        captionFontColor: "color: #ff3377",
+      },
+    };
+  
+    // Normalize module key lookup
+    const moduleKey = String(strModuleName || "BLACKSMITH").toUpperCase();
+    const stylesForModule = moduleStyles[moduleKey] || moduleStyles.BLACKSMITH;
+  
+    // Unpack current theme
+    const strTitleColor = stylesForModule.titleColor;
+    const strFancyCaptionBorder = stylesForModule.captionBorder;
+    const strFancyCaptionBackground = stylesForModule.captionBackground;
+    const strFancyCaptionFontColor = stylesForModule.captionFontColor;
+  
+    // === COMMON ICONS ===
+    const ICON_FLAME = String.fromCodePoint(0x1f525);
+    const ICON_MARTINI = String.fromCodePoint(0x1f378);
+    const ICON_TUMBLER = String.fromCodePoint(0x1f943);
+    const ICON_COFFEE = String.fromCodePoint(0x2615);
+    const ICON_BUG = String.fromCodePoint(0x1fab0);
+    const ICON_SKULL = String.fromCodePoint(0x1f480);
+    const ICON_MAGNIFYING = String.fromCodePoint(0x1f50e);
+    const PIPE = "•";
+  
+    const STYLE_PIPE = [
+      "color: #D9D7CD",
+      "font-weight:900",
+      "margin-right: 3px",
+      "margin-left: 3px",
+    ].join(";");
+  
+    // === NORMAL CONSOLE STYLES ===
+    const STYLE_NORMAL_AUTHOR = [
+      strFancyCaptionFontColor,
+      "font-weight:900",
+      "margin-right: 0px",
+    ].join(";");
+  
+    const STYLE_NORMAL_MODULE = [
+      strTitleColor,
+      "font-weight:900",
+      "margin-right: 8px",
+    ].join(";");
+  
+    const STYLE_NORMAL_TEXT = ["color: #c1c1c1"].join(";");
+  
+    // === DEBUG CONSOLE STYLES ===
+  
+    // FANCY HEADER (capsule)
+    const STYLE_DEBUG_FANCY_CAPTION = [
+      strFancyCaptionFontColor,
+      strFancyCaptionBackground,
+      strFancyCaptionBorder,
+      "font-size: 14px",
+      "font-weight:900",
+      "border-radius: 4px",
+      "padding-top: 6px",
+      "padding-bottom: 3px",
+      "padding-left: 10px",
+      "padding-right: 10px",
+      "margin-top: 8px",
+      "margin-bottom: 8px",
+      "margin-left: 0px",
+      "margin-right: 8px",
+    ].join(";");
+  
+    // Labels
+    const STYLE_LABEL_MESSAGE_FANCY = ["color: #FF7340", "font-weight:900", "margin-right: 3px"].join(";");
+    const STYLE_LABEL_RESULT_FANCY = ["color: #5CC9F5", "font-weight:900", "margin-right: 3px"].join(";");
+  
+    // Message / result text styles — avoid 'all: unset' to keep devtools legible
+    const STYLE_TEXT_MESSAGE_FANCY = ["color: inherit", "font: inherit"].join(";");
+    const STYLE_TEXT_RESULT_FANCY = ["color: inherit", "font: inherit"].join(";");
+  
+    // SIMPLE
+    const STYLE_DEBUG_SIMPLE_AUTHOR = [
+      strFancyCaptionFontColor,
+      "font-weight:900",
+      "margin-right: 0px",
+    ].join(";");
+  
+    const STYLE_DEBUG_SIMPLE_MODULE = [
+      strTitleColor,
+      "font-weight:900",
+      "margin-right: 8px",
+    ].join(";");
+  
+    const STYLE_DEBUG_SIMPLE_LABEL_MESSAGE = [strTitleColor, "font-weight:900", "margin-right: 3px"].join(";");
+    const STYLE_DEBUG_SIMPLE_TEXT_MESSAGE = ["color: #D8E8D9"].join(";");
+    const STYLE_DEBUG_SIMPLE_LABEL_RESULT = ["color: #5CC9F5", "font-weight:900", "margin-right: 3px"].join(";");
+    const STYLE_DEBUG_SIMPLE_TEXT_RESULT = ["color: inherit", "font: inherit"].join(";");
+  
+    // PLAIN
+    const STYLE_DEBUG_PLAIN_AUTHOR = ["color: #A4C76A", "font-weight:900", "margin-right: 0px"].join(";");
+    const STYLE_DEBUG_PLAIN_MODULE = [strTitleColor, "font-weight:900", "margin-right: 8px"].join(";");
+    const STYLE_DEBUG_PLAIN_TEXT = ["color: inherit", "font: inherit"].join(";");
+  
+
+  
+    // ----- Compose notification line (non-styled) -----
+    // NOTE: expects global MODULE.AUTHOR and COFFEEPUB flags to exist in your env
+    const notificationLine =
+      MODULE.AUTHOR + " " + PIPE + " " + moduleKey + ": " + strMessage + (hasResult ? " | " : "") + (hasResult ? String(result) : "");
+  
+    // ----- DEBUG vs NORMAL flow -----
+    if (blnDebug === true && COFFEEPUB?.blnDebugOn) {
+      // === DEBUG MODE ===
+      if (COFFEEPUB?.blnFancyConsole) {
+        const styleMode = COFFEEPUB?.strConsoleDebugStyle || "fancy";
+  
+        if (styleMode === "fancy") {
+          // FANCY STYLE
+          let fmt = `%c${ICON_BUG} ${MODULE.AUTHOR} ${PIPE} ${moduleKey} DEBUG`;
+          const styles = [STYLE_DEBUG_FANCY_CAPTION];
+  
+          if (strMessage) {
+            fmt += `%c\nMESSAGE:%c${strMessage}`;
+            styles.push(STYLE_LABEL_MESSAGE_FANCY, STYLE_TEXT_MESSAGE_FANCY);
+          }
+  
+          if (hasResult) {
+            fmt += `%c\nRESULTS:%c`;
+            styles.push(STYLE_LABEL_RESULT_FANCY, STYLE_TEXT_RESULT_FANCY);
+          }
+  
+          if (hasResult) {
+            console.info(fmt, ...styles, result);
+          } else {
+            console.info(fmt, ...styles);
+          }
+        } else if (styleMode === "simple") {
+          // SIMPLE STYLE
+          let fmt = `%c${MODULE.AUTHOR}%c${PIPE}%c${moduleKey} DEBUG`;
+          const styles = [STYLE_DEBUG_SIMPLE_AUTHOR, STYLE_PIPE, STYLE_DEBUG_SIMPLE_MODULE];
+  
+          if (strMessage) {
+            fmt += `%c\nMESSAGE:%c${strMessage}`;
+            styles.push(STYLE_DEBUG_SIMPLE_LABEL_MESSAGE, STYLE_DEBUG_SIMPLE_TEXT_MESSAGE);
+          }
+  
+          if (hasResult) {
+            fmt += `%c\nRESULTS:%c`;
+            styles.push(STYLE_DEBUG_SIMPLE_LABEL_RESULT, STYLE_DEBUG_SIMPLE_TEXT_RESULT);
+          }
+  
+          if (hasResult) {
+            console.info(fmt, ...styles, result);
+          } else {
+            console.info(fmt, ...styles);
+          }
+        } else {
+          // PLAIN STYLE
+          let fmt = `%c${MODULE.AUTHOR} %c${PIPE}%c ${moduleKey} DEBUG:%c ${strMessage}`;
+          const styles = [STYLE_DEBUG_PLAIN_AUTHOR, STYLE_PIPE, STYLE_DEBUG_PLAIN_MODULE, STYLE_DEBUG_PLAIN_TEXT];
+  
+          if (hasResult) {
+            // append a separator then pass result object/value last
+            fmt += `\n`;
+            console.info(fmt, ...styles, result);
+          } else {
+            console.info(fmt, ...styles);
+          }
+        }
+      } else {
+        // UNSTYLED DEBUG
+        const line = `${MODULE.AUTHOR} ${PIPE} ${moduleKey} DEBUG: ${strMessage}`;
+        if (hasResult) console.info(line, result);
+        else console.info(line);
+      }
+  
+      if (blnNotification) {
+        try {
+          ui.notifications?.warn(notificationLine, { permanent: true, console: false });
+        } catch (_e) {
+          /* ignore if notifications are unavailable */
+        }
+      }
+    } else {
+      // === NORMAL MODE (not debug) ===
+      if (COFFEEPUB?.blnFancyConsole) {
+        let fmt = `%c${MODULE.AUTHOR}%c${PIPE}%c${moduleKey}%c ${strMessage}`;
+        const styles = [STYLE_NORMAL_AUTHOR, STYLE_PIPE, STYLE_NORMAL_MODULE, STYLE_NORMAL_TEXT];
+  
+        if (hasResult) {
+          console.info(fmt, ...styles, result);
+        } else {
+          console.info(fmt, ...styles);
+        }
+      } else {
+        const line = `${MODULE.AUTHOR} ${PIPE} ${moduleKey}: ${strMessage}`;
+        if (hasResult) console.info(line, result);
+        else console.info(line);
+      }
+  
+      if (blnNotification) {
+        try {
+          ui.notifications?.info(notificationLine, { permanent: false, console: false });
+        } catch (_e) {
+          /* ignore if notifications are unavailable */
+        }
+      }
+    }
+  }

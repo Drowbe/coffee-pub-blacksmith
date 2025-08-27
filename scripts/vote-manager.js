@@ -709,17 +709,6 @@ export class VoteManager {
             currentUserIsGM: game.user.isGM
         };
 
-        postConsoleAndNotification(MODULE.NAME, "Vote Manager | Template Data", 
-            `Template Variables:\n` +
-            `-------------------\n` +
-            `userId: ${messageData.userId}\n` +
-            `currentUserIsGM: ${messageData.currentUserIsGM}\n` +
-            `vote.type: ${messageData.vote.type}\n` +
-            `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
-            `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
-            true, false
-        );
-
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
             messageData,
@@ -757,17 +746,6 @@ export class VoteManager {
             progress: this._getVotingProgress(),
             currentUserIsGM: game.user.isGM
         };
-
-        postConsoleAndNotification(MODULE.NAME, "Vote Manager | Template Data", 
-            `Template Variables:\n` +
-            `-------------------\n` +
-            `userId: ${messageData.userId}\n` +
-            `currentUserIsGM: ${messageData.currentUserIsGM}\n` +
-            `vote.type: ${messageData.vote.type}\n` +
-            `vote.votes: ${JSON.stringify(messageData.vote.votes, null, 2)}\n` +
-            `vote.options: ${JSON.stringify(messageData.vote.options, null, 2)}`,
-            true, false
-        );
 
         const content = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
