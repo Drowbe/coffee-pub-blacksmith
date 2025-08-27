@@ -396,37 +396,9 @@ function initializeSettingsDependentFeatures() {
         }
     }
 
-    // Function to initialize scene interactions
-    function initializeSceneInteractions() {
-        const blnShowIcons = getSettingSafely(MODULE.ID, 'enableSceneInteractions', false);
-        const blnCustomClicks = getSettingSafely(MODULE.ID, 'enableSceneClickBehaviors', false);
-        
-        // Initial icon update if enabled
-        if (blnShowIcons) {
-            WrapperManager._updateSceneIcons();
-        }
-
-        // Register for scene updates
-        if (blnShowIcons || blnCustomClicks) {
-            // Register canvas hooks
-            if (blnCustomClicks) {
-                // Keep the canvasInit hook to initialize the toolbar
-                Hooks.once('canvasInit', () => {
-                    // Canvas initialization complete
-                });
-
-                // Keep the canvasReady hook to check for the layer
-                Hooks.on('canvasReady', (canvas) => {
-                    const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-                    // Layer availability checked silently
-                });
-            }
-
-            // Register scene update hooks
-            Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
-            Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
-        }
-    }
+    // Scene interactions are now managed by HookManager for centralized control
+    // Canvas hooks (canvasInit, canvasReady, updateScene) moved to HookManager
+    // TODO: Implement scene interaction logic in HookManager when needed
 
 // ***************************************************
 // ** INIT
@@ -479,7 +451,8 @@ Hooks.once('init', async function() {
         utils: UtilsManager.getUtils(),
         version: MODULE.APIVERSION,
         BLACKSMITH: BLACKSMITH,
-        stats: StatsAPI
+        stats: StatsAPI,
+        HookManager
     };
     
     // Initialize other systems

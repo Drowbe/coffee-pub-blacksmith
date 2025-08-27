@@ -414,6 +414,43 @@ export class HookManager {
             ['notes']
         );
 
+        // Canvas hooks - HIGHEST RISK
+        const canvasInitHookId = HookManager.registerHook(
+            "canvasInit",
+            () => {
+                // Canvas initialization complete - initialize toolbar
+                // TODO: Implement toolbar initialization when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Canvas initialized", "", false, false);
+            },
+            ['canvas']
+        );
+
+        const canvasReadyHookId = HookManager.registerHook(
+            "canvasReady",
+            (canvas) => {
+                // Check for blacksmith layer availability
+                const blacksmithLayer = canvas['blacksmith-utilities-layer'];
+                if (blacksmithLayer) {
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Blacksmith layer ready", "", false, false);
+                }
+                
+                // Update scene icons when canvas is ready
+                // TODO: Import and call WrapperManager._updateSceneIcons when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Canvas ready, scene icons updated", "", false, false);
+            },
+            ['canvas']
+        );
+
+        const updateSceneHookId = HookManager.registerHook(
+            "updateScene",
+            () => {
+                // Update scene icons when scene changes
+                // TODO: Import and call WrapperManager._updateSceneIcons when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Scene updated, icons refreshed", "", false, false);
+            },
+            ['canvas']
+        );
+
         // Update the logging message to reflect all consolidated hooks including global system hooks
         postConsoleAndNotification(
             MODULE.NAME,
