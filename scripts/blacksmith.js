@@ -44,6 +44,7 @@ import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
 import { TokenImageReplacement } from './token-image-replacement.js';
+import { SocketManager } from './manager-sockets.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -499,21 +500,10 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
     postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
 });
 
-        // Set up socket handler for remaining legacy handlers
-    game.socket.on(`module.${MODULE.ID}`, data => {
-        switch (data.type) {
-            case 'updateSkillRoll':
-                if (game.user.isGM) {
-                    handleSkillRollUpdate(data.data);
-                }
-                break;
-            // skillRollFinalized handler is now handled by SocketManager
-            // Cinematic overlay handlers are now handled by SocketManager
-        }
-    });
+        // All socket handlers have been consolidated into SocketManager
     
 
-            postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing toolbar...", "", false, false);
+    postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing components...", "", false, false);
 
     // COMBAT TIMER
     CombatTimer.initialize();
@@ -534,13 +524,7 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
     TokenImageReplacement.initialize();
 });
 
-// This initialization is now handled in the main ready hook above
 
-// ***************************************************
-// ** UTILITY Scene Clicks
-// ***************************************************
-
-// Scene interactions are now handled in the main ready hook above
 
 // ***************************************************
 // ** Customize the Token Nameplates
@@ -548,18 +532,6 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
 
 // Nameplates are now updated in the main ready hook
 Hooks.on('updateToken', updateNameplates);
-
-// ***************************************************
-// ** ADD TOKEN NAMES
-// ***************************************************
-
-// These settings are now handled in the main ready hook above
-
-// ***************************************************
-// ** READY Open AI
-// ***************************************************
-
-// This is now handled in the main ready hook above
 
 
 
@@ -1463,14 +1435,15 @@ export async function handleSkillRollUpdate(data) {
     });
 
     // Broadcast the final result to all clients for UI updates (like cinematic mode)
-    game.socket.emit(`module.${MODULE.ID}`, {
-        type: 'skillRollFinalized',
-        data: {
+    const socket = SocketManager.getSocket();
+    if (socket) {
+        await socket.executeForEveryone("skillRollFinalized", {
+            type: "skillRollFinalized",  // Add type property
             messageId: message.id,
             flags: updatedMessageData,
             rollData: data // Pass along the specific roll data (tokenId, result)
-        }
-    });
+        });
+    }
 
     // Directly update the GM's cinematic UI if it's open
     if (updatedMessageData.isCinematic) {

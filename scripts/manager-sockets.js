@@ -271,10 +271,14 @@ class SocketManager {
 
         // Skill Roll Handler (moved from blacksmith.js)
         this.socket.register('updateSkillRoll', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received updateSkillRoll", data, false, false);
             if (game.user.isGM) {
-                // This will be handled by the native socket handler in blacksmith.js
-                // We're just registering it here for completeness
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: updateSkillRoll received via SocketLib", data, true, false);
+                // Import and call the handler from blacksmith.js
+                import('./blacksmith.js').then(({ handleSkillRollUpdate }) => {
+                    handleSkillRollUpdate(data);
+                }).catch(error => {
+                    postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing handleSkillRollUpdate", error, true, false);
+                });
             }
         });
 
