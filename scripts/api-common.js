@@ -68,7 +68,7 @@ export const COFFEEPUB = {
         MONARCH: 'coffee-pub-monarch'
     },
     // SHARED MODULE VARIABLES
-    blnDebugOn: false, // Display debug bessages
+    blnDebugOn: false, // Display debug bages
     blnFancyConsole: false, // Display Colorful Console
     strConsoleDebugStyle: "simple", // Display colors but not boxes
     strDEFAULTCARDTHEME: "cardsdefault", // Default Card Theme
@@ -1156,58 +1156,55 @@ export function postConsoleAndNotification(strModuleName = "BLACKSMITH", message
     // Build the Debug
     strNotificationMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + ": " + strMessage + " | " + strResult;
 
-    if (blnDebug == true) {
+    if (blnDebug == true && COFFEEPUB.blnDebugOn) {
         // It is a debug message.
-        if (COFFEEPUB.blnDebugOn) {
-            // Debug Mode is ON so display it.
-            if (COFFEEPUB.blnFancyConsole) {
-                // Add the VALUE tag if needed
-                if (strMessage){
-                    //They are passing a variable or array
-                    strMessageFlag = "%c\nMESSAGE:%c"; // 4,5
-                } else {
-                    strMessageFlag = "";
-                    MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE = "";
-                    MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE = "";
-                }
-                if (strResult){
-                    //They are passing a variable or array
-                    strResultFlag = "%c\nRESULTS:%c";
-                } else {
-                    strResultFlag = "";
-                    MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT = "";
-                    MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT = "";
-                }
-                if (COFFEEPUB.strConsoleDebugStyle == "fancy") {
-                    // FANCY STYLE
-                    // BUILD Content
-                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE  + " " + strModuleName + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
-                    // PUBLISH with Styles
-                    console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_FANCY_CAPTION, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT, strResult);
-                } else if (COFFEEPUB.strConsoleDebugStyle == "simple") {
-                    // SIMPLE STYLE
-                    // BUILD Content
-                    strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName  + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
-                    // PUBLISH with Styles
-                    console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT, strResult );
-                } else {
-                    // PLAIN STYLE
-                    strConsoleMessage =  "%c" + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + " DEBUG: %c" + strMessage;
-                    console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE, strResult);
-                }
+        if (COFFEEPUB.blnFancyConsole) {
+            // Add the VALUE tag if needed
+            if (strMessage){
+                //They are passing a variable or array
+                strMessageFlag = "%c\nMESSAGE:%c"; // 4,5
             } else {
-                // UNSTYLED NOT-FANCY CONSOLE
-                strConsoleMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + " DEBUG: " + strMessage;
-                console.info(strConsoleMessage, strResult);
+                strMessageFlag = "";
+                MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE = "";
+                MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE = "";
             }
-            if (blnNotification){
-                ui.notifications.warn(strNotificationMessage, {permanent: true, console: false});
+            if (strResult){
+                //They are passing a variable or array
+                strResultFlag = "%c\nRESULTS:%c";
+            } else {
+                strResultFlag = "";
+                MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT = "";
+                MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT = "";
             }
-        }   
+            if (COFFEEPUB.strConsoleDebugStyle == "fancy") {
+                // FANCY STYLE
+                // BUILD Content
+                strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE  + " " + strModuleName + " DEBUG" + strMessageFlag + strMessage + strResultFlag;
+                // PUBLISH with Styles
+                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_FANCY_CAPTION, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_FANCY_LABEL_RESULT,MODULE_CONSOLE_DEBUG_STYLE_FANCY_TEXT_RESULT, strResult);
+            } else if (COFFEEPUB.strConsoleDebugStyle == "simple") {
+                // SIMPLE STYLE
+                // BUILD Content - ensure %c placeholders align with CSS styles
+                strConsoleMessage = "%c" + MODULE_CONSOLE_COMMON_ICON_BUG + " " + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName  + " DEBUG" + strMessageFlag + "%c" + strMessage + strResultFlag;
+                // PUBLISH with Styles - ensure CSS styles array matches %c placeholders exactly
+                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_MODULE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_MESSAGE, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_LABEL_RESULT, MODULE_CONSOLE_DEBUG_STYLE_SIMPLE_TEXT_RESULT, strResult );
+            } else {
+                // PLAIN STYLE
+                strConsoleMessage =  "%c" + MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + " DEBUG: %c" + strMessage;
+                console.info(strConsoleMessage, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_AUTHOR, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_MODULE, MODULE_CONSOLE_DEBUG_STYLE_PLAIN_TEXT_MESSAGE, strResult);
+            }
+        } else {
+            // UNSTYLED NOT-FANCY CONSOLE
+            strConsoleMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + " DEBUG: " + strMessage;
+            console.info(strConsoleMessage, strResult);
+        }
+        if (blnNotification){
+            ui.notifications.warn(strNotificationMessage, {permanent: true, console: false});
+        }
     } else {
         // Normal Mode (NOT DEBUG)
         if (COFFEEPUB.blnFancyConsole) {
-            strConsoleMessage = "%c" + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + "%c" + strMessage;
+            strConsoleMessage = "%c" + MODULE.AUTHOR + "%c" + MODULE_CONSOLE_COMMON_PIPE + "%c" + strModuleName + "%c " + strMessage;
             console.info(strConsoleMessage, MODULE_CONSOLE_NORMAL_STYLE_AUTHOR, MODULE_CONSOLE_COMMON_STYLE_PIPE, MODULE_CONSOLE_NORMAL_STYLE_MODULE, MODULE_CONSOLE_NORMAL_STYLE_TEXT, strResult);
         } else {
             strConsoleMessage = MODULE.AUTHOR + " " + MODULE_CONSOLE_COMMON_PIPE + " " + strModuleName + ": " + strMessage;
