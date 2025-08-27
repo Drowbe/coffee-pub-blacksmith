@@ -64,10 +64,8 @@ export class HookManager {
             const existing = HookManager.hookRegistry.get(hookName);
             
             // Check if the hook is already registered
-
-
-           postConsoleAndNotification(MODULE.NAME,'Hook ${hookName} updated','', true, false);
-           return existing.hookId; // Return the hook ID for cleanup
+            postConsoleAndNotification(MODULE.NAME,`Hook ${hookName} updated`,'', true, false);
+            return existing.hookId; // Return the hook ID for cleanup
         }
         
         // Register new hooks
@@ -84,7 +82,7 @@ export class HookManager {
         HookManager.hookRegistry.set(hookName, hookInfo);
         HookManager.hookIds.set(hookName, hookId);
         
-        postConsoleAndNotification(MODULE.NAME,'Hookregistered successfully', hookName, true, false);
+        postConsoleAndNotification(MODULE.NAME,'Hook registered successfully', hookName, true, false);
 
         return hookId;
     }
@@ -177,7 +175,7 @@ export class HookManager {
             hookInfo.isActive = true;
             HookManager.hookIds.set(hookName, newHookId);
             
-            getBlacksmith()?.utils.postConsoleAndNotification(
+            postConsoleAndNotification(
                 MODULE.NAME,
                 `Hook ${hookName} reactivated`,
                 { newHookId },
@@ -246,7 +244,7 @@ export class HookManager {
     }
     
     /**
-     * Set up all  hooks
+     * Set up all hooks
      * @private
      */
     _setupHooks() {
@@ -261,7 +259,7 @@ export class HookManager {
 
         
         // Update the logging message to reflect all consolidated hooks
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        postConsoleAndNotification(
             MODULE.NAME,
             `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered`,
             '',
@@ -272,10 +270,8 @@ export class HookManager {
         const globalCloseGameHookId = HookManager.registerHook(
             "closeGame",
             () => {
-                const panelManager = getPanelManager();
-                if (panelManager?.instance) {
-                    panelManager.cleanup();
-                }
+                // TODO: Add panel manager cleanup when implemented
+                postConsoleAndNotification(MODULE.NAME, "HookManager: closeGame hook triggered", "", false, false);
             },
             ['global']
         );
@@ -293,18 +289,10 @@ export class HookManager {
                     _selectionCount = 0;
                     _lastSelectionTime = 0;
                     
-                    // Clear quest pin timeouts
-                    HookManager.questPinTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-                    HookManager.questPinTimeouts.clear();
-                    if (HookManager.questPinVisibilityDebounce) {
-                        clearTimeout(HookManager.questPinVisibilityDebounce);
-                        HookManager.questPinVisibilityDebounce = null;
-                    }
+                    // TODO: Add quest pin cleanup when implemented
                     
-                    const panelManager = getPanelManager();
-                    if (panelManager) {
-                        panelManager.cleanup();
-                    }
+                    // TODO: Add panel manager cleanup when implemented
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Module disabled, cleanup completed", "", false, false);
                 }
             },
             ['global']
@@ -327,10 +315,8 @@ export class HookManager {
                     // Reset selection tracking since this is a different selection method
                     _selectionCount = 0;
                     
-                    // After selection, update the health panel if needed
-                    setTimeout(async () => {
-                        await _updateHealthPanelFromSelection();
-                    }, 100); // Slightly longer delay for canvas selection methods
+                    // TODO: Add health panel update when implemented
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Canvas selection changed", "", false, false);
                     
                     return result;
                 };
@@ -346,19 +332,14 @@ export class HookManager {
                     return;
                 }
                 
-                // Only process if PanelManager instance exists
-                const panelManager = getPanelManager();
-                if (!panelManager?.instance) {
-                    return;
-                }
-                
-                await panelManager.instance.updateHandle();
+                // TODO: Add panel manager update when implemented
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Token created", token.name, false, false);
             },
             ['global']
         );
 
         // Update the logging message to reflect all consolidated hooks including global system hooks
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        postConsoleAndNotification(
             MODULE.NAME,
             `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered (including global system hooks)`,
             '',
@@ -387,7 +368,7 @@ export class HookManager {
         HookManager.hookIds.clear();
         HookManager.instance = null;
         
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        postConsoleAndNotification(
             MODULE.NAME,
             'HookManager cleaned up all hooks',
             { totalHooksCleaned: HookManager.hookRegistry.size },
