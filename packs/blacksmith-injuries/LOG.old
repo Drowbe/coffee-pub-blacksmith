@@ -1,3 +1,5 @@
-2025/08/27-02:10:57.227 10d84 Recovering log #2039
-2025/08/27-02:10:57.233 10d84 Delete type=0 #2039
-2025/08/27-02:10:57.234 10d84 Delete type=3 #2038
+2025/08/27-09:43:40.044 1056c Log #2043: 0 ops saved to Table #2044 OK
+2025/08/27-09:43:40.046 1056c Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/002043.log: OK
+2025/08/27-09:43:40.047 1056c Table #1905: 115 entries OK
+2025/08/27-09:43:40.053 1056c Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/MANIFEST-002042: OK
+2025/08/27-09:43:40.058 1056c **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries; recovered 1 files; 106781 bytes. Some data may have been lost. ****
