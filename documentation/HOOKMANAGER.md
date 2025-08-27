@@ -17,10 +17,14 @@ Actor Updated → Hook Fired → Your Function → Update Health Panel
 ### **1. Simple Registration**
 ```javascript
 // This is what you want - simple and clean
-HookManager.registerHook('updateActor', (actor, changes) => {
-    // Your logic here - update health panel, etc.
-    if (changes.system?.attributes?.hp) {
-        PanelManager.instance?.healthPanel?.update();
+HookManager.registerHook({
+    name: 'updateActor',
+    description: 'Updates health panel when actor HP changes',
+    callback: (actor, changes) => {
+        // Your logic here - update health panel, etc.
+        if (changes.system?.attributes?.hp) {
+            PanelManager.instance?.healthPanel?.update();
+        }
     }
 });
 ```
@@ -57,95 +61,141 @@ HookManager.registerHook('updateActor', (actor, changes) => {
  * Registers hooks and provides cleanup - no business logic
  */
 export class HookManager {
-    static hooks = new Map(); // hookName -> { callback, hookId, description }
+    static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
     
-    /**
-     * Register a hook with a callback
-     * @param {string} hookName - FoundryVTT hook name
-     * @param {Function} callback - Your callback function
-     * @param {string} description - Optional description for debugging
-     * @returns {string} Hook ID for cleanup
-     */
-    static registerHook(hookName, callback, description = '') {
-        // Register with FoundryVTT
-        const hookId = Hooks.on(hookName, callback);
-        
-        // Store for management
-        this.hooks.set(hookName, { 
-            callback, 
-            hookId, 
-            description,
-            registeredAt: Date.now()
-        });
-        
-        getBlacksmith()?.utils.postConsoleAndNotification(
-            MODULE.NAME,
-            `Hook registered: ${hookName}`,
-            { description, totalHooks: this.hooks.size },
-            true,
-            false
-        );
-        
-        return hookId;
-    }
+         /**
+      * Register a hook with a callback
+      * @param {Object} options - Hook registration options
+      * @param {string} options.name - FoundryVTT hook name
+      * @param {string} options.description - Optional description for debugging
+      * @param {Function} options.callback - Your callback function
+      * @returns {string} Hook ID for cleanup
+      */
+     static registerHook({ name, description = '', callback }) {
+         // Register with FoundryVTT
+         const hookId = Hooks.on(name, callback);
+         
+         // Store for management
+         this.hooks.set(name, { 
+             callback, 
+             hookId, 
+             description,
+             registeredAt: Date.now()
+         });
+         
+         getBlacksmith()?.utils.postConsoleAndNotification(
+             MODULE.NAME,
+             `Hook registered: ${name}`,
+             { description, totalHooks: this.hooks.size },
+             true,
+             false
+         );
+         
+         return hookId;
+     }
     
-    /**
+        /**
      * Remove a specific hook
      * @param {string} hookName - Hook to remove
      * @returns {boolean} Success status
      */
-    static removeHook(hookName) {
-        const hook = this.hooks.get(hookName);
-        if (!hook) return false;
-        
-        Hooks.off(hookName, hook.callback);
-        this.hooks.delete(hookName);
-        
-        getBlacksmith()?.utils.postConsoleAndNotification(
-            MODULE.NAME,
-            `Hook removed: ${hookName}`,
-            { totalHooks: this.hooks.size },
-            true,
-            false
-        );
-        
-        return true;
-    }
+     static removeHook(hookName) {
+         const hook = this.hooks.get(hookName);
+         if (!hook) return false;
+         
+         Hooks.off(hookName, hook.hookId);
+         this.hooks.delete(hookName);
+         
+         getBlacksmith()?.utils.postConsoleAndNotification(
+             MODULE.NAME,
+             `Hook removed: ${hookName}`,
+             { totalHooks: this.hooks.size },
+             true,
+             false
+         );
+         
+         return true;
+     }
+
+     /**
+      * Remove a specific callback by its ID
+      * @param {string} callbackId - The callback ID returned from registerHook
+      * @returns {boolean} Success status
+      */
+     static removeCallback(callbackId) {
+         // Parse callbackId format: "hookName_index" or just "hookName"
+         const [hookName, indexStr] = callbackId.includes('_') ? 
+             callbackId.split('_') : [callbackId, '0'];
+         const index = parseInt(indexStr) || 0;
+         
+         const hook = this.hooks.get(hookName);
+         if (!hook || !hook.callbacks[index]) return false;
+         
+         // Remove the specific callback
+         hook.callbacks.splice(index, 1);
+         
+         // If no more callbacks, remove the entire hook
+         if (hook.callbacks.length === 0) {
+             Hooks.off(hookName, hook.hookId);
+             this.hooks.delete(hookName);
+             
+             getBlacksmith()?.utils.postConsoleAndNotification(
+                 MODULE.NAME,
+                 `Hook completely removed: ${hookName}`,
+                 { totalHooks: this.hooks.size },
+                 true,
+                 false
+             );
+         } else {
+             getBlacksmith()?.utils.postConsoleAndNotification(
+                 MODULE.NAME,
+                 `Callback removed from hook: ${hookName}`,
+                 { remainingCallbacks: hook.callbacks.length },
+                 true,
+                 false
+             );
+         }
+         
+         return true;
+     }
     
-    /**
+        /**
      * Clean up all hooks
      */
-    static cleanup() {
-        this.hooks.forEach((hook, name) => {
-            Hooks.off(name, hook.callback);
-        });
-        
-        const totalCleaned = this.hooks.size;
-        this.hooks.clear();
-        
-        getBlacksmith()?.utils.postConsoleAndNotification(
-            MODULE.NAME,
-            'All hooks cleaned up',
-            { totalCleaned },
-            false,
-            false
-        );
-    }
+     static cleanup() {
+         this.hooks.forEach((hook, name) => {
+             // Remove the FoundryVTT hook using the stored hookId
+             if (hook.hookId) {
+                 Hooks.off(name, hook.hookId);
+             }
+         });
+         
+         const totalCleaned = this.hooks.size;
+         this.hooks.clear();
+         
+         getBlacksmith()?.utils.postConsoleAndNotification(
+             MODULE.NAME,
+             'All hooks cleaned up',
+             { totalCleaned },
+             false,
+             false
+         );
+     }
     
     /**
      * Get hook statistics
      * @returns {Object} Hook statistics
      */
-    static getStats() {
-        return {
-            totalHooks: this.hooks.size,
-            hooks: Array.from(this.hooks.entries()).map(([name, hook]) => ({
-                name,
-                description: hook.description,
-                registeredAt: new Date(hook.registeredAt).toISOString()
-            }))
-        };
-    }
+         static getStats() {
+         return {
+             totalHooks: this.hooks.size,
+             hooks: Array.from(this.hooks.entries()).map(([name, hook]) => ({
+                 name,
+                 totalCallbacks: hook.callbacks.length,
+                 registeredAt: new Date(hook.registeredAt).toISOString()
+             }))
+         };
+     }
     
     /**
      * Check if a hook is registered
@@ -162,19 +212,27 @@ export class HookManager {
 
 ```javascript
 // In your main code, register hooks with your logic
-HookManager.registerHook('updateActor', (actor, changes) => {
-    // Your logic here - update health panel, etc.
-    if (changes.system?.attributes?.hp) {
-        PanelManager.instance?.healthPanel?.update();
+HookManager.registerHook({
+    name: 'updateActor',
+    description: 'Updates health panel when actor HP changes',
+    callback: (actor, changes) => {
+        // Your logic here - update health panel, etc.
+        if (changes.system?.attributes?.hp) {
+            PanelManager.instance?.healthPanel?.update();
+        }
     }
-}, 'Updates health panel when actor HP changes');
+});
 
-HookManager.registerHook('updateToken', (token, changes) => {
-    // Your logic here
-    if (changes.x || changes.y) {
-        // Handle position changes
+HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Handles token position updates',
+    callback: (token, changes) => {
+        // Your logic here
+        if (changes.x || changes.y) {
+            // Handle position changes
+        }
     }
-}, 'Handles token position updates');
+});
 ```
 
 ## **Why This Approach is Right**
@@ -183,6 +241,9 @@ HookManager.registerHook('updateToken', (token, changes) => {
 2. **Efficient** - No unnecessary function calls or routing
 3. **Maintainable** - Logic stays in the right place
 4. **FoundryVTT Native** - Works with the system, not against it
+5. **Easy to Grep** - Named parameters make searching and debugging easier
+6. **Self-Documenting** - Clear what each parameter does without remembering order
+7. **Extensible** - Easy to add new options without breaking existing code
 
 ## **The Problem with Complex Approaches**
 
@@ -210,19 +271,27 @@ The HookManager should be a **simple orchestration layer** that:
 ### **Problem 1: Multiple Systems Need Same Hook**
 ```javascript
 // This will FAIL - can't register same hook twice!
-HookManager.registerHook('updateActor', (actor, changes) => {
-    // Health Panel needs this
-    if (changes.system?.attributes?.hp) {
-        PanelManager.instance?.healthPanel?.update();
+HookManager.registerHook({
+    name: 'updateActor',
+    description: 'Updates health panel when actor HP changes',
+    callback: (actor, changes) => {
+        // Health Panel needs this
+        if (changes.system?.attributes?.hp) {
+            PanelManager.instance?.healthPanel?.update();
+        }
     }
-}, 'Updates health panel when actor HP changes');
+});
 
-HookManager.registerHook('updateActor', (actor, changes) => {
-    // Stats Tracker also needs this
-    if (changes.system?.attributes?.hp) {
-        StatsManager.instance?.updateCombatStats(actor);
+HookManager.registerHook({
+    name: 'updateActor',
+    description: 'Updates combat stats when actor HP changes',
+    callback: (actor, changes) => {
+        // Stats Tracker also needs this
+        if (changes.system?.attributes?.hp) {
+            StatsManager.instance?.updateCombatStats(actor);
+        }
     }
-}, 'Updates combat stats when actor HP changes');
+});
 ```
 
 **❌ Current Design Limitation: Only one callback per hook name**
@@ -230,14 +299,22 @@ HookManager.registerHook('updateActor', (actor, changes) => {
 ### **Problem 2: Module Conflicts**
 ```javascript
 // Module A registers updateToken
-HookManager.registerHook('updateToken', (token, changes) => {
-    // Module A's logic
-}, 'Module A token handler');
+HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Module A token handler',
+    callback: (token, changes) => {
+        // Module A's logic
+    }
+});
 
 // Module B registers updateToken  
-HookManager.registerHook('updateToken', (token, changes) => {
-    // Module B's logic
-}, 'Module B token handler');
+HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Module B token handler',
+    callback: (token, changes) => {
+        // Module B's logic
+    }
+});
 ```
 
 **❌ Module B will OVERWRITE Module A's hook!**
@@ -248,37 +325,37 @@ HookManager.registerHook('updateToken', (token, changes) => {
 
 ### **Solution: Multiple Callbacks Per Hook**
 ```javascript
-static registerHook(hookName, callback, description = '') {
+static registerHook({ name, description = '', callback }) {
     // Check if this hook already exists
-    if (this.hooks.has(hookName)) {
+    if (this.hooks.has(name)) {
         // Add callback to existing hook
-        const hook = this.hooks.get(hookName);
+        const hook = this.hooks.get(name);
         hook.callbacks.push({ callback, description, registeredAt: Date.now() });
         
         getBlacksmith()?.utils.postConsoleAndNotification(
             MODULE.NAME,
-            `Callback added to existing hook: ${hookName}`,
+            `Callback added to existing hook: ${name}`,
             { totalCallbacks: hook.callbacks.length },
             true,
             false
         );
         
-        return `${hookName}_${hook.callbacks.length}`;
+        return `${name}_${hook.callbacks.length}`;
     }
     
     // Create new hook with multiple callback support
-    const hookId = Hooks.on(hookName, (...args) => {
+    const hookId = Hooks.on(name, (...args) => {
         // Execute all callbacks
-        this.hooks.get(hookName).callbacks.forEach(cb => {
+        this.hooks.get(name).callbacks.forEach(cb => {
             try {
                 cb.callback(...args);
             } catch (error) {
-                console.error(`Hook callback error in ${hookName}:`, error);
+                console.error(`Hook callback error in ${name}:`, error);
             }
         });
     });
     
-    this.hooks.set(hookName, { 
+    this.hooks.set(name, { 
         hookId, 
         callbacks: [{ callback, description, registeredAt: Date.now() }],
         registeredAt: Date.now()
