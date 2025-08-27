@@ -240,7 +240,7 @@ Hooks.once('ready', async () => {
         // Wait a bit to ensure settings are fully processed
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Double-check that settings are ready
+        // Double-check that settings are ready BEFORE initializing features
         let retries = 0;
         while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 10) {
             console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
@@ -252,6 +252,9 @@ Hooks.once('ready', async () => {
             console.error('Blacksmith: Settings failed to load after multiple attempts, skipping initialization');
             return;
         }
+
+        // Initialize other settings-dependent features AFTER settings are confirmed ready
+        initializeSettingsDependentFeatures();
 
         // Initialize combat stats tracking
         CombatStats.initialize();
@@ -306,8 +309,7 @@ Hooks.once('ready', async () => {
         // Update nameplates
         updateNameplates();
 
-        // Initialize other settings-dependent features
-        initializeSettingsDependentFeatures();
+
 
         // Initialize scene interactions
         initializeSceneInteractions();
@@ -535,73 +537,11 @@ Hooks.once('init', async function() {
 let ctrlKeyActiveDuringRender = false;
 let shiftKeyActiveDuringRender = false;
 let altKeyActiveDuringRender = false;
-Hooks.on('renderNoteConfig', async (app, html, data) => {
-    // Only GMs can configure note icons
-    if (!game.user.isGM) {
-        return;
-    }
+// Note config hook moved to HookManager for centralized control
+// TODO: Implement full note config functionality in HookManager when needed
 
-    // Define the default icon URL
-    var strIconUrl = "";
-    const strIconUrlDefault = "modules/coffee-pub-blacksmith/images/pins-note/icon-book.svg";
-    const strIconUrlCrtl = "modules/coffee-pub-blacksmith/images/pins-note/icon-combat.svg";
-    const strIconUrlShift = "modules/coffee-pub-blacksmith/images/pins-note/icon-flag.svg";
-    const strIconUrlAlt = "modules/coffee-pub-blacksmith/images/pins-note/icon-king.svg"; 
-    const intIconSize = 70;
-    const intFontSize = 40;
-    
-    // Check if the Ctrl key is held down
-    ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
-    shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
-    altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
-
-    if (ctrlKeyActiveDuringRender) {
-        strIconUrl = strIconUrlCrtl;
-    } else if (shiftKeyActiveDuringRender) {
-        strIconUrl = strIconUrlShift;
-    } else if (altKeyActiveDuringRender) {
-        strIconUrl = strIconUrlAlt; 
-    } else {
-        strIconUrl = strIconUrlDefault;
-    }
-
-    // Set the font size and icon size fields
-    html.find('input[name="fontSize"]').val(intFontSize);
-    html.find('input[name="iconSize"]').val(intIconSize);
-
-    // Use cached note config icons to avoid repeated file system operations
-    try {
-        const customIcons = await getNoteConfigIcons();
-        
-        if (customIcons.length > 0) {
-            // Add custom icons to the start of the dropdown
-            const entryIconField = html.find('select[name="icon.selected"]');
-            if (entryIconField.length) {
-                customIcons.reverse().forEach(icon => {
-                    entryIconField.prepend(new Option(icon.label, icon.value));
-                });
-
-                // Set the default icon
-                entryIconField.val(strIconUrl);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
-            }
-        }
-    } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, false);
-    }
-
-
-});
-
-// Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
-Hooks.on('preCreateNote', async (note, options, userId) => {
-    // Only GMs can set default note icons
-    if (!game.user.isGM) {
-        return;
-    }
-    // Note creation hook - silent operation
-});
+// Note creation hook moved to HookManager for centralized control
+// TODO: Implement full note creation functionality in HookManager when needed
 
 
 

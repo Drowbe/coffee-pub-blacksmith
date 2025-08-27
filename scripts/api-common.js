@@ -1,9 +1,6 @@
 // ================================================================== 
-// ===== COMMON API =====================================================
+// ===== COMMON API =================================================
 // ================================================================== 
-// Put any functions or reusable code here for use in ALL modules.
-// ================================================================== 
-
 
 
 // ================================================================== 
@@ -12,11 +9,6 @@
 
 // Grab the module data
 import { MODULE } from './const.js';
-
-// ================================================================== 
-// ===== VARIABLE EXPORTS ===========================================
-// ================================================================== 
-
 
 
 // ================================================================== 
@@ -590,6 +582,11 @@ export function resetModuleSettings(moduleId) {
 // This code will be executed whenever any BLACKSMITH variable in the "coffee-pub-blacksmith" module is pushed
 export function registerBlacksmithUpdatedHook() {
     Hooks.on("blacksmithUpdated", (newBlacksmith) => {
+
+
+        console.log("postConsoleAndNotification registerBlacksmithUpdatedHook - newBlacksmith:", newBlacksmith);
+
+
         // BLACKSMITH VARIABLE COLLECTION
         // RICH CONSOLE
         COFFEEPUB.blnFancyConsole = newBlacksmith.blnFancyConsole;
@@ -1058,6 +1055,12 @@ export function postConsoleAndNotification(
     blnDebug = false,
     blnNotification = false
   ) {
+
+    // console.log("postConsoleAndNotification - COFFEEPUB?.blnDebugOn:", COFFEEPUB?.blnDebugOn);
+    // console.log("postConsoleAndNotification - COFFEEPUB?.blnFancyConsole:", COFFEEPUB?.blnFancyConsole);
+    // console.log("postConsoleAndNotification - COFFEEPUB?.strConsoleDebugStyle:", COFFEEPUB?.strConsoleDebugStyle);
+    // console.log("postConsoleAndNotification - blnDebug:", blnDebug);
+    // console.log("postConsoleAndNotification - blnNotification:", blnNotification);
 
     // ----- Validation -----
     if (!message) {

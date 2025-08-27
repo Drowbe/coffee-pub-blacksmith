@@ -19,18 +19,7 @@
   },
   "socket": true,
   "library": true,
-  "relationships": {
-    "requires": [
-      {
-        "id": "socketlib",
-        "type": "module",
-        "compatibility": {
-          "minimum": "1.0.0"
-        }
-      }
-    ]
-  },
-  
+
   "authors": [
     {
       "name": "COFFEE PUB",
@@ -160,7 +149,10 @@
       {
         "id": "socketlib",
         "type": "module",
-        "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json"
+        "manifest": "https://raw.githubusercontent.com/manuelVo/foundryvtt-socketlib/master/module.json",
+        "compatibility": {
+          "minimum": "1.0.0"
+        }
       },
       {
         "id": "lib-wrapper",

@@ -398,6 +398,22 @@ export class HookManager {
             ['tokens']
         );
 
+        // Note config hooks - MEDIUM RISK
+        const renderNoteConfigHookId = HookManager.registerHook(
+            "renderNoteConfig",
+            async (app, html, data) => {
+                // Only GMs can configure note icons
+                if (!game.user.isGM) {
+                    return;
+                }
+
+                // TODO: Implement note config icon logic when needed
+                // This will handle custom icon selection and file system access
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Note config rendered for GM", "", false, false);
+            },
+            ['notes']
+        );
+
         // Update the logging message to reflect all consolidated hooks including global system hooks
         postConsoleAndNotification(
             MODULE.NAME,
