@@ -235,6 +235,89 @@ export class HookManager {
         });
         return debugInfo;
     }
+
+    /**
+     * Console command to display all hook details in a readable format
+     * @returns {void} Logs detailed hook information to console
+     */
+    static showHookDetails() {
+        if (!HookManager.isReady()) {
+            console.log('🔴 HookManager not ready or no hooks registered');
+            return;
+        }
+
+        const totalHooks = HookManager.hookRegistry.size;
+        const activeHooks = Array.from(HookManager.hookRegistry.values()).filter(h => h.isActive).length;
+        
+        console.log('🎯 COFFEE PUB•BLACKSMITH - HOOK MANAGER DETAILS');
+        console.log('='.repeat(60));
+        console.log(`📊 Total Hooks: ${totalHooks} | Active: ${activeHooks} | Inactive: ${totalHooks - activeHooks}`);
+        console.log('='.repeat(60));
+        
+        // Group hooks by category
+        const hooksByCategory = {};
+        HookManager.hookRegistry.forEach((hookInfo, hookName) => {
+            const category = hookInfo.categories?.[0] || 'general';
+            if (!hooksByCategory[category]) hooksByCategory[category] = [];
+            hooksByCategory[category].push({ name: hookName, info: hookInfo });
+        });
+
+        // Display hooks by category
+        Object.entries(hooksByCategory).forEach(([category, hooks]) => {
+            console.log(`\n📁 ${category.toUpperCase()} (${hooks.length} hooks):`);
+            console.log('-'.repeat(40));
+            
+            hooks.forEach(({ name, info }) => {
+                const status = info.isActive ? '🟢' : '🔴';
+                const categories = info.categories?.join(', ') || 'none';
+                console.log(`${status} ${name}`);
+                console.log(`   ID: ${info.hookId || 'N/A'} | Categories: [${categories}]`);
+                console.log(`   Registered: ${new Date(info.registeredAt).toLocaleTimeString()}`);
+                if (info.options) {
+                    console.log(`   Options: ${JSON.stringify(info.options)}`);
+                }
+            });
+        });
+
+        console.log('\n' + '='.repeat(60));
+        console.log('💡 Console Commands:');
+        console.log('   HookManager.showHookDetails() - Show this detailed view');
+        console.log('   HookManager.getAllHooks() - Get array of hook names');
+        console.log('   HookManager.getHookStats() - Get basic statistics');
+        console.log('   HookManager.getDebugInfo() - Get raw debug data');
+        console.log('='.repeat(60));
+    }
+
+    /**
+     * Simple console command to show hook summary
+     * @returns {void} Logs a simple hook summary to console
+     */
+    static showHooks() {
+        if (!HookManager.isReady()) {
+            console.log('🔴 HookManager not ready');
+            return;
+        }
+
+        const totalHooks = HookManager.hookRegistry.size;
+        const activeHooks = Array.from(HookManager.hookRegistry.values()).filter(h => h.isActive).length;
+        const hookNames = Array.from(HookManager.hookRegistry.keys()).join(', ');
+        
+        console.log(`🎯 BLACKSMITH HOOKS: ${totalHooks} total (${activeHooks} active)`);
+        console.log(`📋 Names: ${hookNames}`);
+    }
+
+    /**
+     * Initialize global console commands for easy access
+     * @private
+     */
+    static _setupConsoleCommands() {
+        // Add global console commands for easy access
+        if (typeof window !== 'undefined') {
+            window.showHooks = () => HookManager.showHooks();
+            window.showHookDetails = () => HookManager.showHookDetails();
+            window.hookStats = () => HookManager.getHookStats();
+        }
+    }
     
     /**
      * Check if the HookManager is fully initialized and ready
@@ -259,10 +342,11 @@ export class HookManager {
         // Hooks
 
         
-        // Update the logging message to reflect all consolidated hooks
+        // Update the logging message to reflect all consolidated hooks with names
+        const hookNames = Array.from(HookManager.hookRegistry.keys()).join(', ');
         postConsoleAndNotification(
             MODULE.NAME,
-            `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered`,
+            `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered: ${hookNames}`,
             '',
             true,
             false
@@ -559,15 +643,18 @@ export class HookManager {
             ['combat']
         );
 
-        // Update the logging message to reflect all consolidated hooks including global system hooks
+        // Update the logging message to reflect all consolidated hooks including global system hooks with names
+        const allHookNames = Array.from(HookManager.hookRegistry.keys()).join(', ');
         postConsoleAndNotification(
             MODULE.NAME,
-            `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered (including global system hooks)`,
+            `HookManager: All hooks consolidated - ${HookManager.hookRegistry.size} total hooks registered (including global system hooks): ${allHookNames}`,
             '',
             true,
             false
         );
 
+        // Setup global console commands for easy access
+        HookManager._setupConsoleCommands();
         
     } // End of _setupHooks method
     
