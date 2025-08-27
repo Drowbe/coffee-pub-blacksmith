@@ -507,22 +507,8 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
                     handleSkillRollUpdate(data.data);
                 }
                 break;
-            case 'skillRollFinalized':
-                const { messageId, flags, rollData } = data.data;
-                // Check if cinematic display is active for this message
-                if (flags.isCinematic) {
-                    const cinematicOverlay = $('#cpb-cinematicOverlay');
-                    if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
-                        SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
-                    }
-                }
-                break;
-            case 'showCinematicOverlay':
-                SkillCheckDialog._showCinematicDisplay(data.data.messageData, data.data.messageId);
-                break;
-            case 'closeCinematicOverlay':
-                SkillCheckDialog._hideCinematicDisplay();
-                break;
+            // skillRollFinalized handler is now handled by SocketManager
+            // Cinematic overlay handlers are now handled by SocketManager
         }
     });
     

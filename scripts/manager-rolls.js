@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
+import { SocketManager } from './manager-sockets.js';
 
 // Import SkillCheckDialog for chat message formatting
 import { SkillCheckDialog } from './window-skillcheck.js';
@@ -86,13 +87,14 @@ export async function requestRoll(rollDetails) {
             SkillCheckDialog._showCinematicDisplay(messageData, message.id);
             
             // Emit to other users to show the overlay
-            game.socket.emit(`module.${MODULE.ID}`, {
-                type: 'showCinematicOverlay',
-                data: {
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("showCinematicOverlay", {
+                    type: "showCinematicOverlay",  // Add type property
                     messageId: message.id,
                     messageData: messageData
-                }
-            });
+                });
+            }
         }
         
         postConsoleAndNotification(MODULE.NAME, `requestRoll: Chat card created successfully`, { messageId: message.id, tokenId: processedActors[0]?.id }, true, false);
@@ -748,10 +750,13 @@ class RollWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _performRoll: About to emit socket update`, rollDataForSocket, true, false);
 
             // Emit the update to the GM (same as old system)
-            game.socket.emit('module.coffee-pub-blacksmith', {
-                type: 'updateSkillRoll',
-                data: rollDataForSocket
-            });
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("updateSkillRoll", {
+                    type: "updateSkillRoll",  // Add type property
+                    data: rollDataForSocket
+                });
+            }
 
             postConsoleAndNotification(MODULE.NAME, `RollWindow _performRoll: Socket update emitted`, null, true, false);
 
@@ -812,10 +817,13 @@ async function emitRollUpdate(rollDataForSocket) {
     postConsoleAndNotification(MODULE.NAME, `emitRollUpdate: Emitting socket update`, rollDataForSocket, true, false);
     
     // Emit the update to the GM
-    game.socket.emit('module.coffee-pub-blacksmith', {
-        type: 'updateSkillRoll',
-        data: rollDataForSocket
-    });
+    const socket = SocketManager.getSocket();
+    if (socket) {
+        await socket.executeForOthers("updateSkillRoll", {
+            type: "updateSkillRoll",  // Add type property
+            data: rollDataForSocket
+        });
+    }
     
     postConsoleAndNotification(MODULE.NAME, `emitRollUpdate: Socket update emitted`, null, true, false);
 }

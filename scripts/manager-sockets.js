@@ -278,6 +278,44 @@ class SocketManager {
             }
         });
 
+        // Cinematic Overlay Handlers (moved from blacksmith.js and roll system)
+        this.socket.register('showCinematicOverlay', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received showCinematicOverlay", data, false, false);
+            // Import and call the skill check dialog method
+            import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
+                SkillCheckDialog._showCinematicDisplay(data.messageData, data.messageId);
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing SkillCheckDialog for showCinematicOverlay", error, true, false);
+            });
+        });
+
+        this.socket.register('closeCinematicOverlay', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received closeCinematicOverlay", data, false, false);
+            // Import and call the skill check dialog method
+            import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
+                SkillCheckDialog._hideCinematicDisplay();
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing SkillCheckDialog for closeCinematicOverlay", error, true, false);
+            });
+        });
+
+        this.socket.register('skillRollFinalized', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received skillRollFinalized", data, false, false);
+            const { messageId, flags, rollData } = data;
+            // Check if cinematic display is active for this message
+            if (flags.isCinematic) {
+                const cinematicOverlay = $('#cpb-cinematic-overlay');
+                if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
+                    // Import and call the skill check dialog method
+                    import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
+                        SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
+                    }).catch(error => {
+                        postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing SkillCheckDialog for skillRollFinalized", error, true, false);
+                    });
+                }
+            }
+        });
+
         // CSS Update Handler (moved from blacksmith.js)
         this.socket.register('updateCSS', (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received CSS update", data, false, false);

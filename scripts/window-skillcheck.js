@@ -2,6 +2,7 @@
 import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
+import { SocketManager } from './manager-sockets.js';
 
 
 export class SkillCheckDialog extends Application {
@@ -927,27 +928,28 @@ export class SkillCheckDialog extends Application {
             postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
 
             // Create the chat message
-            ChatMessage.create({
+            const message = await ChatMessage.create({
                 user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
                 content: await SkillCheckDialog.formatChatMessage(messageData),
                 flags: { 'coffee-pub-blacksmith': messageData }
-            }).then(message => {
-                // If cinematic mode is enabled, show for the GM and broadcast to players
-                if (messageData.isCinematic) {
-                    // Show for the current user who initiated the roll
-                    SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+            });
 
-                    // Emit to other users to show the overlay
-                    game.socket.emit(`module.${MODULE.ID}`, {
-                        type: 'showCinematicOverlay',
-                        data: {
-                            messageId: message.id,
-                            messageData: messageData
-                        }
+            // If cinematic mode is enabled, show for the GM and broadcast to players
+            if (messageData.isCinematic) {
+                // Show for the current user who initiated the roll
+                SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+
+                // Emit to other users to show the overlay
+                const socket = SocketManager.getSocket();
+                if (socket) {
+                    await socket.executeForOthers("showCinematicOverlay", {
+                        type: "showCinematicOverlay",  // Add type property
+                        messageId: message.id,
+                        messageData: messageData
                     });
                 }
-            });
+            }
 
             // Close the dialog
             this.close();
@@ -1574,10 +1576,15 @@ export class SkillCheckDialog extends Application {
     /**
      * Hides the cinematic display.
      */
-    static _hideCinematicDisplay() {
+    static async _hideCinematicDisplay() {
         const overlay = $('#cpb-cinematic-overlay');
         if (game.user.isGM) {
-            game.socket.emit(`module.${MODULE.ID}`, { type: 'closeCinematicOverlay' });
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("closeCinematicOverlay", {
+                    type: "closeCinematicOverlay"  // Add type property
+                });
+            }
         }
         overlay.removeClass('visible');
         setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
@@ -1630,4 +1637,4 @@ export class SkillCheckDialog extends Application {
     }
 
 
-} 
+}
