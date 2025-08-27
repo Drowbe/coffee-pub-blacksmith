@@ -201,7 +201,7 @@ export class VoteManager {
         }
 
         this.activeVote = {
-            id: randomID(),
+            id: foundry.utils.randomID(),
             type: type,
             startTime: Date.now(),
             votes: {},
