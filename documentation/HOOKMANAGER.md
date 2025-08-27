@@ -14,6 +14,24 @@ Actor Updated → Hook Fired → Your Function → Update Health Panel
 
 ## **Core Principles**
 
+### **Priority System (1-5)**
+```javascript
+priority: 1,  // CRITICAL - runs first (system cleanup, critical features)
+priority: 2,  // HIGH - runs early (core functionality, data validation)
+priority: 3,  // NORMAL - default (most hooks, standard features)
+priority: 4,  // LOW - runs later (nice-to-have features, UI updates)
+priority: 5,  // LOWEST - runs last (cosmetic features, debug hooks)
+```
+
+**Execution Order:**
+- **Priority 1 hooks execute first** (critical system operations)
+- **Priority 2 hooks execute second** (core functionality)
+- **Priority 3 hooks execute third** (normal operations)
+- **Priority 4 hooks execute fourth** (low-priority features)
+- **Priority 5 hooks execute last** (cosmetic/debug features)
+
+**Within the same priority level**, hooks execute in the order they were registered.
+
 ### **1. Simple Registration**
 ```javascript
 // This is what you want - simple and clean
@@ -73,29 +91,66 @@ export class HookManager {
       * @param {Function} options.callback - Your callback function
       * @returns {string} Hook ID for cleanup
       */
-           static registerHook({ name, description = '', priority = 3, callback }) {
-         // Register with FoundryVTT
-         const hookId = Hooks.on(name, callback);
-         
-         // Store for management
-         this.hooks.set(name, { 
-             callback, 
-             hookId, 
-             description,
-             priority,
-             registeredAt: Date.now()
-         });
-         
-         getBlacksmith()?.utils.postConsoleAndNotification(
-             MODULE.NAME,
-             `Hook registered: ${name}`,
-             { description, totalHooks: this.hooks.size },
-             true,
-             false
-         );
-         
-         return hookId;
-     }
+    static registerHook({ name, description = '', priority = 3, callback, options = {} }) {
+        // Check if this hook already exists
+        if (this.hooks.has(name)) {
+            // Add callback to existing hook
+            const hook = this.hooks.get(name);
+            hook.callbacks.push({ 
+                callback, 
+                description, 
+                priority, 
+                registeredAt: Date.now(),
+                options 
+            });
+            
+            // Sort callbacks by priority (1 = highest, 5 = lowest)
+            hook.callbacks.sort((a, b) => a.priority - b.priority);
+            
+            getBlacksmith()?.utils.postConsoleAndNotification(
+                MODULE.NAME,
+                `Callback added to existing hook: ${name}`,
+                { totalCallbacks: hook.callbacks.length, priority },
+                true,
+                false
+            );
+            
+            return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // Create new hook with multiple callback support
+        const hookId = Hooks.on(name, (...args) => {
+            // Execute all callbacks in priority order
+            this.hooks.get(name).callbacks
+                .sort((a, b) => a.priority - b.priority)
+                .forEach(cb => {
+                    try {
+                        cb.callback(...args);
+                        
+                        // Auto-cleanup for once hooks
+                        if (cb.options?.once) {
+                            this.removeCallback(cb.callbackId);
+                        }
+                    } catch (error) {
+                        console.error(`Hook callback error in ${name}:`, error);
+                    }
+                });
+        });
+        
+        this.hooks.set(name, { 
+            hookId, 
+            callbacks: [{ 
+                callback, 
+                description, 
+                priority, 
+                registeredAt: Date.now(),
+                options 
+            }],
+            registeredAt: Date.now()
+        });
+        
+        return hookId;
+    }
     
         /**
      * Remove a specific hook
@@ -125,42 +180,48 @@ export class HookManager {
       * @param {string} callbackId - The callback ID returned from registerHook
       * @returns {boolean} Success status
       */
-     static removeCallback(callbackId) {
-         // Parse callbackId format: "hookName_index" or just "hookName"
-         const [hookName, indexStr] = callbackId.includes('_') ? 
-             callbackId.split('_') : [callbackId, '0'];
-         const index = parseInt(indexStr) || 0;
-         
-         const hook = this.hooks.get(hookName);
-         if (!hook || !hook.callbacks[index]) return false;
-         
-         // Remove the specific callback
-         hook.callbacks.splice(index, 1);
-         
-         // If no more callbacks, remove the entire hook
-         if (hook.callbacks.length === 0) {
-             Hooks.off(hookName, hook.hookId);
-             this.hooks.delete(hookName);
-             
-             getBlacksmith()?.utils.postConsoleAndNotification(
-                 MODULE.NAME,
-                 `Hook completely removed: ${hookName}`,
-                 { totalHooks: this.hooks.size },
-                 true,
-                 false
-             );
-         } else {
-             getBlacksmith()?.utils.postConsoleAndNotification(
-                 MODULE.NAME,
-                 `Callback removed from hook: ${hookName}`,
-                 { remainingCallbacks: hook.callbacks.length },
-                 true,
-                 false
-             );
-         }
-         
-         return true;
-     }
+    static removeCallback(callbackId) {
+        // Parse callbackId format: "hookName_timestamp_random"
+        const [hookName, timestamp, random] = callbackId.split('_');
+        
+        const hook = this.hooks.get(hookName);
+        if (!hook) return false;
+        
+        // Find and remove the specific callback
+        const callbackIndex = hook.callbacks.findIndex(cb => 
+            cb.registeredAt.toString() === timestamp && 
+            cb.options?.random === random
+        );
+        
+        if (callbackIndex === -1) return false;
+        
+        // Remove the specific callback
+        hook.callbacks.splice(callbackIndex, 1);
+        
+        // If no more callbacks, remove the entire hook
+        if (hook.callbacks.length === 0) {
+            Hooks.off(hookName, hook.hookId);
+            this.hooks.delete(hookName);
+            
+            getBlacksmith()?.utils.postConsoleAndNotification(
+                MODULE.NAME,
+                `Hook completely removed: ${hookName}`,
+                { totalHooks: this.hooks.size },
+                true,
+                false
+            );
+        } else {
+            getBlacksmith()?.utils.postConsoleAndNotification(
+                MODULE.NAME,
+                `Callback removed from hook: ${hookName}`,
+                { remainingCallbacks: hook.callbacks.length },
+                true,
+                false
+            );
+        }
+        
+        return true;
+    }
     
         /**
      * Clean up all hooks
@@ -248,7 +309,41 @@ HookManager.registerHook({
         // Critical cleanup logic
     }
 });
+
+// Temporary hooks with auto-cleanup
+HookManager.registerHook({
+    name: 'userLogin',
+    description: 'One-time welcome message',
+    priority: 4, // Low priority
+    options: { once: true }, // Auto-cleanup after first execution
+    callback: (user) => {
+        console.log(`Welcome back, ${user.name}!`);
+    }
+});
 ```
+
+## **"Once" Semantics for Auto-Cleanup**
+
+The HookManager supports automatic cleanup for temporary hooks using the `{ once: true }` option:
+
+```javascript
+// This hook will automatically remove itself after the first execution
+HookManager.registerHook({
+    name: 'userLogin',
+    description: 'One-time welcome message',
+    options: { once: true }, // Auto-cleanup after first execution
+    callback: (user) => {
+        console.log(`Welcome back, ${user.name}!`);
+        // Hook automatically removes itself after this runs
+    }
+});
+```
+
+**Benefits of "Once" Hooks:**
+- **Automatic cleanup** - no need to manually remove temporary hooks
+- **Memory efficient** - prevents accumulation of unused hooks
+- **Perfect for events** that should only happen once (welcome messages, initialization, etc.)
+- **Cleaner code** - no manual cleanup required
 
 ## **Enhanced Console Commands**
 
@@ -359,41 +454,55 @@ HookManager.registerHook({
 
 ## **REQUIRED DESIGN CHANGES**
 
-### **Solution: Multiple Callbacks Per Hook**
+### **Solution: Multiple Callbacks Per Hook with Priority**
 ```javascript
-static registerHook({ name, description = '', callback }) {
+static registerHook({ name, description = '', priority = 3, callback, options = {} }) {
     // Check if this hook already exists
     if (this.hooks.has(name)) {
         // Add callback to existing hook
         const hook = this.hooks.get(name);
-        hook.callbacks.push({ callback, description, registeredAt: Date.now() });
+        hook.callbacks.push({ 
+            callback, 
+            description, 
+            priority, 
+            registeredAt: Date.now(),
+            options 
+        });
         
-        getBlacksmith()?.utils.postConsoleAndNotification(
-            MODULE.NAME,
-            `Callback added to existing hook: ${name}`,
-            { totalCallbacks: hook.callbacks.length },
-            true,
-            false
-        );
+        // Sort callbacks by priority (1 = highest, 5 = lowest)
+        hook.callbacks.sort((a, b) => a.priority - b.priority);
         
-        return `${name}_${hook.callbacks.length}`;
+        return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
     
     // Create new hook with multiple callback support
     const hookId = Hooks.on(name, (...args) => {
-        // Execute all callbacks
-        this.hooks.get(name).callbacks.forEach(cb => {
-            try {
-                cb.callback(...args);
-            } catch (error) {
-                console.error(`Hook callback error in ${name}:`, error);
-            }
-        });
+        // Execute all callbacks in priority order
+        this.hooks.get(name).callbacks
+            .sort((a, b) => a.priority - b.priority)
+            .forEach(cb => {
+                try {
+                    cb.callback(...args);
+                    
+                    // Auto-cleanup for once hooks
+                    if (cb.options?.once) {
+                        this.removeCallback(cb.callbackId);
+                    }
+                } catch (error) {
+                    console.error(`Hook callback error in ${name}:`, error);
+                }
+            });
     });
     
     this.hooks.set(name, { 
         hookId, 
-        callbacks: [{ callback, description, registeredAt: Date.now() }],
+        callbacks: [{ 
+            callback, 
+            description, 
+            priority, 
+            registeredAt: Date.now(),
+            options 
+        }],
         registeredAt: Date.now()
     });
     
@@ -417,6 +526,7 @@ return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 // - Sortable (timestamp allows chronological ordering)
 // - Debuggable (you can see when it was created)
 // - Human readable (still easy to identify)
+// - Supports priority and options for advanced features
 ```
 
 ---
