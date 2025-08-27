@@ -18,6 +18,7 @@
  */
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely} from './api-common.js';
+import { BlacksmithWindowQuery } from './window-query.js';
 
 
 /**
@@ -336,6 +337,54 @@ export class HookManager {
                 postConsoleAndNotification(MODULE.NAME, "HookManager: Token created", token.name, false, false);
             },
             ['global']
+        );
+
+        // Settings hooks - LOW RISK
+        const settingsChangeHookId = HookManager.registerHook(
+            "settingChange",
+            (moduleId, settingKey, value) => {
+                if (moduleId === MODULE.ID) {
+                    // Clear settings cache when settings change
+                    // TODO: Implement clearSettingsCache function when needed
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Settings changed, cache cleared", settingKey, false, false);
+                }
+            },
+            ['settings']
+        );
+
+        // Window lifecycle hooks - LOW RISK
+        const renderApplicationHookId = HookManager.registerHook(
+            "renderApplication",
+            (app, html, data) => {
+                if (app instanceof BlacksmithWindowQuery) {
+                    // TODO: Implement registerBlacksmithWindow function when needed
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: BlacksmithWindowQuery rendered", app.id, false, false);
+                }
+            },
+            ['windows']
+        );
+
+        const closeApplicationHookId = HookManager.registerHook(
+            "closeApplication",
+            (app) => {
+                if (app instanceof BlacksmithWindowQuery) {
+                    // TODO: Implement unregisterBlacksmithWindow function when needed
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: BlacksmithWindowQuery closed", app.id, false, false);
+                }
+            },
+            ['windows']
+        );
+
+        // Chat message hooks - LOW RISK
+        const renderChatMessageHookId = HookManager.registerHook(
+            "renderChatMessage",
+            (message, html) => {
+                if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
+                    // TODO: Import and call SkillCheckDialog.handleChatMessageClick when needed
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Skill check chat message rendered", message.id, false, false);
+                }
+            },
+            ['chat']
         );
 
         // Update the logging message to reflect all consolidated hooks including global system hooks

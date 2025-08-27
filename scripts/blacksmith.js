@@ -45,6 +45,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
 // TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
+import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -458,34 +459,13 @@ Hooks.once('init', async function() {
     // Initialize UtilsManager
     UtilsManager.initialize();
     
+    // Initialize HookManager for centralized hook management
+    HookManager.initialize();
+    
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
-    // Register chat message click handler for skill rolls
-    Hooks.on('renderChatMessage', (message, html) => {
-        if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
-            SkillCheckDialog.handleChatMessageClick(message, html);
-        }
-    });
-    
-    // Register window lifecycle hooks for efficient lookups
-    Hooks.on('renderApplication', (app, html, data) => {
-        if (app instanceof BlacksmithWindowQuery) {
-            registerBlacksmithWindow(app);
-        }
-    });
-    
-    Hooks.on('closeApplication', (app) => {
-        if (app instanceof BlacksmithWindowQuery) {
-            unregisterBlacksmithWindow(app);
-        }
-    });
-    
-    // Clear settings cache when settings change
-    Hooks.on('settingChange', (moduleId, settingKey, value) => {
-        if (moduleId === MODULE.ID) {
-            clearSettingsCache();
-        }
-    });
+    // Hooks are now managed by HookManager for centralized control
+    // Chat message, window lifecycle, and settings hooks moved to HookManager
     
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
