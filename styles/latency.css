@@ -1,4 +1,3 @@
-
 /* Latency Display */
 
 
@@ -10,20 +9,24 @@
     position: absolute;
     right: 0px;
     font-size: 0.8em;
-    opacity: 0.7;
+    font-weight: 600;
+    line-height: 1.5;
+    opacity: 0.85;
     font-family: "Signika", sans-serif;
     display: inline-block;
     vertical-align: middle;
     background: rgba(0, 0, 0, 1);
-	padding: 0 4px;
+    padding: 0px 3px 0px 3px;
     border-radius: 4px;
+    height: auto;
+    word-spacing: -0.5px;
 }
 
 #player-list li.player .player-name {
     display: flex !important;
     align-items: center;
     flex-wrap: nowrap;
-    gap: 4px;
+
 }
 
 .player-name-wrapper {

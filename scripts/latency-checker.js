@@ -4,6 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { SocketManager } from './manager-sockets.js';
 
 export class LatencyChecker {
     static #latencyData = new Map();
@@ -31,8 +32,7 @@ export class LatencyChecker {
                 return;
             }
 
-            // Register socket handlers using game.socket.on
-            game.socket.on("module.coffee-pub-blacksmith", this.#handleSocketMessage.bind(this));
+            // Socket handlers are now registered in SocketManager
             postConsoleAndNotification(MODULE.NAME, "Latency: Socket handlers registered successfully", "", true, false);
             
             // Only start operations after handlers are registered
@@ -52,7 +52,6 @@ export class LatencyChecker {
             
             // Initial update
             this.#updateLatencyDisplay();
-            postConsoleAndNotification(MODULE.NAME, "Latency: LatencyChecker initialized successfully", "", true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Latency: Error initializing LatencyChecker:", error, false, false);
         }
@@ -104,29 +103,40 @@ export class LatencyChecker {
             const startTime = performance.now();
             this.#startTimes.set(userId, startTime);
             
-            // Send ping through socket
-            game.socket.emit("module.coffee-pub-blacksmith", {
-                type: "ping",
-                from: game.user.id,
-                to: userId,
-                time: startTime
-            });
+            // Send ping through SocketManager
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("ping", {
+                    type: "ping",  // Add type back to data object
+                    from: game.user.id,
+                    to: userId,
+                    time: startTime
+                });
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Latency: Error measuring latency:", error, false, false);
         }
     }
 
-    static #handleSocketMessage(data) {
-        if (!data.type) return;
+    static async _handleSocketMessage(data) {
+        
+        if (!data.type) {
+            return;
+        }
 
         if (data.type === "ping" && data.to === game.user.id) {
             // Respond to ping with a pong
-            game.socket.emit("module.coffee-pub-blacksmith", {
-                type: "pong",
-                from: game.user.id,
-                to: data.from,
-                time: data.time
-            });
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("pong", {
+                    type: "pong",  // Add type back to data object
+                    from: game.user.id,
+                    to: data.from,
+                    time: data.time
+                });
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: No socket available for pong", "", true, false);
+            }
         } else if (data.type === "pong" && data.to === game.user.id) {
             // Calculate latency from pong
             const endTime = performance.now();
@@ -135,16 +145,18 @@ export class LatencyChecker {
             if (startTime) {
                 const roundTrip = endTime - startTime;
                 const latency = Math.round(roundTrip / 2); // One-way latency
-                
+       
                 if (game.user.isGM) {
                     // GM updates latency for the responding player
                     this.#latencyData.set(data.from, latency);
                     // Broadcast complete latency data to all clients
-                    this.#broadcastLatencyData();
+                    await this.#broadcastLatencyData();
                 } else {
                     // Players update their own latency to GM
                     this.#latencyData.set(data.from, latency);
                 }
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: No start time in pong data", data, true, false);
             }
         } else if (data.type === "latencyUpdate") {
             // Everyone receives and processes the complete latency data from GM
@@ -152,21 +164,28 @@ export class LatencyChecker {
                 // Update our local latency data with the complete dataset
                 this.#latencyData = new Map(Object.entries(data.latencyData));
                 this.#updateLatencyDisplay();
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: No latencyData in update", data, true, false);
             }
-        }
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: Unknown message type", { type: data.type, data }, false, false);
+        }       
     }
 
-    static #broadcastLatencyData() {
+    static async #broadcastLatencyData() {
         if (!game.user.isGM) return;
         
         // Convert Map to object for transmission
         const latencyObject = Object.fromEntries(this.#latencyData);
         
-        // Broadcast to all clients using a general message
-        game.socket.emit("module.coffee-pub-blacksmith", {
-            type: "latencyUpdate",
-            latencyData: latencyObject
-        });
+        // Broadcast to all clients using SocketManager
+        const socket = SocketManager.getSocket();
+        if (socket) {
+            await socket.executeForEveryone("latencyUpdate", {
+                type: "latencyUpdate",  // Add type back to data object
+                latencyData: latencyObject
+            });
+        }
         
         // Update GM's own display
         this.#updateLatencyDisplay();
@@ -204,7 +223,7 @@ export class LatencyChecker {
                     latencySpan.textContent = "-- ms";
                     latencySpan.classList.remove("good", "medium", "poor");
                     latencySpan.style.display = "inline";
-                    playerNameSpan.style.paddingRight = "40px";
+                    playerNameSpan.style.paddingRight = "30px";
                 }
             });
         } catch (error) {

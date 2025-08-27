@@ -1,6 +1,7 @@
 // ================================================================== 
 // ===== IMPORTS ====================================================
 // ================================================================== 
+
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
 import { CombatTimer } from './timer-combat.js';
@@ -8,6 +9,11 @@ import { PlanningTimer } from './timer-planning.js';
 import { ChatPanel } from './chat-panel.js';
 import { VoteManager } from './vote-manager.js';
 import { CSSEditor } from './window-gmtools.js';
+import { LatencyChecker } from './latency-checker.js';
+
+// ================================================================== 
+// ===== SOCKET MANAGER =============================================
+// ================================================================== 
 
 class SocketManager {
     static socket = null;
@@ -17,11 +23,11 @@ class SocketManager {
     static _usingSocketLib = false; // Track which socket system we're using
 
     static initialize() {
-        postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing socket system", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing socket system", "", true, false);
         
         // Prevent double initialization
         if (this.isInitialized) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Already initialized, skipping", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Already initialized, skipping", "", true, false);
             return;
         }
         
@@ -37,7 +43,7 @@ class SocketManager {
                 hasApi: !!socketlibEntry[1].api,
                 apiType: typeof socketlibEntry[1].api
             } : null
-        }, false, false);
+        }, true, false);
         
         // Try to initialize immediately if SocketLib is ready
         if (this._tryInitializeImmediately()) {
@@ -45,9 +51,9 @@ class SocketManager {
         }
         
         // Wait for SocketLib to be ready
-        postConsoleAndNotification(MODULE.NAME, "SocketManager: Waiting for SocketLib to be ready", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "SocketManager: Waiting for SocketLib to be ready", "", true, false);
         Hooks.once('socketlib.ready', () => {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib ready hook fired, initializing", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib ready hook fired, initializing", "", true, false);
             this._initializeSocket();
         });
         
@@ -57,12 +63,12 @@ class SocketManager {
         const maxAttempts = 20; // 10 seconds (20 * 500ms)
         this._fallbackTimer = setInterval(() => {
             attempts++;
-            postConsoleAndNotification(MODULE.NAME, `SocketManager: Fallback check attempt ${attempts}/${maxAttempts}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `SocketManager: Fallback check attempt ${attempts}/${maxAttempts}`, "", true, false);
             
             // Check if SocketLib API is now available
             const sl = this._getSocketLib();
             if (sl) {
-                postConsoleAndNotification(MODULE.NAME, `SocketManager: SocketLib API became available during fallback check ${attempts}`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `SocketManager: SocketLib API became available during fallback check ${attempts}`, "", true, false);
                 this._stopFallbackTimer();
                 this._initializeSocket();
                 return;
@@ -70,7 +76,7 @@ class SocketManager {
             
             if (attempts >= maxAttempts) {
                 this._stopFallbackTimer();
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: Failed to initialize after fallback attempts, triggering native fallback", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Failed to initialize after fallback attempts, triggering native fallback", "", true, false);
                 // Force the native fallback when SocketLib completely fails
                 this._initializeNativeSockets();
             }
@@ -84,13 +90,13 @@ class SocketManager {
     static _getSocketLib() {
         // Prefer global if available (many modules expose SocketLib globally)
         if (globalThis.socketlib?.registerModule) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Found SocketLib in global scope", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Found SocketLib in global scope", "", true, false);
             return globalThis.socketlib;
         }
         // Fallback to module API
         const mod = game.modules.get('socketlib');
         if (mod?.api) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Found SocketLib in module API", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Found SocketLib in module API", "", true, false);
             return mod.api;
         }
         return null;
@@ -100,12 +106,12 @@ class SocketManager {
         try {
             const sl = this._getSocketLib();
             if (sl) {
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib already ready, initializing immediately", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib already ready, initializing immediately", "", true, false);
                 this._initializeSocket();
                 return true;
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error checking SocketLib availability", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error checking SocketLib availability", error, true, false);
         }
         return false;
     }
@@ -113,12 +119,12 @@ class SocketManager {
     static _initializeSocket() {
         // Idempotency guard
         if (this.isInitialized) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Already initialized, skipping SocketLib init", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Already initialized, skipping SocketLib init", "", true, false);
             return;
         }
         
         try {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Starting socket initialization", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Starting socket initialization", "", true, false);
             
             const sl = this._getSocketLib();
             if (!sl) {
@@ -129,44 +135,40 @@ class SocketManager {
                 apiType: typeof sl, 
                 hasRegisterModule: !!sl.registerModule,
                 source: globalThis.socketlib ? 'global' : 'module'
-            }, false, false);
-
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: About to register module", { moduleId: MODULE.ID }, false, false);
+            }, true, false);
             
             this.socket = sl.registerModule(MODULE.ID);
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Module registered successfully", { socketType: typeof this.socket }, false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Module registered successfully", { socketType: typeof this.socket }, true, false);
             
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: About to register socket functions", "", false, false);
             this.registerSocketFunctions();
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Socket functions registered", "", false, false);
             
             this.isInitialized = true;
             this.isSocketReady = true;
             this._usingSocketLib = true; // Track that we're using SocketLib
             
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Socket initialized successfully", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Socket initialized successfully", "", true, false);
             
             // CRITICAL: Stop fallback timer when SocketLib succeeds
             this._stopFallbackTimer();
             
             // Emit our own ready event for other modules to use
             Hooks.callAll('blacksmith.socketReady');
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: blacksmith.socketReady hook called", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: blacksmith.socketReady hook called", "", true, false);
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib failed, falling back to native Foundry sockets", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: SocketLib failed, falling back to native Foundry sockets", error, true, false);
             this._initializeNativeSockets();
         }
     }
 
     static _initializeNativeSockets() {
         try {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing native Foundry socket fallback", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing native Foundry socket fallback", "", true, false);
             
             // Create a mock socket object that mimics SocketLib's interface
             this.socket = {
                 register: (name, func) => {
-                    postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - registered ${name}`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - registered ${name}`, "", true, false);
                     // Store the function for later use
                     if (!this._nativeHandlers) this._nativeHandlers = new Map();
                     this._nativeHandlers.set(name, func);
@@ -175,28 +177,26 @@ class SocketManager {
                     const func = this._nativeHandlers.get(handler);
                     if (func) {
                         // Execute locally for now (this is a fallback)
-                        postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - executing ${handler} locally`, "", false, false);
+                        postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - executing ${handler} locally`, "", true, false);
                         return func(...args);
                     }
                 }
             };
             
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: About to register socket functions with native fallback", "", false, false);
             this.registerSocketFunctions();
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Socket functions registered with native fallback", "", false, false);
             
             this.isInitialized = true;
             this.isSocketReady = true;
             this._usingSocketLib = false; // Track that we're using native fallback
             
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Native socket fallback initialized successfully", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Native socket fallback initialized successfully", "", true, false);
             
             // Stop the fallback timer since we're now ready
             this._stopFallbackTimer();
             
             // Emit our own ready event for other modules to use
             Hooks.callAll('blacksmith.socketReady');
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: blacksmith.socketReady hook called", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: blacksmith.socketReady hook called", "", true, false);
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Native socket fallback also failed", error, true, false);
@@ -209,12 +209,12 @@ class SocketManager {
         if (this._fallbackTimer) {
             clearInterval(this._fallbackTimer);
             this._fallbackTimer = null;
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Fallback timer stopped - socket is ready", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Fallback timer stopped - socket is ready", "", true, false);
         }
     }
 
     static registerSocketFunctions() {
-        postConsoleAndNotification(MODULE.NAME, "SocketManager: Registering socket functions", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "SocketManager: Registering socket functions", "", true, false);
         
         // Combat Timer
         this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
@@ -239,7 +239,7 @@ class SocketManager {
             if (game.user.isGM) {
                 // This will be handled by the native socket handler in blacksmith.js
                 // We're just registering it here for completeness
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: updateSkillRoll received via SocketLib", data, false, false);
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: updateSkillRoll received via SocketLib", data, true, false);
             }
         });
 
@@ -249,12 +249,43 @@ class SocketManager {
             editor.applyCSS(data.css, data.transition);
         });
 
-        postConsoleAndNotification(MODULE.NAME, "SocketManager: All socket functions registered", "", false, false);
+        // Latency Checker Handlers (consolidated from latency-checker.js)
+        this.socket.register('ping', (data) => {
+            // Handle ping for latency checker
+            // Call the latency checker's internal handler with proper context
+            try {
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for ping", error, true, false);
+            }
+        });
+
+        this.socket.register('pong', (data) => {
+            // Handle pong for latency checker
+            // Call the latency checker's internal handler with proper context
+            try {
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for pong", error, true, false);
+            }
+        });
+
+        this.socket.register('latencyUpdate', (data) => {
+            // Handle latency update for latency checker
+            // Call the latency checker's internal handler with proper context
+            try {
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for latencyUpdate", error, true, false);
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "SocketManager: All socket functions registered", "", true, false);
     }
 
     static getSocket() {
         if (!this.isSocketReady) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error: Socket not ready", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error: Socket not ready", "", true, false);
             return null;
         }
         return this.socket;
