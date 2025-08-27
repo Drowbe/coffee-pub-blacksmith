@@ -32,7 +32,7 @@ export class CanvasTools {
     }
 
     static _updateNameplates() {
-        postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", true, false);
         let tokens = canvas.tokens.placeables;
         let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
 
@@ -88,7 +88,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenData.name || 'Unknown Token';
-            postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", true, false);
         }
         
         return true;
@@ -113,7 +113,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenDocument.name || 'Unknown Token';
-            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", true, false);
         }
         
         return true;
@@ -142,9 +142,9 @@ export class CanvasTools {
             try {
                 await tokenDocument.update(updates);
                 const tokenName = tokenDocument.name || 'Unknown Token';
-                postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Applied token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", true, false);
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Error applying token overrides: ${error}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Error applying token overrides: ${error}`, "", false, false);
             }
         }
     }
@@ -155,7 +155,7 @@ export class CanvasTools {
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Token(s) created on the scene. Modifying non-linked tokens...", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Token(s) created on the scene. Modifying non-linked tokens...", "", true, false);
         const actorLink = document.actor?.isToken === false;
         let updatedName;
         let strTokenNameFormat = game.settings.get(MODULE.ID, 'tokenNameFormat');
@@ -180,7 +180,7 @@ export class CanvasTools {
 
         // if it is ignored, exit the function
         if (isIgnoredToken) {
-            postConsoleAndNotification(MODULE.NAME, "Ignored token " + tokenName + " detected per settings. Skipping token renaming.", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Ignored token " + tokenName + " detected per settings. Skipping token renaming.", "", true, false);
             return;
         }
 
@@ -269,15 +269,15 @@ export class CanvasTools {
             if (document.actor && !document.actor.isToken) {
                 // Update the linked actor's name
                 await document.parent.update({name: updatedName});
-                postConsoleAndNotification(MODULE.NAME, "Update the linked actor's name: " + updatedName, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Update the linked actor's name: " + updatedName, "", true, false);
             } else {
                 // Update only the token's name
                 await document.update({name: updatedName});
-                postConsoleAndNotification(MODULE.NAME, "Update only the token's name: " + updatedName, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Update only the token's name: " + updatedName, "", true, false);
             }
-            postConsoleAndNotification(MODULE.NAME, "The token name has been changed to " + updatedName, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "The token name has been changed to " + updatedName, "", true, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, "The token is LINKED so the name has not been changed.", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "The token is LINKED so the name has not been changed.", "", true, false);
         }
     }
 

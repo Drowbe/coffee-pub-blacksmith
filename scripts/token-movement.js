@@ -151,42 +151,7 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
 // ===== EXISTING CODE BELOW ========================================
 // ================================================================== 
 
-// Remove or comment out the ready hook and replace with init hook for socket setup only
-Hooks.once('init', () => {
-    // Register socket listeners for movement changes
-    game.socket.on(`module.${MODULE.ID}`, (message) => {
-        if (message.type === 'movementChange' && !game.user.isGM) {
-            ui.notifications.info(`Movement type changed to: ${message.data.name}`);
-            
-            // Force refresh of the chat panel for consistent update
-            ui.chat.render();
-            
-            // Also try immediate update if elements exist
-            setTimeout(() => {
-                const movementIcon = document.querySelector('.movement-icon');
-                const movementLabel = document.querySelector('.movement-label');
-                
-                const movementTypes = {
-                    'normal-movement': { icon: 'fa-person-running', name: 'Free' },
-                    'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
-                    'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-                    'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
-                    'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
-                };
-                
-                const newType = movementTypes[message.data.movementId];
-                if (newType) {
-                    if (movementIcon) {
-                        movementIcon.className = `fas ${newType.icon} movement-icon`;
-                    }
-                    if (movementLabel) {
-                        movementLabel.textContent = newType.name;
-                    }
-                }
-            }, 100);
-        }
-    });
-});
+// Socket listeners are now handled by SocketManager
 
 
 
@@ -340,13 +305,14 @@ export class MovementConfig extends Application {
         if (movementLabel) movementLabel.textContent = movementType.name;
 
         // Notify all users about the movement change
-        game.socket.emit(`module.${MODULE.ID}`, {
-            type: 'movementChange',
-            data: {
+        const socket = SocketManager.getSocket();
+        if (socket) {
+            await socket.executeForOthers("movementChange", {
+                type: "movementChange",  // Add type property
                 movementId,
                 name: movementType.name
-            }
-        });
+            });
+        }
 
         // Close the config window
         this.close();
@@ -1168,13 +1134,14 @@ Hooks.on('createCombat', async (combat) => {
             if (movementLabel) movementLabel.textContent = 'Combat';
             
             // Notify other clients
-            game.socket.emit(`module.${MODULE.ID}`, {
-                type: 'movementChange',
-                data: {
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("movementChange", {
+                    type: "movementChange",  // Add type property
                     movementId: 'combat-movement',
                     name: 'Combat'
-                }
-            });
+                });
+            }
         }
     } catch (err) {
         // Error in combat start handling
@@ -1219,13 +1186,14 @@ Hooks.on('deleteCombat', async (combat) => {
         if (movementLabel) movementLabel.textContent = movementType.name;
         
         // Notify other clients
-        game.socket.emit(`module.${MODULE.ID}`, {
-            type: 'movementChange',
-            data: {
+        const socket = SocketManager.getSocket();
+        if (socket) {
+            await socket.executeForOthers("movementChange", {
+                type: "movementChange",  // Add type property
                 movementId: preCombatMovementMode,
                 name: movementType.name
-            }
-        });
+            });
+        }
         
         // Clear the stored mode
         preCombatMovementMode = null;

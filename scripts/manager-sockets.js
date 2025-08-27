@@ -234,6 +234,41 @@ class SocketManager {
         this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
         this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
 
+        // Token Movement
+        this.socket.register("movementChange", (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received movement change", data, false, false);
+            if (data.type === 'movementChange' && !game.user.isGM) {
+                ui.notifications.info(`Movement type changed to: ${data.name}`);
+                
+                // Force refresh of the chat panel for consistent update
+                ui.chat.render();
+                
+                // Also try immediate update if elements exist
+                setTimeout(() => {
+                    const movementIcon = document.querySelector('.movement-icon');
+                    const movementLabel = document.querySelector('.movement-label');
+                    
+                    const movementTypes = {
+                        'normal-movement': { icon: 'fa-person-running', name: 'Free' },
+                        'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
+                        'combat-movement': { icon: 'fa-swords', name: 'Combat' },
+                        'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
+                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
+                    };
+                    
+                    const newType = movementTypes[data.movementId];
+                    if (newType) {
+                        if (movementIcon) {
+                            movementIcon.className = `fas ${newType.icon} movement-icon`;
+                        }
+                        if (movementLabel) {
+                            movementLabel.textContent = newType.name;
+                        }
+                    }
+                }, 100);
+            }
+        });
+
         // Skill Roll Handler (moved from blacksmith.js)
         this.socket.register('updateSkillRoll', (data) => {
             if (game.user.isGM) {
