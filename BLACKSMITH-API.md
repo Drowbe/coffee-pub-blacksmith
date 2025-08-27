@@ -149,9 +149,9 @@ The module provides a comprehensive API for other modules to integrate:
 
 ```javascript
 // Access the Blacksmith API
-const blacksmith = game.modules.get('coffee-pub-blacksmith').api;
+    const blacksmith = game.modules.get('coffee-pub-blacksmith').api;
 
-// Register your module
+    // Register your module
 blacksmith.registerModule('your-module-id', ['feature1', 'feature2']);
 
 // Check if features are available
