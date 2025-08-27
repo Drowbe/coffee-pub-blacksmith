@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { SocketManager } from './manager-sockets.js';
 
 export class CSSEditor extends FormApplication {
     static get defaultOptions() {
@@ -169,16 +170,17 @@ export class CSSEditor extends FormApplication {
         // Apply the CSS
         this.applyCSS(css, transition);
 
-        // Notify other clients using built-in socket
+        // Notify other clients using SocketManager
         if (game.user.isGM) {
-            game.socket.emit(`module.${MODULE.ID}`, {
-                type: 'updateCSS',
-                data: {
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("updateCSS", {
+                    type: "updateCSS",  // Add type property
                     css: css,
                     transition: transition,
                     dark: dark
-                }
-            });
+                });
+            }
         }
 
         // Show a notification that changes were applied

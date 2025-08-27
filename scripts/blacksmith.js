@@ -499,13 +499,9 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
     postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
 });
 
-    // Set up socket handler for CSS updates
+        // Set up socket handler for remaining legacy handlers
     game.socket.on(`module.${MODULE.ID}`, data => {
         switch (data.type) {
-            case 'updateCSS':
-                const editor = new CSSEditor();
-                editor.applyCSS(data.css, data.transition);
-                break;
             case 'updateSkillRoll':
                 if (game.user.isGM) {
                     handleSkillRollUpdate(data.data);
@@ -515,7 +511,7 @@ import('./manager-sockets.js').then(({ SocketManager }) => {
                 const { messageId, flags, rollData } = data.data;
                 // Check if cinematic display is active for this message
                 if (flags.isCinematic) {
-                    const cinematicOverlay = $('#cpb-cinematic-overlay');
+                    const cinematicOverlay = $('#cpb-cinematicOverlay');
                     if (cinematicOverlay.length && cinematicOverlay.data('messageId') === messageId) {
                         SkillCheckDialog._updateCinematicDisplay(rollData.tokenId, rollData.result, flags);
                     }

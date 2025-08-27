@@ -41,39 +41,39 @@
 
 .toolbar-icons {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
     font-size: 0.9em;
 }
 
 /* Base styles for all tools */
 .tool-active, .tool-readonly {
-    color: #eeeeed;
+    color: rgba(240, 240, 224, 0.9);
     cursor: default;
+    
 }
 
 .tool-active i , .tool-readonly i{
-    color: #f0f0e0;
+    color: rgba(240, 240, 224, 0.9);
     font-size: 0.9em;
 }
 
 .tool-active span, .tool-readonly span {
-    color: #eeeeed;
+    color: rgba(240, 240, 224, 0.9);
     font-size: 1.0em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-left: 4px;
+    margin-left: 2px;
 }
 
 /* Hover states for active tools */
 .tool-active:hover,
 .tool-active:hover i,
 .tool-active:hover span {
-    color: hsl(27, 99%, 38%);
+    color: rgba(255, 100, 0, 0.9);
     cursor: pointer;
 }
-
 
 
 /* ------------------------------------ */

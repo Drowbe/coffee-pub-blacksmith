@@ -245,6 +245,7 @@ class SocketManager {
 
         // CSS Update Handler (moved from blacksmith.js)
         this.socket.register('updateCSS', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received CSS update", data, false, false);
             const editor = new CSSEditor();
             editor.applyCSS(data.css, data.transition);
         });
