@@ -20,6 +20,7 @@ Actor Updated → Hook Fired → Your Function → Update Health Panel
 HookManager.registerHook({
     name: 'updateActor',
     description: 'Updates health panel when actor HP changes',
+    priority: 3, // 1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest
     callback: (actor, changes) => {
         // Your logic here - update health panel, etc.
         if (changes.system?.attributes?.hp) {
@@ -61,17 +62,18 @@ HookManager.registerHook({
  * Registers hooks and provides cleanup - no business logic
  */
 export class HookManager {
-    static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
+    static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt, priority, description }
     
          /**
       * Register a hook with a callback
       * @param {Object} options - Hook registration options
       * @param {string} options.name - FoundryVTT hook name
       * @param {string} options.description - Optional description for debugging
+      * @param {number} options.priority - Priority level (1-5, default: 3)
       * @param {Function} options.callback - Your callback function
       * @returns {string} Hook ID for cleanup
       */
-     static registerHook({ name, description = '', callback }) {
+           static registerHook({ name, description = '', priority = 3, callback }) {
          // Register with FoundryVTT
          const hookId = Hooks.on(name, callback);
          
@@ -80,6 +82,7 @@ export class HookManager {
              callback, 
              hookId, 
              description,
+             priority,
              registeredAt: Date.now()
          });
          
@@ -215,6 +218,7 @@ export class HookManager {
 HookManager.registerHook({
     name: 'updateActor',
     description: 'Updates health panel when actor HP changes',
+    priority: 3, // Normal priority (default)
     callback: (actor, changes) => {
         // Your logic here - update health panel, etc.
         if (changes.system?.attributes?.hp) {
@@ -226,6 +230,7 @@ HookManager.registerHook({
 HookManager.registerHook({
     name: 'updateToken',
     description: 'Handles token position updates',
+    priority: 2, // High priority - runs early
     callback: (token, changes) => {
         // Your logic here
         if (changes.x || changes.y) {
@@ -233,6 +238,37 @@ HookManager.registerHook({
         }
     }
 });
+
+// Critical system hooks get priority 1
+HookManager.registerHook({
+    name: 'closeGame',
+    description: 'Critical cleanup when game closes',
+    priority: 1, // Critical - runs first
+    callback: () => {
+        // Critical cleanup logic
+    }
+});
+```
+
+## **Enhanced Console Commands**
+
+```javascript
+// Show detailed hook information with priority grouping
+HookManager.showHookDetails();
+
+// Show simple hook summary
+HookManager.showHooks();
+
+// Filter hooks by priority
+const criticalHooks = HookManager.getHooksByPriority(1);
+const normalHooks = HookManager.getHooksByPriority(3);
+
+// Filter hooks by category
+const combatHooks = HookManager.getHooksByCategory('combat');
+const canvasHooks = HookManager.getHooksByCategory('canvas');
+
+// Get basic statistics
+const stats = HookManager.getHookStats();
 ```
 
 ## **Why This Approach is Right**
@@ -266,7 +302,7 @@ The HookManager should be a **simple orchestration layer** that:
 
 ---
 
-## **🚨 CRITICAL DESIGN ISSUES IDENTIFIED**
+## **CRITICAL DESIGN ISSUES IDENTIFIED**
 
 ### **Problem 1: Multiple Systems Need Same Hook**
 ```javascript
@@ -294,7 +330,7 @@ HookManager.registerHook({
 });
 ```
 
-**❌ Current Design Limitation: Only one callback per hook name**
+**Current Design Limitation: Only one callback per hook name**
 
 ### **Problem 2: Module Conflicts**
 ```javascript
@@ -317,11 +353,11 @@ HookManager.registerHook({
 });
 ```
 
-**❌ Module B will OVERWRITE Module A's hook!**
+**Module B will OVERWRITE Module A's hook!**
 
 ---
 
-## **💡 REQUIRED DESIGN CHANGES**
+## **REQUIRED DESIGN CHANGES**
 
 ### **Solution: Multiple Callbacks Per Hook**
 ```javascript
@@ -367,12 +403,25 @@ static registerHook({ name, description = '', callback }) {
 
 ### **Updated Data Structure**
 ```javascript
-static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
+static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt, priority, description }
+```
+
+### **Unique ID Generation**
+```javascript
+// Each callback gets a globally unique ID for precise removal
+return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+// Result: "updateActor_1703123456789_a1b2c3d4e"
+
+// Benefits:
+// - Globally unique (no collision possibility)
+// - Sortable (timestamp allows chronological ordering)
+// - Debuggable (you can see when it was created)
+// - Human readable (still easy to identify)
 ```
 
 ---
 
-## **✅ DESIGN PRINCIPLES UPDATED**
+## **DESIGN PRINCIPLES UPDATED**
 
 1. **Simple orchestration layer** ✅
 2. **No business logic in HookManager** ✅  
@@ -385,7 +434,7 @@ static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
 
 ---
 
-## **🎯 IMPLEMENTATION PRIORITY**
+## **IMPLEMENTATION PRIORITY**
 
 1. **Fix multiple callback support** (CRITICAL)
 2. **Add error handling** (HIGH)
