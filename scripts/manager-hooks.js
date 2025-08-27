@@ -451,6 +451,114 @@ export class HookManager {
             ['canvas']
         );
 
+        // Combat hooks - HIGH PRIORITY
+        const updateCombatantHookId = HookManager.registerHook(
+            "updateCombatant",
+            (combatant, data, options, userId) => {
+                // Only process if initiative was changed and we're the GM
+                if (!game.user.isGM || !('initiative' in data)) return;
+                
+                // Import and call the real CombatTracker functionality
+                import('./combat-tracker.js').then(({ CombatTracker }) => {
+                    // Reset the flag when any initiative is set to null
+                    if (data.initiative === null) {
+                        CombatTracker._hasSetFirstCombatant = false;
+                    }
+                    
+                    // Check if all initiatives have been rolled
+                    CombatTracker._checkAllInitiativesRolled(combatant.combat);
+                    
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Combatant initiative updated", {
+                        combatantName: combatant.name,
+                        initiative: data.initiative
+                    }, true, false);
+                }).catch(error => {
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Error importing CombatTracker", error, true, false);
+                });
+            },
+            ['combat']
+        );
+
+        const createCombatHookId = HookManager.registerHook(
+            "createCombat",
+            async (combat) => {
+                // Import and call the real CombatTracker functionality
+                import('./combat-tracker.js').then(({ CombatTracker }) => {
+                    // Reset first combatant flag when a new combat is created
+                    CombatTracker._hasSetFirstCombatant = false;
+                    
+                    // Auto-open combat tracker when combat is created
+                    if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+                        // Check if this user owns any combatants in the combat
+                        if (combat.combatants.find(c => c.isOwner)) {
+                            const tabApp = ui["combat"];
+                            tabApp.renderPopout(tabApp);
+                        }
+                    }
+                    
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: New combat created", "", true, false);
+                }).catch(error => {
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Error importing CombatTracker", error, true, false);
+                });
+            },
+            ['combat']
+        );
+
+        const deleteCombatHookId = HookManager.registerHook(
+            "deleteCombat",
+            () => {
+                // TODO: Import and call CombatTracker methods when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Combat deleted", "", true, false);
+            },
+            ['combat']
+        );
+
+        const endCombatHookId = HookManager.registerHook(
+            "endCombat",
+            () => {
+                // TODO: Import and call CombatTracker methods when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Combat ended", "", true, false);
+            },
+            ['combat']
+        );
+
+        const combatStartHookId = HookManager.registerHook(
+            "combatStart",
+            (combat) => {
+                // TODO: Import and call CombatTracker methods when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Combat started", "", true, false);
+            },
+            ['combat']
+        );
+
+        const updateCombatHookId = HookManager.registerHook(
+            "updateCombat",
+            (combat, changed, options, userId) => {
+                // TODO: Import and call CombatTracker methods when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Combat updated", {
+                    round: changed.round,
+                    userId: userId
+                }, true, false);
+            },
+            ['combat']
+        );
+
+        const renderCombatTrackerHookId = HookManager.registerHook(
+            "renderCombatTracker",
+            (app, html) => {
+                // Import and call the real combat tools functionality for health rings
+                import('./combat-tools.js').then(({ CombatTools }) => {
+                    // This will add health rings, portraits, and other visual elements
+                    CombatTools._addCombatTrackerEnhancements(app, html);
+                    
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Combat tracker rendered with enhancements", "", false, false);
+                }).catch(error => {
+                    postConsoleAndNotification(MODULE.NAME, "HookManager: Error importing CombatTools", error, true, false);
+                });
+            },
+            ['combat']
+        );
+
         // Update the logging message to reflect all consolidated hooks including global system hooks
         postConsoleAndNotification(
             MODULE.NAME,

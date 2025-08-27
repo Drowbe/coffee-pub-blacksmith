@@ -311,8 +311,8 @@ Hooks.once('ready', async () => {
 
 
 
-        // Initialize scene interactions
-        initializeSceneInteractions();
+        // Scene interactions are now managed by HookManager for centralized control
+        // Canvas hooks (canvasInit, canvasReady, updateScene) moved to HookManager
         
         // Initialize the unified roll system API
         const { executeRoll } = await import('./manager-rolls.js');

@@ -32,23 +32,10 @@ class CombatTracker {
                 // Reset last processed round
                 this._lastProcessedRound = 0;
                 
-                // Hook for detecting when all initiatives have been rolled
-                Hooks.on('updateCombatant', (combatant, data, options, userId) => {
-                    // Only process if initiative was changed and we're the GM
-                    if (!game.user.isGM || !('initiative' in data)) return;
-                    
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatant initiative updated", {
-                        combatantName: combatant.name,
-                        initiative: data.initiative
-                    }, true, false);
-                    
-                    // Reset the flag when any initiative is set to null
-                    if (data.initiative === null) {
-                        this._hasSetFirstCombatant = false;
-                    }
-                    
-                    this._checkAllInitiativesRolled(combatant.combat);
-                });
+                // NOTE: All combat hooks (updateCombatant, createCombat, deleteCombat, endCombat, 
+                // combatStart, updateCombat, renderCombatTracker, createCombatant) are now managed 
+                // by HookManager for centralized control. The old hook registrations below are 
+                // kept temporarily for reference but will be removed in the next phase.
                 
                 // Reset first combatant flag when a new combat is created
                 Hooks.on('createCombat', async (combat) => {
