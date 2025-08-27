@@ -522,8 +522,8 @@ Hooks.once('init', async function() {
 // ** Customize the Token Nameplates
 // ***************************************************
 
-// Nameplates are now updated in the main ready hook
-Hooks.on('updateToken', updateNameplates);
+// Token update hooks are now managed by HookManager for centralized control
+// Nameplates are updated through HookManager.updateToken hook
 
 
 

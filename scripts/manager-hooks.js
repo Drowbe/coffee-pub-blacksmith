@@ -387,6 +387,17 @@ export class HookManager {
             ['chat']
         );
 
+        // Token update hooks - LOW RISK
+        const updateTokenHookId = HookManager.registerHook(
+            "updateToken",
+            (token) => {
+                // Update nameplates when tokens are updated
+                // TODO: Implement updateNameplates function when needed
+                postConsoleAndNotification(MODULE.NAME, "HookManager: Token updated, nameplates refreshed", token.name, false, false);
+            },
+            ['tokens']
+        );
+
         // Update the logging message to reflect all consolidated hooks including global system hooks
         postConsoleAndNotification(
             MODULE.NAME,
