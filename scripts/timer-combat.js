@@ -72,79 +72,117 @@ class CombatTimer {
                 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "timer-combat", true, false);
 
                 // Handle planning timer expiration
-                Hooks.on('planningTimerExpired', this.handlePlanningTimerExpired.bind(this));
+                const planningTimerExpiredHookId = HookManager.registerHook({
+					name: 'planningTimerExpired',
+					description: 'Combat Timer: Handle planning timer expiration',
+					context: 'timer-combat-planning-expired',
+					priority: 3,
+					callback: this.handlePlanningTimerExpired.bind(this)
+				});
 
                 // Add hooks for token movement and actions
-                Hooks.on('updateToken', (token, changes, options, userId) => {
-                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
-                    if (!game.combat?.started) return;
-                    
-                    // Check if token belongs to current combatant
-                    const currentToken = game.combat.combatant?.token;
-                    if (!currentToken) return;
-                    
-                    // Check if this is the current combatant's token and it actually moved
-                    if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
-                        CombatTimer.state.showingMessage = false;
-                        $('.combat-timer-text').text('');
-                        CombatTimer.resumeTimer();
-                    }
-                });
+                const updateTokenHookId = HookManager.registerHook({
+					name: 'updateToken',
+					description: 'Combat Timer: Monitor token movement to resume timer on activity',
+					context: 'timer-combat-token-movement',
+					priority: 3,
+					callback: (token, changes, options, userId) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!game.combat?.started) return;
+						
+						// Check if token belongs to current combatant
+						const currentToken = game.combat.combatant?.token;
+						if (!currentToken) return;
+						
+						// Check if this is the current combatant's token and it actually moved
+						if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
+							CombatTimer.state.showingMessage = false;
+							$('.combat-timer-text').text('');
+							CombatTimer.resumeTimer();
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
 
                 // Monitor attack rolls
-                Hooks.on('dnd5e.rollAttack', (item, roll) => {
-                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
-                    if (!game.combat?.started) return;
-                    
-                    const currentActor = game.combat.combatant?.actor;
-                    if (!currentActor || !item.actor) return;
-                    
-                    // Check if this is the current combatant's action
-                    if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
-                        CombatTimer.state.showingMessage = false;
-                        $('.combat-timer-text').text('');
-                        CombatTimer.resumeTimer();
-                    }
-                });
+                const rollAttackHookId = HookManager.registerHook({
+					name: 'dnd5e.rollAttack',
+					description: 'Combat Timer: Monitor attack rolls to resume timer on activity',
+					context: 'timer-combat-attack-rolls',
+					priority: 3,
+					callback: (item, roll) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!game.combat?.started) return;
+						
+						const currentActor = game.combat.combatant?.actor;
+						if (!currentActor || !item.actor) return;
+						
+						// Check if this is the current combatant's action
+						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+							CombatTimer.state.showingMessage = false;
+							$('.combat-timer-text').text('');
+							CombatTimer.resumeTimer();
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
 
                 // Monitor damage rolls
-                Hooks.on('dnd5e.rollDamage', (item, roll) => {
-                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
-                    if (!game.combat?.started) return;
-                    
-                    const currentActor = game.combat.combatant?.actor;
-                    if (!currentActor || !item.actor) return;
-                    
-                    // Check if this is the current combatant's action
-                    if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
-                        CombatTimer.state.showingMessage = false;
-                        $('.combat-timer-text').text('');
-                        CombatTimer.resumeTimer();
-                    }
-                });
+                const rollDamageHookId = HookManager.registerHook({
+					name: 'dnd5e.rollDamage',
+					description: 'Combat Timer: Monitor damage rolls to resume timer on activity',
+					context: 'timer-combat-damage-rolls',
+					priority: 3,
+					callback: (item, roll) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!game.combat?.started) return;
+						
+						const currentActor = game.combat.combatant?.actor;
+						if (!currentActor || !item.actor) return;
+						
+						// Check if this is the current combatant's action
+						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+							CombatTimer.state.showingMessage = false;
+							$('.combat-timer-text').text('');
+							CombatTimer.resumeTimer();
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
 
                 // Monitor token targeting
-                Hooks.on('targetToken', (user, token, targeted) => {
-                    if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
-                    if (!game.combat?.started) return;
-                    
-                    // Only process if a token is being targeted (not untargeted)
-                    if (!targeted) return;
-                    
-                    // Check if the user controls the current combatant
-                    const currentCombatant = game.combat.combatant;
-                    if (!currentCombatant) return;
-                    
-                    // Check if this user controls the current combatant
-                    const isCurrentCombatantUser = currentCombatant.isOwner && 
-                                                  (user.id === game.user.id);
-                    
-                    if (isCurrentCombatantUser && CombatTimer.state.isPaused) {
-                        CombatTimer.state.showingMessage = false;
-                        $('.combat-timer-text').text('');
-                        CombatTimer.resumeTimer();
-                    }
-                });
+                const targetTokenHookId = HookManager.registerHook({
+					name: 'targetToken',
+					description: 'Combat Timer: Monitor token targeting to resume timer on activity',
+					context: 'timer-combat-token-targeting',
+					priority: 3,
+					callback: (user, token, targeted) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!game.combat?.started) return;
+						
+						// Only process if a token is being targeted (not untargeted)
+						if (!targeted) return;
+						
+						// Check if the user controls the current combatant
+						const currentCombatant = game.combat.combatant;
+						if (!currentCombatant) return;
+						
+						// Check if this user controls the current combatant
+						const isCurrentCombatantUser = currentCombatant.isOwner && 
+													  (user.id === game.user.id);
+						
+						if (isCurrentCombatantUser && CombatTimer.state.isPaused) {
+							CombatTimer.state.showingMessage = false;
+							$('.combat-timer-text').text('');
+							CombatTimer.resumeTimer();
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
 
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, false);
