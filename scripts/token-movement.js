@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from "./chat-panel.js";
+import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
 // ===== STATE VARIABLES ============================================
@@ -371,8 +372,14 @@ function checkPartyLeader() {
     return leaderToken;
 }
 
-// Add hook for token movement restrictions
-Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
+// Register preUpdateToken hook for movement restrictions
+const preUpdateTokenHookId = HookManager.registerHook({
+    name: 'preUpdateToken',
+    description: 'Token Movement: Enforce movement restrictions and rules',
+    context: 'token-movement-restrictions',
+    priority: 2, // High priority - movement validation
+    callback: (tokenDocument, changes, options, userId) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     // Skip if no position change
     if (!changes.x && !changes.y) return true;
 
@@ -429,9 +436,15 @@ Hooks.on('preUpdateToken', (tokenDocument, changes, options, userId) => {
         // Setting not registered yet, allowing movement
     }
     
-    // Allow movement in all other cases
-    return true;
+        // Allow movement in all other cases
+        return true;
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | preUpdateToken", "token-movement-restrictions", true, false);
 
 // Calculate the grid position for a token
 function getGridPositionKey(x, y) {
@@ -479,8 +492,14 @@ function recordLeaderPathStep(startPos, endPos) {
     prependToPath(points);
 }
 
-// Hook for after a token is updated - used to trigger conga line
-Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
+// Register updateToken hook for conga line processing
+const updateTokenHookId = HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Token Movement: Process token updates for conga line and follower movement',
+    context: 'token-movement-updates',
+    priority: 3, // Normal priority - movement processing
+    callback: (tokenDocument, changes, options, userId) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     if (!changes.x && !changes.y) return;
     
     // Only process for GMs to avoid duplicate processing
@@ -535,10 +554,16 @@ Hooks.on('updateToken', (tokenDocument, changes, options, userId) => {
         
         handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower);
         
-    } catch (err) {
-        // Error in movement processing
+        } catch (err) {
+            // Error in movement processing
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateToken", "token-movement-updates", true, false);
 
 // Utility functions for grid conversion
 function worldToGrid(x, y) {
@@ -1093,8 +1118,14 @@ function trimPathPoints() {
     }
 }
 
-// Add hooks for combat automation
-Hooks.on('createCombat', async (combat) => {
+// Register createCombat hook for combat automation
+const createCombatHookId = HookManager.registerHook({
+    name: 'createCombat',
+    description: 'Token Movement: Switch to combat movement mode when combat starts',
+    context: 'token-movement-combat-start',
+    priority: 3, // Normal priority - combat mode switching
+    callback: async (combat) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     try {
         if (!game.user.isGM) return;
         
@@ -1143,12 +1174,25 @@ Hooks.on('createCombat', async (combat) => {
                 });
             }
         }
-    } catch (err) {
-        // Error in combat start handling
+        } catch (err) {
+            // Error in combat start handling
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
 });
 
-Hooks.on('deleteCombat', async (combat) => {
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | createCombat", "token-movement-combat-start", true, false);
+
+// Register deleteCombat hook for combat automation
+const deleteCombatHookId = HookManager.registerHook({
+    name: 'deleteCombat',
+    description: 'Token Movement: Restore previous movement mode when combat ends',
+    context: 'token-movement-combat-end',
+    priority: 3, // Normal priority - combat mode restoration
+    callback: async (combat) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     try {
         if (!game.user.isGM) return;
         if (!preCombatMovementMode) return;
@@ -1197,8 +1241,14 @@ Hooks.on('deleteCombat', async (combat) => {
         
         // Clear the stored mode
         preCombatMovementMode = null;
-    } catch (err) {
-        // Error in combat end handling
+        } catch (err) {
+            // Error in combat end handling
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
-}); 
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | deleteCombat", "token-movement-combat-end", true, false);
 

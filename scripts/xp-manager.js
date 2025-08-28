@@ -4,6 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping
@@ -30,10 +31,37 @@ export class XpManager {
     };
 
     static initialize() {
-        // Register multiple combat hooks to see which ones are triggered
-        Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
-        Hooks.on('combatRound', this._onCombatRound.bind(this));
-        Hooks.on('combatTurn', this._onCombatTurn.bind(this));
+        // Register deleteCombat hook for XP distribution
+        const deleteCombatHookId = HookManager.registerHook({
+            name: 'deleteCombat',
+            description: 'XP Manager: Handle combat end and trigger XP distribution',
+            context: 'xp-manager-combat-end',
+            priority: 3, // Normal priority - XP processing
+            callback: this._onCombatEnd.bind(this)
+        });
+
+        // Register combatRound hook for round tracking
+        const combatRoundHookId = HookManager.registerHook({
+            name: 'combatRound',
+            description: 'XP Manager: Track combat rounds for XP calculations',
+            context: 'xp-manager-combat-round',
+            priority: 3, // Normal priority - round tracking
+            callback: this._onCombatRound.bind(this)
+        });
+
+        // Register combatTurn hook for turn tracking
+        const combatTurnHookId = HookManager.registerHook({
+            name: 'combatTurn',
+            description: 'XP Manager: Track combat turns for XP calculations',
+            context: 'xp-manager-combat-turn',
+            priority: 3, // Normal priority - turn tracking
+            callback: this._onCombatTurn.bind(this)
+        });
+
+        // Log hook registrations
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | deleteCombat", "xp-manager-combat-end", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatRound", "xp-manager-combat-round", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatTurn", "xp-manager-combat-turn", true, false);
 
         // Register Handlebars helper for prettifying resolution types
         if (typeof Handlebars !== 'undefined') {

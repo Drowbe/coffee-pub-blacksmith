@@ -9,6 +9,7 @@ import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { MovementConfig } from './token-movement.js';
+import { HookManager } from './manager-hooks.js';
 
 class ChatPanel {
     static ID = 'chat-panel';
@@ -36,10 +37,23 @@ class ChatPanel {
             return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
         });
 
-        // Set up the render hook for the panel
-        Hooks.on('renderChatLog', (app, html, data) => {
-            this._onRenderChatLog(app, html, data);
+        // Register renderChatLog hook for panel rendering
+        const renderChatLogHookId = HookManager.registerHook({
+            name: 'renderChatLog',
+            description: 'Chat Panel: Render custom chat panel with leader and timer info',
+            context: 'chat-panel-render',
+            priority: 3, // Normal priority - UI rendering
+            callback: (app, html, data) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                this._onRenderChatLog(app, html, data);
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
         });
+
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatLog", "chat-panel-render", true, false);
 
         // Wait for socket to be ready
         Hooks.once('blacksmith.socketReady', () => {

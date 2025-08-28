@@ -4,6 +4,7 @@
 
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 export class TokenImageReplacement {
     static ID = 'token-image-replacement';
@@ -47,9 +48,17 @@ export class TokenImageReplacement {
         // Initialize the caching system when the module is ready
         Hooks.once('ready', this._initializeCache.bind(this));
         
-        // Hook into token creation for image replacement
-        Hooks.on('createToken', this._onTokenCreated.bind(this));
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Hook 'createToken' registered", "", false, false);
+        // Register createToken hook for image replacement
+        const createTokenHookId = HookManager.registerHook({
+            name: 'createToken',
+            description: 'Token Image Replacement: Handle token creation for image replacement',
+            context: 'token-image-replacement-creation',
+            priority: 3, // Normal priority - token processing
+            callback: this._onTokenCreated.bind(this)
+        });
+
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | createToken", "token-image-replacement-creation", true, false);
         
         // Add test function to global scope for debugging (moved to ready hook)
         Hooks.once('ready', () => {
