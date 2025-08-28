@@ -34,55 +34,95 @@ class CombatTracker {
                 this._lastProcessedRound = 0;
                 
                 // Hook for detecting when all initiatives have been rolled
-                Hooks.on('updateCombatant', (combatant, data, options, userId) => {
-                    // Only process if initiative was changed and we're the GM
-                    if (!game.user.isGM || !('initiative' in data)) return;
-                    
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatant initiative updated", {
-                        combatantName: combatant.name,
-                        initiative: data.initiative
-                    }, true, false);
-                    
-                    // Reset the flag when any initiative is set to null
-                    if (data.initiative === null) {
-                        this._hasSetFirstCombatant = false;
-                    }
-                    
-                    this._checkAllInitiativesRolled(combatant.combat);
-                });
+                const updateCombatantHookId = HookManager.registerHook({
+					name: 'updateCombatant',
+					description: 'Combat Tracker: Monitor combatant initiative updates',
+					context: 'combat-tracker-combatant-updates',
+					priority: 3,
+					callback: (combatant, data, options, userId) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						// Only process if initiative was changed and we're the GM
+						if (!game.user.isGM || !('initiative' in data)) return;
+						
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatant initiative updated", {
+							combatantName: combatant.name,
+							initiative: data.initiative
+						}, true, false);
+						
+						// Reset the flag when any initiative is set to null
+						if (data.initiative === null) {
+							this._hasSetFirstCombatant = false;
+						}
+						
+						this._checkAllInitiativesRolled(combatant.combat);
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Reset first combatant flag when a new combat is created
-                Hooks.on('createCombat', async (combat) => {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: New combat created, resetting first combatant flag", "", true, false);
-                    this._hasSetFirstCombatant = false;
-                    
-                    // Auto-open combat tracker when combat is created
-                    if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-                        // Check if this user owns any combatants in the combat
-                        if (combat.combatants.find(c => c.isOwner)) {
-                            const tabApp = ui["combat"];
-                            tabApp.renderPopout(tabApp);
-                        }
-                    }
-                });
+                const createCombatHookId = HookManager.registerHook({
+					name: 'createCombat',
+					description: 'Combat Tracker: Handle new combat creation and auto-open',
+					context: 'combat-tracker-combat-creation',
+					priority: 3,
+					callback: async (combat) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: New combat created, resetting first combatant flag", "", true, false);
+						this._hasSetFirstCombatant = false;
+						
+						// Auto-open combat tracker when combat is created
+						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+							// Check if this user owns any combatants in the combat
+							if (combat.combatants.find(c => c.isOwner)) {
+								const tabApp = ui["combat"];
+								tabApp.renderPopout(tabApp);
+							}
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Reset first combatant flag when combat is deleted or ended
-                Hooks.on('deleteCombat', () => {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat deleted, resetting first combatant flag", "", true, false);
-                    this._hasSetFirstCombatant = false;
-                });
+                const deleteCombatHookId = HookManager.registerHook({
+					name: 'deleteCombat',
+					description: 'Combat Tracker: Handle combat deletion and cleanup',
+					context: 'combat-tracker-combat-deletion',
+					priority: 3,
+					callback: () => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat deleted, resetting first combatant flag", "", true, false);
+						this._hasSetFirstCombatant = false;
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
-                Hooks.on('endCombat', () => {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat ended, resetting first combatant flag", "", true, false);
-                    this._hasSetFirstCombatant = false;
-                });
+                const endCombatHookId = HookManager.registerHook({
+					name: 'endCombat',
+					description: 'Combat Tracker: Handle combat end and cleanup',
+					context: 'combat-tracker-combat-end',
+					priority: 3,
+					callback: () => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat ended, resetting first combatant flag", "", true, false);
+						this._hasSetFirstCombatant = false;
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Check when a combat starts
-                Hooks.on('combatStart', (combat) => {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat started, checking if all initiatives are already rolled", "", true, false);
-                    // Wait a small delay to ensure all combatants are fully initialized
-                    setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
-                });
+                const combatStartHookId = HookManager.registerHook({
+					name: 'combatStart',
+					description: 'Combat Tracker: Handle combat start and initiative checking',
+					context: 'combat-tracker-combat-start',
+					priority: 3,
+					callback: (combat) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat started, checking if all initiatives are already rolled", "", true, false);
+						// Wait a small delay to ensure all combatants are fully initialized
+						setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Check when combat round changes
                 const roundChangeHookId = HookManager.registerHook({
@@ -136,168 +176,200 @@ class CombatTracker {
                 postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "combat-tracker-player-initiative", true, false);
                 
                 // Hook into combat start for player initiative
-                Hooks.on('combatStart', (combat) => {
-                    // When combat starts, check if we should roll for player characters
-                    setTimeout(() => {
-                        this._rollInitiativeForPlayerCharacters(combat);
-                    }, 500);
-                });
+                const combatStartPlayerInitiativeHookId = HookManager.registerHook({
+					name: 'combatStart',
+					description: 'Combat Tracker: Handle player initiative rolling on combat start',
+					context: 'combat-tracker-player-initiative-start',
+					priority: 3,
+					callback: (combat) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						// When combat starts, check if we should roll for player characters
+						setTimeout(() => {
+							this._rollInitiativeForPlayerCharacters(combat);
+						}, 500);
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Handle player auto-roll when their combatants are created
-                Hooks.on('createCombatant', async (combatant, options, userId) => {
-                    // Handle player auto-roll
-                    if (!game.user.isGM) {
-                        // Only process if:
-                        // 1. The combatant has an actor
-                        // 2. The actor is player-owned
-                        // 3. The current user owns the actor
-                        // 4. The combatant has null initiative
-                        // 5. Auto-roll is enabled for this user
-                        if (combatant.actor && 
-                            combatant.actor.hasPlayerOwner && 
-                            combatant.actor.isOwner && 
-                            combatant.initiative === null &&
-                            game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
-                            
-                            postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", true, false);
-                            await combatant.rollInitiative();
-                        }
-                        return;
-                    }
+                const createCombatantHookId = HookManager.registerHook({
+					name: 'createCombatant',
+					description: 'Combat Tracker: Handle new combatant creation and initiative management',
+					context: 'combat-tracker-combatant-creation',
+					priority: 3,
+					callback: async (combatant, options, userId) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						// Handle player auto-roll
+						if (!game.user.isGM) {
+							// Only process if:
+							// 1. The combatant has an actor
+							// 2. The actor is player-owned
+							// 3. The current user owns the actor
+							// 4. The combatant has null initiative
+							// 5. Auto-roll is enabled for this user
+							if (combatant.actor && 
+								combatant.actor.hasPlayerOwner && 
+								combatant.actor.isOwner && 
+								combatant.initiative === null &&
+								game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
+								
+								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", true, false);
+								await combatant.rollInitiative();
+							}
+							return;
+						}
 
-                    // Handle GM auto-roll and initiative modes for NPCs
-                    // Get NPC initiative setting
-                    const initiativeMode = game.settings.get(MODULE.ID, 'combatTrackerAddInitiative');
-                    
-                    // Check if we should auto-roll initiative for non-player combatants when added to tracker
-                    const shouldAutoRoll = game.settings.get(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer');
-                    
-                    // Skip player-controlled combatants
-                    const actor = combatant.actor;
-                    if (!actor || actor.hasPlayerOwner) return;
-                    
-                    const combat = combatant.combat;
-                    
-                    // CASE 1: Combat hasn't started yet - auto-roll for NPCs/monsters when setting is enabled
-                    if (shouldAutoRoll && (!combat?.started || combat.round === 0)) {
-                        // Don't roll if initiative is already set
-                        if (combatant.initiative === null) {
-                            await combatant.rollInitiative();
-                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-rolled initiative for " + combatant.name + " (combat not started yet)", "", true, false);
-                        }
-                        return;
-                    }
-                    
-                    // CASE 2: Combat is in progress - use the combatTrackerAddInitiative setting
-                    // Skip processing if the setting is 'none' or combat isn't started
-                    if (initiativeMode === 'none' || !combat?.started) return;
-                    
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NPC/Monster added to combat", {
-                        name: combatant.name,
-                        mode: initiativeMode
-                    }, true, false);
-                    
-                    // Process based on setting
-                    switch (initiativeMode) {
-                        case 'auto':
-                            // Roll initiative automatically
-                            await combatant.rollInitiative();
-                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Rolled initiative for " + combatant.name, "", true, false);
-                            break;
-                        
-                        case 'next': 
-                            // Set initiative to act immediately after current turn
-                            if (combat.turn !== undefined && combat.turns) {
-                                const currentCombatantIndex = combat.turn;
-                                const nextCombatantIndex = (currentCombatantIndex + 1) % combat.turns.length;
-                                const currentInit = combat.turns[currentCombatantIndex]?.initiative || 0;
-                                const nextInit = combat.turns[nextCombatantIndex]?.initiative || 0;
-                                
-                                // If next combatant has the same initiative as the current one
-                                // add a small decimal to place after current but before next with same init
-                                let newInit = currentInit;
-                                if (currentInit === nextInit) {
-                                    newInit = currentInit - 0.01;
-                                } else {
-                                    // Set halfway between current and next initiative
-                                    newInit = (currentInit + nextInit) / 2;
-                                }
-                                
-                                await combatant.update({initiative: newInit});
-                                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act next with initiative " + newInit, "", true, false);
-                            } else {
-                                // If there's no active combat or turn, just roll
-                                await combatant.rollInitiative();
-                                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No active turn, rolled initiative for " + combatant.name, "", true, false);
-                            }
-                            break;
-                        
-                        case 'last':
-                            // Find the lowest initiative in combat
-                            if (combat.turns && combat.turns.length > 0) {
-                                const validTurns = combat.turns.filter(t => t.id !== combatant.id && t.initiative !== null);
-                                if (validTurns.length > 0) {
-                                    const lowestInit = Math.min(...validTurns.map(t => t.initiative));
-                                    await combatant.update({initiative: lowestInit - 1});
-                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act last with initiative " + (lowestInit - 1), "", true, false);
-                                } else {
-                                    // If no other combatants, just roll
-                                    await combatant.rollInitiative();
-                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants with initiative, rolled for " + combatant.name, "", true, false);
-                                }
-                            } else {
-                                // If there's no other combatants, just roll
-                                await combatant.rollInitiative();
-                                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants, rolled initiative for " + combatant.name, "", true, false);
-                            }
-                            break;
-                    }
-                });
+						// Handle GM auto-roll and initiative modes for NPCs
+						// Get NPC initiative setting
+						const initiativeMode = game.settings.get(MODULE.ID, 'combatTrackerAddInitiative');
+						
+						// Check if we should auto-roll initiative for non-player combatants when added to tracker
+						const shouldAutoRoll = game.settings.get(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer');
+						
+						// Skip player-controlled combatants
+						const actor = combatant.actor;
+						if (!actor || actor.hasPlayerOwner) return;
+						
+						const combat = combatant.combat;
+						
+						// CASE 1: Combat hasn't started yet - auto-roll for NPCs/monsters when setting is enabled
+						if (shouldAutoRoll && (!combat?.started || combat.round === 0)) {
+							// Don't roll if initiative is already set
+							if (combatant.initiative === null) {
+								await combatant.rollInitiative();
+								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-rolled initiative for " + combatant.name + " (combat not started yet)", "", true, false);
+							}
+							return;
+						}
+						
+						// CASE 2: Combat is in progress - use the combatTrackerAddInitiative setting
+						// Skip processing if the setting is 'none' or combat isn't started
+						if (initiativeMode === 'none' || !combat?.started) return;
+						
+						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NPC/Monster added to combat", {
+							name: combatant.name,
+							mode: initiativeMode
+						}, true, false);
+						
+						// Process based on setting
+						switch (initiativeMode) {
+							case 'auto':
+								// Roll initiative automatically
+								await combatant.rollInitiative();
+								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Rolled initiative for " + combatant.name, "", true, false);
+								break;
+							
+							case 'next': 
+								// Set initiative to act immediately after current turn
+								if (combat.turn !== undefined && combat.turns) {
+									const currentCombatantIndex = combat.turn;
+									const nextCombatantIndex = (currentCombatantIndex + 1) % combat.turns.length;
+									const currentInit = combat.turns[currentCombatantIndex]?.initiative || 0;
+									const nextInit = combat.turns[nextCombatantIndex]?.initiative || 0;
+									
+									// If next combatant has the same initiative as the current one
+									// add a small decimal to place after current but before next with same init
+									let newInit = currentInit;
+									if (currentInit === nextInit) {
+										newInit = currentInit - 0.01;
+									} else {
+										// Set halfway between current and next initiative
+										newInit = (currentInit + nextInit) / 2;
+									}
+									
+									await combatant.update({initiative: newInit});
+									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act next with initiative " + newInit, "", true, false);
+								} else {
+									// If there's no active combat or turn, just roll
+									await combatant.rollInitiative();
+									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No active turn, rolled initiative for " + combatant.name, "", true, false);
+								}
+								break;
+							
+							case 'last':
+								// Find the lowest initiative in combat
+								if (combat.turns && combat.turns.length > 0) {
+									const validTurns = combat.turns.filter(t => t.id !== combatant.id && t.initiative !== null);
+									if (validTurns.length > 0) {
+										const lowestInit = Math.min(...validTurns.map(t => t.initiative));
+										await combatant.update({initiative: lowestInit - 1});
+										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act last with initiative " + (lowestInit - 1), "", true, false);
+									} else {
+										// If no other combatants, just roll
+										await combatant.rollInitiative();
+										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants with initiative, rolled for " + combatant.name, "", true, false);
+									}
+								} else {
+									// If there's no other combatants, just roll
+									await combatant.rollInitiative();
+									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants, rolled initiative for " + combatant.name, "", true, false);
+								}
+								break;
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Handle auto-open for both new combats and client reloads
-                Hooks.on('renderCombatTracker', () => {
-                    // Only proceed if the setting is enabled
-                    if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
+                const renderCombatTrackerAutoOpenHookId = HookManager.registerHook({
+					name: 'renderCombatTracker',
+					description: 'Combat Tracker: Handle auto-open for combat tracker',
+					context: 'combat-tracker-auto-open',
+					priority: 3,
+					callback: () => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						// Only proceed if the setting is enabled
+						if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
 
-                    const combat = game.combat;
-                    // Check if there are combatants in the combat
-                    if (combat?.combatants.size > 0) {
-                        // Check if this user owns any combatants in the combat
-                        if (combat.combatants.find(c => c.isOwner)) {
-                            const tabApp = ui["combat"];
-                            tabApp.renderPopout(tabApp);
-                        }
-                    }
-                });
+						const combat = game.combat;
+						// Check if there are combatants in the combat
+						if (combat?.combatants.size > 0) {
+							// Check if this user owns any combatants in the combat
+							if (combat.combatants.find(c => c.isOwner)) {
+								const tabApp = ui["combat"];
+								tabApp.renderPopout(tabApp);
+							}
+						}
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
                 // Add Roll Remaining button to combat tracker
-                Hooks.on('renderCombatTracker', (app, html) => {
-                    // Only add for GM
-                    if (!game.user.isGM) return;
+                const renderCombatTrackerButtonHookId = HookManager.registerHook({
+					name: 'renderCombatTracker',
+					description: 'Combat Tracker: Add Roll Remaining button to combat tracker',
+					context: 'combat-tracker-button-add',
+					priority: 3,
+					callback: (app, html) => {
+						// --- BEGIN - HOOKMANAGER CALLBACK ---
+						// Only add for GM
+						if (!game.user.isGM) return;
 
-                    // Only add if there's an active combat
-                    if (!game.combat) return;
+						// Only add if there's an active combat
+						if (!game.combat) return;
 
-                    // Find the Roll NPCs button
-                    const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
-                    if (!rollNPCButton.length) return;
+						// Find the Roll NPCs button
+						const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
+						if (!rollNPCButton.length) return;
 
-                    // Create and insert our new button
-                    const rollRemainingButton = $(`
-                        <a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll Remaining" data-control="rollRemaining">
-                            <i class="fas fa-users-medical"></i>
-                        </a>
-                    `);
+						// Create and insert our new button
+						const rollRemainingButton = $(`
+							<a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll Remaining" data-control="rollRemaining">
+								<i class="fas fa-users-medical"></i>
+							</a>
+						`);
 
-                    // Insert after the Roll NPCs button
-                    rollNPCButton.after(rollRemainingButton);
+						// Insert after the Roll NPCs button
+						rollNPCButton.after(rollRemainingButton);
 
-                    // Add click handler
-                    rollRemainingButton.click(async (event) => {
-                        event.preventDefault();
-                        await this._rollRemainingInitiatives();
-                    });
-                });
+						// Add click handler
+						rollRemainingButton.click(async (event) => {
+							event.preventDefault();
+							await this._rollRemainingInitiatives();
+						});
+						// --- END - HOOKMANAGER CALLBACK ---
+					}
+				});
                 
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Tracker`, error, false, false);
