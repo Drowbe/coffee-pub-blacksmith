@@ -1,6 +1,7 @@
 // Import MODULE variables
 import { MODULE } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 // Default stats structure
 const CPB_STATS_DEFAULTS = {
@@ -77,7 +78,18 @@ class CPBPlayerStats {
         // Register hooks for data collection
         Hooks.on('dnd5e.rollAttack', this._onAttackRoll.bind(this));
         Hooks.on('dnd5e.rollDamage', this._onDamageRoll.bind(this));
-        Hooks.on('updateCombat', this._onCombatUpdate.bind(this));
+        
+        // Migrate updateCombat hook to HookManager for centralized control
+        const hookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'Player Stats: Track player character turn statistics and combat data',
+            priority: 3, // Normal priority - statistics collection
+            callback: this._onCombatUpdate.bind(this),
+            context: 'stats-player'
+        });
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-player", true, false);
+        
         Hooks.on('updateActor', this._onActorUpdate.bind(this));
         Hooks.on('createCombat', this._onCombatStart.bind(this));
         Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
