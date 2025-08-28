@@ -126,16 +126,14 @@ export class HookManager {
             this.contexts.get(context).add(callbackId);
         }
         
-        // Logging with debug toggle
-        if (game.settings.get(MODULE.ID, 'debugHooks')) {
-            postConsoleAndNotification(
-                MODULE.NAME,
-                `Hook registered: ${name}`,
-                { description, priority, totalCallbacks: entry.callbacks.length },
-                true,
-                false
-            );
-        }
+        // Logging hook registration
+        postConsoleAndNotification(
+            MODULE.NAME,
+            `Hook registered: ${name}`,
+            { description, priority, totalCallbacks: entry.callbacks.length },
+            true,
+            false
+        );
         
         return callbackId;
     }
@@ -427,6 +425,14 @@ export class HookManager {
             HookManager.disposeByContext(`token:${data._id ?? data.id}`);
         });
         
+        postConsoleAndNotification(
+            MODULE.NAME,
+            'Hook Manager | Initialization',
+            'Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats()',
+            true,
+            false
+        );
+        
         // Set up global console commands for easy access
         if (typeof window !== 'undefined') {
             // Add module-prefixed console commands
@@ -439,14 +445,6 @@ export class HookManager {
             window.showHookDetails = () => HookManager.showHookDetails();
             window.hookStats = () => HookManager.getStats();
         }
-        
-        postConsoleAndNotification(
-            MODULE.NAME,
-            'Hook Manager | Initialization',
-            'Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats()',
-            true,
-            false
-        );
     }
 }
 

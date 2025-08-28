@@ -5,6 +5,7 @@
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 /**
  * CombatTracker - Handles combat management functionality for player characters
@@ -84,37 +85,55 @@ class CombatTracker {
                 });
                 
                 // Check when combat round changes
-                Hooks.on('updateCombat', (combat, changed) => {
-                    // If the round changes, reset the flag and check initiatives
-                    if ('round' in changed && combat.round > 0) {
-                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Round changed to " + combat.round + ", checking initiatives", "", true, false);
-                        // Wait a small delay to ensure all combat state is updated
-                        setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
-                        
-                        // Only for GM: Clear initiative and roll for NPCs if enabled
-                        if (game.user.isGM) {
-                            this._handleRoundChange(combat);
+                const roundChangeHookId = HookManager.registerHook({
+                    name: 'updateCombat',
+                    description: 'Combat Tracker: Handle round changes and initiative checking',
+                    priority: 2, // High priority - core combat functionality
+                    callback: (combat, changed) => {
+                        // If the round changes, reset the flag and check initiatives
+                        if ('round' in changed && combat.round > 0) {
+                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Round changed to " + combat.round + ", checking initiatives", "", true, false);
+                            // Wait a small delay to ensure all combat state is updated
+                            setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
+                            
+                            // Only for GM: Clear initiative and roll for NPCs if enabled
+                            if (game.user.isGM) {
+                                this._handleRoundChange(combat);
+                            }
                         }
-                    }
+                    },
+                    context: 'combat-tracker-round-change'
                 });
                 
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "combat-tracker-round-change", true, false);
+                
                 // Handle player initiative rolling
-                Hooks.on('updateCombat', (combat, changed, options, userId) => {
-                    // Only process round changes (when the combat updates with a new round)
-                    if (!("round" in changed)) return;
-                    
-                    // Skip if this is the first round (initial creation)
-                    if (combat.round <= 1) return;
-                    
-                    // Check the initiative clearing setting - only proceed if initiative is being cleared
-                    if (!game.settings.get(MODULE.ID, 'combatTrackerClearInitiative')) return;
-                    
-                    // Add a slight delay to ensure the GM has time to clear initiatives first
-                    setTimeout(() => {
-                        // Now roll initiative for player-owned characters
-                        this._rollInitiativeForPlayerCharacters(combat);
-                    }, 1000);
+                const playerInitiativeHookId = HookManager.registerHook({
+                    name: 'updateCombat',
+                    description: 'Combat Tracker: Handle player initiative rolling on round changes',
+                    priority: 2, // High priority - core combat functionality
+                    callback: (combat, changed, options, userId) => {
+                        // Only process round changes (when the combat updates with a new round)
+                        if (!("round" in changed)) return;
+                        
+                        // Skip if this is the first round (initial creation)
+                        if (combat.round <= 1) return;
+                        
+                        // Check the initiative clearing setting - only proceed if initiative is being cleared
+                        if (!game.settings.get(MODULE.ID, 'combatTrackerClearInitiative')) return;
+                        
+                        // Add a slight delay to ensure the GM has time to clear initiatives first
+                        setTimeout(() => {
+                            // Now roll initiative for player-owned characters
+                            this._rollInitiativeForPlayerCharacters(combat);
+                        }, 1000);
+                    },
+                    context: 'combat-tracker-player-initiative'
                 });
+                
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "combat-tracker-player-initiative", true, false);
                 
                 // Hook into combat start for player initiative
                 Hooks.on('combatStart', (combat) => {
