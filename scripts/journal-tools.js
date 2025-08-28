@@ -4,10 +4,22 @@
 
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 export class JournalTools {
     static async init() {
-        Hooks.on('renderJournalSheet', this._onRenderJournalSheet.bind(this));
+        // Register renderJournalSheet hook
+        const renderJournalSheetHookId = HookManager.registerHook({
+            name: 'renderJournalSheet',
+            description: 'Journal Tools: Add tools icon to journal sheets',
+            context: 'journal-tools-sheet',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onRenderJournalSheet.bind(this)
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "journal-tools-sheet", true, false);
+        
         Hooks.on('settingChange', this._onSettingChange.bind(this));
         
         // Register Handlebars partials
