@@ -442,45 +442,54 @@ class CombatStats {
         });
 
         // Add click handler for collapsible sections after template is rendered
-        Hooks.on('renderChatMessage', (message, html) => {
-            if (message.content.includes('blacksmith-card')) {
-                const headers = html.find('.section-header.collapsible');
-                
-                headers.on('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
+        const renderChatMessageHookId = HookManager.registerHook({
+            name: 'renderChatMessage',
+            description: 'Combat Stats: Handle collapsible section clicks in blacksmith cards',
+            context: 'stats-combat-chat',
+            priority: 3, // Normal priority - UI interaction
+            callback: (message, html) => {
+                if (message.content.includes('blacksmith-card')) {
+                    const headers = html.find('.section-header.collapsible');
                     
-                    const header = event.currentTarget;
-                    const content = header.nextElementSibling;
-                    const sectionType = header.dataset.section;
-                    const icon = header.querySelector('.collapse-indicator');
-                    
-                    // Toggle collapsed state
-                    header.classList.toggle('collapsed');
-                    
-                    // Update maxHeight based on collapsed state
-                    if (header.classList.contains('collapsed')) {
-                        content.style.maxHeight = '0px';
-                        // Update chevron
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
-                        // Store state for next time
-                        if (sectionType) {
-                            this.sectionStates[sectionType] = 'collapsed';
+                    headers.on('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        const header = event.currentTarget;
+                        const content = header.nextElementSibling;
+                        const sectionType = header.dataset.section;
+                        const icon = header.querySelector('.collapse-indicator');
+                        
+                        // Toggle collapsed state
+                        header.classList.toggle('collapsed');
+                        
+                        // Update maxHeight based on collapsed state
+                        if (header.classList.contains('collapsed')) {
+                            content.style.maxHeight = '0px';
+                            // Update chevron
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-right');
+                            // Store state for next time
+                            if (sectionType) {
+                                this.sectionStates[sectionType] = 'collapsed';
+                            }
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                            // Update chevron
+                            icon.classList.remove('fa-chevron-right');
+                            icon.classList.add('fa-chevron-down');
+                            // Store state for next time
+                            if (sectionType) {
+                                this.sectionStates[sectionType] = 'expanded';
+                            }
                         }
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                        // Update chevron
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-down');
-                        // Store state for next time
-                        if (sectionType) {
-                            this.sectionStates[sectionType] = 'expanded';
-                        }
-                    }
-                });
+                    });
+                }
             }
         });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "stats-combat-chat", true, false);
     }
 
     // Helper method to format time
