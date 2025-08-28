@@ -225,11 +225,6 @@ registerBlacksmithUpdatedHook();
 // ===== REGISTER HOOKS =============================================
 // ================================================================== 
 
-// Defer all hook registration until after settings are ready
-Hooks.once('init', async function() {
-    // Settings will be registered during the 'ready' phase
-    // This phase is just for preparing hooks and other initialization
-});
 
 // Consolidate all settings-dependent initialization into a single ready hook
 Hooks.once('ready', async () => {
@@ -415,21 +410,79 @@ function initializeSettingsDependentFeatures() {
         if (blnShowIcons || blnCustomClicks) {
             // Register canvas hooks
             if (blnCustomClicks) {
-                // Keep the canvasInit hook to initialize the toolbar
-                Hooks.once('canvasInit', () => {
-                    // Canvas initialization complete
+                // Register canvasInit hook
+                const canvasInitHookId = HookManager.registerHook({
+                    name: 'canvasInit',
+                    description: 'Blacksmith: Initialize canvas toolbar',
+                    context: 'blacksmith-canvas-init',
+                    priority: 3, // Normal priority - canvas initialization
+                    callback: () => {
+                        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                        
+                        // Canvas initialization complete
+                        
+                        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                    }
                 });
 
-                // Keep the canvasReady hook to check for the layer
-                Hooks.on('canvasReady', (canvas) => {
-                    const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-                    // Layer availability checked silently
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | canvasInit", "blacksmith-canvas-init", true, false);
+
+                // Register canvasReady hook for layer checking
+                const canvasReadyLayerHookId = HookManager.registerHook({
+                    name: 'canvasReady',
+                    description: 'Blacksmith: Check for blacksmith utilities layer availability',
+                    context: 'blacksmith-canvas-layer-check',
+                    priority: 3, // Normal priority - layer verification
+                    callback: (canvas) => {
+                        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                        
+                        const blacksmithLayer = canvas['blacksmith-utilities-layer'];
+                        // Layer availability checked silently
+                        
+                        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                    }
                 });
+
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | canvasReady (layer)", "blacksmith-canvas-layer-check", true, false);
             }
 
-            // Register scene update hooks
-            Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
-            Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
+            // Register updateScene hook for scene icon updates
+            const updateSceneHookId = HookManager.registerHook({
+                name: 'updateScene',
+                description: 'Blacksmith: Update scene icons when scene changes',
+                context: 'blacksmith-scene-icons',
+                priority: 3, // Normal priority - UI updates
+                callback: () => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    WrapperManager._updateSceneIcons();
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                }
+            });
+
+            // Log hook registration
+            postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateScene", "blacksmith-scene-icons", true, false);
+            
+            // Register canvasReady hook for scene icon updates
+            const canvasReadyIconsHookId = HookManager.registerHook({
+                name: 'canvasReady',
+                description: 'Blacksmith: Update scene icons when canvas is ready',
+                context: 'blacksmith-canvas-icons',
+                priority: 3, // Normal priority - UI updates
+                callback: () => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    WrapperManager._updateSceneIcons();
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                }
+            });
+
+            // Log hook registration
+            postConsoleAndNotification(MODULE.NAME, "Hook Manager | canvasReady (icons)", "blacksmith-canvas-icons", true, false);
         }
     }
 
@@ -500,18 +553,45 @@ Hooks.once('init', async function() {
     // Log hook registration
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderApplication", "blacksmith-window-registration", true, false);
     
-    Hooks.on('closeApplication', (app) => {
-        if (app instanceof BlacksmithWindowQuery) {
-            unregisterBlacksmithWindow(app);
+    // Register closeApplication hook for window cleanup
+    const closeApplicationHookId = HookManager.registerHook({
+        name: 'closeApplication',
+        description: 'Blacksmith: Unregister blacksmith windows on close',
+        context: 'blacksmith-window-cleanup',
+        priority: 3, // Normal priority - window management
+        callback: (app) => {
+            //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+            
+            if (app instanceof BlacksmithWindowQuery) {
+                unregisterBlacksmithWindow(app);
+            }
+            
+            //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
         }
     });
+
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | closeApplication", "blacksmith-window-cleanup", true, false);
     
-    // Clear settings cache when settings change
-    Hooks.on('settingChange', (moduleId, settingKey, value) => {
-        if (moduleId === MODULE.ID) {
-            clearSettingsCache();
+    // Register settingChange hook for cache management
+    const settingChangeHookId = HookManager.registerHook({
+        name: 'settingChange',
+        description: 'Blacksmith: Clear settings cache when settings change',
+        context: 'blacksmith-settings-cache',
+        priority: 3, // Normal priority - cache management
+        callback: (moduleId, settingKey, value) => {
+            //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+            
+            if (moduleId === MODULE.ID) {
+                clearSettingsCache();
+            }
+            
+            //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
         }
     });
+
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
     
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
@@ -571,7 +651,16 @@ Hooks.once('init', async function() {
 // ***************************************************
 
 // Nameplates are now updated in the main ready hook
-Hooks.on('updateToken', updateNameplates);
+const updateTokenHookId = HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Blacksmith: Update token nameplates',
+    context: 'blacksmith-nameplates',
+    priority: 3, // Normal priority - UI enhancement
+    callback: updateNameplates
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateToken", "blacksmith-nameplates", true, false);
 
 
 
@@ -583,73 +672,91 @@ Hooks.on('updateToken', updateNameplates);
 let ctrlKeyActiveDuringRender = false;
 let shiftKeyActiveDuringRender = false;
 let altKeyActiveDuringRender = false;
-Hooks.on('renderNoteConfig', async (app, html, data) => {
-    // Only GMs can configure note icons
-    if (!game.user.isGM) {
-        return;
-    }
-
-    // Define the default icon URL
-    var strIconUrl = "";
-    const strIconUrlDefault = "modules/coffee-pub-blacksmith/images/pins-note/icon-book.svg";
-    const strIconUrlCrtl = "modules/coffee-pub-blacksmith/images/pins-note/icon-combat.svg";
-    const strIconUrlShift = "modules/coffee-pub-blacksmith/images/pins-note/icon-flag.svg";
-    const strIconUrlAlt = "modules/coffee-pub-blacksmith/images/pins-note/icon-king.svg"; 
-    const intIconSize = 70;
-    const intFontSize = 40;
-    
-    // Check if the Ctrl key is held down
-    ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
-    shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
-    altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
-
-    if (ctrlKeyActiveDuringRender) {
-        strIconUrl = strIconUrlCrtl;
-    } else if (shiftKeyActiveDuringRender) {
-        strIconUrl = strIconUrlShift;
-    } else if (altKeyActiveDuringRender) {
-        strIconUrl = strIconUrlAlt; 
-    } else {
-        strIconUrl = strIconUrlDefault;
-    }
-
-    // Set the font size and icon size fields
-    html.find('input[name="fontSize"]').val(intFontSize);
-    html.find('input[name="iconSize"]').val(intIconSize);
-
-    // Use cached note config icons to avoid repeated file system operations
-    try {
-        const customIcons = await getNoteConfigIcons();
-        
-        if (customIcons.length > 0) {
-            // Add custom icons to the start of the dropdown
-            const entryIconField = html.find('select[name="icon.selected"]');
-            if (entryIconField.length) {
-                customIcons.reverse().forEach(icon => {
-                    entryIconField.prepend(new Option(icon.label, icon.value));
-                });
-
-                // Set the default icon
-                entryIconField.val(strIconUrl);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
-            }
+// Register renderNoteConfig hook
+const renderNoteConfigHookId = HookManager.registerHook({
+    name: 'renderNoteConfig',
+    description: 'Blacksmith: Configure note icons and settings',
+    context: 'blacksmith-note-config',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (app, html, data) => {
+        // Only GMs can configure note icons
+        if (!game.user.isGM) {
+            return;
         }
-    } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, false);
+
+        // Define the default icon URL
+        var strIconUrl = "";
+        const strIconUrlDefault = "modules/coffee-pub-blacksmith/images/pins-note/icon-book.svg";
+        const strIconUrlCrtl = "modules/coffee-pub-blacksmith/images/pins-note/icon-combat.svg";
+        const strIconUrlShift = "modules/coffee-pub-blacksmith/images/pins-note/icon-flag.svg";
+        const strIconUrlAlt = "modules/coffee-pub-blacksmith/images/pins-note/icon-king.svg"; 
+        const intIconSize = 70;
+        const intFontSize = 40;
+        
+        // Check if the Ctrl key is held down
+        ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
+        shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
+        altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
+
+        if (ctrlKeyActiveDuringRender) {
+            strIconUrl = strIconUrlCrtl;
+        } else if (shiftKeyActiveDuringRender) {
+            strIconUrl = strIconUrlShift;
+        } else if (altKeyActiveDuringRender) {
+            strIconUrl = strIconUrlAlt; 
+        } else {
+            strIconUrl = strIconUrlDefault;
+        }
+
+        // Set the font size and icon size fields
+        html.find('input[name="fontSize"]').val(intFontSize);
+        html.find('input[name="iconSize"]').val(intIconSize);
+
+        // Use cached note config icons to avoid repeated file system operations
+        try {
+            const customIcons = await getNoteConfigIcons();
+            
+            if (customIcons.length > 0) {
+                // Add custom icons to the start of the dropdown
+                const entryIconField = html.find('select[name="icon.selected"]');
+                if (entryIconField.length) {
+                    customIcons.reverse().forEach(icon => {
+                        entryIconField.prepend(new Option(icon.label, icon.value));
+                    });
+
+                    // Set the default icon
+                    entryIconField.val(strIconUrl);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, false);
+        }
+
     }
-
-
 });
 
-// Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
-Hooks.on('preCreateNote', async (note, options, userId) => {
-    // Only GMs can set default note icons
-    if (!game.user.isGM) {
-        return;
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderNoteConfig", "blacksmith-note-config", true, false);
+
+// Register preCreateNote hook
+const preCreateNoteHookId = HookManager.registerHook({
+    name: 'preCreateNote',
+    description: 'Blacksmith: Handle note creation events',
+    context: 'blacksmith-note-creation',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (note, options, userId) => {
+        // Only GMs can set default note icons
+        if (!game.user.isGM) {
+            return;
+        }
+        // Note creation hook - silent operation
     }
-    // Note creation hook - silent operation
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | preCreateNote", "blacksmith-note-creation", true, false);
 
 
 
@@ -846,91 +953,105 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
   return result;
 }
 
-Hooks.on("renderJournalDirectory", async (app, html, data) => {
-    // Fetch template files at runtime
-    const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
-    const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
-    const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
+// Register renderJournalDirectory hook
+const renderJournalDirectoryHookId = HookManager.registerHook({
+    name: 'renderJournalDirectory',
+    description: 'Blacksmith: Add JSON import functionality to journal directory',
+    context: 'blacksmith-journal-directory',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (app, html, data) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+        
+        // Fetch template files at runtime
+        const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
+        const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
+        const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
 
-    // Build dialog content with dropdown and button
-    const dialogContent = `
-      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-        <select id="template-type" style="flex: 0 0 auto;">
-          <option value="narrative">Narrative</option>
-          <option value="encounter">Encounter</option>
-          <option value="injury">Injury</option>
-        </select>
-        <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
-      </div>
-      <textarea id="json-input" style="width:100%;height:400px;"></textarea>
-    `;
+        // Build dialog content with dropdown and button
+        const dialogContent = `
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <select id="template-type" style="flex: 0 0 auto;">
+            <option value="narrative">Narrative</option>
+            <option value="encounter">Encounter</option>
+            <option value="injury">Injury</option>
+            </select>
+            <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
+        </div>
+        <textarea id="json-input" style="width:100%;height:400px;"></textarea>
+        `;
 
-    const button = $(`<button><i class="fa-solid fa-masks-theater"></i> Import JSON to Journal</button>`);
-    button.click(() => {
-      new Dialog({
-        title: "Paste JSON",
-        width: 800,
-        content: dialogContent,
-        buttons: {
-            cancel: {
-                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                label: "Cancel",
+        const button = $(`<button><i class="fa-solid fa-masks-theater"></i> Import JSON to Journal</button>`);
+        button.click(() => {
+        new Dialog({
+            title: "Paste JSON",
+            width: 800,
+            content: dialogContent,
+            buttons: {
+                cancel: {
+                    icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
+                    label: "Cancel",
+                    },
+                ok: {
+                icon: "<i class='fa-solid fa-masks-theater'></i>",
+                label: "Import JSON",
+                callback: async (html) => {
+                    const jsonData = html.find("#json-input").val();
+                    try {
+                        // Get the journal 
+                        const journalData = JSON.parse(jsonData);
+                        var strJournalType = journalData.journaltype;
+                        
+                        // Check if journaltype exists
+                        if (!strJournalType) {
+                            throw new Error("Missing 'journaltype' field in JSON data");
+                        }
+                        
+                        // See what kind of Journal we are creating
+                        switch (strJournalType.toUpperCase()) {
+                            // works for either NARRATION or ENCOUNTER
+                            case "NARRATIVE":
+                            case "ENCOUNTER":
+                                    await createJournalEntry(journalData);
+                                break;
+                            case "INJURY":
+                                // ---------- INJURY ----------
+                                await buildInjuryJournalEntry(journalData);
+                                break;
+                            default:
+                                postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
+                        }
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, "Failed to parse JSON", e, false, true);
+                }
                 },
-            ok: {
-            icon: "<i class='fa-solid fa-masks-theater'></i>",
-            label: "Import JSON",
-            callback: async (html) => {
-                const jsonData = html.find("#json-input").val();
-                try {
-                    // Get the journal 
-                    const journalData = JSON.parse(jsonData);
-                    var strJournalType = journalData.journaltype;
-                    
-                    // Check if journaltype exists
-                    if (!strJournalType) {
-                        throw new Error("Missing 'journaltype' field in JSON data");
-                    }
-                    
-                    // See what kind of Journal we are creating
-                    switch (strJournalType.toUpperCase()) {
-                        // works for either NARRATION or ENCOUNTER
-                        case "NARRATIVE":
-                        case "ENCOUNTER":
-                                await createJournalEntry(journalData);
-    break;
-case "INJURY":
-    // ---------- INJURY ----------
-    await buildInjuryJournalEntry(journalData);
-                            break;
-                        default:
-                            postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
-                    }
-              } catch (e) {
-                postConsoleAndNotification(MODULE.NAME, "Failed to parse JSON", e, false, true);
-              }
             },
-          },
-        },
-        default: "ok",
-        render: (htmlDialog) => {
-          // Attach event listeners for template copy
-          htmlDialog.find("#copy-template-btn").click(async () => {
-            const type = htmlDialog.find("#template-type").val();
-            if (type === "injury") {
-              copyToClipboard(injuryTemplate);
-            } else if (type === "encounter") {
-              const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
-              copyToClipboard(templateWithDefaults);
-            } else {
-              const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
-              copyToClipboard(templateWithDefaults);
+            },
+            default: "ok",
+            render: (htmlDialog) => {
+            // Attach event listeners for template copy
+            htmlDialog.find("#copy-template-btn").click(async () => {
+                const type = htmlDialog.find("#template-type").val();
+                if (type === "injury") {
+                copyToClipboard(injuryTemplate);
+                } else if (type === "encounter") {
+                const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
+                copyToClipboard(templateWithDefaults);
+                } else {
+                const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
+                copyToClipboard(templateWithDefaults);
+                }
+            });
             }
-          });
-        }
-      }).render(true);
-    });
-    $(html).find(".header-actions.action-buttons").prepend(button);
+        }).render(true);
+        });
+        $(html).find(".header-actions.action-buttons").prepend(button);
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalDirectory", "blacksmith-journal-directory", true, false);
 
 // ***************************************************
 // ** UTILITY Build Injury Journal
@@ -1838,8 +1959,14 @@ async function parseFlatItemToFoundry(flat) {
   return data;
 }
 
-// ITEM IMPORT TOOL
-Hooks.on("renderItemDirectory", async (app, html, data) => {
+// Register renderItemDirectory hook for item import functionality
+const renderItemDirectoryHookId = HookManager.registerHook({
+    name: 'renderItemDirectory',
+    description: 'Blacksmith: Add JSON import functionality to item directory',
+    context: 'blacksmith-item-directory',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (app, html, data) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     // Only GMs can import items
     if (!game.user.isGM) {
         return;
@@ -1910,8 +2037,14 @@ Hooks.on("renderItemDirectory", async (app, html, data) => {
         }
       }).render(true);
     });
-    $(html).find(".header-actions.action-buttons").prepend(button);
+        $(html).find(".header-actions.action-buttons").prepend(button);
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderItemDirectory", "blacksmith-item-directory", true, false);
 
 /**
  * Handle cache management settings on module load
