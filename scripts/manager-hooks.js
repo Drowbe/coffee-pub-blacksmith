@@ -155,18 +155,16 @@ export class HookManager {
         Hooks.off(hookName, hook.hookId);
         this.hooks.delete(hookName);
         
-        if (game.settings.get(MODULE.ID, 'debugHooks')) {
-            postConsoleAndNotification(
-                MODULE.NAME,
-                `Hook removed: ${hookName}`,
-                { totalHooks: this.hooks.size },
-                true,
-                false
-            );
-        }
         
-        return true;
+        postConsoleAndNotification(
+            MODULE.NAME,
+            `Hook removed: ${hookName}`,
+            { totalHooks: this.hooks.size },
+            true,
+            false
+        );
     }
+
 
     /**
      * Remove a specific callback by its ID
@@ -201,25 +199,24 @@ export class HookManager {
             Hooks.off(hookName, entry.hookId);
             this.hooks.delete(hookName);
             
-            if (game.settings.get(MODULE.ID, 'debugHooks')) {
-                postConsoleAndNotification(
-                    MODULE.NAME,
-                    `Hook completely removed: ${hookName}`,
-                    { totalHooks: this.hooks.size },
-                    true,
-                    false
-                );
-            }
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Hook completely removed: ${hookName}`,
+                { totalHooks: this.hooks.size },
+                true,
+                false
+            );
+
         } else {
-            if (game.settings.get(MODULE.ID, 'debugHooks')) {
-                postConsoleAndNotification(
-                    MODULE.NAME,
-                    `Callback removed from hook: ${hookName}`,
-                    { remainingCallbacks: entry.callbacks.length },
-                    true,
-                    false
-                );
-            }
+
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Callback removed from hook: ${hookName}`,
+                { remainingCallbacks: entry.callbacks.length },
+                true,
+                false
+            );
+
         }
         
         return true;
