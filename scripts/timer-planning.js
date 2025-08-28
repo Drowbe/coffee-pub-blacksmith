@@ -32,10 +32,22 @@ export class PlanningTimer {
         this.isInitialized = false;
 
         // Register hooks
-        Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
-        
-        // Add hook for ending the planning timer from combat timer
-        Hooks.on('endPlanningTimer', this.forceEnd.bind(this));
+        const renderCombatTrackerHookId = HookManager.registerHook({
+			name: 'renderCombatTracker',
+			description: 'Planning Timer: Handle combat tracker rendering for planning phase UI',
+			context: 'timer-planning-combat-tracker',
+			priority: 3,
+			callback: this._onRenderCombatTracker.bind(this)
+		});
+		
+		// Add hook for ending the planning timer from combat timer
+		const endPlanningTimerHookId = HookManager.registerHook({
+			name: 'endPlanningTimer',
+			description: 'Planning Timer: Handle forced planning timer end',
+			context: 'timer-planning-force-end',
+			priority: 3,
+			callback: this.forceEnd.bind(this)
+		});
 
         // Wait for game to be ready before checking initial state
         Hooks.once('ready', () => {
