@@ -46,6 +46,7 @@ import { XpManager } from './xp-manager.js';
 // TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { registerWindowQueryPartials } from './window-query-registration.js';
 import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -239,6 +240,9 @@ Hooks.once('ready', async () => {
         
         // Initialize HookManager (infrastructure layer)
         HookManager.initialize();
+        
+        // Register window-query partials early to prevent template errors
+        await registerWindowQueryPartials();
         
         // Wait a bit to ensure settings are fully processed
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -1980,4 +1984,8 @@ async function handleCacheManagementSettings() {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error handling cache settings: ${error.message}`, "", true, false);
     }
 }
+
+// ================================================================== 
+// ===== WINDOW-QUERY PARTIAL REGISTRATION ==========================
+
 

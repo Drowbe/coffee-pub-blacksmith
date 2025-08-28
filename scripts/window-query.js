@@ -57,234 +57,47 @@ const BASE_PROMPT_TEMPLATE = {
 };
 
 // ================================================================== 
-// ===== REGISTER TEMPLATE PARTIALS =================================
+// ===== EVENT LISTENERS ============================================
 // ================================================================== 
 
-document.addEventListener('DOMContentLoaded', () => {
+// Function to add event listeners (moved from DOMContentLoaded)
+const addEventListeners = () => {
+    const workspaces = ['lookup', 'narrative', 'encounter', 'assistant', 'character'];
+
+    workspaces.forEach(workspace => {
+        const skill = document.getElementById(`optionSkill-${workspace}`);
+        const dice = document.getElementById(`optionDiceType-${workspace}`);
+        const roll = document.getElementById(`inputDiceValue-${workspace}`);
+        const details = document.getElementById(`inputContextDetails-${workspace}`);
+
+        if (skill && dice && roll) {
+            skill.addEventListener('change', () => {
     
-    // Function to add event listeners
-    const addEventListeners = () => {
-    
-        const workspaces = ['lookup', 'narrative', 'encounter', 'assistant', 'character'];
-
-        workspaces.forEach(workspace => {
-            const skill = document.getElementById(`optionSkill-${workspace}`);
-            const dice = document.getElementById(`optionDiceType-${workspace}`);
-            const roll = document.getElementById(`inputDiceValue-${workspace}`);
-            const details = document.getElementById(`inputContextDetails-${workspace}`);
-
-            if (skill && dice && roll) {
-                skill.addEventListener('change', () => {
-        
-                    // Get the skill description from CONFIG.DND5E.skills
-                    const skillKey = Object.entries(CONFIG.DND5E.skills).find(([k, s]) => 
-                        game.i18n.localize(s.label) === skill.value
-                    )?.[0];
-                    
-                    if (skillKey && details) {
-                        const skillData = CONFIG.DND5E.skills[skillKey];
-                        const ability = CONFIG.DND5E.abilities[skillData.ability]?.label || '';
-                        const abilityName = game.i18n.localize(ability);
-                        details.value = `${skill.value} (${abilityName}): ${game.i18n.localize(skillData.reference)}`;
-                    }
-                });
-
-                dice.addEventListener('change', () => {
-        
-                });
-
-                roll.addEventListener('change', () => {
-        
-                });
-            } else {
-                postConsoleAndNotification(MODULE.NAME, `Elements not found for workspace: ${workspace}`, "", false, false);
-            }
-        });
-
-    };
-
-    // Register partials and render templates
-    const registerPartialsAndRender = async () => {
-        try {
-
-            // WORKSPACE TEMPLATES
-
-            // Lookup
-            const workspaceLookupTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-lookup.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-query-workspace-lookup', workspaceLookupTemplate);
-
-            // Character
-            const workspaceCharacterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-character.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-query-workspace-character', workspaceCharacterTemplate);
-
-            // Register character section partials
-            const characterCoreTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-core.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-core', characterCoreTemplate);
-
-            const characterAbilitiesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-abilities.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-abilities', characterAbilitiesTemplate);
-
-            const characterSkillsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-skills.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-skills', characterSkillsTemplate);
-
-            const characterFeaturesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-features.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-features', characterFeaturesTemplate);
-
-            const characterWeaponsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-weapons.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-weapons', characterWeaponsTemplate);
-
-            const characterSpellsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-spells.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-spells', characterSpellsTemplate);
-
-            const characterBiographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-biography.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-biography', characterBiographyTemplate);
-
-            // Assistant        
-            const workspaceAssistantTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-assistant.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-query-workspace-assistant', workspaceAssistantTemplate);
-
-            // Narrative    
-            const narrativeTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-narrative.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-query-workspace-narrative', narrativeTemplate);
-
-
-           
-
-
-            // Encounter
-            const encounterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/window-query-workspace-encounter.hbs').then(response => response.text());
-            Handlebars.registerPartial('window-query-workspace-encounter', encounterTemplate);
-
-            // --- PARTIAL TEMPLATES ---
-
-            // GLOBAL
-
-            
-
-            // general options -- section sellection, etc.
-            const globalOptionsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-options.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-global-options', globalOptionsTemplate); 
-            
-            // general options -- section sellection, etc.
-            const globalFundTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-fund.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-global-fund', globalFundTemplate); 
-
-
-            // skill check rolls
-            const globalSkillCheckTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-skillcheckrolls.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-global-skillcheckrolls', globalSkillCheckTemplate);
-
-            // LOOKUP
-
-            // lookup - features, etc.
-            const lookupSRDRulesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-lookup-srdrules.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-lookup-srdrules', lookupSRDRulesTemplate);   
-
-
-
-            // CHARACTER
-
-            // character - details
-            const characterDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-details.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-details', characterDetailsTemplate);
-
-            // character - guidance
-            const characterGuidanceTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-character-guidance.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-character-guidance', characterGuidanceTemplate); 
-
-
-            // ASSISTANT
-
-            const assistantCriteriaTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-assistant-criteria.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-assistant-criteria', assistantCriteriaTemplate);   
-
-            // ENCOUNTER
-
-            // narrative encounter
-            //const narrativeEncounterTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter.hbs').then(response => response.text());
-            //Handlebars.registerPartial('partial-narrative-encounter', narrativeEncounterTemplate);   
-
-            // encounter scripts
-            const encounterScriptsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-scripts.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-scripts', encounterScriptsTemplate);   
-            
-            // encounter configuration
-            const encounterConfigurationTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-configuration.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-configuration', encounterConfigurationTemplate);       
-
-            // encounter worksheet
-            const encounterWorksheetTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-worksheet.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-worksheet', encounterWorksheetTemplate);       
-
-            // encounter monsters
-            const encounterMonstersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-monsters.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-monsters', encounterMonstersTemplate);        
-
-            // encounter party
-            const encounterPartyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-party.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-party', encounterPartyTemplate);        
-
-            // encounter NPCs
-            const encounterNPCTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-encounter-npcs.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-encounter-npcs', encounterNPCTemplate);    
-
-            // Journal Narrative TEMPLATES
-
-            // image settings   
-            const narrativeImageTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-image.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-image', narrativeImageTemplate);   
-
-            // narrative settings   
-            const narrativeSettingsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-settings.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-settings', narrativeSettingsTemplate);   
-
-            // narrative geography
-            const narrativeGeographyTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-geography.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-geography', narrativeGeographyTemplate);   
-
-
-            // narrative details
-            const narrativeDetailsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-details.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-details', narrativeDetailsTemplate);   
-
-            // narrative rewards
-            const narrativeRewardsTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-rewards.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-rewards', narrativeRewardsTemplate);   
-
-            // Characters for the narrative
-            const narrativeCharactersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-characters.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-characters', narrativeCharactersTemplate);
-
-            // Encounters for the narrative
-            const narrativeEncountersTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-narrative-encounters.hbs').then(response => response.text());
-            Handlebars.registerPartial('partial-narrative-encounters', narrativeEncountersTemplate);
-
-
-
-            // MAIN TEMPLATE
-            // Render the main template (assuming you have a main template to render)
-            const template = await getCachedTemplate('modules/coffee-pub-blacksmith/templates/window-query.hbs');
-
-            // Wait for the DOM to be fully loaded before setting innerHTML
-            document.addEventListener('DOMContentLoaded', () => {
-                const container = document.getElementById('blacksmith-workspace-wrapper');
-                if (container) {
-                    container.innerHTML = template();
-                    // Add event listeners after rendering
-                    addEventListeners();
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, 'Element with ID "blacksmith-workspace-wrapper" not found.', "", false, false);
+                // Get the skill description from CONFIG.DND5E.skills
+                const skillKey = Object.entries(CONFIG.DND5E.skills).find(([k, s]) => 
+                    game.i18n.localize(s.label) === skill.value
+                )?.[0];
+                
+                if (skillKey && details) {
+                    const skillData = CONFIG.DND5E.skills[skillKey];
+                    const ability = CONFIG.DND5E.abilities[skillData.ability]?.label || '';
+                    const abilityName = game.i18n.localize(ability);
+                    details.value = `${skill.value} (${abilityName}): ${game.i18n.localize(skillData.reference)}`;
                 }
             });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error loading partial templates:', error, false, false);
-        }
-    };
 
-    // Call the function to register partials and render templates
-    registerPartialsAndRender();
+            dice.addEventListener('change', () => {
     
-});
+            });
+
+            roll.addEventListener('change', () => {
+    
+            });
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Elements not found for workspace: ${workspace}`, "", false, false);
+        }
+    });
+};
 
 
 // ================================================================== 
