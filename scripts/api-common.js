@@ -9,6 +9,7 @@
 
 // Grab the module data
 import { MODULE } from './const.js';
+import { HookManager } from './manager-hooks.js';
 
 
 // ================================================================== 
@@ -581,43 +582,45 @@ export function resetModuleSettings(moduleId) {
 // ************************************
 // This code will be executed whenever any BLACKSMITH variable in the "coffee-pub-blacksmith" module is pushed
 export function registerBlacksmithUpdatedHook() {
-    Hooks.on("blacksmithUpdated", (newBlacksmith) => {
+	HookManager.registerHook({
+		name: 'blacksmithUpdated',
+		description: 'API Common: Handle blacksmith variable updates and sync to COFFEEPUB global',
+		context: 'api-common-blacksmith-sync',
+		priority: 3,
+		callback: (newBlacksmith) => {
+			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
-
-        console.log("postConsoleAndNotification registerBlacksmithUpdatedHook - newBlacksmith:", newBlacksmith);
-
-
-        // BLACKSMITH VARIABLE COLLECTION
-        // RICH CONSOLE
-        COFFEEPUB.blnFancyConsole = newBlacksmith.blnFancyConsole;
-        // DEBUG ON/OFF
-        COFFEEPUB.blnDebugOn = newBlacksmith.blnDebugOn;
-        // DEBUG STYLE
-        COFFEEPUB.strConsoleDebugStyle = newBlacksmith.strConsoleDebugStyle;
-        // Get the default theme
-        COFFEEPUB.strDEFAULTCARDTHEME = newBlacksmith.strDefaultCardTheme;
-        // Get the Themes list
-        COFFEEPUB.arrTHEMECHOICES = newBlacksmith.arrThemeChoices;
-        // Get the Macro list
-        COFFEEPUB.arrMACROCHOICES = newBlacksmith.arrMacroChoices;
-        // Get the Table list
-        COFFEEPUB.arrCOMPENDIUMCHOICES = newBlacksmith.arrCompendiumChoices;
-        // Get the Table list
-        COFFEEPUB.arrTABLECHOICES = newBlacksmith.arrTableChoices;
-        // Get the Image list
-        COFFEEPUB.arrBACKGROUNDIMAGECHOICES = newBlacksmith.arrBackgroundImageChoices;
-        // Get the Image list
-        COFFEEPUB.arrICONCHOICES = newBlacksmith.arrIconChoices;
-        // Get the Sound list
-        COFFEEPUB.arrSOUNDCHOICES = newBlacksmith.arrSoundChoices;
-        // Get the OpenAI Variables
-        COFFEEPUB.strOpenAIAPIKey = newBlacksmith.strOpenAIAPIKey;
-        COFFEEPUB.strOpenAIModel = newBlacksmith.strOpenAIModel;
-        COFFEEPUB.strOpenAIGameSystems = newBlacksmith.strOpenAIGameSystems;
-        COFFEEPUB.strOpenAIPrompt = newBlacksmith.strOpenAIPrompt;
-        COFFEEPUB.strOpenAITemperature = newBlacksmith.strOpenAITemperature;
-
-    });
+			// BLACKSMITH VARIABLE COLLECTION
+			// RICH CONSOLE
+			COFFEEPUB.blnFancyConsole = newBlacksmith.blnFancyConsole;
+			// DEBUG ON/OFF
+			COFFEEPUB.blnDebugOn = newBlacksmith.blnDebugOn;
+			// DEBUG STYLE
+			COFFEEPUB.strConsoleDebugStyle = newBlacksmith.strConsoleDebugStyle;
+			// Get the default theme
+			COFFEEPUB.strDEFAULTCARDTHEME = newBlacksmith.strDefaultCardTheme;
+			// Get the Themes list
+			COFFEEPUB.arrTHEMECHOICES = newBlacksmith.arrThemeChoices;
+			// Get the Macro list
+			COFFEEPUB.arrMACROCHOICES = newBlacksmith.arrMacroChoices;
+			// Get the Table list
+			COFFEEPUB.arrCOMPENDIUMCHOICES = newBlacksmith.arrCompendiumChoices;
+			// Get the Table list
+			COFFEEPUB.arrTABLECHOICES = newBlacksmith.arrTableChoices;
+			// Get the Image list
+			COFFEEPUB.arrBACKGROUNDIMAGECHOICES = newBlacksmith.arrBackgroundImageChoices;
+			// Get the Image list
+			COFFEEPUB.arrICONCHOICES = newBlacksmith.arrIconChoices;
+			// Get the Sound list
+			COFFEEPUB.arrSOUNDCHOICES = newBlacksmith.arrSoundChoices;
+			// Get the OpenAI Variables
+			COFFEEPUB.strOpenAIAPIKey = newBlacksmith.strOpenAIAPIKey;
+			COFFEEPUB.strOpenAIModel = newBlacksmith.strOpenAIModel;
+			COFFEEPUB.strOpenAIGameSystems = newBlacksmith.strOpenAIGameSystems;
+			COFFEEPUB.strOpenAIPrompt = newBlacksmith.strOpenAITemperature;
+			// --- END - HOOKMANAGER CALLBACK ---
+		}
+	});
 }
 
 // ************************************

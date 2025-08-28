@@ -218,8 +218,9 @@ BLACKSMITH.updateValue = function(key, value) {
 // ** SETTINGS
 // ***************************************************
 // Ensure the settings are registered before anything else
-// Register the Blacksmith hook
-registerBlacksmithUpdatedHook();
+
+// Register the Blacksmith hook -- got moved to ready after the hookmanager was initialized
+// registerBlacksmithUpdatedHook();
 
 // ================================================================== 
 // ===== REGISTER HOOKS =============================================
@@ -235,6 +236,9 @@ Hooks.once('ready', async () => {
         
         // Initialize HookManager (infrastructure layer)
         HookManager.initialize();
+        
+        // Register the Blacksmith hook (after HookManager is initialized)
+        registerBlacksmithUpdatedHook();
         
         // Register window-query partials early to prevent template errors
         await registerWindowQueryPartials();
