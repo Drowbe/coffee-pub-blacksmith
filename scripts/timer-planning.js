@@ -695,7 +695,7 @@ export class PlanningTimer {
             socket.executeForOthers("timerCleanup", { wasExpired: true });
             setTimeout(async () => {
                 await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
-                $('.planning-phase').fadeOut(400, true, function() {
+                $('.planning-phase').fadeOut(400, function() {
                     $(this).remove();
                 });
             }, 3000);

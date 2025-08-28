@@ -98,6 +98,11 @@ HookManager.registerHook({
 - [x] Design and document HookManager
 - [x] Implement core functionality
 - [x] Add advanced features (priority, dedupe, context, performance)
+
+### **Phase 1.5: Critical Bug Fixes** ✅ **COMPLETE**
+- [x] Fixed jQuery easing errors in `timer-planning.js` that caused Foundry crashes
+- [x] Resolved animation parameter issues (removed invalid `true` parameter from `fadeOut()` calls)
+- [x] Cleaned up debugging code from `combat-tools.js`
 - [x] Integrate into blacksmith.js initialization
 - [x] Test foundation (console commands working, 0 hooks registered)
 

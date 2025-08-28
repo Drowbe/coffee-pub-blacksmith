@@ -67,12 +67,14 @@ Hooks.once('ready', () => {
             element.addEventListener('dragstart', (ev) => {
                 ev.dataTransfer.setData('text/plain', ev.target.dataset.combatantId);
                 ev.target.classList.add('dragging');
+                
                 html.find('#combat-tracker').addClass('dragging-active');
             });
 
             element.addEventListener('dragend', (ev) => {
                 ev.target.classList.remove('dragging');
                 html.find('.drag-over').removeClass('drag-over');
+                
                 html.find('#combat-tracker').removeClass('dragging-active');
             });
         });
@@ -232,9 +234,13 @@ Hooks.once('ready', () => {
                         />
                     </svg>
                 `);
+                
+
 
                 // Update the ring and handle dead state
                 container.empty().append(svg);
+                
+
 
                 // Add dead class and skull overlay if HP is 0 or less
                 if (currentHP <= 0 && game.settings.get(MODULE.ID, 'combatTrackerShowPortraits')) {
