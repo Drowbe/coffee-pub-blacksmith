@@ -8,6 +8,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB } from './api-common.js';
 // -- Load the shared GLOBAL functions --
 import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================
@@ -28,7 +29,13 @@ export class CanvasTools {
     // *** TOKEN NAMEPLATES ***
     static _initializeNameplates() {
         Hooks.once('ready', this._updateNameplates.bind(this));
-        Hooks.on('updateToken', this._updateNameplates.bind(this));
+        const updateTokenHookId = HookManager.registerHook({
+			name: 'updateToken',
+			description: 'Canvas Tools: Update nameplates when tokens change',
+			context: 'manager-canvas-nameplates',
+			priority: 3,
+			callback: this._updateNameplates.bind(this)
+		});
     }
 
     static _updateNameplates() {
@@ -58,13 +65,40 @@ export class CanvasTools {
     // *** TOKEN NAMING ***
     static _initializeTokenNaming() {
         // Hook for token behavior overrides (runs before token creation)
-        Hooks.on('preCreateToken', this._onPreCreateToken.bind(this));
-        // Hook for token behavior overrides on updates (runs before token updates)
-        Hooks.on('preUpdateToken', this._onPreUpdateToken.bind(this));
-        // Hook for token naming and other post-creation modifications
-        Hooks.on('createToken', this._onCreateToken.bind(this));
-        // Hook for when tokens are added to the scene (runs after token creation but before rendering)
-        Hooks.on('createToken', this._onTokenAddedToScene.bind(this));
+        const preCreateTokenHookId = HookManager.registerHook({
+			name: 'preCreateToken',
+			description: 'Canvas Tools: Apply token behavior overrides before creation',
+			context: 'manager-canvas-pre-create',
+			priority: 3,
+			callback: this._onPreCreateToken.bind(this)
+		});
+		
+		// Hook for token behavior overrides on updates (runs before token updates)
+		const preUpdateTokenHookId = HookManager.registerHook({
+			name: 'preUpdateToken',
+			description: 'Canvas Tools: Apply token behavior overrides before updates',
+			context: 'manager-canvas-pre-update',
+			priority: 3,
+			callback: this._onPreUpdateToken.bind(this)
+		});
+		
+		// Hook for token naming and other post-creation modifications
+		const createTokenHookId = HookManager.registerHook({
+			name: 'createToken',
+			description: 'Canvas Tools: Handle token creation for naming and modifications',
+			context: 'manager-canvas-create',
+			priority: 3,
+			callback: this._onCreateToken.bind(this)
+		});
+		
+		// Hook for when tokens are added to the scene (runs after token creation but before rendering)
+		const tokenAddedToSceneHookId = HookManager.registerHook({
+			name: 'createToken',
+			description: 'Canvas Tools: Handle tokens added to scene for behavior overrides',
+			context: 'manager-canvas-scene-add',
+			priority: 3,
+			callback: this._onTokenAddedToScene.bind(this)
+		});
     }
 
     // *** TOKEN BEHAVIOR OVERRIDES ***
@@ -290,7 +324,13 @@ export class CanvasTools {
         }
         
         // Watch for token HP changes
-        Hooks.on("updateActor", this._checkTokenDeath.bind(this));
+        const updateActorHookId = HookManager.registerHook({
+			name: 'updateActor',
+			description: 'Canvas Tools: Monitor actor updates for token death conversion',
+			context: 'manager-canvas-actor-updates',
+			priority: 3,
+			callback: this._checkTokenDeath.bind(this)
+		});
     }
 
     static async _checkTokenDeath(actor, changes) {
