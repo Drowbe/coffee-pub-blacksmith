@@ -10,110 +10,117 @@ import { rollCoffeePubDice, playSound } from './api-common.js';
 export function addToolbarButton() {
 
 
-    Hooks.on('getSceneControlButtons', (controls) => {
+    const getSceneControlButtonsHookId = HookManager.registerHook({
+		name: 'getSceneControlButtons',
+		description: 'Manager Toolbar: Add click handler to blacksmith utilities button',
+		context: 'manager-toolbar-scene',
+		priority: 3,
+		callback: (controls) => {
+			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
 
-        const regentTool = {
-            icon: "fa-solid fa-crystal-ball",
-            name: "regent",
-            title: "Consult the Regent",
-            button: true,
-            visible: true,
-            onClick: buildButtonEventRegent
-        };
+            const regentTool = {
+                icon: "fa-solid fa-crystal-ball",
+                name: "regent",
+                title: "Consult the Regent",
+                button: true,
+                visible: true,
+                onClick: buildButtonEventRegent
+            };
 
-        const lookupTool = {
-            icon: "fa-solid fa-bolt-lightning",
-            name: "lookup",
-            title: "Open Lookup Worksheet",
-            button: true,
-            visible: true,
-            onClick: () => buildButtonEventRegent('lookup')
-        };
+            const lookupTool = {
+                icon: "fa-solid fa-bolt-lightning",
+                name: "lookup",
+                title: "Open Lookup Worksheet",
+                button: true,
+                visible: true,
+                onClick: () => buildButtonEventRegent('lookup')
+            };
 
-        const characterTool = {
-            icon: "fa-solid fa-helmet-battle",
-            name: "character",
-            title: "Open Character Worksheet",
-            button: true,
-            visible: true,
-            onClick: () => buildButtonEventRegent('character')
-        };
+            const characterTool = {
+                icon: "fa-solid fa-helmet-battle",
+                name: "character",
+                title: "Open Character Worksheet",
+                button: true,
+                visible: true,
+                onClick: () => buildButtonEventRegent('character')
+            };
 
-        const assistantTool = {
-            icon: "fa-solid fa-hammer-brush",
-            name: "assistant",
-            title: "Open Assistant Worksheet",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => buildButtonEventRegent('assistant')
-        };
+            const assistantTool = {
+                icon: "fa-solid fa-hammer-brush",
+                name: "assistant",
+                title: "Open Assistant Worksheet",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => buildButtonEventRegent('assistant')
+            };
 
-        const encounterTool = {
-            icon: "fa-solid fa-swords",
-            name: "encounter",
-            title: "Open Encounter Worksheet",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => buildButtonEventRegent('encounter')
-        };
+            const encounterTool = {
+                icon: "fa-solid fa-swords",
+                name: "encounter",
+                title: "Open Encounter Worksheet",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => buildButtonEventRegent('encounter')
+            };
 
-        const narrativeTool = {
-            icon: "fa-solid fa-masks-theater",
-            name: "narrative",
-            title: "Open Narrative Worksheet",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => buildButtonEventRegent('narrative')
-        };
+            const narrativeTool = {
+                icon: "fa-solid fa-masks-theater",
+                name: "narrative",
+                title: "Open Narrative Worksheet",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => buildButtonEventRegent('narrative')
+            };
 
-        const cssTool = {
-            icon: "fa-solid fa-paint-brush",
-            name: "css",
-            title: "Open GM Tools",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => {
-                const editor = new CSSEditor();
-                editor.render(true);
-            }
-        };
+            const cssTool = {
+                icon: "fa-solid fa-paint-brush",
+                name: "css",
+                title: "Open GM Tools",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => {
+                    const editor = new CSSEditor();
+                    editor.render(true);
+                }
+            };
 
-        const journalToolsTool = {
-            icon: "fa-solid fa-book-open",
-            name: "journal-tools",
-            title: "Journal Tools",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => {
-                // Create a dummy journal object for the window to work with
-                // The window will handle journal selection internally
-                const dummyJournal = { id: null, name: "Select Journal" };
-                const journalTools = new JournalToolsWindow(dummyJournal);
-                journalTools.render(true);
-            }
-        };
+            const journalToolsTool = {
+                icon: "fa-solid fa-book-open",
+                name: "journal-tools",
+                title: "Journal Tools",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => {
+                    // Create a dummy journal object for the window to work with
+                    // The window will handle journal selection internally
+                    const dummyJournal = { id: null, name: "Select Journal" };
+                    const journalTools = new JournalToolsWindow(dummyJournal);
+                    journalTools.render(true);
+                }
+            };
 
-        const refreshTool = {
-            icon: "fa-solid fa-sync-alt",
-            name: "refresh",
-            title: "Refresh Client",
-            button: true,
-            visible: game.user.isGM,
-            onClick: () => {
-                window.location.reload();
-            }
-        };
+            const refreshTool = {
+                icon: "fa-solid fa-sync-alt",
+                name: "refresh",
+                title: "Refresh Client",
+                button: true,
+                visible: game.user.isGM,
+                onClick: () => {
+                    window.location.reload();
+                }
+            };
 
-        controls.push({
-            name: "blacksmith-utilities",
-            title: "Blacksmith Utilities",
-            icon: "fa-solid fa-mug-hot",
-            layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-            tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, journalToolsTool, refreshTool]
-        });
-
-    });
+            controls.push({
+                name: "blacksmith-utilities",
+                title: "Blacksmith Utilities",
+                icon: "fa-solid fa-mug-hot",
+                layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
+                tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, journalToolsTool, refreshTool]
+            });
+            // --- END - HOOKMANAGER CALLBACK ---
+        }
+	});
 
     // Register renderSceneControls hook
     const renderSceneControlsHookId = HookManager.registerHook({

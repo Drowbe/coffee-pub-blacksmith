@@ -20,7 +20,14 @@ export class JournalTools {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "journal-tools-sheet", true, false);
         
-        Hooks.on('settingChange', this._onSettingChange.bind(this));
+        // Register settingChange hook
+        const settingChangeHookId = HookManager.registerHook({
+			name: 'settingChange',
+			description: 'Journal Tools: Handle setting changes for journal tools',
+			context: 'journal-tools-settings',
+			priority: 3,
+			callback: this._onSettingChange.bind(this)
+		});
         
         // Register Handlebars partials
         await this._registerPartials();

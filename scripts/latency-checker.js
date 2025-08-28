@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
+import { HookManager } from './manager-hooks.js';
 
 export class LatencyChecker {
     static #latencyData = new Map();
@@ -39,7 +40,13 @@ export class LatencyChecker {
             this.#initialized = true;
             
             // Hook into the player list rendering
-            Hooks.on("renderPlayerList", this.#onRenderPlayerList.bind(this));
+            const renderPlayerListHookId = HookManager.registerHook({
+				name: 'renderPlayerList',
+				description: 'Latency Checker: Monitor player list rendering for latency updates',
+				context: 'latency-checker-player-list',
+				priority: 3,
+				callback: this.#onRenderPlayerList.bind(this)
+			});
             
             // Start periodic checks
             this.startPeriodicCheck();
