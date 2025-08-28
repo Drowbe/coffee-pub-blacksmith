@@ -29,30 +29,60 @@ export class EncounterToolbar {
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "encounter-toolbar-journal", true, false);
         
         // Also listen for when journal content is updated (saves)
-        Hooks.on('updateJournalEntryPage', this._onUpdateJournalEntryPage.bind(this));
+        const updateJournalEntryPageHookId = HookManager.registerHook({
+			name: 'updateJournalEntryPage',
+			description: 'Encounter Toolbar: Handle journal entry page updates for toolbar refresh',
+			context: 'encounter-toolbar-journal-updates',
+			priority: 3,
+			callback: this._onUpdateJournalEntryPage.bind(this)
+		});
         
         // Listen for token changes to update CR values in real-time
         this._setupTokenChangeHooks();
         
         // Listen for setting changes
-        Hooks.on('settingChange', this._onSettingChange.bind(this));
+        const settingChangeHookId = HookManager.registerHook({
+			name: 'settingChange',
+			description: 'Encounter Toolbar: Handle setting changes for toolbar configuration',
+			context: 'encounter-toolbar-settings',
+			priority: 3,
+			callback: this._onSettingChange.bind(this)
+		});
     }
 
     // Setup or remove token change hooks based on setting
     static _setupTokenChangeHooks() {
         // Remove existing hooks first using stored IDs
         if (this._tokenHookIds.length > 0) {
-            this._tokenHookIds.forEach(id => Hooks.off(id));
+            this._tokenHookIds.forEach(id => HookManager.removeCallback(id));
             this._tokenHookIds = [];
         }
         
         // Add hooks if setting is enabled and store IDs
         if (game.settings.get(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates')) {
             this._tokenHookIds = [
-                Hooks.on('createToken', this._onTokenChange.bind(this)),
-                Hooks.on('updateToken', this._onTokenChange.bind(this)),
-                Hooks.on('deleteToken', this._onTokenChange.bind(this))
-            ];
+                HookManager.registerHook({
+					name: 'createToken',
+					description: 'Encounter Toolbar: Monitor token creation for CR updates',
+					context: 'encounter-toolbar-token-create',
+					priority: 3,
+					callback: this._onTokenChange.bind(this)
+				}),
+				HookManager.registerHook({
+					name: 'updateToken',
+					description: 'Encounter Toolbar: Monitor token updates for CR updates',
+					context: 'encounter-toolbar-token-update',
+					priority: 3,
+					callback: this._onTokenChange.bind(this)
+				}),
+				HookManager.registerHook({
+					name: 'deleteToken',
+					description: 'Encounter Toolbar: Monitor token deletion for CR updates',
+					context: 'encounter-toolbar-token-delete',
+					priority: 3,
+					callback: this._onTokenChange.bind(this)
+				})
+			];
         }
     }
 
