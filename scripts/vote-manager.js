@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from './chat-panel.js';
+import { HookManager } from './manager-hooks.js';
 
 export class VoteManager {
     static activeVote = null;
@@ -91,68 +92,77 @@ export class VoteManager {
         });
 
         // Register click handlers for vote cards
-        Hooks.on('renderChatMessage', (message, html) => {
-            if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
-                // Vote button click handler
-                html.find('.vote-button').click(async (event) => {
-                    event.preventDefault();
-                    // Prevent GMs from voting
-                    if (game.user.isGM) {
-                        ui.notifications.warn("GMs cannot participate in voting.");
-                        return;
-                    }
-                    const optionId = event.currentTarget.dataset.optionId;
-                    await this.castVote(game.user.id, optionId);
-                });
-
-                // Handle close button visibility and click event
-                const closeButton = html.find('.vote-controls');
-                if (!game.user.isGM) {
-                    closeButton.hide();
-                } else {
-                    closeButton.find('.close-vote').click(async (event) => {
+        const renderChatMessageHookId = HookManager.registerHook({
+            name: 'renderChatMessage',
+            description: 'Vote Manager: Handle vote card interactions and button styling',
+            context: 'vote-manager-chat',
+            priority: 3, // Normal priority - UI interaction
+            callback: (message, html) => {
+                if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
+                    // Vote button click handler
+                    html.find('.vote-button').click(async (event) => {
                         event.preventDefault();
-                        await this.closeVote();
-                    });
-                }
-
-                // Add visual indicators for votes and GM status
-                if (this.activeVote?.votes) {
-                    const userVote = this.activeVote.votes[game.user.id];
-                    html.find('.vote-button').each((i, button) => {
-                        const $button = $(button);
-                        const optionId = $button.data('optionId');
-                        
-                        // Disable buttons for GMs
+                        // Prevent GMs from voting
                         if (game.user.isGM) {
-                            $button.prop('disabled', true);
-                            $button.css({
-                                'opacity': '0.6',
-                                'cursor': 'not-allowed',
-                                'pointer-events': 'none'
-                            });
-                        } else if (userVote === optionId) {
-                            // Add check mark to voted option
-                            const $icon = $('<i class="fas fa-check" style="margin-left: 10px; color: #2d8a45;"></i>');
-                            $button.append($icon);
-                            $button.css({
-                                'background': 'rgba(45, 138, 69, 0.1)',
-                                'border-color': '#2d8a45',
-                                'color': '#2d8a45',
-                                'pointer-events': 'none'
-                            });
-                        } else if (userVote) {
-                            // Style non-selected options when user has voted
-                            $button.css({
-                                'opacity': '0.6',
-                                'cursor': 'not-allowed',
-                                'pointer-events': 'none'
-                            });
+                            ui.notifications.warn("GMs cannot participate in voting.");
+                            return;
                         }
+                        const optionId = event.currentTarget.dataset.optionId;
+                        await this.castVote(game.user.id, optionId);
                     });
+
+                    // Handle close button visibility and click event
+                    const closeButton = html.find('.vote-controls');
+                    if (!game.user.isGM) {
+                        closeButton.hide();
+                    } else {
+                        closeButton.find('.close-vote').click(async (event) => {
+                            event.preventDefault();
+                            await this.closeVote();
+                        });
+                    }
+
+                    // Add visual indicators for votes and GM status
+                    if (this.activeVote?.votes) {
+                        const userVote = this.activeVote.votes[game.user.id];
+                        html.find('.vote-button').each((i, button) => {
+                            const $button = $(button);
+                            const optionId = $button.data('optionId');
+                            
+                            // Disable buttons for GMs
+                            if (game.user.isGM) {
+                                $button.prop('disabled', true);
+                                $button.css({
+                                    'opacity': '0.6',
+                                    'cursor': 'not-allowed',
+                                    'pointer-events': 'none'
+                                });
+                            } else if (userVote === optionId) {
+                                // Add check mark to voted option
+                                const $icon = $('<i class="fas fa-check" style="margin-left: 10px; color: #2d8a45;"></i>');
+                                $button.append($icon);
+                                $button.css({
+                                    'background': 'rgba(45, 138, 69, 0.1)',
+                                    'border-color': '#2d8a45',
+                                    'color': '#2d8a45',
+                                    'pointer-events': 'none'
+                                });
+                            } else if (userVote) {
+                                // Style non-selected options when user has voted
+                                $button.css({
+                                    'opacity': '0.6',
+                                    'cursor': 'not-allowed',
+                                    'pointer-events': 'none'
+                                });
+                            }
+                        });
+                    }
                 }
             }
         });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "vote-manager-chat", true, false);
     }
 
     /**
