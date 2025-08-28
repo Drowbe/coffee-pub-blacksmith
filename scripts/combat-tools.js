@@ -4,13 +4,18 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 // Register hooks after settings are initialized
 Hooks.once('ready', () => {
     postConsoleAndNotification(MODULE.NAME, "CombatTools | Ready", "", true, false);
 
-    // Move the renderCombatTracker hook inside the ready hook to ensure settings are registered
-    Hooks.on('renderCombatTracker', (app, html, data) => {
+    // Register renderCombatTracker hook using HookManager for centralized control
+    const hookId = HookManager.registerHook({
+        name: 'renderCombatTracker',
+        description: 'Adds health rings, portraits, drag & drop to combat tracker',
+        priority: 3, // Normal priority - UI enhancements
+        callback: (app, html, data) => {
         // Find all combatant control groups
         const controlGroups = html.find('.combatant-controls');
         if (!controlGroups.length) return;
@@ -246,7 +251,12 @@ Hooks.once('ready', () => {
                 }
             }
         });
+        },
+        context: 'combat-tools' // For cleanup
     });
+    
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "combat-tools", true, false);
 });
 
 // Function to update portrait
