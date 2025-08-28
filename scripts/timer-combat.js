@@ -7,6 +7,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './api-common.js';
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
+import { HookManager } from './manager-hooks.js';
 
 class CombatTimer {
     static ID = 'combat-timer';
@@ -43,12 +44,32 @@ class CombatTimer {
                 
                 // Hook into combat turns with debounce for performance
                 const debouncedUpdate = foundry.utils.debounce(this._onUpdateCombat.bind(this), 100);
-                Hooks.on('updateCombat', (combat, changed, options, userId) => {
-                    debouncedUpdate(combat, changed, options, userId);
+                
+                // Register updateCombat hook using HookManager for centralized control
+                const updateCombatHookId = HookManager.registerHook({
+                    name: 'updateCombat',
+                    description: 'Combat Timer: Handle combat updates with debounced processing',
+                    priority: 3, // Normal priority - timer management
+                    callback: (combat, changed, options, userId) => {
+                        debouncedUpdate(combat, changed, options, userId);
+                    },
+                    context: 'timer-combat'
                 });
                 
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-combat", true, false);
+                
                 // Add timer to combat tracker
-                Hooks.on('renderCombatTracker', this._onRenderCombatTracker.bind(this));
+                const renderCombatTrackerHookId = HookManager.registerHook({
+                    name: 'renderCombatTracker',
+                    description: 'Combat Timer: Add timer display to combat tracker',
+                    priority: 3, // Normal priority - UI enhancement
+                    callback: this._onRenderCombatTracker.bind(this),
+                    context: 'timer-combat'
+                });
+                
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "timer-combat", true, false);
 
                 // Handle planning timer expiration
                 Hooks.on('planningTimerExpired', this.handlePlanningTimerExpired.bind(this));
