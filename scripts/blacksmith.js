@@ -465,18 +465,36 @@ Hooks.once('init', async function() {
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
     // Register chat message click handler for skill rolls
-    Hooks.on('renderChatMessage', (message, html) => {
-        if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
-            SkillCheckDialog.handleChatMessageClick(message, html);
+    const skillCheckChatHookId = HookManager.registerHook({
+        name: 'renderChatMessage',
+        description: 'Blacksmith: Handle skill check chat message clicks',
+        context: 'blacksmith-skill-check',
+        priority: 3, // Normal priority - UI interaction
+        callback: (message, html) => {
+            if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
+                SkillCheckDialog.handleChatMessageClick(message, html);
+            }
         }
     });
     
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "blacksmith-skill-check", true, false);
+    
     // Register window lifecycle hooks for efficient lookups
-    Hooks.on('renderApplication', (app, html, data) => {
-        if (app instanceof BlacksmithWindowQuery) {
-            registerBlacksmithWindow(app);
+    const renderApplicationHookId = HookManager.registerHook({
+        name: 'renderApplication',
+        description: 'Blacksmith: Register blacksmith windows on render',
+        context: 'blacksmith-window-registration',
+        priority: 3, // Normal priority - window management
+        callback: (app, html, data) => {
+            if (app instanceof BlacksmithWindowQuery) {
+                registerBlacksmithWindow(app);
+            }
         }
     });
+    
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderApplication", "blacksmith-window-registration", true, false);
     
     Hooks.on('closeApplication', (app) => {
         if (app instanceof BlacksmithWindowQuery) {
@@ -665,36 +683,45 @@ export function buildButtonEventRegent(worksheet = 'default') {
 // ** UTILITY Double-click Edit Journal
 // ***************************************************
 
-Hooks.on('renderJournalSheet', (app, html, data) => {
-    // Only GMs can enable journal double-click editing
-    if (!game.user.isGM) {
-        return;
-    }
-    
-    let blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
-    // See if they want to enable double-click
-    if (blnJournalDoubleClick) {
-        // Enable the double-click
-        const ENTITY_PERMISSIONS = { 
-            "NONE": 0,
-            "LIMITED": 1,
-            "OBSERVER": 2,
-            "OWNER": 3
-        };
-        const currentUser = game.user;
-        html.on('dblclick', '.journal-entry-page', event => {
-            event.preventDefault();
-            const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
-            if (hasEditPermission) {
-                // Try to find the edit button more generally
-                const editButton = html.find('.edit-container .editor-edit');
-                if (editButton.length > 0) {
-                    editButton[0].click();
+const journalDoubleClickHookId = HookManager.registerHook({
+    name: 'renderJournalSheet',
+    description: 'Blacksmith: Enable journal double-click editing for GMs',
+    context: 'blacksmith-journal-double-click',
+    priority: 3, // Normal priority - UI enhancement
+    callback: (app, html, data) => {
+        // Only GMs can enable journal double-click editing
+        if (!game.user.isGM) {
+            return;
+        }
+        
+        let blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
+        // See if they want to enable double-click
+        if (blnJournalDoubleClick) {
+            // Enable the double-click
+            const ENTITY_PERMISSIONS = { 
+                "NONE": 0,
+                "LIMITED": 1,
+                "OBSERVER": 2,
+                "OWNER": 3
+            };
+            const currentUser = game.user;
+            html.on('dblclick', '.journal-entry-page', event => {
+                event.preventDefault();
+                const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
+                if (hasEditPermission) {
+                    // Try to find the edit button more generally
+                    const editButton = html.find('.edit-container .editor-edit');
+                    if (editButton.length > 0) {
+                        editButton[0].click();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 });
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "blacksmith-journal-double-click", true, false);
 
 // ***************************************************
 // ** UTILITY Run Macro
@@ -720,18 +747,27 @@ async function runMacro(macroName) {
 // Looks for a specific span code and hides the header of that card
 // <span style="visibility: visible">coffeepub-hide-header</span>
 
-Hooks.on('renderChatMessage', (message, html, data) => {
-    // console.log(data)
+const hideHeaderChatHookId = HookManager.registerHook({
+    name: 'renderChatMessage',
+    description: 'Blacksmith: Hide chat message headers based on coffeepub-hide-header flag',
+    context: 'blacksmith-hide-header',
+    priority: 3, // Normal priority - UI enhancement
+    callback: (message, html, data) => {
+        // console.log(data)
 
-    let hideHeaderFlag = html.find('span:contains("coffeepub-hide-header")');
-    if (hideHeaderFlag.length) { 
-      // Found the "coffeepub-hide-header" flag within the message
-      hideHeaderFlag.parents('.message').find('.message-header').hide()
-  
-      // Now remove or hide the "coffeepub-hide-header" flag itself
-      hideHeaderFlag.css("display", "none");
+        let hideHeaderFlag = html.find('span:contains("coffeepub-hide-header")');
+        if (hideHeaderFlag.length) { 
+          // Found the "coffeepub-hide-header" flag within the message
+          hideHeaderFlag.parents('.message').find('.message-header').hide()
+      
+          // Now remove or hide the "coffeepub-hide-header" flag itself
+          hideHeaderFlag.css("display", "none");
+        }
     }
-  });
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "blacksmith-hide-header", true, false);
 
 // ***************************************************
 // ** RENDER Import Journal Entries
