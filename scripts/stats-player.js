@@ -76,8 +76,21 @@ class CPBPlayerStats {
         });
 
         // Register hooks for data collection
-        Hooks.on('dnd5e.rollAttack', this._onAttackRoll.bind(this));
-        Hooks.on('dnd5e.rollDamage', this._onDamageRoll.bind(this));
+        const rollAttackHookId = HookManager.registerHook({
+			name: 'dnd5e.rollAttack',
+			description: 'Player Stats: Track attack rolls for player characters',
+			context: 'stats-player-attack-rolls',
+			priority: 3,
+			callback: this._onAttackRoll.bind(this)
+		});
+		
+		const rollDamageHookId = HookManager.registerHook({
+			name: 'dnd5e.rollDamage',
+			description: 'Player Stats: Track damage rolls for player characters',
+			context: 'stats-player-damage-rolls',
+			priority: 3,
+			callback: this._onDamageRoll.bind(this)
+		});
         
         // Migrate updateCombat hook to HookManager for centralized control
         const hookId = HookManager.registerHook({
@@ -90,14 +103,40 @@ class CPBPlayerStats {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-player", true, false);
         
-        Hooks.on('updateActor', this._onActorUpdate.bind(this));
-        Hooks.on('createCombat', this._onCombatStart.bind(this));
-        Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
-        Hooks.on('createActor', (actor) => {
-            if (actor.hasPlayerOwner && !actor.isToken) {
-                this.initializeActorStats(actor.id);
-            }
-        });
+        const updateActorHookId = HookManager.registerHook({
+			name: 'updateActor',
+			description: 'Player Stats: Track actor updates for player characters',
+			context: 'stats-player-actor-updates',
+			priority: 3,
+			callback: this._onActorUpdate.bind(this)
+		});
+        const createCombatHookId = HookManager.registerHook({
+			name: 'createCombat',
+			description: 'Player Stats: Track combat start for player character statistics',
+			context: 'stats-player-combat-start',
+			priority: 3,
+			callback: this._onCombatStart.bind(this)
+		});
+        const deleteCombatHookId = HookManager.registerHook({
+			name: 'deleteCombat',
+			description: 'Player Stats: Track combat end for player character statistics',
+			context: 'stats-player-combat-end',
+			priority: 3,
+			callback: this._onCombatEnd.bind(this)
+		});
+        const createActorHookId = HookManager.registerHook({
+			name: 'createActor',
+			description: 'Player Stats: Initialize statistics for newly created player characters',
+			context: 'stats-player-actor-creation',
+			priority: 3,
+			callback: (actor) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				if (actor.hasPlayerOwner && !actor.isToken) {
+					this.initializeActorStats(actor.id);
+				}
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
 
         // Initialize session storage
         this._sessionStats = new Map();
