@@ -1073,43 +1073,96 @@ class CombatStats {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-combat", true, false);
         
-        Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
-        Hooks.on('endCombat', this._onCombatEnd.bind(this));
+        const deleteCombatHookId = HookManager.registerHook({
+			name: 'deleteCombat',
+			description: 'Combat Stats: Track combat deletion for statistics cleanup',
+			context: 'stats-combat-combat-end',
+			priority: 3,
+			callback: this._onCombatEnd.bind(this)
+		});
+		
+		const endCombatHookId = HookManager.registerHook({
+			name: 'endCombat',
+			description: 'Combat Stats: Track combat end for statistics finalization',
+			context: 'stats-combat-combat-end',
+			priority: 3,
+			callback: this._onCombatEnd.bind(this)
+		});
 
         // Register damage tracking hooks
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Registering attack and damage hooks', "", true, false);
         
         // Attack roll hooks
-        Hooks.on('dnd5e.preRollAttack', (item, config) => {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Attack Roll detected:', { item, config }, true, false);
-        });
+        const preRollAttackHookId = HookManager.registerHook({
+			name: 'dnd5e.preRollAttack',
+			description: 'Combat Stats: Monitor pre-attack rolls for statistics tracking',
+			context: 'stats-combat-pre-attack',
+			priority: 3,
+			callback: (item, config) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Attack Roll detected:', { item, config }, true, false);
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
         
-        Hooks.on('dnd5e.rollAttack', (item, roll) => {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', { item, roll }, true, false);
-            this._onAttackRoll(item, roll);
-        });
+        const rollAttackHookId = HookManager.registerHook({
+			name: 'dnd5e.rollAttack',
+			description: 'Combat Stats: Monitor attack rolls for statistics tracking',
+			context: 'stats-combat-attack-rolls',
+			priority: 3,
+			callback: (item, roll) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', { item, roll }, true, false);
+				this._onAttackRoll(item, roll);
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
 
         // Damage roll hooks
-        Hooks.on('dnd5e.preRollDamage', (item, config) => {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Damage Roll detected:', { item, config }, true, false);
-            this._onPreDamageRoll(item, config);
-        });
+        const preRollDamageHookId = HookManager.registerHook({
+			name: 'dnd5e.preRollDamage',
+			description: 'Combat Stats: Monitor pre-damage rolls for statistics tracking',
+			context: 'stats-combat-pre-damage',
+			priority: 3,
+			callback: (item, config) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Pre-Damage Roll detected:', { item, config }, true, false);
+				this._onPreDamageRoll(item, config);
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
         
-        Hooks.on('dnd5e.rollDamage', (item, roll) => {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', { item, roll }, true, false);
-            this._onDamageRoll(item, roll);
-        });
+        const rollDamageHookId = HookManager.registerHook({
+			name: 'dnd5e.rollDamage',
+			description: 'Combat Stats: Monitor damage rolls for statistics tracking',
+			context: 'stats-combat-damage-rolls',
+			priority: 3,
+			callback: (item, roll) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', { item, roll }, true, false);
+				this._onDamageRoll(item, roll);
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
 
         // Additional debug hooks
-        Hooks.on('createChatMessage', (message) => {
-            if (message.isRoll) {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Roll Chat Message:', {
-                    flavor: message.flavor,
-                    type: message.type,
-                    roll: message.roll
-                }, true, false);
-            }
-        });
+        const createChatMessageHookId = HookManager.registerHook({
+			name: 'createChatMessage',
+			description: 'Combat Stats: Monitor chat messages for roll statistics',
+			context: 'stats-combat-chat-messages',
+			priority: 3,
+			callback: (message) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				if (message.isRoll) {
+					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Roll Chat Message:', {
+						flavor: message.flavor,
+						type: message.type,
+						roll: message.roll
+					}, true, false);
+				}
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Hooks registered', "", true, false);
     }
