@@ -3,6 +3,7 @@ import { MODULE } from './const.js';
 import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './api-common.js';
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
+import { HookManager } from './manager-hooks.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 import { MVPTemplates } from './data-collections.js';
 
@@ -1051,7 +1052,18 @@ class CombatStats {
     // Register all necessary hooks
     static _registerHooks() {
         // Register combat hooks
-        Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+        // Migrate updateCombat hook to HookManager for centralized control
+        const hookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'Combat Stats: Record combat data for analytics',
+            priority: 3, // Normal priority - statistics collection
+            callback: this._onUpdateCombat.bind(this),
+            context: 'stats-combat'
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-combat", true, false);
+        
         Hooks.on('deleteCombat', this._onCombatEnd.bind(this));
         Hooks.on('endCombat', this._onCombatEnd.bind(this));
 
