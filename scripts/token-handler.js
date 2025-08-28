@@ -3,6 +3,7 @@
 // ================================================================== 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
 // ===== CONSTANTS ==================================================
@@ -180,19 +181,30 @@ export class TokenHandler {
 
         // Register hook for future token selections with explicit workspaceId closure
         const workspaceIdClosure = workspaceId; // Ensure workspaceId is captured in closure
-        this.hookId = Hooks.on('controlToken', (token, controlled) => {
-            if (!controlled) return;
-            
-            postConsoleAndNotification(MODULE.NAME, "Token control hook fired", `workspaceId: ${workspaceIdClosure}, token: ${token?.name}`, true, false);
-            
-            if (workspaceIdClosure === 'assistant') {
-                postConsoleAndNotification(MODULE.NAME, "Token controlled, updating skill check form", "", true, false);
-                this.updateSkillCheckFromToken(workspaceIdClosure, token);
-            } else if (workspaceIdClosure === 'character') {
-                postConsoleAndNotification(MODULE.NAME, "Token controlled, updating character panel", "", true, false);
-                this.updateCharacterBiography(workspaceIdClosure, token);
+        
+        // Register controlToken hook
+        this.hookId = HookManager.registerHook({
+            name: 'controlToken',
+            description: 'Token Handler: Handle token control events for workspace updates',
+            context: 'token-handler-control',
+            priority: 3, // Normal priority - UI enhancement
+            callback: (token, controlled) => {
+                if (!controlled) return;
+                
+                postConsoleAndNotification(MODULE.NAME, "Token control hook fired", `workspaceId: ${workspaceIdClosure}, token: ${token?.name}`, true, false);
+                
+                if (workspaceIdClosure === 'assistant') {
+                    postConsoleAndNotification(MODULE.NAME, "Token controlled, updating skill check form", "", true, false);
+                    this.updateSkillCheckFromToken(workspaceIdClosure, token);
+                } else if (workspaceIdClosure === 'character') {
+                    postConsoleAndNotification(MODULE.NAME, "Token controlled, updating character panel", "", true, false);
+                    this.updateCharacterBiography(workspaceIdClosure, token);
+                }
             }
         });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | controlToken", "token-handler-control", true, false);
 
         return this.hookId;
     }
@@ -200,7 +212,7 @@ export class TokenHandler {
     static unregisterTokenHooks() {
         if (this.hookId !== null) {
             postConsoleAndNotification(MODULE.NAME, "Unregistering token hooks", "", true, false);
-            Hooks.off('controlToken', this.hookId);
+            HookManager.removeCallback(this.hookId);
             this.hookId = null;
         }
     }
