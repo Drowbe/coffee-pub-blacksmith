@@ -29,6 +29,25 @@ HookManager.registerHook({
 
 **⚠️ WARNING: Parameter order is strict and must be exact!**
 
+### **When NOT to Use HookManager**
+
+**Avoid using HookManager for these FoundryVTT lifecycle hooks:**
+- `Hooks.once('init', ...)` - Module initialization
+- `Hooks.once('ready', ...)` - Module ready state
+- `Hooks.once('setup', ...)` - Game setup
+
+**Why?**
+- These are one-time events that don't need priority management
+- They're too critical to risk HookManager abstraction
+- They're already working perfectly with FoundryVTT's native system
+- HookManager is designed for recurring hooks that need ongoing management
+
+**Use HookManager for:**
+- Recurring hooks (`renderChatMessage`, `updateCombat`, etc.)
+- Hooks that need priority ordering
+- Hooks that need context-based cleanup
+- Custom application hooks
+
 ### **Priority System (1-5)**
 ```javascript
 priority: 1,  // CRITICAL - runs first (system cleanup, critical features)
