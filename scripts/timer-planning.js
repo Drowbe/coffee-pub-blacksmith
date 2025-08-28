@@ -7,6 +7,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { COFFEEPUB, postConsoleAndNotification, playSound, trimString } from './api-common.js';
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
+import { HookManager } from './manager-hooks.js';
 
 export class PlanningTimer {
     static DEFAULTS = {
@@ -66,7 +67,16 @@ export class PlanningTimer {
         });
 
         // Handle combat updates
-        Hooks.on('updateCombat', this.handleCombatUpdate.bind(this));
+        const updateCombatHookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'Planning Timer: Handle combat updates for planning phase management',
+            priority: 3, // Normal priority - timer management
+            callback: this.handleCombatUpdate.bind(this),
+            context: 'timer-planning'
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-planning", true, false);
     }
 
     static async syncState() {
