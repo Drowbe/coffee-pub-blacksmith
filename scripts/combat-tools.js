@@ -14,6 +14,7 @@ Hooks.once('ready', () => {
     const hookId = HookManager.registerHook({
         name: 'renderCombatTracker',
         description: 'Adds health rings, portraits, drag & drop to combat tracker',
+        context: 'combat-tools',
         priority: 3, // Normal priority - UI enhancements
         callback: (app, html, data) => {
         // Find all combatant control groups

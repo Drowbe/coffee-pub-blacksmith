@@ -88,6 +88,7 @@ class CombatTracker {
                 const roundChangeHookId = HookManager.registerHook({
                     name: 'updateCombat',
                     description: 'Combat Tracker: Handle round changes and initiative checking',
+                    context: 'combat-tracker-round-change',
                     priority: 2, // High priority - core combat functionality
                     callback: (combat, changed) => {
                         // If the round changes, reset the flag and check initiatives
@@ -101,8 +102,7 @@ class CombatTracker {
                                 this._handleRoundChange(combat);
                             }
                         }
-                    },
-                    context: 'combat-tracker-round-change'
+                    }
                 });
                 
                 // Log hook registration
@@ -112,6 +112,7 @@ class CombatTracker {
                 const playerInitiativeHookId = HookManager.registerHook({
                     name: 'updateCombat',
                     description: 'Combat Tracker: Handle player initiative rolling on round changes',
+                    context: 'combat-tracker-player-initiative',
                     priority: 2, // High priority - core combat functionality
                     callback: (combat, changed, options, userId) => {
                         // Only process round changes (when the combat updates with a new round)
@@ -128,8 +129,7 @@ class CombatTracker {
                             // Now roll initiative for player-owned characters
                             this._rollInitiativeForPlayerCharacters(combat);
                         }, 1000);
-                    },
-                    context: 'combat-tracker-player-initiative'
+                    }
                 });
                 
                 // Log hook registration

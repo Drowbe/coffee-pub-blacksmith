@@ -49,11 +49,11 @@ class CombatTimer {
                 const updateCombatHookId = HookManager.registerHook({
                     name: 'updateCombat',
                     description: 'Combat Timer: Handle combat updates with debounced processing',
+                    context: 'timer-combat',
                     priority: 3, // Normal priority - timer management
                     callback: (combat, changed, options, userId) => {
                         debouncedUpdate(combat, changed, options, userId);
-                    },
-                    context: 'timer-combat'
+                    }
                 });
                 
                 // Log hook registration
@@ -63,9 +63,9 @@ class CombatTimer {
                 const renderCombatTrackerHookId = HookManager.registerHook({
                     name: 'renderCombatTracker',
                     description: 'Combat Timer: Add timer display to combat tracker',
+                    context: 'timer-combat',
                     priority: 3, // Normal priority - UI enhancement
-                    callback: this._onRenderCombatTracker.bind(this),
-                    context: 'timer-combat'
+                    callback: this._onRenderCombatTracker.bind(this)
                 });
                 
                 // Log hook registration

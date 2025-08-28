@@ -70,9 +70,9 @@ export class PlanningTimer {
         const updateCombatHookId = HookManager.registerHook({
             name: 'updateCombat',
             description: 'Planning Timer: Handle combat updates for planning phase management',
+            context: 'timer-planning',
             priority: 3, // Normal priority - timer management
-            callback: this.handleCombatUpdate.bind(this),
-            context: 'timer-planning'
+            callback: this.handleCombatUpdate.bind(this)
         });
         
         // Log hook registration
