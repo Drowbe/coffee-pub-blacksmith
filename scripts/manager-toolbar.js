@@ -3,6 +3,7 @@ import { COFFEEPUB, postConsoleAndNotification } from './api-common.js';
 import { buildButtonEventRegent } from './blacksmith.js';
 import { CSSEditor } from './window-gmtools.js';
 import { JournalToolsWindow } from './journal-tools.js';
+import { HookManager } from './manager-hooks.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './api-common.js';
 
@@ -114,18 +115,28 @@ export function addToolbarButton() {
 
     });
 
-    Hooks.on('renderSceneControls', () => {
-        const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
-        if (button) {
-            button.addEventListener('click', () => {
-        
-                toggleToolbarVisibility();
-                //activateBlacksmithLayer(); // Ensure this function is called
-            });
-        } else {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar button not found", "", false, false);
+    // Register renderSceneControls hook
+    const renderSceneControlsHookId = HookManager.registerHook({
+        name: 'renderSceneControls',
+        description: 'Manager Toolbar: Add click handler to blacksmith utilities button',
+        context: 'manager-toolbar-scene',
+        priority: 3, // Normal priority - UI enhancement
+        callback: () => {
+            const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
+            if (button) {
+                button.addEventListener('click', () => {
+            
+                    toggleToolbarVisibility();
+                    //activateBlacksmithLayer(); // Ensure this function is called
+                });
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Toolbar button not found", "", false, false);
+            }
         }
     });
+    
+    // Log hook registration
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderSceneControls", "manager-toolbar-scene", true, false);
 
     
 }
