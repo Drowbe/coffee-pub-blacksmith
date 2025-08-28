@@ -182,7 +182,8 @@ export class HookManager {
             this.contexts.get(context).add(callbackId);
         }
         
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        // Logging hook registration
+        postConsoleAndNotification(
             MODULE.NAME,
             `Hook registered: ${name}`,
             { description, priority, totalCallbacks: entry.callbacks.length },
@@ -193,7 +194,7 @@ export class HookManager {
         return callbackId;
     }
     
-        /**
+    /**
      * Remove a specific hook
      * @param {string} hookName - Hook to remove
      * @returns {boolean} Success status
@@ -210,7 +211,7 @@ export class HookManager {
         Hooks.off(hookName, hook.hookId);
         this.hooks.delete(hookName);
         
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        postConsoleAndNotification(
             MODULE.NAME,
             `Hook removed: ${hookName}`,
             { totalHooks: this.hooks.size },
@@ -221,12 +222,12 @@ export class HookManager {
         return true;
     }
 
-     /**
-      * Remove a specific callback by its ID
-      * @param {string} callbackId - The callback ID returned from registerHook
-      * @returns {boolean} Success status
-      */
-        static removeCallback(callbackId) {
+    /**
+     * Remove a specific callback by its ID
+     * @param {string} callbackId - The callback ID returned from registerHook
+     * @returns {boolean} Success status
+     */
+    static removeCallback(callbackId) {
         const hookName = callbackId.split('_')[0];
         const entry = this.hooks.get(hookName);
         if (!entry) return false;
@@ -245,7 +246,7 @@ export class HookManager {
             Hooks.off(hookName, entry.hookId);
             this.hooks.delete(hookName);
             
-            getBlacksmith()?.utils.postConsoleAndNotification(
+            postConsoleAndNotification(
                 MODULE.NAME,
                 `Hook completely removed: ${hookName}`,
                 { totalHooks: this.hooks.size },
@@ -253,7 +254,7 @@ export class HookManager {
                 false
             );
         } else {
-            getBlacksmith()?.utils.postConsoleAndNotification(
+            postConsoleAndNotification(
                 MODULE.NAME,
                 `Callback removed from hook: ${hookName}`,
                 { remainingCallbacks: entry.callbacks.length },
@@ -293,7 +294,7 @@ export class HookManager {
         this.hooks.clear();
         this.contexts.clear();
         
-        getBlacksmith()?.utils.postConsoleAndNotification(
+        postConsoleAndNotification(
             MODULE.NAME,
             'All hooks cleaned up',
             { totalCleaned },
@@ -443,6 +444,30 @@ export class HookManager {
             }
         }
     }
+    
+    /**
+     * Initialize HookManager with lifecycle hooks and console commands
+     */
+    static initialize() {
+        // Set up lifecycle hooks
+        Hooks.once('closeGame', () => {
+            this.cleanup();
+        });
+        
+        // Add console commands for debugging
+        window.blacksmithHooks = () => this.showHooks();
+        window.blacksmithHookDetails = () => this.showHookDetails();
+        window.blacksmithHookStats = () => this.getStats();
+        
+        // Log initialization
+        postConsoleAndNotification(
+            MODULE.NAME,
+            "Hook Manager | Initialization",
+            "Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats()",
+            true,
+            false
+        );
+    }
 }
 ```
 
@@ -510,6 +535,150 @@ HookManager.registerHook({
         }
     }
 });
+```
+
+## **Real-World Migration Examples**
+
+### **Example 1: Combat Tracker Hook Migration**
+```javascript
+// BEFORE: Direct Hooks.on registration
+Hooks.on('renderCombatTracker', (app, html, data) => {
+    // 100+ lines of combat tracker enhancement logic
+    // Health rings, portraits, drag & drop functionality
+});
+
+// AFTER: HookManager registration
+const hookId = HookManager.registerHook({
+    name: 'renderCombatTracker',
+    description: 'Adds health rings, portraits, drag & drop to combat tracker',
+    priority: 3, // Normal priority - UI enhancements
+    callback: (app, html, data) => {
+        // 100+ lines of combat tracker enhancement logic
+        // Health rings, portraits, drag & drop functionality
+        // EXACTLY THE SAME LOGIC - just wrapped in HookManager
+    },
+    context: 'combat-tools' // For cleanup
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "combat-tools", true, false);
+```
+
+### **Example 2: Combat Update Hook Migration**
+```javascript
+// BEFORE: Direct Hooks.on registration
+Hooks.on('updateCombat', (combat, changed) => {
+    // Combat round change logic
+    if (changed.round !== undefined) {
+        // Handle round changes
+    }
+});
+
+// AFTER: HookManager registration
+const hookId = HookManager.registerHook({
+    name: 'updateCombat',
+    description: 'Combat Tracker: Handle round changes and initiative checking',
+    priority: 2, // High priority - core combat functionality
+    callback: (combat, changed) => {
+        // Combat round change logic
+        if (changed.round !== undefined) {
+            // Handle round changes
+        }
+        // EXACTLY THE SAME LOGIC - just wrapped in HookManager
+    },
+    context: 'combat-tracker-round-change'
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "combat-tracker-round-change", true, false);
+```
+
+### **Example 3: Timer Hook Migration**
+```javascript
+// BEFORE: Direct Hooks.on registration
+Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+
+// AFTER: HookManager registration
+const hookId = HookManager.registerHook({
+    name: 'updateCombat',
+    description: 'Round Timer: Reset round timer stats on round changes',
+    priority: 3, // Normal priority - timer management
+    callback: this._onUpdateCombat.bind(this),
+    context: 'timer-round'
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-round", true, false);
+```
+
+### **Example 4: Statistics Hook Migration**
+```javascript
+// BEFORE: Direct Hooks.on registration
+Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+
+// AFTER: HookManager registration
+const hookId = HookManager.registerHook({
+    name: 'updateCombat',
+    description: 'Combat Stats: Record combat data for analytics',
+    priority: 3, // Normal priority - statistics collection
+    callback: this._onUpdateCombat.bind(this),
+    context: 'stats-combat'
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-combat", true, false);
+```
+
+## **Migration Benefits Demonstrated**
+
+### **1. Hook Conflict Resolution**
+```javascript
+// BEFORE: Multiple files registering the same hook
+// combat-tools.js
+Hooks.on('renderCombatTracker', ...); // UI enhancements
+
+// combat-tracker.js  
+Hooks.on('renderCombatTracker', ...); // Core functionality
+
+// timer-planning.js
+Hooks.on('renderCombatTracker', ...); // Timer display
+
+// Result: Last one wins, others are overwritten!
+
+// AFTER: HookManager handles multiple callbacks
+// All three hooks now work together with proper priority ordering
+HookManager.registerHook({ name: 'renderCombatTracker', priority: 3, ... }); // UI
+HookManager.registerHook({ name: 'renderCombatTracker', priority: 2, ... }); // Core  
+HookManager.registerHook({ name: 'renderCombatTracker', priority: 4, ... }); // Timer
+```
+
+### **2. Centralized Hook Management**
+```javascript
+// Console commands provide visibility into all hooks
+blacksmithHooks()           // Quick overview
+blacksmithHookDetails()     // Full breakdown with priority grouping
+blacksmithHookStats()       // Raw data for debugging
+
+// Example output:
+// HIGH PRIORITY (2)
+// ==================================================
+// ACTIVE updateCombat
+//    ID: updateCombat_1756398880835_8g44mkg | Priority: 2 | Categories: [general]
+//    Registered: 9:34:40 AM
+//    Description: Combat Tracker: Handle round changes and initiative checking
+```
+
+### **3. Context-Based Cleanup**
+```javascript
+// Each hook gets a context for batch cleanup
+HookManager.registerHook({
+    name: 'updateCombat',
+    context: 'combat-tracker-round-change',
+    // ... other options
+});
+
+// Later, cleanup all combat tracker hooks
+HookManager.disposeByContext('combat-tracker-round-change');
 ```
 
 ## **Advanced Features**
@@ -667,6 +836,23 @@ Complex HookManagers with routing layers:
 - Make debugging harder
 - Don't solve real problems
 - Violate the principle of "keep it simple"
+
+## **Migration Success Stories**
+
+### **Hook Conflict Resolution**
+- **Before**: 5+ `renderCombatTracker` hooks overwriting each other
+- **After**: All hooks work together with proper priority ordering
+- **Result**: Combat tracker enhancements now function correctly
+
+### **Centralized Visibility**
+- **Before**: No way to see what hooks were registered or their status
+- **After**: Console commands show all hooks with descriptions and priorities
+- **Result**: Easy debugging and monitoring of hook system
+
+### **Cleanup Management**
+- **Before**: Hooks could accumulate and cause memory leaks
+- **After**: Context-based cleanup and automatic lifecycle management
+- **Result**: Better performance and resource management
 
 ## **Bottom Line**
 
@@ -871,3 +1057,300 @@ return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 4. **Add execution order control** (LOW)
 
 **Keep the simple philosophy, fix the multiple callback limitation.**
+
+---
+
+## **🤖 AI IMPLEMENTATION GUIDE**
+
+### **For Future AI Assistants Implementing HookManager Migration**
+
+**CRITICAL: This is a production system. Make focused, tested changes only.**
+
+---
+
+## **IMPLEMENTATION APPROACH**
+
+### **1. Migration Philosophy**
+- **Change NO code** until you understand the current state
+- **Make ONE change at a time** - test before proceeding
+- **Roll back immediately** if anything breaks
+- **NO large consolidations** - prefer incremental approach
+- **NO documentation updates** until after successful testing
+
+### **2. Required Investigation Steps**
+```javascript
+// ALWAYS start with these console commands to understand current state
+blacksmithHooks()           // Quick overview
+blacksmithHookDetails()     // Full breakdown with priority grouping  
+blacksmithHookStats()       // Raw data for debugging
+```
+
+### **3. Migration Process**
+1. **Identify target hook** - Find a direct `Hooks.on()` registration
+2. **Add HookManager import** - `import { HookManager } from './manager-hooks.js';`
+3. **Replace registration** - Convert `Hooks.on()` to `HookManager.registerHook()`
+4. **Add logging** - `postConsoleAndNotification(MODULE.NAME, "Hook Manager | hookName", "context", true, false);`
+5. **Test immediately** - Verify functionality works
+6. **Move to next hook** - Only after successful testing
+
+---
+
+## **MIGRATION TEMPLATE**
+
+### **Before (Direct Hook Registration)**
+```javascript
+// OLD: Direct Hooks.on registration
+Hooks.on('hookName', (arg1, arg2) => {
+    // Existing logic - DO NOT CHANGE THIS CODE
+    // Just wrap it in HookManager
+});
+```
+
+### **After (HookManager Registration)**
+```javascript
+// NEW: HookManager registration
+import { HookManager } from './manager-hooks.js';
+
+const hookId = HookManager.registerHook({
+    name: 'hookName',
+    description: 'Brief description of what this hook does',
+    priority: 3, // 1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest
+    callback: (arg1, arg2) => {
+        // EXACTLY THE SAME LOGIC - unchanged
+        // Existing logic - DO NOT CHANGE THIS CODE
+        // Just wrap it in HookManager
+    },
+    context: 'descriptive-context-name' // For cleanup
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | hookName", "descriptive-context-name", true, false);
+```
+
+---
+
+## **PRIORITY GUIDELINES**
+
+### **Priority 1 (CRITICAL)**
+- System cleanup, critical features
+- Must run first before anything else
+
+### **Priority 2 (HIGH)**  
+- Core functionality, data validation
+- Runs early in the process
+
+### **Priority 3 (NORMAL)**
+- Most hooks, standard features
+- Default priority for most use cases
+
+### **Priority 4 (LOW)**
+- Nice-to-have features, UI updates
+- Runs later in the process
+
+### **Priority 5 (LOWEST)**
+- Cosmetic features, debug hooks
+- Runs last
+
+---
+
+## **CONTEXT NAMING CONVENTIONS**
+
+### **Use Descriptive Context Names**
+```javascript
+// GOOD: Clear, descriptive contexts
+context: 'combat-tracker-round-change'
+context: 'timer-round'
+context: 'stats-combat'
+context: 'combat-tools'
+
+// BAD: Vague contexts
+context: 'hook1'
+context: 'temp'
+context: 'stuff'
+```
+
+### **Context Examples by Module**
+```javascript
+// Combat-related hooks
+context: 'combat-tracker-round-change'
+context: 'combat-tracker-player-initiative'
+context: 'combat-tools'
+
+// Timer-related hooks
+context: 'timer-round'
+context: 'timer-planning'
+context: 'timer-combat'
+
+// Statistics hooks
+context: 'stats-combat'
+context: 'stats-player'
+```
+
+---
+
+## **TESTING CHECKLIST**
+
+### **After Each Migration**
+1. **Console output** - Verify hook registration message appears
+2. **Functionality test** - Trigger the hook and verify it works
+3. **HookManager status** - Run `blacksmithHookDetails()` to see new hook
+4. **No errors** - Check console for any error messages
+5. **Rollback plan** - Keep backup of original code until testing complete
+
+### **Common Test Scenarios**
+```javascript
+// For renderCombatTracker hooks
+// - Open combat tracker
+// - Verify visual enhancements appear (health rings, portraits, etc.)
+// - Check console for hook registration message
+
+// For updateCombat hooks  
+// - Start/advance combat
+// - Verify expected behavior occurs
+// - Check console for hook registration message
+
+// For updateActor hooks
+// - Modify an actor's HP or other attributes
+// - Verify expected behavior occurs
+// - Check console for hook registration message
+```
+
+---
+
+## **ERROR PREVENTION**
+
+### **Common Mistakes to Avoid**
+1. **Changing business logic** - Only wrap existing code, don't modify it
+2. **Missing imports** - Always add `import { HookManager } from './manager-hooks.js';`
+3. **Wrong priority** - Use 3 for normal hooks unless you have a specific reason
+4. **Missing logging** - Always add the postConsoleAndNotification call
+5. **Vague contexts** - Use descriptive context names for cleanup
+
+### **Import Pattern**
+```javascript
+// CORRECT: Add import at top of file
+import { HookManager } from './manager-hooks.js';
+
+// INCORRECT: Missing import
+// This will cause "HookManager is not defined" error
+```
+
+### **Logging Pattern**
+```javascript
+// CORRECT: Log after registration
+const hookId = HookManager.registerHook({...});
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | hookName", "context", true, false);
+
+// INCORRECT: Missing logging
+// This makes debugging harder
+```
+
+---
+
+## **ROLLBACK PROCEDURE**
+
+### **If Something Breaks**
+1. **Immediately stop** - Don't make more changes
+2. **Restore original code** - Use the backup you kept
+3. **Test functionality** - Verify it works again
+4. **Analyze the problem** - What went wrong?
+5. **Fix the issue** - Make a smaller, more focused change
+6. **Test again** - Before proceeding
+
+### **Backup Strategy**
+```javascript
+// BEFORE making changes, create a backup
+// Either:
+// 1. Copy the original Hooks.on line to a comment
+// 2. Keep a backup file
+// 3. Use git to track changes
+
+// Example backup in comment:
+// BACKUP: Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+const hookId = HookManager.registerHook({...});
+```
+
+---
+
+## **MIGRATION ORDER RECOMMENDATION**
+
+### **Start with Simple Hooks**
+1. **Statistics hooks** - Usually simple, low-risk
+2. **Timer hooks** - Moderate complexity, good for learning
+3. **Combat tracker hooks** - More complex, save for later
+4. **UI enhancement hooks** - Most complex, test thoroughly
+
+### **Hook Complexity Guide**
+```javascript
+// SIMPLE: Direct method calls
+Hooks.on('updateCombat', this._onUpdateCombat.bind(this));
+// → Easy to migrate, low risk
+
+// MODERATE: Inline logic with some complexity
+Hooks.on('updateCombat', (combat, changed) => {
+    if (changed.round !== undefined) {
+        // Some logic here
+    }
+});
+// → Moderate complexity, test carefully
+
+// COMPLEX: Large inline functions (100+ lines)
+Hooks.on('renderCombatTracker', (app, html, data) => {
+    // 100+ lines of complex logic
+});
+// → High complexity, test thoroughly, consider breaking into smaller functions
+```
+
+---
+
+## **SUCCESS INDICATORS**
+
+### **What Success Looks Like**
+1. **Hook registration message** appears in console
+2. **Functionality works** exactly as before
+3. **HookManager shows new hook** in `blacksmithHookDetails()`
+4. **No console errors** related to the migration
+5. **Performance maintained** - no noticeable slowdown
+
+### **Console Output Example**
+```javascript
+// Successful migration shows:
+COFFEE PUB • BLACKSMITH: Hook Manager | updateCombat stats-combat
+
+// And in blacksmithHookDetails():
+NORMAL PRIORITY (3)
+==================================================
+ACTIVE updateCombat
+   ID: updateCombat_1756402883904_t4rk1ne | Priority: 3 | Categories: [general]
+   Registered: 10:41:23 AM
+   Description: Combat Stats: Record combat data for analytics
+```
+
+---
+
+## **FINAL REMINDERS**
+
+### **Core Principles**
+- **ONE change at a time**
+- **Test after each change**
+- **Keep backups**
+- **Roll back if broken**
+- **Don't optimize or clean up** unless specifically requested
+- **Focus on migration only**
+
+### **Success Metrics**
+- All hooks migrated to HookManager
+- No functionality broken
+- Console shows all hooks registered
+- HookManager provides visibility and control
+- System performance maintained or improved
+
+### **When to Stop**
+- All direct `Hooks.on()` registrations migrated
+- All functionality working correctly
+- HookManager providing value (visibility, cleanup, etc.)
+- No critical errors or performance issues
+
+---
+
+**Remember: This is a production system. Make focused, tested changes only. When in doubt, make a smaller change and test it thoroughly before proceeding.**
