@@ -14,6 +14,21 @@ Actor Updated → Hook Fired → Your Function → Update Health Panel
 
 ## **Core Principles**
 
+### **Parameter Order (CRITICAL)**
+```javascript
+HookManager.registerHook({
+    name: 'hookName',           // 1. FoundryVTT hook name
+    description: 'Description',  // 2. Human-readable description
+    context: 'context-name',     // 3. String for batch cleanup
+    priority: 3,                // 4. Execution priority (1-5)
+    callback: (args) => {       // 5. Your function to execute
+        // Your logic here
+    }
+});
+```
+
+**⚠️ WARNING: Parameter order is strict and must be exact!**
+
 ### **Priority System (1-5)**
 ```javascript
 priority: 1,  // CRITICAL - runs first (system cleanup, critical features)
@@ -38,6 +53,7 @@ priority: 5,  // LOWEST - runs last (cosmetic features, debug hooks)
 HookManager.registerHook({
     name: 'updateActor',
     description: 'Updates health panel when actor HP changes',
+    context: 'health-panel',
     priority: 3, // 1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest
     callback: (actor, changes) => {
         // Your logic here - update health panel, etc.
@@ -47,6 +63,13 @@ HookManager.registerHook({
     }
 });
 ```
+
+**Parameter Order (REQUIRED):**
+1. `name` - FoundryVTT hook name
+2. `description` - Human-readable description for debugging
+3. `context` - String for batch cleanup and organization
+4. `priority` - Execution priority (1-5)
+5. `callback` - Your function to execute
 
 ### **2. Automatic Data Passing**
 - **FoundryVTT automatically provides the data** when hooks fire
@@ -94,15 +117,15 @@ export class HookManager {
      * Register a hook with a callback
      * @param {Object} options - Hook registration options
      * @param {string} options.name - FoundryVTT hook name
-     * @param {string} options.description - Optional description for debugging
+     * @param {string} options.description - Human-readable description for debugging
+     * @param {string} options.context - String for batch cleanup and organization
      * @param {number} options.priority - Priority level (1-5, default: 3)
      * @param {Function} options.callback - Your callback function
      * @param {Object} options.options - Additional options (e.g., { once: true, throttleMs: 50 })
      * @param {string} options.key - Optional dedupe key to prevent duplicate registrations
-     * @param {string} options.context - Optional context for batch cleanup
      * @returns {string} callbackId for cleanup
      */
-    static registerHook({ name, description = '', priority = 3, callback, options = {}, key, context }) {
+    static registerHook({ name, description = '', context, priority = 3, callback, options = {}, key }) {
         if (typeof callback !== 'function') {
             throw new Error(`HookManager: callback must be a function for ${name}`);
         }
@@ -478,6 +501,7 @@ export class HookManager {
 HookManager.registerHook({
     name: 'updateActor',
     description: 'Updates health panel when actor HP changes',
+    context: 'health-panel',
     priority: 3, // Normal priority (default)
     callback: (actor, changes) => {
         // Your logic here - update health panel, etc.
@@ -490,6 +514,7 @@ HookManager.registerHook({
 HookManager.registerHook({
     name: 'updateToken',
     description: 'Handles token position updates',
+    context: 'token-position',
     priority: 2, // High priority - runs early
     callback: (token, changes) => {
         // Your logic here
@@ -503,6 +528,7 @@ HookManager.registerHook({
 HookManager.registerHook({
     name: 'closeGame',
     description: 'Critical cleanup when game closes',
+    context: 'system-cleanup',
     priority: 1, // Critical - runs first
     callback: () => {
         // Critical cleanup logic
@@ -513,6 +539,7 @@ HookManager.registerHook({
 HookManager.registerHook({
     name: 'userLogin',
     description: 'One-time welcome message',
+    context: 'user-welcome',
     priority: 4, // Low priority
     options: { once: true }, // Auto-cleanup after first execution
     callback: (user) => {
@@ -961,7 +988,7 @@ HookManager.registerHook({
 
 ### **Solution: Multiple Callbacks Per Hook with Priority**
 ```javascript
-static registerHook({ name, description = '', priority = 3, callback, options = {} }) {
+static registerHook({ name, description = '', context, priority = 3, callback, options = {} }) {
     // Check if this hook already exists
     if (this.hooks.has(name)) {
         // Add callback to existing hook
@@ -1114,18 +1141,25 @@ import { HookManager } from './manager-hooks.js';
 const hookId = HookManager.registerHook({
     name: 'hookName',
     description: 'Brief description of what this hook does',
+    context: 'descriptive-context-name', // For cleanup
     priority: 3, // 1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest
     callback: (arg1, arg2) => {
         // EXACTLY THE SAME LOGIC - unchanged
         // Existing logic - DO NOT CHANGE THIS CODE
         // Just wrap it in HookManager
-    },
-    context: 'descriptive-context-name' // For cleanup
+    }
 });
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | hookName", "descriptive-context-name", true, false);
 ```
+
+**⚠️ CRITICAL: Parameter Order Must Be Exact**
+1. `name`
+2. `description` 
+3. `context`
+4. `priority`
+5. `callback`
 
 ---
 
