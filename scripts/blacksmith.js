@@ -45,8 +45,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
 // TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
-import { HookManager } from './manager-hooks.js';
-
+import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
 // ================================================================== 
@@ -240,7 +239,7 @@ Hooks.once('ready', async () => {
         // Wait a bit to ensure settings are fully processed
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Double-check that settings are ready BEFORE initializing features
+        // Double-check that settings are ready
         let retries = 0;
         while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 10) {
             console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
@@ -252,9 +251,6 @@ Hooks.once('ready', async () => {
             console.error('Blacksmith: Settings failed to load after multiple attempts, skipping initialization');
             return;
         }
-
-        // Initialize other settings-dependent features AFTER settings are confirmed ready
-        initializeSettingsDependentFeatures();
 
         // Initialize combat stats tracking
         CombatStats.initialize();
@@ -309,10 +305,11 @@ Hooks.once('ready', async () => {
         // Update nameplates
         updateNameplates();
 
+        // Initialize other settings-dependent features
+        initializeSettingsDependentFeatures();
 
-
-        // Scene interactions are now managed by HookManager for centralized control
-        // Canvas hooks (canvasInit, canvasReady, updateScene) moved to HookManager
+        // Initialize scene interactions
+        initializeSceneInteractions();
         
         // Initialize the unified roll system API
         const { executeRoll } = await import('./manager-rolls.js');
@@ -396,9 +393,37 @@ function initializeSettingsDependentFeatures() {
         }
     }
 
-    // Scene interactions are now managed by HookManager for centralized control
-    // Canvas hooks (canvasInit, canvasReady, updateScene) moved to HookManager
-    // TODO: Implement scene interaction logic in HookManager when needed
+    // Function to initialize scene interactions
+    function initializeSceneInteractions() {
+        const blnShowIcons = getSettingSafely(MODULE.ID, 'enableSceneInteractions', false);
+        const blnCustomClicks = getSettingSafely(MODULE.ID, 'enableSceneClickBehaviors', false);
+        
+        // Initial icon update if enabled
+        if (blnShowIcons) {
+            WrapperManager._updateSceneIcons();
+        }
+
+        // Register for scene updates
+        if (blnShowIcons || blnCustomClicks) {
+            // Register canvas hooks
+            if (blnCustomClicks) {
+                // Keep the canvasInit hook to initialize the toolbar
+                Hooks.once('canvasInit', () => {
+                    // Canvas initialization complete
+                });
+
+                // Keep the canvasReady hook to check for the layer
+                Hooks.on('canvasReady', (canvas) => {
+                    const blacksmithLayer = canvas['blacksmith-utilities-layer'];
+                    // Layer availability checked silently
+                });
+            }
+
+            // Register scene update hooks
+            Hooks.on('updateScene', () => WrapperManager._updateSceneIcons());
+            Hooks.on('canvasReady', () => WrapperManager._updateSceneIcons());
+        }
+    }
 
 // ***************************************************
 // ** INIT
@@ -433,13 +458,34 @@ Hooks.once('init', async function() {
     // Initialize UtilsManager
     UtilsManager.initialize();
     
-    // Initialize HookManager for centralized hook management
-    HookManager.initialize();
-    
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
-    // Hooks are now managed by HookManager for centralized control
-    // Chat message, window lifecycle, and settings hooks moved to HookManager
+    // Register chat message click handler for skill rolls
+    Hooks.on('renderChatMessage', (message, html) => {
+        if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
+            SkillCheckDialog.handleChatMessageClick(message, html);
+        }
+    });
+    
+    // Register window lifecycle hooks for efficient lookups
+    Hooks.on('renderApplication', (app, html, data) => {
+        if (app instanceof BlacksmithWindowQuery) {
+            registerBlacksmithWindow(app);
+        }
+    });
+    
+    Hooks.on('closeApplication', (app) => {
+        if (app instanceof BlacksmithWindowQuery) {
+            unregisterBlacksmithWindow(app);
+        }
+    });
+    
+    // Clear settings cache when settings change
+    Hooks.on('settingChange', (moduleId, settingKey, value) => {
+        if (moduleId === MODULE.ID) {
+            clearSettingsCache();
+        }
+    });
     
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
@@ -451,8 +497,7 @@ Hooks.once('init', async function() {
         utils: UtilsManager.getUtils(),
         version: MODULE.APIVERSION,
         BLACKSMITH: BLACKSMITH,
-        stats: StatsAPI,
-        HookManager
+        stats: StatsAPI
     };
     
     // Initialize other systems
@@ -466,9 +511,11 @@ Hooks.once('init', async function() {
     // COMBAT TRACKER
     CombatTracker.initialize();
 
+
     // VOTE MANAGER
     VoteManager.initialize();
 
+    
 
 
     hookCanvas();
@@ -497,8 +544,8 @@ Hooks.once('init', async function() {
 // ** Customize the Token Nameplates
 // ***************************************************
 
-// Token update hooks are now managed by HookManager for centralized control
-// Nameplates are updated through HookManager.updateToken hook
+// Nameplates are now updated in the main ready hook
+Hooks.on('updateToken', updateNameplates);
 
 
 
@@ -510,11 +557,73 @@ Hooks.once('init', async function() {
 let ctrlKeyActiveDuringRender = false;
 let shiftKeyActiveDuringRender = false;
 let altKeyActiveDuringRender = false;
-// Note config hook moved to HookManager for centralized control
-// TODO: Implement full note config functionality in HookManager when needed
+Hooks.on('renderNoteConfig', async (app, html, data) => {
+    // Only GMs can configure note icons
+    if (!game.user.isGM) {
+        return;
+    }
 
-// Note creation hook moved to HookManager for centralized control
-// TODO: Implement full note creation functionality in HookManager when needed
+    // Define the default icon URL
+    var strIconUrl = "";
+    const strIconUrlDefault = "modules/coffee-pub-blacksmith/images/pins-note/icon-book.svg";
+    const strIconUrlCrtl = "modules/coffee-pub-blacksmith/images/pins-note/icon-combat.svg";
+    const strIconUrlShift = "modules/coffee-pub-blacksmith/images/pins-note/icon-flag.svg";
+    const strIconUrlAlt = "modules/coffee-pub-blacksmith/images/pins-note/icon-king.svg"; 
+    const intIconSize = 70;
+    const intFontSize = 40;
+    
+    // Check if the Ctrl key is held down
+    ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
+    shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
+    altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
+
+    if (ctrlKeyActiveDuringRender) {
+        strIconUrl = strIconUrlCrtl;
+    } else if (shiftKeyActiveDuringRender) {
+        strIconUrl = strIconUrlShift;
+    } else if (altKeyActiveDuringRender) {
+        strIconUrl = strIconUrlAlt; 
+    } else {
+        strIconUrl = strIconUrlDefault;
+    }
+
+    // Set the font size and icon size fields
+    html.find('input[name="fontSize"]').val(intFontSize);
+    html.find('input[name="iconSize"]').val(intIconSize);
+
+    // Use cached note config icons to avoid repeated file system operations
+    try {
+        const customIcons = await getNoteConfigIcons();
+        
+        if (customIcons.length > 0) {
+            // Add custom icons to the start of the dropdown
+            const entryIconField = html.find('select[name="icon.selected"]');
+            if (entryIconField.length) {
+                customIcons.reverse().forEach(icon => {
+                    entryIconField.prepend(new Option(icon.label, icon.value));
+                });
+
+                // Set the default icon
+                entryIconField.val(strIconUrl);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
+            }
+        }
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, "Error loading note config icons", error, false, false);
+    }
+
+
+});
+
+// Hook into the preCreateNote event to set the default icon if Ctrl was held down during renderNoteConfig
+Hooks.on('preCreateNote', async (note, options, userId) => {
+    // Only GMs can set default note icons
+    if (!game.user.isGM) {
+        return;
+    }
+    // Note creation hook - silent operation
+});
 
 
 
