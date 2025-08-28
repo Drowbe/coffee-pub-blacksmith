@@ -442,9 +442,9 @@ export class HookManager {
         
         postConsoleAndNotification(
             MODULE.NAME,
-            'HookManager initialized with clean orchestration layer',
-            'success',
-            false,
+            'Hook Manager | Initialization',
+            'Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats()',
+            true,
             false
         );
     }

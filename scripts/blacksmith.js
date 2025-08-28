@@ -45,6 +45,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
 // TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
+import { HookManager } from './manager-hooks.js';
 import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -235,6 +236,9 @@ Hooks.once('ready', async () => {
     try {
         // Register settings FIRST during the ready phase
         await registerSettings();
+        
+        // Initialize HookManager (infrastructure layer)
+        HookManager.initialize();
         
         // Wait a bit to ensure settings are fully processed
         await new Promise(resolve => setTimeout(resolve, 100));

@@ -94,10 +94,18 @@ HookManager.registerHook({
 
 ## **Implementation Phases**
 
-### **Phase 1: HookManager Implementation** ✅ (Almost Complete)
+### **Phase 1: HookManager Implementation** ✅ **COMPLETE**
 - [x] Design and document HookManager
 - [x] Implement core functionality
 - [x] Add advanced features (priority, dedupe, context, performance)
+- [x] Integrate into blacksmith.js initialization
+- [x] Test foundation (console commands working, 0 hooks registered)
+
+### **Phase 2: Hook Migration** 🚧 **IN PROGRESS**
+- [ ] Migrate all existing hooks to HookManager
+- [ ] Test each migration for functionality
+- [ ] Validate priority system works
+- [ ] Ensure no functionality is lost
 - [ ] Test in Blacksmith
 
 ### **Phase 2: Blacksmith Integration**
@@ -316,6 +324,125 @@ console.log('Hook exists:', exists);
 - Module lifecycle management
 - Performance optimization across modules
 - Unified error handling and logging
+
+## **Migration Progress Tracking**
+
+### **BATCH 1: COMBAT TRACKER (Critical Conflicts)** 🚨
+**Priority: IMMEDIATE - Fix these first to resolve major conflicts**
+
+1. **`renderCombatTracker`** - **HIGHEST PRIORITY** 🚧 **READY TO MIGRATE**
+   - **Files**: `combat-tools.js`, `combat-tracker.js` (2x), `timer-round.js`, `timer-planning.js`, `timer-combat.js`
+   - **Conflict Level**: CRITICAL (5+ registrations overwriting each other)
+   - **Impact**: Combat tracker enhancements completely broken
+   - **Status**: Ready to migrate as test case
+   - **Migration Plan**: Consolidate into single HookManager hook with priority ordering
+
+2. **`updateCombat`** - **HIGHEST PRIORITY** ⏳ **PENDING**
+   - **Files**: `combat-tracker.js` (2x), `timer-combat.js`, `timer-planning.js`, `stats-combat.js`
+   - **Conflict Level**: CRITICAL (5+ registrations)
+   - **Impact**: Combat updates inconsistent, timer conflicts
+   - **Status**: Waiting for first migration test
+
+3. **`updateCombatant`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `combat-tracker.js`
+   - **Conflict Level**: MEDIUM (single registration, but core functionality)
+   - **Impact**: Combatant updates may be broken
+   - **Status**: Waiting for first migration test
+
+4. **`createCombat`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `combat-tracker.js`
+   - **Conflict Level**: MEDIUM (single registration)
+   - **Impact**: Combat creation flow
+   - **Status**: Waiting for first migration test
+
+5. **`deleteCombat`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `combat-tracker.js`, `xp-manager.js`, `stats-combat.js`
+   - **Conflict Level**: MEDIUM (3 registrations)
+   - **Impact**: Combat cleanup, XP tracking
+   - **Status**: Waiting for first migration test
+
+### **BATCH 2: INITIALIZATION & CANVAS (System Setup)** 🟠
+**Priority: HIGH - Fix initialization order and canvas conflicts**
+
+6. **`ready`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `combat-tools.js`, `combat-tracker.js`, `chat-panel.js`, `timer-round.js`, `timer-planning.js`, `timer-combat.js`, `token-image-replacement.js`, `manager-canvas.js`
+   - **Conflict Level**: HIGH (8+ registrations)
+   - **Impact**: Initialization order issues, race conditions
+   - **Status**: Waiting for first migration test
+
+7. **`canvasReady`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `blacksmith.js` (2x)
+   - **Conflict Level**: MEDIUM (2 registrations)
+   - **Impact**: Canvas setup conflicts
+   - **Status**: Waiting for first migration test
+
+8. **`updateToken`** - **HIGH PRIORITY** ⏳ **PENDING**
+   - **Files**: `manager-canvas.js`, `blacksmith.js`, `timer-combat.js`, `encounter-toolbar.js`
+   - **Conflict Level**: HIGH (4 registrations)
+   - **Impact**: Token updates inconsistent
+   - **Status**: Waiting for first migration test
+
+### **BATCH 3: UI RENDERING (Visual Conflicts)** 🟡
+**Priority: MEDIUM - Fix UI rendering conflicts**
+
+9. **`renderChatMessage`** - **MEDIUM PRIORITY** ⏳ **PENDING**
+    - **Files**: `blacksmith.js` (2x), `stats-combat.js`
+    - **Conflict Level**: MEDIUM (3 registrations)
+    - **Impact**: Chat message enhancements
+    - **Status**: Waiting for first migration test
+
+10. **`renderJournalSheet`** - **MEDIUM PRIORITY** ⏳ **PENDING**
+    - **Files**: `journal-tools.js`, `encounter-toolbar.js`
+    - **Conflict Level**: MEDIUM (2 registrations)
+    - **Impact**: Journal functionality
+    - **Status**: Waiting for first migration test
+
+### **BATCH 4: GAME MECHANICS (Functional Conflicts)** ⚔️
+**Priority: MEDIUM - Fix game system conflicts**
+
+11. **`updateActor`** - **MEDIUM PRIORITY** ⏳ **PENDING**
+    - **Files**: `manager-canvas.js`, `stats-combat.js`
+    - **Conflict Level**: MEDIUM (2 registrations)
+    - **Impact**: Actor updates
+    - **Status**: Waiting for first migration test
+
+12. **`dnd5e.rollAttack`** - **MEDIUM PRIORITY** ⏳ **PENDING**
+    - **Files**: `timer-combat.js`, `stats-combat.js`, `stats-player.js`
+    - **Conflict Level**: MEDIUM (3 registrations)
+    - **Impact**: Attack roll handling
+    - **Status**: Waiting for first migration test
+
+### **BATCH 5: UTILITY & CLEANUP (Low Priority)** 🟢
+**Priority: LOW - Clean up remaining hooks**
+
+13. **`settingChange`** - **LOW PRIORITY** ⏳ **PENDING**
+    - **Files**: `blacksmith.js`, `journal-tools.js`, `encounter-toolbar.js`
+    - **Conflict Level**: MEDIUM (3 registrations)
+    - **Impact**: Settings management
+    - **Status**: Waiting for first migration test
+
+## **Migration Success Metrics**
+
+### **BATCH 1 Success Criteria:**
+- [ ] Combat tracker enhancements work consistently
+- [ ] No more hook conflicts for combat-related events
+- [ ] Priority system properly orders hook execution
+- [ ] All existing functionality preserved
+
+### **Overall Success Criteria:**
+- [ ] All hooks migrated to HookManager
+- [ ] No functionality lost during migration
+- [ ] Performance improved (no duplicate hooks)
+- [ ] Debugging easier (centralized hook management)
+- [ ] Ready for ecosystem integration
+
+## **Next Steps**
+
+1. **✅ Complete** - HookManager foundation is working
+2. **🚧 In Progress** - Migrate first `renderCombatTracker` hook as test case
+3. **⏳ Pending** - Validate migration approach works
+4. **⏳ Pending** - Continue with BATCH 1 migration
+5. **⏳ Pending** - Move to subsequent batches
 
 ## **Conclusion**
 

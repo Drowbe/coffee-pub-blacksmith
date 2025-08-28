@@ -7,7 +7,7 @@ import { postConsoleAndNotification } from './api-common.js';
 
 // Register hooks after settings are initialized
 Hooks.once('ready', () => {
-            postConsoleAndNotification(MODULE.NAME, "CombatTools | Ready", "", true, false);
+    postConsoleAndNotification(MODULE.NAME, "CombatTools | Ready", "", true, false);
 
     // Move the renderCombatTracker hook inside the ready hook to ensure settings are registered
     Hooks.on('renderCombatTracker', (app, html, data) => {
