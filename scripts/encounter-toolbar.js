@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification } from './api-common.js';
+import { HookManager } from './manager-hooks.js';
 
 export class EncounterToolbar {
     
@@ -16,7 +17,16 @@ export class EncounterToolbar {
     
     static init() {
         // Listen for journal sheet rendering (normal view only)
-        Hooks.on('renderJournalSheet', this._onRenderJournalSheet.bind(this));
+        const renderJournalSheetHookId = HookManager.registerHook({
+            name: 'renderJournalSheet',
+            description: 'Encounter Toolbar: Add encounter toolbars to journal sheets',
+            context: 'encounter-toolbar-journal',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onRenderJournalSheet.bind(this)
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "encounter-toolbar-journal", true, false);
         
         // Also listen for when journal content is updated (saves)
         Hooks.on('updateJournalEntryPage', this._onUpdateJournalEntryPage.bind(this));
