@@ -80,76 +80,117 @@ HookManager.registerHook({
  * Registers hooks and provides cleanup - no business logic
  */
 export class HookManager {
-    static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt, priority, description }
+    static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
+    static contexts = new Map(); // context -> Set(callbackId)
     
-         /**
-      * Register a hook with a callback
-      * @param {Object} options - Hook registration options
-      * @param {string} options.name - FoundryVTT hook name
-      * @param {string} options.description - Optional description for debugging
-      * @param {number} options.priority - Priority level (1-5, default: 3)
-      * @param {Function} options.callback - Your callback function
-      * @returns {string} Hook ID for cleanup
-      */
-    static registerHook({ name, description = '', priority = 3, callback, options = {} }) {
-        // Check if this hook already exists
-        if (this.hooks.has(name)) {
-            // Add callback to existing hook
-            const hook = this.hooks.get(name);
-            hook.callbacks.push({ 
-                callback, 
-                description, 
-                priority, 
-                registeredAt: Date.now(),
-                options 
-            });
-            
-            // Sort callbacks by priority (1 = highest, 5 = lowest)
-            hook.callbacks.sort((a, b) => a.priority - b.priority);
-            
-            getBlacksmith()?.utils.postConsoleAndNotification(
-                MODULE.NAME,
-                `Callback added to existing hook: ${name}`,
-                { totalCallbacks: hook.callbacks.length, priority },
-                true,
-                false
-            );
-            
-            return `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    /**
+     * Generate unique callback ID
+     */
+    static _makeCallbackId(name) {
+        return `${name}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+    
+    /**
+     * Register a hook with a callback
+     * @param {Object} options - Hook registration options
+     * @param {string} options.name - FoundryVTT hook name
+     * @param {string} options.description - Optional description for debugging
+     * @param {number} options.priority - Priority level (1-5, default: 3)
+     * @param {Function} options.callback - Your callback function
+     * @param {Object} options.options - Additional options (e.g., { once: true, throttleMs: 50 })
+     * @param {string} options.key - Optional dedupe key to prevent duplicate registrations
+     * @param {string} options.context - Optional context for batch cleanup
+     * @returns {string} callbackId for cleanup
+     */
+    static registerHook({ name, description = '', priority = 3, callback, options = {}, key, context }) {
+        if (typeof callback !== 'function') {
+            throw new Error(`HookManager: callback must be a function for ${name}`);
         }
         
-        // Create new hook with multiple callback support
-        const hookId = Hooks.on(name, (...args) => {
-            // Execute all callbacks in priority order
-            this.hooks.get(name).callbacks
-                .sort((a, b) => a.priority - b.priority)
-                .forEach(cb => {
+        // Check for dedupe if key provided
+        if (key && this.hooks.has(name)) {
+            const existing = this.hooks.get(name).callbacks.find(cb => cb.key === key);
+            if (existing) return existing.callbackId;
+        }
+        
+        // Create wrapper once per hook name
+        if (!this.hooks.has(name)) {
+            const hookRunner = (...args) => {
+                const entry = this.hooks.get(name);
+                if (!entry) return;
+                
+                // Create stable copy and sort once
+                const list = entry.callbacks.slice().sort((a, b) => 
+                    a.priority - b.priority || a.registeredAt - b.registeredAt
+                );
+                
+                // Collect callbacks to remove (don't mutate during iteration)
+                const toRemove = [];
+                
+                for (const cb of list) {
                     try {
                         cb.callback(...args);
-                        
-                        // Auto-cleanup for once hooks
                         if (cb.options?.once) {
-                            this.removeCallback(cb.callbackId);
+                            toRemove.push(cb.callbackId);
                         }
                     } catch (error) {
                         console.error(`Hook callback error in ${name}:`, error);
                     }
-                });
-        });
+                }
+                
+                // Cleanup "once" hooks after iteration
+                for (const id of toRemove) {
+                    this.removeCallback(id);
+                }
+            };
+            
+            const hookId = Hooks.on(name, hookRunner);
+            this.hooks.set(name, { hookId, callbacks: [], registeredAt: Date.now() });
+        }
         
-        this.hooks.set(name, { 
-            hookId, 
-            callbacks: [{ 
-                callback, 
-                description, 
-                priority, 
-                registeredAt: Date.now(),
-                options 
-            }],
-            registeredAt: Date.now()
-        });
+        const entry = this.hooks.get(name);
+        const callbackId = this._makeCallbackId(name);
         
-        return hookId;
+        // Apply throttle/debounce if specified
+        let finalCallback = callback;
+        if (options.throttleMs) {
+            finalCallback = this._throttle(callback, options.throttleMs);
+        } else if (options.debounceMs) {
+            finalCallback = this._debounce(callback, options.debounceMs);
+        }
+        
+        const callbackRecord = {
+            callbackId,
+            callback: finalCallback,
+            description,
+            priority,
+            registeredAt: Date.now(),
+            options,
+            key
+        };
+        
+        entry.callbacks.push(callbackRecord);
+        
+        // Sort by priority, then by registration time for stability
+        entry.callbacks.sort((a, b) => a.priority - b.priority || a.registeredAt - b.registeredAt);
+        
+        // Store context for batch cleanup
+        if (context) {
+            if (!this.contexts.has(context)) {
+                this.contexts.set(context, new Set());
+            }
+            this.contexts.get(context).add(callbackId);
+        }
+        
+        getBlacksmith()?.utils.postConsoleAndNotification(
+            MODULE.NAME,
+            `Hook registered: ${name}`,
+            { description, priority, totalCallbacks: entry.callbacks.length },
+            true,
+            false
+        );
+        
+        return callbackId;
     }
     
         /**
@@ -157,50 +198,51 @@ export class HookManager {
      * @param {string} hookName - Hook to remove
      * @returns {boolean} Success status
      */
-     static removeHook(hookName) {
-         const hook = this.hooks.get(hookName);
-         if (!hook) return false;
-         
-         Hooks.off(hookName, hook.hookId);
-         this.hooks.delete(hookName);
-         
-         getBlacksmith()?.utils.postConsoleAndNotification(
-             MODULE.NAME,
-             `Hook removed: ${hookName}`,
-             { totalHooks: this.hooks.size },
-             true,
-             false
-         );
-         
-         return true;
-     }
+    static removeHook(hookName) {
+        const hook = this.hooks.get(hookName);
+        if (!hook) return false;
+        
+        // Remove all callbacks from contexts
+        hook.callbacks.forEach(cb => {
+            this._removeFromContexts(cb.callbackId);
+        });
+        
+        Hooks.off(hookName, hook.hookId);
+        this.hooks.delete(hookName);
+        
+        getBlacksmith()?.utils.postConsoleAndNotification(
+            MODULE.NAME,
+            `Hook removed: ${hookName}`,
+            { totalHooks: this.hooks.size },
+            true,
+            false
+        );
+        
+        return true;
+    }
 
      /**
       * Remove a specific callback by its ID
       * @param {string} callbackId - The callback ID returned from registerHook
       * @returns {boolean} Success status
       */
-    static removeCallback(callbackId) {
-        // Parse callbackId format: "hookName_timestamp_random"
-        const [hookName, timestamp, random] = callbackId.split('_');
+        static removeCallback(callbackId) {
+        const hookName = callbackId.split('_')[0];
+        const entry = this.hooks.get(hookName);
+        if (!entry) return false;
         
-        const hook = this.hooks.get(hookName);
-        if (!hook) return false;
+        const idx = entry.callbacks.findIndex(cb => cb.callbackId === callbackId);
+        if (idx === -1) return false;
         
-        // Find and remove the specific callback
-        const callbackIndex = hook.callbacks.findIndex(cb => 
-            cb.registeredAt.toString() === timestamp && 
-            cb.options?.random === random
-        );
+        // Remove from contexts
+        this._removeFromContexts(callbackId);
         
-        if (callbackIndex === -1) return false;
-        
-        // Remove the specific callback
-        hook.callbacks.splice(callbackIndex, 1);
+        // Remove the callback
+        entry.callbacks.splice(idx, 1);
         
         // If no more callbacks, remove the entire hook
-        if (hook.callbacks.length === 0) {
-            Hooks.off(hookName, hook.hookId);
+        if (entry.callbacks.length === 0) {
+            Hooks.off(hookName, entry.hookId);
             this.hooks.delete(hookName);
             
             getBlacksmith()?.utils.postConsoleAndNotification(
@@ -214,7 +256,7 @@ export class HookManager {
             getBlacksmith()?.utils.postConsoleAndNotification(
                 MODULE.NAME,
                 `Callback removed from hook: ${hookName}`,
-                { remainingCallbacks: hook.callbacks.length },
+                { remainingCallbacks: entry.callbacks.length },
                 true,
                 false
             );
@@ -223,43 +265,58 @@ export class HookManager {
         return true;
     }
     
-        /**
+    /**
+     * Remove all callbacks for a specific context
+     * @param {string} context - Context to cleanup
+     */
+    static disposeByContext(context) {
+        const set = this.contexts.get(context);
+        if (!set) return;
+        
+        for (const id of Array.from(set)) {
+            this.removeCallback(id);
+        }
+        this.contexts.delete(context);
+    }
+    
+    /**
      * Clean up all hooks
      */
-     static cleanup() {
-         this.hooks.forEach((hook, name) => {
-             // Remove the FoundryVTT hook using the stored hookId
-             if (hook.hookId) {
-                 Hooks.off(name, hook.hookId);
-             }
-         });
-         
-         const totalCleaned = this.hooks.size;
-         this.hooks.clear();
-         
-         getBlacksmith()?.utils.postConsoleAndNotification(
-             MODULE.NAME,
-             'All hooks cleaned up',
-             { totalCleaned },
-             false,
-             false
-         );
-     }
+    static cleanup() {
+        this.hooks.forEach((hook, name) => {
+            if (hook.hookId) {
+                Hooks.off(name, hook.hookId);
+            }
+        });
+        
+        const totalCleaned = this.hooks.size;
+        this.hooks.clear();
+        this.contexts.clear();
+        
+        getBlacksmith()?.utils.postConsoleAndNotification(
+            MODULE.NAME,
+            'All hooks cleaned up',
+            { totalCleaned },
+            false,
+            false
+        );
+    }
     
     /**
      * Get hook statistics
      * @returns {Object} Hook statistics
      */
-         static getStats() {
-         return {
-             totalHooks: this.hooks.size,
-             hooks: Array.from(this.hooks.entries()).map(([name, hook]) => ({
-                 name,
-                 totalCallbacks: hook.callbacks.length,
-                 registeredAt: new Date(hook.registeredAt).toISOString()
-             }))
-         };
-     }
+    static getStats() {
+        return {
+            totalHooks: this.hooks.size,
+            totalContexts: this.contexts.size,
+            hooks: Array.from(this.hooks.entries()).map(([name, hook]) => ({
+                name,
+                totalCallbacks: hook.callbacks.length,
+                registeredAt: new Date(hook.registeredAt).toISOString()
+            }))
+        };
+    }
     
     /**
      * Check if a hook is registered
@@ -268,6 +325,123 @@ export class HookManager {
      */
     static hasHook(hookName) {
         return this.hooks.has(hookName);
+    }
+    
+    /**
+     * Show detailed hook information with priority grouping
+     */
+    static showHookDetails() {
+        const stats = this.getStats();
+        console.group('COFFEE PUB • BLACKSMITH | HOOK MANAGER DETAILS');
+        console.log('==========================================================');
+        console.log(`Total Hooks: ${stats.totalHooks} | Active: ${stats.totalHooks} | Inactive: 0`);
+        console.log('==========================================================');
+        
+        // Group by priority
+        const byPriority = new Map();
+        for (const [name, hook] of this.hooks.entries()) {
+            hook.callbacks.forEach(cb => {
+                if (!byPriority.has(cb.priority)) {
+                    byPriority.set(cb.priority, []);
+                }
+                byPriority.get(cb.priority).push({ name, ...cb });
+            });
+        }
+        
+        // Display by priority (1-5)
+        for (let priority = 1; priority <= 5; priority++) {
+            const hooks = byPriority.get(priority);
+            if (!hooks || hooks.length === 0) continue;
+            
+            const priorityName = ['CRITICAL', 'HIGH', 'NORMAL', 'LOW', 'LOWEST'][priority - 1];
+            console.log(`\n${priorityName} PRIORITY (${priority})`);
+            console.log('==================================================');
+            
+            hooks.forEach(({ name, description, callbackId, registeredAt }) => {
+                const time = new Date(registeredAt).toLocaleTimeString();
+                console.log(`ACTIVE ${name}`);
+                console.log(`   ID: ${callbackId} | Priority: ${priority} | Categories: [general]`);
+                console.log(`   Registered: ${time}`);
+                console.log(`   Description: ${description || 'No description'}`);
+            });
+        }
+        
+        console.groupEnd();
+    }
+    
+    /**
+     * Show simple hook summary
+     */
+    static showHooks() {
+        const stats = this.getStats();
+        console.log(`COFFEE PUB • BLACKSMITH | Total Hooks: ${stats.totalHooks}`);
+        console.log('Hook Names:', Array.from(this.hooks.keys()).join(', '));
+    }
+    
+    /**
+     * Get hooks by priority level
+     */
+    static getHooksByPriority(priority) {
+        const result = [];
+        for (const [name, hook] of this.hooks.entries()) {
+            const callbacks = hook.callbacks.filter(cb => cb.priority === priority);
+            if (callbacks.length > 0) {
+                result.push({ name, callbacks });
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Get hooks by category (placeholder for future categorization)
+     */
+    static getHooksByCategory(category) {
+        // For now, return all hooks since we don't have category system yet
+        const result = [];
+        for (const [name, hook] of this.hooks.entries()) {
+            result.push({ name, callbacks: hook.callbacks });
+        }
+        return result;
+    }
+    
+    /**
+     * Throttle utility function
+     */
+    static _throttle(fn, ms) {
+        let last = 0;
+        return (...args) => {
+            const now = Date.now();
+            if (now - last >= ms) {
+                last = now;
+                fn(...args);
+            }
+        };
+    }
+    
+    /**
+     * Debounce utility function
+     */
+    static _debounce(fn, ms) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn(...args), ms);
+        };
+    }
+    
+    /**
+     * Remove callback from all contexts
+     */
+    static _removeFromContexts(callbackId) {
+        for (const [context, set] of this.contexts.entries()) {
+            if (set.has(callbackId)) {
+                set.delete(callbackId);
+                if (set.size === 0) {
+                    this.contexts.delete(context);
+                }
+                break;
+            }
+        }
     }
 }
 ```
@@ -320,6 +494,72 @@ HookManager.registerHook({
         console.log(`Welcome back, ${user.name}!`);
     }
 });
+
+// Advanced features: dedupe, context, and performance
+HookManager.registerHook({
+    name: 'updateToken',
+    description: 'Update token visuals with dedupe protection',
+    priority: 2, // High priority
+    key: `token:${token.id}`, // Prevents duplicate registrations
+    context: `token:${token.id}`, // For batch cleanup
+    options: { throttleMs: 50 }, // Performance optimization
+    callback: (token, changes) => {
+        // Handle token updates efficiently
+        if (changes.x || changes.y) {
+            // Update position-dependent visuals
+        }
+    }
+});
+```
+
+## **Advanced Features**
+
+### **1. Dedupe Protection**
+```javascript
+// Prevents duplicate registrations during re-renders
+HookManager.registerHook({
+    name: 'updateActor',
+    key: `hp:${actor.id}`, // Unique identifier
+    callback: (actor, changes) => {
+        // This will only register once per actor
+    }
+});
+```
+
+### **2. Context-Based Cleanup**
+```javascript
+// Register with context for batch cleanup
+HookManager.registerHook({
+    name: 'updateToken',
+    context: `token:${token.id}`,
+    callback: (token, changes) => {
+        // Handle token updates
+    }
+});
+
+// Later, cleanup all hooks for a specific token
+HookManager.disposeByContext(`token:${token.id}`);
+```
+
+### **3. Performance Optimization**
+```javascript
+// Throttle noisy hooks (e.g., updateToken)
+HookManager.registerHook({
+    name: 'updateToken',
+    options: { throttleMs: 50 }, // Max once per 50ms
+    callback: (token, changes) => {
+        // Only runs at most once every 50ms
+    }
+});
+
+// Debounce for final state (e.g., search input)
+HookManager.registerHook({
+    name: 'searchInput',
+    options: { debounceMs: 300 }, // Wait 300ms after last input
+    callback: (input) => {
+        // Only runs after user stops typing
+    }
+});
 ```
 
 ## **"Once" Semantics for Auto-Cleanup**
@@ -344,6 +584,49 @@ HookManager.registerHook({
 - **Memory efficient** - prevents accumulation of unused hooks
 - **Perfect for events** that should only happen once (welcome messages, initialization, etc.)
 - **Cleaner code** - no manual cleanup required
+
+## **API Reference**
+
+### **Core Methods**
+```javascript
+// Register a hook
+const callbackId = HookManager.registerHook({
+    name: 'hookName',
+    description: 'Optional description',
+    priority: 3, // 1-5, default: 3
+    callback: (arg1, arg2) => { /* your logic */ },
+    options: { once: true, throttleMs: 50, debounceMs: 300 },
+    key: 'uniqueKey', // Optional dedupe
+    context: 'contextName' // Optional batch cleanup
+});
+
+// Remove a specific callback
+const removed = HookManager.removeCallback(callbackId); // Returns boolean
+
+// Remove an entire hook and all its callbacks
+const removed = HookManager.removeHook('hookName'); // Returns boolean
+
+// Cleanup by context
+HookManager.disposeByContext('contextName'); // Returns void
+
+// Cleanup everything
+HookManager.cleanup(); // Returns void
+
+// Check if hook exists
+const exists = HookManager.hasHook('hookName'); // Returns boolean
+
+// Get statistics
+const stats = HookManager.getStats(); // Returns object
+```
+
+### **Return Types**
+- `registerHook(...) -> callbackId: string`
+- `removeCallback(callbackId) -> boolean`
+- `removeHook(hookName) -> boolean`
+- `disposeByContext(context) -> void`
+- `cleanup() -> void`
+- `hasHook(hookName) -> boolean`
+- `getStats() -> { totalHooks, totalContexts, hooks: [...] }`
 
 ## **Enhanced Console Commands**
 
@@ -394,6 +677,42 @@ The HookManager should be a **simple orchestration layer** that:
 - Provides clean organization and cleanup
 
 **Keep it simple. Don't overcomplicate.**
+
+---
+
+## **FoundryVTT Hook Signatures**
+
+**Important**: Your callbacks receive the **native FoundryVTT arguments** which vary by hook type:
+
+```javascript
+// updateActor: (actor, changes, options, userId)
+HookManager.registerHook({
+    name: 'updateActor',
+    callback: (actor, changes, options, userId) => {
+        // DnD5e: changes.system?.attributes?.hp
+        // Other systems may have different structures
+    }
+});
+
+// updateToken: (token, changes, options, userId) 
+HookManager.registerHook({
+    name: 'updateToken',
+    callback: (token, changes, options, userId) => {
+        // changes.x, changes.y for position
+        // changes.scale for size
+    }
+});
+
+// renderChatMessage: (message, html, data)
+HookManager.registerHook({
+    name: 'renderChatMessage',
+    callback: (message, html, data) => {
+        // Modify the HTML before display
+    }
+});
+```
+
+**Always check the FoundryVTT documentation** for the specific hook you're using to ensure correct parameter handling.
 
 ---
 
