@@ -1,20 +1,18 @@
-# BLACKSMITH API DOCUMENTATION
-
-## **Overview**
+# **Blacksmith API Overview**
 Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules to integrate with our features. This documentation covers how to consume our API, what's available, and examples of integration.
 
 **Integration Approach**: We provide a single, well-tested integration path through our drop-in bridge file. This approach handles timing issues, availability checks, and provides a consistent interface while internally using FoundryVTT's module system.
 
-## **Quick Start**
+# **Quick Start**
 
-### **Step 1: Import the Bridge File**
+## **Step 1: Import the Bridge File**
 ```javascript
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
 
 **Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
 
-### **Step 2: Register Your Module**
+## **Step 2: Register Your Module**
 ```javascript
 // REQUIRED: Module registration and basic setup using new API
 Hooks.once('init', async () => {
@@ -37,7 +35,7 @@ Hooks.once('init', async () => {
 
 **Note**: Pass your variables in a way that makes sense for your module. A best paractive is to pull the ID, Title, and Version from your module.json file. The short name a simple way to identify your module.
 
-### **Step 3: Test Basic Integration**
+## **Step 3: Test Basic Integration**
 At this point, everything should be up and running. Use the console commands below to verify everything is working correctly.
 
 
@@ -57,18 +55,19 @@ BlacksmithAPICheck()
 **Note**: Shows the current module registration status. Returns an object with count and list of registered modules. Displays module details in the console.
 
 
+## **Step 4: Leverage the API**
+Nice work, you've got the basics going. Now you can start leveraging the API to build your module. 
 
-**Next Steps**: See the **Working Examples** section below for complete, copy-paste code that demonstrates how to use these APIs.
 
 ***
 
-## **Console Commands - Quick Status Check**
+# **Console Commands - Quick Status Check**
 
 The easiest way to verify your Blacksmith integration is working is to use these console commands. Open your browser console (F12 → Console tab) and run any of these:
 
 
 
-### **📊 API Availability Check**
+## **📊 API Availability Check**
 ```javascript
 // Check if Blacksmith API is available
 BlacksmithAPI
@@ -86,7 +85,7 @@ BlacksmithAPI
     return Object.values(status).every(Boolean);
 })();
 ```
-### **🔍 Hook Management Status**
+## **🔍 Hook Management Status**
 ```javascript
 // Show all registered hooks (simple summary)
 blacksmithHooks()
@@ -98,7 +97,7 @@ blacksmithHookDetails()
 blacksmithHookStats()
 ```
 
-### **✅ What You Should See:**
+## **✅ What You Should See:**
 
 **If everything is working:**
 ```
@@ -119,13 +118,13 @@ blacksmithHookStats()
 
 ***
 
-## **Working Examples**
+# **Working Examples**
 
 **📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
 
 **📋 API Usage**: All BlacksmithAPI methods return Promises that resolve when Blacksmith is ready. Use `await` or `.then()` to handle the asynchronous nature.
 
-### **Basic Hook Registration**
+## **Basic Hook Registration**
 ```javascript
 // Start using Blacksmith features immediately
 const hookId = blacksmithHookManager.registerHook({
@@ -140,7 +139,7 @@ const hookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **Hook with All Parameters (Recommended Order)**
+## **Hook with All Parameters (Recommended Order)**
 ```javascript
 // Example showing the recommended parameter order
 const fullHookId = blacksmithHookManager.registerHook({
@@ -160,7 +159,7 @@ const fullHookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **Combat Tracking Hook**
+## **Combat Tracking Hook**
 ```javascript
 // Combat-related hooks
 const combatHookId = blacksmithHookManager.registerHook({
@@ -176,7 +175,7 @@ const combatHookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **UI Enhancement Hook**
+## **UI Enhancement Hook**
 ```javascript
 // UI enhancement hooks
 const uiHookId = blacksmithHookManager.registerHook({
@@ -191,7 +190,7 @@ const uiHookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **One-time Hook with Auto-cleanup**
+## **One-time Hook with Auto-cleanup**
 ```javascript
 // One-time hooks with auto-cleanup
 const welcomeHookId = blacksmithHookManager.registerHook({
@@ -206,7 +205,7 @@ const welcomeHookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **Performance-Optimized Hooks**
+## **Performance-Optimized Hooks**
 ```javascript
 // Throttle noisy hooks (e.g., updateToken)
 const throttledHookId = blacksmithHookManager.registerHook({
@@ -235,7 +234,7 @@ const debouncedHookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **Complete Module Initialization**
+## **Complete Module Initialization**
 ```javascript
 // In your module's main file
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
@@ -283,11 +282,11 @@ Hooks.once('ready', async () => {
 
 ***
 
-## **Available APIs**
+# **Available APIs**
 
 **📋 API Order**: APIs are ordered by most commonly used first - HookManager (core functionality), Utils (everyday helpers), ModuleManager (setup), and Stats API (advanced features).
 
-### **HookManager - Centralized Hook Management**
+## **HookManager - Centralized Hook Management**
 **Purpose**: Register and manage FoundryVTT hooks with priority ordering and cleanup
 
 **Key Features**:
@@ -353,7 +352,7 @@ hookManager.getStats();
 
 ***
 
-### **Utils - Utility Functions**
+## **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
 
 **Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, etc.), use the full API object:
@@ -409,7 +408,7 @@ console.log('Available themes:', blacksmith.BLACKSMITH.arrThemeChoices);
 
 ***
 
-### **ModuleManager - Module Registration System**
+## **ModuleManager - Module Registration System**
 **Purpose**: Register your module with Blacksmith and check feature availability
 
 **Key Methods**:
@@ -457,7 +456,7 @@ console.log('My module features:', myFeatures);
 
 
 
-### **Stats API - Statistics and Analytics**
+## **Stats API - Statistics and Analytics**
 **Purpose**: Access to Blacksmith's statistics and tracking systems
 
 **Key Methods**:
@@ -490,11 +489,11 @@ const healingStats = await blacksmithStats.player.getStatCategory(actorId, 'heal
 
 ***
 
-## **Integration Patterns**
+# **Integration Patterns**
 
 **📚 Note**: For complete, working examples of these patterns, see the **Working Examples** section above.
 
-### **Module Initialization Pattern**
+## **Module Initialization Pattern**
 ```javascript
 // In your module's main file
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
@@ -535,7 +534,7 @@ Hooks.once('ready', async () => {
 
 ***
 
-### **Feature Detection Pattern**
+## **Feature Detection Pattern**
 ```javascript
 // Check what features are available
 const blacksmith = await BlacksmithAPI.get();
@@ -560,7 +559,7 @@ if (await BlacksmithAPI.hasFeature('HookManager')) {
 
 ***
 
-### **Error Handling Pattern**
+## **Error Handling Pattern**
 ```javascript
 try {
     const hookManager = BlacksmithAPI.getHookManager();
@@ -591,9 +590,9 @@ try {
 }
 ```
 
-## **Performance Considerations**
+# **Performance Considerations**
 
-### **Hook Priority Guidelines**
+## **Hook Priority Guidelines**
 ```javascript
 // Priority 1 (CRITICAL) - System cleanup, critical features
 // Use for: Must-run-first operations, system integrity
@@ -636,7 +635,7 @@ hookManager.registerHook({
 });
 ```
 
-### **Performance Optimization Options**
+## **Performance Optimization Options**
 ```javascript
 // Throttle noisy hooks (e.g., updateToken)
 hookManager.registerHook({
@@ -666,9 +665,9 @@ hookManager.registerHook({
 });
 ```
 
-## **Debugging and Troubleshooting**
+# **Debugging and Troubleshooting**
 
-### **Console Commands**
+## **Console Commands**
 Blacksmith provides console commands for debugging hook registrations:
 
 ```javascript
@@ -682,7 +681,7 @@ blacksmithHookDetails();
 blacksmithHookStats();
 ```
 
-### **Common Issues and Solutions**
+## **Common Issues and Solutions**
 
 **Issue: "HookManager is not defined"**
 ```javascript
@@ -720,9 +719,9 @@ hookManager.registerHook({
 });
 ```
 
-## **Best Practices**
+# **Best Practices**
 
-### **1. Use Descriptive Variable Names (IMPORTANT)**
+## **1. Use Descriptive Variable Names (IMPORTANT)**
 ```javascript
 // GOOD: Prepend "blacksmith" to avoid naming conflicts
 const blacksmithHookManager = await BlacksmithAPI.getHookManager();
@@ -740,7 +739,7 @@ const hook = await BlacksmithAPI.getHookManager(); // Might conflict with existi
 - **Follows FoundryVTT best practices** for module integration
 - **Easier debugging** - no confusion about variable sources
 
-### **2. Always Use Contexts**
+## **2. Always Use Contexts**
 ```javascript
 // GOOD: Descriptive context for cleanup
 hookManager.registerHook({
@@ -757,7 +756,7 @@ hookManager.registerHook({
 });
 ```
 
-### **2. Provide Clear Descriptions**
+## **2. Provide Clear Descriptions**
 ```javascript
 // GOOD: Clear, descriptive hook description
 hookManager.registerHook({
@@ -774,14 +773,14 @@ hookManager.registerHook({
 });
 ```
 
-### **3. Use Appropriate Priorities**
+## **3. Use Appropriate Priorities**
 ```javascript
 // Use priority 3 (NORMAL) for most hooks
 // Only use 1 or 2 for critical/core functionality
 // Use 4 or 5 for cosmetic/debug features
 ```
 
-### **4. Handle Errors Gracefully**
+## **4. Handle Errors Gracefully**
 ```javascript
 // Always check if APIs are available
 if (!BlacksmithAPI.isReady()) {
@@ -791,7 +790,7 @@ if (!BlacksmithAPI.isReady()) {
 }
 ```
 
-### **5. Clean Up When Done**
+## **5. Clean Up When Done**
 ```javascript
 // Store hook IDs for cleanup
 const myHookIds = [];
@@ -808,9 +807,9 @@ Hooks.once('closeGame', () => {
 });
 ```
 
-## **Testing**
+# **Testing**
 
-### **Console Testing Commands**
+## **Console Testing Commands**
 
 Blacksmith provides console commands for testing and debugging:
 
@@ -825,7 +824,7 @@ blacksmithHookDetails();
 blacksmithHookStats();
 ```
 
-### **Integration Validation Checklist**
+## **Integration Validation Checklist**
 
 Use this checklist to verify your integration:
 
@@ -839,7 +838,7 @@ Use this checklist to verify your integration:
 - [ ] No console errors during startup
 - [ ] No console errors during normal operation
 
-### **Basic API Availability Test**
+## **Basic API Availability Test**
 
 ```javascript
 function testBasicAPI() {
@@ -865,7 +864,7 @@ function testBasicAPI() {
 }
 ```
 
-### **Test Utility Functions**
+## **Test Utility Functions**
 
 ```javascript
 async function testUtilityFunctions() {
@@ -895,7 +894,7 @@ async function testUtilityFunctions() {
 }
 ```
 
-### **Test Safe Settings Access**
+## **Test Safe Settings Access**
 
 ```javascript
 async function testSettingsAccess() {
@@ -923,7 +922,7 @@ async function testSettingsAccess() {
 }
 ```
 
-### **Test BLACKSMITH Object Access**
+## **Test BLACKSMITH Object Access**
 
 ```javascript
 async function testBLACKSMITHObject() {
@@ -957,7 +956,7 @@ async function testBLACKSMITHObject() {
 }
 ```
 
-### **Test Module Registration**
+## **Test Module Registration**
 
 ```javascript
 async function testModuleRegistration() {
@@ -987,7 +986,7 @@ async function testModuleRegistration() {
 }
 ```
 
-### **One-Liner Quick Test**
+## **One-Liner Quick Test**
 
 ```javascript
 // Quick test: Check if Blacksmith is available and ready
@@ -1004,9 +1003,9 @@ async function testModuleRegistration() {
 })();
 ```
 
-### **Common Issues and Troubleshooting**
+## **Common Issues and Troubleshooting**
 
-#### **Issue: "API not ready" errors**
+## **Issue: "API not ready" errors**
 
 **Symptoms:**
 - Console errors about functions not being available
@@ -1036,7 +1035,7 @@ Hooks.once('ready', async () => {
 });
 ```
 
-#### **Issue: "Function not found" errors**
+## **Issue: "Function not found" errors**
 
 **Symptoms:**
 - `TypeError: blacksmith.utils.getSettingSafely is not a function`
@@ -1062,7 +1061,7 @@ if (blacksmith?.utils?.getSettingSafely) {
 }
 ```
 
-#### **Issue: Empty choice arrays**
+## **Issue: Empty choice arrays**
 
 **Symptoms:**
 - Dropdown menus show no options
@@ -1092,7 +1091,7 @@ Hooks.on('blacksmithUpdated', (data) => {
 });
 ```
 
-#### **Issue: Settings not accessible**
+## **Issue: Settings not accessible**
 
 **Symptoms:**
 - `"module.setting" is not a registered game setting`
@@ -1124,7 +1123,7 @@ Hooks.once('ready', () => {
 });
 ```
 
-#### **Issue: Module not registering**
+## **Issue: Module not registering**
 
 **Symptoms:**
 - Module doesn't appear in Blacksmith's module list
@@ -1165,9 +1164,9 @@ Hooks.once('init', () => {
 });
 ```
 
-## **AI-Friendly Integration Prompts**
+# **AI-Friendly Integration Prompts**
 
-### **For CursorAI and Similar AI Coding Assistants**
+## **For CursorAI and Similar AI Coding Assistants**
 
 Copy and paste the following prompt into your AI coding assistant to get help integrating with Coffee Pub Blacksmith:
 
@@ -1207,7 +1206,7 @@ IMPORTANT: Please follow the exact patterns from the documentation:
 Please provide complete, working code examples that I can directly implement.
 ```
 
-### **For General AI Coding Assistance**
+## **For General AI Coding Assistance**
 
 ```
 I'm developing a FoundryVTT module that needs to integrate with Coffee Pub Blacksmith. 
@@ -1238,7 +1237,7 @@ IMPORTANT: Please follow the exact patterns from the documentation:
 Please provide working code examples and explain the FoundryVTT lifecycle timing considerations.
 ```
 
-### **Quick Reference for AI Assistants**
+## **Quick Reference for AI Assistants**
 
 **Essential Integration Points:**
 
@@ -1274,14 +1273,14 @@ Please provide working code examples and explain the FoundryVTT lifecycle timing
 
 **Full Documentation:** <https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API>
 
-## **Version Compatibility**
+# **Version Compatibility**
 
-### **FoundryVTT Version Support**
+## **FoundryVTT Version Support**
 
 - **FoundryVTT 12.x**: ✅ **FULLY SUPPORTED**
 - **FoundryVTT 13.x**: ✅ **READY FOR COMPATIBILITY**
 
-### **API Versioning**
+## **API Versioning**
 
 ```javascript
 // Check Blacksmith version
@@ -1295,7 +1294,7 @@ if (version >= '12.0.0') {
 }
 ```
 
-### **Backward Compatibility**
+## **Backward Compatibility**
 
 Blacksmith maintains backward compatibility within major versions. When breaking changes are necessary, they will be:
 
@@ -1304,9 +1303,9 @@ Blacksmith maintains backward compatibility within major versions. When breaking
 3. **Versioned appropriately** to prevent conflicts
 4. **Documented clearly** with examples
 
-## **Error Handling**
+# **Error Handling**
 
-### **Comprehensive Error Handling Pattern**
+## **Comprehensive Error Handling Pattern**
 
 ```javascript
 class BlacksmithErrorHandler {
@@ -1338,23 +1337,23 @@ const result = await BlacksmithErrorHandler.safeOperation(
 );
 ```
 
-### **Error Recovery Strategies**
+## **Error Recovery Strategies**
 
 1. **Graceful Degradation**: Provide fallback behavior when Blacksmith unavailable
 2. **Retry Logic**: Attempt operations multiple times with delays
 3. **User Notification**: Inform users when features are unavailable
 4. **Logging**: Record errors for debugging and support
 
-## **Support and Community**
+# **Support and Community**
 
-### **Getting Help**
+## **Getting Help**
 
 - **Documentation**: This file and related architecture docs
 - **Console Commands**: Use `blacksmithHooks()` and `blacksmithHookDetails()`
 - **Error Logging**: Check browser console for detailed error messages
 - **GitHub Issues**: Report problems and request features
 
-### **Contributing**
+## **Contributing**
 
 - **Report Issues**: Document any problems you encounter
 - **Feature Requests**: Suggest improvements to the API
@@ -1363,9 +1362,9 @@ const result = await BlacksmithErrorHandler.safeOperation(
 
 ---
 
-## **Summary of Key Integration Points**
+# **Summary of Key Integration Points**
 
-### **✅ What Works:**
+## **✅ What Works:**
 - **Import Path**: `'coffee-pub-blacksmith/api/blacksmith-api.js'`
 - **Bridge File**: `BlacksmithAPI` class provides clean access
 - **HookManager**: Full hook management with priority and cleanup
@@ -1374,13 +1373,13 @@ const result = await BlacksmithErrorHandler.safeOperation(
 - **Stats API**: Combat and player statistics access
 - **BLACKSMITH Object**: Global constants and choice arrays
 
-### **⚠️ Common Mistakes to Avoid:**
+## **⚠️ Common Mistakes to Avoid:**
 - **Wrong Import Path**: Don't use `/scripts/` - use `/api/`
 - **Missing Module ID**: Always provide module ID for settings access
 - **Incorrect Parameter Order**: Check parameter documentation carefully
 - **Missing await**: Most API calls are async and require await
 
-### **🔧 Integration Checklist:**
+## **🔧 Integration Checklist:**
 - [ ] Use correct import path: `/api/blacksmith-api.js`
 - [ ] Wait for Blacksmith to be ready with `BlacksmithAPI.waitForReady()`
 - [ ] Prepend "blacksmith" to variable names to avoid conflicts
