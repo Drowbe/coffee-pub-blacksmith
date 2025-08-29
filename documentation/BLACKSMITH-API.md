@@ -12,12 +12,13 @@ Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules 
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
 // Get specific APIs directly (prepend "blacksmith" to avoid naming conflicts)
+// All methods return Promises that resolve when Blacksmith is ready
 const blacksmithHookManager = await BlacksmithAPI.getHookManager();
 const blacksmithUtils = await BlacksmithAPI.getUtils();
 const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
 ```
 
-**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. This approach provides a clean, consistent interface while handling timing and availability issues automatically.
+**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
 
 **⚠️ Important**: Always use the correct import path: `'coffee-pub-blacksmith/api/blacksmith-api.js'` (not `/scripts/`).
 
@@ -85,6 +86,8 @@ blacksmithHookStats()
 ## **Working Examples**
 
 **📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
+
+**📋 API Usage**: All BlacksmithAPI methods return Promises that resolve when Blacksmith is ready. Use `await` or `.then()` to handle the asynchronous nature.
 
 ### **Basic Hook Registration**
 ```javascript

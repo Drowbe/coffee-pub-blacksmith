@@ -61,54 +61,48 @@ export class BlacksmithAPI {
      * Get the HookManager API
      * @returns {Promise<Object>} HookManager instance
      */
-    static async getHookManager() {
-        await this.waitForReady();
-        return this._getAPI().HookManager;
+    static getHookManager() {
+        return this.waitForReady().then(() => this._getAPI().HookManager);
     }
 
     /**
      * Get the Utils API
      * @returns {Promise<Object>} Utils instance
      */
-    static async getUtils() {
-        await this.waitForReady();
-        return this._getAPI().utils;
+    static getUtils() {
+        return this.waitForReady().then(() => this._getAPI().utils);
     }
 
     /**
      * Get the ModuleManager API
      * @returns {Promise<Object>} ModuleManager instance
      */
-    static async getModuleManager() {
-        await this.waitForReady();
-        return this._getAPI().ModuleManager;
+    static getModuleManager() {
+        return this.waitForReady().then(() => this._getAPI().ModuleManager);
     }
 
     /**
      * Get the Stats API
      * @returns {Promise<Object>} Stats API instance
      */
-    static async getStats() {
-        await this.waitForReady();
-        return this._getAPI().stats;
+    static getStats() {
+        return this.waitForReady().then(() => this._getAPI().stats);
     }
 
     /**
      * Get the BLACKSMITH constants
      * @returns {Promise<Object>} BLACKSMITH constants object
      */
-    static async getBLACKSMITH() {
-        await this.waitForReady();
-        return this._getAPI().BLACKSMITH;
+    static getBLACKSMITH() {
+        return this.waitForReady().then(() => this._getAPI().BLACKSMITH);
     }
 
     /**
      * Get the API version
      * @returns {Promise<string>} API version string
      */
-    static async getVersion() {
-        await this.waitForReady();
-        return this._getAPI().version;
+    static getVersion() {
+        return this.waitForReady().then(() => this._getAPI().version);
     }
 
     /**
