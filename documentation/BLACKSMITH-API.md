@@ -40,6 +40,19 @@ Hooks.once('init', async () => {
 ### **Step 3: Test Basic Integration**
 Use the console commands below to verify everything is working correctly.
 
+```javascript
+BlacksmithAPIStatus()
+```
+Checks if the Blacksmith API is ready and available. Returns true if the API is accessible, false otherwise. Shows detailed status information in the console.
+
+```javascript
+BlacksmithAPICheck()
+```
+Shows the current module registration status. Returns an object with count and list of registered modules. Displays module details in the console.
+
+
+
+
 **Next Steps**: See the **Working Examples** section below for complete, copy-paste code that demonstrates how to use these APIs.
 
 ***

@@ -186,13 +186,30 @@ export class BlacksmithAPI {
 function checkBlacksmithReady() {
     try {
         const module = game.modules.get('coffee-pub-blacksmith');
+        console.log('🔧 Blacksmith API: Checking readiness...', {
+            moduleExists: !!module,
+            hasApi: !!module?.api,
+            apiKeys: module?.api ? Object.keys(module.api) : [],
+            version: module?.api?.version,
+            isReady: BlacksmithAPI.isReady,
+            readyCallbacks: BlacksmithAPI.readyCallbacks.length,
+            hasHookManager: !!module?.api?.HookManager,
+            hasModuleManager: !!module?.api?.ModuleManager,
+            hasUtils: !!module?.api?.utils
+        });
+        
+        // If module has API and version, mark as ready regardless of current state
         if (module?.api && module.api.version) {
-            console.log('🔧 Blacksmith API: Module found, marking as ready');
-            BlacksmithAPI._markReady();
+            if (!BlacksmithAPI.isReady) {
+                console.log('🔧 Blacksmith API: Module found, marking as ready');
+                BlacksmithAPI._markReady();
+            } else {
+                console.log('🔧 Blacksmith API: Already marked as ready');
+            }
             return true;
         }
     } catch (e) {
-        // Module not ready yet
+        console.log('🔧 Blacksmith API: Error during readiness check:', e);
     }
     return false;
 }
@@ -230,6 +247,46 @@ function initializeReadyChecking() {
 // Start the readiness checking
 initializeReadyChecking();
 
+// Add manual readiness check for debugging
+if (typeof window !== 'undefined') {
+    window.BlacksmithAPIManualReady = () => {
+        console.log('🔧 Blacksmith API: Manual readiness check triggered');
+        return checkBlacksmithReady();
+    };
+    
+    // Force readiness check after a delay
+    setTimeout(() => {
+        console.log('🔧 Blacksmith API: Delayed readiness check');
+        checkBlacksmithReady();
+    }, 2000);
+
+    // Also try a longer delay
+    setTimeout(() => {
+        console.log('🔧 Blacksmith API: Long delayed readiness check');
+        checkBlacksmithReady();
+    }, 5000);
+
+    // Force readiness check on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🔧 Blacksmith API: DOM ready check');
+        checkBlacksmithReady();
+    });
+
+    // Force readiness check on window load
+    window.addEventListener('load', () => {
+        console.log('🔧 Blacksmith API: Window load check');
+        checkBlacksmithReady();
+    });
+
+    // Force readiness check on FoundryVTT ready
+    if (typeof Hooks !== 'undefined') {
+        Hooks.once('ready', () => {
+            console.log('🔧 Blacksmith API: FoundryVTT ready check');
+            checkBlacksmithReady();
+        });
+    }
+}
+
 // ================================================================== 
 // ===== GLOBAL EXPOSURE ===========================================
 // ================================================================== 
@@ -245,9 +302,22 @@ if (typeof window !== 'undefined') {
 
 // BlacksmithAPIStatus - Check if API is fully ready
 window.BlacksmithAPIStatus = () => {
-    const isReady = BlacksmithAPI.isAPIOpen();
-    console.log('🔧 Blacksmith API Status:', isReady ? '✅ READY' : '⏳ NOT READY');
-    return isReady;
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        const hasApi = !!module?.api && !!module.api.version;
+        const isReady = BlacksmithAPI.isAPIOpen();
+        
+        console.log('🔧 Blacksmith API Status:', {
+            hasApi: hasApi,
+            isReady: isReady,
+            status: hasApi ? '✅ READY' : '⏳ NOT READY'
+        });
+        
+        return hasApi;
+    } catch (error) {
+        console.error('❌ Failed to check Blacksmith API status:', error);
+        return false;
+    }
 };
 
 // BlacksmithAPIVersion - Show current API version
