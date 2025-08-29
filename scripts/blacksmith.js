@@ -607,7 +607,8 @@ Hooks.once('init', async function() {
         utils: UtilsManager.getUtils(),
         version: MODULE.APIVERSION,
         BLACKSMITH: BLACKSMITH,
-        stats: StatsAPI
+        stats: StatsAPI,
+        HookManager  // ✅ NEW: Expose HookManager for other Coffee Pub modules
     };
     
     // Initialize other systems

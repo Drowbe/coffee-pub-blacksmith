@@ -144,14 +144,53 @@ const diceRoll = utils.rollCoffeePubDice;
 - **Purpose**: libWrapper integration and management
 - **Status**: ✅ **FULLY FUNCTIONAL**
 
+### **HookManager Class** (NEW!)
+- **Location**: `scripts/manager-hooks.js`
+- **Purpose**: Centralized hook management and orchestration
+- **Status**: ✅ **FULLY FUNCTIONAL** - All 68 hooks migrated
+- **API Access**: Available through `blacksmith.HookManager`
+
+#### **Key Features**
+- **Priority-based execution** (1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest)
+- **Context-based cleanup** for batch operations
+- **Throttle/debounce support** for performance optimization
+- **Dedupe protection** to prevent duplicate registrations
+- **Automatic cleanup** for "once" hooks
+- **Comprehensive debugging** with console commands
+
+#### **Core Methods**
+```javascript
+// Register a hook
+const callbackId = HookManager.registerHook({
+    name: 'hookName',
+    description: 'Human-readable description',
+    context: 'context-name',
+    priority: 3, // 1-5, default: 3
+    callback: (args) => { /* your logic */ },
+    options: { once: true, throttleMs: 50, debounceMs: 300 },
+    key: 'uniqueKey' // Optional dedupe
+});
+
+// Remove a specific callback
+const removed = HookManager.removeCallback(callbackId);
+
+// Cleanup by context
+HookManager.disposeByContext('context-name');
+
+// Get statistics and debugging info
+HookManager.showHooks();
+HookManager.showHookDetails();
+HookManager.getStats();
+```
+
 ### **Module Integration**
 The module provides a comprehensive API for other modules to integrate:
 
 ```javascript
 // Access the Blacksmith API
-    const blacksmith = game.modules.get('coffee-pub-blacksmith').api;
+const blacksmith = game.modules.get('coffee-pub-blacksmith').api;
 
-    // Register your module
+// Register your module
 blacksmith.registerModule('your-module-id', ['feature1', 'feature2']);
 
 // Check if features are available
@@ -161,7 +200,53 @@ if (blacksmith.isModuleActive('coffee-pub-blacksmith')) {
 
 // Access utilities
 const utils = blacksmith.utils;
+
+// Access HookManager (NEW!)
+const hookManager = blacksmith.HookManager;
 ```
+
+### **HookManager API Access for External Modules**
+Other Coffee Pub modules can now use Blacksmith's HookManager:
+
+```javascript
+// Helper function to safely get Blacksmith API
+function getBlacksmith() {
+    return game.modules.get('coffee-pub-blacksmith')?.api;
+}
+
+// Use HookManager through the API
+const blacksmith = getBlacksmith();
+if (blacksmith?.HookManager) {
+    // Register hooks with Blacksmith's HookManager
+    const hookId = blacksmith.HookManager.registerHook({
+        name: 'updateActor',
+        description: 'External module: Update something',
+        context: 'external-module',
+        priority: 3,
+        callback: (actor, changes) => {
+            // Your external module logic here
+            console.log('External module hook executed!');
+        }
+    });
+    
+    // Use other Blacksmith features
+    blacksmith.utils.postConsoleAndNotification(
+        'External Module',
+        'Hook registered successfully',
+        { hookId },
+        true,
+        false
+    );
+}
+```
+
+### **Benefits for External Modules**
+- **No hook conflicts** - Centralized management prevents overwriting
+- **Priority system** - Control execution order across all modules
+- **Context cleanup** - Batch removal of related hooks
+- **Performance optimization** - Built-in throttle/debounce support
+- **Debugging tools** - Centralized hook visibility and management
+- **Consistent behavior** - All modules use the same hook system
 
 ## **Configuration and Settings**
 
