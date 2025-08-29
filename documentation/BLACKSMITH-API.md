@@ -60,14 +60,38 @@ if (blacksmith?.HookManager) {
 ```javascript
 // Register a hook
 const callbackId = hookManager.registerHook({
-    name: 'hookName',
-    description: 'Human-readable description',
-    context: 'context-name',
-    priority: 3, // 1-5, default: 3
-    callback: (args) => { /* your logic */ },
-    options: { once: true, throttleMs: 50, debounceMs: 300 },
-    key: 'uniqueKey' // Optional dedupe
+    name: 'hookName',                    // Required: FoundryVTT hook name
+    description: 'Description',           // Optional: Human-readable description
+    priority: 3,                         // Optional: 1-5, default: 3
+    callback: (args) => { /* logic */ }, // Required: Your callback function
+    options: {                            // Optional: Performance options
+        once: true,                       // Auto-cleanup after first execution
+        throttleMs: 50,                   // Max once per 50ms
+        debounceMs: 300                   // Wait 300ms after last call
+    },
+    key: 'uniqueKey',                    // Optional: Dedupe protection
+    context: 'context-name'              // Optional: Batch cleanup identifier
 });
+```
+
+**⚠️ IMPORTANT: Parameter Order**
+The HookManager uses destructured parameters, so the order doesn't matter as long as you use the correct property names. However, for consistency, we recommend this order:
+1. `name` (required)
+2. `description` (optional)
+3. `context` (optional)
+4. `priority` (optional)
+5. `options` (optional)
+6. `key` (optional)
+7. `callback` (required) - **Always last for readability**
+
+**✅ What We Actually Support:**
+- **Required**: `name`, `callback`
+- **Optional**: `description`, `priority`, `options`, `key`, `context`
+- **Options**: `once`, `throttleMs`, `debounceMs`
+- **Performance**: Throttling and debouncing work as documented
+- **Cleanup**: `once: true` auto-removes hooks after first execution
+- **Dedupe**: `key` prevents duplicate registrations
+- **Batch cleanup**: `context` enables group removal
 
 // Remove a specific callback
 const removed = hookManager.removeCallback(callbackId);
@@ -87,7 +111,7 @@ hookManager.getStats();
 const combatHookId = blacksmithHookManager.registerHook({
     name: 'updateCombat',
     description: 'My module: Track combat changes',
-    context: 'my-combat-tracker',
+    context: 'my-combat-tracker', // For batch cleanup
     priority: 2, // High priority - core functionality
     callback: (combat, changed) => {
         if (changed.round !== undefined) {
@@ -100,7 +124,7 @@ const combatHookId = blacksmithHookManager.registerHook({
 const uiHookId = blacksmithHookManager.registerHook({
     name: 'renderChatMessage',
     description: 'My module: Enhance chat messages',
-    context: 'my-chat-enhancer',
+    context: 'my-chat-enhancer', // For batch cleanup
     priority: 4, // Low priority - UI updates
     callback: (message, html, data) => {
         // Modify the HTML before display
@@ -112,7 +136,7 @@ const uiHookId = blacksmithHookManager.registerHook({
 const welcomeHookId = blacksmithHookManager.registerHook({
     name: 'userLogin',
     description: 'My module: Welcome message',
-    context: 'my-welcome',
+    context: 'my-welcome', // For batch cleanup
     priority: 5, // Lowest priority
     options: { once: true }, // Auto-cleanup after first execution
     callback: (user) => {
@@ -162,12 +186,21 @@ console.log('My module features:', myFeatures);
 ```javascript
 // Console logging with debug support
 utils.postConsoleAndNotification(
-    'My Module',           // Module name
+    'My Module',           // Module name, usually MODULE.NAME
     'Message content',      // Main message
-    { data: 'extra' },     // Additional data
-    true,                   // Show in console
+    result,                 // result
+    true,                   // true if this is Debug, false if it is a system message
     false                   // Show notification
 );
+```
+
+**⚠️ Console Logging Parameters:**
+- **Parameter 1**: Module name (usually `MODULE.NAME`)
+- **Parameter 2**: Main message content
+- **Parameter 3**: Result object (any data you want to log)
+- **Parameter 4**: `true` = Debug message, `false` = System message
+- **Parameter 5**: `true` = Show notification, `false` = Console only
+- **Console output**: Always shown regardless of parameters
 
 // Sound playback
 utils.playSound('notification.mp3');
@@ -186,9 +219,9 @@ console.log('Blacksmith version:', utils.COFFEEPUB.VERSION);
 blacksmithUtils.postConsoleAndNotification(
     'My Module',
     'Hook registered successfully',
-    { hookId, hookName: 'updateActor' },
-    true,
-    false
+    { hookId, hookName: 'updateActor' }, // result object
+    false, // System message (not debug)
+    false  // No notification
 );
 
 // Play sounds for user feedback
@@ -245,16 +278,16 @@ Hooks.once('ready', async () => {
         blacksmith.ModuleManager.registerModule('my-module', ['feature1', 'feature2']);
         
         // Set up hooks
-        const hookId = blacksmith.HookManager.registerHook({
-            name: 'updateActor',
-            description: 'My module: Track actor changes',
-            context: 'my-module',
-            priority: 3,
-            callback: (actor, changes) => {
-                // My logic here
-                blacksmith.utils.postConsoleAndNotification('My Module', 'Actor updated!', {}, true, false);
-            }
-        });
+const hookId = blacksmith.HookManager.registerHook({
+    name: 'updateActor',
+    description: 'My module: Track actor changes',
+    context: 'my-module', // For batch cleanup
+    priority: 3,
+    callback: (actor, changes) => {
+        // My logic here
+        blacksmith.utils.postConsoleAndNotification('My Module', 'Actor updated!', { actorId: actor.id, changes }, false, false);
+    }
+});
         
         console.log('My module initialized with Blacksmith!');
         
@@ -605,7 +638,7 @@ async function testUtilityFunctions() {
         console.log('✅ Settings access working:', testValue);
         
         // Test logging
-        blacksmith.utils.postConsoleAndNotification('Test', 'Utility test', {}, true, false);
+        blacksmith.utils.postConsoleAndNotification('Test', 'Utility test', { testType: 'utility' }, false, false);
         console.log('✅ Logging working');
         
         // Test sound (if available)
@@ -835,15 +868,15 @@ Hooks.on('blacksmithUpdated', (data) => {
 **Code Fix:**
 ```javascript
 // BAD: Immediate notification (may flash)
-blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, true);
+blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'immediate' }, false, true);
 
 // GOOD: Delayed notification to prevent flashing
 setTimeout(() => {
-    blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, true);
+    blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'delayed' }, false, true);
 }, 100);
 
 // BETTER: Console only for debug messages
-blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, false);
+blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'console-only' }, false, false);
 ```
 
 #### **Issue: Settings not accessible**
