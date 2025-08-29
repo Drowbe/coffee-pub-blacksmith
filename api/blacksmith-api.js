@@ -50,7 +50,7 @@ export class BlacksmithAPI {
      * @returns {Promise<void>}
      */
     static async waitForReady() {
-        if (this.isReady) return;
+        if (this.isReady) return Promise.resolve();
         
         return new Promise((resolve) => {
             this.readyCallbacks.push(resolve);
@@ -62,7 +62,13 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} HookManager instance
      */
     static getHookManager() {
-        return this.waitForReady().then(() => this._getAPI().HookManager);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().HookManager;
+            } catch (error) {
+                throw new Error(`Failed to get HookManager: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -70,7 +76,13 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} Utils instance
      */
     static getUtils() {
-        return this.waitForReady().then(() => this._getAPI().utils);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().utils;
+            } catch (error) {
+                throw new Error(`Failed to get Utils: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -78,7 +90,13 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} ModuleManager instance
      */
     static getModuleManager() {
-        return this.waitForReady().then(() => this._getAPI().ModuleManager);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().ModuleManager;
+            } catch (error) {
+                throw new Error(`Failed to get ModuleManager: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -86,7 +104,13 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} Stats API instance
      */
     static getStats() {
-        return this.waitForReady().then(() => this._getAPI().stats);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().stats;
+            } catch (error) {
+                throw new Error(`Failed to get Stats: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -94,7 +118,13 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} BLACKSMITH constants object
      */
     static getBLACKSMITH() {
-        return this.waitForReady().then(() => this._getAPI().BLACKSMITH);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().BLACKSMITH;
+            } catch (error) {
+                throw new Error(`Failed to get BLACKSMITH constants: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -102,7 +132,13 @@ export class BlacksmithAPI {
      * @returns {Promise<string>} API version string
      */
     static getVersion() {
-        return this.waitForReady().then(() => this._getAPI().version);
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().version;
+            } catch (error) {
+                throw new Error(`Failed to get API version: ${error.message}`);
+            }
+        });
     }
 
     /**
@@ -130,7 +166,14 @@ export class BlacksmithAPI {
      */
     static _markReady() {
         this.isReady = true;
-        this.readyCallbacks.forEach(callback => callback(this._getAPI()));
+        try {
+            const api = this._getAPI();
+            this.readyCallbacks.forEach(callback => callback(api));
+        } catch (error) {
+            console.error('🔧 Blacksmith API: Error getting API during ready callback:', error);
+            // Still resolve callbacks with null to prevent hanging
+            this.readyCallbacks.forEach(callback => callback(null));
+        }
         this.readyCallbacks = [];
     }
 }
@@ -143,7 +186,8 @@ export class BlacksmithAPI {
 function checkBlacksmithReady() {
     try {
         const module = game.modules.get('coffee-pub-blacksmith');
-        if (module?.api) {
+        if (module?.api && module.api.version) {
+            console.log('🔧 Blacksmith API: Module found, marking as ready');
             BlacksmithAPI._markReady();
             return true;
         }
@@ -154,25 +198,37 @@ function checkBlacksmithReady() {
 }
 
 // Set up ready checking
-if (typeof game !== 'undefined' && game.modules) {
-    // Check immediately
-    if (!checkBlacksmithReady()) {
-        // Set up polling
-        const checkInterval = setInterval(() => {
-            if (checkBlacksmithReady()) {
+function initializeReadyChecking() {
+    if (typeof game !== 'undefined' && game.modules) {
+        // Check immediately
+        if (!checkBlacksmithReady()) {
+            console.log('🔧 Blacksmith API: Setting up polling for readiness...');
+            // Set up polling
+            const checkInterval = setInterval(() => {
+                if (checkBlacksmithReady()) {
+                    console.log('🔧 Blacksmith API: Ready detected, clearing interval');
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
                 clearInterval(checkInterval);
-            }
-        }, 100);
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            if (!BlacksmithAPI.isReady) {
-                console.error('❌ Blacksmith API: Timeout waiting for Blacksmith to be ready');
-            }
-        }, 10000);
+                if (!BlacksmithAPI.isReady) {
+                    console.error('❌ Blacksmith API: Timeout waiting for Blacksmith to be ready');
+                }
+            }, 10000);
+        } else {
+            console.log('🔧 Blacksmith API: Ready immediately');
+        }
+    } else {
+        // Wait a bit and try again
+        setTimeout(initializeReadyChecking, 100);
     }
 }
+
+// Start the readiness checking
+initializeReadyChecking();
 
 // ================================================================== 
 // ===== GLOBAL EXPOSURE ===========================================
