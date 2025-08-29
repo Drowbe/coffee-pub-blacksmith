@@ -29,17 +29,7 @@ const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
 
 The easiest way to verify your Blacksmith integration is working is to use these console commands. Open your browser console (F12 → Console tab) and run any of these:
 
-### **🔍 Hook Management Status**
-```javascript
-// Show all registered hooks (simple summary)
-blacksmithHooks()
 
-// Show detailed hook information with priority grouping  
-blacksmithHookDetails()
-
-// Get raw hook statistics as an object
-blacksmithHookStats()
-```
 
 ### **📊 API Availability Check**
 ```javascript
@@ -58,6 +48,17 @@ BlacksmithAPI
     console.log('Blacksmith Status:', status);
     return Object.values(status).every(Boolean);
 })();
+```
+### **🔍 Hook Management Status**
+```javascript
+// Show all registered hooks (simple summary)
+blacksmithHooks()
+
+// Show detailed hook information with priority grouping  
+blacksmithHookDetails()
+
+// Get raw hook statistics as an object
+blacksmithHookStats()
 ```
 
 ### **✅ What You Should See:**
@@ -223,6 +224,8 @@ Hooks.once('ready', async () => {
 
 ## **Available APIs**
 
+**📋 API Order**: APIs are ordered by most commonly used first - HookManager (core functionality), Utils (everyday helpers), ModuleManager (setup), and Stats API (advanced features).
+
 ### **HookManager - Centralized Hook Management**
 **Purpose**: Register and manage FoundryVTT hooks with priority ordering and cleanup
 
@@ -289,54 +292,6 @@ hookManager.getStats();
 
 ***
 
-
-### **ModuleManager - Module Registration System**
-**Purpose**: Register your module with Blacksmith and check feature availability
-
-**Key Methods**:
-```javascript
-// Register your module with Blacksmith
-moduleManager.registerModule('your-module-id', {
-    name: 'Your Module Name',
-    version: '1.0.0',
-    features: [
-        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
-        { type: 'ui-enhancements', data: { description: 'Provides UI improvements' } }
-    ]
-});
-
-// Check if a module is active
-const isActive = moduleManager.isModuleActive('your-module-id');
-
-// Get features for a specific module
-const features = moduleManager.getModuleFeatures('your-module-id');
-```
-
-**Usage Examples**:
-```javascript
-// Register your module
-blacksmithModuleManager.registerModule('my-awesome-module', {
-    name: 'My Awesome Module',
-    version: '1.0.0',
-    features: [
-        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
-        { type: 'statistics', data: { description: 'Provides player analytics' } },
-        { type: 'ui-enhancements', data: { description: 'Improves user interface' } }
-    ]
-});
-
-// Check if Blacksmith is available
-if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
-    console.log('Blacksmith is active and ready!');
-}
-
-// Get your module's features
-const myFeatures = blacksmithModuleManager.getModuleFeatures('my-awesome-module');
-console.log('My module features:', myFeatures);
-```
-
-***
-
 ### **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
 
@@ -392,6 +347,53 @@ console.log('Available themes:', blacksmith.BLACKSMITH.arrThemeChoices);
 ```
 
 ***
+
+### **ModuleManager - Module Registration System**
+**Purpose**: Register your module with Blacksmith and check feature availability
+
+**Key Methods**:
+```javascript
+// Register your module with Blacksmith
+moduleManager.registerModule('your-module-id', {
+    name: 'Your Module Name',
+    version: '1.0.0',
+    features: [
+        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
+        { type: 'ui-enhancements', data: { description: 'Provides UI improvements' } }
+    ]
+});
+
+// Check if a module is active
+const isActive = moduleManager.isModuleActive('your-module-id');
+
+// Get features for a specific module
+const features = moduleManager.getModuleFeatures('your-module-id');
+```
+
+**Usage Examples**:
+```javascript
+// Register your module
+blacksmithModuleManager.registerModule('my-awesome-module', {
+    name: 'My Awesome Module',
+    version: '1.0.0',
+    features: [
+        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
+        { type: 'statistics', data: { description: 'Provides player analytics' } },
+        { type: 'ui-enhancements', data: { description: 'Improves user interface' } }
+    ]
+});
+
+// Check if Blacksmith is available
+if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
+    console.log('Blacksmith is active and ready!');
+}
+
+// Get your module's features
+const myFeatures = blacksmithModuleManager.getModuleFeatures('my-awesome-module');
+console.log('My module features:', myFeatures);
+```
+
+
 
 
 ### **Stats API - Statistics and Analytics**
