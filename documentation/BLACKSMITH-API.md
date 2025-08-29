@@ -38,18 +38,23 @@ Hooks.once('init', async () => {
 **Note**: Pass your variables in a way that makes sense for your module. A best paractive is to pull the ID, Title, and Version from your module.json file. The short name a simple way to identify your module.
 
 ### **Step 3: Test Basic Integration**
-Use the console commands below to verify everything is working correctly.
+At this point, everything should be up and running. Use the console commands below to verify everything is working correctly.
 
+
+**VERIFY BLACKMISTH API READINESS**
 ```javascript
 BlacksmithAPIStatus()
 ```
-Checks if the Blacksmith API is ready and available. Returns true if the API is accessible, false otherwise. Shows detailed status information in the console.
 
+**Note**: Checks if the Blacksmith API is ready and available. Returns true if the API is accessible, false otherwise. Shows detailed status information in the console.
+
+
+**VERIFY MODULE REGISTRATION**
 ```javascript
 BlacksmithAPICheck()
 ```
-Shows the current module registration status. Returns an object with count and list of registered modules. Displays module details in the console.
 
+**Note**: Shows the current module registration status. Returns an object with count and list of registered modules. Displays module details in the console.
 
 
 
