@@ -3,9 +3,11 @@
 ## **Overview**
 Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules to integrate with our features. This documentation covers how to consume our API, what's available, and examples of integration.
 
+**Integration Approach**: We provide a single, well-tested integration path through our drop-in bridge file. This approach handles timing issues, availability checks, and provides a consistent interface while internally using FoundryVTT's module system.
+
 ## **Quick Start**
 
-### **OPTION 1: Drop-in Bridge File (RECOMMENDED)**
+### **Integration Method: Drop-in Bridge File**
 ```javascript
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
@@ -26,23 +28,9 @@ const hookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **OPTION 2: Direct Module API Access**
-```javascript
-// Access through FoundryVTT's module system
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. This approach provides a clean, consistent interface while handling timing and availability issues automatically.
 
-if (blacksmith?.HookManager) {
-    const hookId = blacksmith.HookManager.registerHook({
-        name: 'updateActor',
-        description: 'My module: Update something',
-        context: 'my-module',
-        priority: 3,
-        callback: (actor, changes) => {
-            // My logic here
-        }
-    });
-}
-```
+**⚠️ Important**: Always use the correct import path: `'coffee-pub-blacksmith/api/blacksmith-api.js'` (not `/scripts/`).
 
 ***
 
@@ -159,7 +147,14 @@ const welcomeHookId = blacksmithHookManager.registerHook({
 **Key Methods**:
 ```javascript
 // Register your module with Blacksmith
-moduleManager.registerModule('your-module-id', ['feature1', 'feature2']);
+moduleManager.registerModule('your-module-id', {
+    name: 'Your Module Name',
+    version: '1.0.0',
+    features: [
+        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
+        { type: 'ui-enhancements', data: { description: 'Provides UI improvements' } }
+    ]
+});
 
 // Check if a module is active
 const isActive = moduleManager.isModuleActive('your-module-id');
@@ -171,11 +166,15 @@ const features = moduleManager.getModuleFeatures('your-module-id');
 **Usage Examples**:
 ```javascript
 // Register your module
-blacksmithModuleManager.registerModule('my-awesome-module', [
-    'combat-tracking',
-    'statistics',
-    'ui-enhancements'
-]);
+blacksmithModuleManager.registerModule('my-awesome-module', {
+    name: 'My Awesome Module',
+    version: '1.0.0',
+    features: [
+        { type: 'combat-tracking', data: { description: 'Tracks combat statistics' } },
+        { type: 'statistics', data: { description: 'Provides player analytics' } },
+        { type: 'ui-enhancements', data: { description: 'Improves user interface' } }
+    ]
+});
 
 // Check if Blacksmith is available
 if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
@@ -192,42 +191,42 @@ console.log('My module features:', myFeatures);
 ### **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
 
+**Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, etc.), use the full API object:
+```javascript
+const blacksmith = await BlacksmithAPI.getFullAPI();
+const themeChoices = blacksmith.BLACKSMITH.arrThemeChoices;
+const soundChoices = blacksmith.BLACKSMITH.arrSoundChoices;
+const tableChoices = blacksmith.BLACKSMITH.arrTableChoices;
+```
+
 **Available Utilities**:
 ```javascript
 // Console logging with debug support
 utils.postConsoleAndNotification(
-    'My Module',           // Module name, usually MODULE.NAME
+    'my-module-id',        // Module ID (string)
     'Message content',      // Main message
-    result,                 // result
-    true,                   // true if this is Debug, false if it is a system message
-    false                   // Show notification
+    result,                 // Result object (optional)
+    false,                  // Debug flag (true = debug, false = system)
+    false                   // Show notification (true = show, false = console only)
 );
-```
-
-**⚠️ Console Logging Parameters:**
-- **Parameter 1**: Module name (usually `MODULE.NAME`)
-- **Parameter 2**: Main message content
-- **Parameter 3**: Result object (any data you want to log)
-- **Parameter 4**: `true` = Debug message, `false` = System message
-- **Parameter 5**: `true` = Show notification, `false` = Console only
-- **Console output**: Always shown regardless of parameters
 
 // Sound playback
 utils.playSound('notification.mp3');
 
 // Settings management
-const setting = utils.getSettingSafely('mySetting', 'default');
-utils.setSettingSafely('mySetting', 'newValue');
+const setting = utils.getSettingSafely('my-module-id', 'setting-key', 'default');
+utils.setSettingSafely('my-module-id', 'setting-key', 'newValue');
 
-// Constants
-console.log('Blacksmith version:', utils.COFFEEPUB.VERSION);
+// Time and formatting utilities
+const formattedTime = utils.formatTime(ms, 'colon');
+const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
 ```
 
 **Usage Examples**:
 ```javascript
 // Log important events
 blacksmithUtils.postConsoleAndNotification(
-    'My Module',
+    'my-awesome-module',
     'Hook registered successfully',
     { hookId, hookName: 'updateActor' }, // result object
     false, // System message (not debug)
@@ -237,10 +236,10 @@ blacksmithUtils.postConsoleAndNotification(
 // Play sounds for user feedback
 blacksmithUtils.playSound('success.mp3');
 
-// Access Blacksmith constants
-if (blacksmithUtils.COFFEEPUB.VERSION >= '12.0.0') {
-    console.log('Using FoundryVTT 12+ features');
-}
+// Access Blacksmith version and constants
+const blacksmith = await BlacksmithAPI.getFullAPI();
+console.log('Blacksmith version:', blacksmith.version);
+console.log('Available themes:', blacksmith.BLACKSMITH.arrThemeChoices);
 ```
 
 ***
@@ -252,27 +251,29 @@ if (blacksmithUtils.COFFEEPUB.VERSION >= '12.0.0') {
 **Key Methods**:
 ```javascript
 // Get combat statistics
-const combatStats = stats.getCombatStats();
+const combatStats = stats.combat.getCurrentStats();
 
 // Get player statistics
-const playerStats = stats.getPlayerStats();
+const playerStats = await stats.player.getStats(actorId);
 
-// Record custom events
-stats.recordEvent('my-module', 'custom-action', { data: 'value' });
+// Get specific stat categories
+const attackStats = await stats.player.getStatCategory(actorId, 'attacks');
+const roundSummary = stats.combat.getRoundSummary();
 ```
 
 **Usage Examples**:
 ```javascript
-// Track custom module usage
-blacksmithStats.recordEvent('my-module', 'feature-used', {
-    feature: 'combat-tracking',
-    timestamp: Date.now(),
-    userId: game.user.id
-});
+// Get combat statistics
+const combatStats = blacksmithStats.combat.getCurrentStats();
+console.log('Current combat stats:', combatStats);
 
-// Get existing statistics
-const allStats = blacksmithStats.getAllStats();
-console.log('Available statistics:', allStats);
+// Get player statistics for a specific actor
+const playerStats = await blacksmithStats.player.getStats(actorId);
+console.log('Player stats:', playerStats);
+
+// Get specific stat categories
+const attackStats = await blacksmithStats.player.getStatCategory(actorId, 'attacks');
+const healingStats = await blacksmithStats.player.getStatCategory(actorId, 'healing');
 ```
 
 ***
@@ -282,7 +283,7 @@ console.log('Available statistics:', allStats);
 ### **Module Initialization Pattern**
 ```javascript
 // In your module's main file
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
 Hooks.once('ready', async () => {
     try {
@@ -290,7 +291,13 @@ Hooks.once('ready', async () => {
         const blacksmith = await BlacksmithAPI.get();
         
         // Register with Blacksmith
-        blacksmith.ModuleManager.registerModule('my-module', ['feature1', 'feature2']);
+        blacksmith.ModuleManager.registerModule('my-module', {
+            name: 'My Module',
+            version: '1.0.0',
+            features: [
+                { type: 'actor-tracking', data: { description: 'Tracks actor changes' } }
+            ]
+        });
         
         // Set up hooks
 const hookId = blacksmith.HookManager.registerHook({
@@ -466,10 +473,10 @@ blacksmithHookStats();
 **Issue: "HookManager is not defined"**
 ```javascript
 // Solution: Ensure proper import
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
-// Or use the bridge file approach
-const hookManager = BlacksmithAPI.getHookManager();
+// Use the bridge file approach
+const hookManager = await BlacksmithAPI.getHookManager();
 ```
 
 **Issue: Hook not executing**
@@ -653,11 +660,11 @@ async function testUtilityFunctions() {
     
     try {
         // Test settings access
-        const testValue = blacksmith.utils.getSettingSafely('test', 'default');
+        const testValue = blacksmith.utils.getSettingSafely('test-module', 'test-setting', 'default');
         console.log('✅ Settings access working:', testValue);
         
         // Test logging
-        blacksmith.utils.postConsoleAndNotification('Test', 'Utility test', { testType: 'utility' }, false, false);
+        blacksmith.utils.postConsoleAndNotification('test-module', 'Utility test', { testType: 'utility' }, false, false);
         console.log('✅ Logging working');
         
         // Test sound (if available)
@@ -971,6 +978,8 @@ Please help me:
 4. Set up proper hook listeners for the 'blacksmithUpdated' event
 5. Follow the initialization timing best practices (use 'ready' phase, not 'init' for accessing data)
 
+IMPORTANT: Use the correct import path: 'coffee-pub-blacksmith/api/blacksmith-api.js'
+
 My module ID is: [YOUR_MODULE_ID]
 My module name is: [YOUR_MODULE_NAME]
 
@@ -1033,10 +1042,13 @@ Please provide working code examples and explain the FoundryVTT lifecycle timing
 
 **Key Functions:**
 
-* blacksmith.registerModule()
+* blacksmith.ModuleManager.registerModule()
 * blacksmith.utils.getSettingSafely()
 * blacksmith.utils.postConsoleAndNotification()
 * Hooks.on('blacksmithUpdated', callback)
+
+**Import Path:**
+* 'coffee-pub-blacksmith/api/blacksmith-api.js'
 
 **Critical Patterns to Follow:**
 
@@ -1134,6 +1146,33 @@ const result = await BlacksmithErrorHandler.safeOperation(
 - **Feature Requests**: Suggest improvements to the API
 - **Examples**: Share your integration patterns with the community
 - **Documentation**: Help improve this documentation
+
+---
+
+## **Summary of Key Integration Points**
+
+### **✅ What Works:**
+- **Import Path**: `'coffee-pub-blacksmith/api/blacksmith-api.js'`
+- **Bridge File**: `BlacksmithAPI` class provides clean access
+- **HookManager**: Full hook management with priority and cleanup
+- **ModuleManager**: Module registration with feature tracking
+- **Utils**: Safe settings access, logging, sound, formatting
+- **Stats API**: Combat and player statistics access
+- **BLACKSMITH Object**: Global constants and choice arrays
+
+### **⚠️ Common Mistakes to Avoid:**
+- **Wrong Import Path**: Don't use `/scripts/` - use `/api/`
+- **Missing Module ID**: Always provide module ID for settings access
+- **Incorrect Parameter Order**: Check parameter documentation carefully
+- **Missing await**: Most API calls are async and require await
+
+### **🔧 Integration Checklist:**
+- [ ] Use correct import path: `/api/blacksmith-api.js`
+- [ ] Wait for Blacksmith to be ready with `BlacksmithAPI.waitForReady()`
+- [ ] Prepend "blacksmith" to variable names to avoid conflicts
+- [ ] Always provide context for hook cleanup
+- [ ] Use proper error handling and availability checks
+- [ ] Test integration with provided console commands
 
 ---
 

@@ -4,22 +4,39 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-
-// *** BEGIN: GLOBAL IMPORTS ***
-// *** These should be the same across all modules
 // -- Import the shared GLOBAL variables --
 import { COFFEEPUB } from './api-common.js';
 // -- Load the shared GLOBAL functions --
-import { registerBlacksmithUpdatedHook, resetModuleSettings, getOpenAIReplyAsHtml} from './api-common.js';
+import { 
+    registerBlacksmithUpdatedHook, 
+    resetModuleSettings, 
+    getOpenAIReplyAsHtml
+} from './api-common.js';
 // -- Global utilities --
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds, getSettingSafely} from './api-common.js';
-// *** END: GLOBAL IMPORTS ***
-
-// -- COMMON Imports --
-import { createJournalEntry, createHTMLList, buildCompendiumLinkActor, copyToClipboard } from './common.js';
-
+import { 
+    postConsoleAndNotification, 
+    rollCoffeePubDice, 
+    playSound, 
+    getActorId, 
+    getTokenImage, 
+    getPortraitImage, 
+    getTokenId, 
+    objectToString, 
+    stringToObject, 
+    trimString, 
+    generateFormattedDate, 
+    toSentenceCase, 
+    convertSecondsToRounds, 
+    getSettingSafely
+} from './api-common.js';
+// -- Common Imports --
+import { 
+    createJournalEntry, 
+    createHTMLList, 
+    buildCompendiumLinkActor, 
+    copyToClipboard 
+} from './common.js';
 // -- Import special page variables --
-// Register settings so they can be loaded below.
 import { registerSettings } from './settings.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
@@ -43,7 +60,6 @@ import { JournalTools } from './journal-tools.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
-// TokenImageReplacement is imported dynamically when needed (GM only)
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
@@ -210,17 +226,9 @@ function clearSettingsCache() {
 BLACKSMITH.updateValue = function(key, value) {
     this[key] = value;
     // Signal to other modules that the variable has been updated
-
     Hooks.callAll("blacksmithUpdated", this);
 }
 
-// ***************************************************
-// ** SETTINGS
-// ***************************************************
-// Ensure the settings are registered before anything else
-
-// Register the Blacksmith hook -- got moved to ready after the hookmanager was initialized
-// registerBlacksmithUpdatedHook();
 
 // ================================================================== 
 // ===== REGISTER HOOKS =============================================
@@ -490,12 +498,8 @@ function initializeSettingsDependentFeatures() {
         }
     }
 
-// ***************************************************
-// ** INIT
-// ***************************************************
-
-// Function to inject BlacksmithLayer into the canvas layers list
-const hookCanvas = () => {
+    // Function to inject BlacksmithLayer into the canvas layers list
+    const hookCanvas = () => {
     // Inject BlacksmithLayer into the canvas layers list
     const origLayers = CONFIG.Canvas.layers;
     CONFIG.Canvas.layers = Object.keys(origLayers).reduce((layers, key) => {
@@ -513,10 +517,15 @@ const hookCanvas = () => {
     }, {});
 };
 
+// ***************************************************
+// ** INIT
+// ***************************************************
+
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
 
-    
+    // ===== INITIALIZE SYSTEMS =============================================
+
     // Initialize ModuleManager first
     ModuleManager.initialize();
     
@@ -597,6 +606,32 @@ Hooks.once('init', async function() {
     // Log hook registration
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
     
+    // Initialize other systems
+    ChatPanel.initialize();
+    // COMBAT TIMER
+    CombatTimer.initialize();
+    // PLANNING TIMER
+    PlanningTimer.initialize();
+    // ROUND TIMER
+    RoundTimer.initialize();
+    // COMBAT TRACKER
+    CombatTracker.initialize();
+    // VOTE MANAGER
+    VoteManager.initialize();
+
+    hookCanvas();
+    addToolbarButton();
+
+    // Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
+    // Use dynamic import to ensure SocketManager is loaded
+    import('./manager-sockets.js').then(({ SocketManager }) => {
+        SocketManager.initialize();
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
+    });
+
+    // ===== EXPOSE API =================================================
+
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
     module.api = {
@@ -610,42 +645,6 @@ Hooks.once('init', async function() {
         stats: StatsAPI,
         HookManager  // ✅ NEW: Expose HookManager for other Coffee Pub modules
     };
-    
-    // Initialize other systems
-    ChatPanel.initialize();
-    // COMBAT TIMER
-    CombatTimer.initialize();
-    // PLANNING TIMER
-    PlanningTimer.initialize();
-    // ROUND TIMER
-    RoundTimer.initialize();
-    // COMBAT TRACKER
-    CombatTracker.initialize();
-
-
-    // VOTE MANAGER
-    VoteManager.initialize();
-
-    
-
-
-    hookCanvas();
-    addToolbarButton();
-
-    // Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
-    // Use dynamic import to ensure SocketManager is loaded
-    import('./manager-sockets.js').then(({ SocketManager }) => {
-        SocketManager.initialize();
-    }).catch(error => {
-        postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
-    });
-
-        // All socket handlers have been consolidated into SocketManager
-    
-
-    postConsoleAndNotification(MODULE.NAME, "Canvas is ready. Initializing components...", "", false, false);
-
-    
 
 });
 
