@@ -691,6 +691,174 @@ hookManager.registerHook({
 });
 ```
 
+
+***
+
+
+
+# Blacksmith Console Commands
+
+Use the following helper commands directly in the browser console for **status checks, debugging, and development**.
+
+---
+
+## STATUS & VERSION
+
+### BlacksmithAPIStatus()
+
+```javascript
+BlacksmithAPIStatus()
+```
+Checks if the Blacksmith API is ready and available.
+**Returns:** `true` if accessible, `false` otherwise.
+**Console Output:** Detailed status information.
+
+---
+
+### BlacksmithAPIVersion()
+
+```javascript
+BlacksmithAPIVersion()
+```
+Gets the current Blacksmith API version.
+**Returns:** Version string (e.g. `"12.2.0"`).
+**Console Output:** Displays version.
+
+---
+
+## MODULE & REGISTRATION
+
+### BlacksmithAPICheck()
+
+```javascript
+BlacksmithAPICheck()
+```
+Shows the current module registration status.
+**Returns:** Object with `count` and `list` of registered modules.
+**Console Output:** Module details.
+
+---
+
+### BlacksmithAPIModules()
+
+```javascript
+BlacksmithAPIModules()
+```
+Lists all registered modules with their details.
+**Returns:** Object with names, versions, and features.
+**Console Output:** Module information.
+
+---
+
+### BlacksmithAPIFeatures()
+
+```javascript
+BlacksmithAPIFeatures()
+```
+Displays available features organized by module.
+**Returns:** Object grouping features by source module.
+**Console Output:** Feature details.
+
+---
+
+## DEBUG & INFORMATION
+
+### BlacksmithAPIDetails()
+
+```javascript
+BlacksmithAPIDetails()
+```
+Provides comprehensive debug information.
+**Returns:** Object with version, module availability, and counts.
+**Console Output:** Full debug status.
+
+---
+
+### BlacksmithAPISettings()
+
+```javascript
+BlacksmithAPISettings()
+```
+Displays all current Blacksmith settings.
+**Returns:** Object containing configuration values.
+**Console Output:** Settings overview.
+
+---
+
+### BlacksmithAPIConstants()
+
+```javascript
+BlacksmithAPIConstants()
+```
+Lists all available constants, themes, and sounds.
+**Returns:** Complete constants object.
+**Console Output:** All options.
+
+---
+
+### BlacksmithAPIUtils()
+
+```javascript
+BlacksmithAPIUtils()
+```
+Shows all available utility functions.
+**Returns:** Object with all utility methods.
+**Console Output:** Function list.
+
+---
+
+## HOOK MANAGEMENT
+
+### BlacksmithAPIHooks()
+
+```javascript
+BlacksmithAPIHooks()
+```
+Shows the total count and names of registered hooks.
+**Returns:** Object with `count`, `names`, and hook data.
+**Console Output:** Hook information.
+
+---
+
+### BlacksmithAPIHookDetails()
+
+```javascript
+BlacksmithAPIHookDetails()
+```
+Provides detailed hook information organized by priority.
+**Returns:** Object grouping hooks by priority levels.
+**Console Output:** Detailed hook data.
+
+---
+
+### BlacksmithAPIHookStats()
+
+```javascript
+BlacksmithAPIHookStats()
+```
+Generates raw hook statistics and metrics.
+**Returns:** Object with counts by priority, context, and name.
+**Console Output:** Statistical breakdown.
+
+---
+
+## DEBUG HELPER
+
+### BlacksmithAPIManualReady()
+
+```javascript
+BlacksmithAPIManualReady()
+```
+Manually triggers the API readiness check.
+**Returns:** `true` if API becomes ready, otherwise `false`.
+**Console Output:** Readiness status.
+**Use Case:** Debugging readiness issues.
+
+
+***
+
+
+
 # **Debugging and Troubleshooting**
 
 ## **Console Commands**
