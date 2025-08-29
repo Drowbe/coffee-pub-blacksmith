@@ -9,13 +9,13 @@ Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules 
 ```javascript
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
 
-// Get specific APIs directly
-const hookManager = BlacksmithAPI.getHookManager();
-const utils = BlacksmithAPI.getUtils();
-const moduleManager = BlacksmithAPI.getModuleManager();
+// Get specific APIs directly (prepend "blacksmith" to avoid naming conflicts)
+const blacksmithHookManager = await BlacksmithAPI.getHookManager();
+const blacksmithUtils = await BlacksmithAPI.getUtils();
+const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
 
 // Start using Blacksmith features immediately
-const hookId = hookManager.registerHook({
+const hookId = blacksmithHookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Update something',
     context: 'my-module',
@@ -84,7 +84,7 @@ hookManager.getStats();
 **Usage Examples**:
 ```javascript
 // Combat-related hooks
-const combatHookId = hookManager.registerHook({
+const combatHookId = blacksmithHookManager.registerHook({
     name: 'updateCombat',
     description: 'My module: Track combat changes',
     context: 'my-combat-tracker',
@@ -97,7 +97,7 @@ const combatHookId = hookManager.registerHook({
 });
 
 // UI enhancement hooks
-const uiHookId = hookManager.registerHook({
+const uiHookId = blacksmithHookManager.registerHook({
     name: 'renderChatMessage',
     description: 'My module: Enhance chat messages',
     context: 'my-chat-enhancer',
@@ -109,7 +109,7 @@ const uiHookId = hookManager.registerHook({
 });
 
 // One-time hooks with auto-cleanup
-const welcomeHookId = hookManager.registerHook({
+const welcomeHookId = blacksmithHookManager.registerHook({
     name: 'userLogin',
     description: 'My module: Welcome message',
     context: 'my-welcome',
@@ -139,19 +139,19 @@ const features = moduleManager.getModuleFeatures('your-module-id');
 **Usage Examples**:
 ```javascript
 // Register your module
-moduleManager.registerModule('my-awesome-module', [
+blacksmithModuleManager.registerModule('my-awesome-module', [
     'combat-tracking',
     'statistics',
     'ui-enhancements'
 ]);
 
 // Check if Blacksmith is available
-if (moduleManager.isModuleActive('coffee-pub-blacksmith')) {
+if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
     console.log('Blacksmith is active and ready!');
 }
 
 // Get your module's features
-const myFeatures = moduleManager.getModuleFeatures('my-awesome-module');
+const myFeatures = blacksmithModuleManager.getModuleFeatures('my-awesome-module');
 console.log('My module features:', myFeatures);
 ```
 
@@ -183,7 +183,7 @@ console.log('Blacksmith version:', utils.COFFEEPUB.VERSION);
 **Usage Examples**:
 ```javascript
 // Log important events
-utils.postConsoleAndNotification(
+blacksmithUtils.postConsoleAndNotification(
     'My Module',
     'Hook registered successfully',
     { hookId, hookName: 'updateActor' },
@@ -192,10 +192,10 @@ utils.postConsoleAndNotification(
 );
 
 // Play sounds for user feedback
-utils.playSound('success.mp3');
+blacksmithUtils.playSound('success.mp3');
 
 // Access Blacksmith constants
-if (utils.COFFEEPUB.VERSION >= '12.0.0') {
+if (blacksmithUtils.COFFEEPUB.VERSION >= '12.0.0') {
     console.log('Using FoundryVTT 12+ features');
 }
 ```
@@ -218,14 +218,14 @@ stats.recordEvent('my-module', 'custom-action', { data: 'value' });
 **Usage Examples**:
 ```javascript
 // Track custom module usage
-stats.recordEvent('my-module', 'feature-used', {
+blacksmithStats.recordEvent('my-module', 'feature-used', {
     feature: 'combat-tracking',
     timestamp: Date.now(),
     userId: game.user.id
 });
 
 // Get existing statistics
-const allStats = stats.getAllStats();
+const allStats = blacksmithStats.getAllStats();
 console.log('Available statistics:', allStats);
 ```
 
@@ -236,42 +236,38 @@ console.log('Available statistics:', allStats);
 // In your module's main file
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
 
-Hooks.once('ready', () => {
-    // Wait for Blacksmith to be ready
-    if (BlacksmithAPI.isReady()) {
-        initializeMyModule();
-    } else {
-        // Fallback: wait a bit more
-        setTimeout(initializeMyModule, 1000);
+Hooks.once('ready', async () => {
+    try {
+        // Wait for Blacksmith to be ready
+        const blacksmith = await BlacksmithAPI.get();
+        
+        // Register with Blacksmith
+        blacksmith.ModuleManager.registerModule('my-module', ['feature1', 'feature2']);
+        
+        // Set up hooks
+        const hookId = blacksmith.HookManager.registerHook({
+            name: 'updateActor',
+            description: 'My module: Track actor changes',
+            context: 'my-module',
+            priority: 3,
+            callback: (actor, changes) => {
+                // My logic here
+                blacksmith.utils.postConsoleAndNotification('My Module', 'Actor updated!', {}, true, false);
+            }
+        });
+        
+        console.log('My module initialized with Blacksmith!');
+        
+    } catch (error) {
+        console.error('Failed to initialize with Blacksmith:', error);
     }
 });
-
-function initializeMyModule() {
-    const { hookManager, moduleManager, utils } = BlacksmithAPI.getFullAPI();
-    
-    // Register with Blacksmith
-    moduleManager.registerModule('my-module', ['feature1', 'feature2']);
-    
-    // Set up hooks
-    const hookId = hookManager.registerHook({
-        name: 'updateActor',
-        description: 'My module: Track actor changes',
-        context: 'my-module',
-        priority: 3,
-        callback: (actor, changes) => {
-            // My logic here
-            utils.postConsoleAndNotification('My Module', 'Actor updated!', {}, true, false);
-        }
-    });
-    
-    console.log('My module initialized with Blacksmith!');
-}
 ```
 
 ### **Feature Detection Pattern**
 ```javascript
 // Check what features are available
-const blacksmith = BlacksmithAPI.getFullAPI();
+const blacksmith = await BlacksmithAPI.get();
 
 if (blacksmith.HookManager) {
     console.log('HookManager available');
@@ -286,7 +282,7 @@ if (blacksmith.utils) {
 }
 
 // Check specific features
-if (BlacksmithAPI.hasFeature('HookManager')) {
+if (await BlacksmithAPI.hasFeature('HookManager')) {
     console.log('HookManager feature is available');
 }
 ```
@@ -453,7 +449,25 @@ hookManager.registerHook({
 
 ## **Best Practices**
 
-### **1. Always Use Contexts**
+### **1. Use Descriptive Variable Names (IMPORTANT)**
+```javascript
+// GOOD: Prepend "blacksmith" to avoid naming conflicts
+const blacksmithHookManager = await BlacksmithAPI.getHookManager();
+const blacksmithUtils = await BlacksmithAPI.getUtils();
+const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
+
+// BAD: Generic names can conflict with existing variables
+const utils = await BlacksmithAPI.getUtils();        // Might conflict with existing utils
+const hookManager = await BlacksmithAPI.getHookManager(); // Might conflict with existing hookManager
+```
+
+**Why this matters:**
+- **Prevents naming conflicts** with variables your module already has
+- **Makes code more readable** - clear where APIs come from
+- **Follows FoundryVTT best practices** for module integration
+- **Easier debugging** - no confusion about variable sources
+
+### **2. Always Use Contexts**
 ```javascript
 // GOOD: Descriptive context for cleanup
 hookManager.registerHook({
