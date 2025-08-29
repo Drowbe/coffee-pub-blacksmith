@@ -535,16 +535,507 @@ Hooks.once('closeGame', () => {
 });
 ```
 
+## **Testing**
+
+### **Console Testing Commands**
+
+Blacksmith provides console commands for testing and debugging:
+
+```javascript
+// Show all registered hooks
+blacksmithHooks();
+
+// Show detailed hook information with priority grouping
+blacksmithHookDetails();
+
+// Get raw hook statistics
+blacksmithHookStats();
+```
+
+### **Integration Validation Checklist**
+
+Use this checklist to verify your integration:
+
+- [ ] Module registers successfully with Blacksmith
+- [ ] API availability checks work correctly
+- [ ] Hook registration succeeds without errors
+- [ ] Utility functions return expected results
+- [ ] Settings access works safely
+- [ ] Error handling provides appropriate fallbacks
+- [ ] Cleanup functions work when module disables
+- [ ] No console errors during startup
+- [ ] No console errors during normal operation
+
+### **Basic API Availability Test**
+
+```javascript
+function testBasicAPI() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    
+    if (!blacksmith) {
+        console.error('❌ Blacksmith module not found');
+        return false;
+    }
+    
+    if (!blacksmith.utils?.getSettingSafely) {
+        console.error('❌ Blacksmith API not ready');
+        return false;
+    }
+    
+    if (!blacksmith.HookManager) {
+        console.error('❌ HookManager not available');
+        return false;
+    }
+    
+    console.log('✅ Basic API test passed');
+    return true;
+}
+```
+
+### **Test Utility Functions**
+
+```javascript
+async function testUtilityFunctions() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith?.utils) return false;
+    
+    try {
+        // Test settings access
+        const testValue = blacksmith.utils.getSettingSafely('test', 'default');
+        console.log('✅ Settings access working:', testValue);
+        
+        // Test logging
+        blacksmith.utils.postConsoleAndNotification('Test', 'Utility test', {}, true, false);
+        console.log('✅ Logging working');
+        
+        // Test sound (if available)
+        if (blacksmith.utils.playSound) {
+            blacksmith.utils.playSound('notification.mp3');
+            console.log('✅ Sound playback working');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Utility test failed:', error);
+        return false;
+    }
+}
+```
+
+### **Test Safe Settings Access**
+
+```javascript
+async function testSettingsAccess() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith?.utils) return false;
+    
+    try {
+        // Test safe get
+        const value = blacksmith.utils.getSettingSafely('my-module', 'test-setting', 'default');
+        console.log('✅ Safe get working:', value);
+        
+        // Test safe set
+        blacksmith.utils.setSettingSafely('my-module', 'test-setting', 'test-value');
+        console.log('✅ Safe set working');
+        
+        // Verify the set worked
+        const newValue = blacksmith.utils.getSettingSafely('my-module', 'test-setting', 'default');
+        console.log('✅ Setting verification working:', newValue);
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Settings test failed:', error);
+        return false;
+    }
+}
+```
+
+### **Test BLACKSMITH Object Access**
+
+```javascript
+async function testBLACKSMITHObject() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith?.BLACKSMITH) return false;
+    
+    try {
+        // Test choice arrays
+        if (blacksmith.BLACKSMITH.arrThemeChoices) {
+            console.log('✅ Theme choices available:', blacksmith.BLACKSMITH.arrThemeChoices.length);
+        }
+        
+        if (blacksmith.BLACKSMITH.arrSoundChoices) {
+            console.log('✅ Sound choices available:', blacksmith.BLACKSMITH.arrSoundChoices.length);
+        }
+        
+        if (blacksmith.BLACKSMITH.arrTableChoices) {
+            console.log('✅ Table choices available:', blacksmith.BLACKSMITH.arrTableChoices.length);
+        }
+        
+        // Test default values
+        if (blacksmith.BLACKSMITH.strDefaultCardTheme) {
+            console.log('✅ Default theme available:', blacksmith.BLACKSMITH.strDefaultCardTheme);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ BLACKSMITH object test failed:', error);
+        return false;
+    }
+}
+```
+
+### **Test Module Registration**
+
+```javascript
+async function testModuleRegistration() {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    if (!blacksmith?.registerModule) return false;
+    
+    try {
+        // Test registration
+        blacksmith.registerModule('test-module', {
+            name: 'Test Module',
+            version: '1.0.0',
+            features: ['testing']
+        });
+        console.log('✅ Module registration working');
+        
+        // Test feature checking
+        if (blacksmith.getModuleFeatures) {
+            const features = blacksmith.getModuleFeatures('test-module');
+            console.log('✅ Feature checking working:', features);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Module registration test failed:', error);
+        return false;
+    }
+}
+```
+
+### **One-Liner Quick Test**
+
+```javascript
+// Quick test: Check if Blacksmith is available and ready
+(() => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    const status = {
+        module: !!blacksmith,
+        api: !!(blacksmith?.utils?.getSettingSafely),
+        hooks: !!(blacksmith?.HookManager),
+        utils: !!(blacksmith?.utils)
+    };
+    console.log('Blacksmith Status:', status);
+    return Object.values(status).every(Boolean);
+})();
+```
+
+### **Common Issues and Troubleshooting**
+
+#### **Issue: "API not ready" errors**
+
+**Symptoms:**
+- Console errors about functions not being available
+- Module crashes during initialization
+- Hooks not registering
+
+**Solutions:**
+1. **Use proper timing**: Wait for `ready` hook, not `init`
+2. **Check availability**: Always verify API exists before use
+3. **Add retry logic**: Use polling or event-based ready detection
+4. **Check module order**: Ensure Blacksmith loads before your module
+
+**Code Fix:**
+```javascript
+// BAD: Assumes API is ready
+Hooks.once('init', () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    blacksmith.utils.getSettingSafely('setting', 'default'); // May crash!
+});
+
+// GOOD: Check availability first
+Hooks.once('ready', async () => {
+    const blacksmith = await waitForBlacksmith();
+    if (blacksmith?.utils?.getSettingSafely) {
+        blacksmith.utils.getSettingSafely('setting', 'default');
+    }
+});
+```
+
+#### **Issue: "Function not found" errors**
+
+**Symptoms:**
+- `TypeError: blacksmith.utils.getSettingSafely is not a function`
+- `Cannot read property 'registerHook' of undefined`
+
+**Solutions:**
+1. **Check API structure**: Verify the function exists before calling
+2. **Use optional chaining**: `blacksmith?.utils?.getSettingSafely?.()`
+3. **Add fallbacks**: Provide alternative behavior when functions unavailable
+4. **Check version compatibility**: Ensure you're using the correct API version
+
+**Code Fix:**
+```javascript
+// BAD: No existence check
+const value = blacksmith.utils.getSettingSafely('setting', 'default');
+
+// GOOD: Check existence first
+if (blacksmith?.utils?.getSettingSafely) {
+    const value = blacksmith.utils.getSettingSafely('setting', 'default');
+} else {
+    // Fallback behavior
+    const value = game.settings.get('my-module', 'setting') ?? 'default';
+}
+```
+
+#### **Issue: Empty choice arrays**
+
+**Symptoms:**
+- Dropdown menus show no options
+- Settings registration fails
+- Choice arrays are empty or undefined
+
+**Solutions:**
+1. **Wait for data**: Use `blacksmithUpdated` hook to detect when data is ready
+2. **Check timing**: Ensure you're accessing data after Blacksmith is fully initialized
+3. **Add fallbacks**: Provide default choices if arrays are empty
+4. **Verify data source**: Check if Blacksmith has the expected data
+
+**Code Fix:**
+```javascript
+// BAD: Access immediately (may be empty)
+Hooks.once('ready', () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    const choices = blacksmith.BLACKSMITH.arrThemeChoices; // May be empty!
+});
+
+// GOOD: Wait for data to be ready
+Hooks.on('blacksmithUpdated', (data) => {
+    if (data.type === 'ready') {
+        const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+        const choices = blacksmith.BLACKSMITH.arrThemeChoices; // Should be populated
+    }
+});
+```
+
+#### **Issue: Notification flashing**
+
+**Symptoms:**
+- Notifications appear and disappear quickly
+- Multiple notifications for the same event
+- Notification timing issues
+
+**Solutions:**
+1. **Use setTimeout**: Delay notifications to prevent flashing
+2. **Check notification flags**: Use `postConsoleAndNotification` with appropriate flags
+3. **Debounce notifications**: Group multiple notifications into single updates
+4. **Use console only**: Set notification flag to `false` for debug messages
+
+**Code Fix:**
+```javascript
+// BAD: Immediate notification (may flash)
+blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, true);
+
+// GOOD: Delayed notification to prevent flashing
+setTimeout(() => {
+    blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, true);
+}, 100);
+
+// BETTER: Console only for debug messages
+blacksmith.utils.postConsoleAndNotification('Module', 'Message', {}, true, false);
+```
+
+#### **Issue: Settings not accessible**
+
+**Symptoms:**
+- `"module.setting" is not a registered game setting`
+- Settings registration fails
+- Cannot access module settings
+
+**Solutions:**
+1. **Register settings first**: Ensure settings are registered before accessing
+2. **Use safe access**: Use `getSettingSafely` instead of direct access
+3. **Check module ID**: Verify the module ID matches exactly
+4. **Add fallbacks**: Provide default values when settings unavailable
+
+**Code Fix:**
+```javascript
+// BAD: Direct access without registration
+const value = game.settings.get('my-module', 'setting');
+
+// GOOD: Safe access with fallback
+const value = blacksmith.utils.getSettingSafely('my-module', 'setting', 'default');
+
+// BETTER: Register settings first, then access
+Hooks.once('ready', () => {
+    game.settings.register('my-module', 'setting', {
+        type: String,
+        default: 'default'
+    });
+    
+    const value = blacksmith.utils.getSettingSafely('my-module', 'setting', 'default');
+});
+```
+
+#### **Issue: Module not registering**
+
+**Symptoms:**
+- Module doesn't appear in Blacksmith's module list
+- Registration function not found
+- No confirmation of successful registration
+
+**Solutions:**
+1. **Check timing**: Register during `init` hook, not later
+2. **Verify function**: Ensure `registerModule` exists before calling
+3. **Check parameters**: Provide required name and version
+4. **Add error handling**: Catch and log registration errors
+
+**Code Fix:**
+```javascript
+// BAD: No error handling or availability check
+Hooks.once('init', () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    blacksmith.registerModule('my-module', {}); // May fail silently
+});
+
+// GOOD: Proper error handling and availability check
+Hooks.once('init', () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    
+    if (blacksmith?.registerModule) {
+        try {
+            blacksmith.registerModule('my-module', {
+                name: 'My Module',
+                version: '1.0.0'
+            });
+            console.log('✅ Module registered successfully');
+        } catch (error) {
+            console.error('❌ Module registration failed:', error);
+        }
+    } else {
+        console.warn('⚠️ Blacksmith registration not available');
+    }
+});
+```
+
+## **AI-Friendly Integration Prompts**
+
+### **For CursorAI and Similar AI Coding Assistants**
+
+Copy and paste the following prompt into your AI coding assistant to get help integrating with Coffee Pub Blacksmith:
+
+```
+I need to integrate my FoundryVTT module with Coffee Pub Blacksmith. 
+
+Coffee Pub Blacksmith is a central hub module that provides shared utilities, safe settings access, and inter-module communication for the Coffee Pub ecosystem. It's designed for FoundryVTT v12+ and provides a robust API for other modules to use.
+
+Key features I need to understand:
+- Safe settings access that prevents startup crashes
+- Shared utility functions (logging, time formatting, sound management, etc.)
+- Global variable sharing through the BLACKSMITH object
+- Hook system for inter-module communication
+- Module registration system
+
+The full API documentation is available at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
+
+Please help me:
+1. Set up the basic module registration with Blacksmith
+2. Implement safe settings access using Blacksmith's utilities
+3. Access shared choice arrays (themes, sounds, tables, etc.) through the BLACKSMITH object
+4. Set up proper hook listeners for the 'blacksmithUpdated' event
+5. Follow the initialization timing best practices (use 'ready' phase, not 'init' for accessing data)
+
+My module ID is: [YOUR_MODULE_ID]
+My module name is: [YOUR_MODULE_NAME]
+
+IMPORTANT: Please follow the exact patterns from the documentation:
+- Use the Quick Start Template structure
+- Implement proper error handling and availability checks
+- Use the standardized MODULE constants pattern
+- Include the blacksmithUpdated hook for real-time updates
+- Provide working code examples that I can copy-paste directly
+
+Please provide complete, working code examples that I can directly implement.
+```
+
+### **For General AI Coding Assistance**
+
+```
+I'm developing a FoundryVTT module that needs to integrate with Coffee Pub Blacksmith. 
+
+Blacksmith provides:
+- Safe settings access functions (getSettingSafely, setSettingSafely)
+- Shared utility functions for logging, time formatting, and sound management
+- A global BLACKSMITH object with choice arrays for themes, sounds, tables, etc.
+- Hook system for inter-module communication
+- Module registration and management
+
+The complete API documentation is at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
+
+I need help implementing:
+1. Module registration during the 'init' hook
+2. Accessing shared data during the 'ready' hook
+3. Using the 'blacksmithUpdated' hook for real-time updates
+4. Implementing safe settings access
+5. Accessing choice arrays for dropdown menus
+
+IMPORTANT: Please follow the exact patterns from the documentation:
+- Use the Quick Start Template structure
+- Implement proper error handling and availability checks
+- Use the standardized MODULE constants pattern
+- Include the blacksmithUpdated hook for real-time updates
+- Provide working code examples that I can copy-paste directly
+
+Please provide working code examples and explain the FoundryVTT lifecycle timing considerations.
+```
+
+### **Quick Reference for AI Assistants**
+
+**Essential Integration Points:**
+
+* Register module during 'init' hook
+* Access BLACKSMITH object during 'ready' hook
+* Listen to 'blacksmithUpdated' hook for data updates
+* Use getSettingSafely() for safe settings access
+* Access choice arrays via blacksmith.BLACKSMITH.arr\[Type\]Choices
+
+**FoundryVTT Lifecycle:**
+
+* 'init': Module registration, basic setup
+* 'ready': Access to populated data, settings registration
+* 'blacksmithUpdated': Real-time data updates
+
+**Key Functions:**
+
+* blacksmith.registerModule()
+* blacksmith.utils.getSettingSafely()
+* blacksmith.utils.postConsoleAndNotification()
+* Hooks.on('blacksmithUpdated', callback)
+
+**Critical Patterns to Follow:**
+
+* Always check API availability before use
+* Use standardized MODULE constants
+* Implement proper error handling
+* Use setTimeout for notifications
+* Test integration with provided console commands
+
+**Full Documentation:** <https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API>
+
 ## **Version Compatibility**
 
 ### **FoundryVTT Version Support**
+
 - **FoundryVTT 12.x**: ✅ **FULLY SUPPORTED**
 - **FoundryVTT 13.x**: ✅ **READY FOR COMPATIBILITY**
 
 ### **API Versioning**
+
 ```javascript
 // Check Blacksmith version
-const version = BlacksmithAPI.getVersion();
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+const version = blacksmith?.version || 'unknown';
 console.log('Blacksmith version:', version);
 
 // Version-specific features
@@ -553,20 +1044,75 @@ if (version >= '12.0.0') {
 }
 ```
 
+### **Backward Compatibility**
+
+Blacksmith maintains backward compatibility within major versions. When breaking changes are necessary, they will be:
+
+1. **Announced in advance** through documentation updates
+2. **Deprecated gradually** with migration guides
+3. **Versioned appropriately** to prevent conflicts
+4. **Documented clearly** with examples
+
+## **Error Handling**
+
+### **Comprehensive Error Handling Pattern**
+
+```javascript
+class BlacksmithErrorHandler {
+    static async safeOperation(operation, fallback = null) {
+        try {
+            const blacksmith = await this.getBlacksmith();
+            return await operation(blacksmith);
+        } catch (error) {
+            console.error('Blacksmith operation failed:', error);
+            return fallback;
+        }
+    }
+    
+    static async getBlacksmith() {
+        const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+        if (!blacksmith?.utils?.getSettingSafely) {
+            throw new Error('Blacksmith API not ready');
+        }
+        return blacksmith;
+    }
+}
+
+// Usage
+const result = await BlacksmithErrorHandler.safeOperation(
+    async (blacksmith) => {
+        return blacksmith.utils.getSettingSafely('setting', 'default');
+    },
+    'fallback-value'
+);
+```
+
+### **Error Recovery Strategies**
+
+1. **Graceful Degradation**: Provide fallback behavior when Blacksmith unavailable
+2. **Retry Logic**: Attempt operations multiple times with delays
+3. **User Notification**: Inform users when features are unavailable
+4. **Logging**: Record errors for debugging and support
+
 ## **Support and Community**
 
 ### **Getting Help**
+
 - **Documentation**: This file and related architecture docs
 - **Console Commands**: Use `blacksmithHooks()` and `blacksmithHookDetails()`
 - **Error Logging**: Check browser console for detailed error messages
+- **GitHub Issues**: Report problems and request features
 
 ### **Contributing**
+
 - **Report Issues**: Document any problems you encounter
 - **Feature Requests**: Suggest improvements to the API
 - **Examples**: Share your integration patterns with the community
+- **Documentation**: Help improve this documentation
 
 ---
 
-**Last Updated**: Current session - API fully functional and documented
-**Status**: Production ready with comprehensive integration support
+**Last Updated**: Current session - API fully functional and documented  
+**Status**: Production ready with comprehensive integration support  
 **Next Milestone**: Enhanced API features and ecosystem integration
+
