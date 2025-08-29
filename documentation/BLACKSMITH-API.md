@@ -1,158 +1,11 @@
 # BLACKSMITH API DOCUMENTATION
 
 ## **Overview**
-Coffee Pub Blacksmith is a comprehensive FoundryVTT module that provides quality of life improvements, aesthetic enhancements, and advanced gaming tools. The module now features a robust, enterprise-grade socket communication system with full cross-client functionality.
+Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules to integrate with our features. This documentation covers how to consume our API, what's available, and examples of integration.
 
-## **Core Architecture**
+## **Quick Start**
 
-### **Socket System (NEW - FULLY FUNCTIONAL)**
-The module now includes a **bulletproof socket communication system** that provides seamless cross-client functionality:
-
-#### **SocketManager Class**
-- **Location**: `scripts/manager-sockets.js`
-- **Status**: ✅ **FULLY FUNCTIONAL** with SocketLib integration
-- **Features**: 
-  - Automatic SocketLib detection and integration
-  - Native Foundry socket fallback system
-  - Cross-client communication for all features
-  - Real-time synchronization
-
-#### **Socket System Capabilities**
-- **Cross-client communication** ✅
-- **Real-time feature synchronization** ✅
-- **Automatic fallback handling** ✅
-- **Professional multiplayer experience** ✅
-
-#### **Socket Integration Status**
-- **SocketLib**: ✅ **WORKING PERFECTLY**
-- **Cross-client sync**: ✅ **FULLY FUNCTIONAL**
-- **Fallback system**: ✅ **READY AS BACKUP**
-- **All socket features**: ✅ **OPERATIONAL**
-
-## **Module Management System**
-
-### **ModuleManager Class**
-- **Location**: `scripts/manager-modules.js`
-- **Purpose**: Centralized module registration and feature management
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-#### **Key Methods**
-```javascript
-// Register a module with Blacksmith
-ModuleManager.registerModule(moduleId, features);
-
-// Check if a module is active
-ModuleManager.isModuleActive(moduleId);
-
-// Get features for a specific module
-ModuleManager.getModuleFeatures(moduleId);
-```
-
-## **Utility Management System**
-
-### **UtilsManager Class**
-- **Location**: `scripts/manager-utilities.js`
-- **Purpose**: Centralized utility function management
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-#### **Key Methods**
-```javascript
-// Get all available utilities
-UtilsManager.getUtils();
-
-// Access specific utility functions
-const utils = UtilsManager.getUtils();
-const diceRoll = utils.rollCoffeePubDice;
-```
-
-## **Canvas and Layer Management**
-
-### **CanvasTools Class**
-- **Location**: `scripts/manager-canvas.js`
-- **Purpose**: Advanced canvas manipulation and layer management
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-### **BlacksmithLayer Class**
-- **Location**: `scripts/canvas-layer.js`
-- **Purpose**: Custom canvas layer for Blacksmith utilities
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-## **Timer System**
-
-### **CombatTimer Class**
-- **Location**: `scripts/timer-combat.js`
-- **Purpose**: Combat encounter timing and management
-- **Status**: ✅ **FULLY FUNCTIONAL** with cross-client sync
-
-### **PlanningTimer Class**
-- **Location**: `scripts/timer-planning.js`
-- **Purpose**: Session planning and preparation timing
-- **Status**: ✅ **FULLY FUNCTIONAL** with cross-client sync
-
-### **RoundTimer Class**
-- **Location**: `scripts/timer-round.js`
-- **Purpose**: Round-based timing for tactical encounters
-- **Status**: ✅ **FULLY FUNCTIONAL** with cross-client sync
-
-## **Voting System**
-
-### **VoteManager Class**
-- **Location**: `scripts/vote-manager.js`
-- **Purpose**: In-game voting and decision making
-- **Status**: ✅ **FULLY FUNCTIONAL** with cross-client sync
-
-#### **Key Features**
-- Real-time vote creation and management
-- Cross-client vote synchronization
-- Multiple vote types (yes/no, multiple choice)
-- Automatic result calculation and display
-
-## **Roll System (IN DEVELOPMENT)**
-
-### **RollManager Class**
-- **Location**: `scripts/manager-rolls.js`
-- **Purpose**: Unified dice rolling system with multiple execution paths
-- **Status**: 🚧 **IN DEVELOPMENT** - Socket system now ready
-
-#### **Planned Features**
-- Unified roll execution (Blacksmith vs Foundry systems)
-- Window and Cinema mode support
-- Cross-client roll synchronization
-- Advanced roll result handling
-
-## **Statistics and Tracking**
-
-### **CombatStats Class**
-- **Location**: `scripts/stats-combat.js`
-- **Purpose**: Combat encounter statistics and analysis
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-### **CPBPlayerStats Class**
-- **Location**: `scripts/stats-player.js`
-- **Purpose**: Player performance tracking and statistics
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-### **StatsAPI Class**
-- **Location**: `scripts/api-stats.js`
-- **Purpose**: Public API for statistics access
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-## **External Module Integration**
-
-### **BlacksmithAPI Class** (NEW! - RECOMMENDED)
-- **Location**: `scripts/blacksmith-api.js`
-- **Purpose**: Bridge file providing access to Blacksmith's existing APIs
-- **Status**: ✅ **FULLY FUNCTIONAL** - Simple, direct access to Blacksmith's APIs
-- **Usage**: Import this file for easy access to Blacksmith's functionality
-
-#### **Key Features**
-- **Direct API access** - Imports from Blacksmith's existing APIs (no circular dependencies)
-- **Simple bridge** - Thin wrapper around existing functionality
-- **No self-consumption** - Blacksmith doesn't import this file
-- **Clean architecture** - One bridge file, one set of real APIs
-- **ES6 and global** - Works with both module imports and global access
-
-#### **Recommended Usage (ES6 Modules)**
+### **Option 1: Drop-in Bridge File (RECOMMENDED)**
 ```javascript
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
 
@@ -161,7 +14,7 @@ const hookManager = BlacksmithAPI.getHookManager();
 const utils = BlacksmithAPI.getUtils();
 const moduleManager = BlacksmithAPI.getModuleManager();
 
-// Register hooks directly
+// Start using Blacksmith features immediately
 const hookId = hookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Update something',
@@ -171,64 +24,42 @@ const hookId = hookManager.registerHook({
         // My logic here
     }
 });
-
-// Use utilities directly
-utils.postConsoleAndNotification('My Module', 'Hook registered!', {}, true, false);
 ```
 
-#### **Alternative Usage (Global Access)**
+### **Option 2: Direct Module API Access**
 ```javascript
-// If ES6 imports aren't available
-const hookManager = await BlacksmithAPI.getHookManager();
-const utils = await BlacksmithAPI.getUtils();
+// Access through FoundryVTT's module system
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
-// Use the APIs
-utils.postConsoleAndNotification('My Module', 'Hook registered!', {}, true, false);
+if (blacksmith?.HookManager) {
+    const hookId = blacksmith.HookManager.registerHook({
+        name: 'updateActor',
+        description: 'My module: Update something',
+        context: 'my-module',
+        priority: 3,
+        callback: (actor, changes) => {
+            // My logic here
+        }
+    });
+}
 ```
 
-#### **API Methods**
-```javascript
-// Core methods
-BlacksmithAPI.getFullAPI()      // Get full API object
-BlacksmithAPI.isReady()         // Check if ready
-BlacksmithAPI.getVersion()      // Get API version
+## **Available APIs**
 
-// Convenience methods
-BlacksmithAPI.getHookManager()    // Get HookManager
-BlacksmithAPI.getUtils()          // Get Utils
-BlacksmithAPI.getModuleManager()  // Get ModuleManager
-BlacksmithAPI.getStats()          // Get Stats API
+### **HookManager - Centralized Hook Management**
+**Purpose**: Register and manage FoundryVTT hooks with priority ordering and cleanup
 
-// Utility methods
-BlacksmithAPI.hasFeature('name')  // Check if feature exists
-
-// Direct imports also available
-import { HookManager, ModuleManager, StatsAPI, COFFEEPUB } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
-```
-
-### **WrapperManager Class**
-- **Location**: `scripts/manager-libwrapper.js`
-- **Purpose**: libWrapper integration and management
-- **Status**: ✅ **FULLY FUNCTIONAL**
-
-### **HookManager Class** (NEW!)
-- **Location**: `scripts/manager-hooks.js`
-- **Purpose**: Centralized hook management and orchestration
-- **Status**: ✅ **FULLY FUNCTIONAL** - All 68 hooks migrated
-- **API Access**: Available through `blacksmith.HookManager` or `BlacksmithAPI.getHookManager()`
-
-#### **Key Features**
+**Key Features**:
 - **Priority-based execution** (1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest)
 - **Context-based cleanup** for batch operations
 - **Throttle/debounce support** for performance optimization
 - **Dedupe protection** to prevent duplicate registrations
 - **Automatic cleanup** for "once" hooks
-- **Comprehensive debugging** with console commands
 
-#### **Core Methods**
+**Core Methods**:
 ```javascript
 // Register a hook
-const callbackId = HookManager.registerHook({
+const callbackId = hookManager.registerHook({
     name: 'hookName',
     description: 'Human-readable description',
     context: 'context-name',
@@ -239,159 +70,489 @@ const callbackId = HookManager.registerHook({
 });
 
 // Remove a specific callback
-const removed = HookManager.removeCallback(callbackId);
+const removed = hookManager.removeCallback(callbackId);
 
 // Cleanup by context
-HookManager.disposeByContext('context-name');
+hookManager.disposeByContext('context-name');
 
 // Get statistics and debugging info
-HookManager.showHooks();
-HookManager.showHookDetails();
-HookManager.getStats();
+hookManager.showHooks();
+hookManager.showHookDetails();
+hookManager.getStats();
 ```
 
-### **Module Integration**
-The module provides a comprehensive API for other modules to integrate:
-
+**Usage Examples**:
 ```javascript
-// Access the Blacksmith API
-const blacksmith = game.modules.get('coffee-pub-blacksmith').api;
+// Combat-related hooks
+const combatHookId = hookManager.registerHook({
+    name: 'updateCombat',
+    description: 'My module: Track combat changes',
+    context: 'my-combat-tracker',
+    priority: 2, // High priority - core functionality
+    callback: (combat, changed) => {
+        if (changed.round !== undefined) {
+            console.log(`Round changed to ${changed.round}`);
+        }
+    }
+});
 
+// UI enhancement hooks
+const uiHookId = hookManager.registerHook({
+    name: 'renderChatMessage',
+    description: 'My module: Enhance chat messages',
+    context: 'my-chat-enhancer',
+    priority: 4, // Low priority - UI updates
+    callback: (message, html, data) => {
+        // Modify the HTML before display
+        html.find('.message-content').addClass('my-enhanced-style');
+    }
+});
+
+// One-time hooks with auto-cleanup
+const welcomeHookId = hookManager.registerHook({
+    name: 'userLogin',
+    description: 'My module: Welcome message',
+    context: 'my-welcome',
+    priority: 5, // Lowest priority
+    options: { once: true }, // Auto-cleanup after first execution
+    callback: (user) => {
+        console.log(`Welcome back, ${user.name}!`);
+    }
+});
+```
+
+### **ModuleManager - Module Registration System**
+**Purpose**: Register your module with Blacksmith and check feature availability
+
+**Key Methods**:
+```javascript
+// Register your module with Blacksmith
+moduleManager.registerModule('your-module-id', ['feature1', 'feature2']);
+
+// Check if a module is active
+const isActive = moduleManager.isModuleActive('your-module-id');
+
+// Get features for a specific module
+const features = moduleManager.getModuleFeatures('your-module-id');
+```
+
+**Usage Examples**:
+```javascript
 // Register your module
-blacksmith.registerModule('your-module-id', ['feature1', 'feature2']);
+moduleManager.registerModule('my-awesome-module', [
+    'combat-tracking',
+    'statistics',
+    'ui-enhancements'
+]);
 
-// Check if features are available
-if (blacksmith.isModuleActive('coffee-pub-blacksmith')) {
-    // Use Blacksmith features
+// Check if Blacksmith is available
+if (moduleManager.isModuleActive('coffee-pub-blacksmith')) {
+    console.log('Blacksmith is active and ready!');
 }
 
-// Access utilities
-const utils = blacksmith.utils;
-
-// Access HookManager (NEW!)
-const hookManager = blacksmith.HookManager;
+// Get your module's features
+const myFeatures = moduleManager.getModuleFeatures('my-awesome-module');
+console.log('My module features:', myFeatures);
 ```
 
-### **HookManager API Access for External Modules**
-Other Coffee Pub modules can now use Blacksmith's HookManager:
+### **Utils - Utility Functions**
+**Purpose**: Access to Blacksmith's utility functions for common operations
 
+**Available Utilities**:
 ```javascript
-// Helper function to safely get Blacksmith API
-function getBlacksmith() {
-    return game.modules.get('coffee-pub-blacksmith')?.api;
-}
+// Console logging with debug support
+utils.postConsoleAndNotification(
+    'My Module',           // Module name
+    'Message content',      // Main message
+    { data: 'extra' },     // Additional data
+    true,                   // Show in console
+    false                   // Show notification
+);
 
-// Use HookManager through the API
-const blacksmith = getBlacksmith();
-if (blacksmith?.HookManager) {
-    // Register hooks with Blacksmith's HookManager
-    const hookId = blacksmith.HookManager.registerHook({
+// Sound playback
+utils.playSound('notification.mp3');
+
+// Settings management
+const setting = utils.getSettingSafely('mySetting', 'default');
+utils.setSettingSafely('mySetting', 'newValue');
+
+// Constants
+console.log('Blacksmith version:', utils.COFFEEPUB.VERSION);
+```
+
+**Usage Examples**:
+```javascript
+// Log important events
+utils.postConsoleAndNotification(
+    'My Module',
+    'Hook registered successfully',
+    { hookId, hookName: 'updateActor' },
+    true,
+    false
+);
+
+// Play sounds for user feedback
+utils.playSound('success.mp3');
+
+// Access Blacksmith constants
+if (utils.COFFEEPUB.VERSION >= '12.0.0') {
+    console.log('Using FoundryVTT 12+ features');
+}
+```
+
+### **Stats API - Statistics and Analytics**
+**Purpose**: Access to Blacksmith's statistics and tracking systems
+
+**Key Methods**:
+```javascript
+// Get combat statistics
+const combatStats = stats.getCombatStats();
+
+// Get player statistics
+const playerStats = stats.getPlayerStats();
+
+// Record custom events
+stats.recordEvent('my-module', 'custom-action', { data: 'value' });
+```
+
+**Usage Examples**:
+```javascript
+// Track custom module usage
+stats.recordEvent('my-module', 'feature-used', {
+    feature: 'combat-tracking',
+    timestamp: Date.now(),
+    userId: game.user.id
+});
+
+// Get existing statistics
+const allStats = stats.getAllStats();
+console.log('Available statistics:', allStats);
+```
+
+## **Integration Patterns**
+
+### **Module Initialization Pattern**
+```javascript
+// In your module's main file
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+
+Hooks.once('ready', () => {
+    // Wait for Blacksmith to be ready
+    if (BlacksmithAPI.isReady()) {
+        initializeMyModule();
+    } else {
+        // Fallback: wait a bit more
+        setTimeout(initializeMyModule, 1000);
+    }
+});
+
+function initializeMyModule() {
+    const { hookManager, moduleManager, utils } = BlacksmithAPI.getFullAPI();
+    
+    // Register with Blacksmith
+    moduleManager.registerModule('my-module', ['feature1', 'feature2']);
+    
+    // Set up hooks
+    const hookId = hookManager.registerHook({
         name: 'updateActor',
-        description: 'External module: Update something',
-        context: 'external-module',
+        description: 'My module: Track actor changes',
+        context: 'my-module',
         priority: 3,
         callback: (actor, changes) => {
-            // Your external module logic here
-            console.log('External module hook executed!');
+            // My logic here
+            utils.postConsoleAndNotification('My Module', 'Actor updated!', {}, true, false);
         }
     });
     
-    // Use other Blacksmith features
-    blacksmith.utils.postConsoleAndNotification(
-        'External Module',
-        'Hook registered successfully',
-        { hookId },
-        true,
-        false
-    );
+    console.log('My module initialized with Blacksmith!');
 }
 ```
 
-### **Benefits for External Modules**
-- **No hook conflicts** - Centralized management prevents overwriting
-- **Priority system** - Control execution order across all modules
-- **Context cleanup** - Batch removal of related hooks
-- **Performance optimization** - Built-in throttle/debounce support
-- **Debugging tools** - Centralized hook visibility and management
-- **Consistent behavior** - All modules use the same hook system
+### **Feature Detection Pattern**
+```javascript
+// Check what features are available
+const blacksmith = BlacksmithAPI.getFullAPI();
 
-## **Configuration and Settings**
+if (blacksmith.HookManager) {
+    console.log('HookManager available');
+}
 
-### **Settings Management**
-- **Location**: `scripts/settings.js`
-- **Purpose**: Centralized module configuration
-- **Status**: ✅ **FULLY FUNCTIONAL**
+if (blacksmith.ModuleManager) {
+    console.log('ModuleManager available');
+}
 
-### **Key Settings Categories**
-- Global console and debug settings
-- OpenAI integration settings
-- UI customization options
-- Performance and caching settings
+if (blacksmith.utils) {
+    console.log('Utilities available');
+}
 
-## **File Structure**
-
-```
-scripts/
-├── api-common.js          # Global utilities and functions
-├── api-stats.js           # Statistics API
-├── blacksmith.js          # Main module file
-├── const.js               # Module constants
-├── manager-canvas.js      # Canvas management
-├── manager-libwrapper.js  # libWrapper integration
-├── manager-modules.js     # Module registration system
-├── manager-rolls.js       # Roll system (in development)
-├── manager-sockets.js     # Socket communication system
-├── manager-toolbar.js     # Toolbar management
-├── manager-utilities.js   # Utility function management
-├── settings.js            # Settings management
-├── timer-combat.js        # Combat timer system
-├── timer-planning.js      # Planning timer system
-├── timer-round.js         # Round timer system
-├── vote-manager.js        # Voting system
-└── window-*.js            # UI window classes
+// Check specific features
+if (BlacksmithAPI.hasFeature('HookManager')) {
+    console.log('HookManager feature is available');
+}
 ```
 
-## **Recent Updates and Improvements**
+### **Error Handling Pattern**
+```javascript
+try {
+    const hookManager = BlacksmithAPI.getHookManager();
+    
+    if (!hookManager) {
+        throw new Error('HookManager not available');
+    }
+    
+    const hookId = hookManager.registerHook({
+        name: 'updateActor',
+        description: 'My module: Actor update handler',
+        context: 'my-module',
+        priority: 3,
+        callback: (actor, changes) => {
+            // My logic here
+        }
+    });
+    
+    console.log('Hook registered successfully:', hookId);
+    
+} catch (error) {
+    console.error('Failed to register hook:', error);
+    
+    // Fallback to direct FoundryVTT hooks
+    Hooks.on('updateActor', (actor, changes) => {
+        // My logic here
+    });
+}
+```
 
-### **Socket System Overhaul (COMPLETED)**
-- ✅ **SocketLib integration** working perfectly
-- ✅ **Cross-client communication** fully functional
-- ✅ **Automatic fallback system** ready as backup
-- ✅ **Real-time synchronization** for all features
+## **Performance Considerations**
 
-### **File Renaming and Organization (COMPLETED)**
-- ✅ **Consistent naming convention** (`manager-*`, `api-*`, `timer-*`)
-- ✅ **Improved module loading** and organization
-- ✅ **Better code structure** and maintainability
+### **Hook Priority Guidelines**
+```javascript
+// Priority 1 (CRITICAL) - System cleanup, critical features
+// Use for: Must-run-first operations, system integrity
+hookManager.registerHook({
+    name: 'closeGame',
+    priority: 1,
+    // ...
+});
 
-### **Roll System Development (IN PROGRESS)**
-- 🚧 **Socket issues resolved** - development can continue
-- 🚧 **Unified roll architecture** planned
-- 🚧 **Window and Cinema mode** support planned
+// Priority 2 (HIGH) - Core functionality, data validation  
+// Use for: Core features, data integrity, early processing
+hookManager.registerHook({
+    name: 'updateActor',
+    priority: 2,
+    // ...
+});
 
-## **Compatibility**
+// Priority 3 (NORMAL) - Standard features
+// Use for: Most hooks, standard functionality
+hookManager.registerHook({
+    name: 'renderChatMessage',
+    priority: 3, // Default
+    // ...
+});
 
-- **FoundryVTT Version**: 12.x (verified)
-- **D&D5e System**: ✅ **FULLY COMPATIBLE**
-- **SocketLib**: ✅ **REQUIRED AND WORKING**
-- **libWrapper**: ✅ **SUPPORTED**
+// Priority 4 (LOW) - Nice-to-have features, UI updates
+// Use for: UI enhancements, cosmetic features
+hookManager.registerHook({
+    name: 'renderApplication',
+    priority: 4,
+    // ...
+});
 
-## **Support and Development**
+// Priority 5 (LOWEST) - Cosmetic features, debug hooks
+// Use for: Debug logging, cosmetic updates
+hookManager.registerHook({
+    name: 'renderPlayerList',
+    priority: 5,
+    // ...
+});
+```
 
-### **Current Status**
-- **Socket System**: ✅ **PRODUCTION READY**
-- **Core Features**: ✅ **FULLY FUNCTIONAL**
-- **Roll System**: 🚧 **DEVELOPMENT READY**
-- **Cross-Client**: ✅ **FULLY OPERATIONAL**
+### **Performance Optimization Options**
+```javascript
+// Throttle noisy hooks (e.g., updateToken)
+hookManager.registerHook({
+    name: 'updateToken',
+    options: { throttleMs: 50 }, // Max once per 50ms
+    callback: (token, changes) => {
+        // Only runs at most once every 50ms
+    }
+});
 
-### **Development Priorities**
-1. **Roll System Development** (now unblocked by socket issues)
-2. **Feature Testing** and validation
-3. **Performance Optimization**
-4. **Additional Module Integrations**
+// Debounce for final state (e.g., search input)
+hookManager.registerHook({
+    name: 'searchInput',
+    options: { debounceMs: 300 }, // Wait 300ms after last input
+    callback: (input) => {
+        // Only runs after user stops typing
+    }
+});
+
+// One-time hooks with auto-cleanup
+hookManager.registerHook({
+    name: 'userLogin',
+    options: { once: true }, // Auto-cleanup after first execution
+    callback: (user) => {
+        // Hook automatically removes itself after this runs
+    }
+});
+```
+
+## **Debugging and Troubleshooting**
+
+### **Console Commands**
+Blacksmith provides console commands for debugging hook registrations:
+
+```javascript
+// Show all registered hooks
+blacksmithHooks();
+
+// Show detailed hook information with priority grouping
+blacksmithHookDetails();
+
+// Get raw hook statistics
+blacksmithHookStats();
+```
+
+### **Common Issues and Solutions**
+
+**Issue: "HookManager is not defined"**
+```javascript
+// Solution: Ensure proper import
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+
+// Or use the bridge file approach
+const hookManager = BlacksmithAPI.getHookManager();
+```
+
+**Issue: Hook not executing**
+```javascript
+// Check if hook is registered
+const stats = hookManager.getStats();
+console.log('Registered hooks:', stats.hooks);
+
+// Verify hook name is correct
+// FoundryVTT hook names are case-sensitive
+```
+
+**Issue: Performance problems**
+```javascript
+// Use throttling for noisy hooks
+hookManager.registerHook({
+    name: 'updateToken',
+    options: { throttleMs: 100 }, // Reduce frequency
+    // ...
+});
+
+// Use debouncing for user input
+hookManager.registerHook({
+    name: 'searchInput', 
+    options: { debounceMs: 500 }, // Wait longer
+    // ...
+});
+```
+
+## **Best Practices**
+
+### **1. Always Use Contexts**
+```javascript
+// GOOD: Descriptive context for cleanup
+hookManager.registerHook({
+    name: 'updateActor',
+    context: 'my-module-actor-tracking',
+    // ...
+});
+
+// BAD: No context makes cleanup difficult
+hookManager.registerHook({
+    name: 'updateActor',
+    // Missing context
+    // ...
+});
+```
+
+### **2. Provide Clear Descriptions**
+```javascript
+// GOOD: Clear, descriptive hook description
+hookManager.registerHook({
+    name: 'updateActor',
+    description: 'My Module: Track actor HP changes for health panel updates',
+    // ...
+});
+
+// BAD: Vague description makes debugging hard
+hookManager.registerHook({
+    name: 'updateActor',
+    description: 'Updates stuff',
+    // ...
+});
+```
+
+### **3. Use Appropriate Priorities**
+```javascript
+// Use priority 3 (NORMAL) for most hooks
+// Only use 1 or 2 for critical/core functionality
+// Use 4 or 5 for cosmetic/debug features
+```
+
+### **4. Handle Errors Gracefully**
+```javascript
+// Always check if APIs are available
+if (!BlacksmithAPI.isReady()) {
+    console.warn('Blacksmith not ready, using fallback');
+    // Fallback logic
+    return;
+}
+```
+
+### **5. Clean Up When Done**
+```javascript
+// Store hook IDs for cleanup
+const myHookIds = [];
+
+myHookIds.push(hookManager.registerHook({
+    name: 'updateActor',
+    context: 'my-module',
+    // ...
+}));
+
+// Clean up when module disables
+Hooks.once('closeGame', () => {
+    myHookIds.forEach(id => hookManager.removeCallback(id));
+});
+```
+
+## **Version Compatibility**
+
+### **FoundryVTT Version Support**
+- **FoundryVTT 12.x**: ✅ **FULLY SUPPORTED**
+- **FoundryVTT 13.x**: ✅ **READY FOR COMPATIBILITY**
+
+### **API Versioning**
+```javascript
+// Check Blacksmith version
+const version = BlacksmithAPI.getVersion();
+console.log('Blacksmith version:', version);
+
+// Version-specific features
+if (version >= '12.0.0') {
+    // Use FoundryVTT 12+ features
+}
+```
+
+## **Support and Community**
+
+### **Getting Help**
+- **Documentation**: This file and related architecture docs
+- **Console Commands**: Use `blacksmithHooks()` and `blacksmithHookDetails()`
+- **Error Logging**: Check browser console for detailed error messages
+
+### **Contributing**
+- **Report Issues**: Document any problems you encounter
+- **Feature Requests**: Suggest improvements to the API
+- **Examples**: Share your integration patterns with the community
 
 ---
 
-**Last Updated**: Current session - Socket system fully functional
-**Status**: Production ready with SocketLib integration
-**Next Milestone**: Roll system development completion
+**Last Updated**: Current session - API fully functional and documented
+**Status**: Production ready with comprehensive integration support
+**Next Milestone**: Enhanced API features and ecosystem integration
