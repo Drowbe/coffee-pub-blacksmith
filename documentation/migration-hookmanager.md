@@ -66,11 +66,23 @@
 
 **What Was Accomplished**:
 - ✅ HookManager added to `module.api` in `blacksmith.js`
-- ✅ Other Coffee Pub modules can now access HookManager
+- ✅ **NEW: Bridge `blacksmith-api.js` file created** for simple API access
+- ✅ Other Coffee Pub modules can now access HookManager safely
 - ✅ API surface ready for ecosystem integration
 - ✅ Follows FoundryVTT best practices for application modules
+- ✅ **No self-consumption** - Clean bridge architecture
 
 **Usage for External Modules**:
+
+**Option 1: Drop-in File (RECOMMENDED)**
+```javascript
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+
+const hookManager = await BlacksmithAPI.getHookManager();
+hookManager.registerHook({...});
+```
+
+**Option 2: Direct API Access**
 ```javascript
 function getBlacksmith() {
     return game.modules.get('coffee-pub-blacksmith')?.api;

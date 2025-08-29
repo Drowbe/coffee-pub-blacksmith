@@ -139,6 +139,73 @@ const diceRoll = utils.rollCoffeePubDice;
 
 ## **External Module Integration**
 
+### **BlacksmithAPI Class** (NEW! - RECOMMENDED)
+- **Location**: `scripts/blacksmith-api.js`
+- **Purpose**: Bridge file providing access to Blacksmith's existing APIs
+- **Status**: ✅ **FULLY FUNCTIONAL** - Simple, direct access to Blacksmith's APIs
+- **Usage**: Import this file for easy access to Blacksmith's functionality
+
+#### **Key Features**
+- **Direct API access** - Imports from Blacksmith's existing APIs (no circular dependencies)
+- **Simple bridge** - Thin wrapper around existing functionality
+- **No self-consumption** - Blacksmith doesn't import this file
+- **Clean architecture** - One bridge file, one set of real APIs
+- **ES6 and global** - Works with both module imports and global access
+
+#### **Recommended Usage (ES6 Modules)**
+```javascript
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+
+// Get specific APIs directly
+const hookManager = BlacksmithAPI.getHookManager();
+const utils = BlacksmithAPI.getUtils();
+const moduleManager = BlacksmithAPI.getModuleManager();
+
+// Register hooks directly
+const hookId = hookManager.registerHook({
+    name: 'updateActor',
+    description: 'My module: Update something',
+    context: 'my-module',
+    priority: 3,
+    callback: (actor, changes) => {
+        // My logic here
+    }
+});
+
+// Use utilities directly
+utils.postConsoleAndNotification('My Module', 'Hook registered!', {}, true, false);
+```
+
+#### **Alternative Usage (Global Access)**
+```javascript
+// If ES6 imports aren't available
+const hookManager = await BlacksmithAPI.getHookManager();
+const utils = await BlacksmithAPI.getUtils();
+
+// Use the APIs
+utils.postConsoleAndNotification('My Module', 'Hook registered!', {}, true, false);
+```
+
+#### **API Methods**
+```javascript
+// Core methods
+BlacksmithAPI.getFullAPI()      // Get full API object
+BlacksmithAPI.isReady()         // Check if ready
+BlacksmithAPI.getVersion()      // Get API version
+
+// Convenience methods
+BlacksmithAPI.getHookManager()    // Get HookManager
+BlacksmithAPI.getUtils()          // Get Utils
+BlacksmithAPI.getModuleManager()  // Get ModuleManager
+BlacksmithAPI.getStats()          // Get Stats API
+
+// Utility methods
+BlacksmithAPI.hasFeature('name')  // Check if feature exists
+
+// Direct imports also available
+import { HookManager, ModuleManager, StatsAPI, COFFEEPUB } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+```
+
 ### **WrapperManager Class**
 - **Location**: `scripts/manager-libwrapper.js`
 - **Purpose**: libWrapper integration and management
@@ -148,7 +215,7 @@ const diceRoll = utils.rollCoffeePubDice;
 - **Location**: `scripts/manager-hooks.js`
 - **Purpose**: Centralized hook management and orchestration
 - **Status**: ✅ **FULLY FUNCTIONAL** - All 68 hooks migrated
-- **API Access**: Available through `blacksmith.HookManager`
+- **API Access**: Available through `blacksmith.HookManager` or `BlacksmithAPI.getHookManager()`
 
 #### **Key Features**
 - **Priority-based execution** (1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest)
