@@ -28,7 +28,6 @@ console.log(moduleData.title, `Module Title: `, moduleData.title);
 console.log(moduleData.title, `Module Version: `, moduleData.version);
 console.log(moduleData.title, `Module Author: `, moduleData.authors[0]?.name);
 console.log(moduleData.title, `Module Description: `, moduleData.description);
-console.log(moduleData.title, `Module API Version: `, moduleData.version);
 
 // ================================================================== 
 // ===== EXPORTS ====================================================
@@ -42,7 +41,7 @@ export const MODULE = {
     VERSION: moduleData.version, 
     AUTHOR: moduleData.authors[0]?.name || 'COFFEE PUB',
     DESCRIPTION: moduleData.description,
-    APIVERSION: moduleData.version
+    APIVERSION: "12.2.0"
 };
 
 export const BLACKSMITH = {

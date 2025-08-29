@@ -68,7 +68,8 @@
     "scripts/const.js",
     "scripts/api-common.js",
     "scripts/settings.js",
-    "scripts/blacksmith.js"
+    "scripts/blacksmith.js",
+    "api/blacksmith-api.js"
   ],
   "packs": [
     {

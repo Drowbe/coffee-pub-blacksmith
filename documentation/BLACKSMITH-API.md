@@ -84,6 +84,8 @@ blacksmithHookStats()
 
 ## **Working Examples**
 
+**📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
+
 ### **Basic Hook Registration**
 ```javascript
 // Start using Blacksmith features immediately
@@ -92,6 +94,26 @@ const hookId = blacksmithHookManager.registerHook({
     description: 'My module: Track actor changes',
     context: 'my-module',
     priority: 3,
+    callback: (actor, changes) => {
+        // My logic here
+        console.log(`Actor ${actor.name} updated:`, changes);
+    }
+});
+```
+
+### **Hook with All Parameters (Recommended Order)**
+```javascript
+// Example showing the recommended parameter order
+const fullHookId = blacksmithHookManager.registerHook({
+    name: 'updateActor',
+    description: 'My module: Track actor changes',
+    context: 'my-module',
+    priority: 3,
+    key: 'unique-actor-tracker', // Prevents duplicate registrations
+    options: { 
+        once: false,           // Don't auto-cleanup
+        throttleMs: 100        // Max once per 100ms
+    },
     callback: (actor, changes) => {
         // My logic here
         console.log(`Actor ${actor.name} updated:`, changes);
@@ -242,27 +264,27 @@ Hooks.once('ready', async () => {
 const callbackId = hookManager.registerHook({
     name: 'hookName',                    // Required: FoundryVTT hook name
     description: 'Description',           // Optional: Human-readable description
+    context: 'context-name',             // Optional: Batch cleanup identifier
     priority: 3,                         // Optional: 1-5, default: 3
-    callback: (args) => { /* logic */ }, // Required: Your callback function
+    key: 'uniqueKey',                    // Optional: Dedupe protection
     options: {                            // Optional: Performance options
         once: true,                       // Auto-cleanup after first execution
         throttleMs: 50,                   // Max once per 50ms
         debounceMs: 300                   // Wait 300ms after last call
     },
-    key: 'uniqueKey',                    // Optional: Dedupe protection
-    context: 'context-name'              // Optional: Batch cleanup identifier
+    callback: (args) => { /* logic */ }   // Required: Your callback function - ALWAYS LAST
 });
 ```
 
 **IMPORTANT: Parameter Order**
-The HookManager uses destructured parameters, so the order doesn't matter as long as you use the correct property names. However, for consistency, we recommend this order:
+The HookManager uses destructured parameters, so the order doesn't matter as long as you use the correct property names. However, for **readability and consistency**, we strongly recommend this order:
 1. `name` (required)
 2. `description` (optional)
 3. `context` (optional)
 4. `priority` (optional)
-5. `options` (optional)
-6. `key` (optional)
-7. `callback` (required) - **Always last for readability**
+5. `key` (optional)
+6. `options` (optional)
+7. `callback` (required) - **ALWAYS LAST for readability**
 
 **What We Actually Support:**
 - **Required**: `name`, `callback`
