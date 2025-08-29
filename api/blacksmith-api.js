@@ -187,6 +187,13 @@ if (typeof window !== 'undefined') {
     window.BlacksmithStats = () => BlacksmithAPI.getStats();
 }
 
+// BlacksmithAPIStatus - Check if API is fully ready
+window.BlacksmithAPIStatus = () => {
+    const isReady = BlacksmithAPI.isAPIOpen();
+    console.log('🔧 Blacksmith API Status:', isReady ? '✅ READY' : '⏳ NOT READY');
+    return isReady;
+};
+
 // BlacksmithAPIVersion - Show current API version
 window.BlacksmithAPIVersion = async () => {
     try {
@@ -199,11 +206,96 @@ window.BlacksmithAPIVersion = async () => {
     }
 };
 
-// BlacksmithAPIStatus - Check if API is fully ready
-window.BlacksmithAPIStatus = () => {
-    const isReady = BlacksmithAPI.isAPIOpen();
-    console.log('🔧 Blacksmith API Status:', isReady ? '✅ READY' : '⏳ NOT READY');
-    return isReady;
+// BlacksmithAPICheck - Module registration status
+window.BlacksmithAPICheck = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.ModuleManager) {
+            console.error('❌ Blacksmith ModuleManager not available');
+            return null;
+        }
+        
+        const registeredModules = module.api.ModuleManager.registeredModules;
+        const moduleCount = registeredModules.size;
+        const modulesList = [];
+        
+        // Get basic module info
+        for (const [moduleId, moduleInfo] of registeredModules) {
+            modulesList.push({
+                id: moduleId,
+                name: moduleInfo.name,
+                version: moduleInfo.version,
+                featureCount: moduleInfo.features.size
+            });
+        }
+        
+        console.log(`🔧 Blacksmith Module Registration: ${moduleCount} modules registered`);
+        console.log('🔧 Registered Modules:', modulesList);
+        
+        return { count: moduleCount, modules: modulesList };
+    } catch (error) {
+        console.error('❌ Failed to check Blacksmith module registration:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIDetails - Aggregation of debug information
+window.BlacksmithAPIDetails = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api) {
+            console.error('❌ Blacksmith API not available');
+            return null;
+        }
+        
+        const api = module.api;
+        const details = {
+            version: api.version || 'Unknown',
+            modules: {
+                HookManager: !!api.HookManager,
+                ModuleManager: !!api.ModuleManager,
+                Utils: !!api.utils,
+                Stats: !!api.stats,
+                BLACKSMITH: !!api.BLACKSMITH
+            },
+            moduleCount: api.ModuleManager?.registeredModules?.size || 0,
+            hookCount: api.HookManager?.getHooks?.()?.length || 0
+        };
+        
+        console.log('🔧 Blacksmith API Details:', details);
+        return details;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith API details:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPISettings - Show current Blacksmith settings
+window.BlacksmithAPISettings = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module) {
+            console.error('❌ Blacksmith module not found');
+            return null;
+        }
+        
+        const settings = game.settings.settings;
+        const blacksmithSettings = {};
+        
+        // Filter for Blacksmith settings
+        for (const [key, setting] of settings) {
+            if (key.startsWith('coffee-pub-blacksmith.')) {
+                const settingKey = key.replace('coffee-pub-blacksmith.', '');
+                blacksmithSettings[settingKey] = game.settings.get('coffee-pub-blacksmith', settingKey);
+            }
+        }
+        
+        console.log('🔧 Blacksmith Settings:', blacksmithSettings);
+        return blacksmithSettings;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith settings:', error);
+        return null;
+    }
 };
 
 // BlacksmithAPIFeatures - Show available features by module
@@ -234,34 +326,6 @@ window.BlacksmithAPIFeatures = () => {
         return featuresByModule;
     } catch (error) {
         console.error('❌ Failed to get Blacksmith features:', error);
-        return null;
-    }
-};
-
-// BlacksmithAPISettings - Show current Blacksmith settings
-window.BlacksmithAPISettings = () => {
-    try {
-        const module = game.modules.get('coffee-pub-blacksmith');
-        if (!module) {
-            console.error('❌ Blacksmith module not found');
-            return null;
-        }
-        
-        const settings = game.settings.settings;
-        const blacksmithSettings = {};
-        
-        // Filter for Blacksmith settings
-        for (const [key, setting] of settings) {
-            if (key.startsWith('coffee-pub-blacksmith.')) {
-                const settingKey = key.replace('coffee-pub-blacksmith.', '');
-                blacksmithSettings[settingKey] = game.settings.get('coffee-pub-blacksmith', settingKey);
-            }
-        }
-        
-        console.log('🔧 Blacksmith Settings:', blacksmithSettings);
-        return blacksmithSettings;
-    } catch (error) {
-        console.error('❌ Failed to get Blacksmith settings:', error);
         return null;
     }
 };

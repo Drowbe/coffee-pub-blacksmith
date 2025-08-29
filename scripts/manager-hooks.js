@@ -432,7 +432,12 @@ export class HookManager {
         
         // Set up global console commands for easy access
         if (typeof window !== 'undefined') {
-            // Add module-prefixed console commands
+            // Add module-prefixed console commands (renamed to BlacksmithAPI pattern)
+            window.BlacksmithAPIHooks = () => HookManager.showHooks();
+            window.BlacksmithAPIHookDetails = () => HookManager.showHookDetails();
+            window.BlacksmithAPIHookStats = () => HookManager.getStats();
+            
+            // Keep old names for backward compatibility
             window.blacksmithHooks = () => HookManager.showHooks();
             window.blacksmithHookDetails = () => HookManager.showHookDetails();
             window.blacksmithHookStats = () => HookManager.getStats();
