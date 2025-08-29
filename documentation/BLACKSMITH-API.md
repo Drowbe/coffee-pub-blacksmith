@@ -7,20 +7,38 @@ Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules 
 
 ## **Quick Start**
 
-### **Integration Method: Drop-in Bridge File**
+### **Step 1: Import the Bridge File**
 ```javascript
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+```
 
-// Get specific APIs directly (prepend "blacksmith" to avoid naming conflicts)
-// All methods return Promises that resolve when Blacksmith is ready
-const blacksmithHookManager = await BlacksmithAPI.getHookManager();
-const blacksmithUtils = await BlacksmithAPI.getUtils();
-const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
+**⚠️ Important**: Always use the correct import path: `/modules/coffee-pub-blacksmith/api/blacksmith-api.js` (not `/scripts/`).
+
+### **Step 2: Register Your Module**
+```javascript
+// REQUIRED: Module registration and basic setup using new API
+Hooks.once('init', async () => {
+    const blacksmithRegisterModuleID = MODULE.ID; // e.g. awesome-humpty-dumpty
+    const blacksmithRegisterModuleName = MODULE.NAME; // e.g. a short name like "HUMPTY"
+    const blacksmithRegisterModuleTitle = MODULE.TITLE; // e.g. "Awesome Humpty Dumpty Module"
+    const blacksmithRegisterModuleVersion = MODULE.VERSION; // e.g. "1.0.0"
+    try {
+        const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
+        blacksmithModuleManager.registerModule(blacksmithRegisterModuleID, {
+            name: blacksmithRegisterModuleName,
+            version: blacksmithRegisterModuleVersion
+        });
+        console.log(`✅ ${blacksmithRegisterModuleTitle}: Module registered with Blacksmith successfully`);
+    } catch (error) {
+        console.error(`❌ ${blacksmithRegisterModuleTitle}: Failed to register with Blacksmith:`, error);
+    }
+});
 ```
 
 **Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
 
-**⚠️ Important**: Always use the correct import path: `'coffee-pub-blacksmith/api/blacksmith-api.js'` (not `/scripts/`).
+### **Step 3: Test Basic Integration**
+Use the console commands below to verify everything is working correctly.
 
 **Next Steps**: See the **Working Examples** section below for complete, copy-paste code that demonstrates how to use these APIs.
 
