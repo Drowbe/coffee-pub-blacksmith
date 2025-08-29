@@ -259,7 +259,7 @@ window.BlacksmithAPIDetails = () => {
                 BLACKSMITH: !!api.BLACKSMITH
             },
             moduleCount: api.ModuleManager?.registeredModules?.size || 0,
-            hookCount: api.HookManager?.getHooks?.()?.length || 0
+            hookCount: api.HookManager?.hooks?.size || 0
         };
         
         console.log('🔧 Blacksmith API Details:', details);
@@ -398,14 +398,15 @@ window.BlacksmithAPIHooks = () => {
             return null;
         }
         
-        const hooks = module.api.HookManager.getHooks();
-        const hookCount = hooks.length;
-        const hookNames = hooks.map(hook => hook.name).join(', ');
+        const hookManager = module.api.HookManager;
+        const hooks = hookManager.hooks;
+        const hookCount = hooks.size;
+        const hookNames = Array.from(hooks.keys()).join(', ');
         
         console.log(`🔧 Blacksmith Hooks: ${hookCount} total`);
         console.log('🔧 Hook Names:', hookNames);
         
-        return { count: hookCount, names: hookNames, hooks: hooks };
+        return { count: hookCount, names: hookNames, hooks: Array.from(hooks.entries()) };
     } catch (error) {
         console.error('❌ Failed to get Blacksmith hooks:', error);
         return null;
@@ -421,22 +422,26 @@ window.BlacksmithAPIHookDetails = () => {
             return null;
         }
         
-        const hooks = module.api.HookManager.getHooks();
+        const hookManager = module.api.HookManager;
+        const hooks = hookManager.hooks;
         const hooksByPriority = {};
         
         // Group hooks by priority
-        hooks.forEach(hook => {
-            const priority = hook.priority || 'default';
-            if (!hooksByPriority[priority]) {
-                hooksByPriority[priority] = [];
-            }
-            hooksByPriority[priority].push({
-                name: hook.name,
-                description: hook.description,
-                context: hook.context,
-                key: hook.key
+        for (const [hookName, hookData] of hooks.entries()) {
+            const callbacks = hookData.callbacks;
+            callbacks.forEach(callback => {
+                const priority = callback.priority || 'default';
+                if (!hooksByPriority[priority]) {
+                    hooksByPriority[priority] = [];
+                }
+                hooksByPriority[priority].push({
+                    name: hookName,
+                    description: callback.description || '',
+                    context: callback.context || '',
+                    key: callback.key || ''
+                });
             });
-        });
+        }
         
         console.log('🔧 Blacksmith Hook Details by Priority:', hooksByPriority);
         return hooksByPriority;
@@ -455,39 +460,43 @@ window.BlacksmithAPIHookStats = () => {
             return null;
         }
         
-        const hooks = module.api.HookManager.getHooks();
+        const hookManager = module.api.HookManager;
+        const hooks = hookManager.hooks;
         const stats = {
-            totalHooks: hooks.length,
+            totalHooks: hooks.size,
             hooksByPriority: {},
             hooksByContext: {},
             hooksByName: {}
         };
         
         // Calculate statistics
-        hooks.forEach(hook => {
-            const priority = hook.priority || 'default';
-            const context = hook.context || 'default';
-            const name = hook.name;
-            
-            // Count by priority
-            stats.hooksByPriority[priority] = (stats.hooksByPriority[priority] || 0) + 1;
-            
-            // Count by context
-            if (!stats.hooksByContext[context]) {
-                stats.hooksByContext[context] = [];
-            }
-            stats.hooksByContext[context].push(hook.name);
-            
-            // Count by name
-            if (!stats.hooksByName[name]) {
-                stats.hooksByName[name] = [];
-            }
-            stats.hooksByName[name].push({
-                context: hook.context,
-                priority: hook.priority,
-                description: hook.description
+        for (const [hookName, hookData] of hooks.entries()) {
+            const callbacks = hookData.callbacks;
+            callbacks.forEach(callback => {
+                const priority = callback.priority || 'default';
+                const context = callback.context || 'default';
+                const name = hookName;
+                
+                // Count by priority
+                stats.hooksByPriority[priority] = (stats.hooksByPriority[priority] || 0) + 1;
+                
+                // Count by context
+                if (!stats.hooksByContext[context]) {
+                    stats.hooksByContext[context] = [];
+                }
+                stats.hooksByContext[context].push(name);
+                
+                // Count by name
+                if (!stats.hooksByName[name]) {
+                    stats.hooksByName[name] = [];
+                }
+                stats.hooksByName[name].push({
+                    context: callback.context || '',
+                    priority: callback.priority || 'default',
+                    description: callback.description || ''
+                });
             });
-        });
+        }
         
         console.log('🔧 Blacksmith Hook Statistics:', stats);
         return stats;
