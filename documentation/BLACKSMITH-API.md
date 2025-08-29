@@ -15,22 +15,153 @@ import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 const blacksmithHookManager = await BlacksmithAPI.getHookManager();
 const blacksmithUtils = await BlacksmithAPI.getUtils();
 const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
-
-// Start using Blacksmith features immediately
-const hookId = blacksmithHookManager.registerHook({
-    name: 'updateActor',
-    description: 'My module: Update something',
-    context: 'my-module',
-    priority: 3,
-    callback: (actor, changes) => {
-        // My logic here
-    }
-});
 ```
 
 **Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. This approach provides a clean, consistent interface while handling timing and availability issues automatically.
 
 **⚠️ Important**: Always use the correct import path: `'coffee-pub-blacksmith/api/blacksmith-api.js'` (not `/scripts/`).
+
+**Next Steps**: See the **Working Examples** section below for complete, copy-paste code that demonstrates how to use these APIs.
+
+***
+
+## **Working Examples**
+
+### **Basic Hook Registration**
+```javascript
+// Start using Blacksmith features immediately
+const hookId = blacksmithHookManager.registerHook({
+    name: 'updateActor',
+    description: 'My module: Track actor changes',
+    context: 'my-module',
+    priority: 3,
+    callback: (actor, changes) => {
+        // My logic here
+        console.log(`Actor ${actor.name} updated:`, changes);
+    }
+});
+```
+
+### **Combat Tracking Hook**
+```javascript
+// Combat-related hooks
+const combatHookId = blacksmithHookManager.registerHook({
+    name: 'updateCombat',
+    description: 'My module: Track combat changes',
+    context: 'my-combat-tracker', // For batch cleanup
+    priority: 2, // High priority - core functionality
+    callback: (combat, changed) => {
+        if (changed.round !== undefined) {
+            console.log(`Round changed to ${changed.round}`);
+        }
+    }
+});
+```
+
+### **UI Enhancement Hook**
+```javascript
+// UI enhancement hooks
+const uiHookId = blacksmithHookManager.registerHook({
+    name: 'renderChatMessage',
+    description: 'My module: Enhance chat messages',
+    context: 'my-chat-enhancer', // For batch cleanup
+    priority: 4, // Low priority - UI updates
+    callback: (message, html, data) => {
+        // Modify the HTML before display
+        html.find('.message-content').addClass('my-enhanced-style');
+    }
+});
+```
+
+### **One-time Hook with Auto-cleanup**
+```javascript
+// One-time hooks with auto-cleanup
+const welcomeHookId = blacksmithHookManager.registerHook({
+    name: 'userLogin',
+    description: 'My module: Welcome message',
+    context: 'my-welcome', // For batch cleanup
+    priority: 5, // Lowest priority
+    options: { once: true }, // Auto-cleanup after first execution
+    callback: (user) => {
+        console.log(`Welcome back, ${user.name}!`);
+    }
+});
+```
+
+### **Performance-Optimized Hooks**
+```javascript
+// Throttle noisy hooks (e.g., updateToken)
+const throttledHookId = blacksmithHookManager.registerHook({
+    name: 'updateToken',
+    description: 'My module: Throttled token updates',
+    context: 'my-token-tracker',
+    priority: 4,
+    options: { throttleMs: 50 }, // Max once per 50ms
+    callback: (token, changes) => {
+        // Only runs at most once every 50ms
+        console.log('Token updated:', token.name);
+    }
+});
+
+// Debounce for final state (e.g., search input)
+const debouncedHookId = blacksmithHookManager.registerHook({
+    name: 'searchInput',
+    description: 'My module: Debounced search',
+    context: 'my-search',
+    priority: 4,
+    options: { debounceMs: 300 }, // Wait 300ms after last input
+    callback: (input) => {
+        // Only runs after user stops typing
+        console.log('Searching for:', input);
+    }
+});
+```
+
+### **Complete Module Initialization**
+```javascript
+// In your module's main file
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
+
+Hooks.once('ready', async () => {
+    try {
+        // Wait for Blacksmith to be ready
+        const blacksmith = await BlacksmithAPI.get();
+        
+        // Register with Blacksmith
+        blacksmith.ModuleManager.registerModule('my-awesome-module', {
+            name: 'My Awesome Module',
+            version: '1.0.0',
+            features: [
+                { type: 'actor-tracking', data: { description: 'Tracks actor changes' } },
+                { type: 'combat-enhancement', data: { description: 'Improves combat experience' } }
+            ]
+        });
+        
+        // Set up hooks
+        const hookId = blacksmith.HookManager.registerHook({
+            name: 'updateActor',
+            description: 'My module: Track actor changes',
+            context: 'my-awesome-module', // For batch cleanup
+            priority: 3,
+            callback: (actor, changes) => {
+                // My logic here
+                blacksmith.utils.postConsoleAndNotification(
+                    'my-awesome-module', 
+                    'Actor updated!', 
+                    { actorId: actor.id, changes }, 
+                    false, 
+                    false
+                );
+            }
+        });
+        
+        console.log('My module initialized with Blacksmith!');
+        
+    } catch (error) {
+        console.error('Failed to initialize with Blacksmith:', error);
+    }
+});
+```
 
 ***
 
@@ -98,45 +229,7 @@ hookManager.showHookDetails();
 hookManager.getStats();
 ```
 
-
-```javascript
-// Combat-related hooks
-const combatHookId = blacksmithHookManager.registerHook({
-    name: 'updateCombat',
-    description: 'My module: Track combat changes',
-    context: 'my-combat-tracker', // For batch cleanup
-    priority: 2, // High priority - core functionality
-    callback: (combat, changed) => {
-        if (changed.round !== undefined) {
-            console.log(`Round changed to ${changed.round}`);
-        }
-    }
-});
-
-// UI enhancement hooks
-const uiHookId = blacksmithHookManager.registerHook({
-    name: 'renderChatMessage',
-    description: 'My module: Enhance chat messages',
-    context: 'my-chat-enhancer', // For batch cleanup
-    priority: 4, // Low priority - UI updates
-    callback: (message, html, data) => {
-        // Modify the HTML before display
-        html.find('.message-content').addClass('my-enhanced-style');
-    }
-});
-
-// One-time hooks with auto-cleanup
-const welcomeHookId = blacksmithHookManager.registerHook({
-    name: 'userLogin',
-    description: 'My module: Welcome message',
-    context: 'my-welcome', // For batch cleanup
-    priority: 5, // Lowest priority
-    options: { once: true }, // Auto-cleanup after first execution
-    callback: (user) => {
-        console.log(`Welcome back, ${user.name}!`);
-    }
-});
-```
+**📚 See the Working Examples section above for complete hook registration examples with different use cases and performance optimizations.**
 
 ***
 
@@ -280,6 +373,8 @@ const healingStats = await blacksmithStats.player.getStatCategory(actorId, 'heal
 
 ## **Integration Patterns**
 
+**📚 Note**: For complete, working examples of these patterns, see the **Working Examples** section above.
+
 ### **Module Initialization Pattern**
 ```javascript
 // In your module's main file
@@ -300,16 +395,16 @@ Hooks.once('ready', async () => {
         });
         
         // Set up hooks
-const hookId = blacksmith.HookManager.registerHook({
-    name: 'updateActor',
-    description: 'My module: Track actor changes',
-    context: 'my-module', // For batch cleanup
-    priority: 3,
-    callback: (actor, changes) => {
-        // My logic here
-        blacksmith.utils.postConsoleAndNotification('My Module', 'Actor updated!', { actorId: actor.id, changes }, false, false);
-    }
-});
+        const hookId = blacksmith.HookManager.registerHook({
+            name: 'updateActor',
+            description: 'My module: Track actor changes',
+            context: 'my-module', // For batch cleanup
+            priority: 3,
+            callback: (actor, changes) => {
+                // My logic here
+                blacksmith.utils.postConsoleAndNotification('my-module', 'Actor updated!', { actorId: actor.id, changes }, false, false);
+            }
+        });
         
         console.log('My module initialized with Blacksmith!');
         
