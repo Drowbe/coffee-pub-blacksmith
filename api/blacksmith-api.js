@@ -187,3 +187,249 @@ if (typeof window !== 'undefined') {
     window.BlacksmithStats = () => BlacksmithAPI.getStats();
 }
 
+// BlacksmithAPIVersion - Show current API version
+window.BlacksmithAPIVersion = async () => {
+    try {
+        const version = await BlacksmithAPI.getVersion();
+        console.log('🔧 Blacksmith API Version:', version);
+        return version;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith API version:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIStatus - Check if API is fully ready
+window.BlacksmithAPIStatus = () => {
+    const isReady = BlacksmithAPI.isAPIOpen();
+    console.log('🔧 Blacksmith API Status:', isReady ? '✅ READY' : '⏳ NOT READY');
+    return isReady;
+};
+
+// BlacksmithAPIFeatures - Show available features by module
+window.BlacksmithAPIFeatures = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.ModuleManager) {
+            console.error('❌ Blacksmith ModuleManager not available');
+            return null;
+        }
+        
+        const features = module.api.ModuleManager.features;
+        const featuresByModule = {};
+        
+        // Group features by module
+        for (const [key, feature] of features) {
+            const moduleId = feature.moduleId;
+            if (!featuresByModule[moduleId]) {
+                featuresByModule[moduleId] = [];
+            }
+            featuresByModule[moduleId].push({
+                type: feature.type,
+                data: feature.data
+            });
+        }
+        
+        console.log('🔧 Blacksmith Features by Module:', featuresByModule);
+        return featuresByModule;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith features:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPISettings - Show current Blacksmith settings
+window.BlacksmithAPISettings = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module) {
+            console.error('❌ Blacksmith module not found');
+            return null;
+        }
+        
+        const settings = game.settings.settings;
+        const blacksmithSettings = {};
+        
+        // Filter for Blacksmith settings
+        for (const [key, setting] of settings) {
+            if (key.startsWith('coffee-pub-blacksmith.')) {
+                const settingKey = key.replace('coffee-pub-blacksmith.', '');
+                blacksmithSettings[settingKey] = game.settings.get('coffee-pub-blacksmith', settingKey);
+            }
+        }
+        
+        console.log('🔧 Blacksmith Settings:', blacksmithSettings);
+        return blacksmithSettings;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith settings:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIModules - Show currently registered modules and basic details
+window.BlacksmithAPIModules = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.ModuleManager) {
+            console.error('❌ Blacksmith ModuleManager not available');
+            return null;
+        }
+        
+        const registeredModules = module.api.ModuleManager.registeredModules;
+        const modulesList = {};
+        
+        // Convert Map to object for display
+        for (const [moduleId, moduleInfo] of registeredModules) {
+            modulesList[moduleId] = {
+                name: moduleInfo.name,
+                version: moduleInfo.version,
+                features: Array.from(moduleInfo.features)
+            };
+        }
+        
+        console.log('🔧 Blacksmith Registered Modules:', modulesList);
+        return modulesList;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith modules:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIConstants - Show all available constants/themes/sounds
+window.BlacksmithAPIConstants = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.BLACKSMITH) {
+            console.error('❌ Blacksmith constants not available');
+            return null;
+        }
+        
+        const constants = module.api.BLACKSMITH;
+        console.log('🔧 Blacksmith Constants:', constants);
+        return constants;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith constants:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIUtils - Show all available utility functions
+window.BlacksmithAPIUtils = async () => {
+    try {
+        const utils = await BlacksmithAPI.getUtils();
+        console.log('🔧 Blacksmith Utilities:', utils);
+        return utils;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith utilities:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIHooks - Show hook counts and comma-delimited names of all registered hooks
+window.BlacksmithAPIHooks = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.HookManager) {
+            console.error('❌ Blacksmith HookManager not available');
+            return null;
+        }
+        
+        const hooks = module.api.HookManager.getHooks();
+        const hookCount = hooks.length;
+        const hookNames = hooks.map(hook => hook.name).join(', ');
+        
+        console.log(`🔧 Blacksmith Hooks: ${hookCount} total`);
+        console.log('🔧 Hook Names:', hookNames);
+        
+        return { count: hookCount, names: hookNames, hooks: hooks };
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith hooks:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIHookDetails - Show detailed hook information with priority grouping
+window.BlacksmithAPIHookDetails = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.HookManager) {
+            console.error('❌ Blacksmith HookManager not available');
+            return null;
+        }
+        
+        const hooks = module.api.HookManager.getHooks();
+        const hooksByPriority = {};
+        
+        // Group hooks by priority
+        hooks.forEach(hook => {
+            const priority = hook.priority || 'default';
+            if (!hooksByPriority[priority]) {
+                hooksByPriority[priority] = [];
+            }
+            hooksByPriority[priority].push({
+                name: hook.name,
+                description: hook.description,
+                context: hook.context,
+                key: hook.key
+            });
+        });
+        
+        console.log('🔧 Blacksmith Hook Details by Priority:', hooksByPriority);
+        return hooksByPriority;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith hook details:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIHookStats - Get raw hook statistics as an object
+window.BlacksmithAPIHookStats = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.HookManager) {
+            console.error('❌ Blacksmith HookManager not available');
+            return null;
+        }
+        
+        const hooks = module.api.HookManager.getHooks();
+        const stats = {
+            totalHooks: hooks.length,
+            hooksByPriority: {},
+            hooksByContext: {},
+            hooksByName: {}
+        };
+        
+        // Calculate statistics
+        hooks.forEach(hook => {
+            const priority = hook.priority || 'default';
+            const context = hook.context || 'default';
+            const name = hook.name;
+            
+            // Count by priority
+            stats.hooksByPriority[priority] = (stats.hooksByPriority[priority] || 0) + 1;
+            
+            // Count by context
+            if (!stats.hooksByContext[context]) {
+                stats.hooksByContext[context] = [];
+            }
+            stats.hooksByContext[context].push(hook.name);
+            
+            // Count by name
+            if (!stats.hooksByName[name]) {
+                stats.hooksByName[name] = [];
+            }
+            stats.hooksByName[name].push({
+                context: hook.context,
+                priority: hook.priority,
+                description: hook.description
+            });
+        });
+        
+        console.log('🔧 Blacksmith Hook Statistics:', stats);
+        return stats;
+    } catch (error) {
+        console.error('❌ Failed to get Blacksmith hook stats:', error);
+        return null;
+    }
+};
+

@@ -12,16 +12,16 @@ Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules 
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
 
-**⚠️ Important**: Always use the correct import path: `/modules/coffee-pub-blacksmith/api/blacksmith-api.js` (not `/scripts/`).
+**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
 
 ### **Step 2: Register Your Module**
 ```javascript
 // REQUIRED: Module registration and basic setup using new API
 Hooks.once('init', async () => {
-    const blacksmithRegisterModuleID = MODULE.ID; // e.g. awesome-humpty-dumpty
-    const blacksmithRegisterModuleName = MODULE.NAME; // e.g. a short name like "HUMPTY"
-    const blacksmithRegisterModuleTitle = MODULE.TITLE; // e.g. "Awesome Humpty Dumpty Module"
-    const blacksmithRegisterModuleVersion = MODULE.VERSION; // e.g. "1.0.0"
+    const blacksmithRegisterModuleID = 'some-module-id' ; // e.g. awesome-humpty-dumpty
+    const blacksmithRegisterModuleName = 'SHORTNAME'; // e.g. a short name like "HUMPTY"
+    const blacksmithRegisterModuleTitle = 'Some Module Title'; // e.g. "Awesome Humpty Dumpty Module"
+    const blacksmithRegisterModuleVersion = '1.0.0'; // e.g. "1.0.0"
     try {
         const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
         blacksmithModuleManager.registerModule(blacksmithRegisterModuleID, {
@@ -35,7 +35,7 @@ Hooks.once('init', async () => {
 });
 ```
 
-**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
+**Note**: Pass your variables in a way that makes sense for your module. A best paractive is to pull the ID, Title, and Version from your module.json file. The short name a simple way to identify your module.
 
 ### **Step 3: Test Basic Integration**
 Use the console commands below to verify everything is working correctly.
