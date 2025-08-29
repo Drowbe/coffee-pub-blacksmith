@@ -25,6 +25,62 @@ const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
 
 ***
 
+## **Console Commands - Quick Status Check**
+
+The easiest way to verify your Blacksmith integration is working is to use these console commands. Open your browser console (F12 → Console tab) and run any of these:
+
+### **🔍 Hook Management Status**
+```javascript
+// Show all registered hooks (simple summary)
+blacksmithHooks()
+
+// Show detailed hook information with priority grouping  
+blacksmithHookDetails()
+
+// Get raw hook statistics as an object
+blacksmithHookStats()
+```
+
+### **📊 API Availability Check**
+```javascript
+// Check if Blacksmith API is available
+BlacksmithAPI
+
+// Quick one-liner to test everything
+(() => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    const status = {
+        module: !!blacksmith,
+        api: !!(blacksmith?.utils?.getSettingSafely),
+        hooks: !!(blacksmith?.HookManager),
+        utils: !!(blacksmith?.utils)
+    };
+    console.log('Blacksmith Status:', status);
+    return Object.values(status).every(Boolean);
+})();
+```
+
+### **✅ What You Should See:**
+
+**If everything is working:**
+```
+✅ blacksmithHooks() → Shows hook count and names
+✅ blacksmithHookDetails() → Shows detailed priority breakdown
+✅ BlacksmithAPI → Returns the API class
+✅ Status check → All values should be true
+```
+
+**If something is wrong:**
+```
+❌ "blacksmithHooks is not a function" → Blacksmith not loaded
+❌ "HookManager not found" → API not ready yet
+❌ Status check shows false values → Integration issues
+```
+
+**💡 Pro Tip**: Run these commands first before trying to integrate - they'll tell you exactly what's available and working!
+
+***
+
 ## **Working Examples**
 
 ### **Basic Hook Registration**
