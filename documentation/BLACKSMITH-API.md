@@ -5,9 +5,9 @@ Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules 
 
 ## **Quick Start**
 
-### **Option 1: Drop-in Bridge File (RECOMMENDED)**
+### **OPTION 1: Drop-in Bridge File (RECOMMENDED)**
 ```javascript
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/scripts/blacksmith-api.js';
+import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
 // Get specific APIs directly (prepend "blacksmith" to avoid naming conflicts)
 const blacksmithHookManager = await BlacksmithAPI.getHookManager();
@@ -26,7 +26,7 @@ const hookId = blacksmithHookManager.registerHook({
 });
 ```
 
-### **Option 2: Direct Module API Access**
+### **OPTION 2: Direct Module API Access**
 ```javascript
 // Access through FoundryVTT's module system
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
@@ -43,6 +43,8 @@ if (blacksmith?.HookManager) {
     });
 }
 ```
+
+***
 
 ## **Available APIs**
 
@@ -74,7 +76,7 @@ const callbackId = hookManager.registerHook({
 });
 ```
 
-**⚠️ IMPORTANT: Parameter Order**
+**IMPORTANT: Parameter Order**
 The HookManager uses destructured parameters, so the order doesn't matter as long as you use the correct property names. However, for consistency, we recommend this order:
 1. `name` (required)
 2. `description` (optional)
@@ -84,7 +86,7 @@ The HookManager uses destructured parameters, so the order doesn't matter as lon
 6. `key` (optional)
 7. `callback` (required) - **Always last for readability**
 
-**✅ What We Actually Support:**
+**What We Actually Support:**
 - **Required**: `name`, `callback`
 - **Optional**: `description`, `priority`, `options`, `key`, `context`
 - **Options**: `once`, `throttleMs`, `debounceMs`
@@ -93,6 +95,9 @@ The HookManager uses destructured parameters, so the order doesn't matter as lon
 - **Dedupe**: `key` prevents duplicate registrations
 - **Batch cleanup**: `context` enables group removal
 
+**Usage Examples**:
+
+```javascript
 // Remove a specific callback
 const removed = hookManager.removeCallback(callbackId);
 
@@ -105,7 +110,7 @@ hookManager.showHookDetails();
 hookManager.getStats();
 ```
 
-**Usage Examples**:
+
 ```javascript
 // Combat-related hooks
 const combatHookId = blacksmithHookManager.registerHook({
@@ -145,6 +150,9 @@ const welcomeHookId = blacksmithHookManager.registerHook({
 });
 ```
 
+***
+
+
 ### **ModuleManager - Module Registration System**
 **Purpose**: Register your module with Blacksmith and check feature availability
 
@@ -178,6 +186,8 @@ if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
 const myFeatures = blacksmithModuleManager.getModuleFeatures('my-awesome-module');
 console.log('My module features:', myFeatures);
 ```
+
+***
 
 ### **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
@@ -233,6 +243,9 @@ if (blacksmithUtils.COFFEEPUB.VERSION >= '12.0.0') {
 }
 ```
 
+***
+
+
 ### **Stats API - Statistics and Analytics**
 **Purpose**: Access to Blacksmith's statistics and tracking systems
 
@@ -261,6 +274,8 @@ blacksmithStats.recordEvent('my-module', 'feature-used', {
 const allStats = blacksmithStats.getAllStats();
 console.log('Available statistics:', allStats);
 ```
+
+***
 
 ## **Integration Patterns**
 
@@ -297,6 +312,8 @@ const hookId = blacksmith.HookManager.registerHook({
 });
 ```
 
+***
+
 ### **Feature Detection Pattern**
 ```javascript
 // Check what features are available
@@ -319,6 +336,8 @@ if (await BlacksmithAPI.hasFeature('HookManager')) {
     console.log('HookManager feature is available');
 }
 ```
+
+***
 
 ### **Error Handling Pattern**
 ```javascript
@@ -491,7 +510,7 @@ const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
 
 // BAD: Generic names can conflict with existing variables
 const utils = await BlacksmithAPI.getUtils();        // Might conflict with existing utils
-const hookManager = await BlacksmithAPI.getHookManager(); // Might conflict with existing hookManager
+const hook = await BlacksmithAPI.getHookManager(); // Might conflict with existing hookManager
 ```
 
 **Why this matters:**
@@ -852,33 +871,6 @@ Hooks.on('blacksmithUpdated', (data) => {
 });
 ```
 
-#### **Issue: Notification flashing**
-
-**Symptoms:**
-- Notifications appear and disappear quickly
-- Multiple notifications for the same event
-- Notification timing issues
-
-**Solutions:**
-1. **Use setTimeout**: Delay notifications to prevent flashing
-2. **Check notification flags**: Use `postConsoleAndNotification` with appropriate flags
-3. **Debounce notifications**: Group multiple notifications into single updates
-4. **Use console only**: Set notification flag to `false` for debug messages
-
-**Code Fix:**
-```javascript
-// BAD: Immediate notification (may flash)
-blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'immediate' }, false, true);
-
-// GOOD: Delayed notification to prevent flashing
-setTimeout(() => {
-    blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'delayed' }, false, true);
-}, 100);
-
-// BETTER: Console only for debug messages
-blacksmith.utils.postConsoleAndNotification('Module', 'Message', { action: 'console-only' }, false, false);
-```
-
 #### **Issue: Settings not accessible**
 
 **Symptoms:**
@@ -970,7 +962,7 @@ Key features I need to understand:
 - Hook system for inter-module communication
 - Module registration system
 
-The full API documentation is available at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
+The full API documentation is available at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API/
 
 Please help me:
 1. Set up the basic module registration with Blacksmith
