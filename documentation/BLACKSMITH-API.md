@@ -59,7 +59,12 @@ BlacksmithAPICheck()
 Nice work, you've got the basics going. Now you can start leveraging the API to build your module. 
 
 
+
 ***
+
+
+
+
 
 # **Console Commands - Quick Status Check**
 
@@ -116,7 +121,10 @@ blacksmithHookStats()
 
 **💡 Pro Tip**: Run these commands first before trying to integrate - they'll tell you exactly what's available and working!
 
+
 ***
+
+
 
 # **Working Examples**
 
@@ -280,7 +288,10 @@ Hooks.once('ready', async () => {
 });
 ```
 
+
 ***
+
+
 
 # **Available APIs**
 
@@ -350,7 +361,10 @@ hookManager.getStats();
 
 **📚 See the Working Examples section above for complete hook registration examples with different use cases and performance optimizations.**
 
+
 ***
+
+
 
 ## **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
@@ -406,7 +420,10 @@ console.log('Blacksmith version:', blacksmith.version);
 console.log('Available themes:', blacksmith.BLACKSMITH.arrThemeChoices);
 ```
 
+
 ***
+
+
 
 ## **ModuleManager - Module Registration System**
 **Purpose**: Register your module with Blacksmith and check feature availability
@@ -487,7 +504,10 @@ const attackStats = await blacksmithStats.player.getStatCategory(actorId, 'attac
 const healingStats = await blacksmithStats.player.getStatCategory(actorId, 'healing');
 ```
 
+
 ***
+
+
 
 # **Integration Patterns**
 
@@ -532,7 +552,10 @@ Hooks.once('ready', async () => {
 });
 ```
 
+
 ***
+
+
 
 ## **Feature Detection Pattern**
 ```javascript
@@ -557,7 +580,10 @@ if (await BlacksmithAPI.hasFeature('HookManager')) {
 }
 ```
 
+
 ***
+
+
 
 ## **Error Handling Pattern**
 ```javascript
