@@ -696,7 +696,7 @@ hookManager.registerHook({
 
 
 
-# Blacksmith Console Commands
+# Blacksmith API Console Commands
 
 Use the following helper commands directly in the browser console for **status checks, debugging, and development**.
 
