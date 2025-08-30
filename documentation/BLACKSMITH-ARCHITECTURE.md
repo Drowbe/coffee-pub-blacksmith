@@ -1,7 +1,27 @@
 # BLACKSMITH ARCHITECTURE DOCUMENTATION
 
+> **For Blacksmith Developers Only**
+> 
+> This document covers the **internal architecture** of Coffee Pub Blacksmith. 
+> 
+> **If you're developing another module** that wants to integrate with Blacksmith, see `BLACKSMITH-API.md` for the external API.
+
 ## **Overview**
 This document outlines the technical architecture and design decisions for the Coffee Pub Blacksmith module. The module has undergone significant architectural improvements and now features a robust, enterprise-grade socket communication system.
+
+## **API Architecture Overview**
+
+### **🔧 Internal APIs (This Document)**
+- **Direct Manager Access**: `HookManager.registerHook()`, `ModuleManager.registerModule()`
+- **Performance**: Direct access for maximum speed
+- **Flexibility**: Full access to internal systems
+- **Use Case**: When developing Blacksmith itself
+
+### **🌐 External APIs (BLACKSMITH-API.md)**
+- **Bridge Access**: `await BlacksmithAPI.getHookManager()`
+- **Stability**: Consistent interface that won't break
+- **Safety**: Automatic timing and availability handling
+- **Use Case**: When other modules want to integrate with Blacksmith
 
 ## **Current Status: PRODUCTION READY**
 

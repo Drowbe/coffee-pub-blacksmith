@@ -1,62 +1,99 @@
-# **Blacksmith API Overview**
-Coffee Pub Blacksmith provides a comprehensive API for other FoundryVTT modules to integrate with our features. This documentation covers how to consume our API, what's available, and examples of integration.
+# **Blacksmith External API Documentation**
 
-**Integration Approach**: We provide a single, well-tested integration path through our drop-in bridge file. This approach handles timing issues, availability checks, and provides a consistent interface while internally using FoundryVTT's module system.
+> **For External Module Developers Only**
+> 
+> This document covers how **other FoundryVTT modules** can integrate with Coffee Pub Blacksmith. 
+> 
+> **If you're developing Blacksmith itself**, see `BLACKSMITH-ARCHITECTURE.md` for internal architecture details.
 
-# **Quick Start**
+## **What This API Provides**
 
-## **Step 1: Import the Bridge File**
+Coffee Pub Blacksmith offers a clean, reliable integration path for external modules through our **BlacksmithAPI bridge**. This approach:
+
+- ✅ **Handles timing issues automatically** - No more race conditions
+- ✅ **Provides consistent interface** - Same API regardless of when you call it  
+- ✅ **Manages availability checks** - Automatically waits for Blacksmith to be ready
+- ✅ **Offers debugging tools** - Console commands to verify integration
+- ✅ **Supports async/await** - Modern JavaScript patterns
+
+## **Integration Philosophy**
+
+We believe external modules should have a **simple, predictable interface** that doesn't break when Blacksmith's internal structure changes. The BlacksmithAPI bridge provides this stability.
+
+## **Internal vs External APIs - What's the Difference?**
+
+### **🔧 Internal API (for Blacksmith developers)**
+- **Location**: `BLACKSMITH-ARCHITECTURE.md`
+- **Access**: Direct manager access (e.g., `HookManager.registerHook()`)
+- **Use case**: When developing Blacksmith itself
+- **Example**: `scripts/blacksmith.js` uses internal APIs
+
+### **🌐 External API (for other modules)**
+- **Location**: This document (`BLACKSMITH-API.md`)
+- **Access**: BlacksmithAPI bridge (e.g., `await BlacksmithAPI.getHookManager()`)
+- **Use case**: When your module wants to integrate with Blacksmith
+- **Example**: Other Coffee Pub modules use external APIs
+
+### **Why Two APIs?**
+- **Internal**: Direct access for performance and flexibility
+- **External**: Stable interface that won't break when internal structure changes
+- **Bridge**: Handles timing issues and provides consistent experience
+
+# **Quick Start - External Module Integration**
+
+## **Step 1: Import the BlacksmithAPI Bridge**
 ```javascript
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
 
-**Note**: The bridge file internally uses FoundryVTT's module system to access Blacksmith's API. All methods return Promises that automatically wait for Blacksmith to be ready, providing a clean, consistent interface while handling timing and availability issues automatically.
+**What this does**: Imports the bridge that handles all timing and availability issues automatically.
 
-## **Step 2: Register Your Module**
+## **Step 2: Register Your Module (Required)**
 ```javascript
-// REQUIRED: Module registration and basic setup using new API
 Hooks.once('init', async () => {
-    const blacksmithRegisterModuleID = 'some-module-id' ; // e.g. awesome-humpty-dumpty
-    const blacksmithRegisterModuleName = 'SHORTNAME'; // e.g. a short name like "HUMPTY"
-    const blacksmithRegisterModuleTitle = 'Some Module Title'; // e.g. "Awesome Humpty Dumpty Module"
-    const blacksmithRegisterModuleVersion = '1.0.0'; // e.g. "1.0.0"
     try {
-        const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
-        blacksmithModuleManager.registerModule(blacksmithRegisterModuleID, {
-            name: blacksmithRegisterModuleName,
-            version: blacksmithRegisterModuleVersion
+        // Get the module manager
+        const moduleManager = await BlacksmithAPI.getModuleManager();
+        
+        // Register your module
+        moduleManager.registerModule('your-module-id', {
+            name: 'YOUR_SHORT_NAME',
+            version: '1.0.0'
         });
-        console.log(`✅ ${blacksmithRegisterModuleTitle}: Module registered with Blacksmith successfully`);
+        
+        console.log('✅ Module registered with Blacksmith successfully');
     } catch (error) {
-        console.error(`❌ ${blacksmithRegisterModuleTitle}: Failed to register with Blacksmith:`, error);
+        console.error('❌ Failed to register with Blacksmith:', error);
     }
 });
 ```
 
-**Note**: Pass your variables in a way that makes sense for your module. A best paractive is to pull the ID, Title, and Version from your module.json file. The short name a simple way to identify your module.
+**Why register?**: This tells Blacksmith about your module and enables inter-module features.
 
-## **Step 3: Test Basic Integration**
-At this point, everything should be up and running. Use the console commands below to verify everything is working correctly.
+## **Step 3: Test Your Integration**
+Use these console commands to verify everything is working:
 
-
-**VERIFY BLACKMISTH API READINESS**
 ```javascript
+// Check if Blacksmith API is ready
 BlacksmithAPIStatus()
-```
 
-**Note**: Checks if the Blacksmith API is ready and available. Returns true if the API is accessible, false otherwise. Shows detailed status information in the console.
-
-
-**VERIFY MODULE REGISTRATION**
-```javascript
+// Verify your module is registered
 BlacksmithAPICheck()
 ```
 
-**Note**: Shows the current module registration status. Returns an object with count and list of registered modules. Displays module details in the console.
+## **Step 4: Start Using the API**
+Now you can access Blacksmith's features:
 
+```javascript
+// Get the HookManager
+const hookManager = await BlacksmithAPI.getHookManager();
 
-## **Step 4: Leverage the API**
-Nice work, you've got the basics going. Now you can start leveraging the API to build your module. 
+// Get utility functions
+const utils = await BlacksmithAPI.getUtils();
+
+// Get the ModuleManager
+const moduleManager = await BlacksmithAPI.getModuleManager();
+``` 
 
 
 
@@ -66,76 +103,130 @@ Nice work, you've got the basics going. Now you can start leveraging the API to 
 
 
 
-# **Console Commands - Quick Status Check**
+# **Console Commands - Debugging & Status**
 
-The easiest way to verify your Blacksmith integration is working is to use these console commands. Open your browser console (F12 → Console tab) and run any of these:
+> **Open your browser console (F12 → Console tab) to use these commands**
 
+These console commands help you debug and monitor your Blacksmith integration. They're the **easiest way to verify everything is working**.
 
-
-## **📊 API Availability Check**
+## **🔍 Quick Status Checks**
 ```javascript
-// Check if Blacksmith API is available
-BlacksmithAPI
+// Check if Blacksmith API is ready
+BlacksmithAPIStatus()
 
-// Quick one-liner to test everything
-(() => {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    const status = {
-        module: !!blacksmith,
-        api: !!(blacksmith?.utils?.getSettingSafely),
-        hooks: !!(blacksmith?.HookManager),
-        utils: !!(blacksmith?.utils)
-    };
-    console.log('Blacksmith Status:', status);
-    return Object.values(status).every(Boolean);
-})();
+// Verify your module registration
+BlacksmithAPICheck()
+
+// Get API version
+BlacksmithAPIVersion()
 ```
-## **🔍 Hook Management Status**
+
+## **📊 Detailed Information**
 ```javascript
-// Show all registered hooks (simple summary)
-blacksmithHooks()
+// Get comprehensive API details
+BlacksmithAPIDetails()
 
-// Show detailed hook information with priority grouping  
-blacksmithHookDetails()
+// Show all registered modules
+BlacksmithAPIModules()
 
-// Get raw hook statistics as an object
-blacksmithHookStats()
+// Display available features
+BlacksmithAPIFeatures()
+```
+
+## **⚙️ Hook Management (Advanced)**
+```javascript
+// Show hook summary
+BlacksmithAPIHooks()
+
+// Detailed hook information
+BlacksmithAPIHookDetails()
+
+// Hook statistics
+BlacksmithAPIHookStats()
+```
+
+## **🔧 Utilities & Settings**
+```javascript
+// Show available utility functions
+BlacksmithAPIUtils()
+
+// Display Blacksmith settings
+BlacksmithAPIConstants()
+
+// Show constants and themes
+BlacksmithAPIConstants()
 ```
 
 ## **✅ What You Should See:**
 
 **If everything is working:**
 ```
-✅ blacksmithHooks() → Shows hook count and names
-✅ blacksmithHookDetails() → Shows detailed priority breakdown
-✅ BlacksmithAPI → Returns the API class
-✅ Status check → All values should be true
+✅ BlacksmithAPIStatus() → Shows "✅ READY" status
+✅ BlacksmithAPICheck() → Shows your module in the list
+✅ All commands return useful information
 ```
 
 **If something is wrong:**
 ```
-❌ "blacksmithHooks is not a function" → Blacksmith not loaded
-❌ "HookManager not found" → API not ready yet
-❌ Status check shows false values → Integration issues
+❌ "BlacksmithAPIStatus is not a function" → API not loaded
+❌ "❌ NOT READY" status → Wait for Blacksmith to initialize
+❌ Error messages → Check console for specific issues
 ```
 
-**💡 Pro Tip**: Run these commands first before trying to integrate - they'll tell you exactly what's available and working!
+**💡 Pro Tip**: Start with `BlacksmithAPIStatus()` - it's the quickest way to verify your integration is working!
+
+---
+
+# **AI Prompts & Integration Notes**
+
+## **🤖 For AI Assistants**
+
+If you're using AI to help with Blacksmith integration, here are the key points:
+
+### **What to Tell AI:**
+- "Use the BlacksmithAPI bridge for external module integration"
+- "All methods return Promises that wait for Blacksmith to be ready"
+- "Import from `/modules/coffee-pub-blacksmith/api/blacksmith-api.js`"
+- "Use `await BlacksmithAPI.getHookManager()` not direct access"
+
+### **What NOT to Tell AI:**
+- "Access HookManager directly" (this is internal API)
+- "Use game.modules.get() directly" (use the bridge instead)
+- "Import from scripts/manager-hooks.js" (this is internal)
+
+### **Example AI Prompt:**
+```
+Help me integrate my FoundryVTT module with Coffee Pub Blacksmith using their external API. 
+I need to register hooks and access their HookManager. Use the BlacksmithAPI bridge approach.
+```
+
+## **📝 Integration Checklist**
+
+Before asking for help, verify:
+- [ ] Blacksmith module is installed and active
+- [ ] You're using the external API (BlacksmithAPI bridge)
+- [ ] You've registered your module with Blacksmith
+- [ ] You're handling async/await properly
 
 
 ***
 
 
 
-# **Working Examples**
+# **Working Examples - External API Usage**
+
+> **All examples use the BlacksmithAPI bridge for external modules**
 
 **📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
 
-**📋 API Usage**: All BlacksmithAPI methods return Promises that resolve when Blacksmith is ready. Use `await` or `.then()` to handle the asynchronous nature.
+**📋 API Usage**: All BlacksmithAPI methods return Promises that automatically wait for Blacksmith to be ready. Use `await` or `.then()` to handle the asynchronous nature.
 
 ## **Basic Hook Registration**
 ```javascript
-// Start using Blacksmith features immediately
-const hookId = blacksmithHookManager.registerHook({
+// Get the HookManager and register a hook
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const hookId = hookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Track actor changes',
     context: 'my-module',
@@ -150,7 +241,9 @@ const hookId = blacksmithHookManager.registerHook({
 ## **Hook with All Parameters (Recommended Order)**
 ```javascript
 // Example showing the recommended parameter order
-const fullHookId = blacksmithHookManager.registerHook({
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const fullHookId = hookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Track actor changes',
     context: 'my-module',
@@ -170,7 +263,9 @@ const fullHookId = blacksmithHookManager.registerHook({
 ## **Combat Tracking Hook**
 ```javascript
 // Combat-related hooks
-const combatHookId = blacksmithHookManager.registerHook({
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const combatHookId = hookManager.registerHook({
     name: 'updateCombat',
     description: 'My module: Track combat changes',
     context: 'my-combat-tracker', // For batch cleanup
@@ -186,7 +281,9 @@ const combatHookId = blacksmithHookManager.registerHook({
 ## **UI Enhancement Hook**
 ```javascript
 // UI enhancement hooks
-const uiHookId = blacksmithHookManager.registerHook({
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const uiHookId = hookManager.registerHook({
     name: 'renderChatMessage',
     description: 'My module: Enhance chat messages',
     context: 'my-chat-enhancer', // For batch cleanup
@@ -201,7 +298,9 @@ const uiHookId = blacksmithHookManager.registerHook({
 ## **One-time Hook with Auto-cleanup**
 ```javascript
 // One-time hooks with auto-cleanup
-const welcomeHookId = blacksmithHookManager.registerHook({
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const welcomeHookId = hookManager.registerHook({
     name: 'userLogin',
     description: 'My module: Welcome message',
     context: 'my-welcome', // For batch cleanup
@@ -216,7 +315,9 @@ const welcomeHookId = blacksmithHookManager.registerHook({
 ## **Performance-Optimized Hooks**
 ```javascript
 // Throttle noisy hooks (e.g., updateToken)
-const throttledHookId = blacksmithHookManager.registerHook({
+const hookManager = await BlacksmithAPI.getHookManager();
+
+const throttledHookId = hookManager.registerHook({
     name: 'updateToken',
     description: 'My module: Throttled token updates',
     context: 'my-token-tracker',
