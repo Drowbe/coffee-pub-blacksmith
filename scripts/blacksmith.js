@@ -62,6 +62,8 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { ConstantsGenerator } from './constants-generator.js';
+import { assetLookup } from './asset-lookup.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -643,7 +645,9 @@ Hooks.once('init', async function() {
         version: MODULE.APIVERSION,
         BLACKSMITH: BLACKSMITH,
         stats: StatsAPI,
-        HookManager  // ✅ NEW: Expose HookManager for other Coffee Pub modules
+        HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
+        ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
+        assetLookup  // ✅ NEW: Expose AssetLookup for flexible asset access
     };
 
 });

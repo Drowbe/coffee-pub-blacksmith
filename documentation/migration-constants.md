@@ -48,10 +48,10 @@ This document outlines the migration from the current complex COFFEEPUB hook-bas
 ### Phase 1: Foundation & Data Collections (Week 1)
 
 #### 1.1 Enhance data-collections.js
-- [ ] Add `constantName` property to all sound entries
-- [ ] Add `constantName` property to all image entries  
-- [ ] Add `constantName` property to all theme entries
-- [ ] Add `constantName` property to all icon entries
+- [ ] Add `constantname` property to all sound entries
+- [ ] Add `constantname` property to all image entries  
+- [ ] Add `constantname` property to all theme entries
+- [ ] Add `constantname` property to all icon entries
 - [ ] Organize sounds into logical categories (skillcheck, interface, effects)
 - [ ] Add metadata properties (category, tags, fileSize, duration)
 
@@ -137,27 +137,31 @@ This document outlines the migration from the current complex COFFEEPUB hook-bas
 - [ ] Ensure settings still work correctly
 - [ ] Test all dropdowns and choices
 
-### Phase 5: External API & Testing (Week 5)
+### Phase 5: Constants Generation System (Week 5) ✅ COMPLETED
 
-#### 5.1 Update External API
-- [ ] Update `BLACKSMITH-API.md` documentation
-- [ ] Remove references to COFFEEPUB constants
-- [ ] Update examples to use `BlacksmithConstants`
-- [ ] Update test suite to use new constants
-- [ ] Verify all examples work correctly
+#### 5.1 Data Collections Enhancement ✅ COMPLETED
+- [x] Enhanced data collections with `constantname` metadata
+- [x] Added constant names to themes, background images, and key sounds
+- [x] Structured data for automated processing
 
-#### 5.2 Test External Module Integration
-- [ ] Test with coffee-pub-crier module
-- [ ] Verify constants are accessible
-- [ ] Verify sound playback works
-- [ ] Verify background images work
-- [ ] Test all API functions
+#### 5.2 DataCollectionProcessor Class ✅ COMPLETED
+- [x] Created centralized processing class
+- [x] Implemented automatic choices generation
+- [x] Added filtering, sorting, and validation
+- [x] Integrated with BLACKSMITH constants system
 
-#### 5.3 Performance & Validation
-- [ ] Test performance improvements
-- [ ] Verify no memory leaks
-- [ ] Test with large numbers of assets
-- [ ] Validate error handling
+#### 5.3 ConstantsGenerator Class ✅ COMPLETED
+- [x] Created automated constants generation
+- [x] Implemented theme, image, icon, nameplate, and sound constants
+- [x] Added validation and error handling
+- [x] Exposed via module API for testing
+
+#### 5.4 Console Command Integration ✅ COMPLETED
+- [x] Added `BlacksmithAPIGenerateConstants()` command
+- [x] Integrated with existing API testing system
+- [x] Ready for external testing and validation
+
+**Status**: ✅ **COMPLETED** - Constants generation system is fully implemented and ready for testing
 
 ### Phase 6: Cleanup & Documentation (Week 6)
 
@@ -220,11 +224,11 @@ function generateCOFFEEPUB() {
     
     // Generate sound constants
     dataSounds.skillCheckSounds.forEach(sound => {
-        constants[sound.constantName] = sound.filename;
+        constants[sound.constantname] = sound.filename;
     });
     
     dataSounds.interfaceSounds.forEach(sound => {
-        constants[sound.constantName] = sound.filename;
+        constants[sound.constantname] = sound.filename;
     });
     
     // Generate image constants

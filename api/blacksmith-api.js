@@ -445,6 +445,95 @@ window.BlacksmithAPIConstants = () => {
     }
 };
 
+// BlacksmithAPIGenerateConstants - Test the new constants generation system
+window.BlacksmithAPIGenerateConstants = async () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.ConstantsGenerator) {
+            console.error('❌ ConstantsGenerator not available');
+            return null;
+        }
+        
+        console.log('🔧 Testing Constants Generation System...');
+        
+        // Generate all constants
+        const constants = module.api.ConstantsGenerator.generateAllConstants();
+        console.log('🔧 Generated Constants:', constants);
+        
+        // Generate all constants
+        const choices = module.api.ConstantsGenerator.generateAllChoices();
+        console.log('🔧 Generated Choices:', choices);
+        
+        // Get constant names
+        const constantnames = module.api.ConstantsGenerator.getAllconstantnames();
+        console.log('🔧 Available Constant Names:', constantnames);
+        
+        // Validate constants
+        const validation = module.api.ConstantsGenerator.validateConstants();
+        console.log('🔧 Constants Validation:', validation);
+        
+        return { constants, choices, constantnames, validation };
+        
+    } catch (error) {
+        console.error('❌ Failed to test constants generation:', error);
+        return null;
+    }
+};
+
+// BlacksmithAPIAssetLookup - Test the new Asset Lookup Tool
+window.BlacksmithAPIAssetLookup = async () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.assetLookup) {
+            console.error('❌ AssetLookup not available');
+            return null;
+        }
+        
+        console.log('🔍 Testing Asset Lookup Tool...');
+        
+        // Test getByTypeAndTags
+        const errorSounds = module.api.assetLookup.getByTypeAndTags('sound', 'interface', ['error']);
+        console.log('🔍 Error Sounds:', errorSounds);
+        
+        // Test getByCategory
+        const interfaceSounds = module.api.assetLookup.getByCategory('interface');
+        console.log('🔍 Interface Sounds:', interfaceSounds);
+        
+        // Test searchByCriteria
+        const notificationSounds = module.api.assetLookup.searchByCriteria({
+            type: 'sound',
+            category: 'interface',
+            tags: ['notification']
+        });
+        console.log('🔍 Notification Sounds:', notificationSounds);
+        
+        // Test getChoices
+        const soundChoices = module.api.assetLookup.getChoices('sound', 'interface');
+        console.log('🔍 Sound Choices:', soundChoices);
+        
+        // Test getRandom
+        const randomErrorSound = module.api.assetLookup.getRandom('sound', 'interface', ['error']);
+        console.log('🔍 Random Error Sound:', randomErrorSound);
+        
+        // Test constants
+        const allConstants = module.api.assetLookup.getAllConstants();
+        console.log('🔍 Generated Constants:', allConstants);
+        
+        return { 
+            errorSounds, 
+            interfaceSounds, 
+            notificationSounds, 
+            soundChoices, 
+            randomErrorSound, 
+            allConstants 
+        };
+        
+    } catch (error) {
+        console.error('❌ Failed to test Asset Lookup Tool:', error);
+        return null;
+    }
+};
+
 // BlacksmithAPIUtils - Show all available utility functions
 window.BlacksmithAPIUtils = async () => {
     try {

@@ -497,6 +497,8 @@ For detailed information about what each command returns and displays:
 | `BlacksmithAPIUtils()` | Object | Complete list of utility functions |
 | `BlacksmithAPISettings()` | Object | All current configuration values |
 | `BlacksmithAPIConstants()` | Object | Constants, themes, and sounds |
+| `BlacksmithAPIGenerateConstants()` | Object | Test the new constants generation system |
+| `BlacksmithAPIAssetLookup()` | Object | Test the new Asset Lookup Tool |
 | `BlacksmithAPIManualReady()` | `true`/`false` | Manual readiness check for debugging |
 
 ## **✅ What You Should See:**
@@ -516,6 +518,160 @@ For detailed information about what each command returns and displays:
 ```
 
 **💡 Pro Tip**: Start with `BlacksmithAPIStatus()` - it's the quickest way to verify your integration is working!
+
+---
+
+# **🔍 Asset Lookup Tool (NEW!)**
+
+## **Overview**
+
+The **Asset Lookup Tool** provides flexible, tag-based access to all Blacksmith assets (sounds, images, themes, etc.) while maintaining backward compatibility with existing constants.
+
+### **Key Benefits:**
+- **🔄 Flexible Access**: Find assets by type, category, and tags
+- **⚡ Performance**: Constants still exist for frequently used items
+- **🏷️ Smart Tagging**: Organize assets with multiple descriptive tags
+- **🔄 Auto-Generation**: Constants generated from data collections
+- **🔧 Future-Proof**: Easy to add new asset types and categories
+
+## **Data Structure**
+
+Each asset now includes enhanced metadata:
+
+```javascript
+{
+    "name": "Interface: Error 01",
+    "id": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
+    "constantname": "SOUNDERROR01",
+    "path": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
+    "tags": ["interface", "error"],
+    "type": "sound",
+    "category": "interface"
+}
+```
+
+### **Fields:**
+- **`name`**: Human-readable display name
+- **`id`**: Unique identifier
+- **`constantname`**: Generated constant name (for backward compatibility)
+- **`path`**: File path or reference
+- **`tags`**: Array of descriptive tags
+- **`type`**: Asset type (sound, image, theme, etc.)
+- **`category`**: Asset category (interface, background, etc.)
+
+## **Usage Examples**
+
+### **1. Get Assets by Type and Tags**
+```javascript
+// Get all interface sounds tagged as "error"
+const errorSounds = assetLookup.getByTypeAndTags('sound', 'interface', ['error']);
+
+// Get all monster banners
+const monsterBanners = assetLookup.getByTypeAndTags('image', 'banner', ['monster']);
+
+// Get all flying monster banners
+const flyingMonsters = assetLookup.getByTypeAndTags('image', 'banner', ['monster', 'flying']);
+```
+
+### **2. Get Assets by Category**
+```javascript
+// Get all interface assets
+const interfaceAssets = assetLookup.getByCategory('interface');
+
+// Get all background assets
+const backgroundAssets = assetLookup.getByCategory('background');
+```
+
+### **3. Search by Criteria**
+```javascript
+// Find assets with "error" in name, type sound, category interface
+const errorInterfaceSounds = assetLookup.searchByCriteria({
+    name: 'error',
+    type: 'sound',
+    category: 'interface'
+});
+
+// Find all assets tagged with "notification"
+const notificationAssets = assetLookup.searchByCriteria({
+    tags: ['notification']
+});
+```
+
+### **4. Get UI Choices**
+```javascript
+// Get choices for dropdown (returns { id: name, ... })
+const soundChoices = assetLookup.getChoices('sound', 'interface');
+
+// Get choices for specific tag combination
+const errorSoundChoices = assetLookup.getChoices('sound', 'interface', ['error']);
+```
+
+### **5. Random Asset Selection**
+```javascript
+// Get random error sound
+const randomErrorSound = assetLookup.getRandom('sound', 'interface', ['error']);
+
+// Get random monster banner
+const randomMonsterBanner = assetLookup.getRandom('image', 'banner', ['monster']);
+```
+
+### **6. Backward Compatibility**
+```javascript
+// Constants still work exactly as before
+const errorSound = SOUNDERROR01; // Generated from data collections
+
+// Or use the lookup tool
+const errorSoundPath = assetLookup.getConstant('SOUNDERROR01');
+```
+
+## **Common Use Cases**
+
+### **Settings Dropdowns**
+```javascript
+// "Show me all sounds in interface category tagged as error"
+const errorInterfaceSounds = assetLookup.getByTypeAndTags('sound', 'interface', ['error']);
+// Returns: [SOUNDERROR01, SOUNDERROR02, SOUNDERROR03, ...]
+```
+
+### **Dynamic Asset Selection**
+```javascript
+// "Get a random monster banner for this encounter"
+const encounterBanner = assetLookup.getRandom('image', 'banner', ['monster']);
+
+// "Find all flying creatures for aerial combat"
+const aerialAssets = assetLookup.searchByCriteria({
+    tags: ['flying'],
+    type: 'image'
+});
+```
+
+### **Asset Organization**
+```javascript
+// "Get all assets related to fire damage"
+const fireAssets = assetLookup.searchByCriteria({
+    tags: ['fire', 'damage']
+});
+
+// "Get all interface sounds for buttons"
+const buttonSounds = assetLookup.getByTypeAndTags('sound', 'interface', ['button']);
+```
+
+## **Testing the Tool**
+
+Use the console command to test all functionality:
+
+```javascript
+// Test the Asset Lookup Tool
+BlacksmithAPIAssetLookup();
+```
+
+This will test:
+- ✅ Tag-based lookups
+- ✅ Category searches
+- ✅ Criteria searches
+- ✅ Choice generation
+- ✅ Random selection
+- ✅ Constant generation
 
 ---
 
