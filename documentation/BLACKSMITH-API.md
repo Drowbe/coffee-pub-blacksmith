@@ -6,19 +6,37 @@
 > 
 > **If you're developing Blacksmith itself**, see `BLACKSMITH-ARCHITECTURE.md` for internal architecture details.
 
+## **⚠️ Breaking Change Notice**
+
+**Version 12.2.0+**: The API has been simplified to use global objects instead of async methods.
+
+**Old way (broken):**
+```javascript
+const hookManager = await BlacksmithAPI.getHookManager();
+const utils = await BlacksmithAPI.getUtils();
+```
+
+**New way (working):**
+```javascript
+const hookManager = BlacksmithHookManager;
+const utils = BlacksmithUtils;
+```
+
+**Migration**: Update your code to use the global objects directly - no more `await` needed!
+
 ## **What This API Provides**
 
-Coffee Pub Blacksmith offers a clean, reliable integration path for external modules through our **BlacksmithAPI bridge**. This approach:
+Coffee Pub Blacksmith offers a clean, reliable integration path for external modules through our **global object system**. This approach:
 
 - ✅ **Handles timing issues automatically** - No more race conditions
 - ✅ **Provides consistent interface** - Same API regardless of when you call it  
 - ✅ **Manages availability checks** - Automatically waits for Blacksmith to be ready
 - ✅ **Offers debugging tools** - Console commands to verify integration
-- ✅ **Supports async/await** - Modern JavaScript patterns
+- ✅ **Simple direct access** - No async/await complexity
 
 ## **Integration Philosophy**
 
-We believe external modules should have a **simple, predictable interface** that doesn't break when Blacksmith's internal structure changes. The BlacksmithAPI bridge provides this stability.
+We believe external modules should have a **simple, predictable interface** that doesn't break when Blacksmith's internal structure changes. The global object system provides this stability with direct access to all features.
 
 ## **Internal vs External APIs - What's the Difference?**
 
@@ -30,7 +48,7 @@ We believe external modules should have a **simple, predictable interface** that
 
 ### **🌐 External API (for other modules)**
 - **Location**: This document (`BLACKSMITH-API.md`)
-- **Access**: BlacksmithAPI bridge (e.g., `await BlacksmithAPI.getHookManager()`)
+- **Access**: Global objects (e.g., `BlacksmithHookManager`, `BlacksmithUtils`)
 - **Use case**: When your module wants to integrate with Blacksmith
 - **Example**: Other Coffee Pub modules use external APIs
 
@@ -41,12 +59,10 @@ We believe external modules should have a **simple, predictable interface** that
 
 # **Quick Start - External Module Integration**
 
-## **Step 1: Import the BlacksmithAPI Bridge**
-```javascript
-import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
-```
+## **Step 1: No Import Required!**
+The Blacksmith API is automatically available as global objects when Blacksmith loads.
 
-**What this does**: Imports the bridge that handles all timing and availability issues automatically.
+**What this means**: No imports needed - just use the global objects directly!
 
 ## **Step 2: Register Your Module (Required)**
 
@@ -64,7 +80,7 @@ import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api
 Hooks.once('init', async () => {
     try {
         // Get the module manager
-        const moduleManager = await BlacksmithAPI.getModuleManager();
+        const moduleManager = BlacksmithModuleManager;
         
         // Register your module
         moduleManager.registerModule('YOUR_MODULE_ID', {
@@ -93,17 +109,13 @@ BlacksmithAPICheck()
 ```
 
 ## **Step 4: Start Using the API**
-Now you can access Blacksmith's features:
+Now you can access Blacksmith's features directly:
 
 ```javascript
-// Get the HookManager
-const hookManager = await BlacksmithAPI.getHookManager();
-
-// Get utility functions
-const utils = await BlacksmithAPI.getUtils();
-
-// Get the ModuleManager
-const moduleManager = await BlacksmithAPI.getModuleManager();
+// Direct access - no await needed!
+const hookManager = BlacksmithHookManager;
+const utils = BlacksmithUtils;
+const moduleManager = BlacksmithModuleManager;
 ``` 
 
 
@@ -231,7 +243,7 @@ If you're using AI to help with Blacksmith integration, here are the key points:
 - "Use the BlacksmithAPI bridge for external module integration"
 - "All methods return Promises that wait for Blacksmith to be ready"
 - "Import from `/modules/coffee-pub-blacksmith/api/blacksmith-api.js`"
-- "Use `await BlacksmithAPI.getHookManager()` not direct access"
+- "Use global objects like `BlacksmithHookManager` for direct access"
 
 ### **What NOT to Tell AI:**
 - "Access HookManager directly" (this is internal API)
@@ -267,8 +279,8 @@ Before asking for help, verify:
 
 ## **Basic Hook Registration**
 ```javascript
-// Get the HookManager and register a hook
-const hookManager = await BlacksmithAPI.getHookManager();
+// Direct access - no await needed!
+const hookManager = BlacksmithHookManager;
 
 const hookId = hookManager.registerHook({
     name: 'updateActor',
@@ -285,7 +297,7 @@ const hookId = hookManager.registerHook({
 ## **Hook with All Parameters (Recommended Order)**
 ```javascript
 // Example showing the recommended parameter order
-const hookManager = await BlacksmithAPI.getHookManager();
+const hookManager = BlacksmithHookManager;
 
 const fullHookId = hookManager.registerHook({
     name: 'updateActor',
@@ -307,7 +319,7 @@ const fullHookId = hookManager.registerHook({
 ## **Combat Tracking Hook**
 ```javascript
 // Combat-related hooks
-const hookManager = await BlacksmithAPI.getHookManager();
+const hookManager = BlacksmithHookManager;
 
 const combatHookId = hookManager.registerHook({
     name: 'updateCombat',
@@ -325,7 +337,7 @@ const combatHookId = hookManager.registerHook({
 ## **UI Enhancement Hook**
 ```javascript
 // UI enhancement hooks
-const hookManager = await BlacksmithAPI.getHookManager();
+const hookManager = BlacksmithHookManager;
 
 const uiHookId = hookManager.registerHook({
     name: 'renderChatMessage',
@@ -342,7 +354,7 @@ const uiHookId = hookManager.registerHook({
 ## **One-time Hook with Auto-cleanup**
 ```javascript
 // One-time hooks with auto-cleanup
-const hookManager = await BlacksmithAPI.getHookManager();
+const hookManager = BlacksmithHookManager;
 
 const welcomeHookId = hookManager.registerHook({
     name: 'userLogin',
@@ -359,7 +371,7 @@ const welcomeHookId = hookManager.registerHook({
 ## **Performance-Optimized Hooks**
 ```javascript
 // Throttle noisy hooks (e.g., updateToken)
-const hookManager = await BlacksmithAPI.getHookManager();
+const hookManager = BlacksmithHookManager;
 
 const throttledHookId = hookManager.registerHook({
     name: 'updateToken',
@@ -394,11 +406,8 @@ import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
 Hooks.once('ready', async () => {
     try {
-        // Wait for Blacksmith to be ready
-        const blacksmith = await BlacksmithAPI.get();
-        
         // Register with Blacksmith
-        blacksmith.ModuleManager.registerModule('my-awesome-module', {
+        BlacksmithModuleManager.registerModule('my-awesome-module', {
             name: 'My Awesome Module',
             version: '1.0.0',
             features: [
@@ -408,14 +417,14 @@ Hooks.once('ready', async () => {
         });
         
         // Set up hooks
-        const hookId = blacksmith.HookManager.registerHook({
+        const hookId = BlacksmithHookManager.registerHook({
             name: 'updateActor',
             description: 'My module: Track actor changes',
             context: 'my-awesome-module', // For batch cleanup
             priority: 3,
             callback: (actor, changes) => {
                 // My logic here
-                blacksmith.utils.postConsoleAndNotification(
+                BlacksmithUtils.postConsoleAndNotification(
                     'my-awesome-module', 
                     'Actor updated!', 
                     { actorId: actor.id, changes }, 
@@ -514,12 +523,11 @@ hookManager.getStats();
 ## **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
 
-**Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, etc.), use the full API object:
+**Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, etc.), use the global constants object:
 ```javascript
-const blacksmith = await BlacksmithAPI.getFullAPI();
-const themeChoices = blacksmith.BLACKSMITH.arrThemeChoices;
-const soundChoices = blacksmith.BLACKSMITH.arrSoundChoices;
-const tableChoices = blacksmith.BLACKSMITH.arrTableChoices;
+const themeChoices = BlacksmithConstants.arrThemeChoices;
+const soundChoices = BlacksmithConstants.arrSoundChoices;
+const tableChoices = BlacksmithConstants.arrTableChoices;
 ```
 
 **Available Utilities**:
@@ -560,9 +568,8 @@ blacksmithUtils.postConsoleAndNotification(
 blacksmithUtils.playSound('success.mp3');
 
 // Access Blacksmith version and constants
-const blacksmith = await BlacksmithAPI.getFullAPI();
-console.log('Blacksmith version:', blacksmith.version);
-console.log('Available themes:', blacksmith.BLACKSMITH.arrThemeChoices);
+console.log('Blacksmith version:', BlacksmithAPI.version);
+console.log('Available themes:', BlacksmithConstants.arrThemeChoices);
 ```
 
 
@@ -665,11 +672,8 @@ import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
 Hooks.once('ready', async () => {
     try {
-        // Wait for Blacksmith to be ready
-        const blacksmith = await BlacksmithAPI.get();
-        
         // Register with Blacksmith
-        blacksmith.ModuleManager.registerModule('my-module', {
+        BlacksmithModuleManager.registerModule('my-module', {
             name: 'My Module',
             version: '1.0.0',
             features: [
@@ -678,14 +682,14 @@ Hooks.once('ready', async () => {
         });
         
         // Set up hooks
-        const hookId = blacksmith.HookManager.registerHook({
+        const hookId = BlacksmithHookManager.registerHook({
             name: 'updateActor',
             description: 'My module: Track actor changes',
             context: 'my-module', // For batch cleanup
             priority: 3,
             callback: (actor, changes) => {
                 // My logic here
-                blacksmith.utils.postConsoleAndNotification('my-module', 'Actor updated!', { actorId: actor.id, changes }, false, false);
+                BlacksmithUtils.postConsoleAndNotification('my-module', 'Actor updated!', { actorId: actor.id, changes }, false, false);
             }
         });
         
@@ -705,23 +709,21 @@ Hooks.once('ready', async () => {
 ## **Feature Detection Pattern**
 ```javascript
 // Check what features are available
-const blacksmith = await BlacksmithAPI.get();
-
-if (blacksmith.HookManager) {
+if (BlacksmithHookManager) {
     console.log('HookManager available');
 }
 
-if (blacksmith.ModuleManager) {
+if (BlacksmithModuleManager) {
     console.log('ModuleManager available');
 }
 
-if (blacksmith.utils) {
+if (BlacksmithUtils) {
     console.log('Utilities available');
 }
 
-// Check specific features
-if (await BlacksmithAPI.hasFeature('HookManager')) {
-    console.log('HookManager feature is available');
+// Check if Blacksmith is ready
+if (BlacksmithAPI.isReady) {
+    console.log('Blacksmith is ready');
 }
 ```
 
@@ -733,7 +735,7 @@ if (await BlacksmithAPI.hasFeature('HookManager')) {
 ## **Error Handling Pattern**
 ```javascript
 try {
-    const hookManager = BlacksmithAPI.getHookManager();
+    const hookManager = BlacksmithHookManager;
     
     if (!hookManager) {
         throw new Error('HookManager not available');
@@ -864,8 +866,8 @@ BlacksmithAPIHookStats();
 // Solution: Ensure proper import
 import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
 
-// Use the bridge file approach
-const hookManager = await BlacksmithAPI.getHookManager();
+// Use the global object approach
+const hookManager = BlacksmithHookManager;
 ```
 
 **Issue: Hook not executing**
@@ -900,13 +902,13 @@ hookManager.registerHook({
 ## **1. Use Descriptive Variable Names (IMPORTANT)**
 ```javascript
 // GOOD: Prepend "blacksmith" to avoid naming conflicts
-const blacksmithHookManager = await BlacksmithAPI.getHookManager();
-const blacksmithUtils = await BlacksmithAPI.getUtils();
-const blacksmithModuleManager = await BlacksmithAPI.getModuleManager();
+const blacksmithHookManager = BlacksmithHookManager;
+const blacksmithUtils = BlacksmithUtils;
+const blacksmithModuleManager = BlacksmithModuleManager;
 
 // BAD: Generic names can conflict with existing variables
-const utils = await BlacksmithAPI.getUtils();        // Might conflict with existing utils
-const hook = await BlacksmithAPI.getHookManager(); // Might conflict with existing hookManager
+const utils = BlacksmithUtils;        // Might conflict with existing utils
+const hook = BlacksmithHookManager; // Might conflict with existing hookManager
 ```
 
 **Why this matters:**
