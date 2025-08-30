@@ -92,6 +92,37 @@ export class UtilsManager {
         return GlobalUtils.setSettingSafely(moduleId, settingKey, value);
     }
 
+    // Missing functions that Scribe and other modules need:
+    static getTokenId(tokenName) {
+        this.checkInitialized();
+        return GlobalUtils.getTokenId(tokenName);
+    }
+
+    static objectToString(obj) {
+        this.checkInitialized();
+        return GlobalUtils.objectToString(obj);
+    }
+
+    static stringToObject(str) {
+        this.checkInitialized();
+        return GlobalUtils.stringToObject(str);
+    }
+
+    static convertSecondsToRounds(numSeconds) {
+        this.checkInitialized();
+        return GlobalUtils.convertSecondsToRounds(numSeconds);
+    }
+
+    static async rollCoffeePubDice(roll = null) {
+        this.checkInitialized();
+        return GlobalUtils.rollCoffeePubDice(roll);
+    }
+
+    static resetModuleSettings(moduleId) {
+        this.checkInitialized();
+        return GlobalUtils.resetModuleSettings(moduleId);
+    }
+
     // Get all utilities as an object
     static getUtils(requiredVersion = this.API_VERSION) {
         this.checkInitialized();
@@ -113,7 +144,15 @@ export class UtilsManager {
             playSound: this.playSound.bind(this),
             // Safe Settings Access
             getSettingSafely: this.getSettingSafely.bind(this),
-            setSettingSafely: this.setSettingSafely.bind(this)
+            setSettingSafely: this.setSettingSafely.bind(this),
+            
+            // Missing functions that Scribe and other modules need:
+            getTokenId: GlobalUtils.getTokenId.bind(GlobalUtils),
+            objectToString: GlobalUtils.objectToString.bind(GlobalUtils),
+            stringToObject: GlobalUtils.stringToObject.bind(GlobalUtils),
+            convertSecondsToRounds: GlobalUtils.convertSecondsToRounds.bind(GlobalUtils),
+            rollCoffeePubDice: GlobalUtils.rollCoffeePubDice.bind(GlobalUtils),
+            resetModuleSettings: GlobalUtils.resetModuleSettings.bind(GlobalUtils)
         };
     }
 } 

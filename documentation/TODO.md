@@ -2,7 +2,23 @@
 
 ## CRITICAL ISSUES (High Severity)
 
-### 1. Global Variable Accumulation
+### 1. 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (BLOCKING)
+- **Issue**: OpenAI functions exist in `api-common.js` but are NOT exposed via `module.api`
+- **Location**: `scripts/api-common.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
+- **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration
+- **Status**: 🚨 CRITICAL - BLOCKING EXTERNAL MODULE INTEGRATION
+- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
+- **Notes**: This was supposed to be a core feature - all Coffee Pub modules should share OpenAI integration
+- **Dependencies**: Must be fixed before external modules can properly integrate
+- **Example of what should work**:
+  ```javascript
+  // External modules should be able to do this:
+  const response = await BlacksmithUtils.getOpenAIReplyAsHtml("Generate a monster description");
+  const jsonResponse = await BlacksmithUtils.getOpenAIReplyAsJson("Create a loot table");
+  const textResponse = await BlacksmithUtils.getOpenAIReplyAsText("Write a quest hook");
+  ```
+
+### 2. Global Variable Accumulation
 - **Issue**: `tokenCount` Map is never cleared and grows indefinitely
 - **Location**: Line 350: `let tokenCount = new Map();`
 - **Impact**: Memory leak that grows with each token creation
@@ -164,7 +180,25 @@
 - [ ] **ARCHITECTURAL REFACTOR**: Create service classes for each functional area
 - [ ] **ARCHITECTURAL REFACTOR**: HookManager should delegate, not execute
 
-### Phase 4: Memory Management (Long-term) 🟢 TODO
+### Phase 4: 🚨 OPENAI API EXPOSURE FIX (IMMEDIATE) 🚨 CRITICAL
+- [ ] **IMMEDIATE**: Add OpenAI functions to `UtilsManager.getUtils()`
+- [ ] **IMMEDIATE**: Expose `getOpenAIReplyAsHtml`, `getOpenAIReplyAsJson`, `getOpenAIReplyAsText`
+- [ ] **IMMEDIATE**: Test with external modules to verify API works
+- [ ] **IMMEDIATE**: Update API documentation to show OpenAI functions
+- [ ] **IMMEDIATE**: Ensure OpenAI settings are accessible to external modules
+- **Status**: 🚨 BLOCKING - Must be fixed before external modules can integrate
+- **Impact**: **BREAKS ENTIRE DESIGN** of shared OpenAI integration
+- **Dependencies**: Must be fixed before proceeding with other migration work
+
+### Phase 4.5: ✅ MISSING API FUNCTIONS FIXED (COMPLETED)
+- [x] **COMPLETED**: Added missing functions to `UtilsManager.getUtils()`
+- [x] **COMPLETED**: Exposed `getTokenId`, `objectToString`, `stringToObject`, `convertSecondsToRounds`, `rollCoffeePubDice`, `resetModuleSettings`
+- [x] **COMPLETED**: Added static methods to UtilsManager class
+- **Status**: ✅ COMPLETED - Scribe and other modules can now access all needed functions
+- **Impact**: **FIXES EXTERNAL MODULE INTEGRATION** - Coffee Pub modules can now function properly
+- **Notes**: All functions now available via `BlacksmithUtils.functionName()` or `BlacksmithUtils.functionName()`
+
+### Phase 5: Memory Management (Long-term) 🟢 TODO
 - [ ] Add proper cleanup handlers
 - [ ] Implement event listener cleanup
 - [ ] Add memory monitoring

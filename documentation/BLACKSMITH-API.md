@@ -24,6 +24,21 @@ const utils = BlacksmithUtils;
 
 **Migration**: Update your code to use the global objects directly - no more `await` needed!
 
+## **🚧 PENDING MIGRATION NOTICE**
+
+**Important**: We are currently migrating our constants system from the old `COFFEEPUB` approach to a new centralized system. During this migration:
+
+- **✅ Working Now**: Core API functions (hooks, utilities, module management)
+- **⚠️ PENDING**: Sound constants, image constants, and other asset constants
+- **📝 Status**: Use direct file paths for sounds/images until migration completes
+
+**What This Means for You:**
+- Your module integration will work for core features
+- Sound and image constants will be available via `BlacksmithConstants` once migration completes
+- For now, use direct file paths (e.g., `'modules/coffee-pub-blacksmith/sounds/notification.mp3'`)
+
+**Migration Timeline**: Expected completion in 6 weeks. We'll update this documentation when the new constants system is ready.
+
 ## **What This API Provides**
 
 Coffee Pub Blacksmith offers a clean, reliable integration path for external modules through our **global object system**. This approach:
@@ -33,6 +48,39 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 - ✅ **Manages availability checks** - Automatically waits for Blacksmith to be ready
 - ✅ **Offers debugging tools** - Console commands to verify integration
 - ✅ **Simple direct access** - No async/await complexity
+
+## **🚧 Current API Status - What's Working vs What's Pending**
+
+### **✅ Available Now (Fully Functional)**
+- **Hook Management**: Register and manage FoundryVTT hooks
+- **Utility Functions**: Logging, notifications, settings management
+- **Module Registration**: Register your module with Blacksmith
+- **Statistics API**: Access combat and player statistics
+- **Core Constants**: Theme choices, sound choices, background image choices
+
+### **⚠️ Pending Migration (Use Alternatives)**
+- **Sound Constants**: `COFFEEPUB.SOUNDNOTIFICATION01` → Use direct file paths
+- **Image Constants**: `COFFEEPUB.BACKSKILLCHECK` → Use direct file paths  
+- **Volume Constants**: `COFFEEPUB.SOUNDVOLUMENORMAL` → Use hardcoded values (0.7)
+- **Asset Constants**: All `COFFEEPUB.*` constants → Will be `BlacksmithConstants.*` after migration
+
+### **📝 Migration Workarounds**
+```javascript
+// Instead of: COFFEEPUB.SOUNDNOTIFICATION01
+// Use: 'modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3'
+
+// Instead of: COFFEEPUB.SOUNDVOLUMENORMAL  
+// Use: 0.8 (or your preferred volume)
+
+// Instead of: COFFEEPUB.BACKSKILLCHECK
+// Use: 'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp'
+
+// Instead of: COFFEEPUB.SOUNDEFFECTREACTION04 (battlecry)
+// Use: 'modules/coffee-pub-blacksmith/sounds/battlecry.mp3'
+
+// Instead of: COFFEEPUB.SOUNDSUCCESS
+// Use: 'modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3'
+```
 
 ## **Integration Philosophy**
 
@@ -761,9 +809,33 @@ const soundChoices = BlacksmithConstants.arrSoundChoices;
 const tableChoices = BlacksmithConstants.arrTableChoices;
 ```
 
-**Important**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) are also available globally for sound playback and other predefined values.
+**💡 Explore All Utilities**: Use the console command `BlacksmithAPIUtils()` to see a complete list of all available utility functions and their current values.
+
+**⚠️ PENDING MIGRATION**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) are currently being migrated to a new system. These will be available via `BlacksmithConstants` once the migration is complete.
 
 **Available Utilities**:
+
+| Function | Type | Description | Parameters |
+|----------|------|-------------|------------|
+| `postConsoleAndNotification` | Function | Console logging with debug support | `(moduleId, message, result, debug, notification)` |
+| `playSound` | Async Function | Sound playback | `(sound, volume, loop, broadcast)` |
+| `getSettingSafely` | Function | Safe settings access | `(moduleId, settingKey, defaultValue)` |
+| `setSettingSafely` | Function | Safe settings modification | `(moduleId, settingKey, value)` |
+| `formatTime` | Function | Time formatting utilities | `(ms, format)` |
+| `generateFormattedDate` | Function | Date formatting utilities | `(format)` |
+| `trimString` | Function | String truncation | `(str, maxLength)` |
+| `toSentenceCase` | Function | Text case conversion | `(str)` |
+| `getActorId` | Function | Get actor ID by name | `(actorName)` |
+| `getTokenImage` | Function | Get token image | `(tokenDoc)` |
+| `getPortraitImage` | Function | Get actor portrait | `(actor)` |
+| `getTokenId` | Function | Get token ID by name | `(tokenName)` |
+| `objectToString` | Function | Convert object to string | `(obj)` |
+| `stringToObject` | Function | Convert string to object | `(str)` |
+| `convertSecondsToRounds` | Function | Convert seconds to rounds | `(numSeconds)` |
+| `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
+| `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
+
+**Quick Examples**:
 ```javascript
 // Console logging with debug support
 utils.postConsoleAndNotification(
@@ -775,19 +847,21 @@ utils.postConsoleAndNotification(
 );
 
 // Sound playback - use predefined constants or full paths
-utils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, 0.7); // Predefined notification sound
-utils.playSound('modules/coffee-pub-blacksmith/sounds/notification.mp3', 0.5); // Custom path
+// ⚠️ PENDING MIGRATION: COFFEEPUB constants will be available via BlacksmithConstants once migration is complete
+utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3', 0.8); // Use direct paths for now
+utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3', 0.5); // Custom path
 
-// Available sound constants (use these for consistent sound experience):
-// - COFFEEPUB.SOUNDNOTIFICATION01-15: Various notification sounds
-// - COFFEEPUB.SOUNDBUTTON01-12: Button click sounds  
-// - COFFEEPUB.SOUNDPOP01-03: Pop/interface sounds
-// - COFFEEPUB.SOUNDEFFECTBOOK01-04: Book-related sounds
-// - COFFEEPUB.SOUNDEFFECTCHEST01-02: Chest/loot sounds
-// - COFFEEPUB.SOUNDEFFECTWEAPON01-03: Weapon sounds
-// - COFFEEPUB.SOUNDEFFECTINSTRUMENT01-04: Musical instrument sounds
-// - COFFEEPUB.SOUNDEFFECTREACTION01-04: Reaction sounds (battlecry, etc.)
-// - Volume constants: COFFEEPUB.SOUNDVOLUMELOUD (0.8), SOUNDVOLUMENORMAL (0.5), SOUNDVOLUMESOFT (0.3)
+// ⚠️ PENDING MIGRATION: Available sound constants will be documented here once migration is complete
+// These will include:
+// - Various notification sounds
+// - Button click sounds  
+// - Pop/interface sounds
+// - Book-related sounds
+// - Chest/loot sounds
+// - Weapon sounds
+// - Musical instrument sounds
+// - Reaction sounds (battlecry, etc.)
+// - Volume constants
 
 // Settings management
 const setting = utils.getSettingSafely('my-module-id', 'setting-key', 'default');
@@ -796,6 +870,14 @@ utils.setSettingSafely('my-module-id', 'setting-key', 'newValue');
 // Time and formatting utilities
 const formattedTime = utils.formatTime(ms, 'colon');
 const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
+
+// Newly exposed functions for Scribe and other modules:
+const tokenId = utils.getTokenId("My Token");
+const objString = utils.objectToString({ key: "value" });
+const obj = utils.stringToObject("key=value|other=data");
+const rounds = utils.convertSecondsToRounds(30);
+const diceResult = await utils.rollCoffeePubDice("2d20");
+utils.resetModuleSettings("my-module-id");
 ```
 
 **Usage Examples**:
@@ -810,7 +892,8 @@ BlacksmithUtils.postConsoleAndNotification(
 );
 
 // Play sounds for user feedback
-BlacksmithUtils.playSound(COFFEEPUB.SOUNDNOTIFICATION02, 0.7); // Success notification sound
+// ⚠️ PENDING MIGRATION: Use direct paths until COFFEEPUB constants are migrated
+BlacksmithUtils.playSound('modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3', 0.8); // Success notification sound
 
 // Access Blacksmith version and constants
 console.log('Blacksmith version:', game.modules.get('coffee-pub-blacksmith')?.api?.version);
@@ -1299,7 +1382,8 @@ async function testUtilityFunctions() {
         
         // Test sound (if available)
         if (BlacksmithUtils.playSound) {
-            BlacksmithUtils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, 0.7);
+            // ⚠️ PENDING MIGRATION: Use direct path until COFFEEPUB constants are migrated
+            BlacksmithUtils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3', 0.8);
             console.log('✅ Sound playback working');
         }
         
