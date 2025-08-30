@@ -49,6 +49,17 @@ import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api
 **What this does**: Imports the bridge that handles all timing and availability issues automatically.
 
 ## **Step 2: Register Your Module (Required)**
+
+**What to Replace:**
+- `YOUR_MODULE_ID` → Your module's ID from `module.json` (e.g., "my-awesome-module")
+- `YOUR_SHORT_NAME` → A short, readable name for logs (e.g., "MODULENAME" instead of "My Awesome Module Title")
+- `YOUR_MODULE_VERSION` → Your module's version from `module.json` (e.g., "1.0.0")
+
+**Why This Matters:**
+- **Module ID**: Must match your `module.json` exactly
+- **Short Name**: Makes console logs easier to read and filter
+- **Version**: Helps with compatibility and debugging
+
 ```javascript
 Hooks.once('init', async () => {
     try {
@@ -56,9 +67,9 @@ Hooks.once('init', async () => {
         const moduleManager = await BlacksmithAPI.getModuleManager();
         
         // Register your module
-        moduleManager.registerModule('your-module-id', {
+        moduleManager.registerModule('YOUR_MODULE_ID', {
             name: 'YOUR_SHORT_NAME',
-            version: '1.0.0'
+            version: 'YOUR_MODULE_VERSION'
         });
         
         console.log('✅ Module registered with Blacksmith successfully');
@@ -109,105 +120,86 @@ const moduleManager = await BlacksmithAPI.getModuleManager();
 
 These console commands help you debug and monitor your Blacksmith integration. They're the **easiest way to verify everything is working**.
 
+**💡 Copy-Paste Friendly**: Each group is in a single text box with comments. Copy the entire group to get the context, or run multiple commands at once!
+
 ## **🔍 Quick Status Checks**
 
-### **BlacksmithAPIStatus()**
 ```javascript
+// Check if Blacksmith API is ready
 BlacksmithAPIStatus()
-```
-**Returns:** `true` if accessible, `false` otherwise.  
-**Console Output:** Detailed status information with ready/not ready status.
 
-### **BlacksmithAPICheck()**
-```javascript
+// Verify your module registration
 BlacksmithAPICheck()
-```
-**Returns:** Object with `count` and `list` of registered modules.  
-**Console Output:** Module registration details and your module status.
 
-### **BlacksmithAPIVersion()**
-```javascript
+// Get API version
 BlacksmithAPIVersion()
 ```
-**Returns:** Version string (e.g., `"12.2.0"`).  
-**Console Output:** Displays current API version.
+**Quick Status Commands** - Use these to verify your integration is working.
 
 ## **📊 Detailed Information**
 
-### **BlacksmithAPIDetails()**
 ```javascript
+// Get comprehensive debug information
 BlacksmithAPIDetails()
-```
-**Returns:** Object with version, module availability, and counts.  
-**Console Output:** Full debug status and system overview.
 
-### **BlacksmithAPIModules()**
-```javascript
+// Show all registered modules
 BlacksmithAPIModules()
-```
-**Returns:** Object with names, versions, and features.  
-**Console Output:** Complete module registration information.
 
-### **BlacksmithAPIFeatures()**
-```javascript
+// Display available features
 BlacksmithAPIFeatures()
 ```
-**Returns:** Object grouping features by source module.  
-**Console Output:** Feature details organized by module.
+**Detailed Info Commands** - Use these for debugging and system overview.
 
 ## **⚙️ Hook Management (Advanced)**
 
-### **BlacksmithAPIHooks()**
 ```javascript
+// Show hook summary
 BlacksmithAPIHooks()
-```
-**Returns:** Object with `count`, `names`, and hook data.  
-**Console Output:** Hook summary with total count and names.
 
-### **BlacksmithAPIHookDetails()**
-```javascript
+// Detailed hook information
 BlacksmithAPIHookDetails()
-```
-**Returns:** Object grouping hooks by priority levels.  
-**Console Output:** Detailed hook data organized by priority.
 
-### **BlacksmithAPIHookStats()**
-```javascript
+// Hook statistics
 BlacksmithAPIHookStats()
 ```
-**Returns:** Object with counts by priority, context, and name.  
-**Console Output:** Statistical breakdown of all hooks.
+**Hook Management Commands** - Use these for debugging hook registrations and performance.
 
 ## **🔧 Utilities & Settings**
 
-### **BlacksmithAPIUtils()**
 ```javascript
+// Show available utility functions
 BlacksmithAPIUtils()
-```
-**Returns:** Object with all utility methods.  
-**Console Output:** Complete list of available utility functions.
 
-### **BlacksmithAPISettings()**
-```javascript
+// Display Blacksmith settings
 BlacksmithAPISettings()
-```
-**Returns:** Object containing configuration values.  
-**Console Output:** All current Blacksmith settings overview.
 
-### **BlacksmithAPIConstants()**
-```javascript
+// Show constants and themes
 BlacksmithAPIConstants()
-```
-**Returns:** Complete constants object.  
-**Console Output:** All available constants, themes, and sounds.
 
-### **BlacksmithAPIManualReady()**
-```javascript
+// Debug readiness issues
 BlacksmithAPIManualReady()
 ```
-**Returns:** `true` if API becomes ready, otherwise `false`.  
-**Console Output:** Readiness status.  
-**Use Case:** Debugging readiness issues.
+**Utility Commands** - Use these to explore available functions and settings.
+
+## **📋 Complete Command Reference**
+
+For detailed information about what each command returns and displays:
+
+| Command | Returns | Console Output |
+|---------|---------|----------------|
+| `BlacksmithAPIStatus()` | `true`/`false` | Ready/not ready status with details |
+| `BlacksmithAPICheck()` | Object | Module count and registration list |
+| `BlacksmithAPIVersion()` | String | Current API version (e.g., "12.2.0") |
+| `BlacksmithAPIDetails()` | Object | Full debug status and system overview |
+| `BlacksmithAPIModules()` | Object | All registered modules with details |
+| `BlacksmithAPIFeatures()` | Object | Features grouped by source module |
+| `BlacksmithAPIHooks()` | Object | Hook count, names, and summary data |
+| `BlacksmithAPIHookDetails()` | Object | Hooks organized by priority levels |
+| `BlacksmithAPIHookStats()` | Object | Statistical breakdown by priority/context |
+| `BlacksmithAPIUtils()` | Object | Complete list of utility functions |
+| `BlacksmithAPISettings()` | Object | All current configuration values |
+| `BlacksmithAPIConstants()` | Object | Constants, themes, and sounds |
+| `BlacksmithAPIManualReady()` | `true`/`false` | Manual readiness check for debugging |
 
 ## **✅ What You Should See:**
 
