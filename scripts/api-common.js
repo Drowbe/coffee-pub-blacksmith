@@ -81,33 +81,35 @@ export const COFFEEPUB = {
     SOUNDVOLUMENORMAL: "0.5",
     SOUNDVOLUMESOFT: "0.3",
 
-    SOUNDERROR01: "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
-    SOUNDERROR02: "modules/coffee-pub-blacksmith/sounds/interface-error-02.mp3",
-    SOUNDERROR03: "modules/coffee-pub-blacksmith/sounds/interface-error-03.mp3",
-    SOUNDERROR04: "modules/coffee-pub-blacksmith/sounds/interface-error-04.mp3",
-    SOUNDERROR05: "modules/coffee-pub-blacksmith/sounds/interface-error-05.mp3",
-    SOUNDERROR06: "modules/coffee-pub-blacksmith/sounds/interface-error-06.mp3",
-    SOUNDERROR07: "modules/coffee-pub-blacksmith/sounds/interface-error-07.mp3",
-    SOUNDERROR08: "modules/coffee-pub-blacksmith/sounds/interface-error-08.mp3",
-    SOUNDERROR09: "modules/coffee-pub-blacksmith/sounds/interface-error-09.mp3",
-    SOUNDERROR10: "modules/coffee-pub-blacksmith/sounds/interface-error-10.mp3",
-    SOUNDERROR11: "modules/coffee-pub-blacksmith/sounds/interface-error-11.mp3",
+    // COMMENTED OUT - Now using data collections and Asset Lookup Tool
+    // SOUNDERROR01: "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
+    // SOUNDERROR02: "modules/coffee-pub-blacksmith/sounds/interface-error-02.mp3",
+    // SOUNDERROR03: "modules/coffee-pub-blacksmith/sounds/interface-error-03.mp3",
+    // SOUNDERROR04: "modules/coffee-pub-blacksmith/sounds/interface-error-04.mp3",
+    // SOUNDERROR05: "modules/coffee-pub-blacksmith/sounds/interface-error-05.mp3",
+    // SOUNDERROR06: "modules/coffee-pub-blacksmith/sounds/interface-error-06.mp3",
+    // SOUNDERROR07: "modules/coffee-pub-blacksmith/sounds/interface-error-07.mp3",
+    // SOUNDERROR08: "modules/coffee-pub-blacksmith/sounds/interface-error-08.mp3",
+    // SOUNDERROR09: "modules/coffee-pub-blacksmith/sounds/interface-error-09.mp3",
+    // SOUNDERROR10: "modules/coffee-pub-blacksmith/sounds/interface-error-10.mp3",
+    // SOUNDERROR11: "modules/coffee-pub-blacksmith/sounds/interface-error-11.mp3",
 
-    SOUNDNOTIFICATION01: "modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3",
-    SOUNDNOTIFICATION02: "modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3",
-    SOUNDNOTIFICATION03: "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
-    SOUNDNOTIFICATION04: "modules/coffee-pub-blacksmith/sounds/interface-notification-04.mp3",
-    SOUNDNOTIFICATION05: "modules/coffee-pub-blacksmith/sounds/interface-notification-05.mp3",
-    SOUNDNOTIFICATION06: "modules/coffee-pub-blacksmith/sounds/interface-notification-06.mp3",
-    SOUNDNOTIFICATION07: "modules/coffee-pub-blacksmith/sounds/interface-notification-07.mp3",
-    SOUNDNOTIFICATION08: "modules/coffee-pub-blacksmith/sounds/interface-notification-08.mp3",
-    SOUNDNOTIFICATION09: "modules/coffee-pub-blacksmith/sounds/interface-notification-09.mp3",
-    SOUNDNOTIFICATION10: "modules/coffee-pub-blacksmith/sounds/interface-notification-10.mp3",
-    SOUNDNOTIFICATION11: "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
-    SOUNDNOTIFICATION12: "modules/coffee-pub-blacksmith/sounds/interface-notification-12.mp3",
-    SOUNDNOTIFICATION13: "modules/coffee-pub-blacksmith/sounds/interface-notification-13.mp3",
-    SOUNDNOTIFICATION14: "modules/coffee-pub-blacksmith/sounds/interface-notification-14.mp3",
-    SOUNDNOTIFICATION15: "modules/coffee-pub-blacksmith/sounds/interface-notification-15.mp3",
+    // COMMENTED OUT - Now using data collections and Asset Lookup Tool
+    // SOUNDNOTIFICATION01: "modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3",
+    // SOUNDNOTIFICATION02: "modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3",
+    // SOUNDNOTIFICATION03: "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
+    // SOUNDNOTIFICATION04: "modules/coffee-pub-blacksmith/sounds/interface-notification-04.mp3",
+    // SOUNDNOTIFICATION05: "modules/coffee-pub-blacksmith/sounds/interface-notification-05.mp3",
+    // SOUNDNOTIFICATION06: "modules/coffee-pub-blacksmith/sounds/interface-notification-06.mp3",
+    // SOUNDNOTIFICATION07: "modules/coffee-pub-blacksmith/sounds/interface-notification-07.mp3",
+    // SOUNDNOTIFICATION08: "modules/coffee-pub-blacksmith/sounds/interface-notification-08.mp3",
+    // SOUNDNOTIFICATION09: "modules/coffee-pub-blacksmith/sounds/interface-notification-09.mp3",
+    // SOUNDNOTIFICATION10: "modules/coffee-pub-blacksmith/sounds/interface-notification-10.mp3",
+    // SOUNDNOTIFICATION11: "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
+    // SOUNDNOTIFICATION12: "modules/coffee-pub-blacksmith/sounds/interface-notification-12.mp3",
+    // SOUNDNOTIFICATION13: "modules/coffee-pub-blacksmith/sounds/interface-notification-13.mp3",
+    // SOUNDNOTIFICATION14: "modules/coffee-pub-blacksmith/sounds/interface-notification-14.mp3",
+    // SOUNDNOTIFICATION15: "modules/coffee-pub-blacksmith/sounds/interface-notification-15.mp3",
 
     SOUNDBUTTON01: "modules/coffee-pub-blacksmith/sounds/interface-button-01.mp3",
     SOUNDBUTTON02: "modules/coffee-pub-blacksmith/sounds/interface-button-02.mp3",
@@ -649,6 +651,12 @@ function clamp(value, min, max) {
  */
 export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true) {
     if (sound === 'none') return;
+    
+    // Safety check for undefined constants
+    if (!sound || sound === 'sound' || sound === 'undefined') {
+        console.warn('playSound called with invalid sound:', sound);
+        return;
+    }
 
     try {
         await foundry.audio.AudioHelper.play({

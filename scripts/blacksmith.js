@@ -5,7 +5,7 @@
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
-import { COFFEEPUB } from './api-common.js';
+// COFFEEPUB is now provided by AssetLookup for backward compatibility
 // -- Load the shared GLOBAL functions --
 import { 
     registerBlacksmithUpdatedHook, 

@@ -50,6 +50,21 @@ export class AssetLookup {
                 }
             });
             
+            // Expose constants globally for backward compatibility
+            if (typeof window !== 'undefined') {
+                Object.keys(this.generatedConstants).forEach(constantName => {
+                    window[constantName] = this.generatedConstants[constantName];
+                });
+                
+                // Create COFFEEPUB object for backward compatibility
+                window.COFFEEPUB = {};
+                Object.keys(this.generatedConstants).forEach(constantName => {
+                    window.COFFEEPUB[constantName] = this.generatedConstants[constantName];
+                });
+                
+                console.log(`${MODULE.TITLE} | AssetLookup: Exposed ${Object.keys(this.generatedConstants).length} constants globally and via COFFEEPUB`);
+            }
+            
             console.log(`${MODULE.TITLE} | AssetLookup: Generated ${Object.keys(this.generatedConstants).length} constants`);
             
         } catch (error) {
