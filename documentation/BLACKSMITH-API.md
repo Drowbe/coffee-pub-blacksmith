@@ -103,59 +103,111 @@ const moduleManager = await BlacksmithAPI.getModuleManager();
 
 
 
-# **Console Commands - Debugging & Status**
+# **Console Commands - Complete Reference**
 
 > **Open your browser console (F12 → Console tab) to use these commands**
 
 These console commands help you debug and monitor your Blacksmith integration. They're the **easiest way to verify everything is working**.
 
 ## **🔍 Quick Status Checks**
+
+### **BlacksmithAPIStatus()**
 ```javascript
-// Check if Blacksmith API is ready
 BlacksmithAPIStatus()
+```
+**Returns:** `true` if accessible, `false` otherwise.  
+**Console Output:** Detailed status information with ready/not ready status.
 
-// Verify your module registration
+### **BlacksmithAPICheck()**
+```javascript
 BlacksmithAPICheck()
+```
+**Returns:** Object with `count` and `list` of registered modules.  
+**Console Output:** Module registration details and your module status.
 
-// Get API version
+### **BlacksmithAPIVersion()**
+```javascript
 BlacksmithAPIVersion()
 ```
+**Returns:** Version string (e.g., `"12.2.0"`).  
+**Console Output:** Displays current API version.
 
 ## **📊 Detailed Information**
+
+### **BlacksmithAPIDetails()**
 ```javascript
-// Get comprehensive API details
 BlacksmithAPIDetails()
+```
+**Returns:** Object with version, module availability, and counts.  
+**Console Output:** Full debug status and system overview.
 
-// Show all registered modules
+### **BlacksmithAPIModules()**
+```javascript
 BlacksmithAPIModules()
+```
+**Returns:** Object with names, versions, and features.  
+**Console Output:** Complete module registration information.
 
-// Display available features
+### **BlacksmithAPIFeatures()**
+```javascript
 BlacksmithAPIFeatures()
 ```
+**Returns:** Object grouping features by source module.  
+**Console Output:** Feature details organized by module.
 
 ## **⚙️ Hook Management (Advanced)**
+
+### **BlacksmithAPIHooks()**
 ```javascript
-// Show hook summary
 BlacksmithAPIHooks()
+```
+**Returns:** Object with `count`, `names`, and hook data.  
+**Console Output:** Hook summary with total count and names.
 
-// Detailed hook information
+### **BlacksmithAPIHookDetails()**
+```javascript
 BlacksmithAPIHookDetails()
+```
+**Returns:** Object grouping hooks by priority levels.  
+**Console Output:** Detailed hook data organized by priority.
 
-// Hook statistics
+### **BlacksmithAPIHookStats()**
+```javascript
 BlacksmithAPIHookStats()
 ```
+**Returns:** Object with counts by priority, context, and name.  
+**Console Output:** Statistical breakdown of all hooks.
 
 ## **🔧 Utilities & Settings**
+
+### **BlacksmithAPIUtils()**
 ```javascript
-// Show available utility functions
 BlacksmithAPIUtils()
+```
+**Returns:** Object with all utility methods.  
+**Console Output:** Complete list of available utility functions.
 
-// Display Blacksmith settings
-BlacksmithAPIConstants()
+### **BlacksmithAPISettings()**
+```javascript
+BlacksmithAPISettings()
+```
+**Returns:** Object containing configuration values.  
+**Console Output:** All current Blacksmith settings overview.
 
-// Show constants and themes
+### **BlacksmithAPIConstants()**
+```javascript
 BlacksmithAPIConstants()
 ```
+**Returns:** Complete constants object.  
+**Console Output:** All available constants, themes, and sounds.
+
+### **BlacksmithAPIManualReady()**
+```javascript
+BlacksmithAPIManualReady()
+```
+**Returns:** `true` if API becomes ready, otherwise `false`.  
+**Console Output:** Readiness status.  
+**Use Case:** Debugging readiness issues.
 
 ## **✅ What You Should See:**
 
@@ -793,170 +845,7 @@ hookManager.registerHook({
 ```
 
 
-***
 
-
-
-# Blacksmith API Console Commands
-
-Use the following helper commands directly in the browser console for **status checks, debugging, and development**.
-
----
-
-## STATUS & VERSION
-
-### BlacksmithAPIStatus()
-
-```javascript
-BlacksmithAPIStatus()
-```
-Checks if the Blacksmith API is ready and available.
-**Returns:** `true` if accessible, `false` otherwise.
-**Console Output:** Detailed status information.
-
----
-
-### BlacksmithAPIVersion()
-
-```javascript
-BlacksmithAPIVersion()
-```
-Gets the current Blacksmith API version.
-**Returns:** Version string (e.g. `"12.2.0"`).
-**Console Output:** Displays version.
-
----
-
-## MODULE & REGISTRATION
-
-### BlacksmithAPICheck()
-
-```javascript
-BlacksmithAPICheck()
-```
-Shows the current module registration status.
-**Returns:** Object with `count` and `list` of registered modules.
-**Console Output:** Module details.
-
----
-
-### BlacksmithAPIModules()
-
-```javascript
-BlacksmithAPIModules()
-```
-Lists all registered modules with their details.
-**Returns:** Object with names, versions, and features.
-**Console Output:** Module information.
-
----
-
-### BlacksmithAPIFeatures()
-
-```javascript
-BlacksmithAPIFeatures()
-```
-Displays available features organized by module.
-**Returns:** Object grouping features by source module.
-**Console Output:** Feature details.
-
----
-
-## DEBUG & INFORMATION
-
-### BlacksmithAPIDetails()
-
-```javascript
-BlacksmithAPIDetails()
-```
-Provides comprehensive debug information.
-**Returns:** Object with version, module availability, and counts.
-**Console Output:** Full debug status.
-
----
-
-### BlacksmithAPISettings()
-
-```javascript
-BlacksmithAPISettings()
-```
-Displays all current Blacksmith settings.
-**Returns:** Object containing configuration values.
-**Console Output:** Settings overview.
-
----
-
-### BlacksmithAPIConstants()
-
-```javascript
-BlacksmithAPIConstants()
-```
-Lists all available constants, themes, and sounds.
-**Returns:** Complete constants object.
-**Console Output:** All options.
-
----
-
-### BlacksmithAPIUtils()
-
-```javascript
-BlacksmithAPIUtils()
-```
-Shows all available utility functions.
-**Returns:** Object with all utility methods.
-**Console Output:** Function list.
-
----
-
-## HOOK MANAGEMENT
-
-### BlacksmithAPIHooks()
-
-```javascript
-BlacksmithAPIHooks()
-```
-Shows the total count and names of registered hooks.
-**Returns:** Object with `count`, `names`, and hook data.
-**Console Output:** Hook information.
-
----
-
-### BlacksmithAPIHookDetails()
-
-```javascript
-BlacksmithAPIHookDetails()
-```
-Provides detailed hook information organized by priority.
-**Returns:** Object grouping hooks by priority levels.
-**Console Output:** Detailed hook data.
-
----
-
-### BlacksmithAPIHookStats()
-
-```javascript
-BlacksmithAPIHookStats()
-```
-Generates raw hook statistics and metrics.
-**Returns:** Object with counts by priority, context, and name.
-**Console Output:** Statistical breakdown.
-
----
-
-## DEBUG HELPER
-
-### BlacksmithAPIManualReady()
-
-```javascript
-BlacksmithAPIManualReady()
-```
-Manually triggers the API readiness check.
-**Returns:** `true` if API becomes ready, otherwise `false`.
-**Console Output:** Readiness status.
-**Use Case:** Debugging readiness issues.
-
-
-***
 
 
 
@@ -967,13 +856,13 @@ Blacksmith provides console commands for debugging hook registrations:
 
 ```javascript
 // Show all registered hooks
-blacksmithHooks();
+BlacksmithAPIHooks();
 
 // Show detailed hook information with priority grouping
-blacksmithHookDetails();
+BlacksmithAPIHookDetails();
 
 // Get raw hook statistics
-blacksmithHookStats();
+BlacksmithAPIHookStats();
 ```
 
 ## **Common Issues and Solutions**
@@ -1110,13 +999,13 @@ Blacksmith provides console commands for testing and debugging:
 
 ```javascript
 // Show all registered hooks
-blacksmithHooks();
+BlacksmithAPIHooks();
 
 // Show detailed hook information with priority grouping
-blacksmithHookDetails();
+BlacksmithAPIHookDetails();
 
 // Get raw hook statistics
-blacksmithHookStats();
+BlacksmithAPIHookStats();
 ```
 
 ## **Integration Validation Checklist**
@@ -1644,7 +1533,7 @@ const result = await BlacksmithErrorHandler.safeOperation(
 ## **Getting Help**
 
 - **Documentation**: This file and related architecture docs
-- **Console Commands**: Use `blacksmithHooks()` and `blacksmithHookDetails()`
+- **Console Commands**: Use `BlacksmithAPIHooks()` and `BlacksmithAPIHookDetails()`
 - **Error Logging**: Check browser console for detailed error messages
 - **GitHub Issues**: Report problems and request features
 
