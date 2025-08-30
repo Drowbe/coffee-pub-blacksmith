@@ -168,6 +168,16 @@ export class BlacksmithAPI {
         this.isReady = true;
         try {
             const api = this._getAPI();
+            
+            // Assign global objects for direct access
+            if (typeof window !== 'undefined') {
+                window.BlacksmithUtils = api.utils;
+                window.BlacksmithHookManager = api.HookManager;
+                window.BlacksmithModuleManager = api.ModuleManager;
+                window.BlacksmithStats = api.stats;
+                window.BlacksmithConstants = api.BLACKSMITH;
+            }
+            
             this.readyCallbacks.forEach(callback => callback(api));
         } catch (error) {
             console.error('🔧 Blacksmith API: Error getting API during ready callback:', error);
@@ -223,10 +233,13 @@ initializeReadyChecking();
 // Expose the API globally for easy access
 if (typeof window !== 'undefined') {
     window.BlacksmithAPI = BlacksmithAPI;
-    window.BlacksmithHookManager = () => BlacksmithAPI.getHookManager();
-    window.BlacksmithUtils = () => BlacksmithAPI.getUtils();
-    window.BlacksmithModuleManager = () => BlacksmithAPI.getModuleManager();
-    window.BlacksmithStats = () => BlacksmithAPI.getStats();
+    
+    // Declare global objects (will be assigned when ready)
+    window.BlacksmithHookManager = null;
+    window.BlacksmithUtils = null;
+    window.BlacksmithModuleManager = null;
+    window.BlacksmithStats = null;
+    window.BlacksmithConstants = null;
 }
 
 // BlacksmithAPIStatus - Check if API is fully ready
@@ -441,6 +454,17 @@ window.BlacksmithAPIUtils = async () => {
     } catch (error) {
         console.error('❌ Failed to get Blacksmith utilities:', error);
         return null;
+    }
+};
+
+// BlacksmithAPIManualReady - Manually trigger readiness check
+window.BlacksmithAPIManualReady = () => {
+    try {
+        console.log('🔧 Blacksmith API: Manual readiness check triggered');
+        return checkBlacksmithReady();
+    } catch (error) {
+        console.error('❌ Failed to trigger manual readiness check:', error);
+        return false;
     }
 };
 
