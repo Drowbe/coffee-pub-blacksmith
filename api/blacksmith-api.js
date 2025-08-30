@@ -182,29 +182,28 @@ export class BlacksmithAPI {
 // ===== INITIALIZATION & READY CHECKING ===========================
 // ================================================================== 
 
-// Check if Blacksmith is already ready
+// Simple readiness checking using FoundryVTT hooks
+function initializeReadyChecking() {
+    if (typeof Hooks !== 'undefined') {
+        // Wait for FoundryVTT to be ready
+        Hooks.once('ready', () => {
+            console.log('🔧 Blacksmith API: FoundryVTT ready, checking Blacksmith...');
+            checkBlacksmithReady();
+        });
+    } else {
+        // Wait for Hooks to be available
+        setTimeout(initializeReadyChecking, 100);
+    }
+}
+
+// Check if Blacksmith is ready
 function checkBlacksmithReady() {
     try {
         const module = game.modules.get('coffee-pub-blacksmith');
-        console.log('🔧 Blacksmith API: Checking readiness...', {
-            moduleExists: !!module,
-            hasApi: !!module?.api,
-            apiKeys: module?.api ? Object.keys(module.api) : [],
-            version: module?.api?.version,
-            isReady: BlacksmithAPI.isReady,
-            readyCallbacks: BlacksmithAPI.readyCallbacks.length,
-            hasHookManager: !!module?.api?.HookManager,
-            hasModuleManager: !!module?.api?.ModuleManager,
-            hasUtils: !!module?.api?.utils
-        });
-        
-        // If module has API and version, mark as ready regardless of current state
         if (module?.api && module.api.version) {
             if (!BlacksmithAPI.isReady) {
-                console.log('🔧 Blacksmith API: Module found, marking as ready');
+                console.log('🔧 Blacksmith API: Ready detected');
                 BlacksmithAPI._markReady();
-            } else {
-                console.log('🔧 Blacksmith API: Already marked as ready');
             }
             return true;
         }
@@ -214,78 +213,8 @@ function checkBlacksmithReady() {
     return false;
 }
 
-// Set up ready checking
-function initializeReadyChecking() {
-    if (typeof game !== 'undefined' && game.modules) {
-        // Check immediately
-        if (!checkBlacksmithReady()) {
-            console.log('🔧 Blacksmith API: Setting up polling for readiness...');
-            // Set up polling
-            const checkInterval = setInterval(() => {
-                if (checkBlacksmithReady()) {
-                    console.log('🔧 Blacksmith API: Ready detected, clearing interval');
-                    clearInterval(checkInterval);
-                }
-            }, 100);
-            
-            // Timeout after 10 seconds
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                if (!BlacksmithAPI.isReady) {
-                    console.error('❌ Blacksmith API: Timeout waiting for Blacksmith to be ready');
-                }
-            }, 10000);
-        } else {
-            console.log('🔧 Blacksmith API: Ready immediately');
-        }
-    } else {
-        // Wait a bit and try again
-        setTimeout(initializeReadyChecking, 100);
-    }
-}
-
 // Start the readiness checking
 initializeReadyChecking();
-
-// Add manual readiness check for debugging
-if (typeof window !== 'undefined') {
-    window.BlacksmithAPIManualReady = () => {
-        console.log('🔧 Blacksmith API: Manual readiness check triggered');
-        return checkBlacksmithReady();
-    };
-    
-    // Force readiness check after a delay
-    setTimeout(() => {
-        console.log('🔧 Blacksmith API: Delayed readiness check');
-        checkBlacksmithReady();
-    }, 2000);
-
-    // Also try a longer delay
-    setTimeout(() => {
-        console.log('🔧 Blacksmith API: Long delayed readiness check');
-        checkBlacksmithReady();
-    }, 5000);
-
-    // Force readiness check on DOM ready
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🔧 Blacksmith API: DOM ready check');
-        checkBlacksmithReady();
-    });
-
-    // Force readiness check on window load
-    window.addEventListener('load', () => {
-        console.log('🔧 Blacksmith API: Window load check');
-        checkBlacksmithReady();
-    });
-
-    // Force readiness check on FoundryVTT ready
-    if (typeof Hooks !== 'undefined') {
-        Hooks.once('ready', () => {
-            console.log('🔧 Blacksmith API: FoundryVTT ready check');
-            checkBlacksmithReady();
-        });
-    }
-}
 
 // ================================================================== 
 // ===== GLOBAL EXPOSURE ===========================================
