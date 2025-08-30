@@ -75,9 +75,18 @@ Add Blacksmith to your module's `module.json` dependencies to get access to the 
 }
 ```
 
-**What this means**: Once added as a library dependency, the API becomes available as global objects - no imports needed!
+**What this means**: Once added as a library dependency, you can import the bridge file to access the API as global objects.
 
-## **Step 2: Register Your Module (Required)**
+## **Step 2: Import the Bridge File (Required)**
+Import the Blacksmith API bridge file to ensure the API is available:
+
+```javascript
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+```
+
+**Why import?**: The global objects are only available after Blacksmith is fully ready. Importing the bridge file ensures proper initialization and timing.
+
+## **Step 3: Register Your Module (Required)**
 
 **What to Replace:**
 - `YOUR_MODULE_ID` → Your module's ID from `module.json` (e.g., "my-awesome-module")
@@ -91,9 +100,10 @@ Add Blacksmith to your module's `module.json` dependencies to get access to the 
 
 ```javascript
 // === BEGIN: BLACKSMITH API REGISTRATION ===
-// Blacksmoth API is available as global objects
-// Register your module with Blacksmith
-Hooks.once('init', async () => {
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+
+// Register your module with Blacksmith (use 'ready' hook for timing safety)
+Hooks.once('ready', async () => {
     try {
         // Get the module manager
         const moduleManager = BlacksmithModuleManager;
@@ -113,7 +123,9 @@ Hooks.once('init', async () => {
 
 **Why register?**: This tells Blacksmith about your module and enables inter-module features.
 
-## **Step 3: Test Your Integration**
+**Why 'ready' hook?**: The `ready` hook runs after Blacksmith is fully initialized, ensuring the global objects are available. Using `init` can cause timing issues where the API isn't ready yet.
+
+## **Step 4: Test Your Integration**
 Use these console commands to verify everything is working:
 
 ```javascript
@@ -124,7 +136,7 @@ BlacksmithAPIStatus()
 BlacksmithAPICheck()
 ```
 
-## **Step 4: Start Using the API**
+## **Step 5: Start Using the API**
 Now you can access Blacksmith's features directly:
 
 ```javascript
@@ -288,6 +300,11 @@ Before asking for help, verify:
 # **Working Examples - External API Usage**
 
 > **All examples use the BlacksmithAPI bridge for external modules**
+
+**📋 Import Required**: All examples assume you've imported the bridge file:
+```javascript
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+```
 
 **📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
 
@@ -1312,8 +1329,8 @@ Hooks.once('init', () => {
     blacksmith.registerModule('my-module', {}); // May fail silently
 });
 
-// GOOD: Proper error handling and availability check
-Hooks.once('init', () => {
+// GOOD: Proper error handling and availability check (use 'ready' hook for timing safety)
+Hooks.once('ready', () => {
     const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
     
     if (blacksmith?.registerModule) {
@@ -1359,7 +1376,7 @@ Please help me:
 4. Set up proper hook listeners for the 'blacksmithUpdated' event
 5. Follow the initialization timing best practices (use 'ready' phase, not 'init' for accessing data)
 
-IMPORTANT: Blacksmith provides global objects - no import required!
+IMPORTANT: Import the bridge file to ensure the API is available!
 
 My module ID is: [YOUR_MODULE_ID]
 My module name is: [YOUR_MODULE_NAME]
@@ -1379,7 +1396,8 @@ Please provide complete, working code examples that I can directly implement.
 
 **Essential Integration Points:**
 
-* Register module during 'init' hook using `BlacksmithModuleManager.registerModule()`
+* Import the bridge file: `import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`
+* Register module during 'ready' hook using `BlacksmithModuleManager.registerModule()` (timing safety)
 * Access BLACKSMITH object during 'ready' hook via `BlacksmithConstants`
 * Listen to 'blacksmithUpdated' hook for data updates
 * Use `BlacksmithUtils.getSettingSafely()` for safe settings access
@@ -1387,8 +1405,8 @@ Please provide complete, working code examples that I can directly implement.
 
 **FoundryVTT Lifecycle:**
 
-* 'init': Module registration, basic setup
-* 'ready': Access to populated data, settings registration
+* 'init': Basic module setup (avoid Blacksmith API calls here)
+* 'ready': Module registration, access to populated data, settings registration
 * 'blacksmithUpdated': Real-time data updates
 
 **Key Global Objects:**
@@ -1516,8 +1534,8 @@ const result = await BlacksmithErrorHandler.safeOperation(
 # **Summary of Key Integration Points**
 
 ## **✅ What Works:**
-- **Import Path**: `'coffee-pub-blacksmith/api/blacksmith-api.js'`
-- **Bridge File**: `BlacksmithAPI` class provides clean access
+- **Import Required**: `import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`
+- **Global Objects**: Direct access via `BlacksmithUtils`, `BlacksmithHookManager`, etc.
 - **HookManager**: Full hook management with priority and cleanup
 - **ModuleManager**: Module registration with feature tracking
 - **Utils**: Safe settings access, logging, sound, formatting
@@ -1525,15 +1543,16 @@ const result = await BlacksmithErrorHandler.safeOperation(
 - **BLACKSMITH Object**: Global constants and choice arrays
 
 ## **⚠️ Common Mistakes to Avoid:**
+- **Missing Import**: Always import the bridge file first
 - **Wrong Import Path**: Don't use `/scripts/` - use `/api/`
 - **Missing Module ID**: Always provide module ID for settings access
 - **Incorrect Parameter Order**: Check parameter documentation carefully
-- **Missing await**: Most API calls are async and require await
+- **Using null objects**: Wait for Blacksmith to be ready before accessing global objects
 
 ## **🔧 Integration Checklist:**
-- [ ] Use correct import path: `/api/blacksmith-api.js`
-- [ ] Wait for Blacksmith to be ready with `BlacksmithAPI.waitForReady()`
-- [ ] Prepend "blacksmith" to variable names to avoid conflicts
+- [ ] Import the bridge file: `import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`
+- [ ] Wait for Blacksmith to be ready (global objects are automatically available after import)
+- [ ] Register your module during the 'init' hook
 - [ ] Always provide context for hook cleanup
 - [ ] Use proper error handling and availability checks
 - [ ] Test integration with provided console commands
