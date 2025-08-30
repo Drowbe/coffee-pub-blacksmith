@@ -103,9 +103,9 @@ Hooks.once('init', async () => {
             version: 'YOUR_MODULE_VERSION'
         });
         // Log success
-        console.log('✅ Module registered with Blacksmith successfully');
+        console.log('✅ Module ' + 'YOUR_SHORT_NAME' + ' registered with Blacksmith successfully');
     } catch (error) {
-        console.error('❌ Failed to register with Blacksmith:', error);
+        console.error('❌ Failed to register ' + 'YOUR_SHORT_NAME' + ' with Blacksmith:', error);
     }
 });
 // === END: BLACKSMITH API REGISTRATION ===
