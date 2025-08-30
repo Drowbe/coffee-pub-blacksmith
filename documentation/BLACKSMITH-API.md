@@ -1334,7 +1334,7 @@ Hooks.once('init', () => {
 
 # **AI-Friendly Integration Prompts**
 
-## **For CursorAI and Similar AI Coding Assistants**
+## **For AI Coding Assistants**
 
 Copy and paste the following prompt into your AI coding assistant to get help integrating with Coffee Pub Blacksmith:
 
@@ -1359,7 +1359,7 @@ Please help me:
 4. Set up proper hook listeners for the 'blacksmithUpdated' event
 5. Follow the initialization timing best practices (use 'ready' phase, not 'init' for accessing data)
 
-IMPORTANT: Use the correct import path: 'coffee-pub-blacksmith/api/blacksmith-api.js'
+IMPORTANT: Blacksmith provides global objects - no import required!
 
 My module ID is: [YOUR_MODULE_ID]
 My module name is: [YOUR_MODULE_NAME]
@@ -1369,51 +1369,21 @@ IMPORTANT: Please follow the exact patterns from the documentation:
 - Implement proper error handling and availability checks
 - Use the standardized MODULE constants pattern
 - Include the blacksmithUpdated hook for real-time updates
+- Use direct global object access (e.g., BlacksmithUtils.postConsoleAndNotification())
 - Provide working code examples that I can copy-paste directly
 
 Please provide complete, working code examples that I can directly implement.
-```
-
-## **For General AI Coding Assistance**
-
-```
-I'm developing a FoundryVTT module that needs to integrate with Coffee Pub Blacksmith. 
-
-Blacksmith provides:
-- Safe settings access functions (getSettingSafely, setSettingSafely)
-- Shared utility functions for logging, time formatting, and sound management
-- A global BLACKSMITH object with choice arrays for themes, sounds, tables, etc.
-- Hook system for inter-module communication
-- Module registration and management
-
-The complete API documentation is at: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/Blacksmith-API
-
-I need help implementing:
-1. Module registration during the 'init' hook
-2. Accessing shared data during the 'ready' hook
-3. Using the 'blacksmithUpdated' hook for real-time updates
-4. Implementing safe settings access
-5. Accessing choice arrays for dropdown menus
-
-IMPORTANT: Please follow the exact patterns from the documentation:
-- Use the Quick Start Template structure
-- Implement proper error handling and availability checks
-- Use the standardized MODULE constants pattern
-- Include the blacksmithUpdated hook for real-time updates
-- Provide working code examples that I can copy-paste directly
-
-Please provide working code examples and explain the FoundryVTT lifecycle timing considerations.
 ```
 
 ## **Quick Reference for AI Assistants**
 
 **Essential Integration Points:**
 
-* Register module during 'init' hook
-* Access BLACKSMITH object during 'ready' hook
+* Register module during 'init' hook using `BlacksmithModuleManager.registerModule()`
+* Access BLACKSMITH object during 'ready' hook via `BlacksmithConstants`
 * Listen to 'blacksmithUpdated' hook for data updates
-* Use getSettingSafely() for safe settings access
-* Access choice arrays via blacksmith.BLACKSMITH.arr\[Type\]Choices
+* Use `BlacksmithUtils.getSettingSafely()` for safe settings access
+* Access choice arrays via `BlacksmithConstants.arr[Type]Choices`
 
 **FoundryVTT Lifecycle:**
 
@@ -1421,15 +1391,28 @@ Please provide working code examples and explain the FoundryVTT lifecycle timing
 * 'ready': Access to populated data, settings registration
 * 'blacksmithUpdated': Real-time data updates
 
-**Key Functions:**
+**Key Global Objects:**
 
-* blacksmith.ModuleManager.registerModule()
-* blacksmith.utils.getSettingSafely()
-* blacksmith.utils.postConsoleAndNotification()
-* Hooks.on('blacksmithUpdated', callback)
+* `BlacksmithModuleManager` - Module registration and management
+* `BlacksmithUtils` - Utility functions (settings, logging, sound, etc.)
+* `BlacksmithHookManager` - Hook management system
+* `BlacksmithConstants` - Global constants and choice arrays
+* `BlacksmithStats` - Combat and player statistics
 
-**Import Path:**
-* 'coffee-pub-blacksmith/api/blacksmith-api.js'
+**Example Usage:**
+```javascript
+// Module registration
+BlacksmithModuleManager.registerModule('my-module', { name: 'MY_MODULE', version: '1.0.0' });
+
+// Safe settings access
+const setting = BlacksmithUtils.getSettingSafely('my-module', 'settingName', 'default');
+
+// Logging
+BlacksmithUtils.postConsoleAndNotification('my-module', 'Message', data, false, false);
+
+// Hook registration
+BlacksmithHookManager.registerHook({ name: 'myHook', callback: () => {} });
+```
 
 **Critical Patterns to Follow:**
 
