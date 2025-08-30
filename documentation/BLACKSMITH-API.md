@@ -125,7 +125,217 @@ Hooks.once('ready', async () => {
 
 **Why 'ready' hook?**: The `ready` hook runs after Blacksmith is fully initialized, ensuring the global objects are available. Using `init` can cause timing issues where the API isn't ready yet.
 
-## **Step 4: Test Your Integration**
+## **Step 4: Test Your Integration (Recommended)**
+
+After completing the basic setup, run this comprehensive test suite to verify everything is working correctly. Paste the entire block into your module right after the registration block:
+
+```javascript
+// ========== BEGIN: BLACKSMITH API TESTING ==========
+// This test assumes that the Blacksmith module is installed and properly configured.
+// It is best to filter for the word "API TEST" in console to see the results of the tests.
+// Be sure to set you module ID in the TEST_MODULE_ID variable below.
+
+Hooks.once('ready', async () => {
+
+    // !! IMPORTANT !! SET YOUR MODULE ID HERE !!
+    const TEST_MODULE_ID = YOUR_MODULE_ID; // <-------- Replace with your actual module ID
+
+    try {
+        // ----- CONSTANTS TEST INSTRUCTIONS
+        console.log('API TEST | ');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST| ====  CONSTANTS TEST INSTRUCTIONS              ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. You should see the themeChoices, soundChoices, and tableChoices in the console.');
+        console.log('API TEST | 2. Expand the objects and you should see the choices.');
+        console.log('API TEST | If you see values, your constants worked!');
+        console.log('API TEST | ');
+
+        const themeChoices = BlacksmithConstants.arrThemeChoices;
+        const soundChoices = BlacksmithConstants.arrSoundChoices;
+        const tableChoices = BlacksmithConstants.arrTableChoices;    
+        console.log('API TEST | BLACKSMITH TEST: themeChoices', themeChoices);
+        console.log('API TEST | BLACKSMITH TEST: soundChoices', soundChoices);
+        console.log('API TEST | BLACKSMITH TEST: tableChoices', tableChoices);
+
+        console.log('API TEST | ==== NON-EXPOSED VARIABLE TEST INSTRUCTIONS: ====');
+        console.log('API TEST | 1. You should see the Blacksmith version in the console.');
+        console.log('API TEST | 2. It should be followed by a value.');
+        console.log('API TEST | If you see a value, your the non-exposed variables worked!');
+        console.log('API TEST | ');
+        // Access non-exposed variables
+        console.log('API TEST | BLACKSMITH TEST: Blacksmith version:', game.modules.get('coffee-pub-blacksmith')?.api?.version);
+
+
+         // ----- UTILITY TESTS: CONSOLE AND NOTIFICATION TEST
+        console.log('API TEST | ');
+        console.log('API TEST | ==================================================='); 
+        console.log('API TEST | ====  UTILITY TESTS: NOTIFICATION TEST         ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. You should see the message "API TEST | BLACKSMITH TEST OF POSTCONSOLEANDNOTIFICATION" in the console.');
+        console.log('API TEST | 2. It should be followed by a value "Some awesome result"');
+        console.log('API TEST | 3. It should be laid out differently than the other console messages and start with "COFFEE PUB • "');
+        console.log('API TEST | 4. It should also pop aup a notifcation.');
+        console.log('API TEST | 5. If you see a notfication and value, your the utility functions worked!');
+        console.log('API TEST | ');
+        BlacksmithUtils.postConsoleAndNotification(
+            TEST_MODULE_ID,        // Module ID (string)
+            'API TEST | BLACKSMITH TEST OF POSTCONSOLEANDNOTIFICATION',      // Main message
+            'Some awesome result',                 // Result object (optional)
+            false,                  // Debug flag (true = debug, false = system)
+            true                   // Show notification (true = show, false = console only)
+        );
+        // ----- SAFE SETTINGS TEST
+        console.log('API TEST | ');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ====  SAFE SETTINGS TEST INSTRUCTIONS          ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. This test will fail with "not a registered game setting" - this is EXPECTED!');
+        console.log('API TEST | 2. The error proves Blacksmith is properly integrated with FoundryVTT settings.');
+        console.log('API TEST | 3. In real usage, you would register your settings first in your module.json or init hook.');
+        console.log('API TEST | 4. If you see the error message, your safe settings integration is working correctly!');
+        console.log('API TEST | ');
+
+        // Test safe settings access (this will fail as expected)
+        try {
+            // Test safe get BEFORE setting (should return default since setting doesn't exist)
+            const defaultValue = BlacksmithUtils.getSettingSafely(TEST_MODULE_ID, 'test-setting', 'default-value');
+            console.log('✅ API TEST | BLACKSMITH TEST: Safe get (before set) working:', defaultValue);
+            
+            // Test safe set
+            BlacksmithUtils.setSettingSafely(TEST_MODULE_ID, 'test-setting', 'test-value-123');
+            console.log('✅ API TEST | BLACKSMITH TEST: Safe set working');
+            
+            // This will fail because the setting isn't registered - this is EXPECTED behavior
+            const rawSetting = game.settings.get(TEST_MODULE_ID, 'test-setting');
+            console.log('🔍 API TEST | BLACKSMITH TEST: Raw FoundryVTT setting:', rawSetting);
+            
+        } catch (error) {
+            console.log('✅ API TEST | BLACKSMITH TEST: Safe settings test completed as expected');
+            console.log('✅ API TEST | BLACKSMITH TEST: Error shows proper FoundryVTT integration:', error.message);
+        }
+
+        // ----- SOUND PLAYBACK TEST
+        console.log('API TEST | ');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ====  SOUND PLAYBACK TEST INSTRUCTIONS         ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. You should hear a "Battle Cry" sound.');
+        console.log('API TEST | 2. If you don\'t hear a sound, you may have missed it. Try clicking the canvas or try again to be safe.');
+        console.log('API TEST | 3. If DO you hear a battle cry, your sound playback worked!');
+        console.log('API TEST | ');
+
+        // Test sound playback
+        try {
+            // Use a direct sound path instead of COFFEEPUB constants
+            BlacksmithUtils.playSound('modules/coffee-pub-blacksmith/sounds/battlecry.mp3', 0.7);
+            console.log('✅ API TEST | BLACKSMITH TEST: Sound playback test completed');
+        } catch (error) {
+            console.error('❌ API TEST | BLACKSMITH TEST: Sound playback test failed:', error);
+        }
+
+        // ----- HOOK TEST - Use REAL FoundryVTT events
+        console.log('API TEST | ');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ====  HOOK REGISTRATION TEST INSTRUCTIONS      ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. You should see the message "API TEST | BLACKSMITH TEST: Hooks registered successfully:" in the console.');
+        console.log('API TEST | 2. It should be followed by a value "token: tokenHookId, chat: chatHookId"');
+        console.log('API TEST | 3. If you see a value, your the hook registration worked!');
+        console.log('API TEST | ');
+        // HOOK TEST - Use REAL FoundryVTT events
+        // Hook that fires when you update a token (this actually exists)
+        const tokenHookId = BlacksmithHookManager.registerHook({
+            name: 'updateToken',  // This is a real FoundryVTT event
+            description: 'API TEST: Test hook for token updates',
+            context: 'api-test-token',
+            priority: 5,
+            callback: (token, changes) => {
+                console.log('🎯 API TEST | BLACKSMITH TEST: Token Updated:', { token, changes });
+                
+                BlacksmithUtils.postConsoleAndNotification(
+                    TEST_MODULE_ID,  // ✅ Use the same module ID as above
+                    'API TEST | BLACKSMITH TEST: Token updated!',
+                    { hookId: tokenHookId, tokenName: token.name, tokenId: token.id, changes },
+                    false,
+                    true
+                );
+            }
+        });
+
+        // Hook that fires when you render a chat message (this actually exists)
+        const chatHookId = BlacksmithHookManager.registerHook({
+            name: 'renderChatMessage',  // This is a real FoundryVTT event
+            description: 'API TEST: Test hook for chat messages',
+            context: 'api-test-chat',
+            priority: 5,
+            callback: (message, html, data) => {
+                console.log('💬 API TEST | BLACKSMITH TEST: Chat Message Rendered:', { message, data });
+                
+                BlacksmithUtils.postConsoleAndNotification(
+                    TEST_MODULE_ID,  // ✅ Use the same module ID as above
+                    'API TEST | BLACKSMITH TEST: Chat message rendered!',
+                    { hookId: chatHookId, messageId: message.id, content: message.content },
+                    false,
+                    true
+                );
+            }
+        });
+
+        console.log('✅ API TEST | BLACKSMITH TEST: Hooks registered successfully:', { 
+            token: tokenHookId, 
+            chat: chatHookId
+        });
+
+        // ----- HOOK ACTIVATIONTEST INSTRUCTIONS
+        console.log('API TEST | ');
+        console.log('API TEST | ====  HOOK ACTIVATION TEST INSTRUCTIONS        ====');
+        console.log('API TEST | ');
+        console.log('API TEST | 1. Move a token to trigger updateToken hook');
+        console.log('API TEST | 2. Send a chat message to trigger renderChatMessage hook');
+        console.log('API TEST | 3. If you see logging, your hooks worked!');
+        console.log('API TEST | ');
+
+    } catch (error) {
+        console.error('❌ API TEST | BLACKSMITH TEST: Error during testing:', error);
+        
+        // Try to log the error with Blacksmith if available
+        if (BlacksmithUtils && BlacksmithUtils.postConsoleAndNotification) {
+            BlacksmithUtils.postConsoleAndNotification(
+                TEST_MODULE_ID,  // ✅ Use the same module ID here too
+                'API TEST | BLACKSMITH TEST: Error occurred during testing',
+                { error: error.message, stack: error.stack },
+                false,
+                true
+            );
+        }
+    }
+
+});
+// ========== END: BLACKSMITH API TESTING ==========
+```
+
+**What This Test Covers:**
+- ✅ **Constants Access** - Themes, sounds, tables
+- ✅ **Version Access** - Blacksmith API version
+- ✅ **Utility Functions** - Console logging and notifications
+- ✅ **Safe Settings** - Settings access (with expected error)
+- ✅ **Sound Playback** - Audio integration
+- ✅ **Hook Registration** - Event system setup
+- ✅ **Hook Activation** - Real event testing
+
+**How to Use:**
+1. Copy this entire block into your module
+2. Replace `YOUR_MODULE_ID` with your actual module ID. (REQUIRED)
+3. Run it and filter console for "API TEST" to see results
+4. Follow the interactive test instructions for hooks
+
+## **Step 5: Test Your Integration**
 Use these console commands to verify everything is working:
 
 ```javascript
@@ -136,7 +346,7 @@ BlacksmithAPIStatus()
 BlacksmithAPICheck()
 ```
 
-## **Step 5: Start Using the API**
+## **Step 6: Start Using the API**
 Now you can access Blacksmith's features directly:
 
 ```javascript
@@ -551,6 +761,8 @@ const soundChoices = BlacksmithConstants.arrSoundChoices;
 const tableChoices = BlacksmithConstants.arrTableChoices;
 ```
 
+**Important**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) are also available globally for sound playback and other predefined values.
+
 **Available Utilities**:
 ```javascript
 // Console logging with debug support
@@ -562,8 +774,20 @@ utils.postConsoleAndNotification(
     false                   // Show notification (true = show, false = console only)
 );
 
-// Sound playback
-utils.playSound('notification.mp3');
+// Sound playback - use predefined constants or full paths
+utils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, 0.7); // Predefined notification sound
+utils.playSound('modules/coffee-pub-blacksmith/sounds/notification.mp3', 0.5); // Custom path
+
+// Available sound constants (use these for consistent sound experience):
+// - COFFEEPUB.SOUNDNOTIFICATION01-15: Various notification sounds
+// - COFFEEPUB.SOUNDBUTTON01-12: Button click sounds  
+// - COFFEEPUB.SOUNDPOP01-03: Pop/interface sounds
+// - COFFEEPUB.SOUNDEFFECTBOOK01-04: Book-related sounds
+// - COFFEEPUB.SOUNDEFFECTCHEST01-02: Chest/loot sounds
+// - COFFEEPUB.SOUNDEFFECTWEAPON01-03: Weapon sounds
+// - COFFEEPUB.SOUNDEFFECTINSTRUMENT01-04: Musical instrument sounds
+// - COFFEEPUB.SOUNDEFFECTREACTION01-04: Reaction sounds (battlecry, etc.)
+// - Volume constants: COFFEEPUB.SOUNDVOLUMELOUD (0.8), SOUNDVOLUMENORMAL (0.5), SOUNDVOLUMESOFT (0.3)
 
 // Settings management
 const setting = utils.getSettingSafely('my-module-id', 'setting-key', 'default');
@@ -586,11 +810,13 @@ BlacksmithUtils.postConsoleAndNotification(
 );
 
 // Play sounds for user feedback
-BlacksmithUtils.playSound('success.mp3');
+BlacksmithUtils.playSound(COFFEEPUB.SOUNDNOTIFICATION02, 0.7); // Success notification sound
 
 // Access Blacksmith version and constants
-console.log('Blacksmith version:', BlacksmithAPI.version);
+console.log('Blacksmith version:', game.modules.get('coffee-pub-blacksmith')?.api?.version);
 console.log('Available themes:', BlacksmithConstants.arrThemeChoices);
+
+// Note: BlacksmithAPI.version doesn't exist - use the module.api.version instead
 ```
 
 
@@ -1073,7 +1299,7 @@ async function testUtilityFunctions() {
         
         // Test sound (if available)
         if (BlacksmithUtils.playSound) {
-            BlacksmithUtils.playSound('notification.mp3');
+            BlacksmithUtils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, 0.7);
             console.log('✅ Sound playback working');
         }
         
