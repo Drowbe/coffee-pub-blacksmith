@@ -59,10 +59,23 @@ We believe external modules should have a **simple, predictable interface** that
 
 # **Quick Start - External Module Integration**
 
-## **Step 1: No Import Required!**
-The Blacksmith API is automatically available as global objects when Blacksmith loads.
+## **Step 1: Add Blacksmith as a Library Dependency**
+Add Blacksmith to your module's `module.json` dependencies to get access to the API library:
 
-**What this means**: No imports needed - just use the global objects directly!
+```json
+{
+  "name": "your-module",
+  "requires": [
+    {
+      "id": "coffee-pub-blacksmith",
+      "type": "library",
+      "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json"
+    }
+  ]
+}
+```
+
+**What this means**: Once added as a library dependency, the API becomes available as global objects - no imports needed!
 
 ## **Step 2: Register Your Module (Required)**
 
@@ -113,9 +126,9 @@ Now you can access Blacksmith's features directly:
 
 ```javascript
 // Direct access - no await needed!
-const hookManager = BlacksmithHookManager;
-const utils = BlacksmithUtils;
-const moduleManager = BlacksmithModuleManager;
+BlacksmithHookManager.registerHook(...)
+BlacksmithUtils.postConsoleAndNotification(...)
+BlacksmithModuleManager.registerModule(...)
 ``` 
 
 
@@ -280,9 +293,7 @@ Before asking for help, verify:
 ## **Basic Hook Registration**
 ```javascript
 // Direct access - no await needed!
-const hookManager = BlacksmithHookManager;
-
-const hookId = hookManager.registerHook({
+const hookId = BlacksmithHookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Track actor changes',
     context: 'my-module',
@@ -297,9 +308,7 @@ const hookId = hookManager.registerHook({
 ## **Hook with All Parameters (Recommended Order)**
 ```javascript
 // Example showing the recommended parameter order
-const hookManager = BlacksmithHookManager;
-
-const fullHookId = hookManager.registerHook({
+const fullHookId = BlacksmithHookManager.registerHook({
     name: 'updateActor',
     description: 'My module: Track actor changes',
     context: 'my-module',
@@ -319,9 +328,7 @@ const fullHookId = hookManager.registerHook({
 ## **Combat Tracking Hook**
 ```javascript
 // Combat-related hooks
-const hookManager = BlacksmithHookManager;
-
-const combatHookId = hookManager.registerHook({
+const combatHookId = BlacksmithHookManager.registerHook({
     name: 'updateCombat',
     description: 'My module: Track combat changes',
     context: 'my-combat-tracker', // For batch cleanup
@@ -337,9 +344,7 @@ const combatHookId = hookManager.registerHook({
 ## **UI Enhancement Hook**
 ```javascript
 // UI enhancement hooks
-const hookManager = BlacksmithHookManager;
-
-const uiHookId = hookManager.registerHook({
+const uiHookId = BlacksmithHookManager.registerHook({
     name: 'renderChatMessage',
     description: 'My module: Enhance chat messages',
     context: 'my-chat-enhancer', // For batch cleanup
@@ -354,9 +359,7 @@ const uiHookId = hookManager.registerHook({
 ## **One-time Hook with Auto-cleanup**
 ```javascript
 // One-time hooks with auto-cleanup
-const hookManager = BlacksmithHookManager;
-
-const welcomeHookId = hookManager.registerHook({
+const welcomeHookId = BlacksmithHookManager.registerHook({
     name: 'userLogin',
     description: 'My module: Welcome message',
     context: 'my-welcome', // For batch cleanup
@@ -371,9 +374,7 @@ const welcomeHookId = hookManager.registerHook({
 ## **Performance-Optimized Hooks**
 ```javascript
 // Throttle noisy hooks (e.g., updateToken)
-const hookManager = BlacksmithHookManager;
-
-const throttledHookId = hookManager.registerHook({
+const throttledHookId = BlacksmithHookManager.registerHook({
     name: 'updateToken',
     description: 'My module: Throttled token updates',
     context: 'my-token-tracker',
@@ -386,7 +387,7 @@ const throttledHookId = hookManager.registerHook({
 });
 
 // Debounce for final state (e.g., search input)
-const debouncedHookId = blacksmithHookManager.registerHook({
+const debouncedHookId = BlacksmithHookManager.registerHook({
     name: 'searchInput',
     description: 'My module: Debounced search',
     context: 'my-search',
@@ -556,7 +557,7 @@ const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
 **Usage Examples**:
 ```javascript
 // Log important events
-blacksmithUtils.postConsoleAndNotification(
+BlacksmithUtils.postConsoleAndNotification(
     'my-awesome-module',
     'Hook registered successfully',
     { hookId, hookName: 'updateActor' }, // result object
@@ -565,7 +566,7 @@ blacksmithUtils.postConsoleAndNotification(
 );
 
 // Play sounds for user feedback
-blacksmithUtils.playSound('success.mp3');
+BlacksmithUtils.playSound('success.mp3');
 
 // Access Blacksmith version and constants
 console.log('Blacksmith version:', BlacksmithAPI.version);
@@ -602,7 +603,7 @@ const features = moduleManager.getModuleFeatures('your-module-id');
 **Usage Examples**:
 ```javascript
 // Register your module
-blacksmithModuleManager.registerModule('my-awesome-module', {
+BlacksmithModuleManager.registerModule('my-awesome-module', {
     name: 'My Awesome Module',
     version: '1.0.0',
     features: [
@@ -613,12 +614,12 @@ blacksmithModuleManager.registerModule('my-awesome-module', {
 });
 
 // Check if Blacksmith is available
-if (blacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
+if (BlacksmithModuleManager.isModuleActive('coffee-pub-blacksmith')) {
     console.log('Blacksmith is active and ready!');
 }
 
 // Get your module's features
-const myFeatures = blacksmithModuleManager.getModuleFeatures('my-awesome-module');
+const myFeatures = BlacksmithModuleManager.getModuleFeatures('my-awesome-module');
 console.log('My module features:', myFeatures);
 ```
 
@@ -644,16 +645,16 @@ const roundSummary = stats.combat.getRoundSummary();
 **Usage Examples**:
 ```javascript
 // Get combat statistics
-const combatStats = blacksmithStats.combat.getCurrentStats();
+const combatStats = BlacksmithStats.combat.getCurrentStats();
 console.log('Current combat stats:', combatStats);
 
 // Get player statistics for a specific actor
-const playerStats = await blacksmithStats.player.getStats(actorId);
+const playerStats = await BlacksmithStats.player.getStats(actorId);
 console.log('Player stats:', playerStats);
 
 // Get specific stat categories
-const attackStats = await blacksmithStats.player.getStatCategory(actorId, 'attacks');
-const healingStats = await blacksmithStats.player.getStatCategory(actorId, 'healing');
+const attackStats = await BlacksmithStats.player.getStatCategory(actorId, 'attacks');
+const healingStats = await BlacksmithStats.player.getStatCategory(actorId, 'healing');
 ```
 
 
@@ -735,13 +736,11 @@ if (BlacksmithAPI.isReady) {
 ## **Error Handling Pattern**
 ```javascript
 try {
-    const hookManager = BlacksmithHookManager;
-    
-    if (!hookManager) {
+    if (!BlacksmithHookManager) {
         throw new Error('HookManager not available');
     }
     
-    const hookId = hookManager.registerHook({
+    const hookId = BlacksmithHookManager.registerHook({
         name: 'updateActor',
         description: 'My module: Actor update handler',
         context: 'my-module',
@@ -863,17 +862,14 @@ BlacksmithAPIHookStats();
 
 **Issue: "HookManager is not defined"**
 ```javascript
-// Solution: Ensure proper import
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
-
-// Use the global object approach
-const hookManager = BlacksmithHookManager;
+// Solution: Use global objects directly
+BlacksmithHookManager.registerHook(...)
 ```
 
 **Issue: Hook not executing**
 ```javascript
 // Check if hook is registered
-const stats = hookManager.getStats();
+const stats = BlacksmithHookManager.getStats();
 console.log('Registered hooks:', stats.hooks);
 
 // Verify hook name is correct
@@ -883,14 +879,14 @@ console.log('Registered hooks:', stats.hooks);
 **Issue: Performance problems**
 ```javascript
 // Use throttling for noisy hooks
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'updateToken',
     options: { throttleMs: 100 }, // Reduce frequency
     // ...
 });
 
 // Use debouncing for user input
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'searchInput', 
     options: { debounceMs: 500 }, // Wait longer
     // ...
@@ -899,52 +895,52 @@ hookManager.registerHook({
 
 # **Best Practices**
 
-## **1. Use Descriptive Variable Names (IMPORTANT)**
+## **1. Use Direct Global Access (RECOMMENDED)**
 ```javascript
-// GOOD: Prepend "blacksmith" to avoid naming conflicts
-const blacksmithHookManager = BlacksmithHookManager;
-const blacksmithUtils = BlacksmithUtils;
-const blacksmithModuleManager = BlacksmithModuleManager;
+// GOOD: Use global objects directly
+BlacksmithHookManager.registerHook(...)
+BlacksmithUtils.postConsoleAndNotification(...)
+BlacksmithModuleManager.registerModule(...)
 
-// BAD: Generic names can conflict with existing variables
-const utils = BlacksmithUtils;        // Might conflict with existing utils
-const hook = BlacksmithHookManager; // Might conflict with existing hookManager
+// ALTERNATIVE: Store references if you prefer
+const hookManager = BlacksmithHookManager;
+const utils = BlacksmithUtils;
 ```
 
-**Why this matters:**
-- **Prevents naming conflicts** with variables your module already has
-- **Makes code more readable** - clear where APIs come from
-- **Follows FoundryVTT best practices** for module integration
-- **Easier debugging** - no confusion about variable sources
+**Why direct access is better:**
+- **No extra variables** cluttering your scope
+- **Always clear** where the API comes from
+- **Consistent pattern** - same approach everywhere
+- **Simpler code** - one less step
 
 ## **2. Always Use Contexts**
 ```javascript
 // GOOD: Descriptive context for cleanup
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'updateActor',
     context: 'my-module-actor-tracking',
     // ...
 });
 
 // BAD: No context makes cleanup difficult
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'updateActor',
     // Missing context
     // ...
 });
 ```
 
-## **2. Provide Clear Descriptions**
+## **3. Provide Clear Descriptions**
 ```javascript
 // GOOD: Clear, descriptive hook description
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'updateActor',
     description: 'My Module: Track actor HP changes for health panel updates',
     // ...
 });
 
 // BAD: Vague description makes debugging hard
-hookManager.registerHook({
+BlacksmithHookManager.registerHook({
     name: 'updateActor',
     description: 'Updates stuff',
     // ...
@@ -973,7 +969,7 @@ if (!BlacksmithAPI.isReady()) {
 // Store hook IDs for cleanup
 const myHookIds = [];
 
-myHookIds.push(hookManager.registerHook({
+myHookIds.push(BlacksmithHookManager.registerHook({
     name: 'updateActor',
     context: 'my-module',
     // ...
@@ -981,7 +977,7 @@ myHookIds.push(hookManager.registerHook({
 
 // Clean up when module disables
 Hooks.once('closeGame', () => {
-    myHookIds.forEach(id => hookManager.removeCallback(id));
+    myHookIds.forEach(id => BlacksmithHookManager.removeCallback(id));
 });
 ```
 
@@ -1020,20 +1016,18 @@ Use this checklist to verify your integration:
 
 ```javascript
 function testBasicAPI() {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    
-    if (!blacksmith) {
-        console.error('❌ Blacksmith module not found');
+    if (!BlacksmithUtils) {
+        console.error('❌ Blacksmith Utils not available');
         return false;
     }
     
-    if (!blacksmith.utils?.getSettingSafely) {
-        console.error('❌ Blacksmith API not ready');
-        return false;
-    }
-    
-    if (!blacksmith.HookManager) {
+    if (!BlacksmithHookManager) {
         console.error('❌ HookManager not available');
+        return false;
+    }
+    
+    if (!BlacksmithModuleManager) {
+        console.error('❌ ModuleManager not available');
         return false;
     }
     
@@ -1046,21 +1040,20 @@ function testBasicAPI() {
 
 ```javascript
 async function testUtilityFunctions() {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    if (!blacksmith?.utils) return false;
+    if (!BlacksmithUtils) return false;
     
     try {
         // Test settings access
-        const testValue = blacksmith.utils.getSettingSafely('test-module', 'test-setting', 'default');
+        const testValue = BlacksmithUtils.getSettingSafely('test-module', 'test-setting', 'default');
         console.log('✅ Settings access working:', testValue);
         
         // Test logging
-        blacksmith.utils.postConsoleAndNotification('test-module', 'Utility test', { testType: 'utility' }, false, false);
+        BlacksmithUtils.postConsoleAndNotification('test-module', 'Utility test', { testType: 'utility' }, false, false);
         console.log('✅ Logging working');
         
         // Test sound (if available)
-        if (blacksmith.utils.playSound) {
-            blacksmith.utils.playSound('notification.mp3');
+        if (BlacksmithUtils.playSound) {
+            BlacksmithUtils.playSound('notification.mp3');
             console.log('✅ Sound playback working');
         }
         
@@ -1076,20 +1069,19 @@ async function testUtilityFunctions() {
 
 ```javascript
 async function testSettingsAccess() {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    if (!blacksmith?.utils) return false;
+    if (!BlacksmithUtils) return false;
     
     try {
         // Test safe get
-        const value = blacksmith.utils.getSettingSafely('my-module', 'test-setting', 'default');
+        const value = BlacksmithUtils.getSettingSafely('my-module', 'test-setting', 'default');
         console.log('✅ Safe get working:', value);
         
         // Test safe set
-        blacksmith.utils.setSettingSafely('my-module', 'test-setting', 'test-value');
+        BlacksmithUtils.setSettingSafely('my-module', 'test-setting', 'test-value');
         console.log('✅ Safe set working');
         
         // Verify the set worked
-        const newValue = blacksmith.utils.getSettingSafely('my-module', 'test-setting', 'default');
+        const newValue = BlacksmithUtils.getSettingSafely('my-module', 'test-setting', 'default');
         console.log('✅ Setting verification working:', newValue);
         
         return true;
@@ -1104,26 +1096,25 @@ async function testSettingsAccess() {
 
 ```javascript
 async function testBLACKSMITHObject() {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    if (!blacksmith?.BLACKSMITH) return false;
+    if (!BlacksmithConstants) return false;
     
     try {
         // Test choice arrays
-        if (blacksmith.BLACKSMITH.arrThemeChoices) {
-            console.log('✅ Theme choices available:', blacksmith.BLACKSMITH.arrThemeChoices.length);
+        if (BlacksmithConstants.arrThemeChoices) {
+            console.log('✅ Theme choices available:', BlacksmithConstants.arrThemeChoices.length);
         }
         
-        if (blacksmith.BLACKSMITH.arrSoundChoices) {
-            console.log('✅ Sound choices available:', blacksmith.BLACKSMITH.arrSoundChoices.length);
+        if (BlacksmithConstants.arrSoundChoices) {
+            console.log('✅ Sound choices available:', BlacksmithConstants.arrSoundChoices.length);
         }
         
-        if (blacksmith.BLACKSMITH.arrTableChoices) {
-            console.log('✅ Table choices available:', blacksmith.BLACKSMITH.arrTableChoices.length);
+        if (BlacksmithConstants.arrTableChoices) {
+            console.log('✅ Table choices available:', BlacksmithConstants.arrTableChoices.length);
         }
         
         // Test default values
-        if (blacksmith.BLACKSMITH.strDefaultCardTheme) {
-            console.log('✅ Default theme available:', blacksmith.BLACKSMITH.strDefaultCardTheme);
+        if (BlacksmithConstants.strDefaultCardTheme) {
+            console.log('✅ Default theme available:', BlacksmithConstants.strDefaultCardTheme);
         }
         
         return true;
@@ -1138,12 +1129,11 @@ async function testBLACKSMITHObject() {
 
 ```javascript
 async function testModuleRegistration() {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    if (!blacksmith?.registerModule) return false;
+    if (!BlacksmithModuleManager) return false;
     
     try {
         // Test registration
-        blacksmith.registerModule('test-module', {
+        BlacksmithModuleManager.registerModule('test-module', {
             name: 'Test Module',
             version: '1.0.0',
             features: ['testing']
@@ -1151,8 +1141,8 @@ async function testModuleRegistration() {
         console.log('✅ Module registration working');
         
         // Test feature checking
-        if (blacksmith.getModuleFeatures) {
-            const features = blacksmith.getModuleFeatures('test-module');
+        if (BlacksmithModuleManager.getModuleFeatures) {
+            const features = BlacksmithModuleManager.getModuleFeatures('test-module');
             console.log('✅ Feature checking working:', features);
         }
         
@@ -1169,12 +1159,11 @@ async function testModuleRegistration() {
 ```javascript
 // Quick test: Check if Blacksmith is available and ready
 (() => {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
     const status = {
-        module: !!blacksmith,
-        api: !!(blacksmith?.utils?.getSettingSafely),
-        hooks: !!(blacksmith?.HookManager),
-        utils: !!(blacksmith?.utils)
+        utils: !!BlacksmithUtils,
+        hooks: !!BlacksmithHookManager,
+        moduleManager: !!BlacksmithModuleManager,
+        constants: !!BlacksmithConstants
     };
     console.log('Blacksmith Status:', status);
     return Object.values(status).every(Boolean);
@@ -1200,15 +1189,13 @@ async function testModuleRegistration() {
 ```javascript
 // BAD: Assumes API is ready
 Hooks.once('init', () => {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-    blacksmith.utils.getSettingSafely('setting', 'default'); // May crash!
+    BlacksmithUtils.getSettingSafely('setting', 'default'); // May crash!
 });
 
 // GOOD: Check availability first
-Hooks.once('ready', async () => {
-    const blacksmith = await waitForBlacksmith();
-    if (blacksmith?.utils?.getSettingSafely) {
-        blacksmith.utils.getSettingSafely('setting', 'default');
+Hooks.once('ready', () => {
+    if (BlacksmithUtils) {
+        BlacksmithUtils.getSettingSafely('setting', 'default');
     }
 });
 ```
@@ -1228,11 +1215,11 @@ Hooks.once('ready', async () => {
 **Code Fix:**
 ```javascript
 // BAD: No existence check
-const value = blacksmith.utils.getSettingSafely('setting', 'default');
+const value = BlacksmithUtils.getSettingSafely('setting', 'default');
 
 // GOOD: Check existence first
-if (blacksmith?.utils?.getSettingSafely) {
-    const value = blacksmith.utils.getSettingSafely('setting', 'default');
+if (BlacksmithUtils) {
+    const value = BlacksmithUtils.getSettingSafely('setting', 'default');
 } else {
     // Fallback behavior
     const value = game.settings.get('my-module', 'setting') ?? 'default';
