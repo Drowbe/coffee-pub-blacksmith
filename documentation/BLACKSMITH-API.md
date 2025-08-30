@@ -90,22 +90,25 @@ Add Blacksmith to your module's `module.json` dependencies to get access to the 
 - **Version**: Helps with compatibility and debugging
 
 ```javascript
+// === BEGIN: BLACKSMITH API REGISTRATION ===
+// Blacksmoth API is available as global objects
+// Register your module with Blacksmith
 Hooks.once('init', async () => {
     try {
         // Get the module manager
         const moduleManager = BlacksmithModuleManager;
-        
         // Register your module
         moduleManager.registerModule('YOUR_MODULE_ID', {
             name: 'YOUR_SHORT_NAME',
             version: 'YOUR_MODULE_VERSION'
         });
-        
+        // Log success
         console.log('✅ Module registered with Blacksmith successfully');
     } catch (error) {
         console.error('❌ Failed to register with Blacksmith:', error);
     }
 });
+// === END: BLACKSMITH API REGISTRATION ===
 ```
 
 **Why register?**: This tells Blacksmith about your module and enables inter-module features.
