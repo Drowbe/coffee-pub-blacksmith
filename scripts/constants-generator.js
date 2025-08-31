@@ -108,8 +108,8 @@ export class ConstantsGenerator {
         
         try {
             dataIcons.icons.forEach(icon => {
-                if (icon.constantname && icon.id) {
-                    iconConstants[icon.constantname] = icon.id;
+                if (icon.constantname && icon.value) {
+                    iconConstants[icon.constantname] = icon.value;
                 }
             });
         } catch (error) {

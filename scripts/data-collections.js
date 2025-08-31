@@ -210,8 +210,8 @@ export const dataIcons = {
     "icons": [
         {
             "name": "No Icon (Select One)",
-            "id": "none",
-            "value": "",
+            "id": "icon-none",
+            "value": "none",
             "constantname": "ICONNONE",
             "path": "",
             "tags": ["icon", "none", "empty"],
@@ -220,8 +220,8 @@ export const dataIcons = {
         },
         {
             "name": "Chess: Queen",
-            "id": "fa-chess-queen",
-            "value": "",
+            "id": "icon-chess-queen",
+            "value": "fa-chess-queen",
             "constantname": "ICONCHESSQUEEN",
             "path": "",
             "tags": ["icon", "chess", "queen", "royalty"],
@@ -230,8 +230,8 @@ export const dataIcons = {
         },
         {
             "name": "Chess: King",
-            "id": "fa-chess-king",
-            "value": "",
+            "id": "icon-chess-king",
+            "value": "fa-chess-king",
             "constantname": "ICONCHESSKING",
             "path": "",
             "tags": ["icon", "chess", "king", "royalty"],
@@ -240,8 +240,8 @@ export const dataIcons = {
         },
         {
             "name": "Chess: Rook",
-            "id": "fa-chess-rook",
-            "value": "",
+            "id": "icon-chess-rook",
+            "value": "fa-chess-rook",
             "constantname": "ICONCHESSROOK",
             "path": "",
             "tags": ["icon", "chess", "rook", "castle"],
@@ -250,8 +250,8 @@ export const dataIcons = {
         },
         {
             "name": "Fist",
-            "id": "fa-hand-fist",
-            "value": "",
+            "id": "icon-fist",
+            "value": "fa-hand-fist",
             "constantname": "ICONFIST",
             "path": "",
             "tags": ["icon", "fist", "hand", "combat"],
@@ -260,8 +260,8 @@ export const dataIcons = {
         },
         {
             "name": "Paw",
-            "id": "fa-paw",
-            "value": "",
+            "id": "icon-paw",
+            "value": "fa-paw",
             "constantname": "ICONPAW",
             "path": "",
             "tags": ["icon", "paw", "animal", "beast"],
@@ -270,7 +270,8 @@ export const dataIcons = {
         },
         {
             "name": "Shield",
-            "id": "fa-shield",
+            "id": "icon-shield",
+            "value": "fa-shield",
             "path": "",
             "tags": ["icon", "shield", "defense", "protection"],
             "type": "icon",
@@ -278,8 +279,8 @@ export const dataIcons = {
         },
         {
             "name": "Skull",
-            "id": "fa-skull",
-            "value": "",
+            "id": "icon-skull",
+            "value": "fa-skull",
             "constantname": "ICONSKULL",
             "path": "",
             "tags": ["icon", "skull", "death", "danger"],
@@ -288,8 +289,8 @@ export const dataIcons = {
         },
         {
             "name": "Coffee Pot",
-            "id": "fa-coffee-pot",
-            "value": "",
+            "id": "icon-coffee-pot",
+            "value": "fa-coffee-pot",
             "constantname": "ICONCOFFEEPOT",
             "path": "",
             "tags": ["icon", "coffee", "pot", "beverage"],

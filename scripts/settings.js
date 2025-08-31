@@ -264,7 +264,7 @@ function getIconChoices() {
     sortedIcons.sort((a, b) => a.name.localeCompare(b.name));
     
     for(let icons of sortedIcons) { 
-        choices[icons.id] = icons.name;
+        choices[icons.value] = icons.name;
         // Add the image to arrBackgroundImageChoicesEnabled array
         BLACKSMITH.arrIconChoicesEnabled.push(icons.name);
     }
