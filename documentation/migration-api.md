@@ -54,6 +54,12 @@ We encountered several critical issues during our migration that caused:
 - **Auto-generation** - constants created automatically from data collections
 - **Backward compatibility** - existing code continues to work
 
+### **Data Structure Updates (Latest Changes)**
+- **Added `value` field** - separates asset data from identifiers
+- **Updated theme structure** - `id` now uses semantic names (e.g., "theme-default"), `value` contains CSS classes (e.g., "cardsdark")
+- **Volume constants** - now properly use `value` field for numeric levels (e.g., "0.5"), `path` field is empty
+- **Improved separation** - `id` for internal references, `value` for asset data, `path` for file paths
+
 ## **✅ What's Already Working**
 
 ### **Global Constants (Backward Compatible)**
@@ -125,12 +131,25 @@ export const SOUNDNEWSOUND = "modules/coffee-pub-blacksmith/sounds/new-sound.mp3
 // Add to data-collections.js
 {
     "name": "New Sound",
-    "id": "modules/coffee-pub-blacksmith/sounds/new-sound.mp3",
+    "id": "sound-new-sound",
+    "value": "", // For sounds, usually empty (file path is in path)
     "constantname": "SOUNDNEWSOUND",
     "path": "modules/coffee-pub-blacksmith/sounds/new-sound.mp3",
     "tags": ["interface", "notification"],
     "type": "sound",
     "category": "interface"
+}
+
+// Example for volume setting:
+{
+    "name": "Medium",
+    "id": "volume-medium",
+    "value": "0.6", // Volume level used by playSound function
+    "constantname": "SOUNDVOLUMEMEDIUM",
+    "path": "", // Empty for volume settings
+    "tags": ["volume", "medium"],
+    "type": "volume",
+    "category": "setting"
 }
 ```
 
@@ -176,6 +195,31 @@ BlacksmithAPIGenerateConstants();
 // Get choices for settings
 const soundChoices = assetLookup.getChoices('sound', 'interface');
 // Returns: { "path": "Display Name", ... }
+```
+
+### **Understanding the New Data Structure:**
+```javascript
+// Theme example - note the separation of concerns:
+{
+    "name": "Dark And Stormy",           // Display name in UI
+    "id": "theme-dark",                  // Internal identifier for settings
+    "value": "cardsdark",                // CSS class used for styling
+    "constantname": "THEMEDARK",         // Generated constant
+    "path": "",                          // Empty (no file path needed)
+    "type": "theme",
+    "category": "theme"
+}
+
+// Sound example:
+{
+    "name": "Interface: Error 01",      // Display name in UI
+    "id": "sound-interface-error-01",   // Internal identifier
+    "value": "",                         // Empty (no specific value needed)
+    "constantname": "SOUNDERROR01",      // Generated constant
+    "path": "modules/.../error-01.mp3", // File path for playback
+    "type": "sound",
+    "category": "interface"
+}
 ```
 
 ### **For Dynamic Selection:**
@@ -273,6 +317,7 @@ const sound = COFFEEPUB.SOUNDNOTIFICATION01;
 - **Sounds**: `SOUNDEFFECT + CATEGORY + DOUBLE-DIGIT INDEX` (e.g., `SOUNDEFFECTGENERAL05`)
 - **Images**: `BACK + DESCRIPTIVE_NAME` (e.g., `BACKSKILLCHECK`, `BACKABILITYCHECK`)
 - **Themes**: `THEME + COLOR` (e.g., `THEMEDEFAULT`, `THEMEBLUE`)
+- **Volumes**: `SOUNDVOLUME + LEVEL` (e.g., `SOUNDVOLUMENORMAL`, `SOUNDVOLUMELOUD`)
 
 ### **Issue 3: Timing Issues with Constants Generation**
 **What Happened:** Constants weren't available when modules tried to access them.
@@ -378,7 +423,9 @@ function getSoundChoices() {
 - **Pop Sounds**: 3 constants (SOUNDPOP01-03)
 - **Effect Sounds**: Book, chest, weapon, instrument, reaction, general effects
 - **Skill Check Sounds**: 8 constants (cinematic, dice, success, failure, etc.)
-- **Volume Constants**: 4 constants (loud, normal, soft, max)
+- **Volume Constants**: 4 constants (loud, normal, soft, max) - **FIXED** to use `value` field properly
+- **Theme Structure**: **UPDATED** to use semantic IDs (theme-default, theme-dark) with CSS classes in `value` field
+- **Data Structure**: **ENHANCED** with new `value` field for better separation of concerns
 - **Basic Banner Images**: Started with hero banners
 
 ### **Next Priority:**
