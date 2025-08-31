@@ -88,8 +88,8 @@ export class ConstantsGenerator {
         
         try {
             dataBackgroundImages.images.forEach(image => {
-                if (image.constantname && image.id) {
-                    backgroundConstants[image.constantname] = image.id;
+                if (image.constantname && image.value) {
+                    backgroundConstants[image.constantname] = image.value;
                 }
             });
         } catch (error) {

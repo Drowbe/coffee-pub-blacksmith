@@ -78,8 +78,8 @@ export const dataBackgroundImages = {
     "images": [
         {
             "name": "None (Uses Theme Color)",
-            "id": "themecolor",
-            "value": "",
+            "id": "background-theme-color",
+            "value": "themecolor",
             "constantname": "BACKTHEMECOLOR",
             "path": "",
             "tags": ["background", "theme", "color"],
@@ -88,8 +88,8 @@ export const dataBackgroundImages = {
         },  
         {
             "name": "Brick",
-            "id": "brick",
-            "value": "",
+            "id": "background-brick",
+            "value": "brick",
             "constantname": "BACKBRICK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/brick.webp",
             "tags": ["background", "brick", "stone", "texture"],
@@ -98,8 +98,8 @@ export const dataBackgroundImages = {
         },  
         {
             "name": "Dessert",
-            "id": "dessert",
-            "value": "",
+            "id": "background-dessert",
+            "value": "dessert",
             "constantname": "BACKDESSERT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dessert.webp",
             "tags": ["background", "dessert", "sand", "arid"],
@@ -108,8 +108,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Dirt",
-            "id": "dirt",
-            "value": "",
+            "id": "background-dirt",
+            "value": "dirt",
             "constantname": "BACKDIRT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dirt.webp",
             "tags": ["background", "dirt", "earth", "soil"],
@@ -118,8 +118,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Grass",
-            "id": "grass",
-            "value": "",
+            "id": "background-grass",
+            "value": "grass",
             "constantname": "BACKGRASS",
             "path": "modules/coffee-pub-blacksmith/images/tiles/grass.webp",
             "tags": ["background", "grass", "nature", "green"],
@@ -128,8 +128,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Rock",
-            "id": "rock",
-            "value": "",
+            "id": "background-rock",
+            "value": "rock",
             "constantname": "BACKROCK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/rock.webp",
             "tags": ["background", "rock", "stone", "mountain"],
@@ -138,8 +138,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Stone",
-            "id": "stone",
-            "value": "",
+            "id": "background-stone",
+            "value": "stone",
             "constantname": "BACKSTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stone.webp",
             "tags": ["background", "stone", "masonry", "building"],
@@ -148,8 +148,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Cobblestone",
-            "id": "cobblestone",
-            "value": "",
+            "id": "background-cobblestone",
+            "value": "cobblestone",
             "constantname": "BACKCOBBLESTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/cobblestone.webp",
             "tags": ["background", "cobblestone", "road", "path"],
@@ -158,8 +158,8 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Stone Floor",
-            "id": "stonefloor",
-            "value": "",
+            "id": "background-stone-floor",
+            "value": "stonefloor",
             "constantname": "BACKSTONEFLOOR",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stonefloor.webp",
             "tags": ["background", "stonefloor", "floor", "interior"],
@@ -169,8 +169,8 @@ export const dataBackgroundImages = {
 
         {
             "name": "Parchment",
-            "id": "parchment",
-            "value": "",
+            "id": "background-parchment",
+            "value": "parchment",
             "constantname": "BACKPARCHMENT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/parchment.webp",
             "tags": ["background", "parchment", "paper", "document"],
@@ -180,8 +180,8 @@ export const dataBackgroundImages = {
 
         {
             "name": "Light Cloth",
-            "id": "clothlight",
-            "value": "",
+            "id": "background-light-cloth",
+            "value": "clothlight",
             "constantname": "BACKCLOTHLIGHT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothlight.webp",
             "tags": ["background", "clothlight", "fabric", "light"],
@@ -191,8 +191,8 @@ export const dataBackgroundImages = {
 
         {
             "name": "Dark Cloth",
-            "id": "clothdark",
-            "value": "",
+            "id": "background-dark-cloth",
+            "value": "clothdark",
             "constantname": "BACKCLOTHDARK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothdark.webp",
             "tags": ["background", "clothdark", "fabric", "dark"],

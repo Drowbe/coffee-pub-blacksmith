@@ -232,12 +232,12 @@ function getBackgroundImageChoices() {
     let sortedImages = dataBackgroundImages.images;
     // Move 'themecolor' to front
     sortedImages.sort((a, b) => {
-        if(a.id === 'themecolor') return -1;
-        if(b.id === 'themecolor') return 1;
+        if(a.value === 'themecolor') return -1;
+        if(b.value === 'themecolor') return 1;
         return a.name.localeCompare(b.name);
     });
     for(let img of sortedImages) { 
-        choices[img.id] = img.name;
+        choices[img.value] = img.name;
         // Add the image to arrBackgroundImageChoicesEnabled array
         BLACKSMITH.arrBackgroundImageChoicesEnabled.push(img.name);
     }
