@@ -274,7 +274,7 @@ export const dataNameplate = {
     "names": [
         {
             "name": "Do Not Change Token Names",
-            "id": "nameplate-none",
+            "id": "none",
             "constantname": "NAMEPLATENONE",
             "path": "",
             "tags": ["nameplate", "none", "default"],
@@ -283,7 +283,7 @@ export const dataNameplate = {
         },
         {
             "name": "Replace Token with Name",
-            "id": "nameplate-replace",
+            "id": "name-replace",
             "constantname": "NAMEPLATEREPLACE",
             "path": "",
             "tags": ["nameplate", "replace", "token"],
@@ -292,7 +292,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Token Name",
-            "id": "nameplate-append-end",
+            "id": "name-append-end",
             "constantname": "NAMEPLATEAPPENDEND",
             "path": "",
             "tags": ["nameplate", "append", "end", "token"],
@@ -301,7 +301,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Name Token",
-            "id": "nameplate-append-start",
+            "id": "name-append-start",
             "constantname": "NAMEPLATEAPPENDSTART",
             "path": "",
             "tags": ["nameplate", "append", "start", "name"],
@@ -310,7 +310,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Token (Name)",
-            "id": "nameplate-append-end-parenthesis",
+            "id": "name-append-end-parenthesis",
             "constantname": "NAMEPLATEAPPENDENDPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "append", "end", "parenthesis", "token"],
@@ -319,7 +319,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Name (Token)",
-            "id": "nameplate-append-start-parenthesis",
+            "id": "name-append-start-parenthesis",
             "constantname": "NAMEPLATEAPPENDSTARTPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "append", "start", "parenthesis", "name"],
@@ -328,7 +328,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Token - Name",
-            "id": "nameplate-append-end-dash",
+            "id": "name-append-end-dash",
             "constantname": "NAMEPLATEAPPENDENDDASH",
             "path": "",
             "tags": ["nameplate", "append", "end", "dash", "token"],
@@ -337,7 +337,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Name: Name - Token",
-            "id": "nameplate-append-start-dash",
+            "id": "name-append-start-dash",
             "constantname": "NAMEPLATEAPPENDSTARTDASH",
             "path": "",
             "tags": ["nameplate", "append", "start", "dash", "name"],
@@ -346,7 +346,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Number: Token 01",
-            "id": "nameplate-number-append-end",
+            "id": "number-append-end",
             "constantname": "NAMEPLATENUMBERAPPENDEND",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "token"],
@@ -355,7 +355,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Number: Token (01)",
-            "id": "nameplate-number-append-end-parenthesis",
+            "id": "number-append-end-parenthesis",
             "constantname": "NAMEPLATENUMBERAPPENDENDPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "parenthesis", "token"],
@@ -364,7 +364,7 @@ export const dataNameplate = {
         },
         {
             "name": "Append Number: Token - 01",
-            "id": "nameplate-number-append-end-dash",
+            "id": "number-append-end-dash",
             "constantname": "NAMEPLATENUMBERAPPENDENDDASH",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "dash", "token"],
