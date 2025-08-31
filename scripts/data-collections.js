@@ -415,33 +415,9 @@ export const dataSounds = {
             "type": "sound",
             "category": "effects"
         },
-        {
-            "name": "General: Charm",
-            "id": "sound-charm",
-            "constantname": "SOUNDCHARM",
-            "path": "modules/coffee-pub-blacksmith/sounds/charm.mp3",
-            "tags": ["sound", "charm", "magic", "enchantment"],
-            "type": "sound",
-            "category": "effects"
-        },
-        {
-            "name": "General: Clatter",
-            "id": "sound-clatter",
-            "constantname": "SOUNDCLATTER",
-            "path": "modules/coffee-pub-blacksmith/sounds/clatter.mp3",
-            "tags": ["sound", "clatter", "noise", "impact"],
-            "type": "sound",
-            "category": "effects"
-        },
-        {
-            "name": "General: Cocktail Ice",
-            "id": "sound-cocktail-ice",
-            "constantname": "SOUNDCOCKTAILICE",
-            "path": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
-            "tags": ["sound", "cocktail", "ice", "beverage"],
-            "type": "sound",
-            "category": "effects"
-        },
+
+
+
         {
             "name": "General: Gong",
             "id": "sound-gong",
@@ -469,24 +445,8 @@ export const dataSounds = {
             "type": "sound",
             "category": "effects"
         },
-        {
-            "name": "General: Synth",
-            "id": "sound-synth",
-            "constantname": "SOUNDSYNTH",
-            "path": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
-            "tags": ["sound", "synth", "electronic", "music"],
-            "type": "sound",
-            "category": "effects"
-        },
-        {
-            "name": "General: Toilet Flushing",
-            "id": "sound-toilet-flushing",
-            "constantname": "SOUNDTOILETFLUSHING",
-            "path": "modules/coffee-pub-blacksmith/sounds/general-toilet-flushing.mp3",
-            "tags": ["sound", "toilet", "flushing", "bathroom"],
-            "type": "sound",
-            "category": "effects"
-        },
+
+
 
         // Interface Sounds
         {
@@ -962,34 +922,7 @@ export const dataSounds = {
             "category": "magic"
         },
 
-        // Nature and Environment
-        {
-            "name": "Nature: Rustling Grass",
-            "id": "sound-nature-rustling-grass",
-            "constantname": "SOUNDEFFECTGENERAL01",
-            "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
-            "tags": ["sound", "nature", "grass", "rustling", "wind"],
-            "type": "sound",
-            "category": "ambience"
-        },
-        {
-            "name": "Nature: Beast Owl Hoot",
-            "id": "sound-nature-owl-hoot",
-            "constantname": "SOUNDEFFECTGENERAL04",
-            "path": "modules/coffee-pub-blacksmith/sounds/beast-owl-hoot.mp3",
-            "tags": ["sound", "nature", "beast", "owl", "night"],
-            "type": "sound",
-            "category": "ambience"
-        },
-        {
-            "name": "Nature: Fire Candle Blow",
-            "id": "sound-nature-fire-candle",
-            "constantname": "SOUNDEFFECTGENERAL07",
-            "path": "modules/coffee-pub-blacksmith/sounds/fire-candle-blow.mp3",
-            "tags": ["sound", "nature", "fire", "candle", "flame"],
-            "type": "sound",
-            "category": "ambience"
-        },
+
 
         // Reactions
         {
@@ -1095,7 +1028,7 @@ export const dataSounds = {
             "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
             "tags": ["general", "grass", "rustling"],
             "type": "sound",
-            "category": "general"
+            "category": "effects"
         },
         {
             "name": "General: Synth",
@@ -1113,7 +1046,7 @@ export const dataSounds = {
             "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "tags": ["sound", "general", "spell", "magic", "circle"],
             "type": "sound",
-            "category": "magic"
+            "category": "effects"
         },
         {
             "name": "General: Charm",

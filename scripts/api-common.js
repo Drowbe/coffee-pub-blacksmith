@@ -52,14 +52,14 @@ export async function setSettingSafely(moduleId, settingKey, value) {
 // GLOBAL VARS
 export const COFFEEPUB = {
     // ALL COFFEEPUB MODULES | Access via COFFEEPUB.MODULES.BLACKSMITH, etc.    
-    MODULES: {
-        BLACKSMITH: 'coffee-pub-blacksmith',
-        BIBLIOSOPH: 'coffee-pub-bibliosoph',
-        CRIER: 'coffee-pub-crier',
-        SCRIBE: 'coffee-pub-scribe',
-        SQUIRE: 'coffee-pub-squire',
-        MONARCH: 'coffee-pub-monarch'
-    },
+    // MODULES: {
+    //     BLACKSMITH: 'coffee-pub-blacksmith',
+    //     BIBLIOSOPH: 'coffee-pub-bibliosoph',
+    //     CRIER: 'coffee-pub-crier',
+    //     SCRIBE: 'coffee-pub-scribe',
+    //     SQUIRE: 'coffee-pub-squire',
+    //     MONARCH: 'coffee-pub-monarch'
+    // },
     // SHARED MODULE VARIABLES
     blnDebugOn: false, // Display debug messages
     // blnFancyConsole: false, // Display Colorful Console

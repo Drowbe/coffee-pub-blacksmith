@@ -289,9 +289,20 @@ function getSoundChoices() {
     
     // Then add all the sound choices from data collection (excluding sound-none since we already added it)
     let sortedSounds = dataSounds.sounds.filter(sound => sound.id !== 'sound-none');
-    sortedSounds.sort((a, b) => a.name.localeCompare(b.name));
     
-    for(let sounds of sortedSounds) { 
+    // Remove duplicates based on ID
+    const uniqueSounds = [];
+    const seenIds = new Set();
+    for(let sound of sortedSounds) {
+        if (!seenIds.has(sound.id)) {
+            seenIds.add(sound.id);
+            uniqueSounds.push(sound);
+        }
+    }
+    
+    uniqueSounds.sort((a, b) => a.name.localeCompare(b.name));
+    
+    for(let sounds of uniqueSounds) { 
         choices[sounds.id] = sounds.name;
         BLACKSMITH.arrSoundChoicesEnabled.push(sounds.name);
     }
