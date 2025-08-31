@@ -168,8 +168,8 @@ export class ConstantsGenerator {
         
         try {
             dataVolume.volumes.forEach(volume => {
-                if (volume.constantname && volume.path) {
-                    volumeConstants[volume.constantname] = volume.path;
+                if (volume.constantname && volume.value) {
+                    volumeConstants[volume.constantname] = volume.value;
                 }
             });
         } catch (error) {
