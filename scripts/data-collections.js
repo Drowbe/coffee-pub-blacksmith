@@ -6,6 +6,7 @@ export const dataTheme = {
         {
             "name": "Simple (Native Foundry)",
             "id": "cardsdefault",
+            "value": "",
             "constantname": "THEMEDEFAULT",
             "path": "",
             "tags": ["theme", "default", "simple", "foundry"],
@@ -16,6 +17,7 @@ export const dataTheme = {
         {
             "name": "Dark And Stormy",
             "id": "cardsdark",
+            "value": "",
             "constantname": "THEMEDARK",
             "path": "",
             "tags": ["theme", "dark", "stormy", "atmospheric"],
@@ -26,6 +28,7 @@ export const dataTheme = {
         {
             "name": "Blue Velvet",
             "id": "cardsblue",
+            "value": "",
             "constantname": "THEMEBLUE",
             "path": "",
             "tags": ["theme", "blue", "velvet", "elegant"],
@@ -36,6 +39,7 @@ export const dataTheme = {
         {
             "name": "Red Wine",
             "id": "cardsred",
+            "value": "",
             "constantname": "THEMERED",
             "path": "",
             "tags": ["theme", "red", "wine", "luxury"],
@@ -46,6 +50,7 @@ export const dataTheme = {
         {
             "name": "Green Moss",
             "id": "cardsgreen",
+            "value": "",
             "constantname": "THEMEGREEN",
             "path": "",
             "tags": ["theme", "green", "moss", "nature"],
@@ -56,6 +61,7 @@ export const dataTheme = {
         {
             "name": "Brown Earth",
             "id": "cardsbrown",
+            "value": "",
             "constantname": "THEMEBROWN",
             "path": "",
             "tags": ["theme", "brown", "earth"],
@@ -73,6 +79,7 @@ export const dataBackgroundImages = {
         {
             "name": "None (Uses Theme Color)",
             "id": "themecolor",
+            "value": "",
             "constantname": "BACKTHEMECOLOR",
             "path": "",
             "tags": ["background", "theme", "color"],
@@ -82,6 +89,7 @@ export const dataBackgroundImages = {
         {
             "name": "Brick",
             "id": "brick",
+            "value": "",
             "constantname": "BACKBRICK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/brick.webp",
             "tags": ["background", "brick", "stone", "texture"],
@@ -91,6 +99,7 @@ export const dataBackgroundImages = {
         {
             "name": "Dessert",
             "id": "dessert",
+            "value": "",
             "constantname": "BACKDESSERT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dessert.webp",
             "tags": ["background", "dessert", "sand", "arid"],
@@ -100,6 +109,7 @@ export const dataBackgroundImages = {
         {
             "name": "Dirt",
             "id": "dirt",
+            "value": "",
             "constantname": "BACKDIRT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dirt.webp",
             "tags": ["background", "dirt", "earth", "soil"],
@@ -109,6 +119,7 @@ export const dataBackgroundImages = {
         {
             "name": "Grass",
             "id": "grass",
+            "value": "",
             "constantname": "BACKGRASS",
             "path": "modules/coffee-pub-blacksmith/images/tiles/grass.webp",
             "tags": ["background", "grass", "nature", "green"],
@@ -118,6 +129,7 @@ export const dataBackgroundImages = {
         {
             "name": "Rock",
             "id": "rock",
+            "value": "",
             "constantname": "BACKROCK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/rock.webp",
             "tags": ["background", "rock", "stone", "mountain"],
@@ -127,6 +139,7 @@ export const dataBackgroundImages = {
         {
             "name": "Stone",
             "id": "stone",
+            "value": "",
             "constantname": "BACKSTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stone.webp",
             "tags": ["background", "stone", "masonry", "building"],
@@ -136,6 +149,7 @@ export const dataBackgroundImages = {
         {
             "name": "Cobblestone",
             "id": "cobblestone",
+            "value": "",
             "constantname": "BACKCOBBLESTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/cobblestone.webp",
             "tags": ["background", "cobblestone", "road", "path"],
@@ -145,6 +159,7 @@ export const dataBackgroundImages = {
         {
             "name": "Stone Floor",
             "id": "stonefloor",
+            "value": "",
             "constantname": "BACKSTONEFLOOR",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stonefloor.webp",
             "tags": ["background", "stonefloor", "floor", "interior"],
@@ -155,6 +170,7 @@ export const dataBackgroundImages = {
         {
             "name": "Parchment",
             "id": "parchment",
+            "value": "",
             "constantname": "BACKPARCHMENT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/parchment.webp",
             "tags": ["background", "parchment", "paper", "document"],
@@ -165,6 +181,7 @@ export const dataBackgroundImages = {
         {
             "name": "Light Cloth",
             "id": "clothlight",
+            "value": "",
             "constantname": "BACKCLOTHLIGHT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothlight.webp",
             "tags": ["background", "clothlight", "fabric", "light"],
@@ -175,6 +192,7 @@ export const dataBackgroundImages = {
         {
             "name": "Dark Cloth",
             "id": "clothdark",
+            "value": "",
             "constantname": "BACKCLOTHDARK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothdark.webp",
             "tags": ["background", "clothdark", "fabric", "dark"],
@@ -193,6 +211,7 @@ export const dataIcons = {
         {
             "name": "No Icon (Select One)",
             "id": "none",
+            "value": "",
             "constantname": "ICONNONE",
             "path": "",
             "tags": ["icon", "none", "empty"],
@@ -202,6 +221,7 @@ export const dataIcons = {
         {
             "name": "Chess: Queen",
             "id": "fa-chess-queen",
+            "value": "",
             "constantname": "ICONCHESSQUEEN",
             "path": "",
             "tags": ["icon", "chess", "queen", "royalty"],
@@ -211,6 +231,7 @@ export const dataIcons = {
         {
             "name": "Chess: King",
             "id": "fa-chess-king",
+            "value": "",
             "constantname": "ICONCHESSKING",
             "path": "",
             "tags": ["icon", "chess", "king", "royalty"],
@@ -220,6 +241,7 @@ export const dataIcons = {
         {
             "name": "Chess: Rook",
             "id": "fa-chess-rook",
+            "value": "",
             "constantname": "ICONCHESSROOK",
             "path": "",
             "tags": ["icon", "chess", "rook", "castle"],
@@ -229,6 +251,7 @@ export const dataIcons = {
         {
             "name": "Fist",
             "id": "fa-hand-fist",
+            "value": "",
             "constantname": "ICONFIST",
             "path": "",
             "tags": ["icon", "fist", "hand", "combat"],
@@ -238,6 +261,7 @@ export const dataIcons = {
         {
             "name": "Paw",
             "id": "fa-paw",
+            "value": "",
             "constantname": "ICONPAW",
             "path": "",
             "tags": ["icon", "paw", "animal", "beast"],
@@ -255,6 +279,7 @@ export const dataIcons = {
         {
             "name": "Skull",
             "id": "fa-skull",
+            "value": "",
             "constantname": "ICONSKULL",
             "path": "",
             "tags": ["icon", "skull", "death", "danger"],
@@ -264,6 +289,7 @@ export const dataIcons = {
         {
             "name": "Coffee Pot",
             "id": "fa-coffee-pot",
+            "value": "",
             "constantname": "ICONCOFFEEPOT",
             "path": "",
             "tags": ["icon", "coffee", "pot", "beverage"],
@@ -280,6 +306,7 @@ export const dataNameplate = {
         {
             "name": "Do Not Change Token Names",
             "id": "none",
+            "value": "",
             "constantname": "NAMEPLATENONE",
             "path": "",
             "tags": ["nameplate", "none", "default"],
@@ -289,6 +316,7 @@ export const dataNameplate = {
         {
             "name": "Replace Token with Name",
             "id": "name-replace",
+            "value": "",
             "constantname": "NAMEPLATEREPLACE",
             "path": "",
             "tags": ["nameplate", "replace", "token"],
@@ -298,6 +326,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Token Name",
             "id": "name-append-end",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDEND",
             "path": "",
             "tags": ["nameplate", "append", "end", "token"],
@@ -307,6 +336,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Name Token",
             "id": "name-append-start",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDSTART",
             "path": "",
             "tags": ["nameplate", "append", "start", "name"],
@@ -316,6 +346,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Token (Name)",
             "id": "name-append-end-parenthesis",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDENDPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "append", "end", "parenthesis", "token"],
@@ -325,6 +356,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Name (Token)",
             "id": "name-append-start-parenthesis",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDSTARTPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "append", "start", "parenthesis", "name"],
@@ -334,6 +366,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Token - Name",
             "id": "name-append-end-dash",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDENDDASH",
             "path": "",
             "tags": ["nameplate", "append", "end", "dash", "token"],
@@ -343,6 +376,7 @@ export const dataNameplate = {
         {
             "name": "Append Name: Name - Token",
             "id": "name-append-start-dash",
+            "value": "",
             "constantname": "NAMEPLATEAPPENDSTARTDASH",
             "path": "",
             "tags": ["nameplate", "append", "start", "dash", "name"],
@@ -352,6 +386,7 @@ export const dataNameplate = {
         {
             "name": "Append Number: Token 01",
             "id": "number-append-end",
+            "value": "",
             "constantname": "NAMEPLATENUMBERAPPENDEND",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "token"],
@@ -361,6 +396,7 @@ export const dataNameplate = {
         {
             "name": "Append Number: Token (01)",
             "id": "number-append-end-parenthesis",
+            "value": "",
             "constantname": "NAMEPLATENUMBERAPPENDENDPARENTHESIS",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "parenthesis", "token"],
@@ -370,6 +406,7 @@ export const dataNameplate = {
         {
             "name": "Append Number: Token - 01",
             "id": "number-append-end-dash",
+            "value": "",
             "constantname": "NAMEPLATENUMBERAPPENDENDDASH",
             "path": "",
             "tags": ["nameplate", "number", "append", "end", "dash", "token"],
@@ -385,6 +422,7 @@ export const dataSounds = {
         {
             "name": "No Sound",
             "id": "sound-none",
+            "value": "",
             "constantname": "SOUNDNONE",
             "path": "",
             "tags": ["sound", "none", "silent"],
@@ -396,6 +434,7 @@ export const dataSounds = {
         {
             "name": "General: Arrow",
             "id": "sound-arrow",
+            "value": "",
             "constantname": "SOUNDARROW",
             "path": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "tags": ["sound", "arrow", "projectile", "combat"],
@@ -405,6 +444,7 @@ export const dataSounds = {
         {
             "name": "General: Battlecry",
             "id": "sound-battlecry",
+            "value": "",
             "constantname": "SOUNDBATTLECRY",
             "path": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "tags": ["sound", "battlecry", "combat", "war"],
@@ -414,6 +454,7 @@ export const dataSounds = {
         {
             "name": "General: Bell",
             "id": "sound-bell",
+            "value": "",
             "constantname": "SOUNDBELL",
             "path": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "tags": ["sound", "bell", "notification", "alert"],
@@ -426,6 +467,7 @@ export const dataSounds = {
         {
             "name": "General: Gong",
             "id": "sound-gong",
+            "value": "",
             "constantname": "SOUNDGONG",
             "path": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "tags": ["sound", "gong", "bell", "ceremony"],
@@ -435,6 +477,7 @@ export const dataSounds = {
         {
             "name": "General: Greataxe",
             "id": "sound-greataxe",
+            "value": "",
             "constantname": "SOUNDGREATAXE",
             "path": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "tags": ["sound", "greataxe", "weapon", "combat"],
@@ -444,6 +487,7 @@ export const dataSounds = {
         {
             "name": "General: Notification",
             "id": "sound-notification",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION",
             "path": "modules/coffee-pub-blacksmith/sounds/notification.mp3",
             "tags": ["sound", "notification", "alert", "info"],
@@ -457,6 +501,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 01",
             "id": "sound-interface-button-01",
+            "value": "",
             "constantname": "SOUNDBUTTON01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-01.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -466,6 +511,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 02",
             "id": "sound-interface-button-02",
+            "value": "",
             "constantname": "SOUNDBUTTON02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-02.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -475,6 +521,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 03",
             "id": "sound-interface-button-03",
+            "value": "",
             "constantname": "SOUNDBUTTON03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-03.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -484,6 +531,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 04",
             "id": "sound-interface-button-04",
+            "value": "",
             "constantname": "SOUNDBUTTON04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-04.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -493,6 +541,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 05",
             "id": "sound-interface-button-05",
+            "value": "",
             "constantname": "SOUNDBUTTON05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-05.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -502,6 +551,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 06",
             "id": "sound-interface-button-06",
+            "value": "",
             "constantname": "SOUNDBUTTON06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -511,6 +561,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 07",
             "id": "sound-interface-button-07",
+            "value": "",
             "constantname": "SOUNDBUTTON07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-07.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -520,6 +571,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 08",
             "id": "sound-interface-button-08",
+            "value": "",
             "constantname": "SOUNDBUTTON08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-08.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -529,6 +581,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 09",
             "id": "sound-interface-button-09",
+            "value": "",
             "constantname": "SOUNDBUTTON09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-09.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -538,6 +591,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 10",
             "id": "sound-interface-button-10",
+            "value": "",
             "constantname": "SOUNDBUTTON10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-10.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -547,6 +601,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 11",
             "id": "sound-interface-button-11",
+            "value": "",
             "constantname": "SOUNDBUTTON11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-11.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -556,6 +611,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 12",
             "id": "sound-interface-button-12",
+            "value": "",
             "constantname": "SOUNDBUTTON12",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-12.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -567,6 +623,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 01",
             "id": "sound-interface-error-01",
+            "value": "",
             "constantname": "SOUNDERROR01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -576,6 +633,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 02",
             "id": "sound-interface-error-02",
+            "value": "",
             "constantname": "SOUNDERROR02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-02.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -585,6 +643,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 03",
             "id": "sound-interface-error-03",
+            "value": "",
             "constantname": "SOUNDERROR03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-03.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -594,6 +653,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 04",
             "id": "sound-interface-error-04",
+            "value": "",
             "constantname": "SOUNDERROR04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-04.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -603,6 +663,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 05",
             "id": "sound-interface-error-05",
+            "value": "",
             "constantname": "SOUNDERROR05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-05.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -612,6 +673,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 06",
             "id": "sound-interface-error-06",
+            "value": "",
             "constantname": "SOUNDERROR06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-06.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -621,6 +683,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 07",
             "id": "sound-interface-error-07",
+            "value": "",
             "constantname": "SOUNDERROR07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-07.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -630,6 +693,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 08",
             "id": "sound-interface-error-08",
+            "value": "",
             "constantname": "SOUNDERROR08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-08.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -639,6 +703,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 09",
             "id": "sound-interface-error-09",
+            "value": "",
             "constantname": "SOUNDERROR09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-09.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -648,6 +713,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 10",
             "id": "sound-interface-error-10",
+            "value": "",
             "constantname": "SOUNDERROR10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-10.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -657,6 +723,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 11",
             "id": "sound-interface-error-11",
+            "value": "",
             "constantname": "SOUNDERROR11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-11.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -668,6 +735,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 01",
             "id": "sound-interface-notification-01",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -677,6 +745,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 02",
             "id": "sound-interface-notification-02",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -686,6 +755,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 03",
             "id": "sound-interface-notification-03",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -695,6 +765,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 04",
             "id": "sound-interface-notification-04",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-04.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -704,6 +775,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 05",
             "id": "sound-interface-notification-05",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-05.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -713,6 +785,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 06",
             "id": "sound-interface-notification-06",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-06.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -722,6 +795,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 07",
             "id": "sound-interface-notification-07",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-07.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -731,6 +805,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 08",
             "id": "sound-interface-notification-08",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-08.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -740,6 +815,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 09",
             "id": "sound-interface-notification-09",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-09.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -749,6 +825,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 10",
             "id": "sound-interface-notification-10",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-10.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -758,6 +835,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 11",
             "id": "sound-interface-notification-11",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -767,6 +845,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 12",
             "id": "sound-interface-notification-12",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION12",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-12.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -776,6 +855,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 13",
             "id": "sound-interface-notification-13",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION13",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-13.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -785,6 +865,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 14",
             "id": "sound-interface-notification-14",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION14",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-14.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -794,6 +875,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 15",
             "id": "sound-interface-notification-15",
+            "value": "",
             "constantname": "SOUNDNOTIFICATION15",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-15.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -805,6 +887,7 @@ export const dataSounds = {
         {
             "name": "Interface: Open 01",
             "id": "sound-interface-open-01",
+            "value": "",
             "constantname": "SOUNDDEFAULTFILE",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-open-01.mp3",
             "tags": ["sound", "interface", "open", "ui"],
@@ -814,6 +897,7 @@ export const dataSounds = {
         {
             "name": "Interface: Ping 01",
             "id": "sound-interface-ping-01",
+            "value": "",
             "constantname": "SOUNDPING01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3",
             "tags": ["sound", "interface", "ping", "alert"],
@@ -823,6 +907,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 01",
             "id": "sound-interface-pop-01",
+            "value": "",
             "constantname": "SOUNDPOP01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -832,6 +917,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 02",
             "id": "sound-interface-pop-02",
+            "value": "",
             "constantname": "SOUNDPOP02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-02.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -841,6 +927,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 03",
             "id": "sound-interface-pop-03",
+            "value": "",
             "constantname": "SOUNDPOP03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -853,6 +940,7 @@ export const dataSounds = {
         {
             "name": "Book: Flip 01",
             "id": "sound-book-flip-01",
+            "value": "",
             "constantname": "SOUNDEFFECTBOOK01",
             "path": "modules/coffee-pub-blacksmith/sounds/book-flip-01.mp3",
             "tags": ["sound", "effect", "book", "flip", "page"],
@@ -862,6 +950,7 @@ export const dataSounds = {
         {
             "name": "Book: Flip 02",
             "id": "sound-book-flip-02",
+            "value": "",
             "constantname": "SOUNDEFFECTBOOK02",
             "path": "modules/coffee-pub-blacksmith/sounds/book-flip-02.mp3",
             "tags": ["sound", "effect", "book", "flip", "page"],
@@ -871,6 +960,7 @@ export const dataSounds = {
         {
             "name": "Book: Open 02",
             "id": "sound-book-open-02",
+            "value": "",
             "constantname": "SOUNDEFFECTBOOK03",
             "path": "modules/coffee-pub-blacksmith/sounds/book-open-02.mp3",
             "tags": ["sound", "effect", "book", "open", "cover"],
@@ -880,6 +970,7 @@ export const dataSounds = {
         {
             "name": "Book: Take 01",
             "id": "sound-book-take-01",
+            "value": "",
             "constantname": "SOUNDEFFECTBOOK04",
             "path": "modules/coffee-pub-blacksmith/sounds/book-take-01.mp3",
             "tags": ["sound", "effect", "book", "take", "grab"],
@@ -891,6 +982,7 @@ export const dataSounds = {
         {
             "name": "Chest: Open",
             "id": "sound-chest-open",
+            "value": "",
             "constantname": "SOUNDEFFECTCHEST01",
             "path": "modules/coffee-pub-blacksmith/sounds/chest-open.mp3",
             "tags": ["sound", "effect", "chest", "open", "lid"],
@@ -900,6 +992,7 @@ export const dataSounds = {
         {
             "name": "Chest: Treasure",
             "id": "sound-chest-treasure",
+            "value": "",
             "constantname": "SOUNDEFFECTCHEST02",
             "path": "modules/coffee-pub-blacksmith/sounds/chest-treasure.mp3",
             "tags": ["sound", "effect", "chest", "treasure", "loot"],
@@ -911,6 +1004,7 @@ export const dataSounds = {
         {
             "name": "Effect: Sad Trombone",
             "id": "sound-effect-sad-trombone",
+            "value": "",
             "constantname": "SOUNDSADTROMBONE",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["sound", "effect", "sad", "trombone", "comedy"],
@@ -920,6 +1014,7 @@ export const dataSounds = {
         {
             "name": "Magic: Spell Magic Circle",
             "id": "sound-magic-spell-circle",
+            "value": "",
             "constantname": "SOUNDSPELLMAGICCIRCLE",
             "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "tags": ["sound", "magic", "spell", "circle", "enchantment"],
@@ -933,6 +1028,7 @@ export const dataSounds = {
         {
             "name": "Reaction: Ahhhhh",
             "id": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
+            "value": "",
             "constantname": "SOUNDREACTIONAHHHH",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
             "tags": ["reaction", "ahhhh"],
@@ -942,6 +1038,7 @@ export const dataSounds = {
         {
             "name": "Reaction: Oooooh",
             "id": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
+            "value": "",
             "constantname": "SOUNDREACTIONOOOOOH",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
             "tags": ["reaction", "oooooh"],
@@ -951,6 +1048,7 @@ export const dataSounds = {
         {
             "name": "Reaction: Yay",
             "id": "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
+            "value": "",
             "constantname": "SOUNDREACTIONYAY",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
             "tags": ["reaction", "yay"],
@@ -962,6 +1060,7 @@ export const dataSounds = {
         {
             "name": "Weapon: Sword Blade Swish",
             "id": "modules/coffee-pub-blacksmith/sounds/weapon-sword-blade-swish.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTWEAPON01",
             "path": "modules/coffee-pub-blacksmith/sounds/weapon-sword-blade-swish.mp3",
             "tags": ["weapon", "sword", "swish"],
@@ -971,6 +1070,7 @@ export const dataSounds = {
         {
             "name": "Weapon: Greataxe",
             "id": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTWEAPON02",
             "path": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "tags": ["weapon", "greataxe"],
@@ -980,6 +1080,7 @@ export const dataSounds = {
         {
             "name": "Weapon: Arrow",
             "id": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTWEAPON03",
             "path": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "tags": ["weapon", "arrow"],
@@ -991,6 +1092,7 @@ export const dataSounds = {
         {
             "name": "Instrument: Sad Trombone",
             "id": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTINSTRUMENT01",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["instrument", "sad", "trombone"],
@@ -1000,6 +1102,7 @@ export const dataSounds = {
         {
             "name": "Instrument: Fanfare Harp",
             "id": "modules/coffee-pub-blacksmith/sounds/fanfare-harp.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTINSTRUMENT02",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-harp.mp3",
             "tags": ["instrument", "fanfare", "harp"],
@@ -1009,6 +1112,7 @@ export const dataSounds = {
         {
             "name": "Instrument: Bell",
             "id": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTINSTRUMENT03",
             "path": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "tags": ["instrument", "bell"],
@@ -1018,6 +1122,7 @@ export const dataSounds = {
         {
             "name": "Instrument: Gong",
             "id": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTINSTRUMENT04",
             "path": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "tags": ["instrument", "gong"],
@@ -1029,6 +1134,7 @@ export const dataSounds = {
         {
             "name": "General: Rustling Grass",
             "id": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL01",
             "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
             "tags": ["general", "grass", "rustling"],
@@ -1038,6 +1144,7 @@ export const dataSounds = {
         {
             "name": "General: Synth",
             "id": "sound-general-synth",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL03",
             "path": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
             "tags": ["sound", "general", "synth", "electronic"],
@@ -1047,6 +1154,7 @@ export const dataSounds = {
         {
             "name": "General: Spell Magic Circle",
             "id": "sound-general-spell-circle",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL02",
             "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "tags": ["sound", "general", "spell", "magic", "circle"],
@@ -1056,6 +1164,7 @@ export const dataSounds = {
         {
             "name": "General: Charm",
             "id": "sound-general-charm",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL05",
             "path": "modules/coffee-pub-blacksmith/sounds/charm.mp3",
             "tags": ["sound", "general", "charm", "enchantment"],
@@ -1065,6 +1174,7 @@ export const dataSounds = {
         {
             "name": "General: Clatter",
             "id": "sound-general-clatter",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL06",
             "path": "modules/coffee-pub-blacksmith/sounds/clatter.mp3",
             "tags": ["sound", "general", "clatter", "noise"],
@@ -1074,6 +1184,7 @@ export const dataSounds = {
         {
             "name": "General: Cocktail Ice",
             "id": "sound-general-cocktail-ice",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL08",
             "path": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
             "tags": ["sound", "general", "cocktail", "ice", "beverage"],
@@ -1083,6 +1194,7 @@ export const dataSounds = {
         {
             "name": "General: Toilet Flush",
             "id": "sound-general-toilet-flush",
+            "value": "",
             "constantname": "SOUNDEFFECTGENERAL09",
             "path": "modules/coffee-pub-blacksmith/sounds/general-toilet-flush.mp3",
             "tags": ["sound", "general", "toilet", "flush", "bathroom"],
@@ -1094,6 +1206,7 @@ export const dataSounds = {
         {
             "name": "Battle Cry",
             "id": "sound-battle-cry",
+            "value": "",
             "constantname": "SOUNDEFFECTREACTION04",
             "path": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "tags": ["sound", "reaction", "battle", "cry", "combat"],
@@ -1105,6 +1218,7 @@ export const dataSounds = {
         {
             "name": "Cinematic: Open",
             "id": "sound-cinematic-open",
+            "value": "",
             "constantname": "SOUNDCINEMATICOPEN",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3",
             "tags": ["sound", "cinematic", "open", "fanfare", "intro"],
@@ -1114,6 +1228,7 @@ export const dataSounds = {
         {
             "name": "Dice: Rolling",
             "id": "sound-dice-rolling",
+            "value": "",
             "constantname": "SOUNDDICEROLL",
             "path": "modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3",
             "tags": ["sound", "dice", "rolling", "game"],
@@ -1123,6 +1238,7 @@ export const dataSounds = {
         {
             "name": "Success: Fanfare",
             "id": "sound-success-fanfare",
+            "value": "",
             "constantname": "SOUNDSUCCESS",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3",
             "tags": ["sound", "success", "fanfare", "victory"],
@@ -1132,6 +1248,7 @@ export const dataSounds = {
         {
             "name": "Failure: Fanfare",
             "id": "sound-failure-fanfare",
+            "value": "",
             "constantname": "SOUNDFAILURE",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-failure-1.mp3",
             "tags": ["sound", "failure", "fanfare", "defeat"],
@@ -1141,6 +1258,7 @@ export const dataSounds = {
         {
             "name": "Versus: Fanfare",
             "id": "sound-versus-fanfare",
+            "value": "",
             "constantname": "SOUNDVERSUS",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-2.mp3",
             "tags": ["sound", "versus", "fanfare", "confrontation"],
@@ -1150,6 +1268,7 @@ export const dataSounds = {
         {
             "name": "Roll: Complete",
             "id": "sound-roll-complete",
+            "value": "",
             "constantname": "SOUNDROLLCOMPLETE",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "tags": ["sound", "roll", "complete", "notification"],
@@ -1159,6 +1278,7 @@ export const dataSounds = {
         {
             "name": "Roll: Critical",
             "id": "sound-roll-critical",
+            "value": "",
             "constantname": "SOUNDROLLCRITICAL",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3",
             "tags": ["sound", "roll", "critical", "success"],
@@ -1168,6 +1288,7 @@ export const dataSounds = {
         {
             "name": "Roll: Fumble",
             "id": "sound-roll-fumble",
+            "value": "",
             "constantname": "SOUNDROLLFUMBLE",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["sound", "roll", "fumble", "sad", "comedy"],
@@ -1183,6 +1304,7 @@ export const dataVolume = {
         {
             "name": "Loud",
             "id": "volume-loud",
+            "value": "",
             "constantname": "SOUNDVOLUMELOUD",
             "path": "0.8",
             "tags": ["volume", "loud", "dramatic"],
@@ -1193,6 +1315,7 @@ export const dataVolume = {
         {
             "name": "Normal",
             "id": "volume-normal",
+            "value": "",
             "constantname": "SOUNDVOLUMENORMAL", 
             "path": "0.5",
             "tags": ["volume", "normal", "standard"],
@@ -1203,6 +1326,7 @@ export const dataVolume = {
         {
             "name": "Soft",
             "id": "volume-soft",
+            "value": "",
             "constantname": "SOUNDVOLUMESOFT",
             "path": "0.3",
             "tags": ["volume", "soft", "subtle"],
@@ -1213,6 +1337,7 @@ export const dataVolume = {
         {
             "name": "Max",
             "id": "volume-max",
+            "value": "",
             "constantname": "SOUNDVOLUMEMAX",
             "path": "1.0",
             "tags": ["volume", "max", "maximum"],
@@ -1230,6 +1355,7 @@ export const dataBanners = {
         {
             "name": "Heroes 01",
             "id": "banner-heroes-01",
+            "value": "",
             "constantname": "BANNERHEROES01",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp",
             "tags": ["banner", "heroes", "player", "character"],
@@ -1240,6 +1366,7 @@ export const dataBanners = {
         {
             "name": "Heroes 02", 
             "id": "banner-heroes-02",
+            "value": "",
             "constantname": "BANNERHEROES02",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp",
             "tags": ["banner", "heroes", "player", "character"],
@@ -1250,6 +1377,7 @@ export const dataBanners = {
         {
             "name": "Heroes 03",
             "id": "banner-heroes-03",
+            "value": "",
             "constantname": "BANNERHEROES03",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp", 
             "tags": ["banner", "heroes", "player", "character"],
@@ -1260,6 +1388,7 @@ export const dataBanners = {
         {
             "name": "Narration: Crypt 01",
             "id": "banner-narration-crypt-01",
+            "value": "",
             "constantname": "BANNERHEROES04",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp",
             "tags": ["banner", "narration", "crypt", "underground"],
@@ -1270,6 +1399,7 @@ export const dataBanners = {
         {
             "name": "Narration: Crypt 02",
             "id": "banner-narration-crypt-02",
+            "value": "",
             "constantname": "BANNERHEROES05",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp",
             "tags": ["banner", "narration", "crypt", "underground"],
@@ -1280,6 +1410,7 @@ export const dataBanners = {
         {
             "name": "Narration: Forest 01",
             "id": "banner-narration-forest-01",
+            "value": "",
             "constantname": "BANNERHEROES06",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp",
             "tags": ["banner", "narration", "forest", "nature"],
@@ -1290,6 +1421,7 @@ export const dataBanners = {
         {
             "name": "Narration: Forest 02",
             "id": "banner-narration-forest-02",
+            "value": "",
             "constantname": "BANNERHEROES07",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp",
             "tags": ["banner", "narration", "forest", "nature"],
@@ -1300,6 +1432,7 @@ export const dataBanners = {
         {
             "name": "Narration: Forest 03",
             "id": "banner-narration-forest-03",
+            "value": "",
             "constantname": "BANNERHEROES08",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp",
             "tags": ["banner", "narration", "forest", "nature"],
@@ -1310,6 +1443,7 @@ export const dataBanners = {
         {
             "name": "Narration: Forest 04",
             "id": "banner-narration-forest-04",
+            "value": "",
             "constantname": "BANNERHEROES09",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp",
             "tags": ["banner", "narration", "forest", "nature"],
@@ -1320,6 +1454,7 @@ export const dataBanners = {
         {
             "name": "Narration: Jungle 01",
             "id": "banner-narration-jungle-01",
+            "value": "",
             "constantname": "BANNERHEROES10",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp",
             "tags": ["banner", "narration", "jungle", "tropical"],
@@ -1332,6 +1467,7 @@ export const dataBanners = {
         {
             "name": "Dragon",
             "id": "banner-monster-dragon",
+            "value": "",
             "constantname": "BANNERMONSTER01",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-dragon.webp",
             "tags": ["banner", "monster", "dragon", "beast"],
@@ -1342,6 +1478,7 @@ export const dataBanners = {
         {
             "name": "Minotaur",
             "id": "banner-monster-minotaur",
+            "value": "",
             "constantname": "BANNERMONSTER02",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-minotaur.webp",
             "tags": ["banner", "monster", "minotaur", "beast"],
@@ -1352,6 +1489,7 @@ export const dataBanners = {
         {
             "name": "Wraith 01",
             "id": "banner-monster-wraith-01",
+            "value": "",
             "constantname": "BANNERMONSTER03",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-wraith-1.webp",
             "tags": ["banner", "monster", "wraith", "undead"],
@@ -1362,6 +1500,7 @@ export const dataBanners = {
         {
             "name": "Wraith 02",
             "id": "banner-monster-wraith-02",
+            "value": "",
             "constantname": "BANNERMONSTER04",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-wraith-2.webp",
             "tags": ["banner", "monster", "wraith", "undead"],
@@ -1374,6 +1513,7 @@ export const dataBanners = {
         {
             "name": "Landscape: Winter 01",
             "id": "banner-landscape-winter-01",
+            "value": "",
             "constantname": "BANNERLANDSCAPE01",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp",
             "tags": ["banner", "landscape", "winter", "snow"],
@@ -1384,6 +1524,7 @@ export const dataBanners = {
         {
             "name": "Landscape: Winter 02",
             "id": "banner-landscape-winter-02",
+            "value": "",
             "constantname": "BANNERLANDSCAPE02",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp",
             "tags": ["banner", "landscape", "winter", "snow"],
@@ -1400,6 +1541,7 @@ export const dataBackgrounds = {
         {
             "name": "Skill Check Background",
             "id": "background-skill-check",
+            "value": "",
             "constantname": "BACKSKILLCHECK",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp",
             "tags": ["background", "skill-check", "radiant"],
@@ -1409,6 +1551,7 @@ export const dataBackgrounds = {
         {
             "name": "Ability Check Background",
             "id": "background-ability-check",
+            "value": "",
             "constantname": "BACKABILITYCHECK",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp",
             "tags": ["background", "ability-check", "cold"],
@@ -1418,6 +1561,7 @@ export const dataBackgrounds = {
         {
             "name": "Saving Throw Background",
             "id": "background-saving-throw",
+            "value": "",
             "constantname": "BACKSAVINGTHROW",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp",
             "tags": ["background", "saving-throw", "bludgeoning"],
@@ -1427,6 +1571,7 @@ export const dataBackgrounds = {
         {
             "name": "Dice Roll Background",
             "id": "background-dice-roll",
+            "value": "",
             "constantname": "BACKDICEROLL",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp",
             "tags": ["background", "skill-check", "dice-roll", "psychic"],
@@ -1436,6 +1581,7 @@ export const dataBackgrounds = {
         {
             "name": "Tool Check Background",
             "id": "background-tool-check",
+            "value": "",
             "constantname": "BACKTOOLCHECK",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp",
             "tags": ["background", "tool-check", "poison"],
@@ -1445,6 +1591,7 @@ export const dataBackgrounds = {
         {
             "name": "Contested Roll Background",
             "id": "background-contested-roll",
+            "value": "",
             "constantname": "BACKCONTESTEDROLL",
             "path": "modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp",
             "tags": ["background", "contested-roll", "fire"],
