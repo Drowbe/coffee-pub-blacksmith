@@ -576,6 +576,18 @@ Each asset now includes enhanced metadata:
     "category": "theme",
     "description": "This dark theme envelops your tabletop in a brooding atmosphere where shadows dance and lightning crackles, creating the perfect backdrop for mysterious adventures."
 }
+
+// background image example
+{
+    "name": "Brick", // this is what shows as a choice in the settings
+    "id": "background-brick", // internal identifier for settings
+    "value": "brick", // CSS class used for styling
+    "constantname": "BACKBRICK", // generated constant
+    "path": "modules/coffee-pub-blacksmith/images/tiles/brick.webp", // file path for image loading
+    "tags": ["background", "brick", "stone", "texture"],
+    "type": "image",
+    "category": "tile"
+}
 ```
 
 ### **Fields:**

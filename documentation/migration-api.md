@@ -425,6 +425,7 @@ function getSoundChoices() {
 - **Skill Check Sounds**: 8 constants (cinematic, dice, success, failure, etc.)
 - **Volume Constants**: 4 constants (loud, normal, soft, max) - **FIXED** to use `value` field properly
 - **Theme Structure**: **UPDATED** to use semantic IDs (theme-default, theme-dark) with CSS classes in `value` field
+- **Background Image Structure**: **UPDATED** to use semantic IDs (background-brick, background-theme-color) with CSS classes in `value` field
 - **Data Structure**: **ENHANCED** with new `value` field for better separation of concerns
 - **Basic Banner Images**: Started with hero banners
 

@@ -204,7 +204,7 @@ export const dataBackgroundImages = {
     ]
 };
 // -- ICONS --
-// USE: the id below is used to set the icon for the token
+// USE: the value below is used to set the icon for the token
 // NOTE: these must be Font Awesome icon names, the "fas" prefix is already added in code
 export const dataIcons = {
     "icons": [
