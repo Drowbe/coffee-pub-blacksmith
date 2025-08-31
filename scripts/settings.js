@@ -252,18 +252,23 @@ function getIconChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Icon List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrIconChoicesEnabled = [];
-    let sortedIcons = dataIcons.icons;
-    // Move 'none' to front
-    sortedIcons.sort((a, b) => {
-        if(a.id === 'none') return -1;
-        if(b.id === 'none') return 1;
-        return a.name.localeCompare(b.name);
-    });
+    
+    // Add the "none" option first
+    choices['none'] = '— None Selected —';
+    
+    // Add the "No Icon" option second
+    choices['icon-none'] = 'No Icon (Select One)';
+    
+    // Then add all the icon choices from data collection (excluding icon-none since we already added it)
+    let sortedIcons = dataIcons.icons.filter(icon => icon.id !== 'icon-none');
+    sortedIcons.sort((a, b) => a.name.localeCompare(b.name));
+    
     for(let icons of sortedIcons) { 
         choices[icons.id] = icons.name;
         // Add the image to arrBackgroundImageChoicesEnabled array
         BLACKSMITH.arrIconChoicesEnabled.push(icons.name);
     }
+    
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrIconChoices', choices);
     // Return it to this modules settings.
@@ -275,17 +280,22 @@ function getSoundChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Sound List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrSoundChoicesEnabled = [];
-    let sortedSounds = dataSounds.sounds;
-    // Move 'none' to front
-    sortedSounds.sort((a, b) => {
-        if(a.id === 'none') return -1;
-        if(b.id === 'none') return 1;
-        return a.name.localeCompare(b.name);
-    });
+    
+    // Add the "none" option first
+    choices['none'] = '— None Selected —';
+    
+    // Add the "No Sound" option second
+    choices['sound-none'] = 'No Sound';
+    
+    // Then add all the sound choices from data collection (excluding sound-none since we already added it)
+    let sortedSounds = dataSounds.sounds.filter(sound => sound.id !== 'sound-none');
+    sortedSounds.sort((a, b) => a.name.localeCompare(b.name));
+    
     for(let sounds of sortedSounds) { 
         choices[sounds.id] = sounds.name;
         BLACKSMITH.arrSoundChoicesEnabled.push(sounds.name);
     }
+    
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrSoundChoices', choices);
     // Return it to this modules settings.
