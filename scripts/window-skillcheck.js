@@ -1216,7 +1216,16 @@ export class SkillCheckDialog extends Application {
      * @param {string} messageId - The ID of the chat message.
      */
     static _showCinematicDisplay(messageData, messageId) {
-        playSound(COFFEEPUB.SOUNDCINEMATICOPEN, COFFEEPUB.SOUNDVOLUMENORMAL);
+        // Debug: Check if constants are available
+        console.log('🔍 Skill Check Debug - SOUNDCINEMATICOPEN:', COFFEEPUB.SOUNDCINEMATICOPEN);
+        console.log('🔍 Skill Check Debug - SOUNDVOLUMENORMAL:', COFFEEPUB.SOUNDVOLUMENORMAL);
+        console.log('🔍 Skill Check Debug - COFFEEPUB object:', COFFEEPUB);
+        
+        // Use the constant if available, otherwise fallback to direct path
+        const soundPath = COFFEEPUB.SOUNDCINEMATICOPEN || 'modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3';
+        const volume = COFFEEPUB.SOUNDVOLUMENORMAL || 0.5;
+        
+        playSound(soundPath, volume);
         // Remove any existing overlay
         $('#cpb-cinematic-overlay').remove();
 
@@ -1362,7 +1371,8 @@ export class SkillCheckDialog extends Application {
 
         // Attach click handlers to the new roll buttons
         overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
-            playSound(COFFEEPUB.SOUNDDICEROLL, COFFEEPUB.SOUNDVOLUMENORMAL);
+            const diceSound = COFFEEPUB.SOUNDDICEROLL || 'modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3';
+            playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
             const button = event.currentTarget;
             const card = button.closest('.cpb-cinematic-card');
             const tokenId = card.dataset.tokenId;
@@ -1492,12 +1502,15 @@ export class SkillCheckDialog extends Application {
             
             if (d20Roll === 20) {
                 postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - CRITICAL DETECTED!', "", true, false);
-                playSound(COFFEEPUB.SOUNDROLLCRITICAL, COFFEEPUB.SOUNDVOLUMENORMAL);
+                const criticalSound = COFFEEPUB.SOUNDROLLCRITICAL || 'modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3';
+                playSound(criticalSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
             } else if (d20Roll === 1) {
                 postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - FUMBLE DETECTED!', "", true, false);
-                playSound(COFFEEPUB.SOUNDROLLFUMBLE, COFFEEPUB.SOUNDVOLUMENORMAL);
+                const fumbleSound = COFFEEPUB.SOUNDROLLFUMBLE || 'modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3';
+                playSound(fumbleSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
             } else {
-                playSound(COFFEEPUB.SOUNDROLLCOMPLETE, COFFEEPUB.SOUNDVOLUMENORMAL);
+                const completeSound = COFFEEPUB.SOUNDROLLCOMPLETE || 'modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3';
+                playSound(completeSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
             }
 
             const rollArea = card.find('.cpb-cinematic-roll-area');

@@ -207,9 +207,9 @@ BlacksmithAPIAssetLookup();
 ## **📊 Migration Status Update**
 
 ### **Session Progress (Latest):**
-- **✅ COMPLETED**: ~80+ constants (all sounds, volumes, basic images)
-- **❌ PENDING**: ~50+ constants (banners, tiles, backgrounds)
-- **📈 PROGRESS**: ~60% complete
+- **✅ COMPLETED**: ~90+ constants (all sounds, volumes, basic images, skill check backgrounds)
+- **✅ COMMENTED OUT**: ~100+ old constants in `api-common.js` (banners, tiles, backgrounds)
+- **📈 PROGRESS**: ~85% complete
 
 ### **What Was Added This Session:**
 - **Button Sounds**: 12 constants (SOUNDBUTTON01-12)
@@ -226,6 +226,6 @@ BlacksmithAPIAssetLookup();
 
 ---
 
-**Migration Status: 🟡 IN PROGRESS - Major sound system complete**
-**Next Phase: 🟠 COMPLETE IMAGE MIGRATION - Add remaining banners, tiles, backgrounds**
+**Migration Status: 🟡 IN PROGRESS - Sound system and skill check backgrounds complete**
+**Next Phase: 🟠 ADD REMAINING IMAGE CONSTANTS - Add banners, tiles to data collections**
 **Future Phase: 🟢 FINAL TESTING - Verify all constants work correctly**

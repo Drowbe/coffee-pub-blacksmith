@@ -12,7 +12,8 @@ import {
     dataNameplate, 
     dataSounds,
     dataVolume,
-    dataBanners
+    dataBanners,
+    dataBackgrounds
 } from './data-collections.js';
 
 export class AssetLookup {
@@ -25,7 +26,8 @@ export class AssetLookup {
             nameplates: dataNameplate.names,
             sounds: dataSounds.sounds,
             volumes: dataVolume.volumes,
-            banners: dataBanners.banners
+            banners: dataBanners.banners,
+            backgrounds: dataBackgrounds.backgrounds
         };
         
         this.generatedConstants = {};

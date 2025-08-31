@@ -23,13 +23,19 @@ This document outlines the technical architecture and design decisions for the C
 - **Safety**: Automatic timing and availability handling
 - **Use Case**: When other modules want to integrate with Blacksmith
 
-## **Current Status: PRODUCTION READY**
+## **Current Status: PRODUCTION READY + ASSET SYSTEM IN DEVELOPMENT**
 
 ### **✅ Major Achievements:**
 - **Socket System**: Fully operational with SocketLib integration
 - **Cross-Client Communication**: All features sync in real-time
 - **File Organization**: Consistent naming and loading patterns
 - **Module Architecture**: Clean, maintainable, and extensible
+
+### **🚧 In Development:**
+- **Asset Management System**: New data-driven asset categorization (19 categories)
+- **Constants Migration**: Moving from hardcoded to auto-generated constants
+- **Data Collections**: Centralized asset metadata storage
+- **Asset Lookup Tool**: Flexible, tag-based asset access system
 
 ## **Core Architecture Principles**
 
@@ -169,6 +175,79 @@ All timer systems follow the same architectural pattern:
 - **User-Friendly**: Intuitive interface design
 - **Cross-Client**: Works seamlessly across all clients
 
+## **Asset Management System Architecture (NEW)**
+
+### **Asset Data Structure**
+**Purpose**: Centralized, data-driven asset management with flexible categorization
+**Key Features**:
+- **Rigid Categories**: 19 predefined categories for organizational grouping
+- **Flexible Tags**: Unlimited tags for functional classification and searching
+- **Data-Driven**: All asset metadata stored in structured collections
+- **Auto-Generation**: Constants and UI choices generated automatically
+
+### **Category System Design**
+**Rigid Categories (19 total):**
+
+#### **File-Based Assets (13 categories - based on folder structure):**
+- **Images (8):** banner, tile, background, misc, pins-map, pins-note, portraits, tokens
+- **Sounds (5):** soundtrack, ambience, effects, music, one-shots
+
+#### **Data-Based Assets (6 categories - based on asset type):**
+- **Configuration:** theme, compendium, rolltable, setting, macro, journal
+
+### **Data Structure Fields**
+```javascript
+{
+    "name": "Human-readable display name",
+    "id": "unique-identifier-not-path",           // Unique ID, not file path
+    "constantname": "CONSTANTNAME",               // Global constant name
+    "path": "modules/coffee-pub-blacksmith/...", // File path or reference
+    "tags": ["tag1", "tag2", "tag3"],            // Flexible functional tags
+    "type": "image|sound|theme|etc",             // Asset type
+    "category": "banner|tile|background|etc"     // Rigid organizational category
+}
+```
+
+### **Key Design Principles**
+- **Category vs Tags**: 
+  - **Category**: Rigid, organizational, one-per-asset, maps to folder structure
+  - **Tags**: Flexible, functional, many-per-asset, unlimited options
+- **ID vs Path**: 
+  - **ID**: Unique identifier for programmatic access
+  - **Path**: File system location or data reference
+- **Constants**: Auto-generated from data collections for backward compatibility
+
+### **Asset Lookup Tool**
+**Purpose**: Flexible, tag-based access to all Blacksmith assets
+**Key Features**:
+- **Tag-Based Search**: Find assets by functional characteristics
+- **Category Filtering**: Filter by rigid organizational categories
+- **Constant Generation**: Auto-generate global constants
+- **Backward Compatibility**: Maintain existing COFFEEPUB constant access
+
+### **Constants Generator**
+**Purpose**: Automatically generate constants and UI choices from data collections
+**Key Features**:
+- **Dynamic Generation**: Constants created at runtime from data
+- **UI Choice Building**: Automatic dropdown and choice generation
+- **Validation**: Ensure all required constants are available
+- **Performance**: Efficient constant generation and caching
+
+### **Data Collection Processor**
+**Purpose**: Centralize common data processing tasks
+**Key Features**:
+- **Choice Building**: Convert data collections to UI choices
+- **Filtering**: Apply enabled/disabled status filters
+- **Sorting**: Intelligent sorting with priority items
+- **Constants Management**: Update and maintain global constants
+
+### **Architecture Benefits**
+- **Maintainable**: Single source of truth for all asset metadata
+- **Flexible**: Easy to add new assets and categories
+- **Searchable**: Rich tagging system for asset discovery
+- **Backward Compatible**: Existing code continues to work
+- **Performance**: Efficient asset lookup and constant generation
+
 ## **Roll System Architecture (In Development)**
 
 ### **Unified Roll Design**
@@ -263,19 +342,25 @@ All timer systems follow the same architectural pattern:
 
 ## **Future Architecture Plans**
 
-### **1. Roll System Completion**
+### **1. Asset Management System Completion**
+- **19 Categories**: Complete implementation of all rigid categories
+- **Data Migration**: Move all hardcoded constants to data collections
+- **Asset Lookup**: Full tag-based search and filtering capabilities
+- **Auto-Scanning**: Automatic folder change detection and updates
+
+### **2. Roll System Completion**
 - **Unified Architecture**: Complete 4-function roll system
 - **Advanced Roll Types**: Comprehensive roll type support
 - **Result Processing**: Advanced roll result handling
 - **Cross-Client Sync**: Real-time roll synchronization
 
-### **2. Additional Game Systems**
+### **3. Additional Game Systems**
 - **System Support**: Support for additional RPG systems
 - **Modular Design**: Easy system integration
 - **Customization**: Flexible system customization
 - **Performance**: Optimized for all supported systems
 
-### **3. Advanced Analytics**
+### **4. Advanced Analytics**
 - **Enhanced Statistics**: More comprehensive data collection
 - **Data Export**: Advanced data export capabilities
 - **Performance Metrics**: Detailed performance analysis
@@ -290,11 +375,12 @@ The Coffee Pub Blacksmith module now features a **robust, enterprise-grade archi
 - **✅ Professional Quality**: Production-ready codebase
 - **✅ Cross-Client Communication**: Real-time synchronization
 - **✅ Comprehensive APIs**: Easy integration for other modules
+- **🚧 Asset Management**: New data-driven system in development (19 categories)
 
 **The architecture is now production-ready and provides a solid foundation for continued development and feature expansion.** 🚀
 
 ---
 
-**Last Updated**: Current session - Socket system fully functional
-**Status**: Production ready with enterprise-grade architecture
-**Next Milestone**: Roll system development completion
+**Last Updated**: Current session - Asset Management System architecture defined
+**Status**: Production ready + Asset Management System in development
+**Next Milestone**: Asset Management System implementation (19 categories)

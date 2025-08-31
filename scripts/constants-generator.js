@@ -13,7 +13,8 @@ import {
     dataNameplate, 
     dataSounds,
     dataVolume,
-    dataBanners
+    dataBanners,
+    dataBackgrounds
 } from './data-collections.js';
 
 export class ConstantsGenerator {
@@ -46,6 +47,9 @@ export class ConstantsGenerator {
             
             // Generate banner constants
             constants.banners = this.generateBannerConstants();
+            
+            // Generate background constants
+            constants.backgrounds = this.generateBackgroundConstants();
             
             return constants;
             
@@ -196,6 +200,26 @@ export class ConstantsGenerator {
     }
 
     /**
+     * Generate background constants
+     * @returns {Object} Background constants
+     */
+    static generateBackgroundConstants() {
+        const backgroundConstants = {};
+        
+        try {
+            dataBackgrounds.backgrounds.forEach(background => {
+                if (background.constantname && background.id) {
+                    backgroundConstants[background.constantname] = background.id;
+                }
+            });
+        } catch (error) {
+            console.warn(`${MODULE.TITLE} | ConstantsGenerator: Error generating background constants:`, error);
+        }
+        
+        return backgroundConstants;
+    }
+
+    /**
      * Generate choices for UI dropdowns using DataCollectionProcessor
      * @returns {Object} All choices for settings
      */
@@ -267,7 +291,8 @@ export class ConstantsGenerator {
                 dataNameplate,
                 dataSounds,
                 dataVolume,
-                dataBanners
+                dataBanners,
+                dataBackgrounds
             };
             
             return DataCollectionProcessor.getconstantnames(dataCollections);
@@ -302,7 +327,8 @@ export class ConstantsGenerator {
                     !constants.nameplates[constantname] && 
                     !constants.sounds[constantname] && 
                     !constants.volumes[constantname] &&
-                    !constants.banners[constantname]) {
+                    !constants.banners[constantname] &&
+                    !constants.backgrounds[constantname]) {
                     validation.missingConstants.push(constantname);
                     validation.success = false;
                 }
