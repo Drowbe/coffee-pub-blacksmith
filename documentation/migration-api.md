@@ -57,6 +57,8 @@ We encountered several critical issues during our migration that caused:
 ### **Data Structure Updates (Latest Changes)**
 - **Added `value` field** - separates asset data from identifiers
 - **Updated theme structure** - `id` now uses semantic names (e.g., "theme-default"), `value` contains CSS classes (e.g., "cardsdark")
+- **Updated background image structure** - `id` now uses semantic names (e.g., "background-brick"), `value` contains CSS classes (e.g., "brick")
+- **Updated icon structure** - `id` now uses semantic names (e.g., "icon-chess-queen"), `value` contains Font Awesome class names (e.g., "fa-chess-queen")
 - **Volume constants** - now properly use `value` field for numeric levels (e.g., "0.5"), `path` field is empty
 - **Improved separation** - `id` for internal references, `value` for asset data, `path` for file paths
 
@@ -218,6 +220,17 @@ const soundChoices = assetLookup.getChoices('sound', 'interface');
     "constantname": "SOUNDERROR01",      // Generated constant
     "path": "modules/.../error-01.mp3", // File path for playback
     "type": "sound",
+    "category": "interface"
+}
+
+// Icon example:
+{
+    "name": "Chess: Queen",             // Display name in UI
+    "id": "icon-chess-queen",           // Internal identifier for settings
+    "value": "fa-chess-queen",          // Font Awesome class name used for styling
+    "constantname": "ICONCHESSQUEEN",    // Generated constant
+    "path": "",                          // Empty (no file path needed)
+    "type": "icon",
     "category": "interface"
 }
 ```
@@ -389,6 +402,7 @@ if (assetLookup.areConstantsReady()) {
 - **Volume Constants**: 4 constants (loud, normal, soft, max) - **FIXED** to use `value` field properly
 - **Theme Structure**: **UPDATED** to use semantic IDs (theme-default, theme-dark) with CSS classes in `value` field
 - **Background Image Structure**: **UPDATED** to use semantic IDs (background-brick, background-theme-color) with CSS classes in `value` field
+- **Icon Structure**: **UPDATED** to use semantic IDs (icon-chess-queen, icon-fist) with Font Awesome class names in `value` field
 - **Data Structure**: **ENHANCED** with new `value` field for better separation of concerns
 - **Basic Banner Images**: Started with hero banners
 
