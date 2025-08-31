@@ -1,11 +1,13 @@
 // CARD THEMES
+// These are our legacy themes for chat cards, widly used for many years.
+// NOTE: the ids are used in code and the heavy lifting is in the css files
 export const dataTheme = {
     "themes": [
         {
             "name": "Simple (Native Foundry)",
-            "id": "theme-default",
+            "id": "cardsdefault",
             "constantname": "THEMEDEFAULT",
-            "path": "cardsdefault",
+            "path": "",
             "tags": ["theme", "default", "simple", "foundry"],
             "type": "theme",
             "category": "theme",
@@ -13,9 +15,9 @@ export const dataTheme = {
         },  
         {
             "name": "Dark And Stormy",
-            "id": "theme-dark",
+            "id": "cardsdark",
             "constantname": "THEMEDARK",
-            "path": "cardsdark",
+            "path": "",
             "tags": ["theme", "dark", "stormy", "atmospheric"],
             "type": "theme",
             "category": "theme",
@@ -23,9 +25,9 @@ export const dataTheme = {
         },
         {
             "name": "Blue Velvet",
-            "id": "theme-blue",
+            "id": "cardsblue",
             "constantname": "THEMEBLUE",
-            "path": "cardsblue",
+            "path": "",
             "tags": ["theme", "blue", "velvet", "elegant"],
             "type": "theme",
             "category": "theme",
@@ -33,9 +35,9 @@ export const dataTheme = {
         },
         {
             "name": "Red Wine",
-            "id": "theme-red",
+            "id": "cardsred",
             "constantname": "THEMERED",
-            "path": "cardsred",
+            "path": "",
             "tags": ["theme", "red", "wine", "luxury"],
             "type": "theme",
             "category": "theme",
@@ -43,9 +45,9 @@ export const dataTheme = {
         },
         {
             "name": "Green Moss",
-            "id": "theme-green",
+            "id": "cardsgreen",
             "constantname": "THEMEGREEN",
-            "path": "cardsgreen",
+            "path": "",
             "tags": ["theme", "green", "moss", "nature"],
             "type": "theme",
             "category": "theme",
@@ -55,7 +57,7 @@ export const dataTheme = {
             "name": "Brown Earth",
             "id": "cardsbrown",
             "constantname": "THEMEBROWN",
-            "path": "cardsbrown",
+            "path": "",
             "tags": ["theme", "brown", "earth"],
             "type": "theme",
             "category": "theme",
@@ -64,6 +66,8 @@ export const dataTheme = {
     ]
 };
 // BACKGROUND IMAGES
+// USE: these are appended to a class for the token, thereby giving each token a unique background
+// NOTE: the paths are hanled in the CSS files
 export const dataBackgroundImages = {
     "images": [
         {
@@ -77,7 +81,7 @@ export const dataBackgroundImages = {
         },  
         {
             "name": "Brick",
-            "id": "background-brick",
+            "id": "brick",
             "constantname": "BACKBRICK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/brick.webp",
             "tags": ["background", "brick", "stone", "texture"],
@@ -86,7 +90,7 @@ export const dataBackgroundImages = {
         },  
         {
             "name": "Dessert",
-            "id": "background-dessert",
+            "id": "dessert",
             "constantname": "BACKDESSERT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dessert.webp",
             "tags": ["background", "dessert", "sand", "arid"],
@@ -95,7 +99,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Dirt",
-            "id": "background-dirt",
+            "id": "dirt",
             "constantname": "BACKDIRT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/dirt.webp",
             "tags": ["background", "dirt", "earth", "soil"],
@@ -104,7 +108,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Grass",
-            "id": "background-grass",
+            "id": "grass",
             "constantname": "BACKGRASS",
             "path": "modules/coffee-pub-blacksmith/images/tiles/grass.webp",
             "tags": ["background", "grass", "nature", "green"],
@@ -113,7 +117,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Rock",
-            "id": "background-rock",
+            "id": "rock",
             "constantname": "BACKROCK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/rock.webp",
             "tags": ["background", "rock", "stone", "mountain"],
@@ -122,7 +126,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Stone",
-            "id": "background-stone",
+            "id": "stone",
             "constantname": "BACKSTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stone.webp",
             "tags": ["background", "stone", "masonry", "building"],
@@ -131,7 +135,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Cobblestone",
-            "id": "background-cobblestone",
+            "id": "cobblestone",
             "constantname": "BACKCOBBLESTONE",
             "path": "modules/coffee-pub-blacksmith/images/tiles/cobblestone.webp",
             "tags": ["background", "cobblestone", "road", "path"],
@@ -140,7 +144,7 @@ export const dataBackgroundImages = {
         }, 
         {
             "name": "Stone Floor",
-            "id": "background-stonefloor",
+            "id": "stonefloor",
             "constantname": "BACKSTONEFLOOR",
             "path": "modules/coffee-pub-blacksmith/images/tiles/stonefloor.webp",
             "tags": ["background", "stonefloor", "floor", "interior"],
@@ -150,7 +154,7 @@ export const dataBackgroundImages = {
 
         {
             "name": "Parchment",
-            "id": "background-parchment",
+            "id": "parchment",
             "constantname": "BACKPARCHMENT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/parchment.webp",
             "tags": ["background", "parchment", "paper", "document"],
@@ -160,7 +164,7 @@ export const dataBackgroundImages = {
 
         {
             "name": "Light Cloth",
-            "id": "background-clothlight",
+            "id": "clothlight",
             "constantname": "BACKCLOTHLIGHT",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothlight.webp",
             "tags": ["background", "clothlight", "fabric", "light"],
@@ -170,7 +174,7 @@ export const dataBackgroundImages = {
 
         {
             "name": "Dark Cloth",
-            "id": "background-clothdark",
+            "id": "clothdark",
             "constantname": "BACKCLOTHDARK",
             "path": "modules/coffee-pub-blacksmith/images/tiles/clothdark.webp",
             "tags": ["background", "clothdark", "fabric", "dark"],
@@ -181,12 +185,14 @@ export const dataBackgroundImages = {
 
     ]
 };
-// Icons
+// -- ICONS --
+// USE: the id below is used to set the icon for the token
+// NOTE: these must be Font Awesome icon names, the "fas" prefix is already added in code
 export const dataIcons = {
     "icons": [
         {
             "name": "No Icon (Select One)",
-            "id": "icon-none",
+            "id": "none",
             "constantname": "ICONNONE",
             "path": "",
             "tags": ["icon", "none", "empty"],
@@ -195,72 +201,71 @@ export const dataIcons = {
         },
         {
             "name": "Chess: Queen",
-            "id": "icon-chess-queen",
+            "id": "fa-chess-queen",
             "constantname": "ICONCHESSQUEEN",
-            "path": "fa-chess-queen",
+            "path": "",
             "tags": ["icon", "chess", "queen", "royalty"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Chess: King",
-            "id": "icon-chess-king",
+            "id": "fa-chess-king",
             "constantname": "ICONCHESSKING",
-            "path": "fa-chess-king",
+            "path": "",
             "tags": ["icon", "chess", "king", "royalty"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Chess: Rook",
-            "id": "icon-chess-rook",
+            "id": "fa-chess-rook",
             "constantname": "ICONCHESSROOK",
-            "path": "fa-chess-rook",
+            "path": "",
             "tags": ["icon", "chess", "rook", "castle"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Fist",
-            "id": "icon-fist",
+            "id": "fa-hand-fist",
             "constantname": "ICONFIST",
-            "path": "fa-hand-fist",
+            "path": "",
             "tags": ["icon", "fist", "hand", "combat"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Paw",
-            "id": "icon-paw",
+            "id": "fa-paw",
             "constantname": "ICONPAW",
-            "path": "fa-paw",
+            "path": "",
             "tags": ["icon", "paw", "animal", "beast"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Shield",
-            "id": "icon-shield",
-            "constantname": "ICONSHIELD",
-            "path": "fa-shield",
+            "id": "fa-shield",
+            "path": "",
             "tags": ["icon", "shield", "defense", "protection"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Skull",
-            "id": "icon-skull",
+            "id": "fa-skull",
             "constantname": "ICONSKULL",
-            "path": "fa-skull",
+            "path": "",
             "tags": ["icon", "skull", "death", "danger"],
             "type": "icon",
             "category": "interface"
         },
         {
             "name": "Coffee Pot",
-            "id": "icon-coffee-pot",
+            "id": "fa-coffee-pot",
             "constantname": "ICONCOFFEEPOT",
-            "path": "fa-coffee-pot",
+            "path": "",
             "tags": ["icon", "coffee", "pot", "beverage"],
             "type": "icon",
             "category": "interface"
