@@ -347,44 +347,7 @@ if (assetLookup.areConstantsReady()) {
 }
 ```
 
-### **Issue 4: Settings Dropdowns Not Showing "None Selected"**
-**What Happened:** Dropdown menus defaulted to the first item instead of showing a "None Selected" option.
 
-**Symptoms:**
-- Sound settings default to first sound instead of "No Sound"
-- Icon settings default to first icon instead of "No Icon"
-
-**Root Cause:** Choice generation functions weren't explicitly adding "None Selected" options.
-
-**How to Avoid:**
-```javascript
-// ❌ DON'T DO THIS - Missing "None Selected" option
-function getSoundChoices() {
-    const choices = {};
-    dataSounds.sounds.forEach(sound => {
-        choices[sound.id] = sound.name;
-    });
-    return choices;
-}
-
-// ✅ DO THIS INSTEAD - Explicitly add "None Selected"
-function getSoundChoices() {
-    const choices = {
-        'none': '— None Selected —'  // Always first
-    };
-    
-    // Add deduplicated sounds
-    const uniqueSounds = new Set();
-    dataSounds.sounds.forEach(sound => {
-        if (!uniqueSounds.has(sound.id)) {
-            uniqueSounds.add(sound.id);
-            choices[sound.id] = sound.name;
-        }
-    });
-    
-    return choices;
-}
-```
 
 ## **🎯 Next Steps**
 

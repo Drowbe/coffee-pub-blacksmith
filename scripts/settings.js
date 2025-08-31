@@ -86,8 +86,6 @@ function checkInstalledModules() {
 	};
 }
 
-
-
 // -- CACHE STATUS
 function getTokenImageReplacementCacheStats() {
 	// Read the current cache status from the setting
@@ -99,8 +97,6 @@ function getTokenImageReplacementCacheStats() {
 		return "Cache not initialized";
 	}
 }
-
-
 
 // -- COMPENDIUM CHOICES  --
 function getCompendiumChoices() {
@@ -135,7 +131,6 @@ function getCompendiumChoices() {
     return choices;
 }
 
-
 // -- TABLE CHOICES  --
 function getTableChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Table List...", "", false, false);
@@ -151,6 +146,7 @@ function getTableChoices() {
 	// Make the array available to these settings.
     return choices;
  }
+
 // -- MACRO CHOICES --
 function getMacroChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Macro List...", "", false, false);
@@ -165,6 +161,7 @@ function getMacroChoices() {
 	// Make the array available to these settings.
     return choiceObject;
 }
+
 // -- NAMEPLATE CHOICES --
 function getNameplateChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Nameplate List...", "", false, false);
@@ -203,6 +200,7 @@ function getThemeChoices() {
     // Return it to this modules settings.
     return choices; 
 }
+
 // Build out setting for each of the themes so they can be enabled/disabled.
 function registerThemes() {
     // Move 'cardsdefault' to front and sort the remaining thematically
@@ -253,26 +251,23 @@ function getIconChoices() {
     let choices = {};
     BLACKSMITH.arrIconChoicesEnabled = [];
     
-    // Add the "none" option first
-    choices['none'] = '— None Selected —';
-    
-    // Add the "No Icon" option second
-    choices['icon-none'] = 'No Icon (Select One)';
-    
-    // Then add all the icon choices from data collection (excluding icon-none since we already added it)
-    let sortedIcons = dataIcons.icons.filter(icon => icon.id !== 'icon-none');
-    sortedIcons.sort((a, b) => a.name.localeCompare(b.name));
-    
+    let sortedIcons = dataIcons.icons;
+    // Move 'none' to front
+    sortedIcons.sort((a, b) => {
+        if(a.id === 'icon-none') return -1;
+        if(b.id === 'icon-none') return 1;
+        return a.name.localeCompare(b.name);
+    });
     for(let icons of sortedIcons) { 
         choices[icons.value] = icons.name;
         // Add the image to arrBackgroundImageChoicesEnabled array
         BLACKSMITH.arrIconChoicesEnabled.push(icons.name);
     }
-    
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrIconChoices', choices);
     // Return it to this modules settings.
     return choices; 
+
 }
 
 // -- SOUND CHOICES --
@@ -281,15 +276,10 @@ function getSoundChoices() {
     let choices = {};
     BLACKSMITH.arrSoundChoicesEnabled = [];
     
-    // Add the "none" option first
-    choices['none'] = '— None Selected —';
-    
     // Add the "No Sound" option second
     choices['sound-none'] = 'No Sound';
-    
     // Then add all the sound choices from data collection (excluding sound-none since we already added it)
     let sortedSounds = dataSounds.sounds.filter(sound => sound.id !== 'sound-none');
-    
     // Remove duplicates based on ID
     const uniqueSounds = [];
     const seenIds = new Set();
@@ -299,21 +289,16 @@ function getSoundChoices() {
             uniqueSounds.push(sound);
         }
     }
-    
     uniqueSounds.sort((a, b) => a.name.localeCompare(b.name));
-    
     for(let sounds of uniqueSounds) { 
         choices[sounds.id] = sounds.name;
         BLACKSMITH.arrSoundChoicesEnabled.push(sounds.name);
     }
-    
     // BLACKSMITH UPDATER 
     BLACKSMITH.updateValue('arrSoundChoices', choices);
     // Return it to this modules settings.
     return choices; 
 }
-
-
 
 // ================================================================== 
 // ===== SETTINGS ===================================================

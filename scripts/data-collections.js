@@ -209,7 +209,7 @@ export const dataBackgroundImages = {
 export const dataIcons = {
     "icons": [
         {
-            "name": "No Icon (Select One)",
+            "name": "— No Icon —",
             "id": "icon-none",
             "value": "none",
             "constantname": "ICONNONE",
