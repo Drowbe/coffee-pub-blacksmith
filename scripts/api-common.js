@@ -62,17 +62,17 @@ export const COFFEEPUB = {
     },
     // SHARED MODULE VARIABLES
     blnDebugOn: false, // Display debug messages
-    blnFancyConsole: false, // Display Colorful Console
-    strConsoleDebugStyle: "simple", // Display colors but not boxes
+    // blnFancyConsole: false, // Display Colorful Console
+    // strConsoleDebugStyle: "simple", // Display colors but not boxes
     strDEFAULTCARDTHEME: "cardsdefault", // Default Card Theme
 
-    arrTHEMECHOICES: [], // Theme list for drop downs
-    arrMACROCHOICES: [], // Macro list for drop downs
-    arrTABLECHOICES: [], // Table list for drop downs
-    arrCOMPENDIUMCHOICES: [], // Compendium list for drop downs
-    arrBACKGROUNDIMAGECHOICES: [], // Background Image list for drop downs
-    arrICONCHOICES: [], // Icon list for drop downs
-    arrSOUNDCHOICES: [], // Sound list for drop downs
+    // arrTHEMECHOICES: [], // Theme list for drop downs
+    // arrMACROCHOICES: [], // Macro list for drop downs
+    // arrTABLECHOICES: [], // Table list for drop downs
+    // arrCOMPENDIUMCHOICES: [], // Compendium list for drop downs
+    // arrBACKGROUNDIMAGECHOICES: [], // Background Image list for drop downs
+    // arrICONCHOICES: [], // Icon list for drop downs
+    // arrSOUNDCHOICES: [], // Sound list for drop downs
 
     // COMMENTED OUT - Now using data collections and Asset Lookup Tool
     // strDEFAULTSOUNDFILE: "modules/coffee-pub-blacksmith/sounds/interface-open-01.mp3",
@@ -625,12 +625,9 @@ export function registerBlacksmithUpdatedHook() {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
 			// BLACKSMITH VARIABLE COLLECTION
-			// RICH CONSOLE
-			COFFEEPUB.blnFancyConsole = newBlacksmith.blnFancyConsole;
+			// RICH CONSOLE - Removed, only used internally in postConsoleAndNotification
 			// DEBUG ON/OFF
 			COFFEEPUB.blnDebugOn = newBlacksmith.blnDebugOn;
-			// DEBUG STYLE
-			COFFEEPUB.strConsoleDebugStyle = newBlacksmith.strConsoleDebugStyle;
 			// Get the default theme
 			COFFEEPUB.strDEFAULTCARDTHEME = newBlacksmith.strDefaultCardTheme;
 			// Get the Themes list
@@ -1255,8 +1252,10 @@ export function postConsoleAndNotification(
     // ----- DEBUG vs NORMAL flow -----
     if (blnDebug === true && COFFEEPUB?.blnDebugOn) {
       // === DEBUG MODE ===
-      if (COFFEEPUB?.blnFancyConsole) {
-        const styleMode = COFFEEPUB?.strConsoleDebugStyle || "fancy";
+      // Read console styling settings using our safe wrapper
+      const blnFancyConsole = getSettingSafely('coffee-pub-blacksmith', 'globalFancyConsole', false);
+      if (blnFancyConsole) {
+        const styleMode = getSettingSafely('coffee-pub-blacksmith', 'globalConsoleDebugStyle', 'fancy');
   
         if (styleMode === "fancy") {
           // FANCY STYLE
@@ -1327,7 +1326,9 @@ export function postConsoleAndNotification(
       }
     } else {
       // === NORMAL MODE (not debug) ===
-      if (COFFEEPUB?.blnFancyConsole) {
+      // Read console styling settings using our safe wrapper
+      const blnFancyConsole = getSettingSafely('coffee-pub-blacksmith', 'globalFancyConsole', false);
+      if (blnFancyConsole) {
         let fmt = `%c${MODULE.AUTHOR}%c${PIPE}%c${moduleKey}%c ${strMessage}`;
         const styles = [STYLE_NORMAL_AUTHOR, STYLE_PIPE, STYLE_NORMAL_MODULE, STYLE_NORMAL_TEXT];
   

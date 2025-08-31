@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './api-common.js';
+import { postConsoleAndNotification, playSound, getSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from './chat-panel.js';
 import { HookManager } from './manager-hooks.js';
@@ -509,7 +509,7 @@ export class VoteManager {
         this.activeVote.votes[voterId] = choiceId;
 
         // Play button sound when vote is cast
-        playSound(COFFEEPUB.SOUNDBUTTON07, COFFEEPUB.SOUNDVOLUMENORMAL);
+        playSound(window.COFFEEPUB?.SOUNDBUTTON07, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
@@ -558,7 +558,7 @@ export class VoteManager {
         }
 
         // Play completion sound
-        playSound(COFFEEPUB.SOUNDNOTIFICATION15, COFFEEPUB.SOUNDVOLUMENORMAL);
+        playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
         // Notify other clients
         const socket = SocketManager.getSocket();
@@ -710,7 +710,7 @@ export class VoteManager {
         if (!gmUser) return;
 
         // Play notification sound
-        playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+        playSound(window.COFFEEPUB?.SOUNDNOTIFICATION02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
         const messageData = {
             vote: this.activeVote,

@@ -59,8 +59,6 @@ export const BLACKSMITH = {
     JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL: `modules/${MODULE.ID}/templates/partials/search-replace.hbs`,
     // These get overriden as soon as the settings and everything else loads.
     blnDebugOn: false, // Display debug messages
-    blnFancyConsole: false, // Display Colorful Console
-    strConsoleDebugStyle: "simple", // Display colors but not boxes
     
     // Unified Roll System API
     rolls: {

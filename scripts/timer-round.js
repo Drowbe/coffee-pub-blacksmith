@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { CombatStats } from './stats-combat.js';
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, formatTime } from './api-common.js';
+import { postConsoleAndNotification, playSound, trimString, formatTime } from './api-common.js';
 import { HookManager } from './manager-hooks.js';
 
 export class RoundTimer {

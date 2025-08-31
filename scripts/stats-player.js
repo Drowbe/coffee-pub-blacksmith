@@ -1,6 +1,6 @@
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-common.js';
+import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-common.js';
 import { HookManager } from './manager-hooks.js';
 
 // Default stats structure

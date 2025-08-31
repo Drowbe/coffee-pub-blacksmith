@@ -346,17 +346,14 @@ Hooks.once('ready', async () => {
 // Function to initialize all settings-dependent features
 function initializeSettingsDependentFeatures() {
     // RICH CONSOLE
-    const blnFancyConsole = getCachedSetting('globalFancyConsole');
-    BLACKSMITH.updateValue('blnFancyConsole', blnFancyConsole);
-    COFFEEPUB.blnFancyConsole = blnFancyConsole;
+            // Console styling now handled internally in postConsoleAndNotification
 
     // DEBUG ON/OFF
     const blnDebugOn = getCachedSetting('globalDebugMode');
     BLACKSMITH.updateValue('blnDebugOn', blnDebugOn);
     
     // DEBUG STYLE
-    const strConsoleDebugStyle = getCachedSetting('globalConsoleDebugStyle');
-    BLACKSMITH.updateValue('strConsoleDebugStyle', strConsoleDebugStyle);    
+            // Console styling now handled internally in postConsoleAndNotification    
     
     // OPENAI SETTINGS
     // Macro

@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, trimString } from './api-common.js';
+import { postConsoleAndNotification, playSound, trimString } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { getCachedTemplate } from './blacksmith.js';
@@ -849,7 +849,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     switchWorkspace(html, workspaceId) {
 
-        playSound(COFFEEPUB.SOUNDPOP03, COFFEEPUB.SOUNDVOLUMESOFT);
+        playSound(window.COFFEEPUB?.SOUNDPOP03, window.COFFEEPUB?.SOUNDVOLUMESOFT);
     
         // Update workspaceId and store as last active
         const oldWorkspaceId = this.workspaceId;
@@ -1327,7 +1327,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         const content = contentElement.length ? contentElement.html() : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, true, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, true, false);
-        playSound(COFFEEPUB.SOUNDPOP02,COFFEEPUB.SOUNDVOLUMESOFT);
+        playSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMESOFT);
         if (content && content.trim() !== "") {
             await ChatMessage.create({
                 content: content,
@@ -1352,7 +1352,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         let content = contentElement.length ? contentElement.html() : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, false, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, false, false);
-        playSound(COFFEEPUB.SOUNDPOP02,COFFEEPUB.SOUNDVOLUMESOFT);
+        playSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMESOFT);
         if (content && content.trim() !== "") {
             // Sanitize content to remove unnecessary whitespace and line breaks
             content = content.replace(/<p>\s*<\/p>/g, '').trim();

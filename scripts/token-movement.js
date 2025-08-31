@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely } from './api-common.js';
+import { postConsoleAndNotification, playSound, getSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from "./chat-panel.js";
 import { HookManager } from './manager-hooks.js';
@@ -244,7 +244,7 @@ export class MovementConfig extends Application {
         await game.settings.set(MODULE.ID, 'movementType', movementId);
 
         // Play movement change sound
-        playSound(COFFEEPUB.SOUNDBUTTON05, COFFEEPUB.SOUNDVOLUMENORMAL);
+        playSound(window.COFFEEPUB?.SOUNDBUTTON05, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
         // Get the movement type name for the notification
         const movementType = this.getData().MovementTypes.find(t => t.id === movementId);

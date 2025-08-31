@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification } from './api-common.js';
+// COFFEEPUB now available globally via window.COFFEEPUB
+import { postConsoleAndNotification } from './api-common.js';
 
 export class ModuleManager {
     static registeredModules = new Map();
@@ -12,7 +13,7 @@ export class ModuleManager {
 
     static _detectInstalledModules() {
         // Check for each Coffee Pub module
-        Object.entries(COFFEEPUB.MODULES).forEach(([key, moduleId]) => {
+        Object.entries(window.COFFEEPUB?.MODULES || {}).forEach(([key, moduleId]) => {
             const module = game.modules.get(moduleId);
             if (module?.active) {
                 postConsoleAndNotification(MODULE.NAME, `Detected active module: ${moduleId}`, "", true, false);
