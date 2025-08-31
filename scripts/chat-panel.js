@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB, getSettingSafely, setSettingSafely } from './api-common.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, setSettingSafely } from './api-common.js';
 import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
@@ -880,7 +880,7 @@ class ChatPanel {
     
                 
                 // Play notification sound
-                playSound(COFFEEPUB.SOUNDNOTIFICATION09, COFFEEPUB.SOUNDVOLUMENORMAL);
+                playSound(window.COFFEEPUB?.SOUNDNOTIFICATION09, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
                 // Send public message
                 const publicData = {

@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
-import { COFFEEPUB, postConsoleAndNotification } from './api-common.js';
+// COFFEEPUB now available globally via window.COFFEEPUB
+import { postConsoleAndNotification } from './api-common.js';
 import { buildButtonEventRegent } from './blacksmith.js';
 import { CSSEditor } from './window-gmtools.js';
 import { JournalToolsWindow } from './journal-tools.js';

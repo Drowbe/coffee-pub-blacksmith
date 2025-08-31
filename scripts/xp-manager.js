@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, COFFEEPUB } from './api-common.js';
+import { postConsoleAndNotification, playSound } from './api-common.js';
 import { HookManager } from './manager-hooks.js';
 
 export class XpManager {
@@ -328,7 +328,7 @@ export class XpManager {
 
             
             // Play notification sound
-            playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+            playSound(window.COFFEEPUB?.SOUNDNOTIFICATION02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
             
             // Get the GM user for the speaker (messages always appear from GM)
             const gmUser = game.users.find(u => u.isGM);

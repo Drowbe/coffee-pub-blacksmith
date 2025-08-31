@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, rollCoffeePubDice, postConsoleAndNotification, COFFEEPUB } from './api-common.js';
+import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 
@@ -1217,13 +1217,13 @@ export class SkillCheckDialog extends Application {
      */
     static _showCinematicDisplay(messageData, messageId) {
         // Debug: Check if constants are available
-        console.log('🔍 Skill Check Debug - SOUNDCINEMATICOPEN:', COFFEEPUB.SOUNDCINEMATICOPEN);
-        console.log('🔍 Skill Check Debug - SOUNDVOLUMENORMAL:', COFFEEPUB.SOUNDVOLUMENORMAL);
-        console.log('🔍 Skill Check Debug - COFFEEPUB object:', COFFEEPUB);
+        console.log('🔍 Skill Check Debug - SOUNDCINEMATICOPEN:', window.COFFEEPUB?.SOUNDCINEMATICOPEN);
+        console.log('🔍 Skill Check Debug - SOUNDVOLUMENORMAL:', window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+        console.log('🔍 Skill Check Debug - COFFEEPUB object:', window.COFFEEPUB);
         
         // Use the constant if available, otherwise fallback to direct path
-        const soundPath = COFFEEPUB.SOUNDCINEMATICOPEN || 'modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3';
-        const volume = COFFEEPUB.SOUNDVOLUMENORMAL || 0.5;
+        const soundPath = window.COFFEEPUB?.SOUNDCINEMATICOPEN || 'modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3';
+        const volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5;
         
         playSound(soundPath, volume);
         // Remove any existing overlay
@@ -1302,31 +1302,77 @@ export class SkillCheckDialog extends Application {
             actorCardsHtml = messageData.actors.map(createActorCardHtml).join('');
         }
 
+
+
+        // Debug: Check what constants are available
+        console.log('🔍 Skill Check Debug - COFFEEPUB object:', window.COFFEEPUB);
+        console.log('🔍 Skill Check Debug - BACKSKILLCHECK:', window.COFFEEPUB?.BACKSKILLCHECK);
+        console.log('🔍 Skill Check Debug - BACKABILITYCHECK:', window.COFFEEPUB?.BACKABILITYCHECK);
+        console.log('🔍 Skill Check Debug - BACKSAVINGTHROW:', window.COFFEEPUB?.BACKSAVINGTHROW);
+        console.log('🔍 Skill Check Debug - BACKTOOLCHECK:', window.COFFEEPUB?.BACKTOOLCHECK);
+        console.log('🔍 Skill Check Debug - BACKDICEROLL:', window.COFFEEPUB?.BACKDICEROLL);
+        console.log('🔍 Skill Check Debug - BACKCONTESTEDROLL:', window.COFFEEPUB?.BACKCONTESTEDROLL);
+
+        // Try to get constants from AssetLookup if COFFEEPUB is not ready
+        let assetLookup = null;
+        try {
+            const module = game.modules.get('coffee-pub-blacksmith');
+            assetLookup = module?.api?.assetLookup;
+            if (assetLookup) {
+                console.log('🔍 Skill Check Debug - AssetLookup available, checking constants...');
+                const allConstants = assetLookup.getAllConstants();
+                console.log('🔍 Skill Check Debug - AssetLookup constants:', allConstants);
+            }
+        } catch (e) {
+            console.warn('🔍 Skill Check Debug - Could not access AssetLookup:', e);
+        }
+
         // Determine the background image based on the roll type
         let backgroundImage;
+        
+        // Helper function to get constant value with fallback
+        const getConstant = (constantName, fallbackPath) => {
+            // Try COFFEEPUB first
+            if (window.COFFEEPUB?.[constantName]) {
+                return window.COFFEEPUB[constantName];
+            }
+            // Try AssetLookup as fallback
+            if (assetLookup) {
+                const value = assetLookup.getConstant(constantName);
+                if (value) {
+                    return value;
+                }
+            }
+            // Use fallback path
+            return fallbackPath;
+        };
+
         if (messageData.hasMultipleGroups) {
-            backgroundImage = COFFEEPUB.BACKCONTESTEDROLL;
+            backgroundImage = getConstant('BACKCONTESTEDROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp');
         } else {
             switch (messageData.rollType) {
                 case 'skill':
-                    backgroundImage = COFFEEPUB.BACKSKILLCHECK;
+                    backgroundImage = getConstant('BACKSKILLCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp');
                     break;
                 case 'ability':
-                    backgroundImage = COFFEEPUB.BACKABILITYCHECK;
+                    backgroundImage = getConstant('BACKABILITYCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp');
                     break;
                 case 'save':
-                    backgroundImage = COFFEEPUB.BACKSAVINGTHROW;
+                    backgroundImage = getConstant('BACKSAVINGTHROW', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp');
                     break;
                 case 'tool':
-                    backgroundImage = COFFEEPUB.BACKTOOLCHECK;
+                    backgroundImage = getConstant('BACKTOOLCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp');
                     break;
                 case 'dice':
-                    backgroundImage = COFFEEPUB.BACKDICEROLL;
+                    backgroundImage = getConstant('BACKDICEROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp');
                     break;
                 default:
-                    backgroundImage = COFFEEPUB.BACKCONTESTEDROLL; // Default fallback
+                    backgroundImage = getConstant('BACKCONTESTEDROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp');
             }
         }
+
+        // Debug: Check what background image we got
+        console.log('🔍 Skill Check Debug - Selected background image:', backgroundImage);
 
         // Create roll details text
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;

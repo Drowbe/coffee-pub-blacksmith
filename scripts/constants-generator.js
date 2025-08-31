@@ -148,8 +148,8 @@ export class ConstantsGenerator {
         
         try {
             dataSounds.sounds.forEach(sound => {
-                if (sound.constantname && sound.id) {
-                    soundConstants[sound.constantname] = sound.id;
+                if (sound.constantname && sound.path) {
+                    soundConstants[sound.constantname] = sound.path;
                 }
             });
         } catch (error) {
@@ -168,8 +168,8 @@ export class ConstantsGenerator {
         
         try {
             dataVolume.volumes.forEach(volume => {
-                if (volume.constantname && volume.id) {
-                    volumeConstants[volume.constantname] = volume.id;
+                if (volume.constantname && volume.path) {
+                    volumeConstants[volume.constantname] = volume.path;
                 }
             });
         } catch (error) {
@@ -188,8 +188,8 @@ export class ConstantsGenerator {
         
         try {
             dataBanners.banners.forEach(banner => {
-                if (banner.constantname && banner.id) {
-                    bannerConstants[banner.constantname] = banner.id;
+                if (banner.constantname && banner.path) {
+                    bannerConstants[banner.constantname] = banner.path;
                 }
             });
         } catch (error) {
@@ -208,8 +208,8 @@ export class ConstantsGenerator {
         
         try {
             dataBackgrounds.backgrounds.forEach(background => {
-                if (background.constantname && background.id) {
-                    backgroundConstants[background.constantname] = background.id;
+                if (background.constantname && background.path) {
+                    backgroundConstants[background.constantname] = background.path;
                 }
             });
         } catch (error) {

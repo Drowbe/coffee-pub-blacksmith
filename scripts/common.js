@@ -23,7 +23,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { COFFEEPUB } from './api-common.js';
+// COFFEEPUB now available globally via window.COFFEEPUB
 // get the common utilities
 import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './api-common.js';
 // Import template caching function
@@ -222,7 +222,7 @@ export async function createJournalEntry(journalData) {
     }
 
     // Play a victory sound. lol
-    playSound(COFFEEPUB.SOUNDEFFECTBOOK02, COFFEEPUB.SOUNDVOLUMENORMAL);
+            playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
     // Set the content
     compiledHtml = template(CARDDATA);
