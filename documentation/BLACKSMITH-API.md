@@ -967,7 +967,31 @@ const tableChoices = BlacksmithConstants.arrTableChoices;
 
 **💡 Explore All Utilities**: Use the console command `BlacksmithAPIUtils()` to see a complete list of all available utility functions and their current values.
 
-**⚠️ PENDING MIGRATION**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) are currently being migrated to a new system. These will be available via `BlacksmithConstants` once the migration is complete.
+**✅ MIGRATION COMPLETE**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) have been successfully migrated to a new data-driven system. These are now available via both `window.COFFEEPUB` and `BlacksmithConstants` for backward compatibility.
+
+## **🎯 Constants System - Current State**
+
+### **Available Constants:**
+- **Sound Constants**: `COFFEEPUB.SOUNDNOTIFICATION01`, `COFFEEPUB.SOUNDBUTTON01`, `COFFEEPUB.SOUNDSUCCESS`, etc.
+- **Background Constants**: `COFFEEPUB.BACKSKILLCHECK`, `COFFEEPUB.BACKABILITYCHECK`, `COFFEEPUB.BACKSAVINGTHROW`, etc.
+- **Theme Constants**: `COFFEEPUB.THEMEDEFAULT`, `COFFEEPUB.THEMEBLUE`, `COFFEEPUB.THEMERED`, etc.
+- **Icon Constants**: `COFFEEPUB.ICONNONE`, `COFFEEPUB.ICONCHESSQUEEN`, `COFFEEPUB.ICONSHIELD`, etc.
+- **Volume Constants**: `COFFEEPUB.SOUNDVOLUMESOFT`, `COFFEEPUB.SOUNDVOLUMENORMAL`, `COFFEEPUB.SOUNDVOLUMELOUD`
+
+### **Access Methods:**
+```javascript
+// Method 1: Direct COFFEEPUB access (recommended for existing code)
+const sound = COFFEEPUB.SOUNDNOTIFICATION01;
+const theme = COFFEEPUB.THEMEDEFAULT;
+
+// Method 2: BlacksmithConstants (alternative access)
+const sound = BlacksmithConstants.SOUNDNOTIFICATION01;
+const theme = BlacksmithConstants.THEMEDEFAULT;
+
+// Method 3: Asset Lookup (for tag-based searching)
+const assetLookup = BlacksmithAPI.getAssetLookup();
+const sounds = assetLookup.findByTag('notification');
+```
 
 **Available Utilities**:
 
@@ -1003,21 +1027,20 @@ utils.postConsoleAndNotification(
 );
 
 // Sound playback - use predefined constants or full paths
-// ⚠️ PENDING MIGRATION: COFFEEPUB constants will be available via BlacksmithConstants once migration is complete
-utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3', 0.8); // Use direct paths for now
-utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3', 0.5); // Custom path
+// ✅ MIGRATION COMPLETE: COFFEEPUB constants are now available via both window.COFFEEPUB and BlacksmithConstants
+utils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, COFFEEPUB.SOUNDVOLUMENORMAL); // Use constants
+utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3', 0.5); // Or custom paths
 
-// ⚠️ PENDING MIGRATION: Available sound constants will be documented here once migration is complete
-// These will include:
-// - Various notification sounds
-// - Button click sounds  
-// - Pop/interface sounds
-// - Book-related sounds
-// - Chest/loot sounds
-// - Weapon sounds
-// - Musical instrument sounds
-// - Reaction sounds (battlecry, etc.)
-// - Volume constants
+// ✅ Available sound constants include:
+// - Various notification sounds (SOUNDNOTIFICATION01-15)
+// - Button click sounds (SOUNDBUTTON01-12)
+// - Pop/interface sounds (SOUNDPOP01-03)
+// - Book-related sounds (SOUNDEFFECTBOOK01-04)
+// - Chest/loot sounds (SOUNDEFFECTCHEST01-02)
+// - Weapon sounds (SOUNDEFFECTWEAPON01-03)
+// - Musical instrument sounds (SOUNDEFFECTINSTRUMENT01-04)
+// - Reaction sounds (SOUNDEFFECTREACTION04, SOUNDREACTIONAHHHH, etc.)
+// - Volume constants (SOUNDVOLUMESOFT, SOUNDVOLUMENORMAL, SOUNDVOLUMELOUD, SOUNDVOLUMEMAX)
 
 // Settings management
 const setting = utils.getSettingSafely('my-module-id', 'setting-key', 'default');
@@ -1048,8 +1071,8 @@ BlacksmithUtils.postConsoleAndNotification(
 );
 
 // Play sounds for user feedback
-// ⚠️ PENDING MIGRATION: Use direct paths until COFFEEPUB constants are migrated
-BlacksmithUtils.playSound('modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3', 0.8); // Success notification sound
+// ✅ MIGRATION COMPLETE: Use COFFEEPUB constants for predefined sounds
+BlacksmithUtils.playSound(COFFEEPUB.SOUNDSUCCESS, COFFEEPUB.SOUNDVOLUMENORMAL); // Success notification sound
 
 // Access Blacksmith version and constants
 console.log('Blacksmith version:', game.modules.get('coffee-pub-blacksmith')?.api?.version);
