@@ -539,20 +539,49 @@ The **Asset Lookup Tool** provides flexible, tag-based access to all Blacksmith 
 Each asset now includes enhanced metadata:
 
 ```javascript
+// sound file example
 {
     "name": "Interface: Error 01",
-    "id": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
-    "constantname": "SOUNDERROR01",
-    "path": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
+    "id": "sound-interface-error-01",
+    "value": "",
+    "constantname": "SOUNDERROR01", // this gets passed to the playSound function
+    "path": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3", // this is what gets used in the playSound function
     "tags": ["interface", "error"],
     "type": "sound",
     "category": "interface"
+}
+
+// sound volume example
+{
+    "name": "Normal",
+    "id": "volume-normal",
+    "value": "0.5", // this is what gets used in the playSound function
+    "constantname": "SOUNDVOLUMENORMAL", // this gets passed to the playSound function
+    "path": "",
+    "tags": ["volume", "normal", "standard"],
+    "type": "volume",
+    "category": "setting",
+    "description": "Standard volume level for most sounds"
+}
+
+// theme example
+{
+    "name": "Dark And Stormy", // this is what shows as a choice in the settings
+    "id": "theme-dark",
+    "value": "cardsdark", // this gets used in the settings and passed to css for processing
+    "constantname": "THEMEDARK",
+    "path": "",
+    "tags": ["theme", "dark", "stormy", "atmospheric"],
+    "type": "theme",
+    "category": "theme",
+    "description": "This dark theme envelops your tabletop in a brooding atmosphere where shadows dance and lightning crackles, creating the perfect backdrop for mysterious adventures."
 }
 ```
 
 ### **Fields:**
 - **`name`**: Human-readable display name
-- **`id`**: Unique identifier
+- **`id`**: Unique identifier (used for internal references)
+- **`value`**: Asset value (used to pass a specific value, likely to a form element or other input)
 - **`constantname`**: Generated constant name (for backward compatibility)
 - **`path`**: File path or reference
 - **`tags`**: Array of descriptive tags
