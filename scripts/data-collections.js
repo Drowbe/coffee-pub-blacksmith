@@ -5,8 +5,8 @@ export const dataTheme = {
     "themes": [
         {
             "name": "Simple (Native Foundry)",
-            "id": "cardsdefault",
-            "value": "",
+            "id": "theme-default",
+            "value": "cardsdefault",
             "constantname": "THEMEDEFAULT",
             "path": "",
             "tags": ["theme", "default", "simple", "foundry"],
@@ -16,8 +16,8 @@ export const dataTheme = {
         },  
         {
             "name": "Dark And Stormy",
-            "id": "cardsdark",
-            "value": "",
+            "id": "theme-dark",
+            "value": "cardsdark",
             "constantname": "THEMEDARK",
             "path": "",
             "tags": ["theme", "dark", "stormy", "atmospheric"],
@@ -27,8 +27,8 @@ export const dataTheme = {
         },
         {
             "name": "Blue Velvet",
-            "id": "cardsblue",
-            "value": "",
+            "id": "theme-blue",
+            "value": "cardsblue",
             "constantname": "THEMEBLUE",
             "path": "",
             "tags": ["theme", "blue", "velvet", "elegant"],
@@ -38,8 +38,8 @@ export const dataTheme = {
         },
         {
             "name": "Red Wine",
-            "id": "cardsred",
-            "value": "",
+            "id": "theme-red",
+            "value": "cardsred",
             "constantname": "THEMERED",
             "path": "",
             "tags": ["theme", "red", "wine", "luxury"],
@@ -49,8 +49,8 @@ export const dataTheme = {
         },
         {
             "name": "Green Moss",
-            "id": "cardsgreen",
-            "value": "",
+            "id": "theme-green",
+            "value": "cardsgreen",
             "constantname": "THEMEGREEN",
             "path": "",
             "tags": ["theme", "green", "moss", "nature"],
@@ -60,8 +60,8 @@ export const dataTheme = {
         },
         {
             "name": "Brown Earth",
-            "id": "cardsbrown",
-            "value": "",
+            "id": "theme-brown",
+            "value": "cardsbrown",
             "constantname": "THEMEBROWN",
             "path": "",
             "tags": ["theme", "brown", "earth"],

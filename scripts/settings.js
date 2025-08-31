@@ -185,15 +185,15 @@ function getThemeChoices() {
     BLACKSMITH.arrThemeChoicesEnabled = []; 
     // Sort themes alphabetically and move 'cardsdefault' to the front
     let sortedThemes = dataTheme.themes.sort((a, b) => {
-        if(a.id === 'cardsdefault') return -1;
-        if(b.id === 'cardsdefault') return 1;
+        if(a.value === 'cardsdefault') return -1;
+        if(b.value === 'cardsdefault') return 1;
         return a.name.localeCompare(b.name);
       }); 
 
     for(let theme of sortedThemes) { 
       // Check if the theme is enabled - use safe settings function
       if(getSettingSafely(MODULE.ID, theme.id, true)) {
-        choices[theme.id] = theme.name;
+        choices[theme.value] = theme.name;
         // Add the enabled theme to arrThemeChoicesEnabled array
         BLACKSMITH.arrThemeChoicesEnabled.push(theme.name);
       }
@@ -207,8 +207,8 @@ function getThemeChoices() {
 function registerThemes() {
     // Move 'cardsdefault' to front and sort the remaining thematically
     let sortedThemes = dataTheme.themes.sort((a, b) => {
-        if(a.id === 'cardsdefault') return -1;
-        if(b.id === 'cardsdefault') return 1;
+        if(a.value === 'cardsdefault') return -1;
+        if(b.value === 'cardsdefault') return 1;
         return a.name.localeCompare(b.name);
     });
     for(let theme of sortedThemes) {
