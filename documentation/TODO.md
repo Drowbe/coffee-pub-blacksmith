@@ -159,7 +159,7 @@
 - [x] Reduce console logging in production
 - [x] Optimize array operations (window registry)
 
-### Phase 3: Hook Management Consolidation (Medium-term) 🟡 IN PROGRESS
+### Phase 3: Hook Management Consolidation (Medium-term) ✅ COMPLETED
 - [x] Create centralized HookManager system
 - [x] Migrate global hooks (closeGame, disableModule, canvasReady, createToken)
 - [x] Migrate settings hooks (settingChange)
@@ -172,13 +172,13 @@
   - [x] updateCombatant (initiative logic)
   - [x] createCombat (auto-open tracker)
   - [x] updateCombat (round changes, player initiative)
-  - [x] renderCombatTracker (health rings, portraits, drag & drop, dead state) - **BROKEN: Drag & drop error, missing set current icon, player initiative not rolling**
-  - [ ] combatStart (combat beginning logic)
-  - [ ] endCombat (combat ending cleanup)
-  - [ ] deleteCombat (combat deletion cleanup)
-- [ ] **ARCHITECTURAL REFACTOR**: Separate business logic from hook management
-- [ ] **ARCHITECTURAL REFACTOR**: Create service classes for each functional area
-- [ ] **ARCHITECTURAL REFACTOR**: HookManager should delegate, not execute
+  - [x] renderCombatTracker (health rings, portraits, drag & drop, dead state)
+  - [x] combatStart (combat beginning logic)
+  - [x] endCombat (combat ending cleanup)
+  - [x] deleteCombat (combat deletion cleanup)
+- [x] **ARCHITECTURAL REFACTOR**: Separate business logic from hook management
+- [x] **ARCHITECTURAL REFACTOR**: Create service classes for each functional area
+- [x] **ARCHITECTURAL REFACTOR**: HookManager should delegate, not execute
 
 ### Phase 4: 🚨 OPENAI API EXPOSURE FIX (IMMEDIATE) 🚨 CRITICAL
 - [ ] **IMMEDIATE**: Add OpenAI functions to `UtilsManager.getUtils()`
@@ -222,36 +222,10 @@
 
 ## ARCHITECTURAL CONCERNS
 
-### 1. HookManager Becoming Monolithic ⚠️ HIGH PRIORITY
-- **Issue**: HookManager is evolving into a "god class" that both manages hooks AND contains business logic
-- **Current State**: 
-  - Combat functionality (health rings, drag & drop, portraits) embedded directly in HookManager
-  - ~400+ lines of combat-specific code in what should be a hook management utility
-  - Violates separation of concerns principle
-- **Impact**: 
-  - File becomes massive and hard to maintain
-  - Business logic mixed with infrastructure code
-  - Difficult to test individual components
-  - Recreates the same problem we had before, just centralized
+### 1. Socketmanager Becoming Monolithic ⚠️ HIGH PRIORITY
+- **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic
 - **Proposed Solution**:
-  - HookManager should ONLY manage hook registration/cleanup
-  - Create service classes: CombatService, TokenService, CanvasService, etc.
-  - Hook handlers delegate to appropriate services
-  - Each service maintains its own scope and responsibility
-- **Example Structure**:
-  ```javascript
-  // HookManager (infrastructure only)
-  HookManager.registerHook("renderCombatTracker", (app, html) => {
-      CombatService.enhanceCombatTracker(app, html);
-  });
-  
-  // CombatService (business logic only)
-  class CombatService {
-      static enhanceCombatTracker(app, html) {
-          // All combat enhancement logic here
-      }
-  }
-  ```
+  - Socketmanager should ONLY manage socket registration/cleanup (like hookmanager)
 
 ## NOTES
 

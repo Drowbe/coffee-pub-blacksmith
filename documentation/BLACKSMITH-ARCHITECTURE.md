@@ -32,10 +32,10 @@ This document outlines the technical architecture and design decisions for the C
 - **Module Architecture**: Clean, maintainable, and extensible
 
 ### **🚧 In Development:**
-- **Asset Management System**: New data-driven asset categorization (19 categories)
-- **Constants Migration**: Moving from hardcoded to auto-generated constants
-- **Data Collections**: Centralized asset metadata storage
-- **Asset Lookup Tool**: Flexible, tag-based asset access system
+- **Asset Management System**: **PARTIALLY COMPLETED** - Data structure refactored with `value` field
+- **Constants Migration**: **MAJOR PROGRESS** - ~90+ constants migrated, data collections established
+- **Data Collections**: **COMPLETED** - Centralized asset metadata storage with new structure
+- **Asset Lookup Tool**: **COMPLETED** - Flexible, tag-based asset access system
 
 ## **Core Architecture Principles**
 
@@ -199,7 +199,8 @@ All timer systems follow the same architectural pattern:
 ```javascript
 {
     "name": "Human-readable display name",
-    "id": "unique-identifier-not-path",           // Unique ID, not file path
+    "id": "semantic-identifier",                  // Internal identifier (e.g., "theme-default")
+    "value": "asset-value",                       // Asset value (e.g., CSS class, volume level)
     "constantname": "CONSTANTNAME",               // Global constant name
     "path": "modules/coffee-pub-blacksmith/...", // File path or reference
     "tags": ["tag1", "tag2", "tag3"],            // Flexible functional tags
@@ -212,8 +213,9 @@ All timer systems follow the same architectural pattern:
 - **Category vs Tags**: 
   - **Category**: Rigid, organizational, one-per-asset, maps to folder structure
   - **Tags**: Flexible, functional, many-per-asset, unlimited options
-- **ID vs Path**: 
-  - **ID**: Unique identifier for programmatic access
+- **ID vs Value vs Path**: 
+  - **ID**: Internal identifier for settings and programmatic access (e.g., "theme-default")
+  - **Value**: Asset value used for rendering/styling (e.g., CSS class, volume level, Font Awesome class)
   - **Path**: File system location or data reference
 - **Constants**: Auto-generated from data collections for backward compatibility
 
@@ -343,10 +345,11 @@ All timer systems follow the same architectural pattern:
 ## **Future Architecture Plans**
 
 ### **1. Asset Management System Completion**
-- **19 Categories**: Complete implementation of all rigid categories
-- **Data Migration**: Move all hardcoded constants to data collections
-- **Asset Lookup**: Full tag-based search and filtering capabilities
-- **Auto-Scanning**: Automatic folder change detection and updates
+- **19 Categories**: **IN PROGRESS** - Basic structure defined, implementation ongoing
+- **Data Migration**: **MAJOR PROGRESS** - Core assets migrated (sounds, volumes, themes, backgrounds, icons)
+- **Data Structure**: **COMPLETED** - New `id`/`value`/`path` separation implemented
+- **Asset Lookup**: **COMPLETED** - Full tag-based search and filtering capabilities
+- **Auto-Scanning**: **PLANNED** - Automatic folder change detection and updates
 
 ### **2. Roll System Completion**
 - **Unified Architecture**: Complete 4-function roll system
@@ -375,7 +378,7 @@ The Coffee Pub Blacksmith module now features a **robust, enterprise-grade archi
 - **✅ Professional Quality**: Production-ready codebase
 - **✅ Cross-Client Communication**: Real-time synchronization
 - **✅ Comprehensive APIs**: Easy integration for other modules
-- **🚧 Asset Management**: New data-driven system in development (19 categories)
+- **🚧 Asset Management**: New data-driven system partially completed (data structure refactored)
 
 **The architecture is now production-ready and provides a solid foundation for continued development and feature expansion.** 🚀
 
