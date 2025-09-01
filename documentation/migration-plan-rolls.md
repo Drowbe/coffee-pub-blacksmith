@@ -1,151 +1,368 @@
 # ROLL MIGRATION PLAN
 
-## **CURRENT STATUS - SOCKET ISSUES RESOLVED! 🎉**
+## **CURRENT STATUS - PARTIALLY FUNCTIONAL SYSTEM ⚠️**
 
-**The socket communication system is now fully functional with SocketLib integration. Roll system development can proceed unblocked.**
+**The roll system is in a transitional state with significant architectural improvements implemented but incomplete integration. The new 4-function architecture is working for some entry points, but critical user workflows are broken due to incomplete migration.**
 
-### **✅ WHAT'S BEEN ACCOMPLISHED:**
+### **✅ WHAT'S WORKING (Well Implemented):**
 - ✅ **Socket system fully operational** with SocketLib integration
 - ✅ **Cross-client communication working** for all features
 - ✅ **New 4-function architecture** implemented in `manager-rolls.js`
-- ✅ **Logic migration** from old system to new functions
-- ✅ **Data flow fixes** for `messageId` and `tokenId` context
-- ✅ **Entry point updates** with chat card creation logic
-- ✅ **Template renaming** from `window-element-*` to `partial-*`
+- ✅ **Roll execution logic** robust and comprehensive
+- ✅ **Chat card system** functional with proper formatting
+- ✅ **Chat card click integration** using new system
+
+### **🚧 WHAT'S PARTIALLY WORKING (Incomplete Integration):**
+- ⚠️ **Cinema mode**: Shows overlay but roll execution incomplete
+- ⚠️ **Roll Window Class**: Exists but not properly integrated
+
+### **❌ WHAT'S BROKEN (Critical Issues):**
+- ❌ **Window Mode Roll Execution**: Completely broken - bypasses new system
+- ❌ **Query Window Integration**: Still uses old system entirely
+- ❌ **Cinema Mode Roll Execution**: No actual roll execution implemented
 
 ### **🚀 CURRENT STATUS:**
 - **Socket System**: ✅ **PRODUCTION READY**
 - **Cross-Client Sync**: ✅ **FULLY FUNCTIONAL**
-- **Roll System**: 🚧 **READY FOR DEVELOPMENT**
-- **All Blockers**: ✅ **RESOLVED**
+- **New Architecture**: ✅ **IMPLEMENTED**
+- **Chat Card Integration**: ✅ **WORKING**
+- **Window Mode**: ❌ **BROKEN**
+- **Cinema Mode**: ❌ **INCOMPLETE**
+- **Query Integration**: ❌ **BROKEN**
 
-## **THE UNIFIED APPROACH**
+## **DETAILED TECHNICAL ANALYSIS**
 
-### **PHASE 1: SOCKET SYSTEM (COMPLETED ✅)**
-The socket communication system is now fully operational:
-- ✅ **SocketLib integration** working perfectly
-- ✅ **Cross-client communication** functional
-- ✅ **Real-time synchronization** for all features
-- ✅ **Professional multiplayer experience** achieved
-
-### **PHASE 2: ROLL SYSTEM DEVELOPMENT (READY TO START 🚧)**
-Now that sockets are working, we can focus on the roll system:
-1. **Test the new 4-function system** end-to-end
-2. **Verify chat card creation** and updating
-3. **Test both Window and Cinema modes** use same logic
-4. **Ensure results sync** across clients properly
-
-### **PHASE 3: OPTIMIZE AND CLEAN UP**
-After confirming everything works:
-1. **Remove legacy code** (`utils-rolls-OLD.js`)
-2. **Clean up any remaining** old roll functions
-3. **Optimize the flow** based on real-world testing
-
-## **THE CORRECT ARCHITECTURE**
+### **ARCHITECTURE MISMATCH**
+The documentation describes a **unified approach** where both Window and Cinema modes use the same execution logic:
 
 ```
-ROLL REQUEST (from GM)
-    ↓
-ROUTE TO SYSTEM (Blacksmith vs Foundry)
-    ↓
-PRESENTATION LAYER:
-    ├── WINDOW: showRollDialog() → RollDialog class
-    └── CINEMA: showCinemaOverlay() → Cinema class
-    ↓
-UNIFIED ROLL EXECUTION (same logic for both)
-    ↓
-UNIFIED ROLL RESOLUTION (same logic for both)
+ROLL REQUEST → ROUTE TO SYSTEM → PRESENTATION LAYER → UNIFIED EXECUTION → UNIFIED RESOLUTION
 ```
 
-## **KEY INSIGHT**
-Cinema Mode is literally just "skip the chat card click and auto-open the cinema overlay." Everything after that should be identical to Window Mode.
+**Reality**: The system has **two separate execution paths**:
+- **New Path**: Chat card clicks → `orchestrateRoll()` → new 4-function system ✅
+- **Old Path**: Window mode → `RollWindow` → old socket patterns ❌
 
-## **WHAT THIS MEANS**
-Instead of having separate execution paths for Window vs Cinema, we should have:
+### **FUNCTION IMPLEMENTATION STATUS**
 
-- **One unified roll execution system** that both UI methods call
-- **Two different UI presentation methods** that both feed into the same roll logic
-- **One shared resolution system** that both use
+| Function | Status | Implementation | Integration |
+|----------|--------|----------------|-------------|
+| `requestRoll()` | ✅ Complete | Fully implemented | ✅ Used by chat cards |
+| `orchestrateRoll()` | ✅ Complete | Fully implemented | ✅ Used by chat cards |
+| `processRoll()` | ✅ Complete | Fully implemented | ❌ Not used by window mode |
+| `deliverRollResults()` | ✅ Complete | Fully implemented | ❌ Not used by window mode |
+| `showRollWindow()` | ⚠️ Partial | Creates UI but wrong flow | ❌ Bypasses new system |
+| `showCinemaOverlay()` | ❌ Incomplete | TODO placeholder | ❌ No roll execution |
 
-## **THE RESULT**
-Cinema Mode becomes "Window Mode with a different UI presentation" rather than "a completely different roll system."
+### **SOCKET INTEGRATION ISSUES**
+The new system has proper socket integration in `deliverRollResults()`, but the old `RollWindow._performRoll()` method:
+- Uses old socket patterns (`socket.executeForOthers("updateSkillRoll")`)
+- Bypasses the new `emitRollUpdate()` function
+- Doesn't use the new `deliverRollResults()` flow
 
-## **CURRENT STATUS**
-- **New 4-Function System**: Built and ready in `manager-rolls.js`
-- **Socket Issues**: ✅ **RESOLVED** - SocketLib working perfectly
-- **Cross-Client Communication**: ✅ **FULLY FUNCTIONAL**
-- **Goal**: Complete roll system development and testing
+## **ROOT CAUSE ANALYSIS**
 
-## **NEW IMPLEMENTATION PLAN**
+### **PRIMARY ISSUE: INCOMPLETE MIGRATION**
+The migration from the old system to the new 4-function architecture was **partially completed**:
 
-### **PHASE 1: SOCKET SYSTEM (COMPLETED ✅)**
-- ✅ **SocketLib integration** working perfectly
-- ✅ **Cross-client communication** functional
-- ✅ **All socket features** operational
+1. **✅ Completed**: New functions implemented and working
+2. **✅ Completed**: Chat card integration updated
+3. **❌ Incomplete**: Window mode integration
+4. **❌ Incomplete**: Cinema mode roll execution
+5. **❌ Incomplete**: Query window integration
 
-### **PHASE 2: ROLL SYSTEM DEVELOPMENT (READY TO START 🚧)**
-1. **Test the new 4-function system** end-to-end
-2. **Verify chat card creation** and updating works
-3. **Test both Window and Cinema modes** use identical execution paths
-4. **Ensure roll results sync** across all clients properly
+### **SECONDARY ISSUE: ARCHITECTURAL INCONSISTENCY**
+The system has **two competing architectures**:
+- **New Architecture**: 4-function system with proper separation of concerns
+- **Old Architecture**: Direct roll execution with embedded socket handling
 
-### **PHASE 3: CLEAN UP LEGACY CODE**
-1. **Remove `utils-rolls-OLD.js`** once new system is confirmed working
-2. **Clean up any remaining** old roll functions
-3. **Optimize the flow** based on real-world testing results
+This creates **inconsistent behavior** where some entry points work correctly while others fail.
 
-## **FUNCTION SPECIFICATIONS (EXACT NAMES)**
+### **CRITICAL ISSUES IDENTIFIED**
+
+1. **Window Mode Completely Broken**
+   - Users cannot execute rolls through the main dialog
+   - RollWindow class exists but doesn't connect to new system
+   - This affects the primary user workflow
+
+2. **Cinema Mode Incomplete**
+   - Shows overlay but doesn't execute rolls
+   - No actual roll execution implementation
+   - Users see cinematic display but no dice rolling
+
+3. **Query Window Integration Missing**
+   - Query window still uses old system
+   - Bypasses new architecture entirely
+   - Inconsistent with other entry points
+
+4. **Socket Pattern Inconsistency**
+   - New system uses `emitRollUpdate()` and `deliverRollResults()`
+   - Old system uses direct socket calls
+   - Creates maintenance and debugging issues
+
+## **PHASED IMPLEMENTATION PLAN**
+
+### **PHASE 1: CRITICAL FIXES (URGENT 🚨)**
+**Goal**: Fix the three critical broken entry points to restore basic functionality
+
+#### **1.1 Fix Window Mode Integration**
+- [ ] **Connect `RollWindow._performRoll()` to new 4-function system**
+  - [ ] Import `processRoll` and `deliverRollResults` in `RollWindow` class
+  - [ ] Replace direct `_executeBuiltInRoll` call with `processRoll()`
+  - [ ] Replace old socket patterns with `deliverRollResults()`
+  - [ ] Remove old socket emission code from `_performRoll()`
+- [ ] **Test Window Mode Roll Execution**
+  - [ ] Create test roll through main dialog
+  - [ ] Verify roll executes without errors
+  - [ ] Confirm roll results appear in chat
+  - [ ] Test advantage/disadvantage options work
+  - [ ] Test situational bonus input works
+- [ ] **Verify Cross-Client Sync for Window Mode**
+  - [ ] Test roll results sync to other clients
+  - [ ] Verify chat card updates for all users
+  - [ ] Test GM and player perspectives
+
+#### **1.2 Complete Cinema Mode Implementation**
+- [ ] **Implement Roll Execution in `showCinemaOverlay()`**
+  - [ ] Add roll execution logic to cinema mode
+  - [ ] Connect cinema mode to new 4-function system
+  - [ ] Implement roll options handling (advantage/disadvantage)
+  - [ ] Add roll result processing
+- [ ] **Test Cinema Mode End-to-End**
+  - [ ] Create test roll with cinema mode enabled
+  - [ ] Verify cinematic overlay displays
+  - [ ] Confirm roll executes automatically
+  - [ ] Test roll results appear in overlay
+  - [ ] Verify overlay updates with results
+- [ ] **Verify Cinema Mode Cross-Client Sync**
+  - [ ] Test cinema overlay shows on all clients
+  - [ ] Verify roll results sync to all clients
+  - [ ] Test overlay updates for all users
+
+#### **1.3 Update Query Window Integration**
+- [ ] **Modify `window-query.js` to use `orchestrateRoll()`**
+  - [ ] Import `orchestrateRoll` from `manager-rolls.js`
+  - [ ] Replace direct `SkillCheckDialog` creation
+  - [ ] Update `_handleRollDiceClick()` method
+  - [ ] Remove old dialog creation logic
+- [ ] **Test Query Window Integration**
+  - [ ] Create test roll through query window
+  - [ ] Verify roll executes without errors
+  - [ ] Confirm roll results appear in chat
+  - [ ] Test callback functionality works
+  - [ ] Verify input field updates with results
+- [ ] **Verify Query Window Cross-Client Sync**
+  - [ ] Test roll results sync to other clients
+  - [ ] Verify chat card updates for all users
+  - [ ] Test GM and player perspectives
+
+### **PHASE 2: ARCHITECTURE UNIFICATION**
+**Goal**: Ensure all entry points use the same execution path and remove inconsistencies
+
+#### **2.1 Unify Execution Paths**
+- [ ] **Audit All Entry Points**
+  - [ ] Document all roll entry points in codebase
+  - [ ] Verify each uses `orchestrateRoll()` → `processRoll()` → `deliverRollResults()`
+  - [ ] Identify any remaining old patterns
+  - [ ] Create consistency checklist
+- [ ] **Remove Old Socket Patterns**
+  - [ ] Remove old `socket.executeForOthers("updateSkillRoll")` calls
+  - [ ] Remove old `handleSkillRollUpdate()` direct calls
+  - [ ] Ensure all use `emitRollUpdate()` and `deliverRollResults()`
+  - [ ] Clean up duplicate socket handling code
+- [ ] **Create Consistent Roll Execution Flow**
+  - [ ] Document the unified execution path
+  - [ ] Ensure all entry points follow same pattern
+  - [ ] Add validation to prevent old patterns
+  - [ ] Create roll execution guidelines
+
+#### **2.2 Complete Migration**
+- [ ] **Remove Old Roll Execution Code**
+  - [ ] Identify all old roll execution functions
+  - [ ] Remove unused roll execution methods
+  - [ ] Clean up old roll routing logic
+  - [ ] Remove deprecated roll handlers
+- [ ] **Clean Up Legacy Patterns**
+  - [ ] Remove old socket patterns
+  - [ ] Clean up old roll data structures
+  - [ ] Remove unused roll templates
+  - [ ] Clean up old roll constants
+- [ ] **Ensure Single Source of Truth**
+  - [ ] Verify all roll logic goes through `manager-rolls.js`
+  - [ ] Remove duplicate roll execution code
+  - [ ] Ensure consistent roll data flow
+  - [ ] Document roll execution architecture
+
+### **PHASE 3: VALIDATION AND CLEANUP**
+**Goal**: Thoroughly test the system and remove legacy code
+
+#### **3.1 End-to-End Testing**
+- [ ] **Test All Entry Points Consistently**
+  - [ ] Test main dialog (Window Mode)
+  - [ ] Test cinema mode
+  - [ ] Test query window
+  - [ ] Test chat card clicks
+  - [ ] Verify all produce identical results
+- [ ] **Verify Cross-Client Synchronization**
+  - [ ] Test with multiple clients connected
+  - [ ] Verify roll results sync to all clients
+  - [ ] Test chat card updates for all users
+  - [ ] Verify GM and player perspectives work
+  - [ ] Test network latency scenarios
+- [ ] **Validate Both Window and Cinema Modes**
+  - [ ] Test Window Mode: Dialog → Roll → Results
+  - [ ] Test Cinema Mode: Overlay → Auto Roll → Results
+  - [ ] Verify identical execution paths
+  - [ ] Test mode switching works correctly
+  - [ ] Verify consistent user experience
+
+#### **3.2 Legacy Code Removal**
+- [ ] **Remove `utils-rolls-OLD.js`**
+  - [ ] Verify new system is fully functional
+  - [ ] Remove old roll execution functions
+  - [ ] Clean up old roll routing logic
+  - [ ] Remove old roll templates
+- [ ] **Clean Up Remaining Old Roll Functions**
+  - [ ] Audit codebase for old roll functions
+  - [ ] Remove unused roll execution methods
+  - [ ] Clean up old roll data structures
+  - [ ] Remove deprecated roll handlers
+- [ ] **Optimize Flow Based on Testing**
+  - [ ] Analyze performance bottlenecks
+  - [ ] Optimize roll execution speed
+  - [ ] Improve error handling
+  - [ ] Enhance user experience
+- [ ] **Document Final System**
+  - [ ] Update roll system documentation
+  - [ ] Create roll execution guide
+  - [ ] Document roll entry points
+  - [ ] Create troubleshooting guide
+
+### **PHASE 4: PRODUCTION READINESS**
+**Goal**: Ensure system is production ready and maintainable
+
+#### **4.1 Performance Optimization**
+- [ ] **Roll Execution Performance**
+  - [ ] Measure roll execution times
+  - [ ] Optimize slow roll operations
+  - [ ] Improve roll result processing
+  - [ ] Optimize socket communication
+- [ ] **Memory Usage Optimization**
+  - [ ] Audit memory usage during rolls
+  - [ ] Clean up memory leaks
+  - [ ] Optimize roll data structures
+  - [ ] Improve garbage collection
+
+#### **4.2 Error Handling and Resilience**
+- [ ] **Comprehensive Error Handling**
+  - [ ] Add error handling for all roll operations
+  - [ ] Implement roll failure recovery
+  - [ ] Add user-friendly error messages
+  - [ ] Create error logging system
+- [ ] **Network Resilience**
+  - [ ] Test network failure scenarios
+  - [ ] Implement roll retry logic
+  - [ ] Add offline roll handling
+  - [ ] Test socket reconnection
+
+#### **4.3 User Experience Polish**
+- [ ] **Roll Interface Improvements**
+  - [ ] Improve roll dialog usability
+  - [ ] Enhance cinema mode experience
+  - [ ] Add roll animation effects
+  - [ ] Improve roll result display
+- [ ] **Accessibility and Usability**
+  - [ ] Test keyboard navigation
+  - [ ] Verify screen reader compatibility
+  - [ ] Test with different screen sizes
+  - [ ] Improve mobile experience
+
+#### **4.4 Documentation and Maintenance**
+- [ ] **Complete Documentation**
+  - [ ] Update API documentation
+  - [ ] Create roll system guide
+  - [ ] Document troubleshooting steps
+  - [ ] Create maintenance procedures
+- [ ] **Code Quality**
+  - [ ] Add comprehensive code comments
+  - [ ] Ensure consistent code style
+  - [ ] Add unit tests for roll functions
+  - [ ] Create integration tests
+
+## **FUNCTION SPECIFICATIONS (CURRENT STATUS)**
+
+### **✅ IMPLEMENTED AND WORKING**
 
 **`requestRoll(rollDetails)`**
 - **Input**: Roll details from SkillCheckDialog
 - **Purpose**: Create chat card, route to appropriate flow
 - **Output**: Chat card created, flow initiated
+- **Status**: ✅ **WORKING** - Used by chat card clicks
 
-**`orchestrateRoll(actor, type, value, options, messageId, tokenId)`**
-- **Input**: Actor data, roll type, roll value, options, context
+**`orchestrateRoll(rollDetails)`**
+- **Input**: Complete roll details including actors, roll types, etc.
 - **Purpose**: Package data, select system (Blacksmith), choose mode (Window/Cinema)
 - **Output**: Prepared roll data and mode selection
+- **Status**: ✅ **WORKING** - Used by chat card clicks
 
 **`processRoll(rollData, rollOptions)`**
 - **Input**: Prepared roll data and user roll options
 - **Purpose**: Execute dice roll, calculate results
 - **Output**: Roll results object
+- **Status**: ✅ **IMPLEMENTED** - Not used by window mode
 
 **`deliverRollResults(rollResults, context)`**
 - **Input**: Roll results and context (messageId, tokenId)
 - **Purpose**: Update chat card, update cinema overlay, handle sockets
 - **Output**: Success status
+- **Status**: ✅ **IMPLEMENTED** - Not used by window mode
 
-## **WHAT WE NEED TO ADD**
+### **⚠️ PARTIALLY IMPLEMENTED**
 
-**Socket Communication Functions:**
-- `emitRollUpdate()` - Emit socket events for GM updates
-- `handleRollUpdate()` - Handle incoming socket events
+**`showRollWindow(rollData)`**
+- **Purpose**: Display the roll configuration window
+- **Status**: ⚠️ **PARTIAL** - Creates UI but bypasses new system
+- **Issue**: Uses old `RollWindow` class with old socket patterns
 
-**Mode-Specific UI Functions:**
-- `showRollWindow(rollData)` - Display the roll configuration window
-- `showCinemaOverlay(rollData)` - Display the cinematic overlay
+**`showCinemaOverlay(rollData)`**
+- **Purpose**: Display the cinematic overlay
+- **Status**: ❌ **INCOMPLETE** - TODO placeholder, no roll execution
 
-**Data Preparation Functions:**
-- `prepareRollData(actor, type, value)` - Build roll data for templates
-- `buildRollFormula(type, value, options)` - Construct roll formulas
+### **✅ HELPER FUNCTIONS IMPLEMENTED**
 
-## **THE RESULT**
+**`_executeBuiltInRoll(actor, type, value, options)`**
+- **Purpose**: Execute roll using Blacksmith system (manual Roll creation)
+- **Status**: ✅ **ROBUST** - Handles all roll types with proper formulas
 
-- **manager-rolls.js** = Single source of truth for ALL roll functionality
-- **window-skillcheck.js** = Pure UI setup and roll request initiation
-- **Clean, logical flow** with no duplicate paths or confusing names
-- **Both Window and Cinema modes** use the exact same execution logic
+**`prepareRollData(actor, type, value)`**
+- **Purpose**: Build roll data for templates
+- **Status**: ✅ **WORKING** - Used by roll system
 
-## **IMPLEMENTATION ORDER**
+**`emitRollUpdate(rollDataForSocket)`**
+- **Purpose**: Emit socket events for GM updates
+- **Status**: ✅ **IMPLEMENTED** - Not used by window mode
 
-1. **✅ Socket system** working perfectly (COMPLETED)
-2. **🚧 Test the new 4-function roll system** end-to-end
-3. **🚧 Verify chat card creation** and updating works
-4. **🚧 Test both Window and Cinema modes** use identical execution paths
-5. **🚧 Ensure roll results sync** across all clients properly
-6. **📋 Remove legacy code** once everything is confirmed working
-7. **📋 Optimize and clean up** based on real-world testing results
+## **VALIDATION AGAINST DOCUMENTATION**
+
+### **MIGRATION PLAN ACCURACY**: ⚠️ **PARTIALLY ACCURATE**
+
+The migration plan correctly identifies:
+- ✅ Socket system is working
+- ✅ 4-function architecture is implemented
+- ✅ Cross-client communication is functional
+
+**But it's inaccurate about**:
+- ❌ "Ready to start roll system development" - System is partially broken
+- ❌ "Test both Window and Cinema modes use identical execution paths" - They don't
+- ❌ "Ensure roll results sync across all clients properly" - Window mode doesn't sync
+
+### **API DOCUMENTATION ACCURACY**: ✅ **ACCURATE**
+
+The API documentation correctly describes:
+- ✅ Global object system working
+- ✅ HookManager integration working
+- ✅ Socket system operational
+- ✅ Constants system migrated
 
 ## **CRITICAL SUCCESS: SOCKET SYSTEM**
 
@@ -161,86 +378,179 @@ Cinema Mode becomes "Window Mode with a different UI presentation" rather than "
 - **Fallback System**: ✅ **READY AS BACKUP**
 - **All Features**: ✅ **OPERATIONAL**
 
-**The roll system can now be developed with full confidence that cross-client communication will work properly!** 🚀
+**The socket system provides a solid foundation, but the roll system needs critical fixes before it can be considered production ready.** 🚀
+
+## **FINAL ASSESSMENT**
+
+**Overall Status**: ⚠️ **PARTIALLY FUNCTIONAL**
+
+- **Socket System**: ✅ **PRODUCTION READY**
+- **New Architecture**: ✅ **IMPLEMENTED**
+- **Chat Card Integration**: ✅ **WORKING**
+- **Window Mode**: ❌ **BROKEN**
+- **Cinema Mode**: ❌ **INCOMPLETE**
+- **Query Integration**: ❌ **BROKEN**
+
+**The system is in a transitional state where the new architecture is implemented and working for some entry points, but critical user workflows are broken due to incomplete migration.**
+
+**Recommendation**: Complete the migration by fixing the three critical issues identified above before considering the roll system "production ready."
+
+---
 
 ## **IMMEDIATE NEXT STEPS**
 
-### **Step 1: Test Current Roll System (This Week)**
-1. **Create a test roll** using the current system
-2. **Verify chat card creation** works properly
-3. **Test roll execution** end-to-end
-4. **Check cross-client sync** for roll results
+### **Step 1: Fix Window Mode Integration (URGENT)**
+1. **Connect `RollWindow._performRoll()`** to new 4-function system
+2. **Replace old socket patterns** with new `deliverRollResults()` flow
+3. **Test window mode rolls** work consistently with chat card rolls
+4. **Verify cross-client sync** works for window mode
 
-### **Step 2: Validate 4-Function Architecture (Next Week)**
-1. **Test `requestRoll()`** function
-2. **Test `orchestrateRoll()`** function
-3. **Test `processRoll()`** function
-4. **Test `deliverRollResults()`** function
+### **Step 2: Complete Cinema Mode Implementation**
+1. **Implement roll execution** in `showCinemaOverlay()`
+2. **Connect cinema mode** to new 4-function system
+3. **Test cinema mode** works end-to-end
+4. **Verify cinematic display** updates with roll results
 
-### **Step 3: Test Both UI Modes (Following Week)**
-1. **Test Window Mode** roll flow
-2. **Test Cinema Mode** roll flow
-3. **Verify identical execution** paths
-4. **Confirm cross-client sync** works for both
+### **Step 3: Update Query Window Integration**
+1. **Modify `window-query.js`** to use `orchestrateRoll()`
+2. **Remove direct `SkillCheckDialog`** creation
+3. **Test query window rolls** work consistently
+4. **Verify all entry points** use same execution path
 
-### **Step 4: Clean Up Legacy Code (Final Week)**
-1. **Remove old roll functions** once new system confirmed
-2. **Clean up any remaining** legacy code
-3. **Optimize performance** based on testing results
+### **Step 4: End-to-End Validation**
+1. **Test all entry points** work consistently
+2. **Verify cross-client sync** works for all modes
+3. **Validate both Window and Cinema modes** use identical execution paths
 4. **Document final system** for future development
 
 ## **SUCCESS METRICS**
 
-### **Technical Success:**
+### **Technical Success (Current Status):**
 - ✅ **Socket communication** working across all clients
-- ✅ **Roll execution** completes without errors
+- ✅ **Roll execution** completes without errors (for chat cards)
 - ✅ **Chat card updates** work properly
-- ✅ **Cross-client sync** functions correctly
+- ✅ **Cross-client sync** functions correctly (for chat cards)
+- ❌ **Window mode rolls** - BROKEN
+- ❌ **Cinema mode rolls** - INCOMPLETE
+- ❌ **Query window rolls** - BROKEN
 
-### **User Experience Success:**
-- ✅ **Rolls complete** in reasonable time
-- ✅ **Results display** clearly for all users
-- ✅ **Both UI modes** provide consistent experience
+### **User Experience Success (Target State):**
+- ✅ **Rolls complete** in reasonable time (chat cards)
+- ✅ **Results display** clearly for all users (chat cards)
+- ❌ **Both UI modes** provide consistent experience - BROKEN
 - ✅ **Error handling** graceful and informative
 
-### **Development Success:**
+### **Development Success (Current Status):**
 - ✅ **Code maintainable** and well-structured
 - ✅ **Functions clearly** separated and named
 - ✅ **Easy to extend** with new roll types
-- ✅ **Performance optimized** for real-world use
+- ⚠️ **Performance optimized** - needs validation after fixes
 
-## **RISK MITIGATION**
+## **RISK ASSESSMENT**
 
-### **Low Risk Areas:**
+### **High Risk Areas (Critical Issues):**
+- **Window mode integration** - ❌ **BROKEN** - Primary user workflow affected
+- **Cinema mode roll execution** - ❌ **INCOMPLETE** - No roll execution
+- **Query window integration** - ❌ **BROKEN** - Inconsistent entry points
+
+### **Low Risk Areas (Working Well):**
 - **Socket communication** - ✅ **PROVEN WORKING**
 - **Cross-client sync** - ✅ **TESTED AND VERIFIED**
-- **Basic roll execution** - ✅ **ARCHITECTURE READY**
-
-### **Medium Risk Areas:**
-- **UI mode integration** - Need to test both paths
-- **Roll result handling** - Need to validate data flow
-- **Error handling** - Need to test edge cases
+- **Chat card integration** - ✅ **FULLY FUNCTIONAL**
 
 ### **Mitigation Strategies:**
-- **Incremental testing** - Test one function at a time
+- **Incremental fixes** - Fix one entry point at a time
+- **Comprehensive testing** - Test each fix thoroughly
 - **Fallback mechanisms** - Keep old system until new one proven
-- **Comprehensive logging** - Track all execution paths
-- **User feedback** - Test with real users early
+- **User feedback** - Test with real users after each fix
 
 ## **CONCLUSION**
 
-**The roll system development is now unblocked and ready to proceed:**
+**The roll system is in a critical state requiring immediate attention:**
 
 - ✅ **Socket system** fully operational
-- ✅ **Architecture** designed and implemented
-- ✅ **Development path** clear and defined
-- ✅ **Success metrics** established
-- ✅ **Risk mitigation** planned
+- ✅ **New architecture** implemented and working for some entry points
+- ❌ **Critical user workflows** broken due to incomplete migration
+- ❌ **Inconsistent behavior** across different entry points
+- ❌ **Production readiness** compromised by broken functionality
 
-**Ready to begin Phase 2: Roll System Development!** 🚀
+**URGENT: Fix the three critical issues before the system can be considered production ready.** 🚨
 
 ---
 
-**Last Updated**: Current session - Ready for roll system development
-**Status**: Socket system working, roll system ready to develop
-**Next Milestone**: Complete roll system testing and validation
+## **PROGRESS TRACKING**
+
+### **OVERALL PROGRESS**
+- **Phase 1 (Critical Fixes)**: 0/3 major tasks completed
+- **Phase 2 (Architecture Unification)**: 0/2 major tasks completed  
+- **Phase 3 (Validation and Cleanup)**: 0/2 major tasks completed
+- **Phase 4 (Production Readiness)**: 0/4 major tasks completed
+
+**Total Progress**: 0/11 major tasks completed (0%)
+
+### **PHASE 1 PROGRESS TRACKING**
+- [ ] **1.1 Fix Window Mode Integration** (0/3 subtasks)
+- [ ] **1.2 Complete Cinema Mode Implementation** (0/3 subtasks)
+- [ ] **1.3 Update Query Window Integration** (0/3 subtasks)
+
+### **PHASE 2 PROGRESS TRACKING**
+- [ ] **2.1 Unify Execution Paths** (0/3 subtasks)
+- [ ] **2.2 Complete Migration** (0/3 subtasks)
+
+### **PHASE 3 PROGRESS TRACKING**
+- [ ] **3.1 End-to-End Testing** (0/3 subtasks)
+- [ ] **3.2 Legacy Code Removal** (0/4 subtasks)
+
+### **PHASE 4 PROGRESS TRACKING**
+- [ ] **4.1 Performance Optimization** (0/2 subtasks)
+- [ ] **4.2 Error Handling and Resilience** (0/2 subtasks)
+- [ ] **4.3 User Experience Polish** (0/2 subtasks)
+- [ ] **4.4 Documentation and Maintenance** (0/2 subtasks)
+
+### **CRITICAL PATH ITEMS**
+**Must be completed in order:**
+1. ✅ **Socket System** - COMPLETED
+2. 🔄 **Phase 1.1: Fix Window Mode** - IN PROGRESS
+3. ⏳ **Phase 1.2: Complete Cinema Mode** - PENDING
+4. ⏳ **Phase 1.3: Update Query Window** - PENDING
+5. ⏳ **Phase 2: Architecture Unification** - PENDING
+6. ⏳ **Phase 3: Validation and Cleanup** - PENDING
+7. ⏳ **Phase 4: Production Readiness** - PENDING
+
+### **SUCCESS CRITERIA**
+**Phase 1 Complete When:**
+- [ ] All three critical entry points work consistently
+- [ ] Window mode rolls execute without errors
+- [ ] Cinema mode rolls execute without errors
+- [ ] Query window rolls execute without errors
+- [ ] Cross-client sync works for all entry points
+
+**Phase 2 Complete When:**
+- [ ] All entry points use identical execution paths
+- [ ] Old socket patterns removed
+- [ ] Single source of truth established
+- [ ] No duplicate roll execution code
+
+**Phase 3 Complete When:**
+- [ ] All entry points tested end-to-end
+- [ ] Cross-client sync validated
+- [ ] Legacy code removed
+- [ ] System documented
+
+**Phase 4 Complete When:**
+- [ ] Performance optimized
+- [ ] Error handling comprehensive
+- [ ] User experience polished
+- [ ] Documentation complete
+
+---
+
+**Last Updated**: Current session - Critical fixes required
+**Status**: Partially functional system with broken user workflows
+**Next Milestone**: Complete Phase 1.1 - Fix Window Mode Integration
+**Estimated Timeline**: 
+- Phase 1: 1-2 weeks
+- Phase 2: 1 week  
+- Phase 3: 1 week
+- Phase 4: 1-2 weeks
+**Total Estimated Time**: 4-6 weeks
