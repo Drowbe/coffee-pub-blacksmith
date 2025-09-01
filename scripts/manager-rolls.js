@@ -115,17 +115,32 @@ export async function requestRoll(rollDetails) {
 /**
  * 2. orchestrateRoll() - Packages data, selects system, chooses mode
  * @param {object} rollDetails - Complete roll details including actors, roll types, etc.
+ * @param {string} existingMessageId - Optional existing message ID to update instead of creating new card
  * @returns {Promise<object>} Prepared roll data and mode selection
  */
-export async function orchestrateRoll(rollDetails) {
+export async function orchestrateRoll(rollDetails, existingMessageId = null) {
     postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Starting with roll details`, rollDetails, true, false);
     
     try {
-        // First, create the chat card using requestRoll
-        const chatResult = await requestRoll(rollDetails);
+        let chatResult;
         
-        if (!chatResult.success) {
-            throw new Error('Failed to create chat card');
+        if (existingMessageId) {
+            // Use existing chat card instead of creating a new one
+            postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Using existing message ID: ${existingMessageId}`, null, true, false);
+            chatResult = {
+                success: true,
+                messageId: existingMessageId,
+                tokenId: rollDetails.actors[0]?.tokenId || rollDetails.actors[0]?.id,
+                messageData: null // We don't need to recreate the message data
+            };
+        } else {
+            // Create new chat card using requestRoll
+            postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Creating new chat card`, null, true, false);
+            chatResult = await requestRoll(rollDetails);
+            
+            if (!chatResult.success) {
+                throw new Error('Failed to create chat card');
+            }
         }
         
         // Extract the first actor for roll execution

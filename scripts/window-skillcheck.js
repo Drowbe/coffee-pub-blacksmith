@@ -1449,7 +1449,7 @@ export class SkillCheckDialog extends Application {
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
-                // Use the new unified system directly
+                // Use the new unified system directly - pass existing messageId to prevent duplicate cards
                 const { orchestrateRoll } = await import('./manager-rolls.js');
                 await orchestrateRoll({
                     actors: [{ actorId: actorData.actorId, tokenId, name: actorData.name }],
@@ -1466,7 +1466,7 @@ export class SkillCheckDialog extends Application {
                     isCinematic: true, // This is cinematic mode
                     showRollExplanation: options.showRollExplanation || false,
                     showRollExplanationLink: options.showRollExplanationLink || false
-                });
+                }, messageId); // Pass existing messageId to prevent duplicate card creation
             }
         });
 
@@ -1673,7 +1673,7 @@ export class SkillCheckDialog extends Application {
                     ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
                     return;
                 }
-                // Use the new unified system directly
+                // Use the new unified system directly - pass existing messageId to prevent duplicate cards
                 const { orchestrateRoll } = await import('./manager-rolls.js');
                 await orchestrateRoll({
                     actors: [{ actorId, tokenId, name: actorData.name }],
@@ -1690,7 +1690,7 @@ export class SkillCheckDialog extends Application {
                     isCinematic: false, // This is window mode
                     showRollExplanation: false,
                     showRollExplanationLink: false
-                });
+                }, message.id); // Pass existing messageId to prevent duplicate card creation
             });
         });
     }

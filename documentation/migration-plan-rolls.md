@@ -106,6 +106,11 @@ This creates **inconsistent behavior** where some entry points work correctly wh
 **Goal**: Fix the three critical broken entry points to restore basic functionality
 
 #### **1.1 Fix Window Mode Integration**
+- [x] **CRITICAL FIX: Prevent Duplicate Card Creation**
+  - [x] Modified `orchestrateRoll()` to accept optional `existingMessageId` parameter
+  - [x] Updated chat card click handlers to pass existing `messageId`
+  - [x] Fixed both window mode and cinema mode calls to prevent duplicate cards
+  - [x] **RESULT**: Roll updates now go to original card instead of creating new ones
 - [ ] **Connect `RollWindow._performRoll()` to new 4-function system**
   - [ ] Import `processRoll` and `deliverRollResults` in `RollWindow` class
   - [ ] Replace direct `_executeBuiltInRoll` call with `processRoll()`
