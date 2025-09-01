@@ -629,8 +629,14 @@ Hooks.once('init', async function() {
         postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
     });
 
-    // ===== EXPOSE API =================================================
 
+
+
+
+
+    // =========================================================================
+    // ===== BEGIN: EXPOSE API =================================================
+    // =========================================================================
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
     module.api = {
@@ -646,6 +652,10 @@ Hooks.once('init', async function() {
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup  // ✅ NEW: Expose AssetLookup for flexible asset access
     };
+    // =========================================================================
+    // ===== END: EXPOSE API =================================================
+    // =========================================================================
+
 
 });
 

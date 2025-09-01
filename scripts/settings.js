@@ -291,7 +291,7 @@ function getSoundChoices() {
     }
     uniqueSounds.sort((a, b) => a.name.localeCompare(b.name));
     for(let sounds of uniqueSounds) { 
-        choices[sounds.id] = sounds.name;
+        choices[sounds.value] = sounds.name;
         BLACKSMITH.arrSoundChoicesEnabled.push(sounds.name);
     }
     // BLACKSMITH UPDATER 

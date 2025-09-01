@@ -123,6 +123,16 @@ export class UtilsManager {
         return GlobalUtils.resetModuleSettings(moduleId);
     }
 
+    static async getOpenAIReplyAsHtml(query) {
+        this.checkInitialized();
+        return GlobalUtils.getOpenAIReplyAsHtml(query);
+    }
+
+    static isPlayerCharacter(entity) {
+        this.checkInitialized();
+        return GlobalUtils.isPlayerCharacter(entity);
+    }
+
     // Get all utilities as an object
     static getUtils(requiredVersion = this.API_VERSION) {
         this.checkInitialized();
@@ -152,7 +162,9 @@ export class UtilsManager {
             stringToObject: GlobalUtils.stringToObject.bind(GlobalUtils),
             convertSecondsToRounds: GlobalUtils.convertSecondsToRounds.bind(GlobalUtils),
             rollCoffeePubDice: GlobalUtils.rollCoffeePubDice.bind(GlobalUtils),
-            resetModuleSettings: GlobalUtils.resetModuleSettings.bind(GlobalUtils)
+            resetModuleSettings: GlobalUtils.resetModuleSettings.bind(GlobalUtils),
+            getOpenAIReplyAsHtml: this.getOpenAIReplyAsHtml.bind(this),
+            isPlayerCharacter: this.isPlayerCharacter.bind(this)
         };
     }
 } 

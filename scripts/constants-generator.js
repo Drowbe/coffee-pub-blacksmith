@@ -255,6 +255,7 @@ export class ConstantsGenerator {
             // Generate sound choices
             choices.sounds = DataCollectionProcessor.processCollection(dataSounds, {
                 collectionKey: 'sounds',
+                idKey: 'value',
                 blacksmithKey: 'arrSoundChoices'
             });
             

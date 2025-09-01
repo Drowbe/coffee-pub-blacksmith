@@ -400,7 +400,7 @@ function clamp(value, min, max) {
  * @returns {Promise<void>}
  */
 export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true) {
-    if (sound === 'none') return;
+    if (sound === 'none' || sound === 'sound-none') return;
     
     // Safety check for undefined constants
     if (!sound || sound === 'sound' || sound === 'undefined') {

@@ -435,7 +435,7 @@ export const dataSounds = {
         {
             "name": "General: Arrow",
             "id": "sound-arrow",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "constantname": "SOUNDARROW",
             "path": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "tags": ["sound", "arrow", "projectile", "combat"],
@@ -445,7 +445,7 @@ export const dataSounds = {
         {
             "name": "General: Battlecry",
             "id": "sound-battlecry",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "constantname": "SOUNDBATTLECRY",
             "path": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "tags": ["sound", "battlecry", "combat", "war"],
@@ -455,7 +455,7 @@ export const dataSounds = {
         {
             "name": "General: Bell",
             "id": "sound-bell",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "constantname": "SOUNDBELL",
             "path": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "tags": ["sound", "bell", "notification", "alert"],
@@ -468,7 +468,7 @@ export const dataSounds = {
         {
             "name": "General: Gong",
             "id": "sound-gong",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "constantname": "SOUNDGONG",
             "path": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "tags": ["sound", "gong", "bell", "ceremony"],
@@ -478,7 +478,7 @@ export const dataSounds = {
         {
             "name": "General: Greataxe",
             "id": "sound-greataxe",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "constantname": "SOUNDGREATAXE",
             "path": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "tags": ["sound", "greataxe", "weapon", "combat"],
@@ -488,7 +488,7 @@ export const dataSounds = {
         {
             "name": "General: Notification",
             "id": "sound-notification",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/notification.mp3",
             "constantname": "SOUNDNOTIFICATION",
             "path": "modules/coffee-pub-blacksmith/sounds/notification.mp3",
             "tags": ["sound", "notification", "alert", "info"],
@@ -502,7 +502,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 01",
             "id": "sound-interface-button-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-01.mp3",
             "constantname": "SOUNDBUTTON01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-01.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -512,7 +512,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 02",
             "id": "sound-interface-button-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-02.mp3",
             "constantname": "SOUNDBUTTON02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-02.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -522,7 +522,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 03",
             "id": "sound-interface-button-03",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-03.mp3",
             "constantname": "SOUNDBUTTON03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-03.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -532,7 +532,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 04",
             "id": "sound-interface-button-04",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-04.mp3",
             "constantname": "SOUNDBUTTON04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-04.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -542,7 +542,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 05",
             "id": "sound-interface-button-05",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-05.mp3",
             "constantname": "SOUNDBUTTON05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-05.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -552,7 +552,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 06",
             "id": "sound-interface-button-06",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3",
             "constantname": "SOUNDBUTTON06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -562,7 +562,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 07",
             "id": "sound-interface-button-07",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-07.mp3",
             "constantname": "SOUNDBUTTON07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-07.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -572,7 +572,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 08",
             "id": "sound-interface-button-08",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-08.mp3",
             "constantname": "SOUNDBUTTON08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-08.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -582,7 +582,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 09",
             "id": "sound-interface-button-09",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-09.mp3",
             "constantname": "SOUNDBUTTON09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-09.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -592,7 +592,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 10",
             "id": "sound-interface-button-10",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-10.mp3",
             "constantname": "SOUNDBUTTON10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-10.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -602,7 +602,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 11",
             "id": "sound-interface-button-11",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-11.mp3",
             "constantname": "SOUNDBUTTON11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-11.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -612,7 +612,7 @@ export const dataSounds = {
         {
             "name": "Interface: Button 12",
             "id": "sound-interface-button-12",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-12.mp3",
             "constantname": "SOUNDBUTTON12",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-button-12.mp3",
             "tags": ["sound", "interface", "button", "click", "ui"],
@@ -624,7 +624,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 01",
             "id": "sound-interface-error-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
             "constantname": "SOUNDERROR01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-01.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -634,7 +634,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 02",
             "id": "sound-interface-error-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-02.mp3",
             "constantname": "SOUNDERROR02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-02.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -644,7 +644,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 03",
             "id": "sound-interface-error-03",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-03.mp3",
             "constantname": "SOUNDERROR03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-03.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -654,7 +654,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 04",
             "id": "sound-interface-error-04",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-04.mp3",
             "constantname": "SOUNDERROR04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-04.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -664,7 +664,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 05",
             "id": "sound-interface-error-05",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-05.mp3",
             "constantname": "SOUNDERROR05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-05.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -674,7 +674,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 06",
             "id": "sound-interface-error-06",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-06.mp3",
             "constantname": "SOUNDERROR06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-06.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -684,7 +684,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 07",
             "id": "sound-interface-error-07",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-07.mp3",
             "constantname": "SOUNDERROR07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-07.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -694,7 +694,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 08",
             "id": "sound-interface-error-08",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-08.mp3",
             "constantname": "SOUNDERROR08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-08.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -704,7 +704,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 09",
             "id": "sound-interface-error-09",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-09.mp3",
             "constantname": "SOUNDERROR09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-09.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -714,7 +714,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 10",
             "id": "sound-interface-error-10",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-10.mp3",
             "constantname": "SOUNDERROR10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-10.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -724,7 +724,7 @@ export const dataSounds = {
         {
             "name": "Interface: Error 11",
             "id": "sound-interface-error-11",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-error-11.mp3",
             "constantname": "SOUNDERROR11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-error-11.mp3",
             "tags": ["sound", "interface", "error", "alert", "warning"],
@@ -736,7 +736,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 01",
             "id": "sound-interface-notification-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3",
             "constantname": "SOUNDNOTIFICATION01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-01.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -746,7 +746,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 02",
             "id": "sound-interface-notification-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3",
             "constantname": "SOUNDNOTIFICATION02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -756,7 +756,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 03",
             "id": "sound-interface-notification-03",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "constantname": "SOUNDNOTIFICATION03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -766,7 +766,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 04",
             "id": "sound-interface-notification-04",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-04.mp3",
             "constantname": "SOUNDNOTIFICATION04",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-04.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -776,7 +776,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 05",
             "id": "sound-interface-notification-05",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-05.mp3",
             "constantname": "SOUNDNOTIFICATION05",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-05.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -786,7 +786,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 06",
             "id": "sound-interface-notification-06",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-06.mp3",
             "constantname": "SOUNDNOTIFICATION06",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-06.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -796,7 +796,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 07",
             "id": "sound-interface-notification-07",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-07.mp3",
             "constantname": "SOUNDNOTIFICATION07",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-07.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -806,7 +806,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 08",
             "id": "sound-interface-notification-08",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-08.mp3",
             "constantname": "SOUNDNOTIFICATION08",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-08.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -816,7 +816,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 09",
             "id": "sound-interface-notification-09",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-09.mp3",
             "constantname": "SOUNDNOTIFICATION09",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-09.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -826,7 +826,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 10",
             "id": "sound-interface-notification-10",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-10.mp3",
             "constantname": "SOUNDNOTIFICATION10",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-10.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -836,7 +836,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 11",
             "id": "sound-interface-notification-11",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
             "constantname": "SOUNDNOTIFICATION11",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-11.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -846,7 +846,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 12",
             "id": "sound-interface-notification-12",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-12.mp3",
             "constantname": "SOUNDNOTIFICATION12",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-12.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -856,7 +856,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 13",
             "id": "sound-interface-notification-13",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-13.mp3",
             "constantname": "SOUNDNOTIFICATION13",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-13.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -866,7 +866,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 14",
             "id": "sound-interface-notification-14",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-14.mp3",
             "constantname": "SOUNDNOTIFICATION14",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-14.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -876,7 +876,7 @@ export const dataSounds = {
         {
             "name": "Interface: Notification 15",
             "id": "sound-interface-notification-15",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-15.mp3",
             "constantname": "SOUNDNOTIFICATION15",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-15.mp3",
             "tags": ["sound", "interface", "notification", "alert", "info"],
@@ -888,7 +888,7 @@ export const dataSounds = {
         {
             "name": "Interface: Open 01",
             "id": "sound-interface-open-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-open-01.mp3",
             "constantname": "SOUNDDEFAULTFILE",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-open-01.mp3",
             "tags": ["sound", "interface", "open", "ui"],
@@ -898,7 +898,7 @@ export const dataSounds = {
         {
             "name": "Interface: Ping 01",
             "id": "sound-interface-ping-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3",
             "constantname": "SOUNDPING01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3",
             "tags": ["sound", "interface", "ping", "alert"],
@@ -908,7 +908,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 01",
             "id": "sound-interface-pop-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3",
             "constantname": "SOUNDPOP01",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -918,7 +918,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 02",
             "id": "sound-interface-pop-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-pop-02.mp3",
             "constantname": "SOUNDPOP02",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-02.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -928,7 +928,7 @@ export const dataSounds = {
         {
             "name": "Interface: Pop 03",
             "id": "sound-interface-pop-03",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3",
             "constantname": "SOUNDPOP03",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3",
             "tags": ["sound", "interface", "pop", "ui"],
@@ -941,7 +941,7 @@ export const dataSounds = {
         {
             "name": "Book: Flip 01",
             "id": "sound-book-flip-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/book-flip-01.mp3",
             "constantname": "SOUNDEFFECTBOOK01",
             "path": "modules/coffee-pub-blacksmith/sounds/book-flip-01.mp3",
             "tags": ["sound", "effect", "book", "flip", "page"],
@@ -951,7 +951,7 @@ export const dataSounds = {
         {
             "name": "Book: Flip 02",
             "id": "sound-book-flip-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/book-flip-02.mp3",
             "constantname": "SOUNDEFFECTBOOK02",
             "path": "modules/coffee-pub-blacksmith/sounds/book-flip-02.mp3",
             "tags": ["sound", "effect", "book", "flip", "page"],
@@ -961,7 +961,7 @@ export const dataSounds = {
         {
             "name": "Book: Open 02",
             "id": "sound-book-open-02",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/book-open-02.mp3",
             "constantname": "SOUNDEFFECTBOOK03",
             "path": "modules/coffee-pub-blacksmith/sounds/book-open-02.mp3",
             "tags": ["sound", "effect", "book", "open", "cover"],
@@ -971,7 +971,7 @@ export const dataSounds = {
         {
             "name": "Book: Take 01",
             "id": "sound-book-take-01",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/book-take-01.mp3",
             "constantname": "SOUNDEFFECTBOOK04",
             "path": "modules/coffee-pub-blacksmith/sounds/book-take-01.mp3",
             "tags": ["sound", "effect", "book", "take", "grab"],
@@ -983,7 +983,7 @@ export const dataSounds = {
         {
             "name": "Chest: Open",
             "id": "sound-chest-open",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/chest-open.mp3",
             "constantname": "SOUNDEFFECTCHEST01",
             "path": "modules/coffee-pub-blacksmith/sounds/chest-open.mp3",
             "tags": ["sound", "effect", "chest", "open", "lid"],
@@ -993,7 +993,7 @@ export const dataSounds = {
         {
             "name": "Chest: Treasure",
             "id": "sound-chest-treasure",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/chest-treasure.mp3",
             "constantname": "SOUNDEFFECTCHEST02",
             "path": "modules/coffee-pub-blacksmith/sounds/chest-treasure.mp3",
             "tags": ["sound", "effect", "chest", "treasure", "loot"],
@@ -1005,7 +1005,7 @@ export const dataSounds = {
         {
             "name": "Effect: Sad Trombone",
             "id": "sound-effect-sad-trombone",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "constantname": "SOUNDSADTROMBONE",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["sound", "effect", "sad", "trombone", "comedy"],
@@ -1015,7 +1015,7 @@ export const dataSounds = {
         {
             "name": "Magic: Spell Magic Circle",
             "id": "sound-magic-spell-circle",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "constantname": "SOUNDSPELLMAGICCIRCLE",
             "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "tags": ["sound", "magic", "spell", "circle", "enchantment"],
@@ -1028,8 +1028,8 @@ export const dataSounds = {
         // Reactions
         {
             "name": "Reaction: Ahhhhh",
-            "id": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
-            "value": "",
+            "id": "sound-reaction-ahhhhh",
+            "value": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
             "constantname": "SOUNDREACTIONAHHHH",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
             "tags": ["reaction", "ahhhh"],
@@ -1038,8 +1038,8 @@ export const dataSounds = {
         },
         {
             "name": "Reaction: Oooooh",
-            "id": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
-            "value": "",
+            "id": "sound-reaction-oooooh",
+            "value": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
             "constantname": "SOUNDREACTIONOOOOOH",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
             "tags": ["reaction", "oooooh"],
@@ -1048,8 +1048,8 @@ export const dataSounds = {
         },
         {
             "name": "Reaction: Yay",
-            "id": "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
-            "value": "",
+            "id": "sound-reaction-yay",
+            "value": "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
             "constantname": "SOUNDREACTIONYAY",
             "path": "modules/coffee-pub-blacksmith/sounds/reaction-yay.mp3",
             "tags": ["reaction", "yay"],
@@ -1060,8 +1060,8 @@ export const dataSounds = {
         // Weapons
         {
             "name": "Weapon: Sword Blade Swish",
-            "id": "modules/coffee-pub-blacksmith/sounds/weapon-sword-blade-swish.mp3",
-            "value": "",
+            "id": "sound-weapon-sword-blade-swish",
+            "value": "modules/coffee-pub-blacksmith/sounds/weapon-sword-blade-swish.mp3",
             "constantname": "SOUNDEFFECTWEAPON01",
             "path": "modules/coffee-pub-blacksmith/sounds/weapon-sword-blade-swish.mp3",
             "tags": ["weapon", "sword", "swish"],
@@ -1070,8 +1070,8 @@ export const dataSounds = {
         },
         {
             "name": "Weapon: Greataxe",
-            "id": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
-            "value": "",
+            "id": "sound-weapon-greataxe",
+            "value": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "constantname": "SOUNDEFFECTWEAPON02",
             "path": "modules/coffee-pub-blacksmith/sounds/greataxe.mp3",
             "tags": ["weapon", "greataxe"],
@@ -1080,8 +1080,8 @@ export const dataSounds = {
         },
         {
             "name": "Weapon: Arrow",
-            "id": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
-            "value": "",
+            "id": "sound-weapon-arrow",
+            "value": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "constantname": "SOUNDEFFECTWEAPON03",
             "path": "modules/coffee-pub-blacksmith/sounds/arrow.mp3",
             "tags": ["weapon", "arrow"],
@@ -1092,8 +1092,8 @@ export const dataSounds = {
         // Instruments
         {
             "name": "Instrument: Sad Trombone",
-            "id": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
-            "value": "",
+            "id": "sound-instrument-sad-trombone",
+            "value": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "constantname": "SOUNDEFFECTINSTRUMENT01",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["instrument", "sad", "trombone"],
@@ -1102,8 +1102,8 @@ export const dataSounds = {
         },
         {
             "name": "Instrument: Fanfare Harp",
-            "id": "modules/coffee-pub-blacksmith/sounds/fanfare-harp.mp3",
-            "value": "",
+            "id": "sound-instrument-fanfare-harp",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-harp.mp3",
             "constantname": "SOUNDEFFECTINSTRUMENT02",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-harp.mp3",
             "tags": ["instrument", "fanfare", "harp"],
@@ -1112,8 +1112,8 @@ export const dataSounds = {
         },
         {
             "name": "Instrument: Bell",
-            "id": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
-            "value": "",
+            "id": "sound-instrument-bell",
+            "value": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "constantname": "SOUNDEFFECTINSTRUMENT03",
             "path": "modules/coffee-pub-blacksmith/sounds/bell.mp3",
             "tags": ["instrument", "bell"],
@@ -1122,8 +1122,8 @@ export const dataSounds = {
         },
         {
             "name": "Instrument: Gong",
-            "id": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
-            "value": "",
+            "id": "sound-instrument-gong",
+            "value": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "constantname": "SOUNDEFFECTINSTRUMENT04",
             "path": "modules/coffee-pub-blacksmith/sounds/gong.mp3",
             "tags": ["instrument", "gong"],
@@ -1134,8 +1134,8 @@ export const dataSounds = {
         // General Effects
         {
             "name": "General: Rustling Grass",
-            "id": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
-            "value": "",
+            "id": "sound-general-rustling-grass",
+            "value": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
             "constantname": "SOUNDEFFECTGENERAL01",
             "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
             "tags": ["general", "grass", "rustling"],
@@ -1145,7 +1145,7 @@ export const dataSounds = {
         {
             "name": "General: Synth",
             "id": "sound-general-synth",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
             "constantname": "SOUNDEFFECTGENERAL03",
             "path": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
             "tags": ["sound", "general", "synth", "electronic"],
@@ -1155,7 +1155,7 @@ export const dataSounds = {
         {
             "name": "General: Spell Magic Circle",
             "id": "sound-general-spell-circle",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "constantname": "SOUNDEFFECTGENERAL02",
             "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
             "tags": ["sound", "general", "spell", "magic", "circle"],
@@ -1165,7 +1165,7 @@ export const dataSounds = {
         {
             "name": "General: Charm",
             "id": "sound-general-charm",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/charm.mp3",
             "constantname": "SOUNDEFFECTGENERAL05",
             "path": "modules/coffee-pub-blacksmith/sounds/charm.mp3",
             "tags": ["sound", "general", "charm", "enchantment"],
@@ -1175,7 +1175,7 @@ export const dataSounds = {
         {
             "name": "General: Clatter",
             "id": "sound-general-clatter",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/clatter.mp3",
             "constantname": "SOUNDEFFECTGENERAL06",
             "path": "modules/coffee-pub-blacksmith/sounds/clatter.mp3",
             "tags": ["sound", "general", "clatter", "noise"],
@@ -1185,7 +1185,7 @@ export const dataSounds = {
         {
             "name": "General: Cocktail Ice",
             "id": "sound-general-cocktail-ice",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
             "constantname": "SOUNDEFFECTGENERAL08",
             "path": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
             "tags": ["sound", "general", "cocktail", "ice", "beverage"],
@@ -1195,7 +1195,7 @@ export const dataSounds = {
         {
             "name": "General: Toilet Flush",
             "id": "sound-general-toilet-flush",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/general-toilet-flush.mp3",
             "constantname": "SOUNDEFFECTGENERAL09",
             "path": "modules/coffee-pub-blacksmith/sounds/general-toilet-flush.mp3",
             "tags": ["sound", "general", "toilet", "flush", "bathroom"],
@@ -1207,7 +1207,7 @@ export const dataSounds = {
         {
             "name": "Battle Cry",
             "id": "sound-battle-cry",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "constantname": "SOUNDEFFECTREACTION04",
             "path": "modules/coffee-pub-blacksmith/sounds/battlecry.mp3",
             "tags": ["sound", "reaction", "battle", "cry", "combat"],
@@ -1219,7 +1219,7 @@ export const dataSounds = {
         {
             "name": "Cinematic: Open",
             "id": "sound-cinematic-open",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3",
             "constantname": "SOUNDCINEMATICOPEN",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3",
             "tags": ["sound", "cinematic", "open", "fanfare", "intro"],
@@ -1229,7 +1229,7 @@ export const dataSounds = {
         {
             "name": "Dice: Rolling",
             "id": "sound-dice-rolling",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3",
             "constantname": "SOUNDDICEROLL",
             "path": "modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3",
             "tags": ["sound", "dice", "rolling", "game"],
@@ -1239,7 +1239,7 @@ export const dataSounds = {
         {
             "name": "Success: Fanfare",
             "id": "sound-success-fanfare",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3",
             "constantname": "SOUNDSUCCESS",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-success-2.mp3",
             "tags": ["sound", "success", "fanfare", "victory"],
@@ -1249,7 +1249,7 @@ export const dataSounds = {
         {
             "name": "Failure: Fanfare",
             "id": "sound-failure-fanfare",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-failure-1.mp3",
             "constantname": "SOUNDFAILURE",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-failure-1.mp3",
             "tags": ["sound", "failure", "fanfare", "defeat"],
@@ -1259,7 +1259,7 @@ export const dataSounds = {
         {
             "name": "Versus: Fanfare",
             "id": "sound-versus-fanfare",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-2.mp3",
             "constantname": "SOUNDVERSUS",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-intro-2.mp3",
             "tags": ["sound", "versus", "fanfare", "confrontation"],
@@ -1269,7 +1269,7 @@ export const dataSounds = {
         {
             "name": "Roll: Complete",
             "id": "sound-roll-complete",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "constantname": "SOUNDROLLCOMPLETE",
             "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
             "tags": ["sound", "roll", "complete", "notification"],
@@ -1279,7 +1279,7 @@ export const dataSounds = {
         {
             "name": "Roll: Critical",
             "id": "sound-roll-critical",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3",
             "constantname": "SOUNDROLLCRITICAL",
             "path": "modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3",
             "tags": ["sound", "roll", "critical", "success"],
@@ -1289,7 +1289,7 @@ export const dataSounds = {
         {
             "name": "Roll: Fumble",
             "id": "sound-roll-fumble",
-            "value": "",
+            "value": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "constantname": "SOUNDROLLFUMBLE",
             "path": "modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3",
             "tags": ["sound", "roll", "fumble", "sad", "comedy"],

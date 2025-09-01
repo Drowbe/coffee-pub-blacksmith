@@ -1037,6 +1037,8 @@ const sounds = assetLookup.findByTag('notification');
 | `convertSecondsToRounds` | Function | Convert seconds to rounds | `(numSeconds)` |
 | `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
+| `getOpenAIReplyAsHtml` | Async Function | Get AI response as HTML | `(query)` |
+| `isPlayerCharacter` | Function | Check if entity is player character | `(entity)` |
 
 **Quick Examples**:
 ```javascript
