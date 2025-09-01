@@ -1475,6 +1475,9 @@ export class SkillCheckDialog extends Application {
                 // Execute the roll
                 const rollResults = await processRoll(rollData, options);
                 
+                // Add a small delay to ensure dice animation completes before showing results
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 // Deliver the results
                 await deliverRollResults(rollResults, { messageId, tokenId });
             }

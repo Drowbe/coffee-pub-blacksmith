@@ -139,12 +139,14 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [x] Implemented `showCinemaOverlay()` to display cinema mode
   - [x] Implemented `updateCinemaOverlay()` to show roll results
   - [x] Connected cinema click handler to actual roll execution
-- [ ] **Test Cinema Mode End-to-End**
-  - [ ] Create test roll with cinema mode enabled
-  - [ ] Verify cinematic overlay displays
-  - [ ] Confirm roll executes automatically
-  - [ ] Test roll results appear in overlay
-  - [ ] Verify overlay updates with results
+- [x] **Test Cinema Mode End-to-End** ✅ **COMPLETED WITH FIXES**
+  - [x] Create test roll with cinema mode enabled
+  - [x] Verify cinematic overlay displays
+  - [x] Confirm roll executes automatically
+  - [x] Test roll results appear in overlay
+  - [x] Verify overlay updates with results
+  - [x] **FIXED**: Group roll timing - overlay now waits for all participants
+  - [x] **FIXED**: Dice animation timing - added delay for proper display
 - [ ] **Verify Cinema Mode Cross-Client Sync**
   - [ ] Test cinema overlay shows on all clients
   - [ ] Verify roll results sync to all clients

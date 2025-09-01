@@ -215,10 +215,14 @@ export async function processRoll(rollData, rollOptions) {
         // Show 3D dice animation if Dice So Nice is available
         if (game.dice3d) {
             try {
-                await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null, {ghost: false, secret: false});
+                postConsoleAndNotification(MODULE.NAME, `processRoll: Showing dice animation for roll`, { formula: roll.formula, total: roll.total }, true, false);
+                const animationShown = await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null, {ghost: false, secret: false});
+                postConsoleAndNotification(MODULE.NAME, `processRoll: Dice animation result`, { animationShown }, true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Dice animation error:`, error, true, false);
             }
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `processRoll: Dice So Nice not available`, null, true, false);
         }
         
         postConsoleAndNotification(MODULE.NAME, `processRoll: Roll completed`, { total: roll.total, formula: roll.formula }, true, false);
@@ -885,12 +889,19 @@ async function updateCinemaOverlay(rollResults, context) {
             `);
         }
         
-        // Auto-close the cinema overlay after a delay
-        setTimeout(() => {
-            overlay.fadeOut(1000, () => {
-                overlay.remove();
-            });
-        }, 3000);
+        // Check if all participants have rolled
+        const allCards = overlay.find('.cpb-cinematic-card');
+        const cardsWithResults = overlay.find('.cpb-cinematic-result');
+        
+        // Only auto-close if all participants have results
+        if (allCards.length === cardsWithResults.length) {
+            // All participants have rolled, close after a delay
+            setTimeout(() => {
+                overlay.fadeOut(1000, () => {
+                    overlay.remove();
+                });
+            }, 3000);
+        }
         
         postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Cinema overlay updated successfully`, null, true, false);
         
