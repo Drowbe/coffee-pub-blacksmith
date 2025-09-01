@@ -619,6 +619,24 @@ window.BlacksmithAPIHookDetails = () => {
     }
 };
 
+// BlacksmithAPIHookExpandedDetails - Show detailed hook information with full formatting
+window.BlacksmithAPIHookExpandedDetails = () => {
+    try {
+        const module = game.modules.get('coffee-pub-blacksmith');
+        if (!module?.api?.HookManager) {
+            console.error('❌ Blacksmith HookManager not available');
+            return null;
+        }
+        
+        // Call the detailed showHookDetails method directly
+        module.api.HookManager.showHookDetails();
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to show Blacksmith hook expanded details:', error);
+        return null;
+    }
+};
+
 // BlacksmithAPIHookStats - Get raw hook statistics as an object
 window.BlacksmithAPIHookStats = () => {
     try {

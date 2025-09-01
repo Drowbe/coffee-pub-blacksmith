@@ -440,6 +440,9 @@ BlacksmithAPIHookDetails()
 
 // Hook statistics
 BlacksmithAPIHookStats()
+
+// Hook expanded details by priority
+BlacksmithAPIHookExpandedDetails()
 ```
 **Hook Management Commands** - Use these for debugging hook registrations and performance.
 
@@ -474,6 +477,7 @@ For detailed information about what each command returns and displays:
 | `BlacksmithAPIFeatures()` | Object | Features grouped by source module |
 | `BlacksmithAPIHooks()` | Object | Hook count, names, and summary data |
 | `BlacksmithAPIHookDetails()` | Object | Hooks organized by priority levels |
+| `BlacksmithAPIHookExpandedDetails()` | Console Output | Detailed hook information with full formatting by priority |
 | `BlacksmithAPIHookStats()` | Object | Statistical breakdown by priority/context |
 | `BlacksmithAPIUtils()` | Object | Complete list of utility functions |
 | `BlacksmithAPISettings()` | Object | All current configuration values |
