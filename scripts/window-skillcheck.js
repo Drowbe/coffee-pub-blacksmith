@@ -1449,24 +1449,34 @@ export class SkillCheckDialog extends Application {
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
-                // Use the new unified system directly - pass existing messageId to prevent duplicate cards
-                const { orchestrateRoll } = await import('./manager-rolls.js');
-                await orchestrateRoll({
-                    actors: [{ actorId: actorData.actorId, tokenId, name: actorData.name }],
-                    challengerRollType: type,
-                    challengerRollValue: value,
-                    defenderRollType: null,
-                    defenderRollValue: null,
-                    dc: options.dc || null,
-                    showDC: options.showDC || false,
-                    groupRoll: options.groupRoll || false,
-                    label: options.label || null,
-                    description: options.description || null,
-                    rollMode: options.rollMode || 'roll',
-                    isCinematic: true, // This is cinematic mode
-                    showRollExplanation: options.showRollExplanation || false,
-                    showRollExplanationLink: options.showRollExplanationLink || false
-                }, messageId); // Pass existing messageId to prevent duplicate card creation
+                // Execute the roll directly using the new 4-function system
+                const { processRoll, deliverRollResults } = await import('./manager-rolls.js');
+                const { postConsoleAndNotification } = await import('./api-common.js');
+                const { MODULE } = await import('./const.js');
+                
+                // Prepare roll data for execution
+                const actor = game.actors.get(actorData.actorId);
+                if (!actor) {
+                    postConsoleAndNotification(MODULE.NAME, `Cinema mode: Actor not found for ID ${actorData.actorId}`, null, true, false);
+                    return;
+                }
+                
+                // Prepare roll data
+                const rollData = {
+                    actor: actor,
+                    rollTypeKey: type,
+                    rollValueKey: value,
+                    messageId: messageId,
+                    tokenId: tokenId,
+                    actorId: actorData.actorId,
+                    mode: 'cinema'
+                };
+                
+                // Execute the roll
+                const rollResults = await processRoll(rollData, options);
+                
+                // Deliver the results
+                await deliverRollResults(rollResults, { messageId, tokenId });
             }
         });
 

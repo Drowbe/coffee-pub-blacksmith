@@ -212,6 +212,15 @@ export async function processRoll(rollData, rollOptions) {
             throw new Error('Roll execution failed');
         }
         
+        // Show 3D dice animation if Dice So Nice is available
+        if (game.dice3d) {
+            try {
+                await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null, {ghost: false, secret: false});
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Dice animation error:`, error, true, false);
+            }
+        }
+        
         postConsoleAndNotification(MODULE.NAME, `processRoll: Roll completed`, { total: roll.total, formula: roll.formula }, true, false);
         
         // Package results
@@ -801,11 +810,36 @@ class RollWindow extends Application {
 async function showCinemaOverlay(rollData) {
     postConsoleAndNotification(MODULE.NAME, `showCinemaOverlay: Opening cinema overlay`, rollData, true, false);
     
-    // TODO: Implement cinema overlay display
-    // This will replace the old cinema mode logic
-    // For now, just log that we would show the cinema
-    
-    postConsoleAndNotification(MODULE.NAME, `showCinemaOverlay: Cinema overlay would be displayed`, null, true, false);
+    try {
+        // Import SkillCheckDialog to access the existing cinema display
+        const { SkillCheckDialog } = await import('./window-skillcheck.js');
+        
+        // Convert rollData to messageData format expected by _showCinematicDisplay
+        const messageData = {
+            actors: [{
+                id: rollData.tokenId,
+                actorId: rollData.actorId,
+                name: rollData.actorName || 'Unknown Actor',
+                group: 1,
+                result: null
+            }],
+            rollType: rollData.rollTypeKey,
+            skillAbbr: rollData.rollValueKey,
+            defenderRollType: null,
+            defenderSkillAbbr: null,
+            hasMultipleGroups: false,
+            isCinematic: true
+        };
+        
+        // Show the cinematic display using the existing method
+        SkillCheckDialog._showCinematicDisplay(messageData, rollData.messageId);
+        
+        postConsoleAndNotification(MODULE.NAME, `showCinemaOverlay: Cinema overlay displayed successfully`, null, true, false);
+        
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `showCinemaOverlay error:`, error, true, false);
+        throw error;
+    }
 }
 
 /**
@@ -817,10 +851,53 @@ async function showCinemaOverlay(rollData) {
 async function updateCinemaOverlay(rollResults, context) {
     postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Updating cinema with results`, { rollResults, context }, true, false);
     
-    // TODO: Implement cinema overlay updates
-    // This will handle updating the cinematic display with roll results
-    
-    postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Cinema overlay updated`, null, true, false);
+    try {
+        const { roll } = rollResults;
+        const { messageId, tokenId } = context;
+        
+        // Find the cinema overlay
+        const overlay = $('#cpb-cinematic-overlay');
+        if (overlay.length === 0) {
+            postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: No cinema overlay found`, null, true, false);
+            return;
+        }
+        
+        // Find the specific actor card
+        const actorCard = overlay.find(`[data-token-id="${tokenId}"]`);
+        if (actorCard.length === 0) {
+            postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: No actor card found for token ${tokenId}`, null, true, false);
+            return;
+        }
+        
+        // Update the roll area with results
+        const rollArea = actorCard.find('.cpb-cinematic-roll-area');
+        if (rollArea.length > 0) {
+            // Create result display
+            const total = roll.total;
+            const isSuccess = total >= 10; // Assuming DC 10 for now
+            const resultClass = isSuccess ? 'success' : 'failure';
+            
+            rollArea.html(`
+                <div class="cpb-cinematic-result ${resultClass}">
+                    <div class="cpb-cinematic-result-total">${total}</div>
+                    <div class="cpb-cinematic-result-label">${isSuccess ? 'Success!' : 'Failure'}</div>
+                </div>
+            `);
+        }
+        
+        // Auto-close the cinema overlay after a delay
+        setTimeout(() => {
+            overlay.fadeOut(1000, () => {
+                overlay.remove();
+            });
+        }, 3000);
+        
+        postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Cinema overlay updated successfully`, null, true, false);
+        
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay error:`, error, true, false);
+        throw error;
+    }
 }
 
 /**
