@@ -4,11 +4,11 @@
 
 This document outlines the migration from the old hardcoded constants system to the new **Asset Lookup Tool** that provides flexible, tag-based asset access while maintaining backward compatibility.
 
-## **🚨 CRITICAL MIGRATION WARNINGS**
+## **🚨 CRITICAL INTEGRATION WARNINGS**
 
-**⚠️ BEFORE YOU START MIGRATING - READ THIS SECTION!**
+**⚠️ BEFORE YOU START INTEGRATING - READ THIS SECTION!**
 
-We encountered several critical issues during our migration that caused:
+These are the most common pitfalls external modules hit when integrating:
 - **Undefined constants** (404 errors)
 - **Background images not loading**
 - **Sound dropdowns with duplicates**
@@ -23,7 +23,7 @@ We encountered several critical issues during our migration that caused:
 
 **Skip to the "Migration Issues We Encountered" section below for detailed solutions.**
 
-## **📋 Quick Migration Checklist**
+## **📋 Quick Integration Checklist**
 
 ### **✅ What to DO:**
 - [ ] Use `COFFEEPUB.X` directly (no imports needed)
@@ -39,7 +39,7 @@ We encountered several critical issues during our migration that caused:
 - [ ] Assume constants are available during initialization
 - [ ] Skip testing after migration
 
-## **🚨 What Changed**
+## **🚨 What Changed (For Integrators)**
 
 ### **Old System (api-common.js)**
 - **Hardcoded constants** scattered throughout the file
@@ -47,14 +47,14 @@ We encountered several critical issues during our migration that caused:
 - **Difficult maintenance** - adding new assets required manual updates
 - **No organization** - constants were just a flat list
 
-### **New System (Asset Lookup Tool)**
+### **New System (Asset Lookup Tool + COFFEEPUB)**
 - **Data-driven constants** generated from organized collections
 - **Smart tagging** - assets organized by type, category, and tags
 - **Flexible access** - find assets by criteria, not just hardcoded names
 - **Auto-generation** - constants created automatically from data collections
 - **Backward compatibility** - existing code continues to work
 
-### **Data Structure Updates (Latest Changes)**
+### **Data Structure Updates (For Integration)**
 - **Added `value` field** - separates asset data from identifiers
 - **Updated theme structure** - `id` now uses semantic names (e.g., "theme-default"), `value` contains CSS classes (e.g., "cardsdark")
 - **Updated background image structure** - `id` now uses semantic names (e.g., "background-brick"), `value` contains CSS classes (e.g., "brick")
@@ -62,7 +62,7 @@ We encountered several critical issues during our migration that caused:
 - **Volume constants** - now properly use `value` field for numeric levels (e.g., "0.5"), `path` field is empty
 - **Improved separation** - `id` for internal references, `value` for asset data, `path` for file paths
 
-## **✅ What's Already Working**
+## **✅ What's Available to External Modules**
 
 ### **Global Constants (Backward Compatible)**
 ```javascript
@@ -71,7 +71,7 @@ SOUNDERROR01                    // Direct access
 COFFEEPUB.SOUNDERROR01         // Via COFFEEPUB object
 ```
 
-### **Asset Lookup Tool (New Features)**
+### **Asset Lookup Tool (Recommended for Dynamic Use)**
 ```javascript
 // Get assets by type and tags
 const errorSounds = assetLookup.getByTypeAndTags('sound', 'interface', ['error']);
@@ -86,34 +86,32 @@ const fireAssets = assetLookup.searchByCriteria({
 });
 ```
 
-## **🔧 Migration Steps**
+## **🔧 Integration Steps**
 
-### **Step 1: Remove Old Imports (COMPLETED)**
+### **Step 1: Do NOT Import COFFEEPUB (Rule of Thumb)**
 
-**What was done:**
-- Removed `import { COFFEEPUB } from './api-common.js';` from `blacksmith.js`
-- New system now provides `COFFEEPUB` globally via `AssetLookup`
+**What to do:**
+- Do not import `COFFEEPUB` from anywhere. Use `window.COFFEEPUB` or `COFFEEPUB` directly.
 
-**Why this was needed:**
-- Old import was overriding the new constants
-- Caused timing issues where constants were undefined
-- Prevented new system from working properly
+**Why:**
+- Imports can override globals and break initialization timing.
+- The constants are exposed globally once Blacksmith is ready.
 
-### **Step 2: Update Code to Use New Constants (OPTIONAL)**
+### **Step 2: Use Global Constants (Simple Path)
 
-**Current code still works:**
+**Preferred usage:**
 ```javascript
 // This continues to work
 playSound(COFFEEPUB.SOUNDNOTIFICATION01, COFFEEPUB.SOUNDVOLUMENORMAL);
 ```
 
-**Can be updated to:**
+**Alternative:**
 ```javascript
 // More direct access
 playSound(SOUNDNOTIFICATION01, SOUNDVOLUMENORMAL);
 ```
 
-**Or use the Asset Lookup Tool:**
+**Or use the Asset Lookup Tool (Dynamic Path):**
 ```javascript
 // Get random error sound
 const randomErrorSound = assetLookup.getRandom('sound', 'interface', ['error']);
@@ -155,10 +153,10 @@ export const SOUNDNEWSOUND = "modules/coffee-pub-blacksmith/sounds/new-sound.mp3
 }
 ```
 
-## **📋 Migration Checklist**
+## **📋 Integration Checklist**
 
 ### **For Existing Code:**
-- [x] **Remove old COFFEEPUB imports** (COMPLETED)
+- [x] **Remove old COFFEEPUB imports** (COMPLETED in Blacksmith itself)
 - [ ] **Test all sound playback** - verify no 404 errors
 - [ ] **Test all constant access** - verify constants are defined
 - [ ] **Test Asset Lookup Tool** - verify new features work
@@ -251,12 +249,14 @@ const fireAssets = assetLookup.searchByCriteria({
 });
 ```
 
-## **🚨 Common Issues & Solutions**
+## **🚨 Common Integration Issues & Solutions**
 
 ### **Issue: Constants are undefined**
-**Solution:** Ensure `AssetLookup` is imported and instantiated
+**Solution:** Ensure Blacksmith is loaded and use globals (no imports needed)
 ```javascript
-import { assetLookup } from './asset-lookup.js';
+// Use global constants exposed by Blacksmith
+console.log('SOUNDERROR01:', SOUNDERROR01);
+console.log('COFFEEPUB.SOUNDERROR01:', COFFEEPUB.SOUNDERROR01);
 ```
 
 ### **Issue: 404 errors on sound playback**
@@ -266,7 +266,7 @@ console.log('SOUNDERROR01:', SOUNDERROR01);
 ```
 
 ### **Issue: Asset Lookup Tool not working**
-**Solution:** Verify data collections are properly structured
+**Solution:** Verify Blacksmith is ready and use the provided console test
 ```javascript
 BlacksmithAPIAssetLookup();
 ```
@@ -293,9 +293,9 @@ import { COFFEEPUB } from './api-common.js';
 const sound = COFFEEPUB.SOUNDNOTIFICATION01;
 ```
 
-**Files That Need Updating:**
-- Remove `import { COFFEEPUB } from './api-common.js';` from ALL files
-- Update all `COFFEEPUB.X` references to `window.COFFEEPUB?.X` or just `COFFEEPUB.X`
+**Files That Need Updating (in your module):**
+- Remove `import { COFFEEPUB } from './api-common.js';` (do not import COFFEEPUB)
+- Use `COFFEEPUB.X` or `window.COFFEEPUB?.X` directly
 
 ### **Issue 2: Duplicate Constants in Data Collections**
 **What Happened:** The data collection had duplicate entries with different constant names pointing to the same files.
@@ -349,15 +349,10 @@ const backgroundImage = COFFEEPUB.BACKSKILLCHECK; // Might be undefined
 // ✅ DO THIS INSTEAD - Use fallback or wait for constants
 const backgroundImage = COFFEEPUB.BACKSKILLCHECK || 'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp';
 
-// Or use the Asset Lookup Tool's ready check
-if (assetLookup.areConstantsReady()) {
+// Or wait for Blacksmith to be ready
+Hooks.once('ready', () => {
     const backgroundImage = COFFEEPUB.BACKSKILLCHECK;
-} else {
-    // Use fallback or wait
-    assetLookup.waitForConstants().then(() => {
-        const backgroundImage = COFFEEPUB.BACKSKILLCHECK;
-    });
-}
+});
 ```
 
 
@@ -387,32 +382,10 @@ if (assetLookup.areConstantsReady()) {
 
 ---
 
-## **📊 Migration Status Update**
+## **📞 Support and Validation**
 
-### **Session Progress (Latest):**
-- **✅ COMPLETED**: ~90+ constants (all sounds, volumes, basic images, skill check backgrounds)
-- **✅ COMMENTED OUT**: ~100+ old constants in `api-common.js` (banners, tiles, backgrounds)
-- **📈 PROGRESS**: ~85% complete
-
-### **What Was Added This Session:**
-- **Button Sounds**: 12 constants (SOUNDBUTTON01-12)
-- **Pop Sounds**: 3 constants (SOUNDPOP01-03)
-- **Effect Sounds**: Book, chest, weapon, instrument, reaction, general effects
-- **Skill Check Sounds**: 8 constants (cinematic, dice, success, failure, etc.)
-- **Volume Constants**: 4 constants (loud, normal, soft, max) - **FIXED** to use `value` field properly
-- **Theme Structure**: **UPDATED** to use semantic IDs (theme-default, theme-dark) with CSS classes in `value` field
-- **Background Image Structure**: **UPDATED** to use semantic IDs (background-brick, background-theme-color) with CSS classes in `value` field
-- **Icon Structure**: **UPDATED** to use semantic IDs (icon-chess-queen, icon-fist) with Font Awesome class names in `value` field
-- **Data Structure**: **ENHANCED** with new `value` field for better separation of concerns
-- **Basic Banner Images**: Started with hero banners
-
-### **Next Priority:**
-- **Complete banner images** (heroes, monsters, landscape, oops, damage types)
-- **Add tile images** (ground, cloth, paper)
-- **Add background images** (skill check, ability check, etc.)
-
----
-
-**Migration Status: 🟡 IN PROGRESS - Sound system and skill check backgrounds complete**
-**Next Phase: 🟠 ADD REMAINING IMAGE CONSTANTS - Add banners, tiles to data collections**
-**Future Phase: 🟢 FINAL TESTING - Verify all constants work correctly**
+If integration doesn’t work as expected:
+- Run `BlacksmithAPIStatus()` and `BlacksmithAPICheck()` in the console
+- Verify `COFFEEPUB` and `BlacksmithConstants` exist
+- Use `BlacksmithAPIAssetLookup()` to validate the Asset Lookup Tool
+- Check browser console for any module load order errors
