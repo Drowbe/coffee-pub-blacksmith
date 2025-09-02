@@ -1474,7 +1474,7 @@ export class SkillCheckDialog extends Application {
                     cinemaMode: true
                 };
                 
-                // Execute the roll directly (cinematic mode doesn't need orchestrateRoll)
+                // Execute the roll directly (SAME as window mode)
                 postConsoleAndNotification(MODULE.NAME, `Cinema mode: About to call processRoll`, { rollData, options }, true, false);
                 
                 // Execute the roll

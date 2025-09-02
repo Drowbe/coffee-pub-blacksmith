@@ -174,7 +174,13 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         
         // Open appropriate mode for rolling
         if (mode === 'cinema') {
-            await showCinemaOverlay(rollData);
+            // Check if cinema overlay already exists (from initial request)
+            const existingOverlay = $('#cpb-cinematic-overlay');
+            if (existingOverlay.length === 0) {
+                await showCinemaOverlay(rollData);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Cinema overlay already exists, skipping creation`, null, true, false);
+            }
         } else {
             // Window mode - wait for user interaction
             await showRollWindow(rollData);
@@ -980,7 +986,8 @@ async function updateCinemaOverlay(rollResults, context) {
             rollArea.append(resultHtml);
 
             // Check if all rolls are complete to hide the overlay
-            const allComplete = overlay.find('.cpb-cinematic-card').every((index, card) => {
+            const allCards = overlay.find('.cpb-cinematic-card');
+            const allComplete = allCards.toArray().every(card => {
                 return $(card).find('.cpb-cinematic-roll-result').length > 0;
             });
             
