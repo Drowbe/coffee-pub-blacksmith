@@ -21,6 +21,7 @@
 ### **❌ WHAT'S BROKEN (Critical Issues):**
 - ❌ **Query Window Integration**: Still uses old system entirely
 - ❌ **Cinema Mode Roll Execution**: No actual roll execution implemented
+- ❌ **System Selection Not Respected**: `processRoll()` hardcoded to always use Blacksmith system, ignores `diceRollToolSystem` setting
 
 ### **🚀 CURRENT STATUS:**
 - **Socket System**: ✅ **PRODUCTION READY**
@@ -128,6 +129,11 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [ ] Test roll results sync to other clients
   - [ ] Verify chat card updates for all users
   - [ ] Test GM and player perspectives
+- [ ] **Window Mode Polish and Fixes**
+  - [ ] Fix roll window size - currently too small
+  - [ ] Add missing background color to roll window
+  - [ ] Restore Dice So Nice integration in roll window
+  - [ ] Test roll window functionality end-to-end
 
 #### **1.2 Complete Cinema Mode Implementation** ✅ **COMPLETED**
 - [x] **Implement Roll Execution in `showCinemaOverlay()`** ✅ **COMPLETED**
@@ -151,6 +157,11 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [ ] Test cinema overlay shows on all clients
   - [ ] Verify roll results sync to all clients
   - [ ] Test overlay updates for all users
+- [ ] **Cinema Mode Polish and Fixes**
+  - [ ] Investigate and improve success/fail overlay design in cinema
+  - [ ] Fix cinema animation timing - should spin continuously until results show (no pause/spin/pause)
+  - [ ] Restore crit/fumble special effects - colors, sounds, and pulsing animation for crits
+  - [ ] Ensure crit/fumble CSS and code are properly implemented
 
 #### **1.3 Update Query Window Integration**
 - [ ] **Modify `window-query.js` to use `orchestrateRoll()`**
@@ -190,6 +201,11 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [ ] Create roll execution guidelines
 
 #### **2.2 Complete Migration**
+- [ ] **Fix System Selection Logic**
+  - [ ] Modify `processRoll()` to respect `diceRollToolSystem` setting
+  - [ ] Implement `_executeFoundryRoll()` function for Foundry system
+  - [ ] Add system selection logic to choose between Blacksmith/Foundry
+  - [ ] Test that users can switch between roll systems
 - [ ] **Remove Old Roll Execution Code**
   - [ ] Identify all old roll execution functions
   - [ ] Remove unused roll execution methods
@@ -279,6 +295,20 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [ ] Test socket reconnection
 
 #### **4.3 User Experience Polish**
+- [ ] **Chat Card Improvements**
+  - [ ] Add roll data tooltips on hover - show detailed breakdown (e.g., "18 (Roll) + 4 (Prof) + 4 (Int)" instead of "1d20 + 4 + 4")
+  - [ ] Restore missing sounds in chat rolls
+  - [ ] Test chat card functionality and user experience
+- [ ] **Cinema Mode Polish**
+  - [ ] Investigate and improve success/fail overlay design
+  - [ ] Fix cinema animation timing - continuous spin until results (no pause/spin/pause)
+  - [ ] Restore crit/fumble special effects (colors, sounds, pulsing animation for crits)
+  - [ ] Ensure crit/fumble CSS and code are properly implemented
+- [ ] **Window Mode Polish**
+  - [ ] Fix roll window size - currently too small
+  - [ ] Add missing background color to roll window
+  - [ ] Restore Dice So Nice integration in roll window
+  - [ ] Test roll window functionality end-to-end
 - [ ] **Roll Interface Improvements**
   - [ ] Improve roll dialog usability
   - [ ] Enhance cinema mode experience

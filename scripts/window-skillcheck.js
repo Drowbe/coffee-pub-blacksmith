@@ -1446,7 +1446,7 @@ export class SkillCheckDialog extends Application {
 
             // Visually disable the card's roll area after a choice is made
             const rollArea = $(card).find('.cpb-cinematic-roll-area');
-            rollArea.empty().append('<div class="cpb-cinematic-wait-icon"><i class="fas fa-dice-d20 fa-spin"></i></div>');
+            rollArea.empty().append('<div class="cpb-cinematic-wait-icon"><i class="fas fa-dice-d20"></i></div>');
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
