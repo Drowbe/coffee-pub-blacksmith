@@ -312,6 +312,18 @@ class SocketManager {
             // Cinema overlay updates are now handled by the new system in deliverRollResults()
         });
 
+        // Cinema Overlay Update Handler
+        this.socket.register('updateCinemaOverlay', (data) => {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Received updateCinemaOverlay", data, false, false);
+            const { rollResults, context } = data;
+            // Import and call the cinema update function
+            import('./manager-rolls.js').then(({ updateCinemaOverlay }) => {
+                updateCinemaOverlay(rollResults, context);
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing updateCinemaOverlay", error, true, false);
+            });
+        });
+
         // CSS Update Handler (moved from blacksmith.js)
         this.socket.register('updateCSS', (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received CSS update", data, false, false);

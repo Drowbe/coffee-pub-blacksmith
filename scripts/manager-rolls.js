@@ -297,6 +297,19 @@ export async function deliverRollResults(rollResults, context) {
         if (rollData.cinemaMode) {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Cinema mode detected, calling updateCinemaOverlay`, null, true, false);
             await updateCinemaOverlay(rollResults, context);
+            
+            // Emit cinema update to all clients for synchronization
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForEveryone("updateCinemaOverlay", {
+                    type: "updateCinemaOverlay",
+                    rollResults: {
+                        roll: resultForSocket,
+                        rollData: rollData
+                    },
+                    context: context
+                });
+            }
         } else {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Not cinema mode, rollData.cinemaMode:`, rollData.cinemaMode, true, false);
         }
@@ -870,7 +883,7 @@ async function showCinemaOverlay(rollData) {
  * @param {object} context - Context data
  * @returns {Promise<void>}
  */
-async function updateCinemaOverlay(rollResults, context) {
+export async function updateCinemaOverlay(rollResults, context) {
     postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Updating cinema with results`, { rollResults, context }, true, false);
     
     try {
