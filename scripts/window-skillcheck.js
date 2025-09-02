@@ -1417,6 +1417,7 @@ export class SkillCheckDialog extends Application {
 
         // Attach click handlers to the new roll buttons
         overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
+            postConsoleAndNotification(MODULE.NAME, `Cinema mode: Dice button clicked`, { eventTarget: event.target }, true, false);
             const diceSound = COFFEEPUB.SOUNDDICEROLL || 'modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3';
             playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
             const button = event.currentTarget;

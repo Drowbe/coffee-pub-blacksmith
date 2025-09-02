@@ -286,10 +286,8 @@ export async function deliverRollResults(rollResults, context) {
             await handleSkillRollUpdate(rollDataForSocket);
         }
         
-        // Update cinema overlay if in cinema mode
-        if (rollData.mode === 'cinema') {
-            await updateCinemaOverlay(rollResults, context);
-        }
+        // Note: Cinema overlay updates are handled by the old system (_updateCinematicDisplay)
+        // No need to update cinema overlay here to avoid conflicts
         
         postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Results delivered successfully`, null, true, false);
         return true;
