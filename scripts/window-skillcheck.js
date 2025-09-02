@@ -1472,7 +1472,7 @@ export class SkillCheckDialog extends Application {
                     mode: 'cinema'
                 };
                 
-                // Execute the roll
+                // Execute the roll and let it handle its own dice animation
                 const rollResults = await processRoll(rollData, options);
                 
                 // Deliver the results

@@ -146,7 +146,7 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [x] Test roll results appear in overlay
   - [x] Verify overlay updates with results
   - [x] **FIXED**: Group roll timing - overlay now waits for all participants
-  - [x] **FIXED**: Dice animation timing - added delay for proper display
+  - [x] **FIXED**: Dice animation timing - moved to immediate click response
 - [ ] **Verify Cinema Mode Cross-Client Sync**
   - [ ] Test cinema overlay shows on all clients
   - [ ] Verify roll results sync to all clients
