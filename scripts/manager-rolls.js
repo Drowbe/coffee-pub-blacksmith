@@ -908,6 +908,9 @@ export async function updateCinemaOverlay(rollResults, context) {
         const diceSpinTime = 2000;
         const groupResultsTime = 5000;
         const rollResultsTime = 4000;
+
+
+        
         setTimeout(() => {
             // Determine the sound to play based on the roll result
             // Improved d20 roll detection to handle different roll types
@@ -1071,6 +1074,20 @@ export async function updateCinemaOverlay(rollResults, context) {
                         
                         // Append the results bar to the main cinematic bar
                         overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
+                        
+                        // Play sound for group results
+                        let groupSound;
+                        if (resultClass === 'success') {
+                            groupSound = COFFEEPUB.SOUNDSUCCESS;
+                        } else if (resultClass === 'failure') {
+                            groupSound = COFFEEPUB.SOUNDFAILURE;
+                        } else {
+                            groupSound = COFFEEPUB.SOUNDROLLCOMPLETE;
+                        }
+                        
+                        import('./api-common.js').then(({ playSound }) => {
+                            playSound(groupSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
+                        });
                         
                         // Auto-close after showing group results
                         setTimeout(() => {
