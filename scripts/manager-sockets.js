@@ -273,9 +273,11 @@ class SocketManager {
         this.socket.register('updateSkillRoll', (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received updateSkillRoll", data, false, false);
             if (game.user.isGM) {
+                // Extract the actual roll data from the nested structure
+                const rollData = data.data || data;
                 // Import and call the handler from blacksmith.js
                 import('./blacksmith.js').then(({ handleSkillRollUpdate }) => {
-                    handleSkillRollUpdate(data);
+                    handleSkillRollUpdate(rollData);
                 }).catch(error => {
                     postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing handleSkillRollUpdate", error, true, false);
                 });
