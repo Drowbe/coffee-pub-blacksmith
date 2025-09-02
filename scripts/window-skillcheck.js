@@ -1470,7 +1470,8 @@ export class SkillCheckDialog extends Application {
                     messageId: messageId,
                     tokenId: tokenId,
                     actorId: actorData.actorId,
-                    mode: 'cinema'
+                    mode: 'cinema',
+                    cinemaMode: true
                 };
                 
                 // Execute the roll and let it handle its own dice animation

@@ -170,6 +170,7 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.actorId = actor.id;
         rollData.system = diceRollToolSystem;
         rollData.mode = mode;
+        rollData.cinemaMode = rollDetails.isCinematic;
         
         // Open appropriate mode for rolling
         if (mode === 'cinema') {
@@ -879,35 +880,114 @@ async function updateCinemaOverlay(rollResults, context) {
             return;
         }
         
-        // Update the roll area with results
-        const rollArea = actorCard.find('.cpb-cinematic-roll-area');
-        if (rollArea.length > 0) {
-            // Create result display
-            const total = roll.total;
-            const isSuccess = total >= 10; // Assuming DC 10 for now
-            const resultClass = isSuccess ? 'success' : 'failure';
+        // Use a timeout to create a delay for the reveal (same as old system)
+        setTimeout(() => {
+            // Determine the sound to play based on the roll result
+            // Improved d20 roll detection to handle different roll types
+            let d20Roll = null;
             
-            rollArea.html(`
-                <div class="cpb-cinematic-result ${resultClass}">
-                    <div class="cpb-cinematic-result-total">${total}</div>
-                    <div class="cpb-cinematic-result-label">${isSuccess ? 'Success!' : 'Failure'}</div>
-                </div>
-            `);
-        }
-        
-        // Check if all participants have rolled
-        const allCards = overlay.find('.cpb-cinematic-card');
-        const cardsWithResults = overlay.find('.cpb-cinematic-result');
-        
-        // Only auto-close if all participants have results
-        if (allCards.length === cardsWithResults.length) {
-            // All participants have rolled, close after a delay
-            setTimeout(() => {
-                overlay.fadeOut(1000, () => {
-                    overlay.remove();
+            // First try the terms structure (newer Foundry format)
+            if (roll?.terms) {
+                for (const term of roll.terms) {
+                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (term.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = term.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = term.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback to dice structure (older format)
+            if (d20Roll === null && roll?.dice) {
+                for (const die of roll.dice) {
+                    if (die.faces === 20 && die.results && die.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (die.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = die.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = die.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Roll result:', roll, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: d20Roll value:', d20Roll, true, false);
+            if (d20Roll === 20) {
+                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: CRITICAL DETECTED!', "", true, false);
+            } else if (d20Roll === 1) {
+                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
+            }
+            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Terms structure:', roll?.terms, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Dice structure:', roll?.dice, true, false);
+            
+            if (d20Roll === 20) {
+                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: CRITICAL DETECTED!', "", true, false);
+                const criticalSound = window.COFFEEPUB?.SOUNDROLLCRITICAL || 'modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3';
+                import('./api-common.js').then(({ playSound }) => {
+                    playSound(criticalSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
                 });
-            }, 3000);
-        }
+            } else if (d20Roll === 1) {
+                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
+                const fumbleSound = window.COFFEEPUB?.SOUNDROLLFUMBLE || 'modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3';
+                import('./api-common.js').then(({ playSound }) => {
+                    playSound(fumbleSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
+                });
+            } else {
+                const completeSound = window.COFFEEPUB?.SOUNDROLLCOMPLETE || 'modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3';
+                import('./api-common.js').then(({ playSound }) => {
+                    playSound(completeSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
+                });
+            }
+
+            const rollArea = actorCard.find('.cpb-cinematic-roll-area');
+            rollArea.empty(); // Clear the button or pending icon
+
+            let specialClass = '';
+            if (d20Roll === 20) specialClass = 'critical';
+            else if (d20Roll === 1) specialClass = 'fumble';
+
+            const successClass = roll.total >= 10 ? 'success' : 'failure'; // TODO: get actual DC from context
+            const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${roll.total}</div>`;
+            rollArea.append(resultHtml);
+
+            // Check if all rolls are complete to hide the overlay
+            const allComplete = overlay.find('.cpb-cinematic-card').every((index, card) => {
+                return $(card).find('.cpb-cinematic-roll-result').length > 0;
+            });
+            
+            if (allComplete) {
+                // Auto-close after a delay
+                setTimeout(() => {
+                    overlay.fadeOut(1000, () => {
+                        overlay.remove();
+                    });
+                }, 3000);
+            }
+        }, 100); // Small delay for reveal effect
         
         postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Cinema overlay updated successfully`, null, true, false);
         
