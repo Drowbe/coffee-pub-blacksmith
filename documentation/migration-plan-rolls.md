@@ -300,7 +300,7 @@ This creates **inconsistent behavior** where some entry points work correctly wh
   - [ ] Restore missing sounds in chat rolls
   - [ ] Test chat card functionality and user experience
 - [ ] **Cinema Mode Polish**
-  - [ ] Investigate and improve success/fail overlay design
+  - [x] Investigate and improve success/fail overlay design ✅ **COMPLETED**
   - [x] Fix cinema animation timing - continuous spin until results (no pause/spin/pause) ✅ **COMPLETED**
   - [ ] Restore crit/fumble special effects (colors, sounds, pulsing animation for crits)
   - [ ] Ensure crit/fumble CSS and code are properly implemented

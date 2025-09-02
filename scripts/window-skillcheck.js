@@ -1663,7 +1663,7 @@ export class SkillCheckDialog extends Application {
                     overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
                 }
 
-                setTimeout(() => this._hideCinematicDisplay(), 3000); // Hide after 3 seconds
+                setTimeout(() => this._hideCinematicDisplay(), 4000); // Hide after 4 seconds
             }
         }, 2000); // 2-second delay for animation
     }
