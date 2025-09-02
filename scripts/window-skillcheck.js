@@ -1474,13 +1474,12 @@ export class SkillCheckDialog extends Application {
                     cinemaMode: true
                 };
                 
-                // Execute the roll and let it handle its own dice animation
+                // Execute the roll directly (cinematic mode doesn't need orchestrateRoll)
                 postConsoleAndNotification(MODULE.NAME, `Cinema mode: About to call processRoll`, { rollData, options }, true, false);
+                
+                // Execute the roll
                 const rollResults = await processRoll(rollData, options);
                 postConsoleAndNotification(MODULE.NAME, `Cinema mode: processRoll completed`, { rollResults }, true, false);
-                
-                // Add a small delay to let the spinning dice animation show
-                await new Promise(resolve => setTimeout(resolve, 1500));
                 
                 // Deliver the results
                 await deliverRollResults(rollResults, { messageId, tokenId });
@@ -1491,183 +1490,7 @@ export class SkillCheckDialog extends Application {
         setTimeout(() => overlay.addClass('visible'), 50);
     }
 
-    /**
-     * Updates a single actor's card in the cinematic display.
-     * @param {string} tokenId - The ID of the token to update.
-     * @param {object} result - The roll result object.
-     * @param {object} messageData - The full message data.
-     */
-    static _updateCinematicDisplay(tokenId, result, messageData) {
-        const overlay = $('#cpb-cinematic-overlay');
-        if (!overlay.length) return;
-
-        const card = overlay.find(`.cpb-cinematic-card[data-token-id="${tokenId}"]`);
-        if (!card.length) return;
-
-        // Use a timeout to create a delay for the reveal
-        setTimeout(() => {
-            // Determine the sound to play based on the roll result
-            // Improved d20 roll detection to handle different roll types
-            let d20Roll = null;
-            
-            // First try the terms structure (newer Foundry format)
-            if (result?.terms) {
-                for (const term of result.terms) {
-                    if (term.class === 'D20Die' && term.results && term.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (term.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = term.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = term.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Fallback to dice structure (older format)
-            if (d20Roll === null && result?.dice) {
-                for (const die of result.dice) {
-                    if (die.faces === 20 && die.results && die.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (die.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = die.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = die.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Roll result:', result, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - d20Roll value:', d20Roll, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Terms structure:', result?.terms, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - Dice structure:', result?.dice, true, false);
-            
-            if (d20Roll === 20) {
-                postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - CRITICAL DETECTED!', "", true, false);
-                const criticalSound = COFFEEPUB.SOUNDROLLCRITICAL || 'modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3';
-                playSound(criticalSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
-            } else if (d20Roll === 1) {
-                postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Display - FUMBLE DETECTED!', "", true, false);
-                const fumbleSound = COFFEEPUB.SOUNDROLLFUMBLE || 'modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3';
-                playSound(fumbleSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
-            } else {
-                const completeSound = COFFEEPUB.SOUNDROLLCOMPLETE || 'modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3';
-                playSound(completeSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
-            }
-
-            const rollArea = card.find('.cpb-cinematic-roll-area');
-            rollArea.empty(); // Clear the button or pending icon
-
-            let specialClass = '';
-            if (d20Roll === 20) specialClass = 'critical';
-            else if (d20Roll === 1) specialClass = 'fumble';
-
-            const successClass = result.total >= messageData.dc ? 'success' : 'failure';
-            const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${result.total}</div>`;
-            rollArea.append(resultHtml);
-
-            // Check if all rolls are complete to hide the overlay
-            const allComplete = messageData.actors.every(a => {
-                const actorCard = overlay.find(`.cpb-cinematic-card[data-token-id="${a.id}"]`);
-                return actorCard.find('.cpb-cinematic-roll-result').length > 0;
-            });
-            
-            if (allComplete) {
-                // If it is a group roll, display the result
-                if (messageData.isGroupRoll && messageData.hasOwnProperty('groupSuccess') && !messageData.hasMultipleGroups) {
-                    const { groupSuccess, successCount, totalCount } = messageData;
-                    const resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
-                    const detailText = `${successCount} of ${totalCount} Succeeded`;
-                    const resultClass = groupSuccess ? 'success' : 'failure';
-                    
-                    playSound(groupSuccess ? COFFEEPUB.SOUNDSUCCESS : COFFEEPUB.SOUNDFAILURE, COFFEEPUB.SOUNDVOLUMENORMAL);
-
-                    // Determine background image based on result
-                    let resultBackgroundImage;
-                    if (resultClass === 'success') {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
-                    } else if (resultClass === 'failure') {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
-                    } else {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
-                    }
-
-                    const resultsBarHtml = `
-                        <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
-                            <div class="cpb-cinematic-group-result ${resultClass}">
-                                <div class="cpb-cinematic-group-result-text">${resultText}</div>
-                                <div class="cpb-cinematic-group-result-detail">${detailText}</div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Append the new results bar to the main cinematic bar
-                    overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
-                }
-                // If it is a contested roll, display the winner
-                else if (messageData.hasMultipleGroups && messageData.contestedRoll) {
-                    playSound(COFFEEPUB.SOUNDVERSUS, COFFEEPUB.SOUNDVOLUMENORMAL);
-                    const { winningGroup, isTie } = messageData.contestedRoll;
-                    let resultText, resultClass, detailText = '';
-
-                    if (isTie) {
-                        resultText = 'DRAW';
-                        resultClass = 'tie';
-                        detailText = 'Both sides are evenly matched';
-                    } else if (winningGroup === 1) {
-                        resultText = 'CHALLENGERS WIN';
-                        resultClass = 'success';
-                    } else {
-                        resultText = 'DEFENDERS WIN';
-                        resultClass = 'failure';
-                    }
-
-                    // Determine background image based on result
-                    let resultBackgroundImage;
-                    if (resultClass === 'success') {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
-                    } else if (resultClass === 'failure') {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
-                    } else {
-                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
-                    }
-
-                    const resultsBarHtml = `
-                        <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
-                            <div class="cpb-cinematic-group-result ${resultClass}">
-                                <div class="cpb-cinematic-group-result-text">${resultText}</div>
-                                ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
-                            </div>
-                        </div>
-                    `;
-                    overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
-                }
-
-                setTimeout(() => this._hideCinematicDisplay(), 4000); // Hide after 4 seconds
-            }
-        }, 2000); // 2-second delay for animation
-    }
+    // OLD SYSTEM DELETED - Cinema updates now handled by new system in manager-rolls.js
 
     /**
      * Hides the cinematic display.

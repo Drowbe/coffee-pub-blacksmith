@@ -1652,13 +1652,7 @@ export async function handleSkillRollUpdate(data) {
         });
     }
 
-    // Directly update the GM's cinematic UI if it's open
-    if (updatedMessageData.isCinematic) {
-        const cinematicOverlay = $('#cpb-cinematic-overlay');
-        if (cinematicOverlay.length && cinematicOverlay.data('messageId') === message.id) {
-            SkillCheckDialog._updateCinematicDisplay(tokenId, result, updatedMessageData);
-        }
-    }
+    // Cinema overlay updates are now handled by the new system in deliverRollResults()
 
     // If this was a requested roll, update the GM's interface
     if (flags.requesterId === game.user.id) {
