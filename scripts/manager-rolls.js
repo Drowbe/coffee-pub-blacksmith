@@ -905,6 +905,9 @@ export async function updateCinemaOverlay(rollResults, context) {
         }
         
         // Use a timeout to create a delay for the reveal (same as old system)
+        const diceSpinTime = 2000;
+        const groupResultsTime = 5000;
+        const rollResultsTime = 4000;
         setTimeout(() => {
             // Determine the sound to play based on the roll result
             // Improved d20 roll detection to handle different roll types
@@ -1074,14 +1077,14 @@ export async function updateCinemaOverlay(rollResults, context) {
                             overlay.fadeOut(1000, () => {
                                 overlay.remove();
                             });
-                        }, 5000); // Longer delay for group results
+                        }, groupResultsTime); // Longer delay for group results
                     } else {
                         // No group results, just auto-close
                         setTimeout(() => {
                             overlay.fadeOut(1000, () => {
                                 overlay.remove();
                             });
-                        }, 3000);
+                        }, rollResultsTime);
                     }
                 } else {
                     // No message data, just auto-close
@@ -1089,10 +1092,10 @@ export async function updateCinemaOverlay(rollResults, context) {
                         overlay.fadeOut(1000, () => {
                             overlay.remove();
                         });
-                    }, 3000);
+                    }, rollResultsTime);
                 }
             }
-        }, 100); // Small delay for reveal effect
+        }, diceSpinTime); // Small delay for reveal effect
         
         postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Cinema overlay updated successfully`, null, true, false);
         
