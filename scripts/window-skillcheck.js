@@ -1473,7 +1473,12 @@ export class SkillCheckDialog extends Application {
                 };
                 
                 // Execute the roll and let it handle its own dice animation
+                postConsoleAndNotification(MODULE.NAME, `Cinema mode: About to call processRoll`, { rollData, options }, true, false);
                 const rollResults = await processRoll(rollData, options);
+                postConsoleAndNotification(MODULE.NAME, `Cinema mode: processRoll completed`, { rollResults }, true, false);
+                
+                // Add a small delay to let the spinning dice animation show
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 
                 // Deliver the results
                 await deliverRollResults(rollResults, { messageId, tokenId });

@@ -213,6 +213,14 @@ export async function processRoll(rollData, rollOptions) {
         }
         
         // Show 3D dice animation if Dice So Nice is available
+        postConsoleAndNotification(MODULE.NAME, `processRoll: About to check dice animation`, { 
+            hasDice3d: !!game.dice3d, 
+            rollFormula: roll.formula, 
+            rollTotal: roll.total,
+            diceArray: roll.dice,
+            diceLength: roll.dice?.length 
+        }, true, false);
+        
         if (game.dice3d) {
             try {
                 postConsoleAndNotification(MODULE.NAME, `processRoll: Showing dice animation for roll`, { formula: roll.formula, total: roll.total }, true, false);
