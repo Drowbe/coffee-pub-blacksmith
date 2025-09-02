@@ -1602,8 +1602,18 @@ export class SkillCheckDialog extends Application {
                     
                     playSound(groupSuccess ? COFFEEPUB.SOUNDSUCCESS : COFFEEPUB.SOUNDFAILURE, COFFEEPUB.SOUNDVOLUMENORMAL);
 
+                    // Determine background image based on result
+                    let resultBackgroundImage;
+                    if (resultClass === 'success') {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
+                    } else if (resultClass === 'failure') {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                    } else {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
+                    }
+
                     const resultsBarHtml = `
-                        <div id="cpb-cinematic-results-bar">
+                        <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
                             <div class="cpb-cinematic-group-result ${resultClass}">
                                 <div class="cpb-cinematic-group-result-text">${resultText}</div>
                                 <div class="cpb-cinematic-group-result-detail">${detailText}</div>
@@ -1621,7 +1631,7 @@ export class SkillCheckDialog extends Application {
                     let resultText, resultClass, detailText = '';
 
                     if (isTie) {
-                        resultText = 'TIE';
+                        resultText = 'DRAW';
                         resultClass = 'tie';
                         detailText = 'Both sides are evenly matched';
                     } else if (winningGroup === 1) {
@@ -1632,8 +1642,18 @@ export class SkillCheckDialog extends Application {
                         resultClass = 'failure';
                     }
 
+                    // Determine background image based on result
+                    let resultBackgroundImage;
+                    if (resultClass === 'success') {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
+                    } else if (resultClass === 'failure') {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                    } else {
+                        resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
+                    }
+
                     const resultsBarHtml = `
-                        <div id="cpb-cinematic-results-bar">
+                        <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
                             <div class="cpb-cinematic-group-result ${resultClass}">
                                 <div class="cpb-cinematic-group-result-text">${resultText}</div>
                                 ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
