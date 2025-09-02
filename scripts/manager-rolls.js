@@ -137,9 +137,9 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
             // Create new chat card using requestRoll
             postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Creating new chat card`, null, true, false);
             chatResult = await requestRoll(rollDetails);
-            
-            if (!chatResult.success) {
-                throw new Error('Failed to create chat card');
+        
+        if (!chatResult.success) {
+            throw new Error('Failed to create chat card');
             }
         }
         
@@ -177,7 +177,7 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
             // Check if cinema overlay already exists (from initial request)
             const existingOverlay = $('#cpb-cinematic-overlay');
             if (existingOverlay.length === 0) {
-                await showCinemaOverlay(rollData);
+            await showCinemaOverlay(rollData);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Cinema overlay already exists, skipping creation`, null, true, false);
             }
@@ -985,19 +985,99 @@ async function updateCinemaOverlay(rollResults, context) {
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${roll.total}</div>`;
             rollArea.append(resultHtml);
 
-            // Check if all rolls are complete to hide the overlay
+            // Check if all rolls are complete to show group results or hide overlay
             const allCards = overlay.find('.cpb-cinematic-card');
             const allComplete = allCards.toArray().every(card => {
                 return $(card).find('.cpb-cinematic-roll-result').length > 0;
             });
             
             if (allComplete) {
-                // Auto-close after a delay
-                setTimeout(() => {
-                    overlay.fadeOut(1000, () => {
-                        overlay.remove();
-                    });
-                }, 3000);
+                // Check for group results in the chat message
+                const message = game.messages.get(messageId);
+                if (message && message.flags && message.flags['coffee-pub-blacksmith']) {
+                    const flags = message.flags['coffee-pub-blacksmith'];
+                    
+                    // Show group results if available
+                    if (flags.contestedRoll || flags.groupRollData || (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess'))) {
+                        postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Showing group results`, { 
+                            contestedRoll: flags.contestedRoll, 
+                            groupRollData: flags.groupRollData,
+                            isGroupRoll: flags.isGroupRoll,
+                            groupSuccess: flags.groupSuccess,
+                            successCount: flags.successCount,
+                            totalCount: flags.totalCount
+                        }, true, false);
+                        
+                        // Create and show the group results overlay
+                        let resultText, resultClass, detailText = '';
+                        let resultBackgroundImage;
+                        
+                        if (flags.contestedRoll) {
+                            // Contested roll results
+                            const { winningGroup, isTie } = flags.contestedRoll;
+                            if (isTie) {
+                                resultText = 'DRAW';
+                                resultClass = 'tie';
+                                detailText = 'Both sides are evenly matched';
+                            } else if (winningGroup === 1) {
+                                resultText = 'CHALLENGERS WIN';
+                                resultClass = 'success';
+                            } else {
+                                resultText = 'DEFENDERS WIN';
+                                resultClass = 'failure';
+                            }
+                        } else if (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess')) {
+                            // Group roll results
+                            const { groupSuccess, successCount, totalCount } = flags;
+                            resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
+                            resultClass = groupSuccess ? 'success' : 'failure';
+                            detailText = `${successCount} of ${totalCount} Succeeded`;
+                        }
+                        
+                        // Determine background image based on result
+                        if (resultClass === 'success') {
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
+                        } else if (resultClass === 'failure') {
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                        } else {
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
+                        }
+                        
+                        // Create the results bar HTML
+                        const resultsBarHtml = `
+                            <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
+                                <div class="cpb-cinematic-group-result ${resultClass}">
+                                    <div class="cpb-cinematic-group-result-text">${resultText}</div>
+                                    ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Append the results bar to the main cinematic bar
+                        overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
+                        
+                        // Auto-close after showing group results
+                        setTimeout(() => {
+                            overlay.fadeOut(1000, () => {
+                                overlay.remove();
+                            });
+                        }, 5000); // Longer delay for group results
+                    } else {
+                        // No group results, just auto-close
+                        setTimeout(() => {
+                            overlay.fadeOut(1000, () => {
+                                overlay.remove();
+                            });
+                        }, 3000);
+                    }
+                } else {
+                    // No message data, just auto-close
+                    setTimeout(() => {
+                        overlay.fadeOut(1000, () => {
+                            overlay.remove();
+                        });
+                    }, 3000);
+                }
             }
         }, 100); // Small delay for reveal effect
         
