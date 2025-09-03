@@ -1221,9 +1221,9 @@ export class SkillCheckDialog extends Application {
         console.log('🔍 Skill Check Debug - SOUNDVOLUMENORMAL:', window.COFFEEPUB?.SOUNDVOLUMENORMAL);
         console.log('🔍 Skill Check Debug - COFFEEPUB object:', window.COFFEEPUB);
         
-        // Use the constant if available, otherwise fallback to direct path
-        const soundPath = window.COFFEEPUB?.SOUNDCINEMATICOPEN || 'modules/coffee-pub-blacksmith/sounds/fanfare-intro-1.mp3';
-        const volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5;
+        // Use the constant
+        const soundPath = COFFEEPUB.SOUNDCINEMATICOPEN;
+        const volume = COFFEEPUB.SOUNDVOLUMENORMAL;
         
         playSound(soundPath, volume);
         // Remove any existing overlay
@@ -1418,8 +1418,8 @@ export class SkillCheckDialog extends Application {
         // Attach click handlers to the new roll buttons
         overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
             postConsoleAndNotification(MODULE.NAME, `Cinema mode: Dice button clicked`, { eventTarget: event.target }, true, false);
-            const diceSound = COFFEEPUB.SOUNDDICEROLL || 'modules/coffee-pub-blacksmith/sounds/general-dice-rolling.mp3';
-            playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL || 0.5);
+            const diceSound = COFFEEPUB.SOUNDDICEROLL;
+            playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL);
             const button = event.currentTarget;
             const card = button.closest('.cpb-cinematic-card');
             const tokenId = card.dataset.tokenId;

@@ -909,7 +909,73 @@ export async function updateCinemaOverlay(rollResults, context) {
         const groupResultsTime = 5000;
         const rollResultsTime = 4000;
 
-
+        setTimeout(() => {
+            // Play individual roll sound (crit/fumble/normal) - same as old system
+            let d20Roll = null;
+            
+            // First try the terms structure (newer Foundry format)
+            if (roll?.terms) {
+                for (const term of roll.terms) {
+                    if (term.class === 'D20Die' && term.results && term.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (term.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = term.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = term.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback to dice structure (older format)
+            if (d20Roll === null && roll?.dice) {
+                for (const die of roll.dice) {
+                    if (die.faces === 20 && die.results && die.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (die.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = die.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = die.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Play individual roll sound based on d20 result
+            let individualSound;
+            if (d20Roll === 20) {
+                individualSound = COFFEEPUB.SOUNDROLLCRITICAL;
+            } else if (d20Roll === 1) {
+                individualSound = COFFEEPUB.SOUNDROLLFUMBLE;
+            } else {
+                individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
+            }
+            
+            import('./api-common.js').then(({ playSound }) => {
+                playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            });
+            
+        }, diceSpinTime); // Small delay for reveal effect
         
         setTimeout(() => {
             // Determine the sound to play based on the roll result
@@ -970,27 +1036,6 @@ export async function updateCinemaOverlay(rollResults, context) {
                 postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: CRITICAL DETECTED!', "", true, false);
             } else if (d20Roll === 1) {
                 postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
-            }
-            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Terms structure:', roll?.terms, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Dice structure:', roll?.dice, true, false);
-            
-            if (d20Roll === 20) {
-                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: CRITICAL DETECTED!', "", true, false);
-                const criticalSound = window.COFFEEPUB?.SOUNDROLLCRITICAL || 'modules/coffee-pub-blacksmith/sounds/fanfare-success-1.mp3';
-                import('./api-common.js').then(({ playSound }) => {
-                    playSound(criticalSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
-                });
-            } else if (d20Roll === 1) {
-                postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
-                const fumbleSound = window.COFFEEPUB?.SOUNDROLLFUMBLE || 'modules/coffee-pub-blacksmith/sounds/sadtrombone.mp3';
-                import('./api-common.js').then(({ playSound }) => {
-                    playSound(fumbleSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
-                });
-            } else {
-                const completeSound = window.COFFEEPUB?.SOUNDROLLCOMPLETE || 'modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3';
-                import('./api-common.js').then(({ playSound }) => {
-                    playSound(completeSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
-                });
             }
 
             const rollArea = actorCard.find('.cpb-cinematic-roll-area');
@@ -1077,16 +1122,19 @@ export async function updateCinemaOverlay(rollResults, context) {
                         
                         // Play sound for group results
                         let groupSound;
-                        if (resultClass === 'success') {
+                        if (flags.contestedRoll) {
+                            // Contested roll - always use SOUNDVERSUS
+                            groupSound = COFFEEPUB.SOUNDVERSUS;
+                        } else if (resultClass === 'success') {
                             groupSound = COFFEEPUB.SOUNDSUCCESS;
                         } else if (resultClass === 'failure') {
                             groupSound = COFFEEPUB.SOUNDFAILURE;
                         } else {
-                            groupSound = COFFEEPUB.SOUNDROLLCOMPLETE;
+                            groupSound = COFFEEPUB.SOUNDVERSUS; // For ties
                         }
                         
                         import('./api-common.js').then(({ playSound }) => {
-                            playSound(groupSound, window.COFFEEPUB?.SOUNDVOLUMENORMAL || 0.5);
+                            playSound(groupSound, COFFEEPUB.SOUNDVOLUMENORMAL);
                         });
                         
                         // Auto-close after showing group results
