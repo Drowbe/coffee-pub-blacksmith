@@ -1,5 +1,5 @@
 <div class="skill-check-dialog">
-    <!-- Header Section (matching roll window style) -->
+    <!-- Header Section (matching roll window style exactly) -->
     <div class="cpb-dialog-header-sticky">
         <div class="cpb-dialog-header">
             <div class="cpb-dialog-header-content">
@@ -17,24 +17,24 @@
     <div class="cpb-dialog-content">
         <!-- Left Column -->
         <div class="cpb-dialog-column">
-            <h2>CHOOSE CONTESTANTS</h2>
+            <h2><i class="fas fa-helmet-battle"></i> Contestants</h2>
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
-                    <input type="text" name="search" placeholder="Search actors, monsters, and npcs...">
+                    <input type="text" name="search" placeholder="Search for contestants...">
                     <button type="button" class="cpb-clear-search-button" title="Clear search">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
             <div class="cpb-filter-buttons">
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
+                    <i class="fas fa-user-group-crown"></i> Canvas
+                </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
                     <i class="fas fa-helmet-battle"></i> Party
                 </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'monster')}}active{{/if}}" data-filter="monster">
                     <i class="fas fa-dragon"></i> NPCs
-                </button>
-                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'canvas')}}active{{/if}}" data-filter="canvas">
-                    <i class="fas fa-user-group-crown"></i> Canvas
                 </button>
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
                     <i class="fas fa-square-dashed"></i> Selected
@@ -62,22 +62,41 @@
 
         <!-- Middle Column -->
         <div class="cpb-dialog-column">
-            <h2>SET ROLL TYPE</h2>
+            <h2><i class="fas fas fa-dice"></i> Roll Type</h2>
             
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
-                    <input type="text" name="search" placeholder="Search roll types...">
+                    <input type="text" name="search" placeholder="Find roll type...">
                     <button type="button" class="cpb-clear-search-button" title="Clear search">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
-            
+            <div class="cpb-filter-buttons">
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'quick')}}active{{/if}}" data-filter="quick">
+                    Quick
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'skill')}}active{{/if}}" data-filter="skill">
+                    Skill
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'ability')}}active{{/if}}" data-filter="ability">
+                    Ability
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'save')}}active{{/if}}" data-filter="save">
+                    Save
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'dice')}}active{{/if}}" data-filter="dice">
+                    Dice
+                </button>
+                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'tool')}}active{{/if}}" data-filter="tool">
+                    Tool
+                </button>
+            </div>
             <div class="cpb-checks-list">
                 <!-- Quick Roll Section -->
-                <div class="cpb-check-section">
-                    <div class="cpb-section-header" style="margin-bottom: 8px;">quick ROLLS</div>
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">Party Rolls (Auto-selects Party)</div>
+                <div class="cpb-check-section" data-filter="quick">
+                    <div class="cpb-section-header">Quick ROLLS</div>
+                    <div class="cpb-section-subheader">Party Rolls (Auto-selects Party)</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="perception" data-group="true" data-roll-title="Party Perception">
                         <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i> Party Perception
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
@@ -98,7 +117,7 @@
                         <i class="fas fa-burst" title="Party Stealth"></i> Party Stealth
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div> 
                     </div>
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">COMMON ROLLS</div>
+                    <div class="cpb-section-subheader">COMMON ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="10" data-group="true" data-roll-title="Perception Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i> DC 10 Perception
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
@@ -128,7 +147,7 @@
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">GRAPPLE ROLLS</div>
+                    <div class="cpb-section-subheader">GRAPPLE ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="athletics" data-defender-skill="athletics" data-roll-title="Grapple Attack">
                         <i class="fas fa-hand-back-fist" title="Grapple Attack"></i> Grapple Attack
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
@@ -146,7 +165,7 @@
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">MANIPULATION ROLLS</div>
+                    <div class="cpb-section-subheader">MANIPULATION ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="deception" data-defender-skill="insight" data-roll-title="Deception vs Insight">
                         <i class="fas fa-mask" title="Deception vs Insight"></i> Deception vs Insight
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
@@ -160,7 +179,7 @@
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
-                    <div class="cpb-section-subheader" style="margin-bottom: 8px;">STEALTH ROLLS</div>
+                    <div class="cpb-section-subheader">STEALTH ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="stealth" data-defender-skill="perception" data-roll-title="Stealth vs Perception">
                         <i class="fas fa-user-ninja" title="Stealth vs Perception"></i> Stealth vs Perception
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
@@ -168,7 +187,7 @@
                 </div>
 
                 <!-- Skill Check Section -->
-                <div class="cpb-check-section">
+                <div class="cpb-check-section" data-filter="skill">
                     <div class="cpb-section-header">Skill Check</div>
                     {{#each skills}}
                     <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}"  data-roll-title="{{this.name}} Skill Check">
@@ -180,7 +199,7 @@
                 </div>
 
                 <!-- Ability Check Section -->
-                <div class="cpb-check-section">
+                <div class="cpb-check-section" data-filter="ability">
                     <div class="cpb-section-header">Ability Check</div>
                     {{#each abilities}}
                     <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}" data-roll-title="{{this.name}} Ability Check">
@@ -192,7 +211,7 @@
                 </div>
 
                 <!-- Saving Throw Section -->
-                <div class="cpb-check-section">
+                <div class="cpb-check-section" data-filter="save">
                     <div class="cpb-section-header">Saving Throw</div>
                     {{#each saves}}
                     <div class="cpb-check-item" data-type="save" data-value="{{this.id}}"  data-roll-title="{{this.name}} Saving Throw">
@@ -204,8 +223,8 @@
                 </div>
 
                 <!-- Dice Roll Section -->
-                <div class="cpb-check-section">
-                    <div class="cpb-section-header" style="margin-bottom: 8px;">Dice Roll</div>
+                <div class="cpb-check-section" data-filter="dice">
+                    <div class="cpb-section-header">Dice Roll</div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
                             <i class="fas fa-coin" title="d2"></i> 1d2
@@ -249,7 +268,7 @@
                 </div>
 
                 <!-- Tool Check Section -->
-                <div class="cpb-check-section">
+                <div class="cpb-check-section" data-filter="tool">
                     <div class="cpb-section-header">Tool Check</div>
                     {{#each tools}}
                     <div class="cpb-check-item{{#unless isCommon}} cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}" data-roll-title="{{name}}">
@@ -265,7 +284,7 @@
 
         <!-- Right Column -->
         <div class="cpb-dialog-column">
-            <h2>CONFIGURE ROLL</h2>
+            <h2><i class="fas fa-cog"></i> Roll Configuration</h2>
             <div class="cpb-form-group">
                 <div class="cpb-form-fields">
                     <select name="rollMode">
@@ -332,11 +351,11 @@
     </div>
     <!-- BUTTONS -->
     <div class="cpb-dialog-buttons">
-        <button class="cpb-dialog-button" data-button="cancel">
+        <button class="cpb-dialog-button button-cancel" data-button="cancel">
             <i class="fas fa-times"></i>
             Cancel
         </button>
-        <button class="cpb-dialog-button" data-button="roll">
+        <button class="cpb-dialog-button button-requestroll" data-button="roll">
             <i class="fas fa-dice-d20"></i>
             Request Roll
         </button>

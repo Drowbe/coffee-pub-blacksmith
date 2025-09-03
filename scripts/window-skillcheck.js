@@ -241,11 +241,15 @@ export class SkillCheckDialog extends Application {
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
         const initialFilter = hasSelectedTokens ? 'selected' : 'party';
         
-        // Set initial active state on filter button
-        html.find(`.cpb-filter-btn[data-filter="${initialFilter}"]`).addClass('active');
+        // Set initial active state on actor filter button (left column)
+        html.find(`.cpb-dialog-column:first-child .cpb-filter-btn[data-filter="${initialFilter}"]`).addClass('active');
         
-        // Apply initial filter
+        // Apply initial actor filter
         this._applyFilter(html, initialFilter);
+        
+        // Set initial roll type filter to "quick" and apply it (middle column)
+        html.find(`.cpb-dialog-column:nth-child(2) .cpb-filter-btn[data-filter="quick"]`).addClass('active');
+        this._applyRollTypeFilter(html, 'quick');
 
         // If tokens are selected on the canvas, pre-select them in the dialog
         if (hasSelectedTokens) {
@@ -352,16 +356,16 @@ export class SkillCheckDialog extends Application {
             updateClearButton();
         });
 
-        // Handle filter buttons
-        html.find('.cpb-filter-btn, .filter-btn').click(ev => {
+        // Handle actor filter buttons (left column)
+        html.find('.cpb-dialog-column:first-child .cpb-filter-btn').click(ev => {
             const button = ev.currentTarget;
             const filterType = button.dataset.filter;
             
-            // Toggle active state on buttons
-            html.find('.cpb-filter-btn, .filter-btn').removeClass('active');
+            // Toggle active state on actor filter buttons only
+            html.find('.cpb-dialog-column:first-child .cpb-filter-btn').removeClass('active');
             button.classList.add('active');
             
-            // Apply filter and respect current search term
+            // Handle actor filtering
             const searchTerm = html.find('input[name="search"]').first().val().toLowerCase();
             if (searchTerm) {
                 // First apply filter without updating visibility
@@ -378,6 +382,19 @@ export class SkillCheckDialog extends Application {
                 // No search term, just apply filter
                 this._applyFilter(html, filterType, true);
             }
+        });
+
+        // Handle roll type filter buttons (middle column)
+        html.find('.cpb-dialog-column:nth-child(2) .cpb-filter-btn').click(ev => {
+            const button = ev.currentTarget;
+            const filterType = button.dataset.filter;
+            
+            // Toggle active state on roll type filter buttons only
+            html.find('.cpb-dialog-column:nth-child(2) .cpb-filter-btn').removeClass('active');
+            button.classList.add('active');
+            
+            // Handle roll type filtering
+            this._applyRollTypeFilter(html, filterType);
         });
 
         // Handle check item selection
@@ -1175,6 +1192,17 @@ export class SkillCheckDialog extends Application {
                 }
             }
         });
+    }
+
+    /**
+     * Apply roll type filter to show/hide sections
+     */
+    _applyRollTypeFilter(html, filterType) {
+        // Hide all sections first
+        html.find('.cpb-check-section').hide();
+        
+        // Show the section that matches the filter
+        html.find(`.cpb-check-section[data-filter="${filterType}"]`).show();
     }
 
     /**
