@@ -1083,12 +1083,15 @@ export async function updateCinemaOverlay(rollResults, context) {
                                 resultText = 'DRAW';
                                 resultClass = 'tie';
                                 detailText = 'Both sides are evenly matched';
+                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-draw.webp';
                             } else if (winningGroup === 1) {
                                 resultText = 'CHALLENGERS WIN';
-                                resultClass = 'success';
+                                resultClass = 'contested-challengers';
+                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-challengers.webp';
                             } else {
                                 resultText = 'DEFENDERS WIN';
-                                resultClass = 'failure';
+                                resultClass = 'contested-defenders';
+                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-defenders.webp';
                             }
                         } else if (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess')) {
                             // Group roll results
@@ -1096,15 +1099,13 @@ export async function updateCinemaOverlay(rollResults, context) {
                             resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
                             resultClass = groupSuccess ? 'success' : 'failure';
                             detailText = `${successCount} of ${totalCount} Succeeded`;
-                        }
-                        
-                        // Determine background image based on result
-                        if (resultClass === 'success') {
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
-                        } else if (resultClass === 'failure') {
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
-                        } else {
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-tie.webp';
+                            
+                            // Determine background image for group results
+                            if (resultClass === 'success') {
+                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
+                            } else {
+                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                            }
                         }
                         
                         // Create the results bar HTML

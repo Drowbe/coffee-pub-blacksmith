@@ -203,19 +203,19 @@
 .cpb-cinematic-group-result.tie,
 .cpb-cinematic-group-result.success,
 .cpb-cinematic-group-result.failure {
-    border: 2px solid rgba(0, 0, 0, 0.21);
-    padding: 20px;
+    border: 0px solid rgba(0, 0, 0, 0.21);
+    padding: 10px;
     box-shadow: 0 0 15px rgba(244, 67, 54, 0.01); /* turned off border for now */
     color: rgba(255, 255, 255, 0.9);
 }
 .cpb-cinematic-group-result.tie {
-    background: rgba(255, 223, 131, 0.3);
+    background: rgba(255, 223, 131, 0.01);
 }
 .cpb-cinematic-group-result.success {
-    background: rgba(45, 63, 17, 0.3);
+    background: rgba(45, 63, 17, 0.01);
 }
 .cpb-cinematic-group-result.failure {
-    background: rgba(255, 108, 107, 0.3);
+    background: rgba(255, 108, 107, 0.01);
 }
 .cpb-cinematic-group-result-text {
     letter-spacing: 4.5px;
@@ -227,7 +227,7 @@
     font-size: 0.7em;
     font-weight: normal;
     text-transform: none;
-    margin-top: 5px;
+    margin-top: 0px;
     text-shadow: 0 1px 4px rgba(0,0,0,0.7);
 }
 
