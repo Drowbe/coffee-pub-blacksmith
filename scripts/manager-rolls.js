@@ -367,6 +367,43 @@ export async function deliverRollResults(rollResults, context) {
 // ==================================================================
 
 /**
+ * Get the appropriate FontAwesome dice icon based on the roll formula
+ * @param {string} rollFormula - The roll formula (e.g., "1d20", "2d6", "1d100", "d100")
+ * @returns {string} FontAwesome icon class
+ */
+function getDiceIcon(rollFormula) {
+    // Extract the dice type from the formula
+    // Handle both formats: "1d20" and "d20"
+    const diceMatch = rollFormula.match(/(\d*)d(\d+)/);
+    if (!diceMatch) {
+        return 'fas fa-dice-d20'; // Default to d20
+    }
+    
+    const diceType = parseInt(diceMatch[2]);
+    
+    switch (diceType) {
+        case 2:
+            return 'fas fa-coin';
+        case 4:
+            return 'fas fa-dice-d4';
+        case 6:
+            return 'fas fa-dice-d6';
+        case 8:
+            return 'fas fa-dice-d8';
+        case 10:
+            return 'fas fa-dice-d10';
+        case 12:
+            return 'fas fa-dice-d12';
+        case 20:
+            return 'fas fa-dice-d20';
+        case 100:
+            return 'fas fa-hundred-points';
+        default:
+            return 'fas fa-dice-d20'; // Default fallback
+    }
+}
+
+/**
  * Prepare roll data for templates
  * @param {Actor} actor - The actor making the roll
  * @param {string} type - The type of roll
@@ -437,6 +474,19 @@ async function prepareRollData(actor, type, value) {
     
     rollSubtitle = subtitleParts.join(' • ');
     
+    // Determine dice icon based on the roll value (which might contain different dice types)
+    // For skill/ability/save rolls, use baseRoll (1d20), but for dice rolls, use the actual value
+    const diceFormula = type === 'dice' ? value : baseRoll;
+    const diceIcon = getDiceIcon(diceFormula);
+    
+    postConsoleAndNotification(MODULE.NAME, `prepareRollData: Dice icon selection:`, {
+        type: type,
+        value: value,
+        baseRoll: baseRoll,
+        diceFormula: diceFormula,
+        diceIcon: diceIcon
+    }, true, false);
+    
     return {
         rollTitle: rollTitle,
         rollSubtitle: rollSubtitle,
@@ -451,7 +501,8 @@ async function prepareRollData(actor, type, value) {
         proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
         otherModifiers: 0, // Will be set by rollOptions
         diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true,
-        preRollVerboseFormula: preRollVerboseFormula
+        preRollVerboseFormula: preRollVerboseFormula,
+        diceIcon: diceIcon
     };
 }
 
