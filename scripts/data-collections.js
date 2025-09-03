@@ -1269,9 +1269,9 @@ export const dataSounds = {
         {
             "name": "Roll: Complete",
             "id": "sound-roll-complete",
-            "value": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
+            "value": "modules/coffee-pub-blacksmith/sounds/interface-button-09.mp3",
             "constantname": "SOUNDROLLCOMPLETE",
-            "path": "modules/coffee-pub-blacksmith/sounds/interface-notification-03.mp3",
+            "path": "modules/coffee-pub-blacksmith/sounds/interface-button-09.mp3",
             "tags": ["sound", "roll", "complete", "notification"],
             "type": "sound",
             "category": "effects"
