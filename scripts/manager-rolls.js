@@ -278,7 +278,10 @@ export async function deliverRollResults(rollResults, context) {
         
         // Create a plain object for the socket to prevent data loss
         const resultForSocket = roll.toJSON();
-        resultForSocket.verboseFormula = roll.verboseFormula || roll.formula;
+        
+        // Create post-roll verbose formula showing actual dice results
+        const postRollVerboseFormula = createPostRollVerboseFormula(roll, rollData);
+        resultForSocket.verboseFormula = postRollVerboseFormula;
         delete resultForSocket.class;
 
         const rollDataForSocket = {
@@ -359,6 +362,22 @@ async function prepareRollData(actor, type, value) {
     
     rollFormula = formulaParts.join(' + ');
     
+    // Create pre-roll verbose formula for tooltips
+    const preRollVerboseParts = [];
+    preRollVerboseParts.push('1d20 roll');
+    
+    if (abilityMod !== 0) preRollVerboseParts.push(`${abilityMod} ${abilityKey}`);
+    
+    if (type === 'skill') {
+        const isProficient = foundry.utils.getProperty(actor.system.skills, `${value}.value`) > 0;
+        if (isProficient) preRollVerboseParts.push(`${profBonus} prof`);
+    } else if (type === 'save') {
+        const isProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) || false;
+        if (isProficient) preRollVerboseParts.push(`${profBonus} prof`);
+    }
+    
+    const preRollVerboseFormula = preRollVerboseParts.join(' + ');
+    
     return {
         rollTitle: `Dice Roll`,
         actorName: actor.name || 'Unknown Actor',
@@ -372,7 +391,8 @@ async function prepareRollData(actor, type, value) {
         abilityMod: abilityMod || 0,
         proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
         otherModifiers: 0, // Will be set by rollOptions
-        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true
+        diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true,
+        preRollVerboseFormula: preRollVerboseFormula
     };
 }
 
@@ -423,6 +443,24 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             
             result = new Roll(skillFormula, actor.getRollData());
             await result.evaluate();
+            
+            // Create descriptive verbose formula for tooltips
+            const verboseParts = [];
+            if (options.advantage) verboseParts.push('2d20kh roll');
+            else if (options.disadvantage) verboseParts.push('2d20kl roll');
+            else verboseParts.push('1d20 roll');
+            
+            if (skillAbilityMod !== 0) verboseParts.push(`${skillAbilityMod} ${skillAbility}`);
+            if (skillIsProficient) verboseParts.push(`${skillProfBonus} prof`);
+            
+            if (options.situationalBonus && options.situationalBonus !== 0) {
+                verboseParts.push(`${options.situationalBonus} situational`);
+            }
+            if (options.customFormula) {
+                verboseParts.push(`${options.customFormula} custom`);
+            }
+            
+            result.verboseFormula = verboseParts.join(' + ');
             break;
         case 'ability':
             postConsoleAndNotification(MODULE.NAME, `Creating manual ability roll for: ${value}`, null, true, false);
@@ -450,6 +488,23 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             
             result = new Roll(abilityFormula, actor.getRollData());
             await result.evaluate();
+            
+            // Create descriptive verbose formula for tooltips
+            const abilityVerboseParts = [];
+            if (options.advantage) abilityVerboseParts.push('2d20kh roll');
+            else if (options.disadvantage) abilityVerboseParts.push('2d20kl roll');
+            else abilityVerboseParts.push('1d20 roll');
+            
+            if (abilityMod !== 0) abilityVerboseParts.push(`${abilityMod} ${value}`);
+            
+            if (options.situationalBonus && options.situationalBonus !== 0) {
+                abilityVerboseParts.push(`${options.situationalBonus} situational`);
+            }
+            if (options.customFormula) {
+                abilityVerboseParts.push(`${options.customFormula} custom`);
+            }
+            
+            result.verboseFormula = abilityVerboseParts.join(' + ');
             break;
         case 'save':
             postConsoleAndNotification(MODULE.NAME, `Creating manual save roll for: ${value}`, null, true, false);
@@ -465,6 +520,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 
                 result = new Roll(deathFormula, actor.getRollData());
                 await result.evaluate();
+                
+                // Create descriptive verbose formula for death saves
+                const deathVerboseParts = [];
+                if (options.advantage) deathVerboseParts.push('2d20kh roll');
+                else if (options.disadvantage) deathVerboseParts.push('2d20kl roll');
+                else deathVerboseParts.push('1d20 roll');
+                
+                result.verboseFormula = deathVerboseParts.join(' + ');
             } else {
                 // Build saving throw formula manually: 1d20 + abilityMod + profBonus
                 const saveAbilityMod = foundry.utils.getProperty(actor.system.abilities, `${value}.mod`) || 0;
@@ -493,6 +556,24 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 
                 result = new Roll(saveFormula, actor.getRollData());
                 await result.evaluate();
+                
+                // Create descriptive verbose formula for saving throws
+                const saveVerboseParts = [];
+                if (options.advantage) saveVerboseParts.push('2d20kh roll');
+                else if (options.disadvantage) saveVerboseParts.push('2d20kl roll');
+                else saveVerboseParts.push('1d20 roll');
+                
+                if (saveAbilityMod !== 0) saveVerboseParts.push(`${saveAbilityMod} ${value}`);
+                if (saveIsProficient) saveVerboseParts.push(`${saveProfBonus} prof`);
+                
+                if (options.situationalBonus && options.situationalBonus !== 0) {
+                    saveVerboseParts.push(`${options.situationalBonus} situational`);
+                }
+                if (options.customFormula) {
+                    saveVerboseParts.push(`${options.customFormula} custom`);
+                }
+                
+                result.verboseFormula = saveVerboseParts.join(' + ');
             }
             break;
         case 'tool':
@@ -527,6 +608,24 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 
                 result = new Roll(toolFormula, actor.getRollData());
                 await result.evaluate();
+                
+                // Create descriptive verbose formula for tool rolls
+                const toolVerboseParts = [];
+                if (options.advantage) toolVerboseParts.push('2d20kh roll');
+                else if (options.disadvantage) toolVerboseParts.push('2d20kl roll');
+                else toolVerboseParts.push('1d20 roll');
+                
+                if (abilityMod !== 0) toolVerboseParts.push(`${abilityMod} ${ability}`);
+                if (isProficient) toolVerboseParts.push(`${profBonus} prof`);
+                
+                if (options.situationalBonus && options.situationalBonus !== 0) {
+                    toolVerboseParts.push(`${options.situationalBonus} situational`);
+                }
+                if (options.customFormula) {
+                    toolVerboseParts.push(`${options.customFormula} custom`);
+                }
+                
+                result.verboseFormula = toolVerboseParts.join(' + ');
             } else {
                 throw new Error(`Tool item not found: ${value}`);
             }
@@ -546,6 +645,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Dice roll formula: ${diceFormula}`, null, true, false);
             result = new Roll(diceFormula, actor.getRollData());
             await result.evaluate();
+            
+            // Create descriptive verbose formula for dice rolls
+            const diceVerboseParts = [];
+            if (options.advantage) diceVerboseParts.push('2d20kh roll');
+            else if (options.disadvantage) diceVerboseParts.push('2d20kl roll');
+            else diceVerboseParts.push(`${diceFormula} roll`);
+            
+            result.verboseFormula = diceVerboseParts.join(' + ');
             break;
     }
     
@@ -746,8 +853,8 @@ class RollWindow extends Application {
             });
             
             // Close the dialog after the roll is complete
-            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
-            this.close();
+                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
+                this.close();
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll error:`, error, true, false);
@@ -913,7 +1020,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                             const activeResult = term.results.find(r => r.active === true);
                             if (activeResult) {
                                 d20Roll = activeResult.result;
-                            } else {
+            } else {
                                 // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
                                 const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
                                 d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
@@ -1110,6 +1217,72 @@ async function emitRollUpdate(rollDataForSocket) {
     }
     
     postConsoleAndNotification(MODULE.NAME, `emitRollUpdate: Socket update emitted`, null, true, false);
+}
+
+/**
+ * Create post-roll verbose formula showing actual dice results
+ * @param {Roll} roll - The completed roll
+ * @param {object} rollData - The roll data
+ * @returns {string} Post-roll verbose formula
+ */
+function createPostRollVerboseFormula(roll, rollData) {
+    try {
+        // Get the dice results
+        const dice = roll.dice || [];
+        const terms = roll.terms || [];
+        
+        // Find the d20 roll result
+        let d20Result = null;
+        let d20Index = -1;
+        
+        for (let i = 0; i < dice.length; i++) {
+            if (dice[i].faces === 20) {
+                d20Result = dice[i].results[0]?.result || dice[i].total;
+                d20Index = i;
+                break;
+            }
+        }
+        
+        // If no d20 found, try to find it in terms
+        if (d20Result === null) {
+            for (let i = 0; i < terms.length; i++) {
+                if (terms[i].faces === 20) {
+                    d20Result = terms[i].results[0]?.result || terms[i].total;
+                    d20Index = i;
+                    break;
+                }
+            }
+        }
+        
+        // Build the post-roll verbose formula
+        const postRollParts = [];
+        
+        // Add the actual dice result
+        if (d20Result !== null) {
+            postRollParts.push(`${d20Result} roll`);
+        } else {
+            // Fallback to showing the dice formula if we can't find the result
+            postRollParts.push(`${roll.formula.split(' + ')[0]} roll`);
+        }
+        
+        // Add modifiers from the original verbose formula
+        const originalVerbose = roll.verboseFormula || roll.formula;
+        const verboseParts = originalVerbose.split(' + ');
+        
+        // Skip the first part (the dice) and add the rest, removing parentheses
+        for (let i = 1; i < verboseParts.length; i++) {
+            const part = verboseParts[i].replace(/[()]/g, ''); // Remove parentheses
+            postRollParts.push(part);
+        }
+        
+        // Add the total
+        const postRollFormula = postRollParts.join(' + ');
+        return `${postRollFormula} = ${roll.total}`;
+        
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Error creating post-roll verbose formula:`, error, true, false);
+        return roll.verboseFormula || roll.formula;
+    }
 }
 
 // ==================================================================
