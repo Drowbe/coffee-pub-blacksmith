@@ -2,8 +2,17 @@
 <div class="roll-dialog foundry-style-window">
   <div class="roll-header-sticky">
     <div class="roll-header">
-      <i class="fas fa-dice-d20"></i>
-      <span>{{rollTitle}}</span>
+      <div class="roll-header-content">
+        <div class="roll-dice-icon">
+          <i class="fas fa-dice-d20"></i>
+        </div>
+        <div class="roll-title-section">
+          <div class="roll-main-title">{{rollTitle}}</div>
+          {{#if rollSubtitle}}
+            <div class="roll-subtitle">{{rollSubtitle}}</div>
+          {{/if}}
+        </div>
+      </div>
     </div>
     <div class="roll-summary-row">
       <div class="roll-summary-item"><span class="label">Actor</span><span>{{actorName}}</span></div>
@@ -62,8 +71,8 @@
   </div>
   
   <div class="roll-footer">
-    <button type="button" class="roll-btn roll-disadvantage"><i class="fas fa-arrow-down"></i> Disadvantage</button>
-    <button type="button" class="roll-btn roll-normal"><i class="fas fa-circle"></i> Normal</button>
-    <button type="button" class="roll-btn roll-advantage"><i class="fas fa-arrow-up"></i> Advantage</button>
+    <button type="button" class="roll-btn roll-disadvantage"><i class="fas fa-circle-minus"></i> Disadvantage</button>
+    <button type="button" class="roll-btn roll-normal"><i class="fas fa-dice-d20"></i> Normal</button>
+    <button type="button" class="roll-btn roll-advantage"><i class="fas fa-circle-plus"></i> Advantage</button>
   </div>
 </div>

@@ -171,6 +171,14 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.system = diceRollToolSystem;
         rollData.mode = mode;
         rollData.cinemaMode = rollDetails.isCinematic;
+        rollData.label = rollDetails.label; // Pass the roll title from data-roll-title
+        
+        // Add additional context for subtitle building
+        rollData.dc = rollDetails.dc;
+        rollData.isGroupRoll = rollDetails.groupRoll;
+        rollData.hasMultipleGroups = rollDetails.actors.length > 1 || (rollDetails.defenderRollType && rollDetails.defenderRollValue);
+        rollData.skillName = rollData.rollSubtitle; // This will be the skill name from prepareRollData
+        rollData.defenderSkillName = rollDetails.defenderRollValue;
         
         // Open appropriate mode for rolling
         if (mode === 'cinema') {
@@ -378,13 +386,39 @@ async function prepareRollData(actor, type, value) {
     
     const preRollVerboseFormula = preRollVerboseParts.join(' + ');
     
+    // Generate title and subtitle based on roll type
+    // Title will be set from data-roll-title in the calling code
+    let rollTitle = 'Dice Roll';
+    let rollSubtitle = '';
+    
+    // Build subtitle with skill info, DC, group status, etc.
+    const subtitleParts = [];
+    
+    if (type === 'skill') {
+        subtitleParts.push(skillData?.label || value || 'Unknown');
+    } else if (type === 'ability') {
+        subtitleParts.push((value || 'Unknown').toUpperCase());
+    } else if (type === 'save') {
+        subtitleParts.push((value || 'Unknown').toUpperCase());
+    } else if (type === 'tool') {
+        subtitleParts.push(value || 'Unknown');
+    } else {
+        subtitleParts.push(value || 'Unknown');
+    }
+    
+    // Note: DC, group roll, and contested roll info will be added by the calling function
+    // since prepareRollData doesn't have access to that context yet
+    
+    rollSubtitle = subtitleParts.join(' • ');
+    
     return {
-        rollTitle: `Dice Roll`,
+        rollTitle: rollTitle,
+        rollSubtitle: rollSubtitle,
         actorName: actor.name || 'Unknown Actor',
-        rollType: type === 'skill' ? `Dice Roll: ${skillData?.label || value || 'Unknown'}` : 
-                  type === 'ability' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
-                  type === 'save' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
-                  type === 'tool' ? `Dice Roll: ${value || 'Unknown'}` : `Dice Roll: ${value || 'Unknown'}`,
+        rollType: type === 'skill' ? `${skillData?.label || value || 'Unknown'}` : 
+                  type === 'ability' ? `${(value || 'Unknown').toUpperCase()}` :
+                  type === 'save' ? `${(value || 'Unknown').toUpperCase()}` :
+                  type === 'tool' ? `${value || 'Unknown'}` : `${value || 'Unknown'}`,
         rollFormula: preRollVerboseFormula || '1d20 roll',
         baseRoll: baseRoll || '1d20',
         abilityMod: abilityMod || 0,
@@ -743,6 +777,31 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         
+        // Override title with data-roll-title if available
+        if (rollData.label) {
+            dialogRollData.rollTitle = rollData.label;
+        }
+        
+        // Build complete subtitle with additional context
+        const subtitleParts = [dialogRollData.rollSubtitle];
+        
+        // Add DC if present
+        if (rollData.dc) {
+            subtitleParts.push(`DC ${rollData.dc}`);
+        }
+        
+        // Add group roll info if applicable
+        if (rollData.isGroupRoll) {
+            subtitleParts.push('Group Roll');
+        }
+        
+        // Add contested roll info if applicable
+        if (rollData.hasMultipleGroups) {
+            subtitleParts.push(`${rollData.skillName} vs ${rollData.defenderSkillName}`);
+        }
+        
+        dialogRollData.rollSubtitle = subtitleParts.join(' • ');
+        
         postConsoleAndNotification(MODULE.NAME, `showRollWindow: Context data added:`, { messageId: dialogRollData.messageId, tokenId: dialogRollData.tokenId }, true, false);
         
         // Create and show the dialog
@@ -778,8 +837,8 @@ class RollWindow extends Application {
             id: 'roll-window',
             template: 'modules/coffee-pub-blacksmith/templates/window-roll-normal.hbs',
             title: 'Roll Configuration',
-            width: 600,
-            height: 500,
+            width: 500,
+            height: 450,
             resizable: true,
             classes: ['roll-window']
         });

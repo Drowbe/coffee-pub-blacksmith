@@ -12,8 +12,8 @@
 
 /* Main Window */
 div#roll-window {
-  min-height: 500px;
-  min-width: 600px;
+  min-height: 450px;
+  min-width: 500px;
 }
 
 /* Window Content */
@@ -41,15 +41,53 @@ div#roll-window .window-content {
 }
 
 .roll-header {
+  background: #18181c;
+  padding: 1em;
+  border-bottom: 1px solid #444;
+}
+
+.roll-header-content {
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  background: #18181c;
-  color: rgba(145, 133, 107, 1.0);
+  gap: 1em;
+}
+
+.roll-dice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(172, 159, 129, 0.9);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.roll-dice-icon i {
+  font-size: 2.5em;
+  padding-top: 2px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.roll-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  flex: 1;
+}
+
+.roll-main-title {
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 700;
+  font-size: 1.4em;
+  line-height: 1.2;
+}
+
+.roll-subtitle {
+  color: rgba(172, 159, 129, 0.9);
+  font-weight: 500;
   font-size: 1.1em;
-  padding: 0.75em 1em;
-  border-bottom: 1px solid #444;
 }
 
 .roll-body {
@@ -117,9 +155,9 @@ div#roll-window .window-content {
 }
 
 .roll-formula {
-  font-family: "Courier New", monospace;
-  color: rgba(255, 47, 47, 1.0);
-  font-weight: 600;
+  font-family: inherit;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .roll-total {
@@ -129,8 +167,8 @@ div#roll-window .window-content {
 }
 
 .roll-section {
-  margin-bottom: 0.5em;
-  padding: 10px;
+  margin-bottom: 0px;
+  padding: 5px 10px 5px 10px;
 }
 
 .roll-section-header {
@@ -141,13 +179,13 @@ div#roll-window .window-content {
   display: flex;
   align-items: center;
   gap: 0.5em;
-  margin-bottom: 0.5em;
+  margin-bottom: 10px;
   border-bottom: 1px solid #444;
   border-radius: 5px;
-  padding-top: 0.4em;
-  padding-bottom: 0.4em;
-  padding-left: 0.6em;
-  padding-right: 0.6em;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
   text-transform: uppercase;
 }
 
@@ -253,8 +291,10 @@ div#roll-window .window-content {
   transition: background 0.15s, border 0.15s;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4em;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .roll-btn:hover {
