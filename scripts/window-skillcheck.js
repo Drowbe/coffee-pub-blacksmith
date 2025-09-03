@@ -1382,24 +1382,34 @@ export class SkillCheckDialog extends Application {
         // Debug: Check what background image we got
         console.log('🔍 Skill Check Debug - Selected background image:', backgroundImage);
 
-        // Create roll details text
+        // Create roll details text with separate title and subtitle
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
+        
+        // 1. Roll Title (always separate and prominent)
+        const rollTitle = messageData.label || messageData.skillName;
+        rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${rollTitle}</h2>`;
+        
+        // 2. Subtitle with skill info and additional details
+        const subtitleParts = [];
+        
+        // Contested roll info (skill vs skill)
         if (messageData.hasMultipleGroups) {
-            rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName} vs ${messageData.defenderSkillName}</h2>`;
-        } else {
-            rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${messageData.skillName}</h2>`;
+            subtitleParts.push(`${messageData.skillName} vs ${messageData.defenderSkillName}`);
         }
         
-        const subtextParts = [];
+        // DC info
         if (messageData.showDC && messageData.dc) {
-            subtextParts.push(`DC ${messageData.dc}`);
-        }
-        if (messageData.isGroupRoll && !messageData.hasMultipleGroups) {
-            subtextParts.push(`Group Roll`);
+            subtitleParts.push(`DC ${messageData.dc}`);
         }
         
-        if (subtextParts.length > 0) {
-            rollDetailsHtml += `<p class="cpb-cinematic-roll-subtext">${subtextParts.join(' &bull; ')}</p>`;
+        // Group roll info
+        if (messageData.isGroupRoll && !messageData.hasMultipleGroups) {
+            subtitleParts.push(`Group Roll`);
+        }
+        
+        // Add subtitle if we have any parts
+        if (subtitleParts.length > 0) {
+            rollDetailsHtml += `<p class="cpb-cinematic-roll-subtext">${subtitleParts.join(' • ')}</p>`;
         }
         
         rollDetailsHtml += `</div>`;
