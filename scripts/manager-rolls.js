@@ -174,11 +174,29 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.label = rollDetails.label; // Pass the roll title from data-roll-title
         
         // Add additional context for subtitle building
+        postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Original rollDetails for context:`, {
+            dc: rollDetails.dc,
+            groupRoll: rollDetails.groupRoll,
+            actorsLength: rollDetails.actors.length,
+            defenderRollType: rollDetails.defenderRollType,
+            defenderRollValue: rollDetails.defenderRollValue
+        }, true, false);
+        
         rollData.dc = rollDetails.dc;
         rollData.isGroupRoll = rollDetails.groupRoll;
         rollData.hasMultipleGroups = rollDetails.actors.length > 1 || (rollDetails.defenderRollType && rollDetails.defenderRollValue);
         rollData.skillName = rollData.rollSubtitle; // This will be the skill name from prepareRollData
-        rollData.defenderSkillName = rollDetails.defenderRollValue;
+        
+        // Get defender skill name properly formatted
+        if (rollDetails.defenderRollType && rollDetails.defenderRollValue) {
+            if (rollDetails.defenderRollType === 'skill') {
+                const defenderActor = game.actors.get(rollDetails.actors[0]?.actorId); // Assuming same actor for now
+                const defenderSkillData = defenderActor?.system?.skills?.[rollDetails.defenderRollValue];
+                rollData.defenderSkillName = defenderSkillData?.label || rollDetails.defenderRollValue;
+            } else {
+                rollData.defenderSkillName = rollDetails.defenderRollValue.toUpperCase();
+            }
+        }
         
         // Open appropriate mode for rolling
         if (mode === 'cinema') {
@@ -191,6 +209,14 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
             }
         } else {
             // Window mode - wait for user interaction
+            postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Passing data to showRollWindow:`, {
+                dc: rollData.dc,
+                isGroupRoll: rollData.isGroupRoll,
+                hasMultipleGroups: rollData.hasMultipleGroups,
+                skillName: rollData.skillName,
+                defenderSkillName: rollData.defenderSkillName,
+                label: rollData.label
+            }, true, false);
             await showRollWindow(rollData);
         }
         
@@ -763,7 +789,19 @@ async function _executeToolRollFoundry(actor, toolIdentifier, rollOptions) {
  * @returns {Promise<object|null>} Roll result or null if cancelled
  */
 async function showRollWindow(rollData) {
-    postConsoleAndNotification(MODULE.NAME, `showRollWindow: Starting with parameters:`, { actor: rollData.actorName, actorId: rollData.actorId, type: rollData.rollTypeKey, value: rollData.rollValueKey, options: {} }, true, false);
+    postConsoleAndNotification(MODULE.NAME, `showRollWindow: Starting with parameters:`, { 
+        actor: rollData.actorName, 
+        actorId: rollData.actorId, 
+        type: rollData.rollTypeKey, 
+        value: rollData.rollValueKey, 
+        dc: rollData.dc,
+        isGroupRoll: rollData.isGroupRoll,
+        hasMultipleGroups: rollData.hasMultipleGroups,
+        skillName: rollData.skillName,
+        defenderSkillName: rollData.defenderSkillName,
+        label: rollData.label,
+        options: {} 
+    }, true, false);
     
     try {
         // Build roll data for the dialog
@@ -783,7 +821,10 @@ async function showRollWindow(rollData) {
         }
         
         // Build complete subtitle with additional context
-        const subtitleParts = [dialogRollData.rollSubtitle];
+        const subtitleParts = [];
+        
+        // Start with the skill/ability name from prepareRollData
+        subtitleParts.push(dialogRollData.rollSubtitle);
         
         // Add DC if present
         if (rollData.dc) {
@@ -801,6 +842,16 @@ async function showRollWindow(rollData) {
         }
         
         dialogRollData.rollSubtitle = subtitleParts.join(' • ');
+        
+        postConsoleAndNotification(MODULE.NAME, `showRollWindow: Subtitle building:`, {
+            originalSubtitle: dialogRollData.rollSubtitle,
+            dc: rollData.dc,
+            isGroupRoll: rollData.isGroupRoll,
+            hasMultipleGroups: rollData.hasMultipleGroups,
+            skillName: rollData.skillName,
+            defenderSkillName: rollData.defenderSkillName,
+            finalSubtitle: dialogRollData.rollSubtitle
+        }, true, false);
         
         postConsoleAndNotification(MODULE.NAME, `showRollWindow: Context data added:`, { messageId: dialogRollData.messageId, tokenId: dialogRollData.tokenId }, true, false);
         
