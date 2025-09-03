@@ -9,7 +9,12 @@
       <div class="roll-summary-item"><span class="label">Actor</span><span>{{actorName}}</span></div>
       <div class="roll-summary-item"><span class="label">Type</span><span>{{rollType}}</span></div>
       <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
-      <div class="roll-summary-item"><span class="label">Total</span><span class="roll-total">{{rollTotal}}</span></div>
+      <div class="roll-summary-item"><span class="label">Roll Mode</span><select class="roll-mode-select" name="roll-mode">
+        <option value="public">Public Roll</option>
+        <option value="private">Private Roll</option>
+        <option value="blind">Blind Roll</option>
+        <option value="self">Self Roll</option>
+      </select></div>
     </div>
   </div>
   
@@ -30,28 +35,7 @@
       </div>
     </div>
 
-    <div class="roll-section">
-      <div class="roll-section-header"><i class="fas fa-dice"></i> Roll Options</div>
-      
-      <div class="roll-options-grid">
-        <div class="roll-option-item">
-          <label class="roll-option-label">Roll Mode</label>
-          <select class="roll-mode-select" name="roll-mode">
-            <option value="public">Public Roll</option>
-            <option value="private">Private Roll</option>
-            <option value="blind">Blind Roll</option>
-            <option value="self">Self Roll</option>
-          </select>
-        </div>
-        
-        <div class="roll-option-item">
-          <label class="roll-option-label">Dice So Nice</label>
-          <input type="checkbox" class="roll-dice-so-nice" name="dice-so-nice" {{#if diceSoNiceEnabled}}checked{{/if}}>
-        </div>
-        
 
-      </div>
-    </div>
 
     <div class="roll-section">
       <div class="roll-section-header"><i class="fas fa-info-circle"></i> Roll Details</div>
@@ -78,7 +62,6 @@
   </div>
   
   <div class="roll-footer">
-    <button type="button" class="roll-btn cancel-roll"><i class="fas fa-times"></i> Cancel</button>
     <button type="button" class="roll-btn roll-disadvantage"><i class="fas fa-arrow-down"></i> Disadvantage</button>
     <button type="button" class="roll-btn roll-normal"><i class="fas fa-circle"></i> Normal</button>
     <button type="button" class="roll-btn roll-advantage"><i class="fas fa-arrow-up"></i> Advantage</button>

@@ -11,13 +11,13 @@
 }
 
 /* Main Window */
-div#roll-dialog-window {
+div#roll-window {
   min-height: 500px;
   min-width: 600px;
 }
 
 /* Window Content */
-div#roll-dialog-window .window-content {
+div#roll-window .window-content {
   opacity: var(--container-opacity);
   padding: 10px;
   background: #222222;
@@ -82,6 +82,27 @@ div#roll-dialog-window .window-content {
   min-width: 80px;
   font-size: 0.95em;
   color: #e0e0e0;
+}
+
+.roll-summary-item select {
+  background-color: #232323 !important;
+  color: #e0e0e0 !important;
+  border: 1px solid #444 !important;
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+  font-size: 0.9em;
+  margin-top: 0.2em;
+  min-width: 100px;
+}
+
+.roll-summary-item select:focus {
+  outline: none;
+  border-color: rgba(255, 47, 47, 1.0) !important;
+}
+
+.roll-summary-item select option {
+  background-color: #232323 !important;
+  color: #e0e0e0 !important;
 }
 
 .roll-summary-item .label {
@@ -173,52 +194,9 @@ div#roll-dialog-window .window-content {
   opacity: 1;
 }
 
-/* Options Grid */
-.roll-options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1em;
-  margin-bottom: 0.5em;
-}
 
-.roll-option-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25em;
-}
 
-.roll-option-label {
-  font-size: 0.9em;
-  color: rgba(235, 233, 225, 1);
-  font-weight: 600;
-}
 
-.roll-mode-select {
-  background-color: #232323 !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #444 !important;
-  border-radius: 4px;
-  padding: 0.3em 0.5em;
-  font-size: 0.95em;
-}
-
-.roll-mode-select:focus {
-  outline: none;
-  border-color: rgba(255, 47, 47, 1.0) !important;
-}
-
-.roll-mode-select option {
-  background-color: #232323 !important;
-  color: #e0e0e0 !important;
-}
-
-/* Checkbox styling */
-.roll-dice-so-nice {
-  width: 18px;
-  height: 18px;
-  accent-color: rgba(255, 47, 47, 1.0);
-  cursor: pointer;
-}
 
 /* Details Grid */
 .roll-details-grid {
@@ -256,7 +234,7 @@ div#roll-dialog-window .window-content {
 /* Footer */
 .roll-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5em;
   padding: 0.5em 1em 0.5em 1em;
   border-top: 1px solid #444;
@@ -315,9 +293,7 @@ div#roll-dialog-window .window-content {
   border-color: rgba(71, 125, 198, 1.0);
 }
 
-.roll-btn.cancel-roll:hover {
-  background: #333;
-}
+
 
 /* Sticky header and summary */
 .roll-header-sticky {

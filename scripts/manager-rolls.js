@@ -385,8 +385,7 @@ async function prepareRollData(actor, type, value) {
                   type === 'ability' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
                   type === 'save' ? `Dice Roll: ${(value || 'Unknown').toUpperCase()}` :
                   type === 'tool' ? `Dice Roll: ${value || 'Unknown'}` : `Dice Roll: ${value || 'Unknown'}`,
-        rollFormula: rollFormula || '1d20',
-        rollTotal: '?',
+        rollFormula: preRollVerboseFormula || '1d20 roll',
         baseRoll: baseRoll || '1d20',
         abilityMod: abilityMod || 0,
         proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
@@ -779,8 +778,8 @@ class RollWindow extends Application {
             id: 'roll-window',
             template: 'modules/coffee-pub-blacksmith/templates/window-roll-normal.hbs',
             title: 'Roll Configuration',
-            width: 450,
-            height: 400,
+            width: 600,
+            height: 500,
             resizable: true,
             classes: ['roll-window']
         });
