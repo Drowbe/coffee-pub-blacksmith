@@ -17,7 +17,7 @@ This document outlines the **completed migration** from the complex COFFEEPUB ho
 ## Current State (✅ COMPLETED)
 
 ### 1. ✅ Data Sharing System - MIGRATED
-- **Single data source**: All asset data centralized in `data-collections.js`
+- **Single data source**: All asset data centralized in `assets.js`
 - **Automated constants generation**: COFFEEPUB constants built from data collections
 - **Global exposure**: Constants available via `window.COFFEEPUB` and `BlacksmithConstants`
 - **Performance improved**: No more hook firing for every data update
@@ -37,7 +37,7 @@ This document outlines the **completed migration** from the complex COFFEEPUB ho
 ## Target State (Solutions)
 
 ### 1. Centralized Data Management
-- **Single source of truth**: All asset data in `data-collections.js`
+- **Single source of truth**: All asset data in `assets.js`
 - **Direct global access**: `BlacksmithConstants` exposed globally
 - **No more hooks**: Direct data access instead of event-driven syncing
 - **Single import point**: Other modules import from Blacksmith only
@@ -58,7 +58,7 @@ This document outlines the **completed migration** from the complex COFFEEPUB ho
 
 ### Phase 1: Foundation & Data Collections (✅ COMPLETED - Week 1)
 
-#### 1.1 ✅ Enhanced data-collections.js
+#### 1.1 ✅ Enhanced assets.js
 - [x] Added `constantname` property to all sound entries
 - [x] Added `constantname` property to all image entries  
 - [x] Added `constantname` property to all theme entries
@@ -333,7 +333,7 @@ function generateCOFFEEPUB() {
 ## Dependencies
 
 ### Internal Dependencies
-- **data-collections.js**: Must be enhanced before constants generation
+- **assets.js**: Must be enhanced before constants generation
 - **DataCollectionProcessor**: Must be created before refactoring settings
 - **Constants Generator**: Must be working before removing old system
 

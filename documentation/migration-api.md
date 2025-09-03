@@ -128,7 +128,7 @@ export const SOUNDNEWSOUND = "modules/coffee-pub-blacksmith/sounds/new-sound.mp3
 
 **New way (automatic):**
 ```javascript
-// Add to data-collections.js
+// Add to assets.js
 {
     "name": "New Sound",
     "id": "sound-new-sound",

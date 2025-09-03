@@ -1808,11 +1808,11 @@ async function guessIconPath(item) {
   let synonymMapping = {};
   if (enhancedEnabled) {
     try {
-      const response = await fetch('modules/coffee-pub-blacksmith/resources/item-mapping.json');
+      const response = await fetch('modules/coffee-pub-blacksmith/resources/taxonomy.json');
       synonymMapping = await response.json();
       console.log('BLACKSMITH | Item Import | Loaded comprehensive synonym mapping with', Object.keys(synonymMapping).length, 'entries');
     } catch (error) {
-      console.warn('BLACKSMITH | Item Import | Could not load item-mapping.json, falling back to basic mapping');
+      console.warn('BLACKSMITH | Item Import | Could not load taxonomy.json, falling back to basic mapping');
       synonymMapping = {
         ring: ['commodities/treasure', 'commodities/gems', 'commodities/misc', 'sundries/misc'],
         key: ['tools/hand', 'commodities/metal', 'commodities/misc'],
@@ -1968,7 +1968,7 @@ async function guessIconPath(item) {
 // Utility function to get available synonyms for debugging
 async function getAvailableSynonyms() {
   try {
-    const response = await fetch('modules/coffee-pub-blacksmith/resources/item-mapping.json');
+    const response = await fetch('modules/coffee-pub-blacksmith/resources/taxonomy.json');
     const mapping = await response.json();
     return Object.keys(mapping).sort();
   } catch (error) {

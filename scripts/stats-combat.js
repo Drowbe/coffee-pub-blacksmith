@@ -5,7 +5,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
-import { MVPTemplates } from './data-collections.js';
+import { MVPTemplates } from '../resources/assets.js';
 
 // Helper function to get actor portrait
 function getActorPortrait(combatant) {

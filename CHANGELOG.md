@@ -531,7 +531,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added visual feedback for completed votes with checkmark icon
 
 ### Changed
-- Moved MVPTemplates from mvp-templates.js into data-collections.js
+- Moved MVPTemplates from mvp-templates.js into assets.js
 - Moved MVPDescriptionGenerator class from mvp-description-generator.js into stats-combat.js
 - Consolidated combat-related functionality into fewer files for better maintainability
 - Modified session timer to use the default time when loading on a new day

@@ -15,7 +15,7 @@ import {
     dataVolume,
     dataBanners,
     dataBackgrounds
-} from './data-collections.js';
+} from '../resources/assets.js';
 
 export class ConstantsGenerator {
     
