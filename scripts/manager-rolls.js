@@ -351,6 +351,71 @@ export async function deliverRollResults(rollResults, context) {
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Not cinema mode, rollData.cinemaMode:`, rollData.cinemaMode, true, false);
+            
+            // Play sound for normal window mode (same as cinema mode)
+            let d20Roll = null;
+            
+            // First try the terms structure (newer Foundry format)
+            if (roll?.terms) {
+                for (const term of roll.terms) {
+                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (term.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = term.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = term.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback to dice structure (older format)
+            if (d20Roll === null && roll?.dice) {
+                for (const die of roll.dice) {
+                    if (die.faces === 20 && die.results && die.results.length > 0) {
+                        // For advantage/disadvantage, find the active result
+                        if (die.results.length === 2) {
+                            // This is advantage/disadvantage - find the active result
+                            const activeResult = die.results.find(r => r.active === true);
+                            if (activeResult) {
+                                d20Roll = activeResult.result;
+                            } else {
+                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
+                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
+                            }
+                        } else {
+                            // Single d20 roll
+                            d20Roll = die.results[0].result;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Play sound based on d20 result (same logic as cinema mode)
+            let individualSound;
+            if (d20Roll === 20) {
+                individualSound = COFFEEPUB.SOUNDROLLCRITICAL;
+            } else if (d20Roll === 1) {
+                individualSound = COFFEEPUB.SOUNDROLLFUMBLE;
+            } else {
+                individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
+            }
+            
+            import('./api-common.js').then(({ playSound }) => {
+                playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            });
         }
         
         postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Results delivered successfully`, null, true, false);
