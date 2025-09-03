@@ -614,6 +614,12 @@ export class SkillCheckDialog extends Application {
                     item.classList.add('selected');
                     this.selectedType = type;
                     this.selectedValue = value;
+                    
+                    // Extract roll title for skill/ability/save rolls
+                    const rollTitle = item.dataset.rollTitle || null;
+                    if (rollTitle) {
+                        this.selectedRollTitle = rollTitle;
+                    }
                 }
             }
 
@@ -803,6 +809,9 @@ export class SkillCheckDialog extends Application {
             // Use roll title from quick roll overrides if available
             if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollTitle) {
                 label = this._quickRollOverrides.rollTitle;
+            } else if (this.selectedRollTitle) {
+                // Use roll title from selected skill/ability/save roll
+                label = this.selectedRollTitle;
             }
 
             // Process actors and their specific tool IDs if needed

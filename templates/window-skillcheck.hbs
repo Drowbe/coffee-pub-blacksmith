@@ -156,7 +156,7 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Skill Check</div>
                     {{#each skills}}
-                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}"  data-roll-title="{{this.name}} Skill Check">
                         <i class="{{this.icon}}"></i>
                         <span>{{this.name}}</span>
                         <div class="cpb-roll-type-indicator"></div>
@@ -168,7 +168,7 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Ability Check</div>
                     {{#each abilities}}
-                    <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}" data-roll-title="{{this.name}} Ability Check">
                         <i class="fas fa-user-circle"></i>
                         <span>{{this.name}}</span>
                         <div class="cpb-roll-type-indicator"></div>
@@ -180,7 +180,7 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Saving Throw</div>
                     {{#each saves}}
-                    <div class="cpb-check-item" data-type="save" data-value="{{this.id}}">
+                    <div class="cpb-check-item" data-type="save" data-value="{{this.id}}"  data-roll-title="{{this.name}} Saving Throw">
                         <i class="fas fa-shield-heart"></i>
                         <span>{{this.name}}</span>
                         <div class="cpb-roll-type-indicator"></div>
@@ -192,41 +192,41 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header" style="margin-bottom: 8px;">Dice Roll</div>
                     <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d2">
+                        <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
                             <i class="fas fa-coin" title="d2"></i> 1d2
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d4">
+                        <div class="cpb-check-item" data-type="dice" data-value="d4" data-roll-title="1d4 Dice Roll">
                             <i class="fas fa-dice-d4" title="d4"></i> 1d4
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d6">
+                        <div class="cpb-check-item" data-type="dice" data-value="d6" data-roll-title="1d6 Dice Roll">
                             <i class="fas fa-dice-d6" title="d6"></i> 1d6
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d8">
+                        <div class="cpb-check-item" data-type="dice" data-value="d8" data-roll-title="1d8 Dice Roll">
                             <i class="fas fa-dice-d8" title="d8"></i> 1d8
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d10">
+                        <div class="cpb-check-item" data-type="dice" data-value="d10" data-roll-title="1d10 Dice Roll">
                             <i class="fas fa-dice-d10" title="d10"></i> 1d10
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d12">
+                        <div class="cpb-check-item" data-type="dice" data-value="d12" data-roll-title="1d12 Dice Roll">
                             <i class="fas fa-dice-d12" title="d12"></i> 1d12
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d20">
+                        <div class="cpb-check-item" data-type="dice" data-value="d20" data-roll-title="1d20 Dice Roll">
                             <i class="fas fa-dice-d20" title="d20"></i> 1d20
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d100">
+                        <div class="cpb-check-item" data-type="dice" data-value="d100" data-roll-title="1d100 Dice Roll">
                             <i class="fas fa-hundred-points" title="d100"></i> 1d100
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
@@ -237,7 +237,7 @@
                 <div class="cpb-check-section">
                     <div class="cpb-section-header">Tool Check</div>
                     {{#each tools}}
-                    <div class="cpb-check-item{{#unless isCommon}} cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}">
+                    <div class="cpb-check-item{{#unless isCommon}} cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}" data-roll-title="{{name}}">
                         <i class="fas fa-tools"></i>
                         <span>{{name}}</span>
                         <div class="cpb-roll-type-indicator"></div>
