@@ -399,6 +399,7 @@ export class SkillCheckDialog extends Application {
                 const groupAttr = item.dataset.group;
                 const dcAttr = item.dataset.dc;
                 const defenderSkillAttr = item.dataset.defenderSkill;
+                const rollTitle = item.dataset.rollTitle || null;
                 let isGroupRoll = null;
                 if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
                 let dcOverride = dcAttr !== undefined ? dcAttr : null;
@@ -481,7 +482,8 @@ export class SkillCheckDialog extends Application {
                         isGroupRoll: false, // Contested rolls are never group rolls
                         dcOverride: null, // Contested rolls don't use DC
                         isContested: true,
-                        rollType: rollType // Store the roll type for consistency
+                        rollType: rollType, // Store the roll type for consistency
+                        rollTitle: rollTitle // Store the roll title
                     };
 
                     // Automatically click the roll button
@@ -518,7 +520,8 @@ export class SkillCheckDialog extends Application {
                 this._quickRollOverrides = {
                     isGroupRoll,
                     dcOverride,
-                    rollType: rollType // Store the roll type to distinguish party vs other quick rolls
+                    rollType: rollType, // Store the roll type to distinguish party vs other quick rolls
+                    rollTitle: rollTitle // Store the roll title
                 };
 
                 // Automatically click the roll button
@@ -795,7 +798,12 @@ export class SkillCheckDialog extends Application {
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             const description = html.find('textarea[name="description"]').val();
-            const label = html.find('input[name="label"]').val();
+            let label = html.find('input[name="label"]').val();
+            
+            // Use roll title from quick roll overrides if available
+            if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollTitle) {
+                label = this._quickRollOverrides.rollTitle;
+            }
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
@@ -1544,7 +1552,7 @@ export class SkillCheckDialog extends Application {
                     dc: null,
                     showDC: false,
                     groupRoll: false,
-                    label: null,
+                    label: flags.label || null, // Use the original roll title from the message flags
                     description: null,
                     rollMode: 'roll',
                     isCinematic: false, // This is window mode
