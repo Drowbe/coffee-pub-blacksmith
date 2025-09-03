@@ -809,10 +809,17 @@ export class SkillCheckDialog extends Application {
             // Use roll title from quick roll overrides if available
             if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollTitle) {
                 label = this._quickRollOverrides.rollTitle;
+                postConsoleAndNotification(MODULE.NAME, "Using quick roll title:", label, true, false);
             } else if (this.selectedRollTitle) {
                 // Use roll title from selected skill/ability/save roll
                 label = this.selectedRollTitle;
+                postConsoleAndNotification(MODULE.NAME, "Using selected roll title:", label, true, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "No roll title found, using input label:", label, true, false);
             }
+
+            // Debug: Log the final label being used
+            postConsoleAndNotification(MODULE.NAME, "Final label for chat card:", label, true, false);
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {

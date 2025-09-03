@@ -2,14 +2,18 @@
 {{#unless hideHeader}}
 <div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
     <header class="card-header flexrow cpb-card-header">
-        {{#if hasMultipleGroups}}
-            <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
+        {{#if label}}
+            <h3 class="item-name"><i class="fas fa-dice"></i> {{label}}</h3>
         {{else}}
-            <h3 class="item-name"><i class="fas fa-dice"></i> {{skillName}}</h3>
+            {{#if hasMultipleGroups}}
+                <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
+            {{else}}
+                <h3 class="item-name"><i class="fas fa-dice"></i> {{skillName}}</h3>
+            {{/if}}
         {{/if}}
     </header>
     <div class="card-content cpb-card-content">
-        {{#if label}}<div class="cpb-card-section-header"><i class="fas fa-message" data-tooltip="Skill Details"></i> {{label}}</div>{{/if}}
+
         {{#if description}}
         <div class="gm-description cpb-gm-description">
             <p>{{{description}}}</p>
