@@ -1564,6 +1564,61 @@ function updateMargins() {
 
 }
 
+/**
+ * Detect the active d20 roll result from a roll object
+ * @param {object} result - The roll result object
+ * @returns {number|null} The active d20 roll value or null if not found
+ */
+function detectD20Roll(result) {
+    // First try the terms structure (newer Foundry format)
+    if (result?.terms) {
+        for (const term of result.terms) {
+            if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
+                // For advantage/disadvantage, find the active result
+                if (term.results.length === 2) {
+                    // This is advantage/disadvantage - find the active result
+                    const activeResult = term.results.find(r => r.active === true);
+                    if (activeResult) {
+                        return activeResult.result;
+                    } else {
+                        // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                        const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
+                        return isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
+                    }
+                } else {
+                    // Single d20 roll
+                    return term.results[0].result;
+                }
+            }
+        }
+    }
+    
+    // Fallback to dice structure (older format)
+    if (result?.dice) {
+        for (const die of result.dice) {
+            if (die.faces === 20 && die.results && die.results.length > 0) {
+                // For advantage/disadvantage, find the active result
+                if (die.results.length === 2) {
+                    // This is advantage/disadvantage - find the active result
+                    const activeResult = die.results.find(r => r.active === true);
+                    if (activeResult) {
+                        return activeResult.result;
+                    } else {
+                        // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
+                        const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
+                        return isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
+                    }
+                } else {
+                    // Single d20 roll
+                    return die.results[0].result;
+                }
+            }
+        }
+    }
+    
+    return null;
+}
+
 export async function handleSkillRollUpdate(data) {
     const { messageId, tokenId, result } = data;
     const message = game.messages.get(messageId);
@@ -1574,10 +1629,24 @@ export async function handleSkillRollUpdate(data) {
 
     // --- Always recalculate group roll summary on the GM side ---
     // 1. Update the correct actor's result with the new, plain result object
-    const actors = (flags.actors || []).map(a => ({
-        ...a,
-        result: a.id === tokenId ? result : a.result 
-    }));
+    const actors = (flags.actors || []).map(a => {
+        const actorResult = a.id === tokenId ? result : a.result;
+        
+        // Add crit/fumble detection to the result
+        if (actorResult) {
+            const d20Roll = detectD20Roll(actorResult);
+            if (d20Roll === 20) {
+                actorResult.isCritical = true;
+            } else if (d20Roll === 1) {
+                actorResult.isFumble = true;
+            }
+        }
+        
+        return {
+            ...a,
+            result: actorResult
+        };
+    });
 
     // 2. Recalculate group roll summary
     let groupRollData = {};

@@ -170,10 +170,6 @@
     backdrop-filter: blur(2px);
 }
 
-@keyframes cpb-fade-in {
-    to { opacity: 1; }
-}
-
 /* CINEMATIC GROUP RESULT */
 
 .cpb-cinematic-group-result {
@@ -292,7 +288,8 @@
     position: absolute;
     bottom: 10px;
     left: 50%;
-    transform: translateX(-50%);
+    translate: -50% 0;   /* stays fixed */
+    scale: 1;            /* we'll animate this only */
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 8px 12px;
@@ -324,14 +321,14 @@
     border-color: #4CAF50 !important;
     color: #8eff8e !important;
     box-shadow: 0 0 10px #4CAF50 !important;
-    animation: cpb-pulse 1s linear infinite !important; 
+    animation: cpb-cinematic-pulse 1s linear infinite !important; 
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result.fumble {
     border-color: #8B0000 !important;
     color: #ff8e8e !important;
     box-shadow: 0 0 10px #8B0000 !important;
-    animation: cpb-shake 0.5s linear infinite !important;
+    animation: cpb-cinematic-shake 0.5s linear infinite !important;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-pending {
@@ -349,22 +346,21 @@
 .cpb-cinematic-card .cpb-cinematic-roll-pending i {
     font-size: 2em;
     color: rgba(255, 255, 255, 0.8);
-    animation: cpb-spin 1.5s linear infinite;
+    animation: cpb-cinematic-spin 1.5s linear infinite;
 }
 
-@keyframes cpb-pulse {
-    0% { transform: scale(1) translateX(-50%); }
-    50% { transform: scale(1.05) translateX(-50%); }
-    100% { transform: scale(1) translateX(-50%); }
+@keyframes cpb-cinematic-pulse {
+    0%, 100% { scale: .9; }
+    50% { scale: 1.1; }
 }
 
-@keyframes cpb-shake {
-    0%, 100% { transform: translateX(-50%); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-53%); }
-    20%, 40%, 60%, 80% { transform: translateX(-47%); }
+@keyframes cpb-cinematic-shake {
+    0%, 100% { translate: -50% 0; }
+    10%, 30%, 50%, 70%, 90% { translate: -53% 0; }
+    20%, 40%, 60%, 80% { translate: -47% 0; }
 }
 
-@keyframes cpb-spin {
+@keyframes cpb-cinematic-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }

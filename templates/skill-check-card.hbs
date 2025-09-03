@@ -84,7 +84,7 @@
                 {{#if (eq this.group 1)}}
                 <div class="cpb-skill-check-actor">
                     {{#if this.result}}
-                        <div class="cpb-roll-result">
+                        <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
                             <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
                                 {{this.result.total}}
@@ -125,7 +125,7 @@
                 {{#if (eq this.group 2)}}
                 <div class="cpb-skill-check-actor">
                     {{#if this.result}}
-                        <div class="cpb-roll-result">
+                        <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
                             <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
                                 {{this.result.total}}
