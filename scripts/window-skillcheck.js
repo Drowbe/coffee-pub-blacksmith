@@ -3,6 +3,7 @@ import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
+import { skillDescriptions, abilityDescriptions, saveDescriptions } from '../resources/dictionary.js';
 
 
 export class SkillCheckDialog extends Application {
@@ -67,45 +68,7 @@ export class SkillCheckDialog extends Application {
         const tools = this._getToolProficiencies();
         postConsoleAndNotification(MODULE.NAME, 'Tools data being passed to template:', tools, true, false);
 
-        // Create a map of skill descriptions
-        const skillDescriptions = {
-            'acr': 'Balancing, flipping, or escaping tricky physical situations with agility and finesse.',
-            'ani': 'Calming, controlling, or understanding the behavior of animals.',
-            'arc': 'Knowing about magic, spells, and arcane lore.',
-            'ath': 'Performing feats of strength like climbing, swimming, or grappling.',
-            'dec': 'Lying convincingly or hiding the truth through trickery or disguise.',
-            'his': 'Recalling facts about past events, civilizations, and important lore.',
-            'ins': 'Reading people\'s true intentions, emotions, or honesty.',
-            'itm': 'Using threats or force of personality to influence others.',
-            'inv': 'Examining clues, solving mysteries, or finding hidden details.',
-            'med': 'Treating wounds, diagnosing ailments, and stabilizing the dying.',
-            'nat': 'Understanding natural environments, animals, weather, and geography.',
-            'prc': 'Noticing hidden creatures, objects, or subtle changes in your surroundings.',
-            'prf': 'Entertaining an audience through music, acting, storytelling, or art.',
-            'per': 'Convincing others through kindness, diplomacy, or charm.',
-            'rel': 'Knowing about gods, holy rites, religious symbols, and divine lore.',
-            'slt': 'Secretly manipulating objects, like stealing or planting items unnoticed.',
-            'ste': 'Moving silently and staying hidden from view.',
-            'sur': 'Tracking creatures, navigating the wilds, and enduring harsh conditions.'
-        };
-
-        const abilityDescriptions = {
-            'str': 'Raw physical power, affecting melee attacks, lifting capacity, and athletic prowess.',
-            'dex': 'Agility and reflexes, affecting ranged attacks, armor class, and fine motor skills.',
-            'con': 'Physical toughness and stamina, affecting hit points and resistance to physical stress.',
-            'int': 'Mental acuity and knowledge, affecting spell power for wizards and general knowledge.',
-            'wis': 'Awareness and intuition, affecting spell power for clerics and perception of surroundings.',
-            'cha': 'Force of personality, affecting social interaction and spell power for sorcerers and bards.'
-        };
-
-        const saveDescriptions = {
-            'str': 'Resisting physical force, breaking free from restraints, or maintaining control against effects that would move you.',
-            'dex': 'Dodging area effects, reacting quickly to danger, or maintaining balance in precarious situations.',
-            'con': 'Enduring poison, disease, or other bodily trauma, and resisting effects that would sap your vitality.',
-            'int': 'Protecting your mind against psychic attacks, illusions, and other mental influences.',
-            'wis': 'Resisting effects that would charm, frighten, or otherwise affect your willpower.',
-            'cha': 'Maintaining your force of personality against effects that would possess or alter your being.'
-        };
+        // Use imported descriptions from dictionary.js
 
         // Get all skills from the system
         const skills = Object.entries(CONFIG.DND5E.skills).map(([id, data]) => ({
@@ -219,6 +182,7 @@ export class SkillCheckDialog extends Application {
             const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${this.selectedValue}"]`);
             if (skillItem.length) {
                 skillItem.addClass('selected');
+                skillItem.addClass('cpb-skill-challenger');
                 const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
                 if (indicator) {
                     indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
@@ -314,6 +278,15 @@ export class SkillCheckDialog extends Application {
 
             // Update tool proficiencies when actor selection changes
             this._updateToolList();
+            
+            // Check if all defenders were removed and clear defender roll selections
+            const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+            if (!hasDefenders) {
+                // Clear all defender roll selections
+                html.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().html('');
+                html.find('.cpb-check-item').removeClass('cpb-skill-defender');
+                this.defenderRoll = { type: null, value: null };
+            }
         });
 
         // Handle player search - separate from criteria search
@@ -471,6 +444,7 @@ export class SkillCheckDialog extends Application {
                         const challengerSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
                         if (challengerSkillItem.length) {
                             challengerSkillItem.addClass('selected');
+                            challengerSkillItem.addClass('cpb-skill-challenger');
                             const indicator = challengerSkillItem[0].querySelector('.cpb-roll-type-indicator');
                             if (indicator) {
                                 indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
@@ -485,6 +459,7 @@ export class SkillCheckDialog extends Application {
                         const defenderSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
                         if (defenderSkillItem.length) {
                             defenderSkillItem.addClass('selected');
+                            defenderSkillItem.addClass('cpb-skill-defender');
                             const indicator = defenderSkillItem[0].querySelector('.cpb-roll-type-indicator');
                             if (indicator) {
                                 indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
@@ -523,6 +498,7 @@ export class SkillCheckDialog extends Application {
                     const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
                     if (skillItem.length) {
                         skillItem.addClass('selected');
+                        skillItem.addClass('cpb-skill-challenger');
                         const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
                         if (indicator) {
                             indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
@@ -571,6 +547,8 @@ export class SkillCheckDialog extends Application {
                             (!isRightClick && el.classList.contains('fa-swords'))) {
                             indicator.innerHTML = '';
                             checkItem.classList.remove('selected');
+                            // Remove styling classes
+                            checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
                             wasDeselected = true;
                             // Clear the appropriate roll type
                             if (isRightClick) {
@@ -586,20 +564,37 @@ export class SkillCheckDialog extends Application {
                             (!isRightClick && el.classList.contains('fa-swords'))) {
                         indicator.innerHTML = '';
                         checkItem.classList.remove('selected');
+                        // Remove styling classes
+                        checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
                     }
                 });
 
                 // Only add new selection if we didn't just deselect
                 if (!wasDeselected) {
+                    // Check if trying to select defender roll without defenders
+                    if (isRightClick) {
+                        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+                        if (!hasDefenders) {
+                            ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
+                            return;
+                        }
+                    }
+                    
                     // Add the roll type indicator and selected state
                     const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
                     if (rollTypeIndicator) {
                         if (isRightClick) {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
                             this.defenderRoll = { type, value };
+                            // Add defender styling
+                            item.classList.add('cpb-skill-defender');
+                            item.classList.remove('cpb-skill-challenger');
                         } else {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                             this.challengerRoll = { type, value };
+                            // Add challenger styling
+                            item.classList.add('cpb-skill-challenger');
+                            item.classList.remove('cpb-skill-defender');
                         }
                     }
                     item.classList.add('selected');
@@ -613,19 +608,32 @@ export class SkillCheckDialog extends Application {
                     // Clear selection
                     html.find('.cpb-check-item').removeClass('selected');
                     html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                    html.find('.cpb-check-item').removeClass('cpb-skill-challenger', 'cpb-skill-defender');
                     this.selectedType = null;
                     this.selectedValue = null;
                 } else {
+                    // Check if trying to select defender roll without defenders
+                    if (isRightClick) {
+                        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+                        if (!hasDefenders) {
+                            ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
+                            return;
+                        }
+                    }
+                    
                     // New selection
                     html.find('.cpb-check-item').removeClass('selected');
                     html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                    html.find('.cpb-check-item').removeClass('cpb-skill-challenger', 'cpb-skill-defender');
                     
                     const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
                     if (rollTypeIndicator) {
                         if (isRightClick) {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                            item.classList.add('cpb-skill-defender');
                         } else {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            item.classList.add('cpb-skill-challenger');
                         }
                     }
                     item.classList.add('selected');
@@ -1192,6 +1200,15 @@ export class SkillCheckDialog extends Application {
                 }
             }
         });
+        
+        // Check if all defenders were removed and clear defender roll selections
+        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+        if (!hasDefenders) {
+            // Clear all defender roll selections
+            html.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().html('');
+            html.find('.cpb-check-item').removeClass('cpb-skill-defender');
+            this.defenderRoll = { type: null, value: null };
+        }
     }
 
     /**

@@ -190,9 +190,9 @@
                 <div class="cpb-check-section" data-filter="skill">
                     <div class="cpb-section-header">Skill Check</div>
                     {{#each skills}}
-                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}"  data-roll-title="{{this.name}} Skill Check">
+                    <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}"  data-roll-title="{{this.name}} Skill Check" data-tooltip="{{this.description}}">
                         <i class="{{this.icon}}"></i>
-                        <span>{{this.name}}</span>
+                        <span>{{this.name}}</span><span class="cpb-skill-description">{{this.description}}</span>
                         <div class="cpb-roll-type-indicator"></div>
                     </div>
                     {{/each}}

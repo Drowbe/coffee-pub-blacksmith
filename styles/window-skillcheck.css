@@ -278,11 +278,10 @@ div#skill-check-dialog .window-content {
     color: rgba(145, 133, 107, 1.0);
 }
 
-/* CONTESTANT GROUPS */
+/* CONTESTANT SELECTIONS */
 
-.cpb-actor-item.selected {
+tor-item.selected {
     border-color: rgba(122, 111, 91, 0.7);
-
 }
 
 .cpb-actor-item .cpb-group-indicator {
@@ -292,6 +291,7 @@ div#skill-check-dialog .window-content {
     margin-left: auto;
     margin-right: 10px;
 }
+
 .cpb-actor-item .cpb-group-indicator i {
     font-size: 1.2em;
 }
@@ -308,6 +308,7 @@ div#skill-check-dialog .window-content {
 .cpb-actor-item.cpb-group-2 .cpb-group-indicator i {
     color: rgba(255, 255, 255, 0.8);
 }
+
 
 
 
@@ -470,17 +471,38 @@ div#skill-check-dialog .window-content {
 
 
 
-/* SELECTED/ACTIVE */
+/* SELECTED/ACTIVE ---------------------------------------------------------------------------------- */
 
 
+/* for indiviudal elections
 .cpb-dice-grid .cpb-check-item.selected,
 .cpb-dice-btn.selected,
 .cpb-check-item.selected,
 .cpb-skill-item.selected {
-    background: rgba(0, 0, 0, 0.6);
+    background-color: rgba(40, 108, 24, 0.4);
     color: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.7); 
 }
+
+/* for versus selections
+
+/* Skill selection styling - similar to contestant groups */
+.cpb-check-item.cpb-skill-challenger {
+    background-color: rgba(40, 108, 24, 0.4);
+}
+.cpb-check-item.cpb-skill-challenger .cpb-roll-type-indicator i {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cpb-check-item.cpb-skill-defender {
+    background-color: rgba(170, 2, 0, 0.4);
+}
+.cpb-check-item.cpb-skill-defender .cpb-roll-type-indicator i {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+
+
 
 
 
@@ -590,6 +612,34 @@ div#skill-check-dialog .window-content {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ****** BUTTONS ***** */
 
 .skill-check-dialog .cpb-dialog-buttons {
@@ -638,6 +688,17 @@ div#skill-check-dialog .window-content {
     background: rgba(106, 106, 106, 0.9);
     border: 1px solid rgba(106, 106, 106, 0.5);
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* ***** THIRD COLUMN ***** */
