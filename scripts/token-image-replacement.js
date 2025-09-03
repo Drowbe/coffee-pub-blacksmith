@@ -128,7 +128,7 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using base path: ${basePath}`, "", false, false);
         
         // Try to load cache from storage first
-        if (this._loadCacheFromStorage()) {
+        if (await this._loadCacheFromStorage()) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Using cached data, skipping scan", "", false, false);
             
             // Clean up any invalid paths that might be in the cached data
@@ -142,7 +142,7 @@ export class TokenImageReplacement {
         
         // Start background scan if no valid cache found
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No valid cache found, starting scan...", "", false, false);
-        this._scanFolderStructure(basePath);
+        await this._scanFolderStructure(basePath);
     }
     
     /**
@@ -180,7 +180,7 @@ export class TokenImageReplacement {
             this._logCacheStatistics();
             
             // Save cache to persistent storage
-            this._saveCacheToStorage();
+            await this._saveCacheToStorage();
             
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
@@ -923,15 +923,20 @@ export class TokenImageReplacement {
     /**
      * Save cache to localStorage
      */
-    static _saveCacheToStorage() {
+    static async _saveCacheToStorage() {
         try {
+            const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+            const folderFingerprint = await this._generateFolderFingerprint(basePath);
+            
             const cacheData = {
                 files: Array.from(this.cache.files.entries()),
                 folders: Array.from(this.cache.folders.entries()),
                 creatureTypes: Array.from(this.cache.creatureTypes.entries()),
                 lastScan: this.cache.lastScan,
                 totalFiles: this.cache.totalFiles,
-                version: '1.0'
+                basePath: basePath,
+                folderFingerprint: folderFingerprint,
+                version: '1.1' // Bumped version for new cache structure
             };
             
             localStorage.setItem('tokenImageReplacement_cache', JSON.stringify(cacheData));
@@ -944,7 +949,7 @@ export class TokenImageReplacement {
     /**
      * Load cache from localStorage
      */
-    static _loadCacheFromStorage() {
+    static async _loadCacheFromStorage() {
         try {
             const savedCache = localStorage.getItem('tokenImageReplacement_cache');
             if (!savedCache) {
@@ -953,18 +958,45 @@ export class TokenImageReplacement {
             
             const cacheData = JSON.parse(savedCache);
             
-            // Validate cache data
+            // Validate cache data structure
             if (!cacheData.version || !cacheData.files || !cacheData.folders || !cacheData.creatureTypes) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Invalid cache data in storage, will rescan", "", false, false);
                 return false;
             }
             
-            // Check if cache is still valid (less than 24 hours old)
+            // Check version compatibility
+            if (cacheData.version !== '1.1') {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version mismatch (${cacheData.version} vs 1.1), will rescan`, "", false, false);
+                return false;
+            }
+            
+            // Check if base path changed
+            const currentBasePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+            if (cacheData.basePath !== currentBasePath) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Base path changed, will rescan", "", false, false);
+                return false;
+            }
+            
+            // Check if cache is still valid (less than 30 days old)
             const cacheAge = Date.now() - (cacheData.lastScan || 0);
-            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
             
             if (cacheAge > maxAge) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 24 hours), will rescan", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", false, false);
+                return false;
+            }
+            
+            // Check if folder fingerprint changed (file system changes)
+            const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
+            if (cacheData.folderFingerprint !== currentFingerprint) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", false, false);
+                return false;
+            }
+            
+            // Check for manual refresh request
+            const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
+            if (shouldRefresh) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Manual refresh requested, will rescan", "", false, false);
                 return false;
             }
             
@@ -975,7 +1007,6 @@ export class TokenImageReplacement {
             this.cache.lastScan = cacheData.lastScan;
             this.cache.totalFiles = cacheData.totalFiles;
             
-        
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false);
             
             // Update the cache status setting for display
@@ -1001,6 +1032,59 @@ export class TokenImageReplacement {
             this._updateCacheStatusSetting();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error clearing cache: ${error.message}`, "", true, false);
+        }
+    }
+    
+    /**
+     * Generate a fingerprint of the folder structure to detect changes
+     */
+    static async _generateFolderFingerprint(basePath) {
+        try {
+            if (!basePath) {
+                return 'no-path';
+            }
+            
+            // Get a list of all files and folders recursively
+            const allPaths = [];
+            async function collectPaths(dir) {
+                try {
+                    const result = await FilePicker.browse('public', dir);
+                    // Add directories
+                    for (const subdir of result.dirs) {
+                        allPaths.push(`dir:${subdir}`);
+                        await collectPaths(subdir);
+                    }
+                    // Add files (only image files)
+                    for (const file of result.files) {
+                        if (this.SUPPORTED_FORMATS.some(format => file.toLowerCase().endsWith(format))) {
+                            allPaths.push(`file:${file}`);
+                        }
+                    }
+                } catch (error) {
+                    // Skip inaccessible directories
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Warning - cannot access directory ${dir}: ${error.message}`, "", false, false);
+                }
+            }
+            
+            await collectPaths.call(this, basePath);
+            
+            // Sort paths for consistent fingerprint
+            allPaths.sort();
+            
+            // Create a simple hash of the paths
+            const pathsString = allPaths.join('|');
+            let hash = 0;
+            for (let i = 0; i < pathsString.length; i++) {
+                const char = pathsString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            
+            return hash.toString();
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error generating folder fingerprint: ${error.message}`, "", false, false);
+            return 'error';
         }
     }
     
