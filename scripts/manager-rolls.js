@@ -228,7 +228,9 @@ export async function processRoll(rollData, rollOptions) {
             diceLength: roll.dice?.length 
         }, true, false);
         
-        if (game.dice3d) {
+        // Check if Dice So Nice is enabled and available
+        const diceSoNiceEnabled = game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice');
+        if (game.dice3d && diceSoNiceEnabled) {
             try {
                 postConsoleAndNotification(MODULE.NAME, `processRoll: Showing dice animation for roll`, { formula: roll.formula, total: roll.total }, true, false);
                 const animationShown = await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null, {ghost: false, secret: false});
@@ -237,7 +239,7 @@ export async function processRoll(rollData, rollOptions) {
                 postConsoleAndNotification(MODULE.NAME, `Dice animation error:`, error, true, false);
             }
         } else {
-            postConsoleAndNotification(MODULE.NAME, `processRoll: Dice So Nice not available`, null, true, false);
+            postConsoleAndNotification(MODULE.NAME, `processRoll: Dice So Nice not available or disabled`, { dice3d: !!game.dice3d, enabled: diceSoNiceEnabled }, true, false);
         }
         
         postConsoleAndNotification(MODULE.NAME, `processRoll: Roll completed`, { total: roll.total, formula: roll.formula }, true, false);
@@ -724,22 +726,28 @@ class RollWindow extends Application {
             const rollOptions = {
                 advantage: advantage,
                 disadvantage: disadvantage,
-                situationalBonus: situationalBonus
+                situationalBonus: situationalBonus,
+                fastForward: true
             };
             
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll options:`, rollOptions, true, false);
             
-            // Execute the roll using the Blacksmith roll system
-            const rollResult = await this._performRoll(rollOptions);
-            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll completed:`, rollResult, true, false);
+            // Use the shared roll system (same as cinema mode)
+            const { processRoll, deliverRollResults } = await import('./manager-rolls.js');
             
-            // Only close the dialog after the roll is complete and processed
-            if (rollResult) {
-                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
-                this.close();
-            } else {
-                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll failed, keeping dialog open`, null, true, false);
-            }
+            // Execute the roll using the shared processRoll function (includes 3D dice animation)
+            const rollResults = await processRoll(this.rollData, rollOptions);
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll completed:`, rollResults, true, false);
+            
+            // Deliver the results using the shared deliverRollResults function
+            await deliverRollResults(rollResults, { 
+                messageId: this.rollData.messageId, 
+                tokenId: this.rollData.tokenId 
+            });
+            
+            // Close the dialog after the roll is complete
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
+            this.close();
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll error:`, error, true, false);
