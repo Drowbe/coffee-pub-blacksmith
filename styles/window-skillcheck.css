@@ -1,4 +1,8 @@
 /* DIALOG STYLES */
+:root {
+    --blacksmith-skillcheck-banner-image: url('../images/backgrounds/background-skull-red.webp');
+}
+
 
 /* Window Background (matching roll window) */
 div#skill-check-dialog {
@@ -20,7 +24,8 @@ div#skill-check-dialog .window-content {
     flex-direction: column;
     background: #232323;
     border: 1px solid #444;
-    border-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
     font-family: "Signika", sans-serif;
     color: #e0e0e0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -36,9 +41,16 @@ div#skill-check-dialog .window-content {
 }
 
 .cpb-dialog-header {
-    background: #18181c;
+    background: rgba(0, 0, 0, 0.8);
+    /* Image background */
+    background-image:  var(--blacksmith-skillcheck-banner-image);
+    /* Control how it displays */
+    background-blend-mode: multiply;
+    background-position: top center;
+    background-repeat: no-repeat;
+    background-size: cover;
     padding: 1em;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid rgba(68, 68, 68, 0.9);
 }
 
 .cpb-dialog-header-content {
@@ -194,6 +206,43 @@ div#skill-check-dialog .window-content {
     min-height: 40px;
 }
 
+/* SEARCH BOXES */
+
+.cpb-search-container {
+    align-items: center;
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+.cpb-search-container input[type="text"] {
+    flex: 1;
+    padding-right: 24px;
+}
+.cpb-clear-search-button {
+    line-height: 1; /* Ensure icon is centered */
+    text-align: center;
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    font-size: var(--font-size-11);
+    color: #999;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.cpb-clear-search-button:hover {
+    color: #000;
+}
+
+
 /* FILTERS */
 
 .cpb-filter-buttons {
@@ -209,7 +258,7 @@ div#skill-check-dialog .window-content {
     padding: 0px 2px 0px 2px;
     font-size: 0.8em;
     font-weight: 900;
-    line-height: 2.0em;
+    line-height: 1.9em;
     white-space: nowrap;
     cursor: pointer;
     text-transform: uppercase;
@@ -227,7 +276,7 @@ div#skill-check-dialog .window-content {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* ***** FIRST COLUMN ***** */
+/* **** FIRST COLUMN ************************************************* */
 
 /* CONTESTANTS */
 
@@ -258,11 +307,14 @@ div#skill-check-dialog .window-content {
 }
 
 .cpb-actor-item img {
-    width: 36px;
-    height: 36px;
-    border: none;
+    width: 48px;
+    height: 48px;
+    background: rgba(20, 22, 24, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 3px;
     object-fit: cover;
+    box-shadow: 0 0 1px rgba(255, 255, 255, 0.4);
+    padding: 1px;
 }
 .cpb-actor-details {
     flex: 1;
@@ -270,7 +322,7 @@ div#skill-check-dialog .window-content {
 }
 .cpb-actor-name {
     font-weight: 900;
-    font-size: 1.0em;
+    font-size: 1.1em;
     margin-bottom: 1px;
 }
 .cpb-actor-info {
@@ -311,13 +363,7 @@ tor-item.selected {
 
 
 
-
-
-
-
-/* ***** SECOND COLUMN ***** */
-
-
+/* **** SECOND COLUMN ************************************************* */
 
 
 /* DICE ROLLS */
@@ -397,53 +443,10 @@ tor-item.selected {
 }
 
 
-.cpb-check-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    margin-bottom: 4px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(0, 0, 0, 0.9);
-    background: rgba(0, 0, 0, 0.9);
-    border-radius: 4px;
-    
-    cursor: pointer;
-}
-.cpb-check-item:hover {
-    border-color: rgba(0, 0, 0, 0.9);
-    background: rgba(231, 91, 1, 0.5);
-    box-shadow: 0 0 5px var(--color-shadow-primary);
-}
-.cpb-check-item i {
-    font-size: var(--font-size-14);
-    width: 16px;
-    text-align: center;
-}
-.cpb-check-item span {
-    flex: 1;
-    font-size: var(--font-size-12);
-}
 
-/* Tool unavailable state */
-.cpb-check-section .cpb-check-item.cpb-tool-unavailable {
-    opacity: 0.4 !important;
-    cursor: not-allowed !important;
-    background: rgba(0, 0, 0, 0.05) !important;
-    color: rgba(0, 0, 0, 0.6) !important;
-    pointer-events: none !important;
-    filter: grayscale(100%) !important;
-}
-.cpb-check-section .cpb-check-item.cpb-tool-unavailable:hover {
-    border-color: #999 !important;
-    box-shadow: none !important;
-    background: rgba(0, 0, 0, 0.05) !important;
-}
-.cpb-check-section .cpb-check-item.cpb-tool-unavailable i {
-    opacity: 0.6 !important;
-}
 
-/* SKILLS */
+
+/* ITEM STYLES */
 
 .cpb-skills-list {
     flex: 1;
@@ -468,6 +471,61 @@ tor-item.selected {
     border-color: #000;
     box-shadow: 0 0 5px var(--color-shadow-primary);
 }
+
+
+
+
+.cpb-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 4px;
+    
+    cursor: pointer;
+}
+.cpb-check-item:hover {
+    border-color: rgba(0, 0, 0, 0.9);
+    background: rgba(231, 91, 1, 0.5);
+    box-shadow: 0 0 5px var(--color-shadow-primary);
+}
+.cpb-check-item i {
+    font-size: var(--font-size-14);
+    width: 16px;
+    text-align: center;
+}
+.cpb-check-item span:not(.cpb-roll-label):not(.cpb-roll-description) {
+    flex: 1;
+    font-size: var(--font-size-12);
+}
+
+/* Tool unavailable state */
+
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.0) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    pointer-events: none !important;
+    filter: grayscale(100%) !important;
+}
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable:hover {
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    box-shadow: none !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+.cpb-check-section .cpb-check-item.cpb-tool-unavailable i {
+    opacity: 0.6 !important;
+}
+
+/* SKILLS */
+
+
 
 
 
@@ -507,35 +565,28 @@ tor-item.selected {
 
 
 
-.cpb-roll-result {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 8px;
-    margin-bottom: 0px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.2);
+/* Skill description styling */
+.cpb-roll-label {
+    font-weight: 9000;
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-transform: uppercase;
 }
-.cpb-roll-result .cpb-actor-name {
-    font-weight: bold;
-    margin: 0;
-    color: #594a3c;
+
+.cpb-roll-description {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(128, 117, 96, 0.7);
+    font-size: 0.9em;
+    min-width: 0; /* Allows flex item to shrink below content size */
 }
-.cpb-roll-result .cpb-roll-total {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-family: var(--dnd5e-font-roboto-slab);
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #461313;
-}
-.cpb-roll-result .cpb-roll-total i {
-    margin-left: 4px;
-    margin-right: 2px;
-    padding-top: 4px;
-}
+
+
+
+
+
 .cpb-skill-check-buttons {
     flex-direction: column;
     display: flex;
@@ -574,73 +625,56 @@ tor-item.selected {
 }
 
 
-.cpb-search-container {
-    align-items: center;
-    position: relative;
-    display: flex;
-    width: 100%;
-}
-.cpb-search-container input[type="text"] {
-    flex: 1;
-    padding-right: 24px;
-}
-.cpb-clear-search-button {
-    line-height: 1; /* Ensure icon is centered */
+
+
+
+
+/* ROLL TYPE INDICATORS (ICONS) */
+
+.cpb-check-item .cpb-roll-type-indicator {
+    padding-left: 0px;
+    font-size: 1.0em;
+    width: 12px;
     text-align: center;
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    padding: 0;
+    margin-left: auto;
+    margin-right: 6px;
+     
+}
+.cpb-check-item .cpb-roll-type-indicator i {
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
+.cpb-check-item .cpb-roll-type-auto {
+    padding-left: 0px;
+    font-size: 1.0em;
+    width: 12px;
+    text-align: center;
+    margin-left: auto;
+    margin-right: 6px;
+     
+}
+.cpb-check-item .cpb-roll-type-auto i {
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
+
+
+
+/* **** THIRD COLUMN ************************************************* */
+
+.cpb-roll-options-column {
+    flex: 1;
+    overflow-y: auto;
     margin: 0;
-    width: 16px;
-    height: 16px;
-    font-size: var(--font-size-11);
-    color: #999;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-.cpb-clear-search-button:hover {
-    color: #000;
+    padding: 0;
+    min-height: 0;
 }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ****** BUTTONS ***** */
+/* **** SUBMIT BUTTONS ************************************************* */
 
 .skill-check-dialog .cpb-dialog-buttons {
     flex: 0 0 auto;
@@ -692,61 +726,10 @@ tor-item.selected {
 
 
 
+/* !!!!!!!!!!!!!  THESE ARE THE CHAT CARD STYLES !!!!!!!!!!!!!!!!!! */
+/* need to either creat or add to their wosn css sheet
 
 
-
-
-
-
-
-
-
-/* ***** THIRD COLUMN ***** */
-
-.cpb-roll-options-column {
-    flex: 1;
-    overflow-y: auto;
-    margin: 0;
-    padding: 0;
-    min-height: 0;
-}
-
-
-
-
-/* !!!!!!!!!!!!!  THIESE ARE THE CHAT CARD STYLES !!!!!!!!!!!!!!!!!! */
-
-
-
-/* ROLL TYPE INDICATORS */
-
-.cpb-check-item .cpb-roll-type-indicator {
-    padding-left: 0px;
-    font-size: 1.0em;
-    width: 12px;
-    text-align: center;
-    margin-left: auto;
-    margin-right: 6px;
-     
-}
-.cpb-check-item .cpb-roll-type-indicator i {
-    font-size: 0.8em;
-    margin-top: 2px;
-}
-
-.cpb-check-item .cpb-roll-type-auto {
-    padding-left: 0px;
-    font-size: 1.0em;
-    width: 12px;
-    text-align: center;
-    margin-left: auto;
-    margin-right: 6px;
-     
-}
-.cpb-check-item .cpb-roll-type-auto i {
-    font-size: 0.8em;
-    margin-top: 2px;
-}
 
 
 /* GENERAL CHAT CARD STYLES */
@@ -817,8 +800,44 @@ tor-item.selected {
 }
 
 
+/* Roll Results */
+
+
+
+.cpb-roll-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    margin-bottom: 0px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+.cpb-roll-result .cpb-actor-name {
+    font-weight: bold;
+    margin: 0;
+    color: #594a3c;
+}
+.cpb-roll-result .cpb-roll-total {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
+}
+.cpb-roll-result .cpb-roll-total i {
+    margin-left: 4px;
+    margin-right: 2px;
+    padding-top: 4px;
+}
+
+
 
 /* ----- SUCCESS / FAILURE ----- */
+
 
 /* roll success icons */
 
@@ -874,8 +893,6 @@ tor-item.selected {
 .cpb-roll-result-tie-text {
     color: rgba(3, 109, 151, 0.9);
 }
-
-
 
 /* ----- VERSUS ----- */
 
@@ -962,10 +979,3 @@ tor-item.selected {
     color: #666666;
     font-style: italic;
 }
-
-
-
-
-
-
-

@@ -3,7 +3,7 @@ import { MODULE } from './const.js';
 import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
-import { skillDescriptions, abilityDescriptions, saveDescriptions } from '../resources/dictionary.js';
+import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 
 
 export class SkillCheckDialog extends Application {
@@ -160,10 +160,13 @@ export class SkillCheckDialog extends Application {
             .map(([name, data]) => {
                 const isCommon = data.count === selectedCount;
                 postConsoleAndNotification(MODULE.NAME, `Tool ${name}: count=${data.count}, selectedCount=${selectedCount}, isCommon=${isCommon}`, "", true, false);
+                const description = toolDescriptions[name] || 'A specialized tool for specific tasks.';
+                
                 return {
                     name,
                     isCommon,
-                    actorTools: data.actorTools // Map of actorId to their specific tool ID
+                    actorTools: data.actorTools, // Map of actorId to their specific tool ID
+                    description
                 };
             })
             .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
@@ -905,7 +908,12 @@ export class SkillCheckDialog extends Application {
                         const toolItem = actor?.items.get(toolIdentifier) || actor?.items.find(i => i.system.baseItem === toolIdentifier);
                         
                         name = toolItem?.name;
-                        desc = showExplanation ? (toolItem?.system.description?.value || '').replace(/<\/p>/gi, '').trim() : null;
+                        // Use custom description from dictionary instead of system description
+                        if (showExplanation && toolItem?.name) {
+                            desc = toolDescriptions[toolItem.name] || 'A specialized tool for specific tasks.';
+                        } else {
+                            desc = null;
+                        }
                         link = null; // Tools don't have SRD links
                         break;
                     case 'ability':
@@ -1051,9 +1059,11 @@ export class SkillCheckDialog extends Application {
                      data-type="tool" 
                      data-tool-name="${tool.name}"
                      data-actor-tools='${JSON.stringify(actorToolsArray).replace(/'/g, "&apos;")}'
-                     data-common="${tool.isCommon}">
+                     data-common="${tool.isCommon}"
+                     data-roll-title="${tool.name}"
+                     data-tooltip="${tool.description}">
                     <i class="fas fa-tools"></i>
-                    <span>${tool.name}</span>
+                    <span class="cpb-roll-label">${tool.name}</span><span class="cpb-roll-description">${tool.description}</span>
                     <div class="cpb-roll-type-indicator"></div>
                 </div>
             `);
