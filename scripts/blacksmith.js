@@ -1335,6 +1335,21 @@ function scrollToBottom() {
     element.scrollTop = element.scrollHeight;
 }
 
+/**
+ * Scroll the Foundry chat log to the bottom
+ */
+function _scrollChatToBottom() {
+    try {
+        // Find the chat log container
+        const chatLog = document.querySelector('#chat-log');
+        if (chatLog) {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `_scrollChatToBottom error:`, error, true, false);
+    }
+}
+
 // ***************************************************
 // ** UTILITY Update Token Nameplates
 // ***************************************************
@@ -1709,6 +1724,9 @@ export async function handleSkillRollUpdate(data) {
             'coffee-pub-blacksmith': updatedMessageData
         }
     });
+    
+    // Scroll chat to bottom to show the updated group results
+    _scrollChatToBottom();
 
     // Broadcast the final result to all clients for UI updates (like cinematic mode)
     const socket = SocketManager.getSocket();

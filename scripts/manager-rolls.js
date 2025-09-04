@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification, playSound } from './api-common.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 
@@ -10,105 +10,118 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 // ===== CLEAN UNIFIED ROLL SYSTEM ==================================
 // ==================================================================
 
-/**
- * 1. requestRoll() - Creates chat card and handles initial flow routing
- * @param {object} rollDetails - Roll details from SkillCheckDialog
- * @returns {Promise<object>} Chat card created, flow initiated
- */
-export async function requestRoll(rollDetails) {
-    postConsoleAndNotification(MODULE.NAME, `requestRoll: Starting with roll details`, rollDetails, true, false);
+// /**
+//  * 1. requestRoll() - Creates chat card and handles initial flow routing
+//  * @param {object} rollDetails - Roll details from SkillCheckDialog
+//  * @returns {Promise<object>} Chat card created, flow initiated
+//  */
+// ==================================================================
+// THIS IS A LEGACY FUNCTION AND IS NO LONGER USED.
+// IT IS KEPT HERE FOR REFERENCE ONLY.
+// Step 1 happens in the skillcheck dialog.
+// ==================================================================
+// 
+// export async function requestRoll(rollDetails) {
+//     postConsoleAndNotification(MODULE.NAME, `requestRoll: Starting with roll details`, rollDetails, true, false);
     
-    try {
-        // Extract the processed actors and roll data from rollDetails
-        const { 
-            actors, 
-            challengerRollType, 
-            challengerRollValue, 
-            defenderRollType, 
-            defenderRollValue,
-            dc,
-            showDC,
-            groupRoll,
-            label,
-            description,
-            rollMode,
-            isCinematic,
-            showRollExplanation
-        } = rollDetails;
+    // try {
+    //     // Extract the processed actors and roll data from rollDetails
+    //     const { 
+    //         actors, 
+    //         challengerRollType, 
+    //         challengerRollValue, 
+    //         defenderRollType, 
+    //         defenderRollValue,
+    //         dc,
+    //         showDC,
+    //         groupRoll,
+    //         label,
+    //         description,
+    //         rollMode,
+    //         isCinematic,
+    //         showRollExplanation
+    //     } = rollDetails;
         
-        // Process actors to extract the data needed for the chat card
-        const processedActors = actors.map(actor => ({
-            id: actor.tokenId || actor.id,
-            actorId: actor.actorId,
-            name: actor.name,
-            group: actor.group || 1,
-            toolId: actor.toolId || null
-        }));
+    //     // Process actors to extract the data needed for the chat card
+    //     const processedActors = actors.map(actor => ({
+    //         id: actor.tokenId || actor.id,
+    //         actorId: actor.actorId,
+    //         name: actor.name,
+    //         group: actor.group || 1,
+    //         toolId: actor.toolId || null
+    //     }));
         
-        // Create message data for the chat card
-        const messageData = {
-            skillName: challengerRollType === 'tool' ? challengerRollValue : challengerRollValue,
-            defenderSkillName: defenderRollType ? (defenderRollType === 'tool' ? defenderRollValue : defenderRollValue) : null,
-            skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
-            defenderSkillAbbr: defenderRollType ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
-            actors: processedActors,
-            requesterId: game.user.id,
-            type: 'skillCheck',
-            dc: dc,
-            showDC: showDC,
-            isGroupRoll: groupRoll,
-            label: label || null,
-            description: description || null,
-            skillDescription: null, // Will be filled by formatChatMessage
-            defenderSkillDescription: null, // Will be filled by formatChatMessage
-            skillLink: null, // Will be filled by formatChatMessage
-            defenderSkillLink: null, // Will be filled by formatChatMessage
-            rollMode,
-            rollType: challengerRollType,
-            defenderRollType: defenderRollType || null,
-            hasMultipleGroups: !!defenderRollType,
-            showRollExplanation: showRollExplanation || false,
-            isCinematic: isCinematic || false
-        };
+    //     // Create message data for the chat card
+    //     const messageData = {
+    //         skillName: challengerRollType === 'tool' ? challengerRollValue : challengerRollValue,
+    //         defenderSkillName: defenderRollType ? (defenderRollType === 'tool' ? defenderRollValue : defenderRollValue) : null,
+    //         skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
+    //         defenderSkillAbbr: defenderRollType ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
+    //         actors: processedActors,
+    //         requesterId: game.user.id,
+    //         type: 'skillCheck',
+    //         dc: dc,
+    //         showDC: showDC,
+    //         isGroupRoll: groupRoll,
+    //         label: label || null,
+    //         description: description || null,
+    //         skillDescription: null, // Will be filled by formatChatMessage
+    //         defenderSkillDescription: null, // Will be filled by formatChatMessage
+    //         skillLink: null, // Will be filled by formatChatMessage
+    //         defenderSkillLink: null, // Will be filled by formatChatMessage
+    //         rollMode,
+    //         rollType: challengerRollType,
+    //         defenderRollType: defenderRollType || null,
+    //         hasMultipleGroups: !!defenderRollType,
+    //         showRollExplanation: showRollExplanation || false,
+    //         isCinematic: isCinematic || false
+    //     };
         
-        // Create the chat message
-        const message = await ChatMessage.create({
-            user: game.user.id,
-            speaker: ChatMessage.getSpeaker(),
-            content: await SkillCheckDialog.formatChatMessage(messageData),
-            flags: { 'coffee-pub-blacksmith': messageData }
-        });
+    //     // Create the chat message
+    //     const message = await ChatMessage.create({
+    //         user: game.user.id,
+    //         speaker: ChatMessage.getSpeaker(),
+    //         content: await SkillCheckDialog.formatChatMessage(messageData),
+    //         flags: { 'coffee-pub-blacksmith': messageData }
+    //     });
         
-        // Handle cinematic mode if enabled
-        if (messageData.isCinematic) {
-            // Show for the current user who initiated the roll
-            SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+    //     console.log('TESTING: PLAYING SOUND', "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    //     // Play sound for roll request posted to chat
+    //     playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+        
+    //     // Scroll chat to bottom to show the new roll request
+    //     _scrollChatToBottom();
+        
+    //     // Handle cinematic mode if enabled
+    //     if (messageData.isCinematic) {
+    //         // Show for the current user who initiated the roll
+    //         SkillCheckDialog._showCinematicDisplay(messageData, message.id);
             
-            // Emit to other users to show the overlay
-            const socket = SocketManager.getSocket();
-            if (socket) {
-                await socket.executeForOthers("showCinematicOverlay", {
-                    type: "showCinematicOverlay",  // Add type property
-                    messageId: message.id,
-                    messageData: messageData
-                });
-            }
-        }
+    //         // Emit to other users to show the overlay
+    //         const socket = SocketManager.getSocket();
+    //         if (socket) {
+    //             await socket.executeForOthers("showCinematicOverlay", {
+    //                 type: "showCinematicOverlay",  // Add type property
+    //                 messageId: message.id,
+    //                 messageData: messageData
+    //             });
+    //         }
+    //     }
         
-        postConsoleAndNotification(MODULE.NAME, `requestRoll: Chat card created successfully`, { messageId: message.id, tokenId: processedActors[0]?.id }, true, false);
+    //     postConsoleAndNotification(MODULE.NAME, `requestRoll: Chat card created successfully`, { messageId: message.id, tokenId: processedActors[0]?.id }, true, false);
         
-        return { 
-            success: true, 
-            messageId: message.id, 
-            tokenId: processedActors[0]?.id,
-            messageData: messageData
-        };
+    //     return { 
+    //         success: true, 
+    //         messageId: message.id, 
+    //         tokenId: processedActors[0]?.id,
+    //         messageData: messageData
+    //     };
         
-    } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, `requestRoll error:`, error, true, false);
-        throw error;
-    }
-}
+    // } catch (error) {
+    //     postConsoleAndNotification(MODULE.NAME, `requestRoll error:`, error, true, false);
+    //     throw error;
+    // }
+// }
 
 /**
  * 2. orchestrateRoll() - Packages data, selects system, chooses mode
@@ -125,6 +138,13 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         if (existingMessageId) {
             // Use existing chat card instead of creating a new one
             postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Using existing message ID: ${existingMessageId}`, null, true, false);
+            
+            // Verify the chat card exists
+            const message = game.messages.get(existingMessageId);
+            if (!message) {
+                throw new Error(`BLACKSMITH | SKILLCHECK | Chat card not found for message ID: ${existingMessageId}`);
+            }
+            
             chatResult = {
                 success: true,
                 messageId: existingMessageId,
@@ -132,13 +152,8 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
                 messageData: null // We don't need to recreate the message data
             };
         } else {
-            // Create new chat card using requestRoll
-            postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Creating new chat card`, null, true, false);
-            chatResult = await requestRoll(rollDetails);
-        
-        if (!chatResult.success) {
-            throw new Error('Failed to create chat card');
-            }
+            // This should never happen - skillcheck dialog always creates chat cards first
+            throw new Error('BLACKSMITH | SKILLCHECK | No existing message ID provided - chat card must be created first by skillcheck dialog.');
         }
         
         // Extract the first actor for roll execution
@@ -409,12 +424,14 @@ export async function deliverRollResults(rollResults, context) {
                 individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
             }
             
-            import('./api-common.js').then(({ playSound }) => {
-                playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
-            });
+            playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
         }
         
         postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Results delivered successfully`, null, true, false);
+        
+        // Scroll chat to bottom to show the updated roll results
+        _scrollChatToBottom();
+        
         return true;
         
     } catch (error) {
@@ -1215,9 +1232,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                 individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
             }
             
-            import('./api-common.js').then(({ playSound }) => {
-                playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
-            });
+            playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
             
         }, diceSpinTime); // Small delay for reveal effect
         
@@ -1378,9 +1393,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                             groupSound = COFFEEPUB.SOUNDVERSUS; // For ties
                         }
                         
-                        import('./api-common.js').then(({ playSound }) => {
-                            playSound(groupSound, COFFEEPUB.SOUNDVOLUMENORMAL);
-                        });
+                        playSound(groupSound, COFFEEPUB.SOUNDVOLUMENORMAL);
                         
                         // Auto-close after showing group results
                         setTimeout(() => {
@@ -1412,6 +1425,21 @@ export async function updateCinemaOverlay(rollResults, context) {
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay error:`, error, true, false);
         throw error;
+    }
+}
+
+/**
+ * Scroll the Foundry chat log to the bottom
+ */
+function _scrollChatToBottom() {
+    try {
+        // Find the chat log container
+        const chatLog = document.querySelector('#chat-log');
+        if (chatLog) {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `_scrollChatToBottom error:`, error, true, false);
     }
 }
 

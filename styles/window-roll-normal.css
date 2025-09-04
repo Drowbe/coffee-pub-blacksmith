@@ -8,6 +8,7 @@
 :root {
   --element-radius: 4px;
   --container-opacity: 0.85;
+  --blacksmith-roll-banner-image: url('../images/backgrounds/background-skull-red.webp');
 }
 
 /* Main Window */
@@ -41,9 +42,16 @@ div#roll-window .window-content {
 }
 
 .roll-header {
-  background: #18181c;
+  background: rgba(0, 0, 0, 0.8);
+  /* Image background */
+  background-image:  var(--blacksmith-roll-banner-image);
+  /* Control how it displays */
+  background-blend-mode: multiply;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: cover;
   padding: 1em;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid rgba(68, 68, 68, 0.9);
 }
 
 .roll-header-content {
