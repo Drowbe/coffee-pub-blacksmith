@@ -689,41 +689,41 @@
 /* Critical Success Effects */
 .cpb-roll-result.cpb-chat-critical {
     background: linear-gradient(135deg, rgba(98, 150, 2, 0.15), rgba(98, 150, 2, 0.05));
-    border: 2px solid rgba(98, 150, 2, 0.4);
+    border: 1px solid rgba(36, 91, 23, 0.4);
     border-radius: 4px;
     animation: cpb-pulse 4.5s ease-in-out infinite;
-    box-shadow: 0 0 10px rgba(98, 150, 2, 0.3);
+    box-shadow: 0 0 5px rgba(98, 150, 2, 0.3);
 }
 
 .cpb-roll-result.cpb-chat-critical .cpb-roll-total {
-    color: #629602;
-    font-weight: bold;
-    text-shadow: 0 0 3px rgba(98, 150, 2, 0.5);
+    color: rgba(36, 91, 23, 0.9);
+    font-weight:  inherit;
+    text-shadow: 0 0 2px rgba(98, 150, 2, 0.5);
 }
 
 .cpb-roll-result.cpb-chat-critical .cpb-actor-name {
-    color: #629602;
-    font-weight: bold;
+    color: rgba(36, 91, 23, 0.9);
+   font-weight:  inherit;
 }
 
 /* Fumble Effects */
 .cpb-roll-result.cpb-chat-fumble {
     background: linear-gradient(135deg, rgba(149, 32, 35, 0.15), rgba(149, 32, 35, 0.05));
-    border: 2px solid rgba(149, 32, 35, 0.4);
+    border: 1px solid rgba(149, 32, 35, 0.4);
     border-radius: 4px;
     animation: cpb-shake 4s ease-in-out infinite;
-    box-shadow: 0 0 10px rgba(149, 32, 35, 0.3);
+    box-shadow: 0 0 5px rgba(149, 32, 35, 0.3);
 }
 
 .cpb-roll-result.cpb-chat-fumble .cpb-roll-total {
     color: #952023;
-    font-weight: bold;
-    text-shadow: 0 0 3px rgba(149, 32, 35, 0.5);
+    font-weight: inherit;
+    text-shadow: 0 0 2px rgba(149, 32, 35, 0.5);
 }
 
 .cpb-roll-result.cpb-chat-fumble .cpb-actor-name {
     color: #952023;
-    font-weight: bold;
+    font-weight: inherit;
 }
 
 /* Animations */

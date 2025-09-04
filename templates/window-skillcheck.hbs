@@ -3,62 +3,52 @@
     <div class="cpb-dialog-header-sticky">
         <div class="cpb-dialog-header">
             <div class="cpb-dialog-header-content">
+                <!-- HEADER ICON -->
                 <div class="cpb-dialog-dice-icon">
                     <i class="fas fa-dice-d20"></i>
                 </div>
+                <!-- HEADER TITLE -->
                 <div class="cpb-dialog-title-section">
                     <div class="cpb-dialog-main-title">Checks and Saves</div>
                     <div class="cpb-dialog-subtitle">Skill Checks • Ability Checks • Saving Throws</div>
                 </div>
+                <!-- HEADER CONTROLS -->
                 <div class="cpb-dialog-controls">
-         
+                     <!-- Roll Visibility -->   
                     <div class="cpb-form-group">
                         <div class="cpb-form-fields">
-                            <select name="rollMode">
+                            <select name="rollMode" class="cpb-select">
                                 <option value="roll">Public Roll</option>
                                 <option value="gmroll">Private Roll</option>
                                 <option value="blindroll">GM Only</option>
                             </select>
                         </div>
                     </div>
-
-
-                    <div class="cpb-form-group">
-                        <div class="cpb-form-fields">
-                            <div class="cpb-toggle-container">
-                                <span class="cpb-toggle-label">Show DC</span>
-                                <div class="cpb-toggle">
-                                    <input type="checkbox" name="showDC" id="showDC" {{#if userPreferences.showDC}}checked{{/if}}>
-                                    <label for="showDC" class="cpb-toggle-slider"></label>
-                                </div>
-                            </div>
+                    <!-- Cinematic Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Cinematic</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="isCinematic" id="isCinematic" {{#if userPreferences.isCinematic}}checked{{/if}}>
+                            <label for="isCinematic" class="cpb-toggle-slider"></label>
                         </div>
                     </div>
-
-                    <div class="cpb-form-group">
-                        <div class="cpb-form-fields">
-                            <div class="cpb-toggle-container">
-                                <span class="cpb-toggle-label">Group DC</span>
-                                <div class="cpb-toggle">
-                                    <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
-                                    <label for="groupRoll" class="cpb-toggle-slider"></label>
-                                </div>
-                            </div>
+                    <!-- Show DC Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Show DC</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="showDC" id="showDC" {{#if userPreferences.showDC}}checked{{/if}}>
+                            <label for="showDC" class="cpb-toggle-slider"></label>
                         </div>
                     </div>
-
-                    <div class="cpb-form-group">
-                        <div class="cpb-form-fields">
-                            <div class="cpb-toggle-container">
-                                <span class="cpb-toggle-label">Cinematic Mode</span>
-                                <div class="cpb-toggle">
-                                    <input type="checkbox" name="isCinematic" id="isCinematic" {{#if userPreferences.isCinematic}}checked{{/if}}>
-                                    <label for="isCinematic" class="cpb-toggle-slider"></label>
-                                </div>
-                            </div>
+                    <!-- Group DC Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Group DC</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
+                            <label for="groupRoll" class="cpb-toggle-slider"></label>
                         </div>
                     </div>
-
+                    <!-- DC Display -->
                     <div class="cpb-dc-display">
                         <div class="cpb-dc-box">
                             <div class="cpb-dc-label">DC</div>
@@ -73,7 +63,13 @@
     <div class="cpb-dialog-content">
         <!-- Left Column -->
         <div class="cpb-dialog-column">
-            <h2><i class="fas fa-helmet-battle"></i> Contestants</h2>
+            <div class="cpb-column-header">
+                <div class="cpb-header-left">
+                    <i class="fas fa-helmet-battle"></i> Contestants
+                </div>
+                <div class="cpb-header-right"></div>
+            </div>
+
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
                     <input type="text" name="search" placeholder="Search for contestants...">
@@ -116,27 +112,24 @@
             <h3>Left-click to select. Right-click if a Defender.</h3>
         </div>
 
-        <!-- Middle Column -->
+        <!-- Right Column -->
         <div class="cpb-dialog-column">
-            <h2 class="cpb-roll-type-header">
-                <i class="fas fa-dice"></i> Roll Type
+            <div class="cpb-column-header">
+                <div class="cpb-header-left">
+                    <i class="fas fa-dice"></i> Roll Type
+                </div>
+                <div class="cpb-header-right">
 
-
-
-
-                <div class="cpb-form-group">
-                    <div class="cpb-form-fields">
-                        <div class="cpb-toggle-container">
-                            <span class="cpb-toggle-label">Group DC</span>
-                            <div class="cpb-toggle">
-                                <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
-                                <label for="groupRoll" class="cpb-toggle-slider"></label>
-                            </div>
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Explain Roll</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="showRollExplanation" id="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}>
+                            <label for="showRollExplanation" class="cpb-toggle-slider"></label>
                         </div>
                     </div>
-                </div>
 
-            </h2>
+                </div>
+            </div>
             
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
@@ -171,110 +164,110 @@
                 <div class="cpb-check-section" data-filter="quick">
                     <div class="cpb-section-header">Quick ROLLS</div>
                     <div class="cpb-section-subheader">Party Rolls (Auto-selects Party)</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="perception" data-group="true" data-roll-title="Party Perception">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s awareness of hidden details, sounds, or threats." data-value="perception" data-group="true" data-roll-title="Party Perception">
                         <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i>
-                        <span class="cpb-roll-label">Party Perception</span><span class="cpb-roll-description">xxx</span>
+                        <span class="cpb-roll-label">Party Perception</span><span class="cpb-roll-description">Party’s awareness of hidden details, sounds, or threats.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="insight" data-group="true" data-roll-title="Party Insight">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to read motives, lies, or intentions." data-value="insight" data-group="true" data-roll-title="Party Insight">
                         <i class="fas fa-brain" title="Party Insight"></i>
-                        <span class="cpb-roll-label">Party Insight</span><span class="cpb-roll-description">xxx</span>
+                        <span class="cpb-roll-label">Party Insight</span><span class="cpb-roll-description">Party’s ability to read motives, lies, or intentions.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="investigation" data-group="true" data-roll-title="Party Investigation">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s skill at analyzing clues, objects, or mechanisms." data-value="investigation" data-group="true" data-roll-title="Party Investigation">
                         <i class="fas fa-magnifying-glass" title="Party Investigation"></i> 
-                        <span class="cpb-roll-label">Party Investigation</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Party Investigation</span><span class="cpb-roll-description">Party’s skill at analyzing clues, objects, or mechanisms.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="nature" data-group="true" data-roll-title="Party Nature">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s knowledge of plants, animals, terrain, and survival lore." data-value="nature" data-group="true" data-roll-title="Party Nature">
                         <i class="fas fa-sheep" title="Party Nature"></i>
-                        <span class="cpb-roll-label">Party Nature</span><span class="cpb-roll-description">xxx</span>
+                        <span class="cpb-roll-label">Party Nature</span><span class="cpb-roll-description">Party’s knowledge of plants, animals, terrain, and survival lore.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-value="stealth" data-group="true" data-roll-title="Party Stealth">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to move quietly and avoid detection." data-value="stealth" data-group="true" data-roll-title="Party Stealth">
                         <i class="fas fa-burst" title="Party Stealth"></i> 
-                        <span class="cpb-roll-label">Party Stealth</span><span class="cpb-roll-description">xxx</span>
+                        <span class="cpb-roll-label">Party Stealth</span><span class="cpb-roll-description">Party’s ability to move quietly and avoid detection.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div> 
                     </div>
                     <div class="cpb-section-subheader">COMMON ROLLS</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="10" data-group="true" data-roll-title="Perception Check">
-                        <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i>
-                        <span class="cpb-roll-label">Perception Check</span><span class="cpb-roll-description">XXX</span>
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Moderate check to spot hidden creatures, objects, or environmental changes." data-value="perception" data-dc="10" data-group="true" data-roll-title="Perception Check">
+                        <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Perception"></i>
+                        <span class="cpb-roll-label">DC 10 Perception Check</span><span class="cpb-roll-description">Moderate check to spot hidden creatures, objects, or environmental changes.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="perception" data-dc="15" data-group="true" data-roll-title="Perception Check">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Tougher check to spot hidden creatures, objects, or environmental changes." data-value="perception" data-dc="15" data-group="true" data-roll-title="Perception Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i>
-                        <span class="cpb-roll-label">Perception Check</span><span class="cpb-roll-description">DC 15</span>
+                        <span class="cpb-roll-label">DC 15 Perception Check</span><span class="cpb-roll-description">Tougher check to spot hidden creatures, objects, or environmental changes.</span>
                     <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
 
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="10" data-group="true" data-roll-title="Insight Check">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Discern motives, detect lies, or read emotions." data-value="insight" data-dc="10" data-group="true" data-roll-title="Insight Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Insight"></i>
-                        <span class="cpb-roll-label">Insight Check</span><span class="cpb-roll-description">DC 10</span>
+                        <span class="cpb-roll-label">DC 10 Insight Check</span><span class="cpb-roll-description">Moderate check to discern motives, detect lies, or read emotions.</span>
                     <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
 
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="insight" data-dc="15" data-group="true" data-roll-title="Insight Check">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Tougher check to discern motives, detect lies, or read emotions." data-value="insight" data-dc="15" data-group="true" data-roll-title="Insight Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Insight"></i>
-                        <span class="cpb-roll-label">Insight Check</span><span class="cpb-roll-description">DC 15</span>
+                        <span class="cpb-roll-label">DC 15 Insight Check</span><span class="cpb-roll-description">Tougher check to discern motives, detect lies, or read emotions.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
 
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="investigation" data-dc="10" data-group="true" data-roll-title="Investigation Check">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Search, analyze, or piece together clues and mechanisms." data-value="investigation" data-dc="10" data-group="true" data-roll-title="Investigation Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Investigation"></i>
-                        <span class="cpb-roll-label">Investigation Check</span><span class="cpb-roll-description">DC 10</span>
+                        <span class="cpb-roll-label">DC 10 Investigation Check</span><span class="cpb-roll-description">Moderate search, analyze, or piece together clues and mechanisms.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
 
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-value="investigation" data-dc="15" data-group="true" data-roll-title="Investigation Check">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Thorough search, analyze, or piece together clues and mechanisms." data-value="investigation" data-dc="15" data-group="true" data-roll-title="Investigation Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Investigation"></i>
-                        <span class="cpb-roll-label">Investigation Check</span><span class="cpb-roll-description">DC 15</span>
+                        <span class="cpb-roll-label">DC 15 Investigation Check</span><span class="cpb-roll-description">Thorough search, analyze, or piece together clues and mechanisms.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
                     <div class="cpb-section-subheader">GRAPPLE ROLLS</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="athletics" data-defender-skill="athletics" data-roll-title="Grapple Attack">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use Strength to grab and restrain a foe." data-value="athletics" data-defender-skill="athletics" data-roll-title="Grapple Attack">
                         <i class="fas fa-hand-back-fist" title="Grapple Attack"></i> 
-                        <span class="cpb-roll-label">Grapple Attack</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Grapple Attack</span><span class="cpb-roll-description">Use Strength to grab and restrain a foe.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="athletics" data-defender-skill="acrobatics" data-roll-title="Grapple vs Acrobatics">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Contest to break free or avoid being grabbed with agility." data-value="athletics" data-defender-skill="acrobatics" data-roll-title="Grapple vs Acrobatics">
                         <i class="fas fa-person-running" title="Grapple vs Acrobatics"></i> 
-                        <span class="cpb-roll-label">Grapple vs Acrobatics</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Grapple vs Acrobatics</span><span class="cpb-roll-description">Contest to break free or avoid being grabbed with agility.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="athletics" data-defender-skill="athletics" data-roll-title="Shove Attack">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Push a creature back or knock them prone." data-value="athletics" data-defender-skill="athletics" data-roll-title="Shove Attack">
                         <i class="fas fa-arrows-up-down-left-right" title="Shove Attack"></i> 
-                        <span class="cpb-roll-label">Shove Attack</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Shove Attack</span><span class="cpb-roll-description">Push a creature back or knock them prone.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="athletics" data-defender-skill="athletics" data-roll-title="Escape Grapple">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use Strength or Dexterity (Acrobatics) to break free." data-value="athletics" data-defender-skill="athletics" data-roll-title="Escape Grapple">
                         <i class="fas fa-person-walking-dashed-line-arrow-right" title="Escape Grapple"></i> 
-                        <span class="cpb-roll-label">Escape Grapple</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Escape Grapple</span><span class="cpb-roll-description">Use Strength or Dexterity (Acrobatics) to break free.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
                     <div class="cpb-section-subheader">MANIPULATION ROLLS</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="deception" data-defender-skill="insight" data-roll-title="Deception vs Insight">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Lie, bluff, or disguise against another’s intuition." data-value="deception" data-defender-skill="insight" data-roll-title="Deception vs Insight">
                         <i class="fas fa-mask" title="Deception vs Insight"></i> 
-                        <span class="cpb-roll-label">Deception vs Insight</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Deception vs Insight</span><span class="cpb-roll-description">Lie, bluff, or disguise against another’s intuition.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="persuasion" data-defender-skill="insight" data-roll-title="Persuasion vs Insight">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Convince, negotiate, or appeal to someone’s motives." data-value="persuasion" data-defender-skill="insight" data-roll-title="Persuasion vs Insight">
                         <i class="fas fa-comments" title="Persuasion vs Insight"></i> 
-                        <span class="cpb-roll-label">Persuasion vs Insight</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Persuasion vs Insight</span><span class="cpb-roll-description">Convince, negotiate, or appeal to someone’s motives.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="intimidation" data-defender-skill="insight" data-roll-title="Intimidation vs Insight">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use threats, fear, or force of presence to sway another." data-value="intimidation" data-defender-skill="insight" data-roll-title="Intimidation vs Insight">
                         <i class="fas fa-angry" title="Intimidation vs Insight"></i> 
-                        <span class="cpb-roll-label">Intimidation vs Insight</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Intimidation vs Insight</span><span class="cpb-roll-description">Use threats, fear, or force of presence to sway another.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                     
                     <div class="cpb-section-subheader">STEALTH ROLLS</div>
-                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-value="stealth" data-defender-skill="perception" data-roll-title="Stealth vs Perception">
+                    <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Sneak quietly or hide against another’s awareness." data-value="stealth" data-defender-skill="perception" data-roll-title="Stealth vs Perception">
                         <i class="fas fa-user-ninja" title="Stealth vs Perception"></i> 
-                        <span class="cpb-roll-label">Stealth vs Perception</span><span class="cpb-roll-description">XXX</span>
+                        <span class="cpb-roll-label">Stealth vs Perception</span><span class="cpb-roll-description">Sneak quietly or hide against another’s awareness.</span>
                         <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
                     </div>
                 </div>
@@ -320,41 +313,49 @@
                     <div class="cpb-section-header">Dice Roll</div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
-                            <i class="fas fa-coin" title="d2"></i> 1d2
+                            <i class="fas fa-coin" title="d2"></i> 
+                            <span class="cpb-roll-label">1d2</span><span class="cpb-roll-description">Simple coin flip.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d4" data-roll-title="1d4 Dice Roll">
-                            <i class="fas fa-dice-d4" title="d4"></i> 1d4
+                            <i class="fas fa-dice-d4" title="d4"></i> 
+                            <span class="cpb-roll-label">1d4</span><span class="cpb-roll-description">Four-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d6" data-roll-title="1d6 Dice Roll">
-                            <i class="fas fa-dice-d6" title="d6"></i> 1d6
+                            <i class="fas fa-dice-d6" title="d6"></i> 
+                            <span class="cpb-roll-label">1d6</span><span class="cpb-roll-description">Six-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d8" data-roll-title="1d8 Dice Roll">
-                            <i class="fas fa-dice-d8" title="d8"></i> 1d8
+                            <i class="fas fa-dice-d8" title="d8"></i> 
+                            <span class="cpb-roll-label">1d8</span><span class="cpb-roll-description">Eight-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d10" data-roll-title="1d10 Dice Roll">
-                            <i class="fas fa-dice-d10" title="d10"></i> 1d10
+                            <i class="fas fa-dice-d10" title="d10"></i> 
+                            <span class="cpb-roll-label">1d10</span><span class="cpb-roll-description">Ten-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d12" data-roll-title="1d12 Dice Roll">
-                            <i class="fas fa-dice-d12" title="d12"></i> 1d12
+                            <i class="fas fa-dice-d12" title="d12"></i> 
+                            <span class="cpb-roll-label">1d12</span><span class="cpb-roll-description">Twelve-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d20" data-roll-title="1d20 Dice Roll">
-                            <i class="fas fa-dice-d20" title="d20"></i> 1d20
+                            <i class="fas fa-dice-d20" title="d20"></i> 
+                            <span class="cpb-roll-label">1d20</span><span class="cpb-roll-description">Twenty-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d100" data-roll-title="1d100 Dice Roll">
-                            <i class="fas fa-hundred-points" title="d100"></i> 1d100
+                            <i class="fas fa-hundred-points" title="d100"></i> 
+                            <span class="cpb-roll-label">1d100</span><span class="cpb-roll-description">Hundred-sided die.</span>
                             <div class="cpb-roll-type-indicator"></div>
                         </div>
                     </div>

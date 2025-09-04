@@ -6,8 +6,8 @@
 
 /* Window Background (matching roll window) */
 div#skill-check-dialog {
-    min-height: 700px;
-    min-width: 1000px;
+    min-height: 550px;
+    min-width: 800px;
 }
 
 /* Window Content */
@@ -60,73 +60,6 @@ div#skill-check-dialog .window-content {
     width: 100%;
 }
 
-.cpb-dialog-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-left: auto;
-}
-
-
-
-/* DC Display Box */
-.cpb-dc-display {
-    display: flex;
-    align-items: center;
-}
-
-.cpb-dc-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    padding: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.cpb-dc-label {
-    font-size: var(--font-size-10);
-    color: var(--color-text-light-secondary);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-}
-
-.cpb-dc-input {
-    background: transparent;
-    border: none;
-    color: var(--color-text-light-primary);
-    font-size: var(--font-size-16);
-    font-weight: bold;
-    text-align: center;
-    width: 100%;
-    outline: none;
-    padding: 0;
-    margin: 0;
-}
-
-.cpb-dc-input::placeholder {
-    color: var(--color-text-light-secondary);
-    opacity: 0.7;
-}
-
-.cpb-dialog-dice-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: rgba(0, 0, 0, 0.1);
-    border: 2px solid rgba(172, 159, 129, 0.9);
-    border-radius: 50%;
-    flex-shrink: 0;
-}
 
 .cpb-dialog-dice-icon i {
     font-size: 2.5em;
@@ -159,6 +92,183 @@ div#skill-check-dialog .window-content {
 }
 
 
+
+
+.cpb-dialog-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+
+
+/* DC Display Box */
+.cpb-dc-display {
+    display: flex;
+    align-items: center;
+}
+
+
+.cpb-dc-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.cpb-dc-box input {
+    color: rgba(55, 173, 29, 0.9) !important;
+    font-size: 2.0em !important;
+     font-weight: 900 !important;
+     text-align: center !important;
+     padding: 0 !important;
+     border: 0px !important;
+     text-align: center !important;
+    width: 100% !important;
+    outline: none !important;
+}
+
+/* on focus */
+.cpb-dc-box input:focus,
+.cpb-dc-box input:focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;   /* many UIs use this for the focus ring */
+}
+
+.cpb-dc-label {
+    font-size: 0.7em;
+    color: rgba(172, 159, 129, 0.9);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.cpb-dc-input {
+    background: transparent;
+}
+
+.cpb-dc-input::placeholder {
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 0.7;
+}
+
+.cpb-dialog-dice-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(172, 159, 129, 0.9);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Toggle Button Styling */
+.cpb-toggle-container {
+    display: flex;
+    align-items: center;
+  justify-content: flex-start; /* keep label next to slider */
+  width: auto;/* don't stretch full width */
+  gap: 2px; /* small space between label and slider */
+}
+
+.cpb-toggle-label {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    flex: 0 0 auto; /* don't grow */
+
+}
+/* Toggle Container */
+.cpb-toggle {
+    position: relative;
+    display: inline-block;
+    width: 35px;
+    height: 14px;
+    flex-shrink: 0;
+}
+/* Override Normal Checkbox */
+.cpb-toggle input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+/* Toggle Grip */
+.cpb-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+.cpb-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    left: 2px;
+    bottom: 1px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cpb-toggle input:checked + .cpb-toggle-slider {
+    background-color: rgba(128, 118, 96, 0.8);
+    border-color: rgba(128, 118, 96, 0.6);
+}
+.cpb-toggle input:checked + .cpb-toggle-slider:before {
+    transform: translateX(14px);
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.cpb-toggle input:hover+ .cpb-toggle-slider {
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
+}
+
+
+
+
+
+
+.cpb-select {
+    position: relative;
+    display: inline-block;
+    width: 35px;
+    height: 20px;
+
+    padding: 0px 4px 0px 4px !important;
+    background-color: rgba(128, 118, 96, 0.8) !important;
+    border-radius: 50px;
+    color: rgba(255, 255, 255, 0.8);
+     font-size: .8em !important;
+     font-weight: 400 !important;
+ }
+.cpb-select option {
+    background-color: rgba(128, 118, 96, 0.8) !important;
+    color: rgba(0, 0, 0, 0.8);
+ }
+
+
 /* ***** CONTENT AREA ***** */
 
 .cpb-dialog-content {
@@ -172,22 +282,8 @@ div#skill-check-dialog .window-content {
     margin-top: 0; /* Remove any top margin since we have the header */
 }
 
-.cpb-dialog-column:first-child {
-    width: 350px;
-    flex-shrink: 0;
-}
+/* COLUMN */
 
-.cpb-dialog-column:last-child {
-    flex: 1;
-    min-width: 0;
-}
-
-.cpb-roll-type-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
 .cpb-dialog-column {
     display: flex;
     flex-direction: column;
@@ -199,25 +295,77 @@ div#skill-check-dialog .window-content {
     border-radius: 4px;
     border: 1px solid #444;
 }
-.cpb-dialog-column h2 {
-  font-size: 1.1em;
-  font-weight: 800;
+.cpb-dialog-column:first-child {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.cpb-dialog-column:last-child {
+    flex: 1;
+    min-width: 0;
+}
+
+/* COL HEADER */
+
+.cpb-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
   color: rgba(145, 133, 107, 1.0);
   background: rgba(0, 0, 0, 1.0);
   display: flex;
   align-items: center;
-  gap: 4px;
+  
   margin-bottom: 0px;
   border-top: 0px solid rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid #444;
   border-left: 0px solid #444;
   border-right: 0px solid #444;
   border-radius: 0px;
+
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 6px;
   padding-right: 6px;
-  text-transform: uppercase;
+
+}
+
+   
+.cpb-header-left {
+    display: flex;
+    align-items: center;
+    
+    font-size: 1.1em;
+    font-weight: 800;
+    text-transform: uppercase;
+    gap: 4px;
+}
+
+.cpb-header-left i {
+    font-size: .8em;
+    padding-top: 1px;
+}
+
+.cpb-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.cpb-dialog-column h2 {
+    border-bottom: 0px solid #444;
+    border-top: 0px solid #444;
+    border-left: 0px solid #444;
+    border-right: 0px solid #444;
+    background: rgba(0, 0, 0, 1.0);
+    color: rgba(172, 159, 129, 0.9);
+    font-size: 1.0em;
+    font-weight: 400;
+    margin: 0px 0px 0px 0px;
+    padding: 4px 0px 4px 0px;
+    text-align: center;
+    border-radius: 4px;
 }
 .cpb-dialog-column h2 i {
     font-size: .8em;
@@ -240,13 +388,13 @@ div#skill-check-dialog .window-content {
 /* FORM STYLES */
 
 .cpb-form-group {
-    margin: 0 0 8px;
+    margin: 0 0 0;
 }
 .cpb-form-group label {
     display: block;
     font-weight: bold;
     font-size: 0.8em;
-    margin-bottom: 4px;
+    margin-bottom: 0px;
     margin-top: 6px;
     margin-left: 8px;
 }
@@ -258,109 +406,6 @@ div#skill-check-dialog .window-content {
     margin: 0;
     gap: 2px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Toggle Button Styling */
-.cpb-toggle-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 12px;
-}
-
-.cpb-toggle-label {
-    font-size: var(--font-size-12);
-    color: var(--color-text-light-primary);
-    font-weight: 500;
-    flex: 1;
-}
-
-.cpb-toggle {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
-.cpb-toggle input[type="checkbox"] {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.cpb-toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    margin-left: 2px;
-    margin-right: 2px;
-}
-
-.cpb-toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 10px;
-    width: 10px;
-    left: 2px;
-    bottom: 1px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.cpb-toggle input:checked + .cpb-toggle-slider {
-    background-color: var(--color-text-light-primary);
-    border-color: var(--color-text-light-primary);
-}
-
-.cpb-toggle input:checked + .cpb-toggle-slider:before {
-    transform: translateX(14px);
-    background-color: #1a1a1a;
-}
-
-.cpb-toggle input:focus + .cpb-toggle-slider {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -549,35 +594,18 @@ tor-item.selected {
 
 .cpb-dice-grid {
     display: flex;
-    gap: 2px;
+    gap: 4px;
     margin: 0px 0;
 }
 .cpb-dice-grid .cpb-check-item {
-    justify-content: center;
     width: 100%;
     height: 28px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    padding-left: 6px;
-    background: rgba(0, 0, 0, 0.05);
-    
-    
-    
-    
+    background: rgba(0, 0, 0, 0.9);
 }
 .cpb-dice-grid .cpb-check-item i {
     padding-top: 2px;
     font-size: 1.1em;
     margin: 0;
-    
-    
-}
-.cpb-dice-grid .cpb-check-item span {
-    display: none;
-}
-.cpb-dice-grid .cpb-check-item:hover {
-    background: rgba(0, 0, 0, 0.4);
-    box-shadow: 0 0 3px var(--color-shadow-primary);
 }
 
 /* CHECKS LIST */
@@ -713,7 +741,6 @@ tor-item.selected {
 
 /* for indiviudal elections
 .cpb-dice-grid .cpb-check-item.selected,
-.cpb-dice-btn.selected,
 .cpb-check-item.selected,
 .cpb-skill-item.selected {
     background-color: rgba(40, 108, 24, 0.4);
