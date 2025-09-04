@@ -98,15 +98,22 @@ div#skill-check-dialog .window-content {
     margin-bottom: 2px;
 }
 
-.cpb-dc-value {
-    font-size: var(--font-size-16);
+.cpb-dc-input {
+    background: transparent;
+    border: none;
     color: var(--color-text-light-primary);
+    font-size: var(--font-size-16);
     font-weight: bold;
     text-align: center;
-    min-height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    outline: none;
+    padding: 0;
+    margin: 0;
+}
+
+.cpb-dc-input::placeholder {
+    color: var(--color-text-light-secondary);
+    opacity: 0.7;
 }
 
 .cpb-dialog-dice-icon {
@@ -164,12 +171,20 @@ div#skill-check-dialog .window-content {
     min-width: 800px;
     margin-top: 0; /* Remove any top margin since we have the header */
 }
-.cpb-dialog-column {
+
+.cpb-dialog-column:first-child {
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.cpb-dialog-column:last-child {
     flex: 1;
+    min-width: 0;
+}
+.cpb-dialog-column {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    min-width: 200px;
     overflow: hidden;
     padding-right: 8px;
     background-color: rgba(0, 0, 0, 0.2);
