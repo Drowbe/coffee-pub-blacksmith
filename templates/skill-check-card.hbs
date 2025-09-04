@@ -81,7 +81,27 @@
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
                             <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
-                                {{this.result.total}}
+                                {{#if (eq ../rollMode "roll")}}
+                                    {{this.result.total}}
+                                {{else if (eq ../rollMode "gmroll")}}
+                                    {{#if (or (eq this.actorId ../requesterId) ../isGM)}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{else if (eq ../rollMode "blindroll")}}
+                                    {{#if ../isGM}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{else if (eq ../rollMode "selfroll")}}
+                                    {{#if (eq this.actorId ../requesterId)}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{/if}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}
                                         <i class="fas fa-check cpb-roll-success-icon"></i>
@@ -122,7 +142,27 @@
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
                             <span class="cpb-roll-total" data-tooltip="{{#if this.result.verboseFormula}}{{this.result.verboseFormula}}{{else}}{{this.result.formula}}{{/if}}">
-                                {{this.result.total}}
+                                {{#if (eq ../rollMode "roll")}}
+                                    {{this.result.total}}
+                                {{else if (eq ../rollMode "gmroll")}}
+                                    {{#if (or (eq this.actorId ../requesterId) ../isGM)}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{else if (eq ../rollMode "blindroll")}}
+                                    {{#if ../isGM}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{else if (eq ../rollMode "selfroll")}}
+                                    {{#if (eq this.actorId ../requesterId)}}
+                                        {{this.result.total}}
+                                    {{else}}
+                                        <i class="fas fa-eye"></i>
+                                    {{/if}}
+                                {{/if}}
                                 {{#if ../dc}}
                                     {{#if (gte this.result.total ../dc)}}
                                         <i class="fas fa-check cpb-roll-success-icon"></i>

@@ -959,7 +959,8 @@ export class SkillCheckDialog extends Application {
                 defenderRollType: isContestedRoll ? defenderRollType : null,
                 hasMultipleGroups: isContestedRoll,
                 showRollExplanation: html.find('input[name="showRollExplanation"]').is(':checked'),
-                isCinematic: html.find('input[name="isCinematic"]').is(':checked')
+                isCinematic: html.find('input[name="isCinematic"]').is(':checked'),
+                isGM: game.user.isGM
             };
 
             postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
