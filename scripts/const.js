@@ -22,12 +22,12 @@ function getModuleCodeName(moduleId) {
 }
 const strName = getModuleCodeName(moduleData.id);
 // Post the data
-console.log(moduleData.title, `Module ID: `, moduleData.id);
-console.log(moduleData.title, `Module Name: `, strName);
-console.log(moduleData.title, `Module Title: `, moduleData.title);
-console.log(moduleData.title, `Module Version: `, moduleData.version);
-console.log(moduleData.title, `Module Author: `, moduleData.authors[0]?.name);
-console.log(moduleData.title, `Module Description: `, moduleData.description);
+// console.log(moduleData.title, `Module ID: `, moduleData.id);
+// console.log(moduleData.title, `Module Name: `, strName);
+// console.log(moduleData.title, `Module Title: `, moduleData.title);
+// console.log(moduleData.title, `Module Version: `, moduleData.version);
+// console.log(moduleData.title, `Module Author: `, moduleData.authors[0]?.name);
+// console.log(moduleData.title, `Module Description: `, moduleData.description);
 
 // ================================================================== 
 // ===== EXPORTS ====================================================

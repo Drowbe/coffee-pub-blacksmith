@@ -1293,10 +1293,6 @@ export class SkillCheckDialog extends Application {
      * @param {string} messageId - The ID of the chat message.
      */
     static _showCinematicDisplay(messageData, messageId) {
-        // Debug: Check if constants are available
-        console.log('🔍 Skill Check Debug - SOUNDCINEMATICOPEN:', window.COFFEEPUB?.SOUNDCINEMATICOPEN);
-        console.log('🔍 Skill Check Debug - SOUNDVOLUMENORMAL:', window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-        console.log('🔍 Skill Check Debug - COFFEEPUB object:', window.COFFEEPUB);
         
         // Use the constant
         const soundPath = COFFEEPUB.SOUNDCINEMATICOPEN;
@@ -1381,14 +1377,6 @@ export class SkillCheckDialog extends Application {
 
 
 
-        // Debug: Check what constants are available
-        console.log('🔍 Skill Check Debug - COFFEEPUB object:', window.COFFEEPUB);
-        console.log('🔍 Skill Check Debug - BACKSKILLCHECK:', window.COFFEEPUB?.BACKSKILLCHECK);
-        console.log('🔍 Skill Check Debug - BACKABILITYCHECK:', window.COFFEEPUB?.BACKABILITYCHECK);
-        console.log('🔍 Skill Check Debug - BACKSAVINGTHROW:', window.COFFEEPUB?.BACKSAVINGTHROW);
-        console.log('🔍 Skill Check Debug - BACKTOOLCHECK:', window.COFFEEPUB?.BACKTOOLCHECK);
-        console.log('🔍 Skill Check Debug - BACKDICEROLL:', window.COFFEEPUB?.BACKDICEROLL);
-        console.log('🔍 Skill Check Debug - BACKCONTESTEDROLL:', window.COFFEEPUB?.BACKCONTESTEDROLL);
 
         // Try to get constants from AssetLookup if COFFEEPUB is not ready
         let assetLookup = null;
@@ -1396,12 +1384,9 @@ export class SkillCheckDialog extends Application {
             const module = game.modules.get('coffee-pub-blacksmith');
             assetLookup = module?.api?.assetLookup;
             if (assetLookup) {
-                console.log('🔍 Skill Check Debug - AssetLookup available, checking constants...');
                 const allConstants = assetLookup.getAllConstants();
-                console.log('🔍 Skill Check Debug - AssetLookup constants:', allConstants);
             }
         } catch (e) {
-            console.warn('🔍 Skill Check Debug - Could not access AssetLookup:', e);
         }
 
         // Determine the background image based on the roll type
@@ -1448,8 +1433,6 @@ export class SkillCheckDialog extends Application {
             }
         }
 
-        // Debug: Check what background image we got
-        console.log('🔍 Skill Check Debug - Selected background image:', backgroundImage);
 
         // Create roll details text with separate title and subtitle
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;

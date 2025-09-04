@@ -307,10 +307,6 @@ function getSoundChoices() {
 //export const registerSettings = () => {
 export const registerSettings = async () => {
     // Settings registration function - called during the 'ready' phase when Foundry is ready
-    
-    console.log('Blacksmith: Starting settings registration...');
-    
-    // 'world' scope settings are available only to GMs
 
     // Build the Dropdown choices
     getCompendiumChoices();
@@ -3457,21 +3453,6 @@ export const registerSettings = async () => {
 			'plain': 'Boring and Lame: Default console styles',
 		}
 	});
-
-	
-
-	// --------------------------------------------------------
-    console.log('Blacksmith: Settings registration complete');
-    // Settings registration complete
-	// --------------------------------------------------------
-
-	
-
-
-
-
-
-
 
 } // END OF "export const registerSettings"
 

@@ -898,7 +898,6 @@ const hideHeaderChatHookId = HookManager.registerHook({
     context: 'blacksmith-hide-header',
     priority: 3, // Normal priority - UI enhancement
     callback: (message, html, data) => {
-        // console.log(data)
 
         let hideHeaderFlag = html.find('span:contains("coffeepub-hide-header")');
         if (hideHeaderFlag.length) { 
@@ -1886,7 +1885,6 @@ async function guessIconPath(item) {
           const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
           if (folderImages.length > 0) {
             const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-            console.log(`BLACKSMITH | Item Import | [IMAGE-TERMS-EXACT] Matched itemImageTerms '${term}' to folder '${folder}' -> '${chosen}'`);
             return chosen;
           }
         }
@@ -1898,7 +1896,6 @@ async function guessIconPath(item) {
             const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
             if (folderImages.length > 0) {
               const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-              console.log(`BLACKSMITH | Item Import | [IMAGE-TERMS-PARTIAL] Matched itemImageTerms '${term}' (partial: '${synonym}') to folder '${folder}' -> '${chosen}'`);
               return chosen;
             }
           }
@@ -1915,7 +1912,6 @@ async function guessIconPath(item) {
         const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
         if (folderImages.length > 0) {
           const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`BLACKSMITH | Item Import | [NAME-EXACT] Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
           return chosen;
         }
       }
@@ -1929,7 +1925,6 @@ async function guessIconPath(item) {
         const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
         if (folderImages.length > 0) {
           const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`BLACKSMITH | Item Import | [NAME-PARTIAL] Matched partial synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
           return chosen;
         }
       }
@@ -1944,7 +1939,6 @@ async function guessIconPath(item) {
         const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
         if (folderImages.length > 0) {
           const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`BLACKSMITH | Item Import | [DESC-EXACT] Matched synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
           return chosen;
         }
       }
@@ -1958,7 +1952,6 @@ async function guessIconPath(item) {
         const folderImages = paths.filter(path => path.toLowerCase().includes(`/${folder}/`));
         if (folderImages.length > 0) {
           const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-          console.log(`BLACKSMITH | Item Import | [DESC-PARTIAL] Matched partial synonym '${synonym}' to folder '${folder}' -> '${chosen}'`);
           return chosen;
         }
       }
@@ -1969,7 +1962,6 @@ async function guessIconPath(item) {
   if (lootType) {
     const lootTypeMatch = paths.find(path => path.toLowerCase().includes(`/${lootType}/`));
     if (lootTypeMatch) {
-      console.log(`BLACKSMITH | Item Import | Matched loot type '${lootType}' -> '${lootTypeMatch}'`);
       return lootTypeMatch;
     }
   }
@@ -1980,7 +1972,6 @@ async function guessIconPath(item) {
       path.toLowerCase().match(new RegExp(`(^|/|_|-)${synonym}(-|_|\.|$)`, 'i'))
     );
     if (fileMatch) {
-      console.log(`BLACKSMITH | Item Import | Matched filename for synonym '${synonym}' -> '${fileMatch}'`);
       return fileMatch;
     }
   }
@@ -1993,13 +1984,11 @@ async function guessIconPath(item) {
     );
     if (folderImages.length > 0) {
       const chosen = folderImages[Math.floor(Math.random() * folderImages.length)];
-      console.log(`BLACKSMITH | Item Import | Using fallback folder '${folder}' -> '${chosen}'`);
       return chosen;
     }
   }
 
   // 8. Ultimate fallback
-  console.log('BLACKSMITH | Item Import | No suitable image found, using default');
   return "icons/commodities/treasure/mask-jeweled-gold.webp";
 }
 
@@ -2023,11 +2012,7 @@ async function testImageGuessing(itemName, itemDescription = '') {
     itemLootType: 'treasure'
   };
   
-  console.log(`BLACKSMITH | Item Import | Testing image guessing for: "${itemName}"`);
-  console.log(`BLACKSMITH | Item Import | Description: "${itemDescription}"`);
-  
   const result = await guessIconPath(testItem);
-  console.log(`BLACKSMITH | Item Import | Result: ${result}`);
   
   return result;
 }
@@ -2168,64 +2153,48 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderItemDirectory", "b
 async function handleCacheManagementSettings() {
     // Only GMs should handle cache management
     if (!game.user.isGM) {
-        console.log("handleCacheManagementSettings: Skipping - user is not GM");
         return;
     }
     
-    console.log("handleCacheManagementSettings: Function called");
     try {
         // Check if refresh cache is requested
         const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
-        console.log("handleCacheManagementSettings: shouldRefresh =", shouldRefresh);
         
         if (shouldRefresh) {
-            console.log("handleCacheManagementSettings: Starting refresh");
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Refresh cache requested, executing...", "", false, false);
             
             // Execute the refresh
             try {
                 const { TokenImageReplacement } = await import('./token-image-replacement.js');
                 if (TokenImageReplacement.forceRefreshCache) {
-                    console.log("handleCacheManagementSettings: Calling forceRefreshCache");
                     await TokenImageReplacement.forceRefreshCache();
-                    console.log("handleCacheManagementSettings: forceRefreshCache completed");
                 } else {
-                    console.log("handleCacheManagementSettings: TokenImageReplacement.forceRefreshCache not available");
                 }
             } catch (error) {
-                console.log("handleCacheManagementSettings: Error importing TokenImageReplacement for refresh:", error);
             }
         }
 
         // Check if clear cache is requested
         const shouldClear = game.settings.get(MODULE.ID, 'tokenImageReplacementClearCache');
-        console.log("handleCacheManagementSettings: shouldClear =", shouldClear);
         
         if (shouldClear) {
-            console.log("handleCacheManagementSettings: Starting clear");
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Clear cache requested, executing...", "", false, false);
             
             // Execute the clear
             try {
                 const { TokenImageReplacement } = await import('./token-image-replacement.js');
                 if (TokenImageReplacement._clearCacheFromStorage) {
-                    console.log("handleCacheManagementSettings: Calling _clearCacheFromStorage");
                     TokenImageReplacement._clearCacheFromStorage();
-                    console.log("handleCacheManagementSettings: _clearCacheFromStorage completed");
                 } else {
-                    console.log("handleCacheManagementSettings: TokenImageReplacement._clearCacheFromStorage not available");
                 }
             } catch (error) {
-                console.log("handleCacheManagementSettings: Error importing TokenImageReplacement for clear:", error);
             }
         }
 
-        console.log("handleCacheManagementSettings: About to reset settings");
         // Always reset both settings to false, regardless of their current state
         await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
         await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
         
-        console.log("handleCacheManagementSettings: Settings reset completed");
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache settings reset to unchecked", "", false, false);
         
     } catch (error) {

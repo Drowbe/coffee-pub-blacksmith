@@ -28,8 +28,6 @@ function updateTotalNPCCR(id, npcTokens = null) {
         const npcElements = document.querySelectorAll(`#workspace-section-npcs-content-${id} .player-card[data-type="npc"]`);
         npcElements.forEach(element => {
             const crValue = parseFloat(element.getAttribute('data-cr'));
-            console.log("BLACKSMITH updateTotalNPCCR crValue", crValue);
-            console.log("BLACKSMITH updateTotalNPCCR totalCR", totalCR);
             if (!isNaN(crValue)) {
                 totalCR += crValue;
             } else {
@@ -131,7 +129,6 @@ function updateTotalMonsterCR(id, monsterTokens = null) {
     // Get the monsters container first
     const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id}`);
     if (!monstersContainer) {
-        console.log('BLACKSMITH | Regent: No monsters container found, skipping CR update');
         return;
     }
 
@@ -208,7 +205,6 @@ function updateGapCRValue(id) {
 // ******************************************************** 
 
 function updateTotalPlayerCounts(id, characterTokens = null) {
-    console.log("IN updateTotalPlayerCounts id:", id);
     let totalClassCounts = {};
     let partyAdjustment = 0;
     // Class TRrackers
@@ -283,7 +279,6 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
 
         // button levels
         const levelElements = document.querySelectorAll(`#workspace-section-encounter-${id} .level-button`);
-        //console.log("IN updateTotalPlayerCounts levelElements:", levelElements);
         levelElements.forEach(element => {
             const level = parseInt(element.getAttribute('data-level'));
             const countElement = element.querySelector('.count');
@@ -306,22 +301,14 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
 
         // *** Upadtes CLASS and LEVEL based on the CHARACTER CARDS ***
         const cardElements = document.querySelectorAll(`#workspace-section-tokens-content-${id} .player-card`);
-        //console.log("IN updateTotalPlayerCounts characterElements:", cardElements);
         cardElements.forEach(element => {
             if (element.getAttribute('data-type') === "NPC") {
-                console.log('Skipping NPC:', element);
                 return;
             }
 
             // Class Counts
             const characterClassValue = element.getAttribute('data-class');
-            //console.log(`Element: ${element}, Class Value: ${characterClassValue}`);
             if (characterClassValue) {
-                //if (!totalClassCounts[characterClassValue]) {
-                //    totalClassCounts[characterClassValue] = 0;
-                //}
-                //totalClassCounts[characterClassValue] += 1;
-
                 // depending on the class, adjust the party adjustment
                 switch (characterClassValue) {
                     case 'wizard':
@@ -352,7 +339,6 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
 
             // Level Counts
             const characterLevelValue = parseFloat(element.getAttribute('data-level'));
-            //console.log(`Element: ${element}, Level Value: ${characterLevelValue}`);
             if (!isNaN(characterLevelValue)) {
                 // adjust the level value based on the level of the character
                 if (characterLevelValue >= 1 && characterLevelValue <= 4) {
@@ -397,7 +383,6 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
     // Check if the element exists and set its inner text to partyLevel
     if (partyLevelElement) {
         partyLevelElement.innerText = partyLevel;
-        console.log(`Party Level for id ${id} set to:`, partyLevel);
     } else {
         console.error(`Element with id worksheetPartyLevel-${id} not found.`);
     }
@@ -414,7 +399,6 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
     const partyAdjustmentElement = document.querySelector(`#worksheetPartyAdjustment-${id}`);
     if (partyAdjustmentElement) {
         partyAdjustmentElement.innerText = partyAdjustment;
-        console.log(`Party Adjustment for id ${id} set to:`, partyAdjustment);
     } else {
         console.error(`Element with id worksheetPartyAdjustment-${id} not found.`);
     }
@@ -425,14 +409,12 @@ function updateTotalPlayerCounts(id, characterTokens = null) {
     const partyCRElement = document.querySelector(`#worksheetPartyCR-${id}`);
     if (partyCRElement) {
         partyCRElement.innerText = partyCRValue;
-        console.log(`PARTY Badge: Party CR for id ${id} set to:`, partyCRValue);
     } else {
         console.error(`Element with id worksheetPartyCR-${id} not found.`);
     }
     const npcCRElement = document.querySelector(`#npcPartyCRValue-${id}`);
     if (npcCRElement) {
         npcCRElement.innerText = partyCRValue;
-        console.log(`NPC Badge: Party CR for id ${id} set to:`, partyCRValue);
     } else {
         console.error(`Element with id npcPartyCRValue-${id} not found.`);
     }
@@ -500,8 +482,6 @@ function decrementLevelCount(event, button, levelCount, id) {
         ui.notifications.warn("The remaining class counts are set by character cards. Remove character cards from the worksheet to reduce the level count.");
     }
 
-    //console.log(`Decrement: count = ${count}, minCount = ${minCount}`);
-
     // Apply "auto" status if count equals minCount, otherwise "active"
     if (count === minCount) {
         element.classList.remove('active');
@@ -519,8 +499,6 @@ function decrementLevelCount(event, button, levelCount, id) {
         element.classList.remove('active');
         element.classList.remove('auto');
     }
-
-    //console.log(`Classes after decrement: ${element.className}`);
 
     updateTotalPlayerCounts(id);
     updateCharacterTypeDisplay(element);
@@ -604,17 +582,9 @@ function decrementCharacterType(event, button, characterType, id) {
     let count = parseInt(countSpan.innerText, 10);
     const dataClass = element.getAttribute('data-class'); // Ensure this is a string
 
-    // Debugging: Log the dataClass value
-    console.log(`Data class for decrement: ${dataClass}`);
-
     // Get the number of player cards with the matching data-class
     const cardElements = document.querySelectorAll(`#workspace-section-tokens-content-${id} .player-card[data-class="${dataClass}"]`);
     const minCount = cardElements.length;
-
-    // Debugging: Log the selected card elements and their count
-    console.log("Selected card elements:", cardElements);
-    console.log("Minimum count of elements:", minCount);
-    console.log(`Decrement: count = ${count}`);
 
     if (count > minCount) {
         count -= 1;
@@ -675,9 +645,6 @@ window.removeCard = function(event, button, id) {
 
     const cardType = card.dataset.type || 'monster';  // Default to 'monster' for backward compatibility
 
-    console.log('BLACKSMITH | Regent: id:', id, 'cardType:', cardType);
-    
-
     // First, Remove the card
     card.remove();
 
@@ -710,22 +677,19 @@ window.removeCard = function(event, button, id) {
                     // Remove the encounter with matching UUID
                     encountersData = encountersData.filter(e => e.uuid !== card.dataset.pageUuid);
                     encountersInput.value = JSON.stringify(encountersData);
-                    console.log('BLACKSMITH | Regent: Updated encounters data after removal:', encountersData);
                 } catch (e) {
                     console.error('BLACKSMITH | Regent: Error updating encounters data:', e);
                 }
             }
         }
     } else {
-        console.log('BLACKSMITH | GOING TO CALL updateAllCounts next. Regent: id:', id, 'cardType:', cardType);
         updateAllCounts(id, cardType);
     }
 };
 
 // UPDATE ALL COUNTS
 window.updateAllCounts = function(id, cardType = null) {
-    console.log("BLACKSMITH | Regent: IN updateAllCounts id:", id, "cardType:", cardType);
-    
+   
     // Only update monster CR if we're not dealing with encounters
     if (cardType !== 'encounter') {
         // Monster Updates
@@ -770,7 +734,6 @@ function updateSlider(id, passedValue = null) {
     const heroCRElement = document.getElementById(`badgeHeroCRValue-${id}`);
     if (heroCRElement) {
         heroCRValue = parseFloat(heroCRElement.innerText.trim());
-        console.log(`Hero CR Value for id ${id}:`, heroCRValue);
     } else {
         console.error(`Element with id badgeHeroCRValue-${id} not found.`);
         heroCRValue = 0;
@@ -783,7 +746,6 @@ function updateSlider(id, passedValue = null) {
     const monsterCRValueElement = document.querySelector(`#monsterCRValue-${id}`);
     if (monsterCRValueElement) {
         monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
-        console.log(`Monster CR Value for id ${id}:`, monsterCRValue);
     } else {
         console.error(`Element with id monsterCRValue-${id} not found.`);
         monsterCRValue = 0;
@@ -838,26 +800,6 @@ function updateSlider(id, passedValue = null) {
     const blnDifficultyImpossible = targetCRValue >= heroCRValue * 2.25;
 
 
-    {{!-- console.log(`-----------------------------------`);
-    console.log(`updateSlider sliderPassedValue: ${sliderPassedValue}`);
-    console.log(`updateSlider sliderCurrentValue: ${sliderCurrentValue}`);
-    console.log(`updateSlider heroCRValue: ${heroCRValue}`);
-    console.log(`updateSlider monsterCRValue: ${monsterCRValue}`);
-    console.log(`updateSlider targetCRValue: ${targetCRValue}`);
-    console.log(`updateSlider lowerLimit: ${lowerLimit}`);
-    console.log(`updateSlider upperLimit: ${upperLimit}`);
-    console.log(`updateSlider crSlider: ${crSlider.value}`);
-    console.log(`-----------------------------------`);
-    console.log("IN updateSlider blnDifficultyNone: ", blnDifficultyNone);
-    console.log("IN updateSlider blnDifficultyTrivial: ", blnDifficultyTrivial);
-    console.log("IN updateSlider blnDifficultyEasy: ", blnDifficultyEasy);
-    console.log("IN updateSlider blnDifficultyModerate: ", blnDifficultyModerate);
-    console.log("IN updateSlider blnDifficultyHard: ", blnDifficultyHard);
-    console.log("IN updateSlider blnDifficultyDeadly: ", blnDifficultyDeadly);
-    console.log("IN updateSlider blnDifficultyDeadlySlow: ", blnDifficultyDeadlySlow);
-    console.log("IN updateSlider blnDifficultyDeadlyMedium: ", blnDifficultyDeadlyMedium);
-    console.log("IN updateSlider blnDifficultyImpossible: ", blnDifficultyImpossible);
-    console.log(`-----------------------------------`);  --}}
 
 
     // Set the encounter rating badge
@@ -919,7 +861,6 @@ function updateSlider(id, passedValue = null) {
 
 function updateEncounterDetails(id) {
     
-    console.log("IN updateEncounterDetails id:", id);
     // this largely just passes values badges and calls the slider update
 
     let partyLevel = 0;
@@ -936,8 +877,6 @@ function updateEncounterDetails(id) {
     if (partyLevelElement) {
         // Parse the inner text of the element to a floating-point number
         partyLevel = parseFloat(partyLevelElement.innerText);
-        // Log the value to verify
-        console.log(`Party Level for id ${id}:`, partyLevel);
     } else {
         console.error(`Element with id worksheetPartyLevel-${id} not found.`);
         partyLevel = 0;
@@ -951,8 +890,6 @@ function updateEncounterDetails(id) {
     if (partyAdjustmentElement) {
         // Get the inner text of the element
         partyAdjustment = partyAdjustmentElement.innerText.trim();
-        // Log the value to verify
-        console.log(`Party Adjustment for id ${id}:`, partyAdjustment);
 
     } else {
         console.error(`Element with id worksheetPartyAdjustment-${id} not found.`);
@@ -966,7 +903,6 @@ function updateEncounterDetails(id) {
 
     if (partyCRElement) {
         partyCRValue = parseFloat(partyCRElement.innerText.trim());
-        console.log(`Party CR Value for id ${id}:`, partyCRValue);
     } else {
         console.error(`Element with id worksheetPartyCR-${id} not found.`);
         partyCRValue = 0;
@@ -979,7 +915,6 @@ function updateEncounterDetails(id) {
     // Check if the element exists and set targetCRValue
     if (monsterCRValueElement) {
         monsterCRValue = parseFloat(monsterCRValueElement.innerText.trim());
-        console.log(`Monster CR Value for id ${id}:`, monsterCRValue);
     } else {
         console.error(`Element with id monsterCRValue-${id} not found.`);
         monsterCR = 0;
@@ -993,7 +928,6 @@ function updateEncounterDetails(id) {
     // Check if the element exists and set targetCRValue
     if (targetCRValueElement) {
         targetCRValue = parseFloat(targetCRValueElement.innerText.trim());
-        console.log(`Target CR Value for id ${id}:`, targetCRValue);
     } else {
         console.error(`Element with id targetCRValue-${id} not found.`);
         targetCRValue = 0;
@@ -1013,7 +947,6 @@ function updateEncounterDetails(id) {
     if (badgeHeroCRElement) {
         const totalHeroCR = partyCRValue + npcCRValue;
         badgeHeroCRElement.innerText = totalHeroCR.toFixed(2);
-        console.log(`Hero CR (Party + NPC) for id ${id} set to:`, totalHeroCR);
     } else {
         console.error(`Element with id #badgeHeroCRValue-${id} not found.`);
     }
@@ -1022,7 +955,6 @@ function updateEncounterDetails(id) {
     const badgeMonsterCRElement = document.querySelector(`#badgeMonsterCRValue-${id}`);
     if (badgeMonsterCRElement) {
         badgeMonsterCRElement.innerText = monsterCRValue.toFixed(2);
-        console.log(`Monster CR for id ${id} set to:`, monsterCRValue.toFixed(2));
     } else {
         console.error(`Element with id badgeMonsterCRValue-${id} not found.`);
     }
