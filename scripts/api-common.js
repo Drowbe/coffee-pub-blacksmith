@@ -817,12 +817,6 @@ export function postConsoleAndNotification(
     blnNotification = false
   ) {
 
-    // console.log("postConsoleAndNotification - COFFEEPUB?.blnDebugOn:", COFFEEPUB?.blnDebugOn);
-    // console.log("postConsoleAndNotification - COFFEEPUB?.blnFancyConsole:", COFFEEPUB?.blnFancyConsole);
-    // console.log("postConsoleAndNotification - COFFEEPUB?.strConsoleDebugStyle:", COFFEEPUB?.strConsoleDebugStyle);
-    // console.log("postConsoleAndNotification - blnDebug:", blnDebug);
-    // console.log("postConsoleAndNotification - blnNotification:", blnNotification);
-
     // ----- Validation -----
     if (!message) {
         throw new Error("Message parameter is mandatory for the Blacksmith function postConsoleAndNotification.");

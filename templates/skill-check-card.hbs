@@ -76,7 +76,7 @@
             {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 1)}}
-                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}" data-debug-gm="{{../isGM}}">
+                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}">
                     {{#if this.result}}
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
@@ -137,7 +137,7 @@
             {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 2)}}
-                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}" data-debug-gm="{{../isGM}}">
+                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}">
                     {{#if this.result}}
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>

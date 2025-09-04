@@ -19,7 +19,6 @@ import {
 export class AssetLookup {
     
     constructor() {
-        console.log(`${MODULE.TITLE} | AssetLookup: Constructor called`);
         
         this.dataCollections = {
             themes: dataTheme.themes,
@@ -31,9 +30,7 @@ export class AssetLookup {
             banners: dataBanners.banners,
             backgrounds: dataBackgrounds.backgrounds
         };
-        
-        console.log(`${MODULE.TITLE} | AssetLookup: Data collections loaded:`, Object.keys(this.dataCollections));
-        
+             
         // Validate data collections
         Object.keys(this.dataCollections).forEach(key => {
             const collection = this.dataCollections[key];
@@ -49,7 +46,6 @@ export class AssetLookup {
         this.generatedConstants = {};
         this.generateConstants();
         
-        console.log(`${MODULE.TITLE} | AssetLookup: Constructor completed`);
     }
     
     /**
@@ -57,26 +53,19 @@ export class AssetLookup {
      * This maintains backward compatibility
      */
     generateConstants() {
-        try {
-            console.log(`${MODULE.TITLE} | AssetLookup: Starting constants generation...`);
-            
+        try {           
             // Generate constants for each collection
             Object.keys(this.dataCollections).forEach(collectionKey => {
                 const collection = this.dataCollections[collectionKey];
                 if (Array.isArray(collection)) {
-                    console.log(`${MODULE.TITLE} | AssetLookup: Processing collection ${collectionKey} with ${collection.length} items`);
                     let constantsGenerated = 0;
                     collection.forEach(item => {
                         if (item.constantname) {
                             const value = item.path || item.id;
                             this.generatedConstants[item.constantname] = value;
                             constantsGenerated++;
-                            if (constantsGenerated <= 3) { // Log first 3 constants from each collection
-                                console.log(`${MODULE.TITLE} | AssetLookup: Generated ${item.constantname} = ${value}`);
-                            }
                         }
                     });
-                    console.log(`${MODULE.TITLE} | AssetLookup: Generated ${constantsGenerated} constants from ${collectionKey}`);
                 } else {
                     console.warn(`${MODULE.TITLE} | AssetLookup: Collection ${collectionKey} is not an array, skipping`);
                 }
@@ -84,8 +73,6 @@ export class AssetLookup {
             
             // Expose constants globally for backward compatibility
             if (typeof window !== 'undefined') {
-                console.log(`${MODULE.TITLE} | AssetLookup: Window available, exposing constants...`);
-                
                 Object.keys(this.generatedConstants).forEach(constantName => {
                     window[constantName] = this.generatedConstants[constantName];
                 });
@@ -101,39 +88,16 @@ export class AssetLookup {
                 // Also try a delayed merge in case COFFEEPUB gets recreated
                 setTimeout(() => {
                     if (window.COFFEEPUB) {
-                        console.log(`${MODULE.TITLE} | AssetLookup: Delayed merge - COFFEEPUB keys before:`, Object.keys(window.COFFEEPUB).length);
                         Object.keys(this.generatedConstants).forEach(constantName => {
                             window.COFFEEPUB[constantName] = this.generatedConstants[constantName];
-                        });
-                        console.log(`${MODULE.TITLE} | AssetLookup: Delayed merge - COFFEEPUB keys after:`, Object.keys(window.COFFEEPUB).length);
-                        console.log(`${MODULE.TITLE} | AssetLookup: Delayed merge - Sample constants:`, {
-                            BACKSKILLCHECK: window.COFFEEPUB.BACKSKILLCHECK,
-                            SOUNDDICEROLL: window.COFFEEPUB.SOUNDDICEROLL
                         });
                     }
                 }, 1000);
                 
-                console.log(`${MODULE.TITLE} | AssetLookup: Exposed ${Object.keys(this.generatedConstants).length} constants globally and via COFFEEPUB`);
-                console.log(`${MODULE.TITLE} | AssetLookup: Sample constants:`, {
-                    BACKSKILLCHECK: window.COFFEEPUB.BACKSKILLCHECK,
-                    BACKABILITYCHECK: window.COFFEEPUB.BACKABILITYCHECK,
-                    SOUNDDICEROLL: window.COFFEEPUB.SOUNDDICEROLL
-                });
-                
-                // Verify COFFEEPUB is accessible and show what was merged
-                console.log(`${MODULE.TITLE} | AssetLookup: COFFEEPUB object verification:`, {
-                    exists: !!window.COFFEEPUB,
-                    totalKeys: Object.keys(window.COFFEEPUB || {}).length,
-                    newConstantsAdded: Object.keys(this.generatedConstants).length,
-                    sampleValue: window.COFFEEPUB?.BACKSKILLCHECK,
-                    oldProperties: Object.keys(window.COFFEEPUB || {}).filter(key => !this.generatedConstants[key]).slice(0, 5)
-                });
             } else {
                 console.warn(`${MODULE.TITLE} | AssetLookup: Window not available, cannot expose constants`);
             }
-            
-            console.log(`${MODULE.TITLE} | AssetLookup: Generated ${Object.keys(this.generatedConstants).length} constants`);
-            
+                       
         } catch (error) {
             console.error(`${MODULE.TITLE} | AssetLookup: Error generating constants:`, error);
         }

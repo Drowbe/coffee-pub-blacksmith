@@ -543,29 +543,20 @@ Hooks.once('init', async function() {
             if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
                 // Check ownership and disable buttons for non-owners
                 const skillCheckActors = html.find('.cpb-skill-check-actor');
-                console.log('BLACKSMITH | SKILLCHECK Found skill check actors:', skillCheckActors.length);
                 
                 skillCheckActors.each(function() {
                     const actorDiv = $(this);
                     const actorId = actorDiv.data('actor-id');
                     const isGM = game.user.isGM;
                     
-                    console.log('BLACKSMITH | SKILLCHECK Processing actor:', actorId, 'isGM:', isGM);
-                    
                     if (actorId) {
                         const actor = game.actors.get(actorId);
                         const isOwner = actor?.isOwner || false;
                         
-                        console.log('BLACKSMITH | SKILLCHECK Actor ownership check:', actorId, 'isOwner:', isOwner, 'isGM:', isGM);
-                        
                         // Disable if not owner and not GM
                         if (!isOwner && !isGM) {
                             actorDiv.addClass('disabled');
-                            console.log('BLACKSMITH | SKILLCHECK Disabled button for actor:', actorId);
                         }
-                        
-                        // Add debug info
-                        actorDiv.attr('data-debug-owner', isOwner);
                     }
                 });
                 
@@ -1858,7 +1849,6 @@ async function guessIconPath(item) {
     try {
       const response = await fetch('modules/coffee-pub-blacksmith/resources/taxonomy.json');
       synonymMapping = await response.json();
-      console.log('BLACKSMITH | Item Import | Loaded comprehensive synonym mapping with', Object.keys(synonymMapping).length, 'entries');
     } catch (error) {
       console.warn('BLACKSMITH | Item Import | Could not load taxonomy.json, falling back to basic mapping');
       synonymMapping = {
