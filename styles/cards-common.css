@@ -682,3 +682,16 @@
     font-size: 1.1em;
 }
 
+/* Disabled roll buttons - override hover effects */
+.cpb-skill-check-actor.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.cpb-skill-check-actor.disabled:hover {
+    background: inherit !important;
+    color: inherit !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+

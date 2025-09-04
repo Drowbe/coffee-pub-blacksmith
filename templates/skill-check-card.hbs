@@ -76,7 +76,7 @@
             {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 1)}}
-                <div class="cpb-skill-check-actor">
+                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}" data-debug-gm="{{../isGM}}">
                     {{#if this.result}}
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
@@ -113,15 +113,9 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            {{#if (or this.isOwner ../isGM)}}
-                                <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </button>
-                            {{else}}
-                                <div class="cpb-skill-roll-disabled">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </div>
-                            {{/if}}
+                            <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}">
+                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                            </button>
                         </div>
                     {{/if}}
                 </div>
@@ -143,7 +137,7 @@
             {{/if}}
             {{#each actors}}
                 {{#if (eq this.group 2)}}
-                <div class="cpb-skill-check-actor">
+                <div class="cpb-skill-check-actor" data-actor-id="{{this.actorId}}" data-debug-gm="{{../isGM}}">
                     {{#if this.result}}
                         <div class="cpb-roll-result{{#if this.result.isCritical}} cpb-chat-critical{{/if}}{{#if this.result.isFumble}} cpb-chat-fumble{{/if}}">
                             <span class="cpb-actor-name">{{this.name}}</span>
@@ -180,15 +174,9 @@
                         </div>
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
-                            {{#if (or this.isOwner ../isGM)}}
-                                <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </button>
-                            {{else}}
-                                <div class="cpb-skill-roll-disabled">
-                                    <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
-                                </div>
-                            {{/if}}
+                            <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}">
+                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                            </button>
                         </div>
                     {{/if}}
                 </div>

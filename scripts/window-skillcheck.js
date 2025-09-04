@@ -834,13 +834,12 @@ export class SkillCheckDialog extends Application {
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
-                const actorDocument = game.actors.get(actor.actorId);
                 const result = { 
                     id: actor.tokenId, // Use token ID as the primary id (for template matching)
                     actorId: actor.actorId, // Store actor ID for roll operations
                     name: actor.name,
-                    group: actor.group,
-                    isOwner: actorDocument?.isOwner || false // Add ownership flag
+                    group: actor.group
+                    // Don't add ownership here - check it client-side
                 };
                 if (actor.group === 1 && challengerRollType === 'tool') {
                     result.toolId = typeof challengerRollValue === 'function' ? challengerRollValue(actor.actorId) : challengerRollValue;
@@ -948,6 +947,7 @@ export class SkillCheckDialog extends Application {
                 defenderSkillAbbr: isContestedRoll ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
                 actors: processedActors,
                 requesterId: game.user.id,
+                currentUserId: game.user.id, // Add current user ID for template
                 type: 'skillCheck',
                 dc: dc,
                 showDC: showDC,

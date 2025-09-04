@@ -541,6 +541,34 @@ Hooks.once('init', async function() {
         priority: 3, // Normal priority - UI interaction
         callback: (message, html) => {
             if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
+                // Check ownership and disable buttons for non-owners
+                const skillCheckActors = html.find('.cpb-skill-check-actor');
+                console.log('BLACKSMITH | SKILLCHECK Found skill check actors:', skillCheckActors.length);
+                
+                skillCheckActors.each(function() {
+                    const actorDiv = $(this);
+                    const actorId = actorDiv.data('actor-id');
+                    const isGM = game.user.isGM;
+                    
+                    console.log('BLACKSMITH | SKILLCHECK Processing actor:', actorId, 'isGM:', isGM);
+                    
+                    if (actorId) {
+                        const actor = game.actors.get(actorId);
+                        const isOwner = actor?.isOwner || false;
+                        
+                        console.log('BLACKSMITH | SKILLCHECK Actor ownership check:', actorId, 'isOwner:', isOwner, 'isGM:', isGM);
+                        
+                        // Disable if not owner and not GM
+                        if (!isOwner && !isGM) {
+                            actorDiv.addClass('disabled');
+                            console.log('BLACKSMITH | SKILLCHECK Disabled button for actor:', actorId);
+                        }
+                        
+                        // Add debug info
+                        actorDiv.attr('data-debug-owner', isOwner);
+                    }
+                });
+                
                 SkillCheckDialog.handleChatMessageClick(message, html);
             }
         }
