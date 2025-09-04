@@ -10,6 +10,62 @@
                     <div class="cpb-dialog-main-title">Checks and Saves</div>
                     <div class="cpb-dialog-subtitle">Skill Checks • Ability Checks • Saving Throws</div>
                 </div>
+                <div class="cpb-dialog-controls">
+         
+                    <div class="cpb-form-group">
+                        <div class="cpb-form-fields">
+                            <select name="rollMode">
+                                <option value="roll">Public Roll</option>
+                                <option value="gmroll">Private Roll</option>
+                                <option value="blindroll">GM Only</option>
+                            </select>
+                        </div>
+                    </div>
+
+
+                    <div class="cpb-form-group">
+                        <div class="cpb-form-fields">
+                            <div class="cpb-toggle-container">
+                                <span class="cpb-toggle-label">Show DC</span>
+                                <div class="cpb-toggle">
+                                    <input type="checkbox" name="showDC" id="showDC" {{#if userPreferences.showDC}}checked{{/if}}>
+                                    <label for="showDC" class="cpb-toggle-slider"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cpb-form-group">
+                        <div class="cpb-form-fields">
+                            <div class="cpb-toggle-container">
+                                <span class="cpb-toggle-label">Group DC</span>
+                                <div class="cpb-toggle">
+                                    <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
+                                    <label for="groupRoll" class="cpb-toggle-slider"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cpb-form-group">
+                        <div class="cpb-form-fields">
+                            <div class="cpb-toggle-container">
+                                <span class="cpb-toggle-label">Cinematic Mode</span>
+                                <div class="cpb-toggle">
+                                    <input type="checkbox" name="isCinematic" id="isCinematic" {{#if userPreferences.isCinematic}}checked{{/if}}>
+                                    <label for="isCinematic" class="cpb-toggle-slider"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cpb-dc-display">
+                        <div class="cpb-dc-box">
+                            <div class="cpb-dc-label">DC</div>
+                            <div class="cpb-dc-value" id="dcDisplayValue">--</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -62,7 +118,20 @@
 
         <!-- Middle Column -->
         <div class="cpb-dialog-column">
-            <h2><i class="fas fas fa-dice"></i> Roll Type</h2>
+            <h2>
+                <i class="fas fas fa-dice"></i> Roll Type
+                <div class="cpb-form-group">
+                    <div class="cpb-form-fields">
+                        <div class="cpb-toggle-container">
+                            <span class="cpb-toggle-label">Explain Roll</span>
+                            <div class="cpb-toggle">
+                                <input type="checkbox" name="showRollExplanation" id="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}>
+                                <label for="showRollExplanation" class="cpb-toggle-slider"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </h2>
             
             <div class="cpb-form-group">
                 <div class="cpb-form-fields cpb-search-container">
@@ -303,58 +372,17 @@
 
         <!-- Right Column -->
         <div class="cpb-dialog-column">
-            <h2><i class="fas fa-cog"></i> Roll Configuration</h2>
-            <div class="cpb-form-group">
-                <div class="cpb-form-fields">
-                    <select name="rollMode">
-                        <option value="roll">Public Roll</option>
-                        <option value="gmroll">Private Roll</option>
-                        <option value="blindroll">GM Only</option>
-                    </select>
-                </div>
-            </div>
+            
+       
             
             <div class="cpb-roll-options-column">
-
-                <div class="cpb-section-header">Difficulty Class</div>
 
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         <input type="number" name="dc" placeholder="Optional DC... e.g. 13 or 15">
                     </div>
-                    <div class="cpb-form-fields">
-                        <label class="cpb-checkbox">
-                            <input type="checkbox" name="showDC" {{#if userPreferences.showDC}}checked{{/if}}> Show the DC to the players
-                        </label>
-                    </div>
-                    <div class="cpb-form-fields">
-                        <label class="cpb-checkbox">
-                            <input type="checkbox" name="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}> Evaluate Group DC
-                        </label>
-                    </div>
                 </div>
-
-                <div class="cpb-section-header">Additional Context</div>
-
-                <div class="cpb-form-group">
-                    <div class="cpb-form-fields">
-                        <label class="cpb-checkbox">
-                            <input type="checkbox" name="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}> Show Roll Type Details
-                        </label>
-                    </div>
-                    <div class="cpb-form-fields">
-                        <label class="cpb-checkbox">
-                            <input type="checkbox" name="showRollExplanationLink" {{#if userPreferences.showRollExplanationLink}}checked{{/if}}> Show Link to SRD
-                        </label>
-                    </div>
-                    <div class="cpb-form-fields">
-                        <label class="cpb-checkbox">
-                            <input type="checkbox" name="isCinematic" {{#if userPreferences.isCinematic}}checked{{/if}}> Cinematic Mode
-                        </label>
-                    </div>
                 </div>
-            </div>
-            <h3>Contested roll overrides group settings.</h3>
         </div>
     </div>
     <!-- BUTTONS -->

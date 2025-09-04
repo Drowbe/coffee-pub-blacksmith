@@ -1017,7 +1017,6 @@ export const registerSettings = async () => {
 			type: Object,
 			default: {
 				showRollExplanation: true,
-				showRollExplanationLink: true,
 				showDC: true,
 				groupRoll: true,
 				isCinematic: false

@@ -57,6 +57,56 @@ div#skill-check-dialog .window-content {
     display: flex;
     align-items: center;
     gap: 1em;
+    width: 100%;
+}
+
+.cpb-dialog-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+}
+
+
+
+/* DC Display Box */
+.cpb-dc-display {
+    display: flex;
+    align-items: center;
+}
+
+.cpb-dc-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cpb-dc-label {
+    font-size: var(--font-size-10);
+    color: var(--color-text-light-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.cpb-dc-value {
+    font-size: var(--font-size-16);
+    color: var(--color-text-light-primary);
+    font-weight: bold;
+    text-align: center;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cpb-dialog-dice-icon {
@@ -186,6 +236,113 @@ div#skill-check-dialog .window-content {
     margin: 0;
     gap: 2px;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Toggle Button Styling */
+.cpb-toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+}
+
+.cpb-toggle-label {
+    font-size: var(--font-size-12);
+    color: var(--color-text-light-primary);
+    font-weight: 500;
+    flex: 1;
+}
+
+.cpb-toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.cpb-toggle input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.cpb-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.cpb-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    left: 2px;
+    bottom: 1px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cpb-toggle input:checked + .cpb-toggle-slider {
+    background-color: var(--color-text-light-primary);
+    border-color: var(--color-text-light-primary);
+}
+
+.cpb-toggle input:checked + .cpb-toggle-slider:before {
+    transform: translateX(14px);
+    background-color: #1a1a1a;
+}
+
+.cpb-toggle input:focus + .cpb-toggle-slider {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .cpb-form-fields {
     display: flex;
     gap: 8px;

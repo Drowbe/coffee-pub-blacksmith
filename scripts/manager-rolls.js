@@ -33,8 +33,7 @@ export async function requestRoll(rollDetails) {
             description,
             rollMode,
             isCinematic,
-            showRollExplanation,
-            showRollExplanationLink
+            showRollExplanation
         } = rollDetails;
         
         // Process actors to extract the data needed for the chat card
@@ -69,7 +68,6 @@ export async function requestRoll(rollDetails) {
             defenderRollType: defenderRollType || null,
             hasMultipleGroups: !!defenderRollType,
             showRollExplanation: showRollExplanation || false,
-            showRollExplanationLink: showRollExplanationLink || false,
             isCinematic: isCinematic || false
         };
         

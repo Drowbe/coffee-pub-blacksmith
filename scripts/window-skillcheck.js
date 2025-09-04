@@ -22,7 +22,6 @@ export class SkillCheckDialog extends Application {
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
             showRollExplanation: true,
-            showRollExplanationLink: true,
             showDC: true,
             groupRoll: true,
             isCinematic: false
@@ -853,7 +852,7 @@ export class SkillCheckDialog extends Application {
             const getRollInfo = (type, value) => {
                 let name, desc, link;
                 const showExplanation = html.find('input[name="showRollExplanation"]').prop('checked');
-                const showLink = html.find('input[name="showRollExplanationLink"]').prop('checked');
+                const showLink = showExplanation; // Always show links when explanations are enabled
 
                 switch (type) {
                     case 'quick':
@@ -960,7 +959,6 @@ export class SkillCheckDialog extends Application {
                 defenderRollType: isContestedRoll ? defenderRollType : null,
                 hasMultipleGroups: isContestedRoll,
                 showRollExplanation: html.find('input[name="showRollExplanation"]').is(':checked'),
-                showRollExplanationLink: html.find('input[name="showRollExplanationLink"]').is(':checked'),
                 isCinematic: html.find('input[name="isCinematic"]').is(':checked')
             };
 
@@ -1003,10 +1001,6 @@ export class SkillCheckDialog extends Application {
             game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
         });
 
-        html.find('input[name="showRollExplanationLink"]').change(ev => {
-            this.userPreferences.showRollExplanationLink = ev.currentTarget.checked;
-            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
-        });
 
         html.find('input[name="showDC"]').change(ev => {
             this.userPreferences.showDC = ev.currentTarget.checked;
@@ -1021,6 +1015,17 @@ export class SkillCheckDialog extends Application {
         html.find('input[name="isCinematic"]').change(ev => {
             this.userPreferences.isCinematic = ev.currentTarget.checked;
             game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+        });
+
+        // Update DC display when DC input changes
+        html.find('input[name="dc"]').on('input change', ev => {
+            const dcValue = ev.currentTarget.value;
+            const dcDisplay = html.find('#dcDisplayValue');
+            if (dcValue && dcValue.trim() !== '') {
+                dcDisplay.text(dcValue);
+            } else {
+                dcDisplay.text('--');
+            }
         });
     }
 
@@ -1617,8 +1622,7 @@ export class SkillCheckDialog extends Application {
                     groupRoll: flags.isGroupRoll || false,
                     rollMode: 'roll',
                     isCinematic: false, // This is window mode
-                    showRollExplanation: false,
-                    showRollExplanationLink: false
+                    showRollExplanation: false
                 }, message.id); // Pass existing messageId to prevent duplicate card creation
             });
         });
