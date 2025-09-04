@@ -834,11 +834,13 @@ export class SkillCheckDialog extends Application {
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
+                const actorDocument = game.actors.get(actor.actorId);
                 const result = { 
                     id: actor.tokenId, // Use token ID as the primary id (for template matching)
                     actorId: actor.actorId, // Store actor ID for roll operations
                     name: actor.name,
-                    group: actor.group
+                    group: actor.group,
+                    isOwner: actorDocument?.isOwner || false // Add ownership flag
                 };
                 if (actor.group === 1 && challengerRollType === 'tool') {
                     result.toolId = typeof challengerRollValue === 'function' ? challengerRollValue(actor.actorId) : challengerRollValue;
@@ -1617,6 +1619,13 @@ export class SkillCheckDialog extends Application {
                 const actorData = flags.actors.find(a => a.actorId === actorId && a.id === tokenId);
                 if (!actorData) {
                     ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
+                    return;
+                }
+                
+                // Check ownership - only allow GM or character owner to roll
+                const actor = game.actors.get(actorId);
+                if (!game.user.isGM && !actor?.isOwner) {
+                    ui.notifications.warn("You don't have permission to roll for this character.");
                     return;
                 }
                 // Use the new unified system directly - pass existing messageId to prevent duplicate cards
