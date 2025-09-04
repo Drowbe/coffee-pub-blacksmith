@@ -171,7 +171,6 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.system = diceRollToolSystem;
         rollData.mode = mode;
         rollData.cinemaMode = rollDetails.isCinematic;
-        rollData.label = rollDetails.label; // Pass the roll title from data-roll-title
         
         // Add additional context for subtitle building
         postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Original rollDetails for context:`, {
@@ -215,7 +214,6 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
                 hasMultipleGroups: rollData.hasMultipleGroups,
                 skillName: rollData.skillName,
                 defenderSkillName: rollData.defenderSkillName,
-                label: rollData.label
             }, true, false);
             await showRollWindow(rollData);
         }
@@ -915,7 +913,6 @@ async function showRollWindow(rollData) {
         hasMultipleGroups: rollData.hasMultipleGroups,
         skillName: rollData.skillName,
         defenderSkillName: rollData.defenderSkillName,
-        label: rollData.label,
         options: {} 
     }, true, false);
     
@@ -931,10 +928,6 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         
-        // Override title with data-roll-title if available
-        if (rollData.label) {
-            dialogRollData.rollTitle = rollData.label;
-        }
         
         // Build complete subtitle with additional context
         const subtitleParts = [];

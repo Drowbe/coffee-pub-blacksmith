@@ -831,23 +831,7 @@ export class SkillCheckDialog extends Application {
 
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
-            const description = html.find('textarea[name="description"]').val();
-            let label = html.find('input[name="label"]').val();
             
-            // Use roll title from quick roll overrides if available
-            if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollTitle) {
-                label = this._quickRollOverrides.rollTitle;
-                postConsoleAndNotification(MODULE.NAME, "Using quick roll title:", label, true, false);
-            } else if (this.selectedRollTitle) {
-                // Use roll title from selected skill/ability/save roll
-                label = this.selectedRollTitle;
-                postConsoleAndNotification(MODULE.NAME, "Using selected roll title:", label, true, false);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "No roll title found, using input label:", label, true, false);
-            }
-
-            // Debug: Log the final label being used
-            postConsoleAndNotification(MODULE.NAME, "Final label for chat card:", label, true, false);
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
@@ -967,8 +951,6 @@ export class SkillCheckDialog extends Application {
                 dc: dc,
                 showDC: showDC,
                 isGroupRoll: groupRoll,
-                label: label || null,
-                description: description || null,
                 skillDescription: challengerInfo.desc,
                 defenderSkillDescription: isContestedRoll && defenderInfo ? defenderInfo.desc : null,
                 skillLink: challengerInfo.link,
@@ -1457,7 +1439,7 @@ export class SkillCheckDialog extends Application {
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
         
         // 1. Roll Title (always separate and prominent)
-        const rollTitle = messageData.label || messageData.skillName;
+        const rollTitle = messageData.skillName;
         rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${rollTitle}</h2>`;
         
         // 2. Subtitle with skill info and additional details
@@ -1633,8 +1615,6 @@ export class SkillCheckDialog extends Application {
                     dc: flags.dc || null,
                     showDC: flags.showDC || false,
                     groupRoll: flags.isGroupRoll || false,
-                    label: flags.label || null, // Use the original roll title from the message flags
-                    description: flags.description || null,
                     rollMode: 'roll',
                     isCinematic: false, // This is window mode
                     showRollExplanation: false,
