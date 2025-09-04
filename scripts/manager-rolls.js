@@ -198,6 +198,7 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.isGroupRoll = rollDetails.groupRoll;
         rollData.hasMultipleGroups = rollDetails.actors.length > 1 || (rollDetails.defenderRollType && rollDetails.defenderRollValue);
         rollData.skillName = rollData.rollSubtitle; // This will be the skill name from prepareRollData
+        rollData.rollMode = rollDetails.rollMode || 'roll';
         
         // Get defender skill name properly formatted
         if (rollDetails.defenderRollType && rollDetails.defenderRollValue) {
@@ -630,7 +631,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Skill roll formula: ${skillFormula}`, null, true, false);
             
             result = new Roll(skillFormula, actor.getRollData());
-            await result.evaluate();
+            await result.evaluate({ async: true });
             
             // Create descriptive verbose formula for tooltips
             const verboseParts = [];
@@ -675,7 +676,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Ability roll formula: ${abilityFormula}`, null, true, false);
             
             result = new Roll(abilityFormula, actor.getRollData());
-            await result.evaluate();
+            await result.evaluate({ async: true });
             
             // Create descriptive verbose formula for tooltips
             const abilityVerboseParts = [];
@@ -707,7 +708,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Death save formula: ${deathFormula}`, null, true, false);
                 
                 result = new Roll(deathFormula, actor.getRollData());
-                await result.evaluate();
+                await result.evaluate({ async: true });
                 
                 // Create descriptive verbose formula for death saves
                 const deathVerboseParts = [];
@@ -743,7 +744,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Save roll formula: ${saveFormula}`, null, true, false);
                 
                 result = new Roll(saveFormula, actor.getRollData());
-                await result.evaluate();
+                await result.evaluate({ async: true });
                 
                 // Create descriptive verbose formula for saving throws
                 const saveVerboseParts = [];
@@ -795,7 +796,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Tool roll formula: ${toolFormula}`, null, true, false);
                 
                 result = new Roll(toolFormula, actor.getRollData());
-                await result.evaluate();
+                await result.evaluate({ async: true });
                 
                 // Create descriptive verbose formula for tool rolls
                 const toolVerboseParts = [];
@@ -832,7 +833,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             
             postConsoleAndNotification(MODULE.NAME, `Dice roll formula: ${diceFormula}`, null, true, false);
             result = new Roll(diceFormula, actor.getRollData());
-            await result.evaluate();
+            await result.evaluate({ async: true });
             
             // Create descriptive verbose formula for dice rolls
             const diceVerboseParts = [];
@@ -942,6 +943,7 @@ async function showRollWindow(rollData) {
         dialogRollData.rollTypeKey = rollData.rollTypeKey;
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
+        dialogRollData.rollMode = rollData.rollMode || 'roll';
         
         
         // Build complete subtitle with additional context
@@ -1062,12 +1064,14 @@ class RollWindow extends Application {
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
             const situationalBonus = parseInt(this.element.find('input[name="situational-bonus"]').val()) || 0;
+            const rollMode = this.element.find('select[name="roll-mode"]').val() || 'roll';
             
             const rollOptions = {
                 advantage: advantage,
                 disadvantage: disadvantage,
                 situationalBonus: situationalBonus,
-                fastForward: true
+                fastForward: true,
+                rollMode: rollMode
             };
             
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll options:`, rollOptions, true, false);
@@ -1389,7 +1393,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                             groupSound = COFFEEPUB.SOUNDSUCCESS;
                         } else if (resultClass === 'failure') {
                             groupSound = COFFEEPUB.SOUNDFAILURE;
-                        } else {
+            } else {
                             groupSound = COFFEEPUB.SOUNDVERSUS; // For ties
                         }
                         

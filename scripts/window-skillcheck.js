@@ -1514,7 +1514,8 @@ export class SkillCheckDialog extends Application {
             const options = {
                 advantage: rollButtonType === 'advantage',
                 disadvantage: rollButtonType === 'disadvantage',
-                fastForward: true
+                fastForward: true,
+                rollMode: messageData.rollMode || 'roll'
             };
 
             // Determine which roll type to use (challenger or defender)
@@ -1628,7 +1629,7 @@ export class SkillCheckDialog extends Application {
                     dc: flags.dc || null,
                     showDC: flags.showDC || false,
                     groupRoll: flags.isGroupRoll || false,
-                    rollMode: 'roll',
+                    rollMode: flags.rollMode || 'roll',
                     isCinematic: false, // This is window mode
                     showRollExplanation: false
                 }, message.id); // Pass existing messageId to prevent duplicate card creation

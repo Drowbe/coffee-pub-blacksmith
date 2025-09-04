@@ -19,10 +19,10 @@
       <div class="roll-summary-item"><span class="label">Type</span><span>{{rollType}}</span></div>
       <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
       <div class="roll-summary-item"><span class="label">Roll Mode</span><select class="roll-mode-select" name="roll-mode">
-        <option value="public">Public Roll</option>
-        <option value="private">Private Roll</option>
-        <option value="blind">Blind Roll</option>
-        <option value="self">Self Roll</option>
+        <option value="roll" {{#if (eq rollMode "roll")}}selected{{/if}}>Public Roll</option>
+        <option value="gmroll" {{#if (eq rollMode "gmroll")}}selected{{/if}}>Private GM Roll</option>
+        <option value="blindroll" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Blind GM Roll</option>
+        <option value="selfroll" {{#if (eq rollMode "selfroll")}}selected{{/if}}>Self Roll</option>
       </select></div>
     </div>
   </div>
