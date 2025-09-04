@@ -1665,7 +1665,6 @@ export async function handleSkillRollUpdate(data) {
 
     // 2. Recalculate group roll summary
     let groupRollData = {};
-    postConsoleAndNotification(MODULE.NAME, `Group roll check: flags.isGroupRoll = ${flags.isGroupRoll}`, null, true, false);
     if (flags.isGroupRoll) {
         const completedRolls = actors.filter(a => a.result);
         const allRollsComplete = completedRolls.length === actors.length;

@@ -831,8 +831,6 @@ export class SkillCheckDialog extends Application {
             const showDC = html.find('input[name="showDC"]').prop('checked');
             const rollMode = html.find('select[name="rollMode"]').val();
             
-            postConsoleAndNotification(MODULE.NAME, `Group roll toggle value: ${groupRoll}`, null, true, false);
-            
 
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
@@ -971,7 +969,9 @@ export class SkillCheckDialog extends Application {
                 user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
                 content: await SkillCheckDialog.formatChatMessage(messageData),
-                flags: { 'coffee-pub-blacksmith': messageData }
+                flags: { 'coffee-pub-blacksmith': messageData },
+                type: CONST.CHAT_MESSAGE_TYPES.ROLL,
+                rollMode: rollMode
             });
 
             // Play sound for roll request posted to chat
