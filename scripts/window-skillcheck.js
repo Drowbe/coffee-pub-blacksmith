@@ -972,6 +972,12 @@ export class SkillCheckDialog extends Application {
                 flags: { 'coffee-pub-blacksmith': messageData }
             });
 
+            // Play sound for roll request posted to chat
+            playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+            
+            // Scroll chat to bottom to show the new roll request
+            SkillCheckDialog._scrollChatToBottom();
+
             // If cinematic mode is enabled, show for the GM and broadcast to players
             if (messageData.isCinematic) {
                 // Show for the current user who initiated the roll
@@ -1626,6 +1632,21 @@ export class SkillCheckDialog extends Application {
                 }, message.id); // Pass existing messageId to prevent duplicate card creation
             });
         });
+    }
+
+    /**
+     * Scroll the Foundry chat log to the bottom
+     */
+    static _scrollChatToBottom() {
+        try {
+            // Find the chat log container
+            const chatLog = document.querySelector('#chat-log');
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `_scrollChatToBottom error:`, error, true, false);
+        }
     }
 
 

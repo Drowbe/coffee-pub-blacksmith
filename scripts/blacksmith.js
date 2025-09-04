@@ -1725,8 +1725,10 @@ export async function handleSkillRollUpdate(data) {
         }
     });
     
-    // Scroll chat to bottom to show the updated group results
-    _scrollChatToBottom();
+    // Scroll chat to bottom to show the updated group results (with delay to ensure DOM is updated)
+    setTimeout(() => {
+        _scrollChatToBottom();
+    }, 100);
 
     // Broadcast the final result to all clients for UI updates (like cinematic mode)
     const socket = SocketManager.getSocket();
