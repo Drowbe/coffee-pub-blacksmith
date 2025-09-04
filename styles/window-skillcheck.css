@@ -181,6 +181,13 @@ div#skill-check-dialog .window-content {
     flex: 1;
     min-width: 0;
 }
+
+.cpb-roll-type-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
 .cpb-dialog-column {
     display: flex;
     flex-direction: column;

@@ -118,19 +118,24 @@
 
         <!-- Middle Column -->
         <div class="cpb-dialog-column">
-            <h2>
-                <i class="fas fas fa-dice"></i> Roll Type
+            <h2 class="cpb-roll-type-header">
+                <i class="fas fa-dice"></i> Roll Type
+
+
+
+
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         <div class="cpb-toggle-container">
-                            <span class="cpb-toggle-label">Explain Roll</span>
+                            <span class="cpb-toggle-label">Group DC</span>
                             <div class="cpb-toggle">
-                                <input type="checkbox" name="showRollExplanation" id="showRollExplanation" {{#if userPreferences.showRollExplanation}}checked{{/if}}>
-                                <label for="showRollExplanation" class="cpb-toggle-slider"></label>
+                                <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
+                                <label for="groupRoll" class="cpb-toggle-slider"></label>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </h2>
             
             <div class="cpb-form-group">
