@@ -624,7 +624,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 skillParts.push(options.situationalBonus);
             }
             if (options.customModifier) {
-                skillParts.push(options.customModifier);
+                // Parse custom modifier to handle multiple values like "+4 +6"
+                const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                customMods.forEach(mod => {
+                    if (mod.trim()) {
+                        skillParts.push(mod.trim());
+                    }
+                });
             }
             
             const skillFormula = skillParts.join(' + ');
@@ -646,7 +652,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 verboseParts.push(`${options.situationalBonus} situational`);
             }
             if (options.customModifier) {
-                verboseParts.push(`${options.customModifier} custom`);
+                // Parse custom modifier to handle multiple values like "+4 +6"
+                const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                customMods.forEach(mod => {
+                    if (mod.trim()) {
+                        verboseParts.push(`${mod.trim()} custom`);
+                    }
+                });
             }
             
             result.verboseFormula = verboseParts.join(' + ');
@@ -669,7 +681,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 abilityParts.push(options.situationalBonus);
             }
             if (options.customModifier) {
-                abilityParts.push(options.customModifier);
+                // Parse custom modifier to handle multiple values like "+4 +6"
+                const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                customMods.forEach(mod => {
+                    if (mod.trim()) {
+                        abilityParts.push(mod.trim());
+                    }
+                });
             }
             
             const abilityFormula = abilityParts.join(' + ');
@@ -690,7 +708,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 abilityVerboseParts.push(`${options.situationalBonus} situational`);
             }
             if (options.customModifier) {
-                abilityVerboseParts.push(`${options.customModifier} custom`);
+                // Parse custom modifier to handle multiple values like "+4 +6"
+                const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                customMods.forEach(mod => {
+                    if (mod.trim()) {
+                        abilityVerboseParts.push(`${mod.trim()} custom`);
+                    }
+                });
             }
             
             result.verboseFormula = abilityVerboseParts.join(' + ');
@@ -737,7 +761,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     saveParts.push(options.situationalBonus);
                 }
                 if (options.customModifier) {
-                    saveParts.push(options.customModifier);
+                    // Parse custom modifier to handle multiple values like "+4 +6"
+                    const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                    customMods.forEach(mod => {
+                        if (mod.trim()) {
+                            saveParts.push(mod.trim());
+                        }
+                    });
                 }
                 
                 const saveFormula = saveParts.join(' + ');
@@ -759,7 +789,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     saveVerboseParts.push(`${options.situationalBonus} situational`);
                 }
                 if (options.customModifier) {
-                    saveVerboseParts.push(`${options.customModifier} custom`);
+                    // Parse custom modifier to handle multiple values like "+4 +6"
+                    const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                    customMods.forEach(mod => {
+                        if (mod.trim()) {
+                            saveVerboseParts.push(`${mod.trim()} custom`);
+                        }
+                    });
                 }
                 
                 result.verboseFormula = saveVerboseParts.join(' + ');
@@ -789,7 +825,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     toolParts.push(options.situationalBonus);
                 }
                 if (options.customModifier) {
-                    toolParts.push(options.customModifier);
+                    // Parse custom modifier to handle multiple values like "+4 +6"
+                    const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                    customMods.forEach(mod => {
+                        if (mod.trim()) {
+                            toolParts.push(mod.trim());
+                        }
+                    });
                 }
                 
                 const toolFormula = toolParts.join(' + ');
@@ -811,7 +853,13 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     toolVerboseParts.push(`${options.situationalBonus} situational`);
                 }
                 if (options.customModifier) {
-                    toolVerboseParts.push(`${options.customModifier} custom`);
+                    // Parse custom modifier to handle multiple values like "+4 +6"
+                    const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
+                    customMods.forEach(mod => {
+                        if (mod.trim()) {
+                            toolVerboseParts.push(`${mod.trim()} custom`);
+                        }
+                    });
                 }
                 
                 result.verboseFormula = toolVerboseParts.join(' + ');
@@ -1122,26 +1170,28 @@ class RollWindow extends Application {
             
             // Build formula parts
             const formulaParts = [baseRoll];
+            const formulaSymbols = '<span class="formula-symbols">+</span>';
+            const formulaSpacer= '<span class="formula-spacer"></span>';
             
             // Add ability modifier
             if (abilityMod !== 0) {
-                formulaParts.push(`${abilityMod > 0 ? '+' : ''}${abilityMod} dex`);
+                formulaParts.push(`${abilityMod > 0 ? formulaSymbols : formulaSpacer}${abilityMod} dex`);
             }
             
             // Add proficiency bonus
             if (proficiencyBonus > 0) {
-                formulaParts.push(`+${proficiencyBonus} prof`);
+                formulaParts.push(`${formulaSymbols}${proficiencyBonus} Profiency`);
             }
             
             // Add situational bonus (blue if present)
             if (situationalBonus !== 0) {
-                const sitPart = `${situationalBonus > 0 ? '+' : ''}${situationalBonus} sit`;
-                formulaParts.push(`<span class="formula-custom">${sitPart}</span>`);
+                const sitPart = `${situationalBonus > 0 ? formulaSymbols : formulaSpacer}${situationalBonus} Situational`;
+                formulaParts.push(`<span class="formula-custom-situational">${sitPart}</span>`);
             }
             
             // Add custom modifier (blue if present)
             if (customModifier) {
-                formulaParts.push(`<span class="formula-custom">${customModifier}</span>`);
+                formulaParts.push(`<span class="formula-custom-modifier">${customModifier} Custom</span>`);
             }
             
             // Update the formula display with HTML

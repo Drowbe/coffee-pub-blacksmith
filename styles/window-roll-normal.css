@@ -140,11 +140,7 @@ div#roll-window .window-content {
   font-size: 0.9em;
 }
 
-/* Formula custom parts styling */
-.roll-formula .formula-custom {
-  color: #4A9EFF !important;
-  font-weight: 600;
-}
+
 
 .roll-summary-item select:focus {
   outline: none;
@@ -167,11 +163,36 @@ div#roll-window .window-content {
   font-weight: 700;
 }
 
+
+/* Roll formula */
+
 .roll-formula {
   font-family: inherit;
   color: inherit;
   font-weight: inherit;
 }
+
+/* Formula custom parts styling */
+.roll-formula .formula-custom-situational {
+  color: #357fd3 !important;
+  font-weight: 600;
+}
+.roll-formula .formula-custom-modifier {
+  color: #95c427 !important;
+  font-weight: 600;
+}
+.roll-formula .formula-symbols {
+  color: #b4bdc7 !important;
+  font-weight: 400;
+  padding: 0px 2px 0px 2px;
+}
+.roll-formula .formula-spacer {
+  color: #a6b1bd !important;
+  font-weight: 400;
+  padding: 0px 2px 0px 2px;
+}
+
+
 
 .roll-total {
   color: rgba(255, 47, 47, 1.0);
