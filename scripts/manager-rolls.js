@@ -623,8 +623,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (options.situationalBonus && options.situationalBonus !== 0) {
                 skillParts.push(options.situationalBonus);
             }
-            if (options.customFormula) {
-                skillParts.push(options.customFormula);
+            if (options.customModifier) {
+                skillParts.push(options.customModifier);
             }
             
             const skillFormula = skillParts.join(' + ');
@@ -645,8 +645,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (options.situationalBonus && options.situationalBonus !== 0) {
                 verboseParts.push(`${options.situationalBonus} situational`);
             }
-            if (options.customFormula) {
-                verboseParts.push(`${options.customFormula} custom`);
+            if (options.customModifier) {
+                verboseParts.push(`${options.customModifier} custom`);
             }
             
             result.verboseFormula = verboseParts.join(' + ');
@@ -668,8 +668,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (options.situationalBonus && options.situationalBonus !== 0) {
                 abilityParts.push(options.situationalBonus);
             }
-            if (options.customFormula) {
-                abilityParts.push(options.customFormula);
+            if (options.customModifier) {
+                abilityParts.push(options.customModifier);
             }
             
             const abilityFormula = abilityParts.join(' + ');
@@ -689,8 +689,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (options.situationalBonus && options.situationalBonus !== 0) {
                 abilityVerboseParts.push(`${options.situationalBonus} situational`);
             }
-            if (options.customFormula) {
-                abilityVerboseParts.push(`${options.customFormula} custom`);
+            if (options.customModifier) {
+                abilityVerboseParts.push(`${options.customModifier} custom`);
             }
             
             result.verboseFormula = abilityVerboseParts.join(' + ');
@@ -736,8 +736,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (options.situationalBonus && options.situationalBonus !== 0) {
                     saveParts.push(options.situationalBonus);
                 }
-                if (options.customFormula) {
-                    saveParts.push(options.customFormula);
+                if (options.customModifier) {
+                    saveParts.push(options.customModifier);
                 }
                 
                 const saveFormula = saveParts.join(' + ');
@@ -758,8 +758,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (options.situationalBonus && options.situationalBonus !== 0) {
                     saveVerboseParts.push(`${options.situationalBonus} situational`);
                 }
-                if (options.customFormula) {
-                    saveVerboseParts.push(`${options.customFormula} custom`);
+                if (options.customModifier) {
+                    saveVerboseParts.push(`${options.customModifier} custom`);
                 }
                 
                 result.verboseFormula = saveVerboseParts.join(' + ');
@@ -788,8 +788,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (options.situationalBonus && options.situationalBonus !== 0) {
                     toolParts.push(options.situationalBonus);
                 }
-                if (options.customFormula) {
-                    toolParts.push(options.customFormula);
+                if (options.customModifier) {
+                    toolParts.push(options.customModifier);
                 }
                 
                 const toolFormula = toolParts.join(' + ');
@@ -810,8 +810,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (options.situationalBonus && options.situationalBonus !== 0) {
                     toolVerboseParts.push(`${options.situationalBonus} situational`);
                 }
-                if (options.customFormula) {
-                    toolVerboseParts.push(`${options.customFormula} custom`);
+                if (options.customModifier) {
+                    toolVerboseParts.push(`${options.customModifier} custom`);
                 }
                 
                 result.verboseFormula = toolVerboseParts.join(' + ');
@@ -1055,6 +1055,9 @@ class RollWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `RollWindow: Cancel button clicked, closing window`, null, true, false);
             this.close();
         });
+
+        // Real-time formula updates
+        this._setupFormulaUpdates(html);
     }
 
     async _executeRoll(rollType) {
@@ -1065,12 +1068,14 @@ class RollWindow extends Application {
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
             const situationalBonus = parseInt(this.element.find('input[name="situational-bonus"]').val()) || 0;
+            const customModifier = this.element.find('input[name="custom-modifier"]').val().trim();
             const rollMode = this.element.find('select[name="roll-mode"]').val() || 'roll';
             
             const rollOptions = {
                 advantage: advantage,
                 disadvantage: disadvantage,
                 situationalBonus: situationalBonus,
+                customModifier: customModifier,
                 fastForward: true,
                 rollMode: rollMode
             };
@@ -1098,6 +1103,58 @@ class RollWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll error:`, error, true, false);
             // Keep dialog open on error so user can see what went wrong
         }
+    }
+    
+    _setupFormulaUpdates(html) {
+        const formulaElement = html.find('.roll-formula');
+        const situationalInput = html.find('input[name="situational-bonus"]');
+        const customModifierInput = html.find('input[name="custom-modifier"]');
+        
+        // Store original formula for reference
+        const originalFormula = this.rollData.rollFormula;
+        const baseRoll = this.rollData.baseRoll || '1d20';
+        const abilityMod = this.rollData.abilityMod || 0;
+        const proficiencyBonus = this.rollData.proficiencyBonus || 0;
+        
+        const updateFormula = () => {
+            const situationalBonus = parseInt(situationalInput.val()) || 0;
+            const customModifier = customModifierInput.val().trim();
+            
+            // Build formula parts
+            const formulaParts = [baseRoll];
+            
+            // Add ability modifier
+            if (abilityMod !== 0) {
+                formulaParts.push(`${abilityMod > 0 ? '+' : ''}${abilityMod} dex`);
+            }
+            
+            // Add proficiency bonus
+            if (proficiencyBonus > 0) {
+                formulaParts.push(`+${proficiencyBonus} prof`);
+            }
+            
+            // Add situational bonus (blue if present)
+            if (situationalBonus !== 0) {
+                const sitPart = `${situationalBonus > 0 ? '+' : ''}${situationalBonus} sit`;
+                formulaParts.push(`<span class="formula-custom">${sitPart}</span>`);
+            }
+            
+            // Add custom modifier (blue if present)
+            if (customModifier) {
+                formulaParts.push(`<span class="formula-custom">${customModifier}</span>`);
+            }
+            
+            // Update the formula display with HTML
+            const newFormula = formulaParts.join(' ');
+            formulaElement.html(newFormula);
+        };
+        
+        // Set up event listeners
+        situationalInput.on('input change', updateFormula);
+        customModifierInput.on('input change', updateFormula);
+        
+        // Initial update
+        updateFormula();
     }
     
 

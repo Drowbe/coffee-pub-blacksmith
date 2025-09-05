@@ -138,8 +138,12 @@ div#roll-window .window-content {
   border-radius: 4px;
   padding: 0.2em 0.4em;
   font-size: 0.9em;
-  margin-top: 0.2em;
-  min-width: 100px;
+}
+
+/* Formula custom parts styling */
+.roll-formula .formula-custom {
+  color: #4A9EFF !important;
+  font-weight: 600;
 }
 
 .roll-summary-item select:focus {
