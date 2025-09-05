@@ -1,65 +1,17 @@
 <div class="skill-check-dialog">
-    <!-- Header Section (matching roll window style exactly) -->
-    <div class="cpb-dialog-header-sticky">
-        <div class="cpb-dialog-header">
-            <div class="cpb-dialog-header-content">
-                <!-- HEADER ICON -->
-                <div class="cpb-dialog-dice-icon">
-                    <i class="fas fa-dice-d20"></i>
-                </div>
-                <!-- HEADER TITLE -->
-                <div class="cpb-dialog-title-section">
-                    <div class="cpb-dialog-main-title">Checks and Saves</div>
-                    <div class="cpb-dialog-subtitle">Skill Checks • Ability Checks • Saving Throws</div>
-                </div>
-                <!-- HEADER CONTROLS -->
-                <div class="cpb-dialog-controls">
-                     <!-- Roll Visibility -->   
-                    <div class="cpb-form-group">
-                        <div class="cpb-form-fields">
-                            <select name="rollMode" class="cpb-select">
-                                <option value="roll">Public Roll</option>
-                                <option value="gmroll">Private GM Roll</option>
-                                <option value="blindroll">Blind GM Roll</option>
-                                <option value="selfroll">Self Roll</option>
-                            </select>
-                        </div>
-                    </div>
-                    <!-- Cinematic Toggle -->
-                    <div class="cpb-toggle-container">
-                        <span class="cpb-toggle-label">Cinematic</span>
-                        <div class="cpb-toggle">
-                            <input type="checkbox" name="isCinematic" id="isCinematic" {{#if userPreferences.isCinematic}}checked{{/if}}>
-                            <label for="isCinematic" class="cpb-toggle-slider"></label>
-                        </div>
-                    </div>
-                    <!-- Show DC Toggle -->
-                    <div class="cpb-toggle-container">
-                        <span class="cpb-toggle-label">Show DC</span>
-                        <div class="cpb-toggle">
-                            <input type="checkbox" name="showDC" id="showDC" {{#if userPreferences.showDC}}checked{{/if}}>
-                            <label for="showDC" class="cpb-toggle-slider"></label>
-                        </div>
-                    </div>
-                    <!-- Group DC Toggle -->
-                    <div class="cpb-toggle-container">
-                        <span class="cpb-toggle-label">Group DC</span>
-                        <div class="cpb-toggle">
-                            <input type="checkbox" name="groupRoll" id="groupRoll" {{#if userPreferences.groupRoll}}checked{{/if}}>
-                            <label for="groupRoll" class="cpb-toggle-slider"></label>
-                        </div>
-                    </div>
-                    <!-- DC Display -->
-                    <div class="cpb-dc-display">
-                        <div class="cpb-dc-box">
-                            <div class="cpb-dc-label">DC</div>
-                            <input type="number" name="dc" class="cpb-dc-input" placeholder="--" min="1" max="30">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{!-- Unified Header --}}
+    {{> "partial-unified-header" 
+        diceIcon="fas fa-dice-d20"
+        mainTitle="Checks and Saves"
+        subtitle="Skill Checks • Ability Checks • Saving Throws"
+        rollMode="roll"
+        dcValue=dcValue
+        isReadOnly=false
+        showToggles=true
+        isCinematic=userPreferences.isCinematic
+        showDC=userPreferences.showDC
+        groupRoll=userPreferences.groupRoll
+    }}
     
     <div class="cpb-dialog-content">
         <!-- Left Column -->

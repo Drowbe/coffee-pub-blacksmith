@@ -1,30 +1,20 @@
 {{!-- Roll Configuration Window Template --}}
 <div class="roll-dialog foundry-style-window">
-  <div class="roll-header-sticky">
-    <div class="roll-header">
-      <div class="roll-header-content">
-        <div class="roll-dice-icon">
-          <i class="{{diceIcon}}"></i>
-        </div>
-        <div class="roll-title-section">
-          <div class="roll-main-title">{{rollTitle}}</div>
-          {{#if rollSubtitle}}
-            <div class="roll-subtitle">{{rollSubtitle}}</div>
-          {{/if}}
-        </div>
-      </div>
-    </div>
-    <div class="roll-summary-row">
-      <div class="roll-summary-item"><span class="label">Actor</span><span>{{actorName}}</span></div>
-      <div class="roll-summary-item"><span class="label">Type</span><span>{{rollType}}</span></div>
-      <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
-      <div class="roll-summary-item"><span class="label">Roll Mode</span><select class="roll-mode-select" name="roll-mode">
-        <option value="roll" {{#if (eq rollMode "roll")}}selected{{/if}}>Public Roll</option>
-        <option value="gmroll" {{#if (eq rollMode "gmroll")}}selected{{/if}}>Private GM Roll</option>
-        <option value="blindroll" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Blind GM Roll</option>
-        <option value="selfroll" {{#if (eq rollMode "selfroll")}}selected{{/if}}>Self Roll</option>
-      </select></div>
-    </div>
+  {{!-- Unified Header --}}
+  {{> "partial-unified-header" 
+      diceIcon=diceIcon
+      mainTitle=rollTitle
+      subtitle=rollSubtitle
+      rollMode=rollMode
+      dcValue=dcValue
+      isReadOnly=true
+      showToggles=false
+  }}
+  
+  <div class="roll-summary-row">
+    <div class="roll-summary-item"><span class="label">Actor</span><span>{{actorName}}</span></div>
+    <div class="roll-summary-item"><span class="label">Type</span><span>{{rollType}}</span></div>
+    <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
   </div>
   
   <div class="roll-body-scroll">

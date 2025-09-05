@@ -944,6 +944,7 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         dialogRollData.rollMode = rollData.rollMode || 'roll';
+        dialogRollData.dcValue = rollData.dc || '--';
         
         
         // Build complete subtitle with additional context

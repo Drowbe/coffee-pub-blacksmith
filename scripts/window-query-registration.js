@@ -58,6 +58,10 @@ export async function registerWindowQueryPartials() {
         const globalSkillCheckTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-global-skillcheckrolls.hbs').then(response => response.text());
         Handlebars.registerPartial('partial-global-skillcheckrolls', globalSkillCheckTemplate);
 
+        // UNIFIED HEADER PARTIAL
+        const unifiedHeaderTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-unified-header.hbs').then(response => response.text());
+        Handlebars.registerPartial('partial-unified-header', unifiedHeaderTemplate);
+
         // LOOKUP PARTIALS
         const lookupSRDRulesTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partial-lookup-srdrules.hbs').then(response => response.text());
         Handlebars.registerPartial('partial-lookup-srdrules', lookupSRDRulesTemplate);

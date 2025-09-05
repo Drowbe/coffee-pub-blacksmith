@@ -106,7 +106,8 @@ export class SkillCheckDialog extends Application {
             tools,
             hasSelectedTokens,
             initialFilter: hasSelectedTokens ? 'selected' : 'party',
-            userPreferences: this.userPreferences
+            userPreferences: this.userPreferences,
+            dcValue: '--' // Default DC value, will be updated by user input
         };
 
         postConsoleAndNotification(MODULE.NAME, 'Final template data:', templateData, true, false);
@@ -1031,11 +1032,12 @@ export class SkillCheckDialog extends Application {
         // Update DC display when DC input changes
         html.find('input[name="dc"]').on('input change', ev => {
             const dcValue = ev.currentTarget.value;
-            const dcDisplay = html.find('#dcDisplayValue');
+            // Update the unified header DC display
+            const dcDisplay = html.find('.unified-dc-display, .unified-dc-input');
             if (dcValue && dcValue.trim() !== '') {
-                dcDisplay.text(dcValue);
+                dcDisplay.val(dcValue);
             } else {
-                dcDisplay.text('--');
+                dcDisplay.val('--');
             }
         });
     }

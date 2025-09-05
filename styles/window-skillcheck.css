@@ -124,6 +124,7 @@ div#skill-check-dialog .window-content {
     padding: 2px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
+.cpb-dc-box  .cpb-dc-readonly,
 .cpb-dc-box input {
     color: rgba(55, 173, 29, 0.9) !important;
     font-size: 2.0em !important;
