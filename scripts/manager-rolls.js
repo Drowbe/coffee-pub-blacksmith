@@ -167,6 +167,11 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         // Package data for consumption by the rest of the process
         const rollData = await prepareRollData(actor, rollDetails.challengerRollType, rollDetails.challengerRollValue);
         
+        // Override the title if provided from the skillcheck dialog
+        if (rollDetails.challengerRollTitle) {
+            rollData.rollTitle = rollDetails.challengerRollTitle;
+        }
+        
         // Determine roll system (for now, focus on BLACKSMITH)
         const diceRollToolSystem = game.settings.get('coffee-pub-blacksmith', 'diceRollToolSystem') ?? 'blacksmith';
         postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Using ${diceRollToolSystem} system`, null, true, false);
@@ -529,9 +534,21 @@ async function prepareRollData(actor, type, value) {
     const preRollVerboseFormula = preRollVerboseParts.join(' + ');
     
     // Generate title and subtitle based on roll type
-    // Title will be set from data-roll-title in the calling code
-    let rollTitle = 'Dice Roll';
+    let rollTitle = '';
     let rollSubtitle = '';
+    
+    // Set proper title based on roll type
+    if (type === 'skill') {
+        rollTitle = skillData?.label || value || 'Unknown Skill';
+    } else if (type === 'ability') {
+        rollTitle = `${(value || 'Unknown').toUpperCase()} Check`;
+    } else if (type === 'save') {
+        rollTitle = `${(value || 'Unknown').toUpperCase()} Save`;
+    } else if (type === 'tool') {
+        rollTitle = `${value || 'Unknown Tool'}`;
+    } else {
+        rollTitle = 'Dice Roll';
+    }
     
     // Build subtitle with skill info, DC, group status, etc.
     const subtitleParts = [];
@@ -994,6 +1011,11 @@ async function showRollWindow(rollData) {
         dialogRollData.rollMode = rollData.rollMode || 'roll';
         dialogRollData.dcValue = rollData.dc || '--';
         
+        // Preserve the original title from the skillcheck dialog
+        if (rollData.rollTitle) {
+            dialogRollData.rollTitle = rollData.rollTitle;
+        }
+        
         
         // Build complete subtitle with additional context
         const subtitleParts = [];
@@ -1175,23 +1197,35 @@ class RollWindow extends Application {
             
             // Add ability modifier
             if (abilityMod !== 0) {
-                formulaParts.push(`${abilityMod > 0 ? formulaSymbols : formulaSpacer}${abilityMod} dex`);
+                const abilitySign = abilityMod > 0 ? '+' : '';
+                formulaParts.push(`${abilitySign}${abilityMod} dex`);
             }
             
             // Add proficiency bonus
             if (proficiencyBonus > 0) {
-                formulaParts.push(`${formulaSymbols}${proficiencyBonus} Profiency`);
+                formulaParts.push(`+${proficiencyBonus} prof`);
             }
             
             // Add situational bonus (blue if present)
             if (situationalBonus !== 0) {
-                const sitPart = `${situationalBonus > 0 ? formulaSymbols : formulaSpacer}${situationalBonus} Situational`;
-                formulaParts.push(`<span class="formula-custom-situational">${sitPart}</span>`);
+                const sitSign = situationalBonus > 0 ? '+' : '';
+                const sitPart = `${sitSign}${situationalBonus} situational`;
+                formulaParts.push(`<span class="formula-custom">${sitPart}</span>`);
             }
             
             // Add custom modifier (blue if present)
             if (customModifier) {
-                formulaParts.push(`<span class="formula-custom-modifier">${customModifier} Custom</span>`);
+                // Parse custom modifier to handle multiple values and add + if needed
+                const customMods = customModifier.split(/\s+/).filter(mod => mod.trim());
+                const processedMods = customMods.map(mod => {
+                    const trimmed = mod.trim();
+                    // Add + if it's a positive number without a sign
+                    if (/^\d+$/.test(trimmed)) {
+                        return `+${trimmed}`;
+                    }
+                    return trimmed;
+                });
+                formulaParts.push(`<span class="formula-custom">${processedMods.join(' ')} custom</span>`);
             }
             
             // Update the formula display with HTML

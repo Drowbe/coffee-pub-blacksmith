@@ -943,6 +943,7 @@ export class SkillCheckDialog extends Application {
             // Create message data with processed actors
             const messageData = {
                 skillName: challengerInfo.name,
+                rollTitle: (this._isQuickPartyRoll && this._quickRollOverrides?.rollTitle) || this.selectedRollTitle || challengerInfo.name, // Use quick roll title, selected roll title, or fallback to skill name
                 defenderSkillName: isContestedRoll && defenderInfo ? defenderInfo.name : null,
                 skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
                 defenderSkillAbbr: isContestedRoll ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
@@ -1597,6 +1598,7 @@ export class SkillCheckDialog extends Application {
                 const tokenId = button.dataset.tokenId;
                 const type = button.dataset.type || 'skill';
                 const value = button.dataset.value;
+                const rollTitle = button.dataset.rollTitle;
 
                 // Find the corresponding actor data in the message flags to get the token ID
                 const flags = message.flags['coffee-pub-blacksmith'];
@@ -1619,6 +1621,7 @@ export class SkillCheckDialog extends Application {
                     actors: [{ actorId, tokenId, name: actorData.name }],
                     challengerRollType: type,
                     challengerRollValue: value,
+                    challengerRollTitle: rollTitle, // Pass the roll title from the button
                     defenderRollType: flags.defenderRollType || null,
                     defenderRollValue: flags.defenderRollValue || null,
                     dc: flags.dc || null,
