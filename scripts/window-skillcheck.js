@@ -33,9 +33,9 @@ export class SkillCheckDialog extends Application {
             id: 'skill-check-dialog',
             template: 'modules/coffee-pub-blacksmith/templates/window-skillcheck.hbs',
             classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
-            title: 'Checks and Saves',
+            title: 'Request a Roll',
             width: 800,
-            height: 650,
+            height: 700,
             resizable: true
         });
     }

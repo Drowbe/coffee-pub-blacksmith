@@ -1,5 +1,5 @@
-{{!-- Roll Configuration Window Template --}}
-<div class="roll-dialog foundry-style-window">
+{{!-- Roll Configuration Window Template    roll-config-label       --}}
+<div class="window-roll-normal foundry-style-window">
   {{!-- Unified Header --}}
   {{> "partial-unified-header" 
       diceIcon=diceIcon
@@ -10,33 +10,29 @@
       isReadOnly=true
       showToggles=false
       actorName=actorName
+      actorPortrait=actorPortrait
   }}
   
   <div class="roll-summary-row">
-    <div class="roll-summary-item"><span class="label">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
+    <div class="roll-summary-item"><span class="label-small">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
   </div>
   
   <div class="roll-body-scroll">
     <div class="roll-section">
-      <div class="roll-section-header"><i class="fas fa-cog"></i> Roll Configuration</div>
-      
       <div class="roll-config-grid">
         <div class="roll-config-item">
-          <label class="roll-config-label">Situational Bonus</label>
-          <input type="number" class="roll-situational-bonus" name="situational-bonus" value="" min="-20" max="20" placeholder="An addtional bonus, e.g. +1, 2, -1, etc.">
+          <label class="label-small">Situational Bonus</label>
+          <input type="number" class="roll-situational-bonus" name="situational-bonus" value="" min="-20" max="20" placeholder="Use + or - and the modifier value">
         </div>
-        
         <div class="roll-config-item">
-          <label class="roll-config-label">Custom Modifier</label>
-          <input type="text" class="roll-custom-modifier" name="custom-modifier" placeholder="e.g., +2 for cover">
+          <label class="label-small">Custom Modifier</label>
+          <input type="text" class="roll-custom-modifier" name="custom-modifier" placeholder="Use + or - and the modifier value">
         </div>
       </div>
     </div>
 
-
-
     <div class="roll-section">
-      <div class="roll-section-header"><i class="fas fa-info-circle"></i> Roll Details</div>
+      <div class="roll-section-header"><i class="fas fa-cog"></i> Roll Details</div>
       
       <div class="roll-details-grid">
         <div class="roll-detail-item">

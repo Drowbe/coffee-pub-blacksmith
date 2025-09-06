@@ -10,6 +10,11 @@ div#skill-check-dialog {
     min-width: 800px;
 }
 
+.skill-check-dialog.app {
+    min-width: 800px;
+    min-height: 650px; /* Increased to account for header */
+}
+
 /* Window Content */
 div#skill-check-dialog .window-content {
     opacity: 0.85;
@@ -31,7 +36,9 @@ div#skill-check-dialog .window-content {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Header Section */
+/* -------------------------- HEADER SECTION -------------------------- */
+
+
 .cpb-dialog-header-sticky {
     position: sticky;
     top: 0;
@@ -61,40 +68,102 @@ div#skill-check-dialog .window-content {
 }
 
 
+/* DICE */
+.cpb-dialog-dice-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(172, 159, 129, 0.9);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 .cpb-dialog-dice-icon i {
     font-size: 2.5em;
     padding-top: 2px;
     color: rgba(255, 255, 255, 0.8);
+    animation: cpb-rotate 25.0s linear infinite; 
+}
+
+@keyframes cpb-rotate {
+  to { transform: rotate(360deg); }
 }
 
 .cpb-dialog-title-section {
     display: flex;
     flex-direction: column;
-    gap: 0.2em;
+    gap: 0px;
     flex: 1;
 }
+
+
+
+
+
+
+
+
 
 .cpb-dialog-main-title {
     color: rgba(255, 255, 255, 0.9);
     font-weight: 700;
     font-size: 1.4em;
-    line-height: 1.2;
+    line-height: inherit;
+    display: flex;
+    flex-direction: column;
+    text-transform: uppercase;
+    
 }
 
-.cpb-dialog-subtitle {
+/* Actor Info */
+.cpb-dialog-header-sticky .cpb-actor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(172, 159, 129, 0.3);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 4px 4px 4px 4px;
+    border-radius: 6px;
+    margin-top: 0px;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.cpb-dialog-header-sticky .cpb-actor-portrait {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    border: 1px solid rgba(63, 62, 58, 0.6);
+    background: rgba(63, 62, 58, 0.3);
+    object-fit: cover;
+    flex-shrink: 0;
+    padding: 4px 4px 4px 4px;
+}
+
+
+.cpb-dialog-header-sticky .cpb-actor-name {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    font-size: 3.0em;
+    padding: 2px 0px 0px 0px;
+    
+}
+
+.cpb-dialog-header-sticky .cpb-dialog-subtitle {
     color: rgba(172, 159, 129, 0.9);
     font-weight: 500;
     font-size: 1.1em;
 }
-.skill-check-dialog.app {
-    min-width: 800px;
-    min-height: 650px; /* Increased to account for header */
-}
 
 
 
 
-.cpb-dialog-controls {
+
+
+.cpb-dialog-header-sticky .cpb-dialog-controls {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -104,13 +173,13 @@ div#skill-check-dialog .window-content {
 
 
 /* DC Display Box */
-.cpb-dc-display {
+.cpb-dialog-header-sticky .cpb-dc-display {
     display: flex;
     align-items: center;
 }
 
 
-.cpb-dc-box {
+.cpb-dialog-header-sticky .cpb-dc-box {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -124,8 +193,8 @@ div#skill-check-dialog .window-content {
     padding: 2px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
-.cpb-dc-box  .cpb-dc-readonly,
-.cpb-dc-box input {
+.cpb-dialog-header-sticky .cpb-dc-box  .cpb-dc-readonly,
+.cpb-dialog-header-sticky .cpb-dc-box input {
     color: rgba(55, 173, 29, 0.9) !important;
     font-size: 2.0em !important;
      font-weight: 900 !important;
@@ -138,14 +207,14 @@ div#skill-check-dialog .window-content {
 }
 
 /* on focus */
-.cpb-dc-box input:focus,
-.cpb-dc-box input:focus-visible {
+.cpb-dialog-header-sticky .cpb-dc-box input:focus,
+.cpb-dialog-header-sticky .cpb-dc-box input:focus-visible {
   border: 0 !important;
   outline: none !important;
   box-shadow: none !important;   /* many UIs use this for the focus ring */
 }
 
-.cpb-dc-label {
+.cpb-dialog-header-sticky .cpb-dc-label {
     font-size: 0.7em;
     color: rgba(172, 159, 129, 0.9);
     font-weight: 700;
@@ -153,26 +222,20 @@ div#skill-check-dialog .window-content {
     margin-bottom: 2px;
 }
 
-.cpb-dc-input {
+.cpb-dialog-header-sticky .cpb-dc-input {
     background: transparent;
 }
 
-.cpb-dc-input::placeholder {
+.cpb-dialog-header-sticky .cpb-dc-input::placeholder {
     color: rgba(255, 255, 255, 0.9);
     opacity: 0.7;
 }
 
-.cpb-dialog-dice-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: rgba(0, 0, 0, 0.1);
-    border: 2px solid rgba(172, 159, 129, 0.9);
-    border-radius: 50%;
-    flex-shrink: 0;
-}
+
+
+
+/* -------------------------- COMMON  -------------------------- */
+
 
 /* Toggle Button Styling */
 .cpb-toggle-container {
@@ -420,28 +483,53 @@ div#skill-check-dialog .window-content {
 .cpb-form-fields select,
 .cpb-form-fields textarea {
     width: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--color-border-light-tertiary);
     border-radius: 3px;
-    padding: 4px;
-    font-size: var(--font-size-12);
+    flex: 1;
+    padding-right: 24px;
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px;
+    padding: 0.3em 0.5em;
+    font-size: 0.95em;
+    caret-color: rgba(255, 47, 47, 1.0);  
 }
 .cpb-form-fields textarea {
     resize: vertical;
     min-height: 40px;
 }
+.cpb-form-fields input[type="text"]:focus,
+.cpb-form-fields input[type="number"]:focus,
+.cpb-form-fields select:focus,
+.cpb-form-fields textarea:focus {
+  outline: none;
+  border-color: rgba(255, 100, 0, 0.8) !important;
+}
+.cpb-form-fields input[type="text"]::placeholder,
+.cpb-form-fields input[type="number"]::placeholder,
+.cpb-form-fields textarea:focus::placeholder {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
 
 /* SEARCH BOXES */
 
-.cpb-search-container {
-    align-items: center;
-    position: relative;
-    display: flex;
-    width: 100%;
-}
 .cpb-search-container input[type="text"] {
     flex: 1;
     padding-right: 24px;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px;
+  padding: 0.3em 0.5em;
+  font-size: 0.95em;
+  caret-color: rgba(255, 47, 47, 1.0);
+}
+.cpb-search-container input[type="text"]:focus {
+  outline: none;
+  border-color: rgba(255, 100, 0, 0.8) !important;
+}
+.cpb-search-container input[type="text"]::placeholder{
+  color: rgba(255, 255, 255, 0.2) !important;
 }
 .cpb-clear-search-button {
     line-height: 1; /* Ensure icon is centered */

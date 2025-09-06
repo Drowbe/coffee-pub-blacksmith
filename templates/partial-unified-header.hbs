@@ -1,20 +1,36 @@
 {{!-- Unified Header Partial - Uses EXACT existing CSS classes --}}
 <div class="cpb-dialog-header-sticky">
     <div class="cpb-dialog-header">
+
         <div class="cpb-dialog-header-content">
+
+                {{#if actorName}}
+                    <div class="cpb-actor-info">
+                        {{#if actorPortrait}}
+                            <img src="{{actorPortrait}}" alt="{{actorName}}" class="cpb-actor-portrait">
+                        {{/if}}
+                        <span class="cpb-actor-name">{{actorName}}</span>
+                    </div>
+                {{/if}}
+
+
+
+        </div>
+
+        <div class="cpb-dialog-header-content">
+
             <!-- HEADER ICON -->
             <div class="cpb-dialog-dice-icon">
                 <i class="{{diceIcon}}"></i>
             </div>
             <!-- HEADER TITLE -->
             <div class="cpb-dialog-title-section">
-                <div class="cpb-dialog-main-title">{{mainTitle}}{{#if actorName}} | {{actorName}}{{/if}}</div>
+
+                <div class="cpb-dialog-main-title">{{mainTitle}}</div>
                 <div class="cpb-dialog-subtitle">{{subtitle}}</div>
             </div>
             <!-- HEADER CONTROLS -->
             <div class="cpb-dialog-controls">
-
-
                 <!-- Additional Toggles (only for skill check dialog) -->
                 {{#if showToggles}}
                     <!-- Cinematic Toggle -->
@@ -42,10 +58,6 @@
                         </div>
                     </div>
                 {{/if}}
-
-
-
-
                 <!-- Roll Mode Selector -->
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
@@ -57,7 +69,6 @@
                         </select>
                     </div>
                 </div>
-                
                 <!-- DC Box -->
                 <div class="cpb-dc-display">
                     <div class="cpb-dc-box">
@@ -65,12 +76,10 @@
                         {{#if isReadOnly}}
                             <div class="cpb-dc-readonly">{{dcValue}}</div>
                         {{else}}
-                            <input type="number" name="dc" class="cpb-dc-input" value="{{dcValue}}" placeholder="--" min="1" max="30">
+                            <input type="number" name="dc" class="cpb-dc-input" value="{{dcValue}}" placeholder="" min="1" max="30">
                         {{/if}}
                     </div>
                 </div>
-                
-
             </div>
         </div>
     </div>

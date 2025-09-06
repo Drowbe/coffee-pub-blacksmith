@@ -1016,6 +1016,12 @@ async function showRollWindow(rollData) {
             dialogRollData.rollTitle = rollData.rollTitle;
         }
         
+        // Add actor portrait
+        const actor = game.actors.get(rollData.actorId);
+        if (actor) {
+            dialogRollData.actorPortrait = actor.img;
+        }
+        
         
         // Build complete subtitle with additional context
         const subtitleParts = [];
@@ -1197,7 +1203,7 @@ class RollWindow extends Application {
             
             // Add ability modifier
             if (abilityMod !== 0) {
-                const abilitySign = abilityMod > 0 ? '+' : '';
+                const abilitySign = abilityMod > 0 ? formulaSymbols : formulaSpacer;
                 formulaParts.push(`${abilitySign}${abilityMod} dex`);
             }
             
@@ -1208,9 +1214,9 @@ class RollWindow extends Application {
             
             // Add situational bonus (blue if present)
             if (situationalBonus !== 0) {
-                const sitSign = situationalBonus > 0 ? '+' : '';
-                const sitPart = `${sitSign}${situationalBonus} situational`;
-                formulaParts.push(`<span class="formula-custom">${sitPart}</span>`);
+                const sitSign = situationalBonus > 0 ? formulaSymbols : formulaSpacer;
+                const sitPart = `${sitSign}${situationalBonus} bonus`;
+                formulaParts.push(`<span class="formula-custom-situational">${sitPart}</span>`);
             }
             
             // Add custom modifier (blue if present)
@@ -1225,7 +1231,7 @@ class RollWindow extends Application {
                     }
                     return trimmed;
                 });
-                formulaParts.push(`<span class="formula-custom">${processedMods.join(' ')} custom</span>`);
+                formulaParts.push(`<span class="formula-custom-modifier">${processedMods.join(' ')} mod</span>`);
             }
             
             // Update the formula display with HTML
