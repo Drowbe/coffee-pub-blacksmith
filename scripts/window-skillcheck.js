@@ -107,7 +107,7 @@ export class SkillCheckDialog extends Application {
             hasSelectedTokens,
             initialFilter: hasSelectedTokens ? 'selected' : 'party',
             userPreferences: this.userPreferences,
-            dcValue: '--' // Default DC value, will be updated by user input
+            dcValue: '' // Default DC value, will be updated by user input
         };
 
         postConsoleAndNotification(MODULE.NAME, 'Final template data:', templateData, true, false);

@@ -594,6 +594,7 @@ async function prepareRollData(actor, type, value) {
         rollFormula: preRollVerboseFormula || '1d20 roll',
         baseRoll: baseRoll || '1d20',
         abilityMod: abilityMod || 0,
+        abilityKey: abilityKey,
         proficiencyBonus: type === 'skill' || type === 'save' ? (profBonus || 0) : 0,
         otherModifiers: 0, // Will be set by rollOptions
         diceSoNiceEnabled: game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice') ?? true,
@@ -666,14 +667,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (skillIsProficient) verboseParts.push(`${skillProfBonus} prof`);
             
             if (options.situationalBonus && options.situationalBonus !== 0) {
-                verboseParts.push(`${options.situationalBonus} situational`);
+                verboseParts.push(`${options.situationalBonus} bonus`);
             }
             if (options.customModifier) {
                 // Parse custom modifier to handle multiple values like "+4 +6"
                 const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                 customMods.forEach(mod => {
                     if (mod.trim()) {
-                        verboseParts.push(`${mod.trim()} custom`);
+                        verboseParts.push(`${mod.trim()} mod`);
                     }
                 });
             }
@@ -722,14 +723,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             if (abilityMod !== 0) abilityVerboseParts.push(`${abilityMod} ${value}`);
             
             if (options.situationalBonus && options.situationalBonus !== 0) {
-                abilityVerboseParts.push(`${options.situationalBonus} situational`);
+                abilityVerboseParts.push(`${options.situationalBonus} bonus`);
             }
             if (options.customModifier) {
                 // Parse custom modifier to handle multiple values like "+4 +6"
                 const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                 customMods.forEach(mod => {
                     if (mod.trim()) {
-                        abilityVerboseParts.push(`${mod.trim()} custom`);
+                        abilityVerboseParts.push(`${mod.trim()} mod`);
                     }
                 });
             }
@@ -803,14 +804,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (saveIsProficient) saveVerboseParts.push(`${saveProfBonus} prof`);
                 
                 if (options.situationalBonus && options.situationalBonus !== 0) {
-                    saveVerboseParts.push(`${options.situationalBonus} situational`);
+                    saveVerboseParts.push(`${options.situationalBonus} bonus`);
                 }
                 if (options.customModifier) {
                     // Parse custom modifier to handle multiple values like "+4 +6"
                     const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                     customMods.forEach(mod => {
                         if (mod.trim()) {
-                            saveVerboseParts.push(`${mod.trim()} custom`);
+                            saveVerboseParts.push(`${mod.trim()} mod`);
                         }
                     });
                 }
@@ -867,14 +868,14 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 if (isProficient) toolVerboseParts.push(`${profBonus} prof`);
                 
                 if (options.situationalBonus && options.situationalBonus !== 0) {
-                    toolVerboseParts.push(`${options.situationalBonus} situational`);
+                    toolVerboseParts.push(`${options.situationalBonus} bonus`);
                 }
                 if (options.customModifier) {
                     // Parse custom modifier to handle multiple values like "+4 +6"
                     const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                     customMods.forEach(mod => {
                         if (mod.trim()) {
-                            toolVerboseParts.push(`${mod.trim()} custom`);
+                            toolVerboseParts.push(`${mod.trim()} mod`);
                         }
                     });
                 }
@@ -1009,7 +1010,7 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         dialogRollData.rollMode = rollData.rollMode || 'roll';
-        dialogRollData.dcValue = rollData.dc || '--';
+        dialogRollData.dcValue = rollData.dc || ' ';
         
         // Preserve the original title from the skillcheck dialog
         if (rollData.rollTitle) {
@@ -1190,6 +1191,7 @@ class RollWindow extends Application {
         const originalFormula = this.rollData.rollFormula;
         const baseRoll = this.rollData.baseRoll || '1d20';
         const abilityMod = this.rollData.abilityMod || 0;
+        const abilityKey = this.rollData.abilityKey || 'dex';
         const proficiencyBonus = this.rollData.proficiencyBonus || 0;
         
         const updateFormula = () => {
@@ -1204,12 +1206,12 @@ class RollWindow extends Application {
             // Add ability modifier
             if (abilityMod !== 0) {
                 const abilitySign = abilityMod > 0 ? formulaSymbols : formulaSpacer;
-                formulaParts.push(`${abilitySign}${abilityMod} dex`);
+                formulaParts.push(`${abilitySign}${abilityMod} ${abilityKey}`);
             }
             
             // Add proficiency bonus
             if (proficiencyBonus > 0) {
-                formulaParts.push(`+${proficiencyBonus} prof`);
+                formulaParts.push(`${formulaSymbols}+${proficiencyBonus} prof`);
             }
             
             // Add situational bonus (blue if present)
@@ -1231,7 +1233,7 @@ class RollWindow extends Application {
                     }
                     return trimmed;
                 });
-                formulaParts.push(`<span class="formula-custom-modifier">${processedMods.join(' ')} mod</span>`);
+                formulaParts.push(`${formulaSymbols}<span class="formula-custom-modifier">${processedMods.join(' ')} mod</span>`);
             }
             
             // Update the formula display with HTML

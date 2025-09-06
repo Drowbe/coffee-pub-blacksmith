@@ -169,29 +169,32 @@ div#roll-window .window-content {
 
 .roll-formula {
   font-family: inherit;
-  color: inherit;
-  font-weight: inherit;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+  font-size: 1.1em;
+  text-transform: uppercase;
 }
 
 /* Formula custom parts styling */
 .roll-formula .formula-custom-situational {
-  color: #357fd3 !important;
-  font-weight: 600;
+  color: rgba(59, 197, 255, 0.9) !important;
+  font-weight: 400;
 }
 .roll-formula .formula-custom-modifier {
-  color: #95c427 !important;
-  font-weight: 600;
+  color: rgba(138, 178, 42, 0.9) !important;
+  font-weight: 400;
 }
 .roll-formula .formula-symbols {
-  color: #b4bdc7 !important;
+  color: rgba(255, 112, 18, 0.9) !important;
   font-weight: 400;
-  padding: 0px 2px 0px 2px;
+  padding: 0px 8px 0px 8px;
 }
 .roll-formula .formula-spacer {
-  color: #a6b1bd !important;
-  font-weight: 400;
-  padding: 0px 2px 0px 2px;
+  margin: 0px 8px 0px 0px;
 }
+
+
+
 
 
 
@@ -331,14 +334,16 @@ div#roll-window .window-content {
   border-color: rgba(255, 47, 47, 1.0);
 }
 
+
 .roll-btn.roll-advantage {
-  background: rgba(55, 138, 63, 0.8);
+  background: rgba(71, 125, 198, 0.8);
   color: rgba(235, 233, 225, 1.0);
-  border: 1px solid rgba(55, 138, 63, 1.0);
+  border: 1px solid rgba(71, 125, 198, 1.0);
 }
 
 .roll-btn.roll-advantage:hover {
-  background: rgba(55, 138, 63, 1.0);
+  background: rgba(71, 125, 198, 1.0);
+  border-color: rgba(71, 125, 198, 1.0);
 }
 
 .roll-btn.roll-disadvantage {
@@ -352,16 +357,15 @@ div#roll-window .window-content {
 }
 
 .roll-btn.roll-normal {
-  background: rgba(103, 103, 103, 1.0);
+  background: rgba(55, 138, 63, 0.8);
   color: rgba(235, 233, 225, 1.0);
-  border: 1px solid rgba(52, 52, 52, 1.0);
+  border: 1px solid rgba(55, 138, 63, 1.0);
 }
 
 .roll-btn.roll-normal:hover {
-  background: rgba(71, 125, 198, 0.8);
+  background: rgba(55, 138, 63, 1.0);
   border-color: rgba(71, 125, 198, 1.0);
 }
-
 
 
 /* Sticky header and summary */

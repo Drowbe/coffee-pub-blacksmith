@@ -195,7 +195,7 @@ div#skill-check-dialog .window-content {
 }
 .cpb-dialog-header-sticky .cpb-dc-box  .cpb-dc-readonly,
 .cpb-dialog-header-sticky .cpb-dc-box input {
-    color: rgba(55, 173, 29, 0.9) !important;
+    color: rgba(20, 178, 199, 0.9) !important;
     font-size: 2.0em !important;
      font-weight: 900 !important;
      text-align: center !important;
@@ -215,11 +215,11 @@ div#skill-check-dialog .window-content {
 }
 
 .cpb-dialog-header-sticky .cpb-dc-label {
-    font-size: 0.7em;
+    font-size: 0.65em;
     color: rgba(172, 159, 129, 0.9);
     font-weight: 700;
     text-transform: uppercase;
-    margin-bottom: 2px;
+    margin: 3px 0px 0px 0px;
 }
 
 .cpb-dialog-header-sticky .cpb-dc-input {
