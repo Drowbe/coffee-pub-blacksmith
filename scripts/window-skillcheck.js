@@ -1441,7 +1441,7 @@ export class SkillCheckDialog extends Application {
         let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
         
         // 1. Roll Title (always separate and prominent)
-        const rollTitle = messageData.skillName;
+        const rollTitle = messageData.rollTitle || messageData.skillName;
         rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${rollTitle}</h2>`;
         
         // 2. Subtitle with skill info and additional details

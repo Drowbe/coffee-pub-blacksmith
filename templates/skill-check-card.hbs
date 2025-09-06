@@ -6,9 +6,9 @@
             <h3 class="item-name"><i class="fas fa-dice"></i> {{label}}</h3>
         {{else}}
             {{#if hasMultipleGroups}}
-                <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{skillName}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{skillName}}{{/if}}</h3>
+                <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{rollTitle}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{rollTitle}}{{/if}}</h3>
             {{else}}
-                <h3 class="item-name"><i class="fas fa-dice"></i> {{skillName}}</h3>
+                <h3 class="item-name"><i class="fas fa-dice"></i> {{rollTitle}}</h3>
             {{/if}}
         {{/if}}
     </header>
