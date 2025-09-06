@@ -4,6 +4,40 @@
 
 The Blacksmith rolls system provides a unified 4-function architecture for handling all skill checks, ability checks, saving throws, and tool checks in Foundry VTT. The system supports both window mode (traditional chat-based rolls) and cinema mode (full-screen cinematic experience) with real-time synchronization across all clients.
 
+**CRITICAL PRINCIPLE: Roll calculations are THE PRIMARY INTENT of this tool. Everything else (UI, animations, cinema mode) is icing on the cake, but the system MUST nail roll calculations with 100% accuracy.**
+
+## Roll Calculation Accuracy
+
+### Critical Success Factors
+
+The system's success is measured by **100% accurate roll calculations**. Every roll must include:
+
+#### 1. **Base Roll**: `1d20` (or `2d20kh`/`2d20kl` for advantage/disadvantage)
+#### 2. **Ability Modifier**: Character's ability score modifier
+#### 3. **Proficiency Bonus**: Added when character is proficient in the roll type
+#### 4. **Situational Bonus**: User-defined additional modifiers
+#### 5. **Custom Modifiers**: User-defined custom formula additions
+
+#### Roll Type Calculations
+
+**Skills**: `1d20 + abilityMod + profBonus` (if proficient)
+**Abilities**: `1d20 + abilityMod + profBonus` (if proficient) 
+**Saves**: `1d20 + abilityMod + profBonus` (if proficient)
+**Tools**: `1d20 + abilityMod + profBonus` (if proficient)
+
+#### Proficiency Detection
+- **Skills**: `actor.system.skills[skillName].value > 0`
+- **Abilities**: `actor.system.abilities[abilityName].proficient > 0`
+- **Saves**: `actor.system.abilities[abilityName].proficient > 0`
+- **Tools**: `toolItem.system.proficient > 0`
+
+#### Formula Validation
+Every roll formula is validated to ensure:
+- No double `+` signs in formula strings
+- Proper parsing of custom modifiers
+- Correct ability type identification (str, dex, con, int, wis, cha)
+- Accurate total calculation matching displayed breakdown
+
 ## Core Architecture
 
 ### 4-Function Roll Flow

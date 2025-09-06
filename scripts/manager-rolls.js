@@ -510,6 +510,9 @@ async function prepareRollData(actor, type, value) {
     if (type === 'skill') {
         const isProficient = foundry.utils.getProperty(actor.system.skills, `${value}.value`) > 0;
         if (isProficient) formulaParts.push(profBonus);
+    } else if (type === 'ability') {
+        const isProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) > 0;
+        if (isProficient) formulaParts.push(profBonus);
     } else if (type === 'save') {
         const isProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) || false;
         if (isProficient) formulaParts.push(profBonus);
@@ -525,6 +528,9 @@ async function prepareRollData(actor, type, value) {
     
     if (type === 'skill') {
         const isProficient = foundry.utils.getProperty(actor.system.skills, `${value}.value`) > 0;
+        if (isProficient) preRollVerboseParts.push(`${profBonus} prof`);
+    } else if (type === 'ability') {
+        const isProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) > 0;
         if (isProficient) preRollVerboseParts.push(`${profBonus} prof`);
     } else if (type === 'save') {
         const isProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) || false;
@@ -646,7 +652,9 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                 customMods.forEach(mod => {
                     if (mod.trim()) {
-                        skillParts.push(mod.trim());
+                        // Remove leading + to avoid double + in formula
+                        const cleanMod = mod.trim().replace(/^\+/, '');
+                        skillParts.push(cleanMod);
                     }
                 });
             }
@@ -683,8 +691,10 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             break;
         case 'ability':
             postConsoleAndNotification(MODULE.NAME, `Creating manual ability roll for: ${value}`, null, true, false);
-            // Build ability roll formula manually: 1d20 + abilityMod
+            // Build ability roll formula manually: 1d20 + abilityMod + profBonus (if proficient)
             const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${value}.mod`) || 0;
+            const abilityProfBonus = actor.system.attributes.prof || 0;
+            const abilityIsProficient = foundry.utils.getProperty(actor.system.abilities, `${value}.proficient`) > 0;
             
             // Build formula parts
             const abilityParts = [];
@@ -693,6 +703,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             else abilityParts.push('1d20');
             
             if (abilityMod !== 0) abilityParts.push(abilityMod);
+            if (abilityIsProficient) abilityParts.push(abilityProfBonus);
             
             // Add situational bonus and custom formula if provided
             if (options.situationalBonus && options.situationalBonus !== 0) {
@@ -703,7 +714,9 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                 customMods.forEach(mod => {
                     if (mod.trim()) {
-                        abilityParts.push(mod.trim());
+                        // Remove leading + to avoid double + in formula
+                        const cleanMod = mod.trim().replace(/^\+/, '');
+                        abilityParts.push(cleanMod);
                     }
                 });
             }
@@ -721,6 +734,7 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             else abilityVerboseParts.push('1d20 roll');
             
             if (abilityMod !== 0) abilityVerboseParts.push(`${abilityMod} ${value}`);
+            if (abilityIsProficient) abilityVerboseParts.push(`${abilityProfBonus} prof`);
             
             if (options.situationalBonus && options.situationalBonus !== 0) {
                 abilityVerboseParts.push(`${options.situationalBonus} bonus`);
@@ -783,7 +797,9 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                     customMods.forEach(mod => {
                         if (mod.trim()) {
-                            saveParts.push(mod.trim());
+                            // Remove leading + to avoid double + in formula
+                            const cleanMod = mod.trim().replace(/^\+/, '');
+                            saveParts.push(cleanMod);
                         }
                     });
                 }
@@ -847,7 +863,9 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                     const customMods = options.customModifier.split(/\s+/).filter(mod => mod.trim());
                     customMods.forEach(mod => {
                         if (mod.trim()) {
-                            toolParts.push(mod.trim());
+                            // Remove leading + to avoid double + in formula
+                            const cleanMod = mod.trim().replace(/^\+/, '');
+                            toolParts.push(cleanMod);
                         }
                     });
                 }
