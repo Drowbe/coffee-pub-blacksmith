@@ -37,6 +37,7 @@ jobs:
             packs/ \
             prompts/ \
             resources/ \
+            api/ \
             -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*"
 
       # Create release
