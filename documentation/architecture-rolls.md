@@ -38,6 +38,208 @@ Every roll formula is validated to ensure:
 - Correct ability type identification (str, dex, con, int, wis, cha)
 - Accurate total calculation matching displayed breakdown
 
+## Schema-Driven Roll System
+
+### Overview
+
+The system uses a **schema-driven approach** with pure JavaScript implementation, leveraging Foundry's native roll data for maximum accuracy and compatibility.
+
+### Core Files
+
+#### **`dnd5e-roll-rules.js`**
+- **Purpose**: Exports D&D 5e roll mechanics as pure JavaScript constants
+- **Content**: Complete rules schema including roll types, formulas, advantage/disadvantage, proficiency rules
+- **Usage**: Single source of truth for all roll mechanics
+
+#### **`rules-service.js`**
+- **Purpose**: Singleton service for feature detection, caching, and rule management
+- **Features**:
+  - Feature detection from actor items and active effects
+  - Automatic cache invalidation on item/effect changes
+  - Advantage/disadvantage resolution
+  - Proficiency multiplier detection from Foundry roll data
+- **Integration**: Exposed via `game.modules.get("coffee-pub-blacksmith").api.rules`
+
+#### **`resolve-check-pipeline.js`**
+- **Purpose**: Complete roll resolution pipeline for ability checks
+- **Features**:
+  - JOAT (Jack of All Trades) - half proficiency, round down
+  - Remarkable Athlete - half proficiency, round up (STR/DEX/CON only)
+  - Reliable Talent - clamp d20 to 10 minimum (skills only)
+  - System roll data integration
+  - Advantage/disadvantage normalization
+- **Output**: Normalized roll package with formula, modifiers, and labels
+
+#### **`resolve-save-pipeline.js`**
+- **Purpose**: Complete saving throw resolution pipeline
+- **Features**:
+  - Exhaustion effects (level 3+ = disadvantage)
+  - Condition auto-fails (STR/DEX when paralyzed/petrified/stunned/unconscious)
+  - Cover bonuses (+2/+5 for DEX saves)
+  - Concentration DC calculation (max(10, floor(damage/2)))
+  - System proficiency integration
+- **Output**: Normalized save package with auto-fail detection and DC handling
+
+#### **`resolve-attack-pipeline.js`**
+- **Purpose**: Complete attack roll and damage resolution pipeline
+- **Features**:
+  - Critical hit detection (nat 20)
+  - Fumble detection (nat 1 = auto miss)
+  - Auto-crit on hit (melee within 5ft vs paralyzed/unconscious)
+  - Cover penalties (-2/-5 to hit)
+  - Condition effects (invisible, blinded, poisoned, restrained, prone)
+  - Exhaustion effects (level 3+ = disadvantage)
+  - Damage dice doubling on crit
+  - Magic bonus integration
+- **Output**: Complete attack package with hit/crit detection and damage formulas
+
+### Roll Resolution Pipeline
+
+#### **1. Feature Detection**
+```javascript
+// Scans actor items and active effects for class features
+const features = api.getFeaturesIndex(actor);
+const hasJOAT = features.has("jack-of-all-trades");
+const hasRemarkableAthlete = features.has("remarkable-athlete");
+```
+
+#### **2. Proficiency Resolution**
+```javascript
+// Uses Foundry's computed roll data
+const profMult = rd.skills[skillId].prof.multiplier; // 0, 0.5, 1, 2
+const profValue = profMult === 2 ? profBonus * 2 : 
+                  profMult === 1 ? profBonus :
+                  profMult === 0.5 ? Math.floor(profBonus / 2) : 0;
+```
+
+#### **3. Advantage/Disadvantage Resolution**
+```javascript
+// Proper D&D 5e cancellation rules
+const advState = resolveAdvantage(advSources, disSources);
+const formula = advState === "advantage" ? "2d20kh1" : 
+                advState === "disadvantage" ? "2d20kl1" : "1d20";
+```
+
+#### **4. Roll Assembly**
+```javascript
+// Complete roll package
+return {
+  advantageState: "normal"|"advantage"|"disadvantage",
+  parts: [abilityMod, profValue, flatBonus],
+  labels: ["STR Mod", "Proficiency", "Bonuses"],
+  formula: "1d20 + 4 + 2 + 1"
+};
+```
+
+### Integration Points
+
+#### **Bootstrap in `blacksmith.js`:**
+```javascript
+import { RulesService } from "./rules/rules-service.js";
+
+Hooks.once("ready", () => {
+  const api = RulesService.init("coffee-pub-blacksmith");
+  game.modules.get("coffee-pub-blacksmith").api.rules = api;
+});
+```
+
+#### **Usage in Roll Processing:**
+
+**Ability Checks:**
+```javascript
+import { resolveCheckPipeline } from "./rules/resolve-check-pipeline.js";
+
+const rollPackage = resolveCheckPipeline(actor, {
+  abilityId: "str",
+  skillId: "ath",
+  advSources: 0,
+  disSources: 0,
+  flatBonus: 3
+});
+```
+
+**Saving Throws:**
+```javascript
+import { resolveSavePipeline } from "./rules/resolve-save-pipeline.js";
+
+const savePackage = resolveSavePipeline(actor, {
+  abilityId: "dex",
+  cover: "half",         // +2 bonus
+  dc: 16,
+  advSources: 0,
+  disSources: 0
+});
+```
+
+**Attack Rolls:**
+```javascript
+import { resolveAttackPipeline } from "./rules/resolve-attack-pipeline.js";
+
+const attackPackage = resolveAttackPipeline(attacker, {
+  abilityId: "str",
+  proficient: true,
+  magicBonus: 1,
+  target: { 
+    conditions: targetActor, 
+    isWithin5ft: true, 
+    cover: "none" 
+  },
+  damageParts: [{ formula: "1d8" }],
+  critExtraDice: "1d8"
+});
+```
+
+### Performance Optimizations
+
+- **Cached feature detection** - Only scans on item/effect changes
+- **System roll data integration** - Uses Foundry's pre-computed values
+- **Singleton service** - Single instance per module
+- **Efficient lookups** - Set-based feature storage
+
+### Complete File Structure
+
+```
+scripts/
+├── rules/
+│   ├── dnd5e-roll-rules.js          // Schema export (JS)
+│   ├── rules-service.js             // Singleton service + caching
+│   ├── resolve-check-pipeline.js    // Ability checks pipeline
+│   ├── resolve-save-pipeline.js     // Saving throws pipeline
+│   └── resolve-attack-pipeline.js   // Attack rolls pipeline
+├── manager-rolls.js                 // Updated to use new system
+└── blacksmith.js                    // Bootstrap integration
+```
+
+### Implementation Details
+
+#### **Condition Detection:**
+- **Auto-reads** from `actor.allApplicableEffects`
+- **Supports custom** condition sets for full control
+- **Normalized slugs** for consistent detection
+
+#### **Cover System:**
+- **DEX saves**: +2 (half), +5 (three-quarters)
+- **Attack rolls**: -2 (half), -5 (three-quarters)
+- **Total cover**: Blocks targeting entirely
+
+#### **Critical Hit System:**
+- **Natural 20**: Always critical
+- **Auto-crit**: Melee within 5ft vs paralyzed/unconscious
+- **Damage doubling**: Dice only, modifiers once
+- **Extra dice**: Support for Savage Attacks, etc.
+
+#### **Proficiency Integration:**
+- **System roll data**: Uses Foundry's computed multipliers
+- **Feature detection**: JOAT, Remarkable Athlete, Reliable Talent
+- **Proper precedence**: System proficiency overrides features
+
+### Future Extensions
+
+- **Tool proficiency** - Custom tool detection
+- **Spell attacks** - Spell-specific critical handling
+- **libWrapper integration** - Seamless system replacement
+- **Condition effects** - Expanded condition support
+
 ## Core Architecture
 
 ### 4-Function Roll Flow

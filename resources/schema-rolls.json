@@ -1,0 +1,215 @@
+{
+    "meta": {
+      "version": "1.0.0",
+      "system": "dnd5e-2014",
+      "notes": "Mechanics-only (no content). Designed to drive roll logic in code."
+    },
+  
+    "enums": {
+      "abilities": ["str","dex","con","int","wis","cha"],
+      "rollTypes": ["ability_check","attack","saving_throw","tool_check","initiative","death_save","concentration","custom"],
+      "advantageState": ["normal","advantage","disadvantage"],
+      "proficiencyState": ["none","proficient","expertise"],
+      "cover": ["none","half","three_quarters","total"],
+      "damageDieNotation": "e.g. '2d6+3', dice are doubled on crit (modifiers once)"
+    },
+  
+    "formulas": {
+      "abilityMod": "floor((ABILITY_SCORE - 10) / 2)",
+      "proficiencyBonusByLevel": {
+        "1-4": 2, "5-8": 3, "9-12": 4, "13-16": 5, "17-20": 6
+      },
+      "spellSaveDC": "8 + proficiencyBonus + spellcastingAbilityMod + spellSaveBonuses",
+      "passiveScore": "10 + abilityMod + proficiency + otherBonuses",
+      "concentrationDC": "max(10, floor(damageTaken / 2))"
+    },
+  
+    "globalRules": {
+      "d20Core": "Roll 1d20, add modifiers; compare to DC or AC",
+      "advantage": {
+        "rule": "If net sources grant advantage and no disadvantage, roll 2d20 and take higher",
+        "cancellation": "Any amount of advantage and disadvantage cancel to normal",
+        "stacking": "Does not stack; presence/absence only"
+      },
+      "critical": {
+        "appliesTo": "attack",
+        "natural20": {
+          "hit": true,
+          "crit": true,
+          "damageRule": "Double all damage dice (not modifiers)",
+          "note": "If damage uses multiple dice pools, double each pool’s dice count"
+        },
+        "natural1": {
+          "autoMiss": true
+        }
+      },
+      "fumbles": {
+        "attacks": "Natural 1 is an automatic miss",
+        "otherRolls": "No automatic fail/success unless a feature says so"
+      },
+      "dcComparison": {
+        "checksAndSaves": "total >= DC is success",
+        "attacks": "total >= targetAC is hit"
+      }
+    },
+  
+    "rollTypes": {
+      "ability_check": {
+        "base": "1d20",
+        "total": "d20 + abilityMod + proficiency (if proficient) + situational",
+        "skillFlavor": "Skills are ability checks with proficiency; expertise doubles proficiency",
+        "advantageState": "normal|advantage|disadvantage",
+        "passiveVariant": "10 + abilityMod + prof + situational",
+        "examples": [
+          {"name": "Stealth", "ability": "dex", "proficiency": "proficient"},
+          {"name": "Athletics", "ability": "str", "proficiency": "none"}
+        ]
+      },
+      "tool_check": {
+        "base": "1d20",
+        "total": "d20 + relevantAbilityMod + toolProficiency + situational",
+        "notes": "Some tables use a specific ability; DM adjudicates"
+      },
+      "attack": {
+        "base": "1d20",
+        "toHit": "d20 + abilityMod (str/dex) + proficiency (if proficient) + item/magic/situational",
+        "target": "Compare to target AC",
+        "advantageState": "normal|advantage|disadvantage",
+        "critical": "Nat 20 = crit; Nat 1 = auto miss",
+        "damage": {
+          "normal": "sum(damage dice) + relevant modifiers (e.g., ability, magic)",
+          "critical": "double all damage dice; add modifiers once"
+        },
+        "rangedMeleeAbility": "Melee uses STR unless finesse; ranged uses DEX unless feature/ruling"
+      },
+      "saving_throw": {
+        "base": "1d20",
+        "total": "d20 + abilityMod + proficiency (if proficient) + situational",
+        "target": "Compare to DC (spell or effect)",
+        "notes": "Features (e.g., Aura, Bless) can add bonuses"
+      },
+      "initiative": {
+        "base": "1d20",
+        "total": "d20 + dexMod + bonuses",
+        "ties": "Resolve per table rules (e.g., higher Dex, player choice, roll-off)"
+      },
+      "death_save": {
+        "base": "1d20",
+        "modifiers": "none (unless a feature says otherwise)",
+        "success": "10+ = 1 success",
+        "failure": "9- = 1 failure",
+        "nat20": "Regain 1 HP and become conscious",
+        "nat1": "Counts as 2 failures",
+        "track": {
+          "on3Successes": "Stabilized",
+          "on3Failures": "Dead"
+        }
+      },
+      "concentration": {
+        "check": "Constitution saving throw",
+        "dc": "max(10, floor(damageTaken/2))",
+        "timing": "Whenever you take damage while concentrating"
+      },
+      "custom": {
+        "description": "Generic wrapper when you need a roll that doesn’t map cleanly",
+        "schema": "d20 + ability or fixed modifier + situational"
+      }
+    },
+  
+    "mechanics": {
+      "contests": {
+        "rule": "Opposed checks; higher total wins",
+        "ties": "Status quo (no winner) unless effect states otherwise",
+        "advantage": "Each side applies their own advantage/disadvantage before compare"
+      },
+      "groupChecks": {
+        "rule": "If at least half of the group succeeds, group succeeds",
+        "useCase": "Travel stealth, foraging, navigation, etc."
+      }
+    },
+  
+    "rollAffectors": {
+      "cover": {
+        "none":   {"toHitBonusAgainstTarget": 0,  "dexSaveBonusToTarget": 0, "targetable": true},
+        "half":   {"toHitBonusAgainstTarget": -2, "dexSaveBonusToTarget": 2, "targetable": true},
+        "three_quarters": {"toHitBonusAgainstTarget": -5, "dexSaveBonusToTarget": 5, "targetable": true},
+        "total":  {"targetable": false, "note": "Cannot be targeted directly"}
+      },
+  
+      "conditions": {
+        "blinded": {
+          "attacksByCreature": "disadvantage",
+          "attacksAgainstCreature": "advantage",
+          "autoFail": ["sight-based ability checks"]
+        },
+        "invisible": {
+          "attacksByCreature": "advantage",
+          "attacksAgainstCreature": "disadvantage",
+          "note": "Revealed by some effects; still grants unseen attacker benefits"
+        },
+        "restrained": {
+          "attacksByCreature": "disadvantage",
+          "attacksAgainstCreature": "advantage",
+          "dexSaves": "disadvantage",
+          "speed": 0
+        },
+        "prone": {
+          "attacksAgainstCreatureMelee": "advantage",
+          "attacksAgainstCreatureRanged": "disadvantage",
+          "attacksByCreature": "disadvantage (while prone)"
+        },
+        "frightened": {
+          "abilityChecks": "disadvantage",
+          "attackRolls": "disadvantage",
+          "note": "While source of fear is in line of sight"
+        },
+        "poisoned": {
+          "abilityChecks": "disadvantage",
+          "attackRolls": "disadvantage"
+        },
+        "incapacitated": {
+          "note": "No actions or reactions; no direct roll penalty by itself"
+        },
+        "unconscious": {
+          "attackRollsAgainst": "advantage (melee within 5 ft crits if attack hits)",
+          "autoFailSaves": ["str","dex"],
+          "prone": true
+        },
+        "grappled": {
+          "speed": 0,
+          "escape": "Contested: target STR (Athletics) or DEX (Acrobatics) vs grappler STR (Athletics)"
+        }
+      },
+  
+      "exhaustion": {
+        "level1": {"abilityChecks": "disadvantage"},
+        "level2": {"speed": "halved"},
+        "level3": {"attackRolls": "disadvantage", "savingThrows": "disadvantage"},
+        "level4": {"hpMax": "halved"},
+        "level5": {"speed": 0},
+        "level6": {"dead": true}
+      }
+    },
+  
+    "resolutionOrder": [
+      "1. Determine roll type (check/attack/save/etc.)",
+      "2. Gather base: d20",
+      "3. Compute advantageState from all sources (reduce to advantage|disadvantage|normal)",
+      "4. Determine ability mod and proficiency (incl. expertise)",
+      "5. Apply cover/conditions/exhaustion effects (convert to adv/dis or numeric mods as needed)",
+      "6. Sum flat modifiers (class features, items, spells, situational)",
+      "7. Roll d20 (2d20 take best/worst if adv/dis)",
+      "8. Add modifiers to get total",
+      "9. Compare vs DC/AC; check natural 20/1 rules for attacks",
+      "10. On hit/success, resolve effects (damage, riders). On crit, double damage dice only"
+    ],
+  
+    "implementationHints": {
+      "advantageReduction": "If (sourcesAdv>0 && sourcesDis>0) -> normal; else advantage if adv>0; else disadvantage if dis>0",
+      "expertiseRule": "expertise = proficiency * 2 (stacks after computing proficiency bonus)",
+      "boundedAccuracy": "Prefer additive bonuses <= +/−5; model larger effects as advantage/disadvantage",
+      "passiveChecks": "Use passiveScore instead of rolling when appropriate (e.g., perception in exploration)",
+      "savingThrowProficiency": "Per class; treat as boolean per ability"
+    }
+  }
+  
