@@ -10,13 +10,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Module-Specific Release Naming:** Updated release workflow to create `coffee-pub-blacksmith.zip` instead of generic `module.zip` for better module identification and management.
+- **Unified Header System:** Created `partial-unified-header.hbs` template for consistent header styling across skill check dialog and roll window
+- **Actor Portrait Support:** Added actor portrait display in roll window header next to actor name
+- **Real-Time Formula Updates:** Added live formula updates when situational bonus or custom modifier changes, with blue text highlighting modifications
+- **Roll Mode Visibility System:** Implemented comprehensive roll mode handling (Public, Private GM, Blind GM, Self Roll) with proper visibility controls in chat cards
+- **Ownership-Based Controls:** Added ownership checks for roll buttons, disabling non-owner interactions with visual feedback
+- **Chat Scrolling:** Added automatic chat scrolling to bottom when roll results are updated
+- **Roll Request Sound:** Added sound notification when roll requests are posted to chat
+- **Schema-Driven Roll Architecture:** Designed complete D&D 5e roll rules system with:
+  - `dnd5e-roll-rules.js` - Pure JavaScript export of D&D 5e mechanics schema
+  - `rules-service.js` - Singleton service for rule management, feature detection, and caching
+  - `resolve-check-pipeline.js` - Ability check resolution with JOAT, Remarkable Athlete, and Reliable Talent
+  - `resolve-save-pipeline.js` - Saving throw resolution with exhaustion, conditions, and cover
+  - `resolve-attack-pipeline.js` - Attack roll and damage resolution with critical hits and fumbles
+- **Comprehensive Documentation:** Updated `ARCHITECTURE-ROLLS.md` with complete schema-driven system design and implementation details
 
 ### Changed
 - **Download URL Pattern:** Changed download URL from version-specific (`v12.1.0/module.zip`) to latest release pattern (`latest/coffee-pub-blacksmith.zip`), eliminating the need for manual URL updates before each release.
 - **Release Workflow:** Updated GitHub Actions workflow to use module-specific zip naming and file references.
+- **Roll Window Integration:** Updated roll window to use unified header template and pass actor portrait data
+- **Formula Display Logic:** Enhanced formula display to show ability-specific modifiers instead of hardcoded "dex"
+- **Custom Modifier Processing:** Improved custom modifier parsing to handle multiple values and prevent double plus signs
+- **Roll Title Handling:** Fixed roll title passing from skill check dialog to roll window and chat cards
+- **Template Structure:** Updated skill check and roll window templates to use consistent header layout and styling
+- **Roll Calculation Accuracy:** Enhanced roll calculations to ensure 100% accuracy between displayed formula and actual roll execution
 
 ### Fixed
 - **Manual Release Process:** Eliminated the requirement to manually update the download URL in `module.json` before each release. The `latest` tag now automatically redirects to the most recent release.
+- **Hardcoded Ability References:** Fixed formula display to use dynamic ability keys instead of hardcoded "dex"
+- **Custom Modifier Parsing:** Fixed double plus signs in custom modifier tooltips and formula display
+- **Proficiency Calculation:** Fixed ability rolls to properly include proficiency bonus when character is proficient
+- **Roll Title Consistency:** Fixed roll title display across skill check dialog, roll window, and chat cards
+- **Chat Card Ownership:** Fixed ownership-based button functionality in chat cards
+- **Template Rendering:** Fixed partial template loading errors and missing data passing
+- **Math Accuracy:** Fixed roll calculation discrepancies between displayed formula and actual roll execution
+- **Group Roll Logic:** Fixed group roll evaluation to properly honor the Group DC toggle setting
+- **Roll Mode Processing:** Fixed roll mode selection to be properly passed through to roll execution
+
+### Technical Details
+- Implemented component-based roll evaluation system for accurate D&D 5e rule compliance
+- Added feature detection from actor items and active effects for proficiency resolution
+- Created caching system for rules and feature indexes to improve performance
+- Enhanced error handling and validation throughout the roll system
+- Improved socket communication for roll mode visibility and ownership controls
+- Added comprehensive logging and debugging capabilities for roll system troubleshooting
 
 ## [12.0.23] - Suppress Combat Deployment from Players
 
