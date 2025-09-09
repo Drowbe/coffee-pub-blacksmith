@@ -1,10 +1,8 @@
 import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
 import { postConsoleAndNotification } from './api-common.js';
-import { buildButtonEventRegent } from './blacksmith.js';
-import { CSSEditor } from './window-gmtools.js';
-import { JournalToolsWindow } from './journal-tools.js';
 import { HookManager } from './manager-hooks.js';
+import { BlacksmithToolbarManager } from './manager-blacksmith-toolbar.js';
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './api-common.js';
 
@@ -19,105 +17,25 @@ export function addToolbarButton() {
 		callback: (controls) => {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
-
-            const regentTool = {
-                icon: "fa-solid fa-crystal-ball",
-                name: "regent",
-                title: "Consult the Regent",
-                button: true,
-                visible: true,
-                onClick: buildButtonEventRegent
-            };
-
-            const lookupTool = {
-                icon: "fa-solid fa-bolt-lightning",
-                name: "lookup",
-                title: "Open Lookup Worksheet",
-                button: true,
-                visible: true,
-                onClick: () => buildButtonEventRegent('lookup')
-            };
-
-            const characterTool = {
-                icon: "fa-solid fa-helmet-battle",
-                name: "character",
-                title: "Open Character Worksheet",
-                button: true,
-                visible: true,
-                onClick: () => buildButtonEventRegent('character')
-            };
-
-            const assistantTool = {
-                icon: "fa-solid fa-hammer-brush",
-                name: "assistant",
-                title: "Open Assistant Worksheet",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => buildButtonEventRegent('assistant')
-            };
-
-            const encounterTool = {
-                icon: "fa-solid fa-swords",
-                name: "encounter",
-                title: "Open Encounter Worksheet",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => buildButtonEventRegent('encounter')
-            };
-
-            const narrativeTool = {
-                icon: "fa-solid fa-masks-theater",
-                name: "narrative",
-                title: "Open Narrative Worksheet",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => buildButtonEventRegent('narrative')
-            };
-
-            const cssTool = {
-                icon: "fa-solid fa-paint-brush",
-                name: "css",
-                title: "Open GM Tools",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => {
-                    const editor = new CSSEditor();
-                    editor.render(true);
-                }
-            };
-
-            const journalToolsTool = {
-                icon: "fa-solid fa-book-open",
-                name: "journal-tools",
-                title: "Journal Tools",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => {
-                    // Create a dummy journal object for the window to work with
-                    // The window will handle journal selection internally
-                    const dummyJournal = { id: null, name: "Select Journal" };
-                    const journalTools = new JournalToolsWindow(dummyJournal);
-                    journalTools.render(true);
-                }
-            };
-
-            const refreshTool = {
-                icon: "fa-solid fa-sync-alt",
-                name: "refresh",
-                title: "Refresh Client",
-                button: true,
-                visible: game.user.isGM,
-                onClick: () => {
-                    window.location.reload();
-                }
-            };
+            // Get all visible tools from the BlacksmithToolbarManager
+            const visibleTools = BlacksmithToolbarManager.getVisibleTools();
+            
+            // Convert to the format expected by FoundryVTT
+            const tools = visibleTools.map(tool => ({
+                icon: tool.icon,
+                name: tool.name,
+                title: tool.title,
+                button: tool.button,
+                visible: true, // Visibility is already filtered by getVisibleTools()
+                onClick: tool.onClick
+            }));
 
             controls.push({
                 name: "blacksmith-utilities",
                 title: "Blacksmith Utilities",
                 icon: "fa-solid fa-mug-hot",
                 layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-                tools: [regentTool, lookupTool, characterTool, assistantTool, encounterTool, narrativeTool, cssTool, journalToolsTool, refreshTool]
+                tools: tools
             });
             // --- END - HOOKMANAGER CALLBACK ---
         }

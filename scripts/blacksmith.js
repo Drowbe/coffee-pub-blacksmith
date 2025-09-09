@@ -637,8 +637,17 @@ Hooks.once('init', async function() {
     // VOTE MANAGER
     VoteManager.initialize();
 
+    // BLACKSMITH TOOLBAR MANAGER
+    import('./manager-blacksmith-toolbar.js').then(({ BlacksmithToolbarManager }) => {
+        BlacksmithToolbarManager.initialize();
+        
+        // Register toolbar button after BlacksmithToolbarManager is initialized
+        addToolbarButton();
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to initialize BlacksmithToolbarManager", error, false, false);
+    });
+
     hookCanvas();
-    addToolbarButton();
 
     // Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
     // Use dynamic import to ensure SocketManager is loaded
@@ -671,6 +680,14 @@ Hooks.once('init', async function() {
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup  // ✅ NEW: Expose AssetLookup for flexible asset access
     };
+    
+    // Add BlacksmithToolbarManager to API after it's initialized
+    import('./manager-blacksmith-toolbar.js').then(({ BlacksmithToolbarManager }) => {
+        module.api.BlacksmithToolbarManager = BlacksmithToolbarManager;
+        postConsoleAndNotification(MODULE.NAME, "Blacksmith Toolbar Manager: Added to API", "", true, false);
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to add BlacksmithToolbarManager to API", error, false, false);
+    });
     // =========================================================================
     // ===== END: EXPOSE API =================================================
     // =========================================================================
