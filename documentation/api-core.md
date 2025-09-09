@@ -35,7 +35,7 @@ const utils = BlacksmithUtils;
 
 **What This Means for You:**
 - Your module integration works for all features
-- All constants are available via both `COFFEEPUB` and `BlacksmithConstants` for backward compatibility
+- All constants are available via `BlacksmithConstants` for external module access
 - New data structure provides enhanced asset management with semantic IDs and values
 
 **Current Status**: All constants are now available and the new Asset Lookup Tool provides flexible, tag-based asset access.
@@ -994,28 +994,24 @@ const tableChoices = BlacksmithConstants.arrTableChoices;
 
 **💡 Explore All Utilities**: Use the console command `BlacksmithAPIUtils()` to see a complete list of all available utility functions and their current values.
 
-**✅ MIGRATION COMPLETE**: The `COFFEEPUB` constants (like `COFFEEPUB.SOUNDNOTIFICATION01`) have been successfully migrated to a new data-driven system. These are now available via both `window.COFFEEPUB` and `BlacksmithConstants` for backward compatibility.
+**✅ MIGRATION COMPLETE**: The constants system has been successfully migrated to a new data-driven system. External modules should use `BlacksmithConstants` for all constant access.
 
 ## **🎯 Constants System - Current State**
 
 ### **Available Constants:**
-- **Sound Constants**: `COFFEEPUB.SOUNDNOTIFICATION01`, `COFFEEPUB.SOUNDBUTTON01`, `COFFEEPUB.SOUNDSUCCESS`, etc.
-- **Background Constants**: `COFFEEPUB.BACKSKILLCHECK`, `COFFEEPUB.BACKABILITYCHECK`, `COFFEEPUB.BACKSAVINGTHROW`, etc.
-- **Theme Constants**: `COFFEEPUB.THEMEDEFAULT`, `COFFEEPUB.THEMEBLUE`, `COFFEEPUB.THEMERED`, etc.
-- **Icon Constants**: `COFFEEPUB.ICONNONE`, `COFFEEPUB.ICONCHESSQUEEN`, `COFFEEPUB.ICONSHIELD`, etc.
-- **Volume Constants**: `COFFEEPUB.SOUNDVOLUMESOFT`, `COFFEEPUB.SOUNDVOLUMENORMAL`, `COFFEEPUB.SOUNDVOLUMELOUD`
+- **Sound Constants**: `BlacksmithConstants.SOUNDNOTIFICATION01`, `BlacksmithConstants.SOUNDBUTTON01`, `BlacksmithConstants.SOUNDSUCCESS`, etc.
+- **Background Constants**: `BlacksmithConstants.BACKSKILLCHECK`, `BlacksmithConstants.BACKABILITYCHECK`, `BlacksmithConstants.BACKSAVINGTHROW`, etc.
+- **Theme Constants**: `BlacksmithConstants.THEMEDEFAULT`, `BlacksmithConstants.THEMEBLUE`, `BlacksmithConstants.THEMERED`, etc.
+- **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
+- **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`
 
 ### **Access Methods:**
 ```javascript
-// Method 1: Direct COFFEEPUB access (recommended for existing code)
-const sound = COFFEEPUB.SOUNDNOTIFICATION01;
-const theme = COFFEEPUB.THEMEDEFAULT;
-
-// Method 2: BlacksmithConstants (alternative access)
+// Method 1: BlacksmithConstants (recommended for external modules)
 const sound = BlacksmithConstants.SOUNDNOTIFICATION01;
 const theme = BlacksmithConstants.THEMEDEFAULT;
 
-// Method 3: Asset Lookup (for tag-based searching)
+// Method 2: Asset Lookup (for tag-based searching)
 const assetLookup = BlacksmithAPI.getAssetLookup();
 const sounds = assetLookup.findByTag('notification');
 ```
@@ -1056,8 +1052,8 @@ utils.postConsoleAndNotification(
 );
 
 // Sound playback - use predefined constants or full paths
-// ✅ MIGRATION COMPLETE: COFFEEPUB constants are now available via both window.COFFEEPUB and BlacksmithConstants
-utils.playSound(COFFEEPUB.SOUNDNOTIFICATION01, COFFEEPUB.SOUNDVOLUMENORMAL); // Use constants
+// ✅ MIGRATION COMPLETE: Use BlacksmithConstants for all constant access
+utils.playSound(BlacksmithConstants.SOUNDNOTIFICATION01, BlacksmithConstants.SOUNDVOLUMENORMAL); // Use constants
 utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3', 0.5); // Or custom paths
 
 // ✅ Available sound constants include:
@@ -1916,7 +1912,7 @@ Please provide complete, working code examples that I can directly implement.
 
 * Import the bridge file: `import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`
 * Register module during 'ready' hook using `BlacksmithModuleManager.registerModule()` (timing safety)
-* Access BLACKSMITH object during 'ready' hook via `BlacksmithConstants`
+* Access constants during 'ready' hook via `BlacksmithConstants`
 * Listen to 'blacksmithUpdated' hook for data updates
 * Use `BlacksmithUtils.getSettingSafely()` for safe settings access
 * Access choice arrays via `BlacksmithConstants.arr[Type]Choices`
