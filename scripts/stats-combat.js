@@ -16,6 +16,10 @@ function getActorPortrait(combatant) {
 }
 
 class CombatStats {
+    static currentStats = null;
+    static combatStats = null;
+    static _lastRollWasCritical = false;
+    
     static DEFAULTS = {
         roundStats: {
             roundStartTime: Date.now(),
@@ -107,6 +111,11 @@ class CombatStats {
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
 
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+
         const currentCombatant = combat.combatant;
         const previousCombatant = combat.turns[combat.previous?.turn] || null;
 
@@ -134,6 +143,11 @@ class CombatStats {
     static _onRoundStart(combat) {
         // Handle stats tracking if enabled
         if (game.user.isGM && getSettingSafely(MODULE.ID, 'trackCombatStats', false)) {
+            // Ensure currentStats is initialized before overwriting
+            if (!this.currentStats) {
+                this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+            }
+            
             // Initialize new round stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
             // Ensure Maps are properly initialized
@@ -202,6 +216,16 @@ class CombatStats {
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+
+        // Ensure arrays are initialized
+        if (!this.currentStats.expiredTurns) {
+            this.currentStats.expiredTurns = [];
+        }
+
         // Calculate duration based on progress bar position or expiration
         const totalAllowedTime = game.settings.get(MODULE.ID, 'combatTimerDuration');
         const isExpired = CombatTimer.state?.expired || CombatTimer.state?.remaining === 0;
@@ -265,15 +289,23 @@ class CombatStats {
     static _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 
+        // Ensure stats are initialized
+        if (!this.combatStats) {
+            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+        }
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+
         const combatDuration = Date.now() - this.combatStats.startTime;
         
         postConsoleAndNotification(MODULE.NAME, "Combat Ended | Stats:", {
             combat: {
                 duration: combatDuration,
                 rounds: combat.round,
-                totalHits: this.combatStats.hits.length,
-                expiredTurns: this.currentStats.expiredTurns.length,
-                participantStats: this.combatStats.participantStats
+                totalHits: (this.combatStats.hits || []).length,
+                expiredTurns: (this.currentStats.expiredTurns || []).length,
+                participantStats: this.combatStats.participantStats || {}
             }
         }, true, false);
 
@@ -291,6 +323,11 @@ class CombatStats {
     static recordTurnEnd(combatant) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+        
         if (combatant) {
             const totalAllowedTime = game.settings.get(MODULE.ID, 'combatTimerDuration');
             const remainingTime = CombatTimer.state?.remaining ?? 0;
@@ -300,6 +337,11 @@ class CombatStats {
             
             // Update turn times for player characters
             if (this._isPlayerCharacter(combatant)) {
+                // Ensure partyStats is initialized
+                if (!this.currentStats.partyStats) {
+                    this.currentStats.partyStats = foundry.utils.deepClone(this.DEFAULTS.roundStats.partyStats);
+                }
+                
                 if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
                     this.currentStats.partyStats.turnTimes = {};
                 }
@@ -345,6 +387,11 @@ class CombatStats {
     static recordPlanningStart() {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+        
         const now = Date.now();
         this.currentStats.actualPlanningStartTime = now;
         this.currentStats.lastUnpauseTime = now;
@@ -356,6 +403,11 @@ class CombatStats {
     static recordPlanningEnd() {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+        
         const now = Date.now();
         this.currentStats.actualPlanningEndTime = now;
         
@@ -366,6 +418,11 @@ class CombatStats {
 
     static recordTimerPause() {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
 
         const now = Date.now();
         if (this.currentStats.lastUnpauseTime) {
@@ -380,11 +437,22 @@ class CombatStats {
 
     static recordTimerUnpause() {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+        
         this.currentStats.lastUnpauseTime = Date.now();
     }
 
     static recordTimerExpired(isPlanningPhase = false) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
 
         const now = Date.now();
         if (isPlanningPhase) {
@@ -398,6 +466,40 @@ class CombatStats {
             }
         }
         this.currentStats.lastUnpauseTime = 0;
+    }
+
+    // API Methods expected by api-stats.js
+    static getCurrentStats() {
+        return this.currentStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
+    }
+
+    static getParticipantStats(participantId) {
+        if (!this.currentStats?.participantStats) return null;
+        return this.currentStats.participantStats[participantId] || null;
+    }
+
+    static getNotableMoments() {
+        if (!this.currentStats?.notableMoments) return null;
+        return this.currentStats.notableMoments;
+    }
+
+    static getRoundSummary(round = null) {
+        if (!this.combatStats?.rounds) return null;
+        const targetRound = round || game.combat?.round || 1;
+        return this.combatStats.rounds.find(r => r.round === targetRound) || null;
+    }
+
+    static subscribeToUpdates(callback) {
+        // Simple subscription system - in a real implementation, you'd want a proper event system
+        if (!this._subscribers) this._subscribers = new Set();
+        this._subscribers.add(callback);
+        return `sub_${Date.now()}_${Math.random()}`;
+    }
+
+    static unsubscribeFromUpdates(subscriptionId) {
+        if (!this._subscribers) return;
+        // In a real implementation, you'd track subscription IDs properly
+        this._subscribers.clear();
     }
 
     // Register Handlebars helpers
@@ -1228,6 +1330,11 @@ class CombatStats {
         // Update attacker's stats
         const attackerStats = this.combatStats.participantStats[hitData.attackerId];
         attackerStats.damage.dealt += processedHitData.amount;
+        
+        // Ensure hits array exists
+        if (!attackerStats.hits) {
+            attackerStats.hits = [];
+        }
         attackerStats.hits.push(processedHitData);
 
         // Update target's stats if it exists
@@ -1247,7 +1354,7 @@ class CombatStats {
                         {
                             name: stats.name,
                             damage: stats.damage,
-                            hits: stats.hits.length
+                            hits: (stats.hits || []).length
                         }
                     ])
                 )
@@ -1263,6 +1370,14 @@ class CombatStats {
     // Combat flow tracking methods
     static _onCombatStart(combat) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+
+        // Ensure stats are initialized
+        if (!this.combatStats) {
+            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+        }
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
 
         postConsoleAndNotification(MODULE.NAME, "Combat Started | Stats:", {
             combat: {
@@ -1289,6 +1404,11 @@ class CombatStats {
     static async _onRoundEnd() {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
+
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
 
         postConsoleAndNotification(MODULE.NAME, 'Round End - Starting MVP calculation', "", true, false);
 
@@ -1342,9 +1462,9 @@ class CombatStats {
         // Calculate round statistics
         const roundStats = {
             round: game.combat.round - 1,  // Use the previous round number
-            hits: this.currentStats.hits.length,
-            expiredTurns: this.currentStats.expiredTurns.length,
-            turnTimes: this.currentStats.partyStats.turnTimes
+            hits: (this.currentStats.hits || []).length,
+            expiredTurns: (this.currentStats.expiredTurns || []).length,
+            turnTimes: this.currentStats.partyStats?.turnTimes || {}
         };
 
         try {
@@ -1387,11 +1507,16 @@ class CombatStats {
     }
 
     static async _prepareTemplateData(participantStats) {
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+
         postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
             hasParticipantStats: !!this.currentStats.participantStats,
             participantCount: this.currentStats.participantStats ? Object.keys(this.currentStats.participantStats).length : 0,
             rawStats: this.currentStats.participantStats,
-            turnTimes: this.currentStats.partyStats.turnTimes
+            turnTimes: this.currentStats.partyStats?.turnTimes || {}
         }, true, false);
 
         const participantMap = new Map();
@@ -1407,13 +1532,13 @@ class CombatStats {
                 if (!id) continue;
 
                 // Get this combatant's specific turn duration
-                const turnDuration = this.currentStats.partyStats.turnTimes[id] || 0;
+                const turnDuration = this.currentStats.partyStats?.turnTimes?.[id] || 0;
 
                 postConsoleAndNotification(MODULE.NAME, `Turn Duration for ${turn.actor.name}:`, {
                     turnDuration,
                     combatantId: id,
                     actorId: turn.actor.id,
-                    turnTimes: this.currentStats.partyStats.turnTimes
+                    turnTimes: this.currentStats.partyStats?.turnTimes || {}
                 }, true, false);
 
                 // Safely get stats, defaulting to empty structure if not found
@@ -1591,6 +1716,11 @@ class CombatStats {
 
     // Add new method to track notable moments
     static _updateNotableMoments(type, data) {
+        // Ensure currentStats is initialized
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+
         postConsoleAndNotification(MODULE.NAME, 'Update Notable Moments:', {
             type,
             data,
