@@ -17,8 +17,8 @@ export function addToolbarButton() {
 		callback: (controls) => {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
-            // Get all visible tools from the BlacksmithToolbarManager
-            const visibleTools = BlacksmithToolbarManager.getVisibleTools();
+            // Get all visible tools from the BlacksmithToolbarManager, organized by zones
+            const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
             
             // Convert to the format expected by FoundryVTT
             const tools = visibleTools.map(tool => ({

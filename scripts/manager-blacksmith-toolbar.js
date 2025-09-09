@@ -43,6 +43,8 @@ export class BlacksmithToolbarManager {
      * @param {boolean|Function} toolData.visible - Visibility condition (boolean or function)
      * @param {Function} toolData.onClick - Click handler function
      * @param {string} toolData.moduleId - Module ID that registered this tool (optional)
+     * @param {string} toolData.zone - Toolbar zone (optional, defaults to 'general')
+     * @param {number} toolData.order - Order within zone (optional, defaults to 999)
      * @returns {boolean} Success status
      */
     static registerTool(toolId, toolData) {
@@ -97,10 +99,12 @@ export class BlacksmithToolbarManager {
                 return false;
             }
             
-            // Store the tool
+            // Store the tool with defaults
             this.registeredTools.set(toolId, {
                 ...toolData,
                 moduleId: toolData.moduleId || 'blacksmith-core',
+                zone: toolData.zone || 'general',
+                order: toolData.order || 999,
                 registeredAt: Date.now()
             });
             
@@ -217,6 +221,49 @@ export class BlacksmithToolbarManager {
     }
     
     /**
+     * Get tools organized by zones and ordered
+     * @returns {Array} Array of tool objects organized by zones and ordered
+     */
+    static getVisibleToolsByZones() {
+        const visibleTools = this.getVisibleTools();
+        
+        // Group tools by zone
+        const toolsByZone = {};
+        visibleTools.forEach(tool => {
+            const zone = tool.zone || 'general';
+            if (!toolsByZone[zone]) {
+                toolsByZone[zone] = [];
+            }
+            toolsByZone[zone].push(tool);
+        });
+        
+        // Sort tools within each zone by order
+        Object.keys(toolsByZone).forEach(zone => {
+            toolsByZone[zone].sort((a, b) => a.order - b.order);
+        });
+        
+        // Define zone order (you can customize this)
+        const zoneOrder = ['dice', 'utilities', 'gm-tools', 'general'];
+        
+        // Flatten tools in zone order
+        const orderedTools = [];
+        zoneOrder.forEach(zone => {
+            if (toolsByZone[zone]) {
+                orderedTools.push(...toolsByZone[zone]);
+            }
+        });
+        
+        // Add any remaining zones not in the predefined order
+        Object.keys(toolsByZone).forEach(zone => {
+            if (!zoneOrder.includes(zone)) {
+                orderedTools.push(...toolsByZone[zone]);
+            }
+        });
+        
+        return orderedTools;
+    }
+    
+    /**
      * Register the default tools that were previously hardcoded
      * @private
      */
@@ -225,8 +272,9 @@ export class BlacksmithToolbarManager {
         import('./blacksmith.js').then(({ buildButtonEventRegent }) => {
             import('./window-gmtools.js').then(({ CSSEditor }) => {
                 import('./journal-tools.js').then(({ JournalToolsWindow }) => {
+                    import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
                     
-                    // Register all the default tools
+                    // Register all the default tools with zones and ordering
                     this.registerTool('regent', {
                         icon: "fa-solid fa-crystal-ball",
                         name: "regent",
@@ -234,7 +282,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: true,
                         onClick: buildButtonEventRegent,
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 10
                     });
                     
                     this.registerTool('lookup', {
@@ -244,7 +294,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: true,
                         onClick: () => buildButtonEventRegent('lookup'),
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 20
                     });
                     
                     this.registerTool('character', {
@@ -254,7 +306,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: true,
                         onClick: () => buildButtonEventRegent('character'),
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 30
                     });
                     
                     this.registerTool('assistant', {
@@ -264,7 +318,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: () => game.user.isGM,
                         onClick: () => buildButtonEventRegent('assistant'),
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 40
                     });
                     
                     this.registerTool('encounter', {
@@ -274,7 +330,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: () => game.user.isGM,
                         onClick: () => buildButtonEventRegent('encounter'),
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 50
                     });
                     
                     this.registerTool('narrative', {
@@ -284,7 +342,9 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: () => game.user.isGM,
                         onClick: () => buildButtonEventRegent('narrative'),
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'utilities',
+                        order: 60
                     });
                     
                     this.registerTool('css', {
@@ -297,7 +357,9 @@ export class BlacksmithToolbarManager {
                             const editor = new CSSEditor();
                             editor.render(true);
                         },
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'gm-tools',
+                        order: 10
                     });
                     
                     this.registerTool('journal-tools', {
@@ -313,7 +375,9 @@ export class BlacksmithToolbarManager {
                             const journalTools = new JournalToolsWindow(dummyJournal);
                             journalTools.render(true);
                         },
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'gm-tools',
+                        order: 20
                     });
                     
                     this.registerTool('refresh', {
@@ -325,7 +389,9 @@ export class BlacksmithToolbarManager {
                         onClick: () => {
                             window.location.reload();
                         },
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'gm-tools',
+                        order: 30
                     });
                     
                     this.registerTool('request-roll', {
@@ -335,17 +401,18 @@ export class BlacksmithToolbarManager {
                         button: true,
                         visible: () => game.user.isGM,
                         onClick: () => {
-                            // Import and open the SkillCheckDialog (same as chat panel)
-                            import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
-                                const dialog = new SkillCheckDialog();
-                                dialog.render(true);
-                            }).catch(error => {
-                                postConsoleAndNotification(MODULE.NAME, "Blacksmith Toolbar Manager: Error opening SkillCheckDialog", error, false, false);
-                            });
+                            // Open the SkillCheckDialog (same as chat panel)
+                            const dialog = new SkillCheckDialog();
+                            dialog.render(true);
                         },
-                        moduleId: 'blacksmith-core'
+                        moduleId: 'blacksmith-core',
+                        zone: 'dice',
+                        order: 10
                     });
                     
+                    }).catch(error => {
+                        postConsoleAndNotification(MODULE.NAME, "Blacksmith Toolbar Manager: Error importing SkillCheckDialog", error, false, false);
+                    });
                 }).catch(error => {
                     postConsoleAndNotification(MODULE.NAME, "Blacksmith Toolbar Manager: Error importing JournalToolsWindow", error, false, false);
                 });

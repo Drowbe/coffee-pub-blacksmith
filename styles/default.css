@@ -21,6 +21,7 @@
 
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
+@import "toolbar-zones.css";
 @import "encounter-toolbar.css";
 @import "journal-tools.css";
 

@@ -1,0 +1,55 @@
+/* ================================================================== 
+   ===== BLACKSMITH TOOLBAR ZONES ===================================
+   ================================================================== */
+
+/* Zone dividers for Blacksmith toolbar */
+#tools-panel-blacksmith-utilities .control-tool[data-tool="request-roll"] {
+    border-top: 2px dotted rgba(255, 255, 255, 0.9);
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+#tools-panel-blacksmith-utilities .control-tool[data-tool="css"] {
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+
+
+/* Alternative: Add subtle background colors to zones */
+#tools-panel-blacksmith-utilities .control-tool[data-tool="request-roll"] {
+   background: rgba(0, 0, 0, 0.7); /* Gold tint for dice zone */
+}
+
+#tools-panel-blacksmith-utilities .control-tool[data-tool="regent"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="lookup"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="character"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="assistant"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="encounter"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="narrative"] {
+    background: rgba(39, 74, 94, 0.7); /* Blue tint for utilities zone */
+}
+#tools-panel-blacksmith-utilities .control-tool[data-tool="css"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="journal-tools"],
+#tools-panel-blacksmith-utilities .control-tool[data-tool="refresh"] {
+    background: rgba(60, 83, 29, 0.7); /* Red tint for GM tools zone */
+}
+
+/* Hover effects for zone grouping */
+#tools-panel-blacksmith-utilities .control-tool:hover {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+/* Zone labels (optional - could be added via JavaScript) */
+.toolbar-zone-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 4px 0 2px 0;
+    padding: 0 8px;
+    font-weight: bold;
+}
