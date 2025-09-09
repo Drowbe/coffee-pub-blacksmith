@@ -41,3 +41,5 @@ npm-debug.log*
 dist/
 build/ 
 _temp/
+_BACKUPS/
+
