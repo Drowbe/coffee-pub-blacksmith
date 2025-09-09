@@ -68,12 +68,14 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 
 ## Technical Implementation Plan
 
-### **Phase 1: Blacksmith Toolbar Extension**
-1. Create `BlacksmithToolbarManager` class
-2. Modify `manager-toolbar.js` to use dynamic tool collection
-3. Add tool registration/unregistration methods
-4. Update API exposure
-5. **Migrate existing hardcoded tools** to new registration system
+### **Phase 1: Blacksmith Toolbar Extension** ✅ COMPLETED
+1. ✅ Create `BlacksmithToolbarManager` class (`scripts/manager-blacksmith-toolbar.js`)
+2. ✅ Modify `manager-toolbar.js` to use dynamic tool collection
+3. ✅ Add tool registration/unregistration methods
+4. ✅ Update API exposure in `blacksmith.js`
+5. ✅ **Migrate existing hardcoded tools** to new registration system
+6. ✅ **Add Zone System** for tool organization and visual grouping
+7. ✅ **Add CSS Styling** for zone-based visual organization (`styles/toolbar-zones.css`)
 
 ### **Phase 2: Token Control Toolbar Integration**
 1. Research and identify correct FoundryVTT hooks for token control
@@ -145,14 +147,111 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 
 ## Implementation Status
 
-- [ ] Phase 1: Blacksmith Toolbar Extension
+- [x] Phase 1: Blacksmith Toolbar Extension
 - [ ] Phase 2: Token Control Toolbar Integration  
 - [ ] Phase 3: API Integration
 - [ ] Phase 4: Testing & Validation
+
+## Current Implementation Details
+
+### **Phase 1 Implementation** ✅ COMPLETED
+
+#### **BlacksmithToolbarManager Class** (`scripts/manager-blacksmith-toolbar.js`)
+- **Static Properties**:
+  - `registeredTools = new Map()` - Stores all registered tool data
+- **Key Methods**:
+  - `registerTool(toolId, toolData)` - Register a new tool with zone and ordering
+  - `unregisterTool(toolId)` - Remove a specific tool
+  - `unregisterModuleTools(moduleId)` - Remove all tools from a module
+  - `getVisibleTools()` - Get all visible tools
+  - `getVisibleToolsByZones()` - Get tools organized by zones with proper ordering
+  - `_registerDefaultTools()` - Register all 9 default Blacksmith tools
+
+#### **Zone System**
+- **Predefined Zones**: `dice`, `utilities`, `gm-tools`, `general`
+- **Zone Order**: Tools are grouped by zone, then sorted by `order` within each zone
+- **Default Zone**: `general` (if not specified)
+- **Default Order**: `999` (if not specified)
+
+#### **Tool Data Structure**
+```javascript
+{
+    icon: "fa-solid fa-dice-d20",           // FontAwesome icon class
+    name: "request-roll",                   // Unique tool identifier
+    title: "Request Roll",                  // Tooltip text
+    button: true,                           // Whether to show as button
+    visible: true,                          // Whether tool is visible
+    onClick: () => { /* handler */ },       // Click handler function
+    moduleId: "blacksmith-core",            // Module that registered the tool
+    zone: "dice",                          // Zone for organization (optional)
+    order: 10                              // Order within zone (optional)
+}
+```
+
+#### **CSS Styling** (`styles/toolbar-zones.css`)
+- **Zone Background Colors**: Each zone has a distinct background color
+- **Zone Dividers**: Visual separators between zones using CSS borders
+- **Class Structure**: `#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-{zone}`
+- **Dynamic Application**: Zone classes applied via JavaScript after toolbar rendering
+
+#### **API Integration** (`scripts/blacksmith.js`)
+- **Dynamic Import**: `BlacksmithToolbarManager` loaded via dynamic import
+- **API Exposure**: Added to `module.api` after initialization
+- **Timing**: Initialized before toolbar rendering to ensure tools are available
+
+### **Module Registration Requirements**
+
+When external modules register tools with the Blacksmith toolbar, they **MUST** provide:
+
+#### **Required Properties**:
+- `icon` - FontAwesome icon class (e.g., "fa-solid fa-dice-d20")
+- `name` - Unique tool identifier (used for data-tool attribute)
+- `title` - Tooltip text displayed on hover
+- `onClick` - Function to execute when tool is clicked
+
+#### **Optional Properties**:
+- `zone` - Zone for organization (`dice`, `utilities`, `gm-tools`, `general`)
+- `order` - Order within zone (lower numbers appear first)
+- `moduleId` - Module identifier (defaults to "blacksmith-core")
+- `button` - Whether to show as button (defaults to true)
+- `visible` - Whether tool is visible (defaults to true)
+
+#### **Example Module Registration**:
+```javascript
+// In your module's initialization
+game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerTool("my-roll-tool", {
+    icon: "fa-solid fa-dice-d20",
+    name: "my-roll-tool",
+    title: "My Custom Roll Tool",
+    zone: "dice",           // Place in dice zone
+    order: 5,               // Order within dice zone
+    moduleId: "my-module",  // Your module ID
+    onClick: () => {
+        // Your tool logic here
+        console.log("My custom roll tool clicked!");
+    }
+});
+```
+
+#### **Zone Guidelines**:
+- **`dice`**: Roll-related tools, dice rollers, random generators
+- **`utilities`**: General utility tools, helpers, calculators
+- **`gm-tools`**: GM-specific tools, admin functions, management tools
+- **`general`**: Default zone for tools that don't fit other categories
+
+#### **Ordering Guidelines**:
+- **Lower numbers appear first** within each zone
+- **Recommended ranges**:
+  - `1-10`: Core/primary tools
+  - `11-50`: Secondary tools
+  - `51-100`: Utility tools
+  - `101+`: Optional/advanced tools
 
 ## Notes
 
 - **Encounter Toolbar**: No changes planned - this system is dynamic and journal-content based
 - **Migration Approach**: Since we're the only consumer, we can safely refactor internal implementation
 - **API Design**: Follow existing `ChatPanel.toolbarIcons` pattern for consistency
+- **Zone System**: Provides visual organization and logical grouping of tools
+- **CSS Classes**: Applied dynamically via JavaScript after toolbar rendering
 - **Documentation**: Will be updated after implementation is locked down

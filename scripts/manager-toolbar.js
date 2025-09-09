@@ -8,6 +8,34 @@ import { rollCoffeePubDice, playSound } from './api-common.js';
 
 export function addToolbarButton() {
 
+    /**
+     * Apply zone classes to toolbar tools after they're rendered
+     * @private
+     */
+    function _applyZoneClasses() {
+        // Wait a bit for the toolbar to be fully rendered
+        setTimeout(() => {
+            const toolbar = document.querySelector('#tools-panel-blacksmith-utilities');
+            if (!toolbar) return;
+            
+            // Get the tools in order from BlacksmithToolbarManager
+            const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
+            
+            // Apply zone classes to each tool
+            visibleTools.forEach((tool, index) => {
+                const toolElement = toolbar.querySelector(`[data-tool="${tool.name}"]`);
+                if (toolElement) {
+                    const zoneClass = `toolbar-zone-${tool.zone || 'general'}`;
+                    toolElement.classList.add(zoneClass);
+                    
+                    // Add debug logging
+                    postConsoleAndNotification(MODULE.NAME, `Applied zone class: ${zoneClass} to tool: ${tool.name}`, "", true, false);
+                }
+            });
+            
+            postConsoleAndNotification(MODULE.NAME, `Applied zone classes to ${visibleTools.length} tools`, "", true, false);
+        }, 100); // Small delay to ensure toolbar is rendered
+    }
 
     const getSceneControlButtonsHookId = HookManager.registerHook({
 		name: 'getSceneControlButtons',
@@ -44,20 +72,22 @@ export function addToolbarButton() {
     // Register renderSceneControls hook
     const renderSceneControlsHookId = HookManager.registerHook({
         name: 'renderSceneControls',
-        description: 'Manager Toolbar: Add click handler to blacksmith utilities button',
+        description: 'Manager Toolbar: Add click handler to blacksmith utilities button and apply zone classes',
         context: 'manager-toolbar-scene',
         priority: 3, // Normal priority - UI enhancement
         callback: () => {
             const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
             if (button) {
                 button.addEventListener('click', () => {
-            
                     toggleToolbarVisibility();
                     //activateBlacksmithLayer(); // Ensure this function is called
                 });
             } else {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar button not found", "", false, false);
             }
+            
+            // Apply zone classes to toolbar tools
+            _applyZoneClasses();
         }
     });
     
