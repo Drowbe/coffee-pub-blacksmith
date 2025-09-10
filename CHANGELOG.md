@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Leader System Integration:** Integrated party leader detection with toolbar visibility and vote system
 - **CSS Zone Styling:** Added `toolbar-zones.css` with zone-specific background colors and visual dividers
 - **Toolbar Refresh Logic:** Implemented automatic toolbar refresh when party leader changes or settings update
+- **External Module API:** Exposed comprehensive toolbar API for external modules to register custom tools
+- **Utility Function Exposure:** Added 11 utility functions to API (getActorId, getTokenImage, getPortraitImage, getTokenId, trimString, toSentenceCase, objectToString, stringToObject, convertSecondsToRounds, convertSecondsToString, clamp)
+- **API Documentation:** Created complete API documentation with examples for all exposed functions
 
 ### Changed
 - **Consolidated Architecture:** Merged separate `BlacksmithToolbarManager` class into `manager-toolbar.js` for simplified management
