@@ -251,7 +251,7 @@ export class BlacksmithToolbarManager {
         });
         
         // Define zone order (you can customize this)
-        const zoneOrder = ['dice', 'utilities', 'gm-tools', 'general'];
+        const zoneOrder = ['general', 'rolls', 'communication', 'utilities', 'leadertools', 'gmtools'];
         
         // Flatten tools in zone order
         const orderedTools = [];
@@ -370,7 +370,7 @@ export class BlacksmithToolbarManager {
                             editor.render(true);
                         },
                         moduleId: 'blacksmith-core',
-                        zone: 'gm-tools',
+                        zone: 'gmtools',
                         order: 10
                     });
                     
@@ -389,7 +389,7 @@ export class BlacksmithToolbarManager {
                             journalTools.render(true);
                         },
                         moduleId: 'blacksmith-core',
-                        zone: 'gm-tools',
+                        zone: 'gmtools',
                         order: 20
                     });
                     
@@ -404,7 +404,7 @@ export class BlacksmithToolbarManager {
                             window.location.reload();
                         },
                         moduleId: 'blacksmith-core',
-                        zone: 'gm-tools',
+                        zone: 'gmtools',
                         order: 30
                     });
                     
@@ -421,7 +421,7 @@ export class BlacksmithToolbarManager {
                             dialog.render(true);
                         },
                         moduleId: 'blacksmith-core',
-                        zone: 'dice',
+                        zone: 'rolls',
                         order: 10
                     });
                     

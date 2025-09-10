@@ -168,7 +168,7 @@ Since we are the only consumers of the current toolbar system, we will migrate e
   - `_registerDefaultTools()` - Register all 9 default Blacksmith tools
 
 #### **Zone System**
-- **Predefined Zones**: `dice`, `utilities`, `gm-tools`, `general`
+- **Predefined Zones**: `general`, `rolls`, `communication`, `utilities`, `leadertools`, `gmtools`
 - **Zone Order**: Tools are grouped by zone, then sorted by `order` within each zone
 - **Default Zone**: `general` (if not specified)
 - **Default Order**: `999` (if not specified)
@@ -183,7 +183,7 @@ Since we are the only consumers of the current toolbar system, we will migrate e
     visible: true,                          // Whether tool is visible (boolean or function)
     onClick: () => { /* handler */ },       // Click handler function
     moduleId: "blacksmith-core",            // Module that registered the tool
-    zone: "dice",                          // Zone for organization (optional)
+    zone: "rolls",                         // Zone for organization (optional)
     order: 10,                             // Order within zone (optional)
     gmOnly: false                          // Whether tool is GM-only (optional)
 }
@@ -211,7 +211,7 @@ When external modules register tools with the Blacksmith toolbar, they **MUST** 
 - `onClick` - Function to execute when tool is clicked
 
 #### **Optional Properties**:
-- `zone` - Zone for organization (`dice`, `utilities`, `gm-tools`, `general`)
+- `zone` - Zone for organization (`general`, `rolls`, `communication`, `utilities`, `leadertools`, `gmtools`)
 - `order` - Order within zone (lower numbers appear first)
 - `moduleId` - Module identifier (defaults to "blacksmith-core")
 - `button` - Whether to show as button (defaults to true)
@@ -225,8 +225,8 @@ game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerT
     icon: "fa-solid fa-dice-d20",
     name: "my-roll-tool",
     title: "My Custom Roll Tool",
-    zone: "dice",           // Place in dice zone
-    order: 5,               // Order within dice zone
+    zone: "rolls",          // Place in rolls zone
+    order: 5,               // Order within rolls zone
     moduleId: "my-module",  // Your module ID
     gmOnly: false,          // Visible to all users (default)
     onClick: () => {
@@ -237,10 +237,12 @@ game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerT
 ```
 
 #### **Zone Guidelines**:
-- **`dice`**: Roll-related tools, dice rollers, random generators
+- **`general`**: Default zone for tools that don't fit other categories (first in order)
+- **`rolls`**: Roll-related tools, dice rollers, random generators
+- **`communication`**: Chat, messaging, and communication tools
 - **`utilities`**: General utility tools, helpers, calculators
-- **`gm-tools`**: GM-specific tools, admin functions, management tools
-- **`general`**: Default zone for tools that don't fit other categories
+- **`leadertools`**: Leadership and management tools (coming soon)
+- **`gmtools`**: GM-specific tools, admin functions, management tools (last in order)
 
 #### **Ordering Guidelines**:
 - **Lower numbers appear first** within each zone
