@@ -8,6 +8,30 @@ import { rollCoffeePubDice, playSound } from './api-common.js';
 
 export function addToolbarButton() {
 
+    // Debounce timer for divider updates
+    let dividerUpdateTimer = null;
+    
+    // Flag to prevent infinite loops
+    let isUpdatingDividers = false;
+
+    /**
+     * Count how many dividers should exist based on zone changes
+     * @private
+     */
+    function _countExpectedDividers(visibleTools) {
+        let dividerCount = 0;
+        let currentZone = null;
+        
+        visibleTools.forEach(tool => {
+            if (currentZone !== null && currentZone !== tool.zone) {
+                dividerCount++;
+            }
+            currentZone = tool.zone || 'general';
+        });
+        
+        return dividerCount;
+    }
+
     /**
      * Apply zone classes to toolbar tools after they're rendered
      * @private
@@ -21,7 +45,7 @@ export function addToolbarButton() {
             // Get the tools in order from BlacksmithToolbarManager
             const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
             
-            // Clear any existing dividers
+            // Always clear existing dividers and recreate them (simple approach)
             const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
             existingDividers.forEach(divider => divider.remove());
             
@@ -42,19 +66,14 @@ export function addToolbarButton() {
                         
                         // Insert divider before this tool
                         toolElement.parentNode.insertBefore(divider, toolElement);
-                        
-                        postConsoleAndNotification(MODULE.NAME, `Added divider before zone: ${tool.zone}`, "", true, false);
                     }
                     
                     currentZone = tool.zone || 'general';
-                    
-                    // Add debug logging
-                    postConsoleAndNotification(MODULE.NAME, `Applied zone class: ${zoneClass} to tool: ${tool.name}`, "", true, false);
                 }
             });
             
-            postConsoleAndNotification(MODULE.NAME, `Applied zone classes to ${visibleTools.length} tools`, "", true, false);
-        }, 100); // Small delay to ensure toolbar is rendered
+            // postConsoleAndNotification(MODULE.NAME, `Toolbar | Applied zone classes and dividers to ${visibleTools.length} tools`, "", true, false);
+        }, 50); // Very short delay to ensure toolbar is rendered
     }
 
     const getSceneControlButtonsHookId = HookManager.registerHook({
