@@ -1039,7 +1039,6 @@ const sounds = assetLookup.findByTag('notification');
 | `clamp` | Function | Clamp a number between min and max values | `(value, min, max)` |
 | `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
-| `getOpenAIReplyAsHtml` | Async Function | Get AI response as HTML | `(query)` |
 | `isPlayerCharacter` | Function | Check if entity is player character | `(entity)` |
 
 **Quick Examples**:
@@ -2079,6 +2078,13 @@ const result = await BlacksmithErrorHandler.safeOperation(
 - [ ] Always provide context for hook cleanup
 - [ ] Use proper error handling and availability checks
 - [ ] Test integration with provided console commands
+
+---
+
+## **Related Documentation**
+
+- **[OpenAI API Documentation](api-openai.md)** - AI-powered functionality and content generation
+- **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
 
 ---
 

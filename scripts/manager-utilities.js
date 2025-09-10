@@ -123,10 +123,6 @@ export class UtilsManager {
         return GlobalUtils.resetModuleSettings(moduleId);
     }
 
-    static async getOpenAIReplyAsHtml(query) {
-        this.checkInitialized();
-        return GlobalUtils.getOpenAIReplyAsHtml(query);
-    }
 
     static isPlayerCharacter(entity) {
         this.checkInitialized();
@@ -165,7 +161,6 @@ export class UtilsManager {
             clamp: GlobalUtils.clamp.bind(GlobalUtils),
             rollCoffeePubDice: GlobalUtils.rollCoffeePubDice.bind(GlobalUtils),
             resetModuleSettings: GlobalUtils.resetModuleSettings.bind(GlobalUtils),
-            getOpenAIReplyAsHtml: this.getOpenAIReplyAsHtml.bind(this),
             isPlayerCharacter: this.isPlayerCharacter.bind(this)
         };
     }

@@ -9,9 +9,9 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { 
     registerBlacksmithUpdatedHook, 
-    resetModuleSettings, 
-    getOpenAIReplyAsHtml
+    resetModuleSettings
 } from './api-core.js';
+import { OpenAIAPI } from './api-openai.js';
 // -- Global utilities --
 import { 
     postConsoleAndNotification, 
@@ -696,6 +696,7 @@ Hooks.once('init', async function() {
         HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
+        openai: OpenAIAPI,  // ✅ NEW: Expose OpenAI API for AI functionality
         // ✅ NEW: Toolbar API for external modules
         registerToolbarTool: null,  // Will be set after toolbar manager loads
         unregisterToolbarTool: null,
@@ -1349,7 +1350,7 @@ async function buildQueryCard(question, queryWindow, queryContext = '') {
     playSound(COFFEEPUB.SOUNDPOP01,COFFEEPUB.SOUNDVOLUMESOFT);
 
     // Get the answer - using the original full question
-    const openAIResponse = await getOpenAIReplyAsHtml(strQuestion);
+    const openAIResponse = await OpenAIAPI.getOpenAIReplyAsHtml(strQuestion);
 
     // Process OpenAI response
 
