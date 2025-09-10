@@ -447,6 +447,45 @@ export const registerSettings = async () => {
 		});
 
 
+
+
+
+
+		// *** TOOLBAR SECION HERE ***
+
+		// ---------- HEADING - TOOLBAR  ----------
+		game.settings.register(MODULE.ID, "headingH2Toolbar", {
+			name: MODULE.ID + '.headingH2Toolbar-Label',
+			hint: MODULE.ID + '.headingH2Toolbar-Hint',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		
+		// ---------- TOOLBAR DIVIDERS ----------
+		game.settings.register(MODULE.ID, "toolbarShowDividers", {
+			name: MODULE.ID + '.toolbarShowDividers-Label',
+			hint: MODULE.ID + '.toolbarShowDividers-Hint',
+			scope: "client",
+			config: true,
+			default: true,
+			type: Boolean
+		});
+
+		// ---------- TOOLBAR LABELS ----------
+		game.settings.register(MODULE.ID, "toolbarShowLabels", {
+			name: MODULE.ID + '.toolbarShowLabels-Label',
+			hint: MODULE.ID + '.toolbarShowLabels-Hint',
+			scope: "client",
+			config: true,
+			default: false,
+			type: Boolean
+		});
+
+
+
+
 		// *** THEMES ***
 		// ---------- HEADING - THEMES  ----------
 		game.settings.register(MODULE.ID, "headingH2Themes", {

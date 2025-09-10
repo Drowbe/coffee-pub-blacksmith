@@ -397,8 +397,17 @@
 		"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
 
 		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
-		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process."
+		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
 
-		
+		"headingH2Toolbar-Label": "Toolbar",
+		"headingH2Toolbar-Hint": "Customize the Blacksmith toolbar appearance and functionality.",
+
+		"toolbarShowDividers-Label": "Show Toolbar Dividers",
+		"toolbarShowDividers-Hint": "Display visual dividers between toolbar zones to help organize tools.",
+
+		"toolbarShowLabels-Label": "Show Toolbar Labels", 
+		"toolbarShowLabels-Hint": "Display zone labels below dividers to identify different toolbar sections."
+
+
 	}
 }

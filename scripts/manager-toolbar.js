@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-common.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithToolbarManager } from './manager-blacksmith-toolbar.js';
 // -- Global utilities --
@@ -77,20 +77,26 @@ export function addToolbarButton() {
                     
                     // Check if we need to add a divider and title (zone change)
                     if (currentZone !== null && currentZone !== tool.zone) {
-                        // Create divider element
-                        const divider = document.createElement('div');
-                        divider.className = 'toolbar-zone-divider';
-                        divider.setAttribute('data-zone', tool.zone || 'general');
+                        // Get settings
+                        const showDividers = getSettingSafely(MODULE.ID, 'toolbarShowDividers', true);
+                        const showLabels = getSettingSafely(MODULE.ID, 'toolbarShowLabels', false);
                         
-                        // Create title element
-                        const title = document.createElement('div');
-                        title.className = 'toolbar-zone-title';
-                        title.setAttribute('data-zone', tool.zone || 'general');
-                        title.textContent = _getZoneTitle(tool.zone || 'general');
+                        // Create divider element if enabled
+                        if (showDividers) {
+                            const divider = document.createElement('div');
+                            divider.className = 'toolbar-zone-divider';
+                            divider.setAttribute('data-zone', tool.zone || 'general');
+                            toolElement.parentNode.insertBefore(divider, toolElement);
+                        }
                         
-                        // Insert divider and title before this tool
-                        toolElement.parentNode.insertBefore(divider, toolElement);
-                        toolElement.parentNode.insertBefore(title, toolElement);
+                        // Create title element if enabled
+                        if (showLabels) {
+                            const title = document.createElement('div');
+                            title.className = 'toolbar-zone-title';
+                            title.setAttribute('data-zone', tool.zone || 'general');
+                            title.textContent = _getZoneTitle(tool.zone || 'general');
+                            toolElement.parentNode.insertBefore(title, toolElement);
+                        }
                     }
                     
                     currentZone = tool.zone || 'general';
@@ -136,7 +142,7 @@ export function addToolbarButton() {
     // Register renderSceneControls hook
     const renderSceneControlsHookId = HookManager.registerHook({
         name: 'renderSceneControls',
-        description: 'Manager Toolbar: Add click handler to blacksmith utilities button and apply zone classes',
+        description: 'Manager Toolbar: Add click handler and reapply styling when toolbar is rendered',
         context: 'manager-toolbar-scene',
         priority: 3, // Normal priority - UI enhancement
         callback: () => {
@@ -149,7 +155,19 @@ export function addToolbarButton() {
             } else {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar button not found", "", false, false);
             }
-            
+
+            // Reapply styling when toolbar is rendered (handles click away/back)
+            _applyZoneClasses();
+        }
+    });
+
+    // Register ready hook for zone classes and dividers
+    const readyHookId = HookManager.registerHook({
+        name: 'ready',
+        description: 'Manager Toolbar: Apply zone classes and dividers when UI is ready',
+        context: 'manager-toolbar-ready',
+        priority: 3,
+        callback: () => {
             // Apply zone classes to toolbar tools
             _applyZoneClasses();
         }
