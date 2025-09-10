@@ -52,8 +52,8 @@
     max-height: 0px;
     max-width: 38px;
     margin: 0px 0px 10px 0px !important;
-    border-top: 1px dotted rgba(255, 255, 255, 0.3) !important;
-    border-bottom: 1px dotted rgba(0, 0, 0, 0.3) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3) !important;
     border-radius: 1px;
     background: linear-gradient(90deg, 
         transparent 0%, 
@@ -62,6 +62,7 @@
         rgba(255, 255, 255, 0.3) 80%, 
         transparent 100%
     );
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.5);
 }
 
 
@@ -91,13 +92,67 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Zone labels (optional - could be added via JavaScript) */
-.toolbar-zone-label {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.6);
+
+
+
+
+
+/* Zone titles - appear below dividers */
+#tools-panel-blacksmith-utilities .toolbar-zone-title {
+    font-size: 7px;
+    font-weight: 400;
+    text-align: center;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 4px 0 2px 0;
-    padding: 0 8px;
-    font-weight: bold;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.3);
+    
+    border: 0px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    
+    margin: 0px 0px 10px 0px !important;
+    padding: 0px 0px 0px 0px;
+
+    width: 38px;
+    max-width: 38px;
+    max-height: 15px;
+        
+    display: grid;
+    place-items: center;
+    margin-left: inherit;
+    margin-right: inherit;
+    
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Zone-specific title styling */
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="general"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(108, 117, 125, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="rolls"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(101, 38, 21, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="communication"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(139, 69, 19, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="utilities"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(39, 74, 94, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="leadertools"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(75, 0, 130, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="gmtools"] {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(60, 83, 29, 0.9);
 }

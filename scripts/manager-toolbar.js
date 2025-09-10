@@ -33,6 +33,22 @@ export function addToolbarButton() {
     }
 
     /**
+     * Get the display title for a zone
+     * @private
+     */
+    function _getZoneTitle(zone) {
+        const zoneTitles = {
+            'general': 'gen',
+            'rolls': 'rolls',
+            'communication': 'comms',
+            'utilities': 'utils',
+            'leadertools': 'leader',
+            'gmtools': 'gm'
+        };
+        return zoneTitles[zone] || 'General';
+    }
+
+    /**
      * Apply zone classes to toolbar tools after they're rendered
      * @private
      */
@@ -45,9 +61,11 @@ export function addToolbarButton() {
             // Get the tools in order from BlacksmithToolbarManager
             const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
             
-            // Always clear existing dividers and recreate them (simple approach)
+            // Always clear existing dividers and titles, then recreate them (simple approach)
             const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
+            const existingTitles = toolbar.querySelectorAll('.toolbar-zone-title');
             existingDividers.forEach(divider => divider.remove());
+            existingTitles.forEach(title => title.remove());
             
             // Apply zone classes and inject dividers
             let currentZone = null;
@@ -57,15 +75,22 @@ export function addToolbarButton() {
                     const zoneClass = `toolbar-zone-${tool.zone || 'general'}`;
                     toolElement.classList.add(zoneClass);
                     
-                    // Check if we need to add a divider (zone change)
+                    // Check if we need to add a divider and title (zone change)
                     if (currentZone !== null && currentZone !== tool.zone) {
                         // Create divider element
                         const divider = document.createElement('div');
                         divider.className = 'toolbar-zone-divider';
                         divider.setAttribute('data-zone', tool.zone || 'general');
                         
-                        // Insert divider before this tool
+                        // Create title element
+                        const title = document.createElement('div');
+                        title.className = 'toolbar-zone-title';
+                        title.setAttribute('data-zone', tool.zone || 'general');
+                        title.textContent = _getZoneTitle(tool.zone || 'general');
+                        
+                        // Insert divider and title before this tool
                         toolElement.parentNode.insertBefore(divider, toolElement);
+                        toolElement.parentNode.insertBefore(title, toolElement);
                     }
                     
                     currentZone = tool.zone || 'general';
