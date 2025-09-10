@@ -180,15 +180,18 @@
 - [x] **ARCHITECTURAL REFACTOR**: Create service classes for each functional area
 - [x] **ARCHITECTURAL REFACTOR**: HookManager should delegate, not execute
 
-### Phase 4: 🚨 OPENAI API EXPOSURE FIX (IMMEDIATE) 🚨 CRITICAL
-- [ ] **IMMEDIATE**: Add OpenAI functions to `UtilsManager.getUtils()`
-- [ ] **IMMEDIATE**: Expose `getOpenAIReplyAsHtml`, `getOpenAIReplyAsJson`, `getOpenAIReplyAsText`
-- [ ] **IMMEDIATE**: Test with external modules to verify API works
-- [ ] **IMMEDIATE**: Update API documentation to show OpenAI functions
-- [ ] **IMMEDIATE**: Ensure OpenAI settings are accessible to external modules
-- **Status**: 🚨 BLOCKING - Must be fixed before external modules can integrate
-- **Impact**: **BREAKS ENTIRE DESIGN** of shared OpenAI integration
-- **Dependencies**: Must be fixed before proceeding with other migration work
+### Phase 4: ✅ OPENAI API REFACTORING (COMPLETED)
+- [x] **COMPLETED**: Refactored OpenAI functionality into dedicated `api-openai.js`
+- [x] **COMPLETED**: Added support for latest OpenAI models (GPT-5, GPT-4o, GPT-4o-mini, O1 models)
+- [x] **COMPLETED**: Implemented session-based memory system with persistent storage
+- [x] **COMPLETED**: Added OpenAI Projects support for cost tracking and team management
+- [x] **COMPLETED**: Created comprehensive size management and cleanup tools
+- [x] **COMPLETED**: Exposed OpenAI API via `module.api.openai` for external modules
+- [x] **COMPLETED**: Updated pricing calculations for current model rates
+- [x] **COMPLETED**: Added memory statistics, export, and optimization features
+- **Status**: ✅ COMPLETED - OpenAI API is now fully functional and exposed
+- **Impact**: **FIXES EXTERNAL MODULE INTEGRATION** - External modules can now use OpenAI functionality
+- **New Features**: Session memory, model support, project integration, size management
 
 ### Phase 4.5: ✅ MISSING API FUNCTIONS FIXED (COMPLETED)
 - [x] **COMPLETED**: Added missing functions to `UtilsManager.getUtils()`
@@ -198,7 +201,20 @@
 - **Impact**: **FIXES EXTERNAL MODULE INTEGRATION** - Coffee Pub modules can now function properly
 - **Notes**: All functions now available via `BlacksmithUtils.functionName()` or `BlacksmithUtils.functionName()`
 
-### Phase 5: Memory Management (Long-term) 🟢 TODO
+### Phase 5: CODEX-AI Integration (Future) 🟢 TODO
+- [ ] **FUTURE**: Integrate CODEX system with AI API for cost-efficient context management
+- [ ] **FUTURE**: Design CODEX API methods for querying journal entries and building AI context
+- [ ] **FUTURE**: Create context builder that replaces conversation history with relevant CODEX entries
+- [ ] **FUTURE**: Implement smart querying system (tags, categories, text search) for CODEX entries
+- [ ] **FUTURE**: Add automatic fact extraction from AI responses to grow CODEX knowledge base
+- [ ] **FUTURE**: Create new AI methods that use CODEX context instead of conversation history
+- [ ] **FUTURE**: Optimize CODEX querying and context building for performance with large knowledge bases
+- [ ] **FUTURE**: Document CODEX API integration and usage patterns for external modules
+- **Status**: 🟢 TODO - Major feature for future development
+- **Impact**: **REVOLUTIONARY** - Transform AI from chat bot to knowledgeable campaign advisor
+- **Benefits**: Cost efficiency, better context, persistent world knowledge, smart learning
+
+### Phase 6: Memory Management (Long-term) 🟢 TODO
 - [ ] Add proper cleanup handlers
 - [ ] Implement event listener cleanup
 - [ ] Add memory monitoring
@@ -249,5 +265,25 @@
 
 ---
 
-**Last Updated**: [Current Date]
-**Next Review**: [Date + 1 week] 
+**Last Updated**: December 19, 2024
+**Next Review**: December 26, 2024
+
+## RECENT MAJOR ACCOMPLISHMENTS
+
+### OpenAI API Refactoring (December 2024)
+- ✅ **Separated OpenAI functionality** into dedicated `api-openai.js` module
+- ✅ **Added latest model support** including GPT-5, GPT-4o, GPT-4o-mini, O1 models
+- ✅ **Implemented session memory system** with persistent localStorage storage
+- ✅ **Added OpenAI Projects integration** for better cost tracking and team management
+- ✅ **Created comprehensive size management** with cleanup and optimization tools
+- ✅ **Exposed full API** via `module.api.openai` for external module integration
+- ✅ **Updated pricing calculations** to current December 2024 rates
+- ✅ **Added memory statistics and export** features for monitoring and backup
+
+### Key Benefits Achieved
+- **Cost Efficiency**: Session memory reduces token usage compared to full conversation history
+- **Model Flexibility**: Support for latest OpenAI models with updated pricing
+- **Project Management**: Better cost tracking and team collaboration
+- **Memory Persistence**: Conversations survive page refreshes and FoundryVTT restarts
+- **Size Management**: Automatic cleanup and optimization prevent storage bloat
+- **External Integration**: Other Coffee Pub modules can now use shared OpenAI functionality 

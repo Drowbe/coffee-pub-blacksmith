@@ -247,6 +247,9 @@ Hooks.once('ready', async () => {
         // Initialize HookManager (infrastructure layer)
         HookManager.initialize();
         
+        // Initialize OpenAI Memory System
+        OpenAIAPI.initializeMemory();
+        
         // Register the Blacksmith hook (after HookManager is initialized)
         registerBlacksmithUpdatedHook();
         

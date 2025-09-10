@@ -269,6 +269,9 @@
 		"openAITemperature-Label": "Temperature",
 		"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
+		"openAIProjectId-Label": "OpenAI Project ID",
+		"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
+
 
 
 

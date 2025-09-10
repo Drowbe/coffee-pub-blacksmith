@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **External Module API:** Exposed comprehensive toolbar API for external modules to register custom tools
 - **Utility Function Exposure:** Added 11 utility functions to API (getActorId, getTokenImage, getPortraitImage, getTokenId, trimString, toSentenceCase, objectToString, stringToObject, convertSecondsToRounds, convertSecondsToString, clamp)
 - **OpenAI API Separation:** Refactored OpenAI functionality into dedicated `api-openai.js` with improved error handling and validation
+- **Model Support Update:** Added support for latest OpenAI models (GPT-5, GPT-4o, GPT-4o-mini, O1 models) with updated pricing calculations
+- **Session Memory System:** Implemented persistent conversation memory with session-based context management for AI interactions
+- **Persistent Storage:** Added localStorage-based memory persistence that survives page refreshes and FoundryVTT restarts
+- **OpenAI Projects Support:** Added optional OpenAI Projects integration for better cost tracking and team management
 - **API Documentation:** Created complete API documentation with examples for all exposed functions
 
 ### Changed

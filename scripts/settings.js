@@ -1884,6 +1884,18 @@ export const registerSettings = async () => {
 		default: ''
 	});
 
+	// -- PROJECT ID --
+	game.settings.register(MODULE.ID, 'openAIProjectId', {
+		name: MODULE.ID + '.openAIProjectId-Label',
+		hint: MODULE.ID + '.openAIProjectId-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+
 	// -- MODEL --
 	game.settings.register(MODULE.ID, 'openAIModel', {
 		name: MODULE.ID + '.openAIModel-Label',
@@ -1964,6 +1976,7 @@ export const registerSettings = async () => {
 		},
 		default: 1,
 	});
+
 
 	
 	// ---------- SUBHEADING ----------
