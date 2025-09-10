@@ -280,7 +280,7 @@ async function registerDefaultTools() {
         title: "Request a Roll",
         button: true,
         visible: true,
-        gmOnly: true,
+        gmOnly: true, // Only GMs can request rolls
         onClick: () => {
             const dialog = new SkillCheckDialog();
             dialog.render(true);
@@ -411,7 +411,7 @@ export function addToolbarButton() {
 
     const getSceneControlButtonsHookId = HookManager.registerHook({
 		name: 'getSceneControlButtons',
-		description: 'Manager Toolbar: Add click handler to blacksmith utilities button',
+		description: 'Manager Toolbar: Add click handler to blacksmith utilities button and token toolbar',
 		context: 'manager-toolbar-scene',
 		priority: 3,
 		callback: (controls) => {
@@ -443,6 +443,54 @@ export function addToolbarButton() {
                 layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
                 tools: tools
             });
+
+            // Add Request Roll tool to the default token toolbar
+            const tokenControl = controls.find(control => control.name === "token");
+            if (tokenControl) {
+                // Check if request-roll tool already exists
+                const existingRequestRoll = tokenControl.tools.find(tool => tool.name === "request-roll");
+                if (!existingRequestRoll) {
+                    // Find the request-roll tool from our registered tools
+                    const requestRollTool = registeredTools.get('request-roll');
+                    if (requestRollTool) {
+                        // Check visibility using the same logic as our toolbar
+                        const isGM = game.user.isGM;
+                        const isLeaderUser = isLeader();
+                        let shouldShow = true;
+                        
+                        postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", `isGM: ${isGM}, isLeader: ${isLeaderUser}, gmOnly: ${requestRollTool.gmOnly}, leaderOnly: ${requestRollTool.leaderOnly}`, true, false);
+                        
+                        if (requestRollTool.gmOnly && !isGM) {
+                            shouldShow = false;
+                            postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", "Blocked: GM only tool, user not GM", true, false);
+                        } else if (requestRollTool.leaderOnly && !isLeaderUser && !isGM) {
+                            shouldShow = false;
+                            postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", "Blocked: Leader only tool, user not leader or GM", true, false);
+                        } else if (typeof requestRollTool.visible === 'function') {
+                            try {
+                                shouldShow = requestRollTool.visible();
+                            } catch (error) {
+                                shouldShow = false;
+                            }
+                        } else {
+                            shouldShow = requestRollTool.visible;
+                        }
+                        
+                        postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", `Final decision: shouldShow = ${shouldShow}`, true, false);
+                        
+                        if (shouldShow) {
+                            tokenControl.tools.push({
+                                icon: requestRollTool.icon,
+                                name: requestRollTool.name,
+                                title: requestRollTool.title,
+                                button: requestRollTool.button,
+                                visible: true,
+                                onClick: requestRollTool.onClick
+                            });
+                        }
+                    }
+                }
+            }
             // --- END - HOOKMANAGER CALLBACK ---
         }
 	});
