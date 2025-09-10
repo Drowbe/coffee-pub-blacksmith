@@ -161,6 +161,8 @@ export class UtilsManager {
             objectToString: GlobalUtils.objectToString.bind(GlobalUtils),
             stringToObject: GlobalUtils.stringToObject.bind(GlobalUtils),
             convertSecondsToRounds: GlobalUtils.convertSecondsToRounds.bind(GlobalUtils),
+            convertSecondsToString: GlobalUtils.convertSecondsToString.bind(GlobalUtils),
+            clamp: GlobalUtils.clamp.bind(GlobalUtils),
             rollCoffeePubDice: GlobalUtils.rollCoffeePubDice.bind(GlobalUtils),
             resetModuleSettings: GlobalUtils.resetModuleSettings.bind(GlobalUtils),
             getOpenAIReplyAsHtml: this.getOpenAIReplyAsHtml.bind(this),

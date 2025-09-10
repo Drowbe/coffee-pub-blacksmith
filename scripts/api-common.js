@@ -134,7 +134,23 @@ export function formatTime(ms, format = "colon") {
 // ************************************
 export function convertSecondsToRounds(numSeconds) {
     if (numSeconds === "0" || isNaN(numSeconds)) {
-      return "Permanent";
+        return "Permanent";
+    }
+    return Math.floor(numSeconds / 6);
+}
+
+
+// ************************************
+// ** UTILITY Convert Seconds
+// ************************************
+/**
+ * Convert seconds to a human-readable string format
+ * @param {number|string} numSeconds - Number of seconds to convert
+ * @returns {string} - Formatted time string (e.g., "2 HR 30 MIN (25 ROUNDS)")
+ */
+export function convertSecondsToString(numSeconds) {
+    if (numSeconds === "0" || isNaN(numSeconds)) {
+        return "Permanent";
     }
     // Calculate the total number of rounds
     let rounds = Math.floor(numSeconds / 6);
@@ -162,7 +178,7 @@ export function convertSecondsToRounds(numSeconds) {
     // Add rounds to the output string
     timeString += `(${rounds} ROUNDS)`;
     return timeString;
-  }
+}
 
 // ************************************
 // ** UTILITY Convert Array to String
@@ -386,7 +402,7 @@ export function registerBlacksmithUpdatedHook() {
  * @param {number} max - The maximum value.
  * @returns {number} - The clamped value.
  */
-function clamp(value, min, max) {
+export function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 

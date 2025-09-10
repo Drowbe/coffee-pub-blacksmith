@@ -1035,6 +1035,8 @@ const sounds = assetLookup.findByTag('notification');
 | `objectToString` | Function | Convert object to string | `(obj)` |
 | `stringToObject` | Function | Convert string to object | `(str)` |
 | `convertSecondsToRounds` | Function | Convert seconds to rounds | `(numSeconds)` |
+| `convertSecondsToString` | Function | Convert seconds to human-readable string | `(numSeconds)` |
+| `clamp` | Function | Clamp a number between min and max values | `(value, min, max)` |
 | `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
 | `getOpenAIReplyAsHtml` | Async Function | Get AI response as HTML | `(query)` |
@@ -1076,10 +1078,17 @@ const formattedTime = utils.formatTime(ms, 'colon');
 const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
 
 // Newly exposed functions for Scribe and other modules:
+const actorId = utils.getActorId("My Character");
 const tokenId = utils.getTokenId("My Token");
+const tokenImage = utils.getTokenImage(tokenDoc);
+const portraitImage = utils.getPortraitImage(actor);
+const trimmedText = utils.trimString("Very long text that needs truncation", 20);
+const sentenceCase = utils.toSentenceCase("hello world"); // "Hello World"
 const objString = utils.objectToString({ key: "value" });
 const obj = utils.stringToObject("key=value|other=data");
 const rounds = utils.convertSecondsToRounds(30);
+const timeString = utils.convertSecondsToString(3600); // "1 HR (600 ROUNDS)"
+const clampedValue = utils.clamp(150, 0, 100); // 100
 const diceResult = await utils.rollCoffeePubDice("2d20");
 utils.resetModuleSettings("my-module-id");
 ```
