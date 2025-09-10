@@ -192,7 +192,7 @@ async function registerDefaultTools() {
         gmOnly: true,
         onClick: () => buildButtonEventRegent('assistant'),
         moduleId: 'blacksmith-core',
-        zone: 'gmtools',
+        zone: 'utilities',
         order: 10
     });
     
@@ -205,7 +205,7 @@ async function registerDefaultTools() {
         gmOnly: true,
         onClick: () => buildButtonEventRegent('encounter'),
         moduleId: 'blacksmith-core',
-        zone: 'gmtools',
+        zone: 'utilities',
         order: 20
     });
     
@@ -218,7 +218,7 @@ async function registerDefaultTools() {
         gmOnly: true,
         onClick: () => buildButtonEventRegent('narrative'),
         moduleId: 'blacksmith-core',
-        zone: 'gmtools',
+        zone: 'utilities',
         order: 30
     });
     

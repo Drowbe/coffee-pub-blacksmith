@@ -9,11 +9,11 @@ The Blacksmith Toolbar API allows external modules to register custom tools with
 ### 1. Access the API
 
 ```javascript
-// Get the Blacksmith module
-const blacksmith = game.modules.get('coffee-pub-blacksmith');
+// Get the Blacksmith module API
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
 // Check if API is available
-if (blacksmith?.api?.registerToolbarTool) {
+if (blacksmith?.registerToolbarTool) {
     // API is ready to use
 } else {
     // Wait for API to load
@@ -27,16 +27,17 @@ if (blacksmith?.api?.registerToolbarTool) {
 
 ```javascript
 // Register a custom tool
-const success = blacksmith.api.registerToolbarTool('my-custom-tool', {
+const success = blacksmith.registerToolbarTool('my-custom-tool', {
     icon: "fa-solid fa-dice-d20",
     name: "my-custom-tool",
     title: "My Custom Tool",
+    button: true,           // REQUIRED: Must be true for toolbar display
+    visible: true,          // REQUIRED: Must be true for visibility
     zone: "rolls",          // Optional: general, rolls, communication, utilities, leadertools, gmtools
     order: 5,               // Optional: order within zone (lower numbers appear first)
     moduleId: "my-module",  // Optional: your module ID
     gmOnly: false,          // Optional: whether tool is GM-only
     leaderOnly: false,      // Optional: whether tool is leader-only
-    visible: true,          // Optional: whether tool is visible (boolean or function)
     onClick: () => {
         // Your tool logic here
         console.log("My custom tool clicked!");
@@ -69,11 +70,11 @@ Registers a new tool with the Blacksmith toolbar system.
 - `name` (string, required): Tool name (used for data-tool attribute)
 - `title` (string, required): Tooltip text displayed on hover
 - `onClick` (Function, required): Function to execute when tool is clicked
+- `button` (boolean, required): Whether to show as button (MUST be true for toolbar display)
+- `visible` (boolean|Function, required): Whether tool is visible (MUST be true for visibility)
 - `zone` (string, optional): Zone for organization (default: "general")
 - `order` (number, optional): Order within zone (default: 999)
 - `moduleId` (string, optional): Module identifier (default: "blacksmith-core")
-- `button` (boolean, optional): Whether to show as button (default: true)
-- `visible` (boolean|Function, optional): Whether tool is visible (default: true)
 - `gmOnly` (boolean, optional): Whether tool is GM-only (default: false)
 - `leaderOnly` (boolean, optional): Whether tool is leader-only (default: false)
 
@@ -186,10 +187,12 @@ Tools within each zone are ordered by their `order` property:
 
 ```javascript
 // Register a simple utility tool
-blacksmith.api.registerToolbarTool('my-utility', {
+blacksmith.registerToolbarTool('my-utility', {
     icon: "fa-solid fa-calculator",
     name: "my-utility",
     title: "My Utility Tool",
+    button: true,           // REQUIRED for toolbar display
+    visible: true,          // REQUIRED for visibility
     zone: "utilities",
     order: 10,
     moduleId: "my-module",
@@ -204,10 +207,12 @@ blacksmith.api.registerToolbarTool('my-utility', {
 
 ```javascript
 // Register a GM-only admin tool
-blacksmith.api.registerToolbarTool('my-admin-tool', {
+blacksmith.registerToolbarTool('my-admin-tool', {
     icon: "fa-solid fa-cog",
     name: "my-admin-tool",
     title: "Admin Tool",
+    button: true,           // REQUIRED for toolbar display
+    visible: true,          // REQUIRED for visibility
     zone: "gmtools",
     order: 5,
     moduleId: "my-module",
@@ -223,10 +228,12 @@ blacksmith.api.registerToolbarTool('my-admin-tool', {
 
 ```javascript
 // Register a leader-only tool
-blacksmith.api.registerToolbarTool('my-leader-tool', {
+blacksmith.registerToolbarTool('my-leader-tool', {
     icon: "fa-solid fa-crown",
     name: "my-leader-tool",
     title: "Leader Tool",
+    button: true,           // REQUIRED for toolbar display
+    visible: true,          // REQUIRED for visibility
     zone: "leadertools",
     order: 1,
     moduleId: "my-module",
@@ -294,10 +301,16 @@ The API includes robust error handling:
 ## Troubleshooting
 
 ### Tool Not Appearing
-- Check if tool is registered: `blacksmith.api.isToolRegistered('tool-id')`
+- Check if tool is registered: `blacksmith.isToolRegistered('tool-id')`
 - Verify visibility settings (gmOnly, leaderOnly, visible function)
+- **Ensure required properties are set**: `button: true` and `visible: true` are mandatory
 - Check console for error messages
-- Ensure API is loaded: `blacksmith?.api?.registerToolbarTool`
+- Ensure API is loaded: `blacksmith?.registerToolbarTool`
+
+### API Not Available
+- **Use correct API path**: `blacksmith.registerToolbarTool()` not `blacksmith.api.registerToolbarTool()`
+- Wait for `ready` hook, not `blacksmithUpdated` hook
+- Check if module is active: `game.modules.get('coffee-pub-blacksmith')?.active`
 
 ### Tool in Wrong Zone
 - Verify `zone` property is set correctly
