@@ -174,15 +174,15 @@ export class VoteManager {
     static async startVote(type, customData = null) {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderId = getSettingSafely(MODULE.ID, 'partyLeader', null);
-        const isLeader = leaderId ? game.user.id === leaderId : false;
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
         const canStartVote = isGM || isLeader;
 
         postConsoleAndNotification(MODULE.NAME, 'Vote Manager | Starting Vote:', {
             type,
             userId: game.user.id,
             isGM,
-            leaderId,
+            leaderData,
             isLeader,
             canStartVote,
             activeVote: this.activeVote
