@@ -2,11 +2,299 @@ import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
 import { postConsoleAndNotification, getSettingSafely } from './api-common.js';
 import { HookManager } from './manager-hooks.js';
-import { BlacksmithToolbarManager } from './manager-blacksmith-toolbar.js';
+// Tool management will be handled directly in this file
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './api-common.js';
 
+// ================================================================== 
+// ===== TOOL MANAGEMENT ===========================================
+// ================================================================== 
+
+// Map to store registered tools: toolId -> toolData
+const registeredTools = new Map();
+
+/**
+ * Check if current user is the party leader
+ */
+function isLeader() {
+    try {
+        const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
+        return !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Get tools that should be visible (evaluate visibility conditions)
+ */
+function getVisibleTools() {
+    const isGM = game.user.isGM;
+    const isLeaderUser = isLeader();
+    
+    return Array.from(registeredTools.values()).filter(tool => {
+        // Check GM-only visibility
+        if (tool.gmOnly && !isGM) {
+            return false;
+        }
+        
+        // Check leader-only visibility (GMs can see leader tools too)
+        if (tool.leaderOnly && !isLeaderUser && !isGM) {
+            return false;
+        }
+        
+        // Check custom visibility function or boolean
+        if (typeof tool.visible === 'function') {
+            try {
+                return tool.visible();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error evaluating visibility", error, false, false);
+                return false;
+            }
+        }
+        return tool.visible;
+    });
+}
+
+/**
+ * Get tools organized by zones and ordered
+ */
+function getVisibleToolsByZones() {
+    const visibleTools = getVisibleTools();
+    
+    // Group tools by zone
+    const toolsByZone = {};
+    visibleTools.forEach(tool => {
+        const zone = tool.zone || 'general';
+        if (!toolsByZone[zone]) {
+            toolsByZone[zone] = [];
+        }
+        toolsByZone[zone].push(tool);
+    });
+    
+    // Sort tools within each zone by order
+    Object.keys(toolsByZone).forEach(zone => {
+        toolsByZone[zone].sort((a, b) => a.order - b.order);
+    });
+    
+    // Define zone order
+    const zoneOrder = ['general', 'rolls', 'communication', 'utilities', 'leadertools', 'gmtools'];
+    
+    // Flatten tools in zone order
+    const result = [];
+    zoneOrder.forEach(zone => {
+        if (toolsByZone[zone]) {
+            result.push(...toolsByZone[zone]);
+        }
+    });
+    
+    return result;
+}
+
+/**
+ * Register a tool for the toolbar
+ */
+function registerTool(toolId, toolData) {
+    try {
+        // Basic validation
+        if (!toolId || typeof toolId !== 'string') {
+            postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: toolId must be a non-empty string", "", false, false);
+            return false;
+        }
+        
+        if (!toolData || typeof toolData !== 'object') {
+            postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: toolData must be an object", "", false, false);
+            return false;
+        }
+        
+        // Store the tool with defaults
+        registeredTools.set(toolId, {
+            ...toolData,
+            moduleId: toolData.moduleId || 'blacksmith-core',
+            zone: toolData.zone || 'general',
+            order: toolData.order || 999,
+            gmOnly: toolData.gmOnly || false,
+            leaderOnly: toolData.leaderOnly || false,
+            registeredAt: Date.now()
+        });
+        
+        return true;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error registering tool", error, false, false);
+        return false;
+    }
+}
+
+/**
+ * Register default tools
+ */
+async function registerDefaultTools() {
+    // Import required modules
+    const { buildButtonEventRegent } = await import('./blacksmith.js');
+    const { CSSEditor } = await import('./window-gmtools.js');
+    const { JournalToolsWindow } = await import('./journal-tools.js');
+    const { SkillCheckDialog } = await import('./window-skillcheck.js');
+    const { VoteConfig } = await import('./vote-config.js');
+    
+    // Register all the default tools
+    registerTool('regent', {
+                icon: "fa-solid fa-crystal-ball",
+                name: "regent",
+                title: "Consult the Regent",
+                button: true,
+                visible: true,
+        onClick: buildButtonEventRegent,
+        moduleId: 'blacksmith-core',
+        zone: 'utilities',
+        order: 10
+    });
+    
+    registerTool('lookup', {
+                icon: "fa-solid fa-bolt-lightning",
+                name: "lookup",
+                title: "Open Lookup Worksheet",
+                button: true,
+                visible: true,
+        onClick: () => buildButtonEventRegent('lookup'),
+        moduleId: 'blacksmith-core',
+        zone: 'utilities',
+        order: 20
+    });
+    
+    registerTool('character', {
+                icon: "fa-solid fa-helmet-battle",
+                name: "character",
+                title: "Open Character Worksheet",
+                button: true,
+                visible: true,
+        onClick: () => buildButtonEventRegent('character'),
+        moduleId: 'blacksmith-core',
+        zone: 'utilities',
+        order: 30
+    });
+    
+    registerTool('assistant', {
+                icon: "fa-solid fa-hammer-brush",
+                name: "assistant",
+                title: "Open Assistant Worksheet",
+                button: true,
+        visible: true,
+        gmOnly: true,
+        onClick: () => buildButtonEventRegent('assistant'),
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 10
+    });
+    
+    registerTool('encounter', {
+        icon: "fa-solid fa-sword",
+                name: "encounter",
+                title: "Open Encounter Worksheet",
+                button: true,
+        visible: true,
+        gmOnly: true,
+        onClick: () => buildButtonEventRegent('encounter'),
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 20
+    });
+    
+    registerTool('narrative', {
+        icon: "fa-solid fa-book-open-reader",
+                name: "narrative",
+                title: "Open Narrative Worksheet",
+                button: true,
+        visible: true,
+        gmOnly: true,
+        onClick: () => buildButtonEventRegent('narrative'),
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 30
+    });
+    
+    registerTool('css', {
+        icon: "fa-solid fa-palette",
+                name: "css",
+        title: "Open CSS Editor",
+                button: true,
+        visible: true,
+        gmOnly: true,
+                onClick: () => {
+            const cssEditor = new CSSEditor();
+            cssEditor.render(true);
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 10
+    });
+    
+    registerTool('journal-tools', {
+                icon: "fa-solid fa-book-open",
+                name: "journal-tools",
+                title: "Journal Tools",
+                button: true,
+        visible: true,
+        gmOnly: true,
+                onClick: () => {
+                    const dummyJournal = { id: null, name: "Select Journal" };
+                    const journalTools = new JournalToolsWindow(dummyJournal);
+                    journalTools.render(true);
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 20
+    });
+    
+    registerTool('refresh', {
+                icon: "fa-solid fa-sync-alt",
+                name: "refresh",
+                title: "Refresh Client",
+                button: true,
+        visible: true,
+        gmOnly: true,
+                onClick: () => {
+                    window.location.reload();
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 30
+    });
+    
+    registerTool('request-roll', {
+        icon: "fa-solid fa-dice",
+        name: "request-roll",
+        title: "Request a Roll",
+        button: true,
+        visible: true,
+        gmOnly: true,
+        onClick: () => {
+            const dialog = new SkillCheckDialog();
+            dialog.render(true);
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'rolls',
+        order: 10
+    });
+    
+    registerTool('vote', {
+        icon: "fa-solid fa-vote-yea",
+        name: "vote",
+        title: "Start Vote",
+        button: true,
+        visible: true,
+        leaderOnly: true,
+        onClick: () => {
+            new VoteConfig().render(true);
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'leadertools',
+        order: 10
+    });
+}
+
 export function addToolbarButton() {
+    // Initialize default tools
+    registerDefaultTools();
 
     // Debounce timer for divider updates
     let dividerUpdateTimer = null;
@@ -58,8 +346,8 @@ export function addToolbarButton() {
             const toolbar = document.querySelector('#tools-panel-blacksmith-utilities');
             if (!toolbar) return;
             
-            // Get the tools in order from BlacksmithToolbarManager
-            const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
+            // Get the tools in order
+            const visibleTools = getVisibleToolsByZones();
             
             // Always clear existing dividers and titles, then recreate them (simple approach)
             const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
@@ -115,8 +403,14 @@ export function addToolbarButton() {
 		callback: (controls) => {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
-            // Get all visible tools from the BlacksmithToolbarManager, organized by zones
-            const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
+            // Get all visible tools, organized by zones
+            const visibleTools = getVisibleToolsByZones();
+            
+            // Remove existing blacksmith toolbar if it exists
+            const existingIndex = controls.findIndex(control => control.name === "blacksmith-utilities");
+            if (existingIndex !== -1) {
+                controls.splice(existingIndex, 1);
+            }
             
             // Convert to the format expected by FoundryVTT
             const tools = visibleTools.map(tool => ({

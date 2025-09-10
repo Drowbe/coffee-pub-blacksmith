@@ -514,8 +514,8 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = game.user.id === leaderId;
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
 
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
@@ -791,8 +791,8 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = game.user.id === leaderId;
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
         
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
@@ -818,8 +818,8 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = game.user.id === leaderId;
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
 
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();

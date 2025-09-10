@@ -396,11 +396,11 @@ const preUpdateTokenHookId = HookManager.registerHook({
             // If user is GM, always allow
             if (game.user.isGM) return true;
             
-            // Get party leader user
-            const partyLeaderUserId = game.settings.get(MODULE.ID, 'partyLeader');
+            // Get party leader data
+            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             
             // If the moving user is the party leader, allow movement
-            if (game.user.id === partyLeaderUserId) {
+            if (leaderData && leaderData.userId && game.user.id === leaderData.userId) {
                 return true;
             }
             

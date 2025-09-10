@@ -185,9 +185,15 @@ Since we are the only consumers of the current toolbar system, we will migrate e
     moduleId: "blacksmith-core",            // Module that registered the tool
     zone: "rolls",                         // Zone for organization (optional)
     order: 10,                             // Order within zone (optional)
-    gmOnly: false                          // Whether tool is GM-only (optional)
+    gmOnly: false,                         // Whether tool is GM-only (optional)
+    leaderOnly: false                      // Whether tool is leader-only (optional)
 }
 ```
+
+#### **Three-Tier Visibility System**
+- **GM**: Sees all tools (including GM tools and leader tools)
+- **LEADER**: Sees all tools except GM tools, plus leader tools
+- **PLAYER**: Sees all tools except GM tools and leader tools
 
 #### **CSS Styling** (`styles/toolbar-zones.css`)
 - **Zone Background Colors**: Each zone has a distinct background color

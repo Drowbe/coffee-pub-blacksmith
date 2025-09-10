@@ -22,8 +22,8 @@ export class VoteConfig extends Application {
     getData() {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderId = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = game.user.id === leaderId;
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
         const canStartVote = isGM || isLeader;
 
         if (!canStartVote) {
