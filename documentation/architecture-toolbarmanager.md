@@ -77,11 +77,11 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 6. ✅ **Add Zone System** for tool organization and visual grouping
 7. ✅ **Add CSS Styling** for zone-based visual organization (`styles/toolbar-zones.css`)
 
-### **Phase 2: Token Control Toolbar Integration**
-1. Research and identify correct FoundryVTT hooks for token control
-2. Create `TokenControlToolbarManager` class
-3. Implement hook registration for token control toolbar
-4. Add tool registration system
+### **Phase 2: Token Control Toolbar Integration** ✅ COMPLETED
+1. ✅ **Research and identify correct FoundryVTT hooks** - Using `getSceneControlButtons` hook
+2. ✅ **Integrate with existing toolbar system** - Added token toolbar integration to `manager-toolbar.js`
+3. ✅ **Implement tool visibility logic** - Same three-tier visibility system as Blacksmith toolbar
+4. ✅ **Add Request Roll tool to token toolbar** - GM-only tool appears in Foundry's default token control toolbar
 
 ### **Phase 3: API Integration**
 1. Extend `blacksmith-api.js` with toolbar methods
@@ -148,7 +148,7 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 ## Implementation Status
 
 - [x] Phase 1: Blacksmith Toolbar Extension
-- [ ] Phase 2: Token Control Toolbar Integration  
+- [x] Phase 2: Token Control Toolbar Integration  
 - [ ] Phase 3: API Integration
 - [ ] Phase 4: Testing & Validation
 
@@ -156,7 +156,13 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 
 ### **Phase 1 Implementation** ✅ COMPLETED
 
-#### **BlacksmithToolbarManager Class** (`scripts/manager-blacksmith-toolbar.js`)
+#### **Consolidated Toolbar Management** (`scripts/manager-toolbar.js`)
+- **Single File Architecture**: All toolbar management consolidated into `manager-toolbar.js`
+- **Tool Registration System**: Direct tool management with `registeredTools` Map
+- **Leader Detection**: Robust party leader detection with timing safeguards
+- **Toolbar Refresh Logic**: Automatic refresh when party leader changes
+
+#### **BlacksmithToolbarManager Class** (Consolidated into `manager-toolbar.js`)
 - **Static Properties**:
   - `registeredTools = new Map()` - Stores all registered tool data
 - **Key Methods**:
@@ -202,9 +208,28 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 - **Dynamic Application**: Zone classes applied via JavaScript after toolbar rendering
 
 #### **API Integration** (`scripts/blacksmith.js`)
-- **Dynamic Import**: `BlacksmithToolbarManager` loaded via dynamic import
-- **API Exposure**: Added to `module.api` after initialization
-- **Timing**: Initialized before toolbar rendering to ensure tools are available
+- **Simplified Architecture**: Removed separate `BlacksmithToolbarManager` class
+- **Direct Integration**: Toolbar management handled directly in `manager-toolbar.js`
+- **Timing**: Toolbar initialization occurs during module startup
+
+### **Phase 2 Implementation** ✅ COMPLETED
+
+#### **Token Control Toolbar Integration**
+- **Hook Used**: `getSceneControlButtons` - Same hook as Blacksmith toolbar
+- **Target Control**: Foundry's default "token" control toolbar
+- **Tool Addition**: Request Roll tool added to existing token control tools
+- **Visibility Logic**: Same three-tier system (GM/Leader/Player) as Blacksmith toolbar
+- **Duplicate Prevention**: Checks for existing tools before adding to prevent duplicates
+
+#### **Tool Visibility System**
+- **GM Tools**: Only visible to Game Masters (`gmOnly: true`)
+- **Leader Tools**: Visible to party leaders and GMs (`leaderOnly: true`)
+- **Player Tools**: Visible to all users (default)
+- **Logic Flow**: Uses `else if` structure to prevent visibility overrides
+
+#### **Current Tools in Token Toolbar**
+- **Request Roll**: GM-only tool for requesting skill checks from players
+- **Integration**: Appears alongside Foundry's default token tools (Select, Target, etc.)
 
 ### **Module Registration Requirements**
 
@@ -227,18 +252,27 @@ When external modules register tools with the Blacksmith toolbar, they **MUST** 
 #### **Example Module Registration**:
 ```javascript
 // In your module's initialization
-game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerTool("my-roll-tool", {
-    icon: "fa-solid fa-dice-d20",
-    name: "my-roll-tool",
-    title: "My Custom Roll Tool",
-    zone: "rolls",          // Place in rolls zone
-    order: 5,               // Order within rolls zone
-    moduleId: "my-module",  // Your module ID
-    gmOnly: false,          // Visible to all users (default)
+// Note: API integration pending - tools currently managed internally
+// Future API will allow external modules to register tools
+```
+
+#### **Current Tool Registration** (Internal):
+```javascript
+// In scripts/manager-toolbar.js
+registerTool('request-roll', {
+    icon: "fa-solid fa-dice",
+    name: "request-roll",
+    title: "Request a Roll",
+    button: true,
+    visible: true,
+    gmOnly: true, // Only GMs can request rolls
     onClick: () => {
-        // Your tool logic here
-        console.log("My custom roll tool clicked!");
-    }
+        const dialog = new SkillCheckDialog();
+        dialog.render(true);
+    },
+    moduleId: 'blacksmith-core',
+    zone: 'rolls',
+    order: 10
 });
 ```
 
@@ -258,6 +292,28 @@ game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerT
   - `51-100`: Utility tools
   - `101+`: Optional/advanced tools
 
+## Recent Updates & Fixes
+
+### **Architecture Simplification**
+- **Consolidated Management**: Removed separate `BlacksmithToolbarManager` class
+- **Single File**: All toolbar logic now in `scripts/manager-toolbar.js`
+- **Simplified API**: Direct function calls instead of class methods
+
+### **Token Toolbar Integration**
+- **Dual Toolbar Support**: Tools can appear in both Blacksmith and Foundry toolbars
+- **Visibility Logic Fix**: Fixed `else if` structure to prevent visibility overrides
+- **GM-Only Tools**: Request Roll tool correctly restricted to GMs only
+
+### **Leader System Integration**
+- **Timing Fixes**: Resolved party leader detection timing issues
+- **Setting Change Hooks**: Toolbar refreshes when party leader changes
+- **Delayed Refresh**: Added 100ms delay to ensure settings are loaded
+
+### **Vote System Integration**
+- **Leader Detection**: Fixed vote manager to use consistent leader detection
+- **Permission Logic**: Leaders can now start regular votes (not leader votes)
+- **Toolbar Integration**: Vote tool appears in Blacksmith toolbar for leaders
+
 ## Notes
 
 - **Encounter Toolbar**: No changes planned - this system is dynamic and journal-content based
@@ -265,4 +321,4 @@ game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerT
 - **API Design**: Follow existing `ChatPanel.toolbarIcons` pattern for consistency
 - **Zone System**: Provides visual organization and logical grouping of tools
 - **CSS Classes**: Applied dynamically via JavaScript after toolbar rendering
-- **Documentation**: Will be updated after implementation is locked down
+- **Documentation**: Updated to reflect current implementation status

@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.1.2] - Toolbar Manager
+
+### Added
+- **Dynamic Toolbar System:** Implemented comprehensive toolbar management system with dynamic tool registration and zone-based organization
+- **Zone System:** Added 6 predefined zones (general, rolls, communication, utilities, leadertools, gmtools) for logical tool grouping and visual organization
+- **Three-Tier Visibility System:** Implemented GM/Leader/Player visibility controls with proper permission checking
+- **Token Toolbar Integration:** Added Request Roll tool to Foundry's default token control toolbar alongside existing tools
+- **Toolbar Settings:** Added client-side settings for toolbar dividers and labels with proper scope management
+- **Leader System Integration:** Integrated party leader detection with toolbar visibility and vote system
+- **CSS Zone Styling:** Added `toolbar-zones.css` with zone-specific background colors and visual dividers
+- **Toolbar Refresh Logic:** Implemented automatic toolbar refresh when party leader changes or settings update
+
+### Changed
+- **Consolidated Architecture:** Merged separate `BlacksmithToolbarManager` class into `manager-toolbar.js` for simplified management
+- **Tool Registration:** Migrated from hardcoded tool arrays to dynamic `Map`-based registration system
+- **Vote System Integration:** Updated vote manager to use consistent leader detection logic across all systems
+- **Leader Detection:** Improved party leader detection with timing safeguards and setting availability checks
+- **Toolbar Hooks:** Enhanced `getSceneControlButtons` hook to support both Blacksmith and Foundry toolbars
+
+### Fixed
+- **Visibility Logic Bug:** Fixed `else if` structure in token toolbar visibility checking to prevent overrides
+- **Leader Timing Issues:** Resolved party leader detection timing problems during initial load
+- **Vote Permissions:** Fixed vote system to allow leaders to start regular votes (not leader votes)
+- **Toolbar Refresh:** Added delayed refresh mechanism to ensure settings are loaded before toolbar rendering
+- **Duplicate Prevention:** Added checks to prevent duplicate tools in token toolbar
+- **Setting Registration:** Fixed toolbar settings registration timing and scope issues
+
+### Technical Details
+- **Tool Data Structure:** Enhanced tool objects with `zone`, `order`, `gmOnly`, `leaderOnly` properties
+- **Hook Management:** Added `settingChange` hook for automatic toolbar refresh on leader changes
+- **Error Handling:** Improved error handling for missing settings and invalid tool registrations
+- **Performance:** Optimized tool lookup and rendering with efficient Map-based storage
+- **Documentation:** Updated `architecture-toolbarmanager.md` with complete implementation details
+
+
 ## [12.1.1] - BREAKING PATCH
 
 ### Fixed
