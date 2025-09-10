@@ -83,11 +83,11 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 3. ✅ **Implement tool visibility logic** - Same three-tier visibility system as Blacksmith toolbar
 4. ✅ **Add Request Roll tool to token toolbar** - GM-only tool appears in Foundry's default token control toolbar
 
-### **Phase 3: API Integration**
-1. Extend `blacksmith-api.js` with toolbar methods
-2. Update module API exposure in `blacksmith.js`
-3. Create comprehensive documentation
-4. Add example usage patterns
+### **Phase 3: API Integration** ✅ COMPLETED
+1. ✅ **Extend module API** - Added toolbar methods to `module.api` in `blacksmith.js`
+2. ✅ **Create API functions** - Implemented 7 toolbar API functions in `manager-toolbar.js`
+3. ✅ **Create comprehensive documentation** - Added `api-toolbar.md` with complete API reference
+4. ✅ **Add example usage patterns** - Created `example-module-integration.js` and `api-toolbar-test.js`
 
 ### **Phase 4: Testing & Validation**
 1. Test tool registration/unregistration
@@ -149,7 +149,7 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 
 - [x] Phase 1: Blacksmith Toolbar Extension
 - [x] Phase 2: Token Control Toolbar Integration  
-- [ ] Phase 3: API Integration
+- [x] Phase 3: API Integration
 - [ ] Phase 4: Testing & Validation
 
 ## Current Implementation Details
@@ -230,6 +230,36 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 #### **Current Tools in Token Toolbar**
 - **Request Roll**: GM-only tool for requesting skill checks from players
 - **Integration**: Appears alongside Foundry's default token tools (Select, Target, etc.)
+
+### **Phase 3 Implementation** ✅ COMPLETED
+
+#### **API Functions** (`scripts/manager-toolbar.js`)
+- **`registerToolbarTool(toolId, toolData)`** - Register a new tool with the toolbar system
+- **`unregisterToolbarTool(toolId)`** - Remove a tool from the toolbar system
+- **`getRegisteredTools()`** - Get all registered tools as a Map
+- **`getToolsByModule(moduleId)`** - Get tools registered by a specific module
+- **`isToolRegistered(toolId)`** - Check if a tool is registered
+- **`getToolbarSettings()`** - Get current toolbar settings
+- **`setToolbarSettings(settings)`** - Update toolbar settings
+
+#### **Module API Exposure** (`scripts/blacksmith.js`)
+- **Dynamic Import**: Toolbar API functions loaded via dynamic import
+- **API Assignment**: Functions assigned to `module.api` after loading
+- **Error Handling**: Graceful handling of API loading failures
+- **Timing**: API available after toolbar manager initialization
+
+#### **Documentation** (`documentation/`)
+- **`api-toolbar.md`** - Complete API reference with examples
+- **`api-toolbar-test.js`** - Test suite for API functionality
+- **`example-module-integration.js`** - Complete example module integration
+
+#### **API Features**
+- **Tool Registration**: External modules can register custom tools
+- **Zone Organization**: Tools can be assigned to predefined zones
+- **Visibility Control**: Support for GM-only, leader-only, and dynamic visibility
+- **Settings Management**: API for managing toolbar display settings
+- **Module Integration**: Tools can be grouped by module for easy management
+- **Error Handling**: Robust error handling and validation
 
 ### **Module Registration Requirements**
 

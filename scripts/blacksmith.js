@@ -638,8 +638,31 @@ Hooks.once('init', async function() {
     VoteManager.initialize();
 
     // BLACKSMITH TOOLBAR MANAGER
-    // Register toolbar button
+    // Register toolbar button and expose API
     addToolbarButton();
+    
+    // Import and expose toolbar API functions
+    import('./manager-toolbar.js').then(({ 
+        registerToolbarTool, 
+        unregisterToolbarTool, 
+        getRegisteredTools, 
+        getToolsByModule, 
+        isToolRegistered, 
+        getToolbarSettings, 
+        setToolbarSettings 
+    }) => {
+        module.api.registerToolbarTool = registerToolbarTool;
+        module.api.unregisterToolbarTool = unregisterToolbarTool;
+        module.api.getRegisteredTools = getRegisteredTools;
+        module.api.getToolsByModule = getToolsByModule;
+        module.api.isToolRegistered = isToolRegistered;
+        module.api.getToolbarSettings = getToolbarSettings;
+        module.api.setToolbarSettings = setToolbarSettings;
+        
+        postConsoleAndNotification(MODULE.NAME, "Toolbar API: Exposed for external modules", "", true, false);
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to load toolbar API", error, false, false);
+    });
 
     hookCanvas();
 
@@ -672,7 +695,15 @@ Hooks.once('init', async function() {
         stats: StatsAPI,
         HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
-        assetLookup  // ✅ NEW: Expose AssetLookup for flexible asset access
+        assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
+        // ✅ NEW: Toolbar API for external modules
+        registerToolbarTool: null,  // Will be set after toolbar manager loads
+        unregisterToolbarTool: null,
+        getRegisteredTools: null,
+        getToolsByModule: null,
+        isToolRegistered: null,
+        getToolbarSettings: null,
+        setToolbarSettings: null
     };
     
     // Toolbar management is now handled directly in manager-toolbar.js

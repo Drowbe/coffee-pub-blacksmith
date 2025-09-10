@@ -20,18 +20,14 @@ function isLeader() {
     try {
         // Check if the setting is registered first
         if (!game.settings.settings.has(`${MODULE.ID}.partyLeader`)) {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", "Setting not registered yet", true, false);
             return false;
         }
         
         const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
-        postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", `leaderData: ${JSON.stringify(leaderData)}, userId: ${game.user.id}, isLeader: ${isLeader}`, true, false);
-        return isLeader;
+        return !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
     } catch (error) {
         // If setting doesn't exist yet, return false (not an error)
         if (error.message && error.message.includes('not a registered game setting')) {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", "Setting not registered (catch)", true, false);
             return false;
         }
         postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check error", error, false, false);
@@ -458,14 +454,10 @@ export function addToolbarButton() {
                         const isLeaderUser = isLeader();
                         let shouldShow = true;
                         
-                        postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", `isGM: ${isGM}, isLeader: ${isLeaderUser}, gmOnly: ${requestRollTool.gmOnly}, leaderOnly: ${requestRollTool.leaderOnly}`, true, false);
-                        
                         if (requestRollTool.gmOnly && !isGM) {
                             shouldShow = false;
-                            postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", "Blocked: GM only tool, user not GM", true, false);
                         } else if (requestRollTool.leaderOnly && !isLeaderUser && !isGM) {
                             shouldShow = false;
-                            postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", "Blocked: Leader only tool, user not leader or GM", true, false);
                         } else if (typeof requestRollTool.visible === 'function') {
                             try {
                                 shouldShow = requestRollTool.visible();
@@ -475,8 +467,6 @@ export function addToolbarButton() {
                         } else {
                             shouldShow = requestRollTool.visible;
                         }
-                        
-                        postConsoleAndNotification(MODULE.NAME, "Token Toolbar | Request Roll Check", `Final decision: shouldShow = ${shouldShow}`, true, false);
                         
                         if (shouldShow) {
                             tokenControl.tools.push({
@@ -559,6 +549,94 @@ export function addToolbarButton() {
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderSceneControls", "manager-toolbar-scene", true, false);
 
     
+}
+
+// ================================================================== 
+// ===== TOOLBAR API FOR EXTERNAL MODULES ==========================
+// ================================================================== 
+
+/**
+ * Register a tool for the Blacksmith toolbar
+ * @param {string} toolId - Unique identifier for the tool
+ * @param {Object} toolData - Tool configuration object
+ * @returns {boolean} Success status
+ */
+export function registerToolbarTool(toolId, toolData) {
+    return registerTool(toolId, toolData);
+}
+
+/**
+ * Unregister a tool from the Blacksmith toolbar
+ * @param {string} toolId - Unique identifier for the tool
+ * @returns {boolean} Success status
+ */
+export function unregisterToolbarTool(toolId) {
+    try {
+        if (registeredTools.has(toolId)) {
+            registeredTools.delete(toolId);
+            // Refresh the toolbar to reflect changes
+            ui.controls.render();
+            return true;
+        }
+        return false;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, "Toolbar API: Error unregistering tool", error, false, false);
+        return false;
+    }
+}
+
+/**
+ * Get all registered tools
+ * @returns {Map} Map of all registered tools
+ */
+export function getRegisteredTools() {
+    return new Map(registeredTools);
+}
+
+/**
+ * Get tools by module ID
+ * @param {string} moduleId - Module identifier
+ * @returns {Array} Array of tools registered by the module
+ */
+export function getToolsByModule(moduleId) {
+    return Array.from(registeredTools.values()).filter(tool => tool.moduleId === moduleId);
+}
+
+/**
+ * Check if a tool is registered
+ * @param {string} toolId - Unique identifier for the tool
+ * @returns {boolean} Whether the tool is registered
+ */
+export function isToolRegistered(toolId) {
+    return registeredTools.has(toolId);
+}
+
+/**
+ * Get toolbar settings
+ * @returns {Object} Current toolbar settings
+ */
+export function getToolbarSettings() {
+    return {
+        showDividers: game.settings.get(MODULE.ID, 'toolbarShowDividers'),
+        showLabels: game.settings.get(MODULE.ID, 'toolbarShowLabels')
+    };
+}
+
+/**
+ * Set toolbar settings
+ * @param {Object} settings - Settings object
+ * @param {boolean} settings.showDividers - Whether to show toolbar dividers
+ * @param {boolean} settings.showLabels - Whether to show toolbar labels
+ */
+export function setToolbarSettings(settings) {
+    if (settings.showDividers !== undefined) {
+        game.settings.set(MODULE.ID, 'toolbarShowDividers', settings.showDividers);
+    }
+    if (settings.showLabels !== undefined) {
+        game.settings.set(MODULE.ID, 'toolbarShowLabels', settings.showLabels);
+    }
+    // Refresh toolbar to apply changes
+    ui.controls.render();
 }
 
 // Function to toggle the "active" class
