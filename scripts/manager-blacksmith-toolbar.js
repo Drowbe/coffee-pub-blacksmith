@@ -45,6 +45,7 @@ export class BlacksmithToolbarManager {
      * @param {string} toolData.moduleId - Module ID that registered this tool (optional)
      * @param {string} toolData.zone - Toolbar zone (optional, defaults to 'general')
      * @param {number} toolData.order - Order within zone (optional, defaults to 999)
+     * @param {boolean} toolData.gmOnly - Whether tool is only visible to GMs (optional, defaults to false)
      * @returns {boolean} Success status
      */
     static registerTool(toolId, toolData) {
@@ -105,6 +106,7 @@ export class BlacksmithToolbarManager {
                 moduleId: toolData.moduleId || 'blacksmith-core',
                 zone: toolData.zone || 'general',
                 order: toolData.order || 999,
+                gmOnly: toolData.gmOnly || false,
                 registeredAt: Date.now()
             });
             
@@ -208,6 +210,12 @@ export class BlacksmithToolbarManager {
      */
     static getVisibleTools() {
         return Array.from(this.registeredTools.values()).filter(tool => {
+            // Check GM-only visibility first
+            if (tool.gmOnly && !game.user.isGM) {
+                return false;
+            }
+            
+            // Check custom visibility function or boolean
             if (typeof tool.visible === 'function') {
                 try {
                     return tool.visible();
@@ -316,7 +324,8 @@ export class BlacksmithToolbarManager {
                         name: "assistant",
                         title: "Open Assistant Worksheet",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => buildButtonEventRegent('assistant'),
                         moduleId: 'blacksmith-core',
                         zone: 'utilities',
@@ -328,7 +337,8 @@ export class BlacksmithToolbarManager {
                         name: "encounter",
                         title: "Open Encounter Worksheet",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => buildButtonEventRegent('encounter'),
                         moduleId: 'blacksmith-core',
                         zone: 'utilities',
@@ -340,7 +350,8 @@ export class BlacksmithToolbarManager {
                         name: "narrative",
                         title: "Open Narrative Worksheet",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => buildButtonEventRegent('narrative'),
                         moduleId: 'blacksmith-core',
                         zone: 'utilities',
@@ -352,7 +363,8 @@ export class BlacksmithToolbarManager {
                         name: "css",
                         title: "Open GM Tools",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => {
                             const editor = new CSSEditor();
                             editor.render(true);
@@ -367,7 +379,8 @@ export class BlacksmithToolbarManager {
                         name: "journal-tools",
                         title: "Journal Tools",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => {
                             // Create a dummy journal object for the window to work with
                             // The window will handle journal selection internally
@@ -385,7 +398,8 @@ export class BlacksmithToolbarManager {
                         name: "refresh",
                         title: "Refresh Client",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => {
                             window.location.reload();
                         },
@@ -399,7 +413,8 @@ export class BlacksmithToolbarManager {
                         name: "request-roll",
                         title: "Request a Roll",
                         button: true,
-                        visible: () => game.user.isGM,
+                        visible: true,
+                        gmOnly: true,
                         onClick: () => {
                             // Open the SkillCheckDialog (same as chat panel)
                             const dialog = new SkillCheckDialog();

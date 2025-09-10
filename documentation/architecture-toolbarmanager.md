@@ -180,11 +180,12 @@ Since we are the only consumers of the current toolbar system, we will migrate e
     name: "request-roll",                   // Unique tool identifier
     title: "Request Roll",                  // Tooltip text
     button: true,                           // Whether to show as button
-    visible: true,                          // Whether tool is visible
+    visible: true,                          // Whether tool is visible (boolean or function)
     onClick: () => { /* handler */ },       // Click handler function
     moduleId: "blacksmith-core",            // Module that registered the tool
     zone: "dice",                          // Zone for organization (optional)
-    order: 10                              // Order within zone (optional)
+    order: 10,                             // Order within zone (optional)
+    gmOnly: false                          // Whether tool is GM-only (optional)
 }
 ```
 
@@ -215,6 +216,7 @@ When external modules register tools with the Blacksmith toolbar, they **MUST** 
 - `moduleId` - Module identifier (defaults to "blacksmith-core")
 - `button` - Whether to show as button (defaults to true)
 - `visible` - Whether tool is visible (defaults to true)
+- `gmOnly` - Whether tool is only visible to GMs (defaults to false)
 
 #### **Example Module Registration**:
 ```javascript
@@ -226,6 +228,7 @@ game.modules.get("coffee-pub-blacksmith").api.BlacksmithToolbarManager.registerT
     zone: "dice",           // Place in dice zone
     order: 5,               // Order within dice zone
     moduleId: "my-module",  // Your module ID
+    gmOnly: false,          // Visible to all users (default)
     onClick: () => {
         // Your tool logic here
         console.log("My custom roll tool clicked!");
