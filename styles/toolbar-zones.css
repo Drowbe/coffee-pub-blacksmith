@@ -19,18 +19,48 @@
     background: rgba(108, 117, 125, 0.7); /* Gray tint for general zone */
 }
 
-/* Zone dividers - only for first tool in each zone */
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-dice:first-of-type {
-    border-top: 2px dotted rgba(255, 255, 255, 0.9);
-    margin-top: 8px;
-    padding-top: 8px;
+/* Zone dividers - injected between zones */
+#tools-panel-blacksmith-utilities .toolbar-zone-divider {
+    height: 0px;
+    max-height: 0px;
+    max-width: 38px;
+    margin: 0px 0px 10px 0px !important;
+    border-top: 1px dotted rgba(255, 255, 255, 0.4) !important;
+    border-radius: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 20%, 
+        rgba(255, 255, 255, 0.6) 50%, 
+        rgba(255, 255, 255, 0.3) 80%, 
+        transparent 100%
+    );
 }
 
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-utilities:first-of-type,
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-gm-tools:first-of-type {
-    border-top: 2px solid rgba(255, 255, 255, 0.2);
-    margin-top: 8px;
-    padding-top: 8px;
+
+/* Specific divider styles for different zones */
+#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="dice"] {
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.9) 20%, 
+        rgba(255, 255, 255, 0.9) 50%, 
+        rgba(255, 255, 255, 0.9) 80%, 
+        transparent 100%
+    );
+    border-top: 1px dotted rgba(255, 255, 255, 0.9);
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.9);
+}
+
+#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="utilities"],
+#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="gm-tools"] {
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.2) 20%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        rgba(255, 255, 255, 0.2) 80%, 
+        transparent 100%
+    );
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Zone labels (optional - could be added via JavaScript) */

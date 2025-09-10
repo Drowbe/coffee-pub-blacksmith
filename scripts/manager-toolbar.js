@@ -21,12 +21,32 @@ export function addToolbarButton() {
             // Get the tools in order from BlacksmithToolbarManager
             const visibleTools = BlacksmithToolbarManager.getVisibleToolsByZones();
             
-            // Apply zone classes to each tool
+            // Clear any existing dividers
+            const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
+            existingDividers.forEach(divider => divider.remove());
+            
+            // Apply zone classes and inject dividers
+            let currentZone = null;
             visibleTools.forEach((tool, index) => {
                 const toolElement = toolbar.querySelector(`[data-tool="${tool.name}"]`);
                 if (toolElement) {
                     const zoneClass = `toolbar-zone-${tool.zone || 'general'}`;
                     toolElement.classList.add(zoneClass);
+                    
+                    // Check if we need to add a divider (zone change)
+                    if (currentZone !== null && currentZone !== tool.zone) {
+                        // Create divider element
+                        const divider = document.createElement('div');
+                        divider.className = 'toolbar-zone-divider';
+                        divider.setAttribute('data-zone', tool.zone || 'general');
+                        
+                        // Insert divider before this tool
+                        toolElement.parentNode.insertBefore(divider, toolElement);
+                        
+                        postConsoleAndNotification(MODULE.NAME, `Added divider before zone: ${tool.zone}`, "", true, false);
+                    }
+                    
+                    currentZone = tool.zone || 'general';
                     
                     // Add debug logging
                     postConsoleAndNotification(MODULE.NAME, `Applied zone class: ${zoneClass} to tool: ${tool.name}`, "", true, false);
