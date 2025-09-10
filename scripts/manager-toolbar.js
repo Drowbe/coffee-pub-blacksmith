@@ -18,9 +18,23 @@ const registeredTools = new Map();
  */
 function isLeader() {
     try {
-        const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
-        return !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
+        // Check if the setting is registered first
+        if (!game.settings.settings.has(`${MODULE.ID}.partyLeader`)) {
+            postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", "Setting not registered yet", true, false);
+            return false;
+        }
+        
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        const isLeader = !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
+        postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", `leaderData: ${JSON.stringify(leaderData)}, userId: ${game.user.id}, isLeader: ${isLeader}`, true, false);
+        return isLeader;
     } catch (error) {
+        // If setting doesn't exist yet, return false (not an error)
+        if (error.message && error.message.includes('not a registered game setting')) {
+            postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check", "Setting not registered (catch)", true, false);
+            return false;
+        }
+        postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check error", error, false, false);
         return false;
     }
 }
@@ -462,8 +476,34 @@ export function addToolbarButton() {
         context: 'manager-toolbar-ready',
         priority: 3,
         callback: () => {
+            postConsoleAndNotification(MODULE.NAME, "Toolbar | Ready hook called", "Applying zone classes and refreshing toolbar", true, false);
+            
             // Apply zone classes to toolbar tools
             _applyZoneClasses();
+            
+            // Also refresh the toolbar after a short delay to ensure all settings are loaded
+            setTimeout(() => {
+                postConsoleAndNotification(MODULE.NAME, "Toolbar | Delayed refresh", "Refreshing toolbar after delay", true, false);
+                // Force re-run the getSceneControlButtons hook to rebuild toolbar with current leader status
+                Hooks.callAll('getSceneControlButtons', ui.controls.controls);
+                ui.controls.render();
+            }, 100);
+        }
+    });
+
+    // Register setting change hook to refresh toolbar when party leader changes
+    const settingChangeHookId = HookManager.registerHook({
+        name: 'settingChange',
+        description: 'Manager Toolbar: Refresh toolbar when party leader changes',
+        context: 'manager-toolbar-setting',
+        priority: 3,
+        callback: (module, key, value) => {
+            // --- BEGIN - HOOKMANAGER CALLBACK ---
+            if (module === MODULE.ID && key === 'partyLeader') {
+                // Refresh the toolbar when party leader changes
+                ui.controls.render();
+            }
+            // --- END - HOOKMANAGER CALLBACK ---
         }
     });
     
