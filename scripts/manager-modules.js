@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 
 export class ModuleManager {
     static registeredModules = new Map();

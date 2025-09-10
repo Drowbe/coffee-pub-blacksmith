@@ -57,7 +57,7 @@ VoteManager    (uses)
 
 // KEEP only essential imports
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 ```
 
 ### **Step 2: Refactor to Event-Driven Architecture**

@@ -115,7 +115,7 @@ This document outlines the **completed migration** from the complex COFFEEPUB ho
 - [ ] Auto-generate icon constants from data collections
 
 #### 3.2 Replace Manual COFFEEPUB Definition
-- [ ] Remove manual COFFEEPUB object from `api-common.js`
+- [ ] Remove manual COFFEEPUB object from `api-core.js`
 - [ ] Replace with auto-generated version
 - [ ] Verify all existing constants still exist
 - [ ] Verify all existing code still works

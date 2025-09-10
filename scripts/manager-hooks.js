@@ -3,7 +3,7 @@
  * Registers hooks and provides cleanup - no business logic
  */
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 
 export class HookManager {
     static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }

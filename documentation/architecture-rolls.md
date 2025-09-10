@@ -598,7 +598,7 @@ const useBlacksmithSystem = game.settings.get(MODULE.ID, 'diceRollToolSystem') =
 - `scripts/blacksmith.js` - GM roll processing and group calculations
 
 ### Supporting Files
-- `scripts/api-common.js` - Logging and utilities
+- `scripts/api-core.js` - Logging and utilities
 - `scripts/const.js` - Constants and configuration
 - `scripts/settings.js` - User preferences
 - `styles/window-roll-cinematic.css` - Cinema mode styling

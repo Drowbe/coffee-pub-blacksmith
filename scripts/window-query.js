@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, trimString } from './api-common.js';
+import { postConsoleAndNotification, playSound, trimString } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { getCachedTemplate } from './blacksmith.js';

@@ -25,7 +25,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
 // get the common utilities
-import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './api-common.js';
+import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './api-core.js';
 // Import template caching function
 import { getCachedTemplate } from './blacksmith.js';
 

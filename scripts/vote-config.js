@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { VoteManager } from "./vote-manager.js";
 import { ChatPanel } from "./chat-panel.js";
 

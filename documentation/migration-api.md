@@ -15,7 +15,7 @@ These are the most common pitfalls external modules hit when integrating:
 - **Settings not working properly**
 
 **The solutions are documented below, but the key points are:**
-1. **NEVER import COFFEEPUB** from api-common.js - it will break the new system
+1. **NEVER import COFFEEPUB** from api-core.js - it will break the new system
 2. **Follow the established naming conventions** for constants
 3. **Avoid duplicate entries** in data collections
 4. **Handle timing issues** with constants generation
@@ -33,7 +33,7 @@ These are the most common pitfalls external modules hit when integrating:
 - [ ] Test constants availability before using them
 
 ### **❌ What NOT to DO:**
-- [ ] Import COFFEEPUB from api-common.js
+- [ ] Import COFFEEPUB from api-core.js
 - [ ] Create duplicate constants for the same files
 - [ ] Use non-standard naming conventions
 - [ ] Assume constants are available during initialization
@@ -41,7 +41,7 @@ These are the most common pitfalls external modules hit when integrating:
 
 ## **🚨 What Changed (For Integrators)**
 
-### **Old System (api-common.js)**
+### **Old System (api-core.js)**
 - **Hardcoded constants** scattered throughout the file
 - **Timing issues** - constants might not be available when needed
 - **Difficult maintenance** - adding new assets required manual updates
@@ -122,7 +122,7 @@ playSound(randomErrorSound.path, randomErrorSound.volume);
 
 **Old way (manual):**
 ```javascript
-// Add to api-common.js
+// Add to api-core.js
 export const SOUNDNEWSOUND = "modules/coffee-pub-blacksmith/sounds/new-sound.mp3";
 ```
 
@@ -274,7 +274,7 @@ BlacksmithAPIAssetLookup();
 ## **⚠️ CRITICAL: Migration Issues We Encountered & How to Avoid Them**
 
 ### **Issue 1: Import Conflicts Causing Undefined Constants**
-**What Happened:** Multiple files were importing `COFFEEPUB` from `api-common.js`, which was overriding the new system's constants.
+**What Happened:** Multiple files were importing `COFFEEPUB` from `api-core.js`, which was overriding the new system's constants.
 
 **Symptoms:**
 - `COFFEEPUB.SOUNDNOTIFICATION01` returns `undefined`
@@ -286,7 +286,7 @@ BlacksmithAPIAssetLookup();
 **How to Avoid:**
 ```javascript
 // ❌ DON'T DO THIS - This will break the new system
-import { COFFEEPUB } from './api-common.js';
+import { COFFEEPUB } from './api-core.js';
 
 // ✅ DO THIS INSTEAD - Use the global constants directly
 // COFFEEPUB is automatically available via window.COFFEEPUB
@@ -294,7 +294,7 @@ const sound = COFFEEPUB.SOUNDNOTIFICATION01;
 ```
 
 **Files That Need Updating (in your module):**
-- Remove `import { COFFEEPUB } from './api-common.js';` (do not import COFFEEPUB)
+- Remove `import { COFFEEPUB } from './api-core.js';` (do not import COFFEEPUB)
 - Use `COFFEEPUB.X` or `window.COFFEEPUB?.X` directly
 
 ### **Issue 2: Duplicate Constants in Data Collections**
@@ -365,7 +365,7 @@ Hooks.once('ready', () => {
 - [ ] **Test all major features** to ensure no regressions
 
 ### **Short Term (Next Few Sessions):**
-- [ ] **Comment out old constants** in `api-common.js`
+- [ ] **Comment out old constants** in `api-core.js`
 - [ ] **Verify new system handles everything**
 - [ ] **Update any remaining hardcoded references**
 

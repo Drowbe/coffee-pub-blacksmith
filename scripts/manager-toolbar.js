@@ -1,10 +1,10 @@
 import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
-import { postConsoleAndNotification, getSettingSafely } from './api-common.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 // Tool management will be handled directly in this file
 // -- Global utilities --
-import { rollCoffeePubDice, playSound } from './api-common.js';
+import { rollCoffeePubDice, playSound } from './api-core.js';
 
 // ================================================================== 
 // ===== TOOL MANAGEMENT ===========================================

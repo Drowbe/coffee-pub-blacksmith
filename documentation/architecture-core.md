@@ -93,7 +93,7 @@ This document outlines the technical architecture and design decisions for the C
 ```json
 "esmodules": [
     "scripts/const.js",           // Module constants
-    "scripts/api-common.js",      // Global utilities
+    "scripts/api-core.js",      // Global utilities
     "scripts/settings.js",        // Settings management
     "scripts/blacksmith.js"       // Main module file
 ]
@@ -101,7 +101,7 @@ This document outlines the technical architecture and design decisions for the C
 
 ### **Import Chain Management**
 ```
-const.js → api-common.js → settings.js → blacksmith.js
+const.js → api-core.js → settings.js → blacksmith.js
     ↓           ↓            ↓           ↓
 Constants → Utilities → Settings → Main Module
     ↓           ↓            ↓           ↓

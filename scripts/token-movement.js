@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely } from './api-common.js';
+import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ChatPanel } from "./chat-panel.js";
 import { HookManager } from './manager-hooks.js';

@@ -4,7 +4,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, playSound } from './api-common.js';
+import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 /**

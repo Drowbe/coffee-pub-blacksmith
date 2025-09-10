@@ -11,7 +11,7 @@ import {
     registerBlacksmithUpdatedHook, 
     resetModuleSettings, 
     getOpenAIReplyAsHtml
-} from './api-common.js';
+} from './api-core.js';
 // -- Global utilities --
 import { 
     postConsoleAndNotification, 
@@ -28,7 +28,7 @@ import {
     toSentenceCase, 
     convertSecondsToRounds, 
     getSettingSafely
-} from './api-common.js';
+} from './api-core.js';
 // -- Common Imports --
 import { 
     createJournalEntry, 

@@ -7,7 +7,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 // COFFEEPUB now available globally via window.COFFEEPUB
 // -- Load the shared GLOBAL functions --
-import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-common.js';
+import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 

@@ -3,8 +3,8 @@
 ## CRITICAL ISSUES (High Severity)
 
 ### 1. 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (BLOCKING)
-- **Issue**: OpenAI functions exist in `api-common.js` but are NOT exposed via `module.api`
-- **Location**: `scripts/api-common.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
+- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
+- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
 - **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration
 - **Status**: 🚨 CRITICAL - BLOCKING EXTERNAL MODULE INTEGRATION
 - **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`

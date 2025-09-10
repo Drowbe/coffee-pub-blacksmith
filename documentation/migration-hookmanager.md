@@ -53,7 +53,7 @@
 15. `token-movement.js` - 4 hooks
 16. `chat-panel.js` - 1 hook
 17. `xp-manager.js` - 3 hooks
-18. `api-common.js` - 1 hook
+18. `api-core.js` - 1 hook
 19. `latency-checker.js` - 1 hook
 20. `manager-canvas.js` - 7 hooks
 

@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-common.js';
+import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-core.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
@@ -1526,7 +1526,7 @@ export class SkillCheckDialog extends Application {
             if (chatMessage) {
                 // Execute the roll directly using the new 4-function system
                 const { processRoll, deliverRollResults } = await import('./manager-rolls.js');
-                const { postConsoleAndNotification } = await import('./api-common.js');
+                const { postConsoleAndNotification } = await import('./api-core.js');
                 const { MODULE } = await import('./const.js');
                 
                 // Prepare roll data for execution

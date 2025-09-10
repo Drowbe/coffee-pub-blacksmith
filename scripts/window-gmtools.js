@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 
 export class CSSEditor extends FormApplication {

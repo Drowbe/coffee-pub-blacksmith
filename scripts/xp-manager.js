@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound } from './api-common.js';
+import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 export class XpManager {
