@@ -1680,19 +1680,9 @@ export const registerSettings = async () => {
 
 
 
-	game.settings.register(MODULE.ID, 'tokenImageReplacementRefreshCache', {
-		name: 'Refresh Cache on Next Load',
-		hint: 'Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementClearCache', {
-		name: 'Clear Cache on Next Load',
-		hint: 'Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.',
+	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
+		name: 'Automatically Update Image Cache',
+		hint: 'Automatically scan for new or changed token images when changes are detected.',
 		type: Boolean,
 		config: true,
 		requiresReload: false,

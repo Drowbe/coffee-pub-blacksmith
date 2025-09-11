@@ -21,23 +21,25 @@
         </div>
         <!-- SCANNING PROGRESS -->
         {{#if isScanning}}
-            <div class="tir-scan-progress">
-                <div class="tir-progress-bar">
-                    <div class="tir-progress-fill" style="width: {{scanProgressPercentage}}%"></div>
-                    <div class="tir-progress-text">
-                        <i class="fas fa-sync-alt fa-spin"></i>
-                        <span class="tir-progress-total">{{#if scanTotal}}{{scanProgress}} of {{scanTotal}} scanned{{else}}Initializing...{{/if}}</span>
-                        | <span class="tir-progress-details">{{scanStatusText}}</span>
-                    </div>
-                </div>
-            </div>
+            <!-- OVERALL PROGRESS -->
             <div class="tir-scan-progress">
                 <div class="tir-progress-bar">
                     <div class="tir-progress-fill" style="width: {{overallProgressPercentage}}%"></div>
                     <div class="tir-progress-text">
                         <i class="fas fa-sync-alt fa-spin"></i>
-                        <span class="tir-progress-total">{{#if totalSteps}}Step {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span>
-                        | <span class="tir-progress-details">{{currentStepName}}</span>
+                        <span class="tir-progress-total">{{#if totalSteps}}Step {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span> | <span class="tir-progress-details">{{currentStepName}}</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Current Step PROGRESS -->
+            <div class="tir-scan-progress">
+                <div class="tir-progress-bar">
+                    <div class="tir-progress-fill" style="width: {{currentStepProgressPercentage}}%"></div>
+                    <div class="tir-progress-text">
+                        <i class="fas fa-sync-alt fa-spin"></i>
+                        <span class="tir-progress-total">{{#if currentStepTotal}}{{currentStepProgress}} of {{currentStepTotal}}{{else}}Initializing...{{/if}}</span>
+                        {{#if currentPath}} | <span class="tir-progress-details">{{currentPath}}</span>{{/if}}
+                        {{#if currentFileName}} | <span class="tir-progress-file">{{currentFileName}}</span>{{/if}}
                     </div>
                 </div>
             </div>
@@ -57,8 +59,11 @@
                 <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups.">
                     <i class="fas fa-pause"></i> Pause Scan
                 </button>
-                <button class="button-refresh-cache" data-tooltip="Refresh Image Cache: This will refresh the entire image cache and can take a while to complete.">
-                    <i class="fas fa-sync-alt"></i> Refresh Cache
+                <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images.">
+                    <i class="fas fa-search"></i> Scan for Images
+                </button>
+                <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data.">
+                    <i class="fas fa-trash"></i> Delete Cache
                 </button>
                 |
                 <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection">
@@ -98,12 +103,27 @@
                 </div>
                 {{/each}}
             {{else}}
+                <!-- Show current token image even when no matches -->
+                {{#if selectedToken}}
+                <div class="tir-thumbnail-item tir-current-image" data-image-path="{{selectedToken.document.texture.src}}" data-image-name="Current Image">
+                    <div class="tir-thumbnail-image">
+                        <img src="{{selectedToken.document.texture.src}}" alt="Current Image" loading="lazy">
+                        <div class="tir-thumbnail-current-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                    <div class="tir-thumbnail-name">Current Image</div>
+                </div>
+                {{/if}}
+                
+                <!-- Show "No Matches" message -->
                 <div class="tir-thumbnail-item tir-no-matches">
                     <div class="tir-no-matches-icon">
                         <i class="fas fa-search"></i>
                     </div>
                     <div class="tir-no-matches-text">
-                        <p>No matches found</p>
+                        <p>No Matches</p>
+                        <p>No alternative images found for this token</p>
                     </div>
                 </div>
             {{/if}}

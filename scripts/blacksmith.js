@@ -299,17 +299,7 @@ Hooks.once('ready', async () => {
         // Initialize CanvasTools
         CanvasTools.initialize();
         
-        // Handle cache management settings BEFORE initializing TokenImageReplacement (GM only)
-        if (game.user.isGM) {
-            // Reset cache settings first to prevent unnecessary rescans
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Resetting cache settings before initialization", "", false, false);
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
-            
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
-            await handleCacheManagementSettings();
-        }
+        // No longer needed - cache management is now handled by the new simplified system
 
         // Initialize TokenImageReplacement (GM only)
         if (game.user.isGM) {
@@ -2187,58 +2177,7 @@ const renderItemDirectoryHookId = HookManager.registerHook({
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderItemDirectory", "blacksmith-item-directory", true, false);
 
-/**
- * Handle cache management settings on module load
- */
-async function handleCacheManagementSettings() {
-    // Only GMs should handle cache management
-    if (!game.user.isGM) {
-        return;
-    }
-    
-    try {
-        // Check if refresh cache is requested
-        const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
-        
-        if (shouldRefresh) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Refresh cache requested, executing...", "", false, false);
-            
-            // Execute the refresh
-            try {
-                const { TokenImageReplacement } = await import('./token-image-replacement.js');
-                if (TokenImageReplacement.forceRefreshCache) {
-                    await TokenImageReplacement.forceRefreshCache();
-                } else {
-                }
-            } catch (error) {
-            }
-        }
-
-        // Check if clear cache is requested
-        const shouldClear = game.settings.get(MODULE.ID, 'tokenImageReplacementClearCache');
-        
-        if (shouldClear) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Clear cache requested, executing...", "", false, false);
-            
-            // Execute the clear
-            try {
-                const { TokenImageReplacement } = await import('./token-image-replacement.js');
-                if (TokenImageReplacement._clearCacheFromStorage) {
-                    TokenImageReplacement._clearCacheFromStorage();
-                } else {
-                }
-            } catch (error) {
-            }
-        }
-
-        // Settings are now reset before initialization, no need to reset again here
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache settings handled", "", false, false);
-        
-    } catch (error) {
-        console.error("handleCacheManagementSettings: Error occurred:", error);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error handling cache settings: ${error.message}`, "", true, false);
-    }
-}
+// Removed obsolete handleCacheManagementSettings function - cache management is now handled by the simplified system
 
 // ================================================================== 
 // ===== WINDOW-QUERY PARTIAL REGISTRATION ==========================

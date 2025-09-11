@@ -55,14 +55,20 @@ export class TokenImageReplacementWindow extends Application {
             scanTotal: this.scanTotal,
             scanProgressPercentage: progressPercentage,
             scanStatusText: this.scanStatusText || "Scanning Token Images...",
-            hasMatches: this.matches.length > 0,
+            hasMatches: this.matches.length > 1, // More than just the current image
+            hasAlternatives: this.matches.some(match => !match.isCurrent),
             notificationIcon: this.notificationIcon,
             notificationText: this.notificationText,
             hasNotification: !!(this.notificationIcon && this.notificationText),
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
             overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
-            currentStepName: TokenImageReplacement.cache.currentStepName
+            currentStepName: TokenImageReplacement.cache.currentStepName,
+            currentStepProgress: TokenImageReplacement.cache.currentStepProgress,
+            currentStepTotal: TokenImageReplacement.cache.currentStepTotal,
+            currentStepProgressPercentage: TokenImageReplacement.cache.currentStepTotal > 0 ? Math.round((TokenImageReplacement.cache.currentStepProgress / TokenImageReplacement.cache.currentStepTotal) * 100) : 0,
+            currentPath: TokenImageReplacement.cache.currentPath,
+            currentFileName: TokenImageReplacement.cache.currentFileName
         };
     }
 
@@ -98,8 +104,11 @@ export class TokenImageReplacementWindow extends Application {
         // Pause cache button
         html.find('.button-pause-cache').on('click', this._onPauseCache.bind(this));
         
-        // Refresh button
-        html.find('.button-refresh-cache').on('click', this._onRefreshCache.bind(this));
+        // Scan images button
+        html.find('.button-scan-images').on('click', this._onScanImages.bind(this));
+        
+        // Delete cache button
+        html.find('.button-delete-cache').on('click', this._onDeleteCache.bind(this));
         
         // Refresh detection button
         html.find('.refresh-detection-btn').on('click', this._onRefreshDetection.bind(this));
@@ -221,20 +230,41 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
-    async _onRefreshCache() {
+    async _onScanImages() {
         this.isScanning = true;
         this.scanProgress = 0;
         this.scanTotal = 0;
         this.render();
 
         try {
-            await TokenImageReplacement.forceRefreshCache();
-            ui.notifications.info("Cache refresh completed");
+            await TokenImageReplacement.scanForImages();
+            ui.notifications.info("Image scan completed");
         } catch (error) {
-            ui.notifications.error(`Cache refresh failed: ${error.message}`);
+            ui.notifications.error(`Image scan failed: ${error.message}`);
         } finally {
             this.isScanning = false;
             this.render();
+        }
+    }
+
+    async _onDeleteCache() {
+        // Show confirmation dialog
+        const confirmed = await Dialog.confirm({
+            title: "Delete Cache",
+            content: "<p>Are you sure you want to delete the entire token image cache?</p><p><strong>This action cannot be undone.</strong></p>",
+            yes: () => true,
+            no: () => false,
+            defaultYes: false
+        });
+
+        if (confirmed) {
+            try {
+                await TokenImageReplacement.deleteCache();
+                ui.notifications.info("Cache deleted successfully");
+                this.render();
+            } catch (error) {
+                ui.notifications.error(`Failed to delete cache: ${error.message}`);
+            }
         }
     }
 
@@ -326,7 +356,11 @@ export class TokenImageReplacement {
         totalFiles: 0,             // total count for progress tracking
         overallProgress: 0,        // current step in overall process
         totalSteps: 0,             // total steps in overall process
-        currentStepName: ''        // name of current step/folder
+        currentStepName: '',       // name of current step/folder
+        currentStepProgress: 0,    // current item in current step
+        currentStepTotal: 0,       // total items in current step
+        currentPath: '',           // remaining folder path (e.g., "Creatures | Humanoid")
+        currentFileName: ''        // current file being processed
     };
     
     // Supported image formats
@@ -394,7 +428,8 @@ export class TokenImageReplacement {
                 game.TokenImageReplacement.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);
                 game.TokenImageReplacement.forceCleanupInvalidPaths = this.forceCleanupInvalidPaths.bind(this);
                 game.TokenImageReplacement.isScanning = this.isScanning.bind(this);
-                game.TokenImageReplacement.forceRefreshCache = this.forceRefreshCache.bind(this);
+                game.TokenImageReplacement.scanForImages = this.scanForImages.bind(this);
+                game.TokenImageReplacement.deleteCache = this.deleteCache.bind(this);
                 game.TokenImageReplacement.pauseCache = this.pauseCache.bind(this);
                 game.TokenImageReplacement.openWindow = this.openWindow.bind(this);
             }
@@ -460,24 +495,51 @@ export class TokenImageReplacement {
     }
     
     /**
-     * Force stop current scan and start a new one
+     * Scan for images and update the cache (non-destructive)
      */
-    static async forceRefreshCache() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
+    static async scanForImages() {
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scanning for images...", "", false, false);
         
         if (this.cache.isScanning) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Stopping current scan and starting fresh...", "", false, false);
             this.cache.isScanning = false; // Stop current scan
         }
         
-        // Reset pause state when refreshing
+        // Reset pause state when scanning
         this.cache.isPaused = false;
         
-        this._clearCacheFromStorage();
         const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
+    }
+    
+    /**
+     * Delete the entire cache
+     */
+    static async deleteCache() {
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Deleting cache...", "", false, false);
+        
+        // Stop any ongoing scan
+        if (this.cache.isScanning) {
+            this.cache.isScanning = false;
+        }
+        
+        // Clear memory cache
+        this.cache.files.clear();
+        this.cache.folders.clear();
+        this.cache.creatureTypes.clear();
+        this.cache.lastScan = null;
+        this.cache.totalFiles = 0;
+        this.cache.isPaused = false;
+        
+        // Clear persistent storage
+        this._clearCacheFromStorage();
+        
+        // Update status
+        this._updateCacheStatusSetting();
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache deleted successfully", "", false, false);
     }
     
     /**
@@ -579,9 +641,20 @@ export class TokenImageReplacement {
             return;
         }
         
-        // Start background scan if no valid cache found
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No valid cache found, starting full scan...", "", false, false);
-        await this._scanFolderStructure(basePath);
+        // No cache found - show appropriate notification
+        const autoUpdate = game.settings.get(MODULE.ID, 'tokenImageReplacementAutoUpdate');
+        if (autoUpdate) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache found, starting automatic scan...", "", false, false);
+            ui.notifications.info("No Token Image Replacement images found. Scanning for images.");
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache found, manual scan needed", "", false, false);
+            ui.notifications.info("No Token Image Replacement images found. You need to scan for images before replacements will work.");
+        }
+        
+        // Start background scan if no valid cache found and auto-update is enabled
+        if (autoUpdate) {
+            await this._scanFolderStructure(basePath);
+        }
         
         // Log final cache status
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache initialization completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
@@ -786,7 +859,29 @@ export class TokenImageReplacement {
             if (response.files && response.files.length > 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in ${subDir}`, "", false, false);
                 
-                for (const filePath of response.files) {
+                // Update progress tracking for current step
+                this.cache.currentStepTotal = response.files.length;
+                this.cache.currentStepProgress = 0;
+                
+                // Build the current path for display
+                const pathParts = subDir.replace(basePath + '/', '').split('/');
+                this.cache.currentPath = pathParts.join(' | ');
+                
+                for (let i = 0; i < response.files.length; i++) {
+                    const filePath = response.files[i];
+                    const fileName = filePath.split('/').pop();
+                    
+                    // Update current file being processed
+                    this.cache.currentStepProgress = i + 1;
+                    this.cache.currentFileName = fileName;
+                    
+                    // Update window with detailed progress
+                    if (this.window && this.window.updateScanProgress) {
+                        this.window.updateScanProgress(i + 1, response.files.length, `${this.cache.currentPath} | ${i + 1} of ${response.files.length} | ${fileName}`);
+                        // Small delay to make progress visible
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                    
                     const fileInfo = await this._processFileInfo(filePath, basePath);
                     if (fileInfo) {
                         files.push(fileInfo);
@@ -1637,11 +1732,18 @@ export class TokenImageReplacement {
                 return false;
             }
             
-            // Check for manual refresh request
-            const shouldRefresh = game.settings.get(MODULE.ID, 'tokenImageReplacementRefreshCache');
-            if (shouldRefresh) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Manual refresh requested, will rescan", "", false, false);
-                return false;
+            // Check if we need to update the cache
+            const autoUpdate = game.settings.get(MODULE.ID, 'tokenImageReplacementAutoUpdate');
+            const needsUpdate = await this._checkForIncrementalUpdates(currentBasePath);
+            
+            if (needsUpdate && autoUpdate) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, updating cache automatically", "", false, false);
+                ui.notifications.info("Token Image Replacement changes detected: Updating token images.");
+                return false; // Will trigger update scan
+            } else if (needsUpdate && !autoUpdate) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", false, false);
+                ui.notifications.info("Token Image Replacement changes detected. You should scan for images to get the latest images.");
+                // Still load existing cache, just notify user
             }
             
             // Restore cache with debug logging for wildcard detection
