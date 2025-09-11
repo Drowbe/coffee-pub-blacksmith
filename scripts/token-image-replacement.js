@@ -17,6 +17,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
+        this._tokenSelectionHandler = this._onTokenSelectionChange.bind(this);
     }
 
     static get defaultOptions() {
@@ -34,6 +35,9 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     getData() {
+        // Automatically detect the currently selected token
+        this._detectSelectedToken();
+        
         return {
             selectedToken: this.selectedToken,
             matches: this.matches,
@@ -44,12 +48,22 @@ export class TokenImageReplacementWindow extends Application {
         };
     }
 
+    _detectSelectedToken() {
+        // Get the first selected token (if multiple are selected)
+        const selectedTokens = canvas.tokens.controlled;
+        if (selectedTokens.length > 0) {
+            this.selectedToken = selectedTokens[0];
+            // Automatically find matches for the selected token
+            this._findMatches();
+        } else {
+            this.selectedToken = null;
+            this.matches = [];
+        }
+    }
+
     activateListeners(html) {
         super.activateListeners(html);
 
-        // Token selection
-        html.find('.token-select-btn').on('click', this._onSelectToken.bind(this));
-        
         // Thumbnail clicks
         html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
         
@@ -60,23 +74,11 @@ export class TokenImageReplacementWindow extends Application {
         html.find('.close-btn').on('click', this._onClose.bind(this));
     }
 
-    async _onSelectToken(event) {
-        const token = canvas.tokens.controlled[0];
-        if (!token) {
-            ui.notifications.warn("Please select a token first");
-            return;
-        }
 
-        this.selectedToken = token;
-        await this._findMatches();
-        this.render();
-    }
-
-    async _findMatches() {
+    _findMatches() {
         if (!this.selectedToken) return;
 
         this.matches = [];
-        this.render();
 
         // Find matching images
         const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
@@ -98,8 +100,6 @@ export class TokenImageReplacementWindow extends Application {
 
             this.matches = alternatives;
         }
-
-        this.render();
     }
 
     async _onSelectImage(event) {
@@ -154,6 +154,28 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
+        this.render();
+    }
+
+    async render(force = false, options = {}) {
+        const result = await super.render(force, options);
+        
+        // Listen for token selection changes
+        if (this.rendered) {
+            canvas.tokens.on('control', this._tokenSelectionHandler);
+        }
+        
+        return result;
+    }
+
+    async close(options = {}) {
+        // Remove token selection listener
+        canvas.tokens.off('control', this._tokenSelectionHandler);
+        return super.close(options);
+    }
+
+    _onTokenSelectionChange() {
+        // Re-render when token selection changes
         this.render();
     }
 }
