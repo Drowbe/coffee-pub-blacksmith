@@ -140,44 +140,58 @@ div#token-replacement-window .window-content {
 
 /* Content */
 .tir-content {
-    display: flex;
     flex: 1;
-    gap: 0;
+    padding: 20px;
     min-height: 400px;
 }
 
-/* Column Styles */
-.tir-column {
-    flex: 1;
+/* Token Info Header */
+.tir-token-info-header {
     display: flex;
-    flex-direction: column;
-    border-right: 1px solid #444;
-}
-
-.tir-column:last-child {
-    border-right: none;
-}
-
-/* Column Headers */
-.tir-column-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    gap: 15px;
+    padding: 15px;
     background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid #444;
+    border: 1px solid #444;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
-.tir-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.tir-token-preview-small {
+    flex-shrink: 0;
+}
+
+.tir-token-image-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    border: 2px solid #4CAF50;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tir-token-details {
+    flex: 1;
+}
+
+.tir-token-name {
+    font-size: 1.2em;
     font-weight: bold;
-    color: #4CAF50;
-    font-size: 1.1em;
+    color: #fff;
+    margin-bottom: 4px;
 }
 
-.tir-header-right {
+.tir-token-type {
+    color: #4CAF50;
+    font-size: 0.9em;
+    background: rgba(76, 175, 80, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.tir-header-actions {
     display: flex;
     gap: 8px;
 }
@@ -266,10 +280,9 @@ div#token-replacement-window .window-content {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 15px;
-    padding: 20px;
     flex: 1;
     overflow-y: auto;
-    max-height: 400px;
+    max-height: 500px;
 }
 
 .tir-thumbnail-item {
@@ -325,6 +338,30 @@ div#token-replacement-window .window-content {
 .tir-thumbnail-overlay i {
     color: white;
     font-size: 1.5em;
+}
+
+/* Current Image Badge */
+.tir-thumbnail-current-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+.tir-current-image {
+    border-color: #4CAF50 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
 }
 
 .tir-thumbnail-name {

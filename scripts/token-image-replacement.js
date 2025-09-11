@@ -35,9 +35,6 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     getData() {
-        // Automatically detect the currently selected token
-        this._detectSelectedToken();
-        
         return {
             selectedToken: this.selectedToken,
             matches: this.matches,
@@ -50,12 +47,22 @@ export class TokenImageReplacementWindow extends Application {
 
     _detectSelectedToken() {
         // Get the first selected token (if multiple are selected)
-        const selectedTokens = canvas.tokens.controlled;
+        console.log('Token Image Replacement: Canvas available:', !!canvas);
+        console.log('Token Image Replacement: Canvas tokens available:', !!canvas?.tokens);
+        console.log('Token Image Replacement: Canvas tokens controlled:', canvas?.tokens?.controlled);
+        
+        const selectedTokens = canvas?.tokens?.controlled || [];
+        console.log('Token Image Replacement: Detecting tokens. Found:', selectedTokens.length);
+        
         if (selectedTokens.length > 0) {
             this.selectedToken = selectedTokens[0];
+            console.log('Token Image Replacement: Selected token:', this.selectedToken.name);
+            console.log('Token Image Replacement: Selected token document:', this.selectedToken.document);
+            console.log('Token Image Replacement: Selected token texture:', this.selectedToken.texture?.src);
             // Automatically find matches for the selected token
             this._findMatches();
         } else {
+            console.log('Token Image Replacement: No tokens selected');
             this.selectedToken = null;
             this.matches = [];
         }
@@ -70,6 +77,9 @@ export class TokenImageReplacementWindow extends Application {
         // Refresh button
         html.find('.refresh-cache-btn').on('click', this._onRefreshCache.bind(this));
         
+        // Refresh detection button
+        html.find('.refresh-detection-btn').on('click', this._onRefreshDetection.bind(this));
+        
         // Close button
         html.find('.close-btn').on('click', this._onClose.bind(this));
     }
@@ -80,11 +90,23 @@ export class TokenImageReplacementWindow extends Application {
 
         this.matches = [];
 
+        // Add current token image as the first match with special indicator
+        const currentImage = {
+            name: "Current Image",
+            fullPath: this.selectedToken.texture.src,
+            isCurrent: true
+        };
+        this.matches.push(currentImage);
+
         // Find matching images
         const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
         
         if (matchingImage) {
-            this.matches = [matchingImage];
+            // Add the automatic match if it's different from current
+            if (matchingImage.fullPath !== this.selectedToken.texture.src) {
+                matchingImage.isCurrent = false;
+                this.matches.push(matchingImage);
+            }
         } else {
             // If no automatic match, show some alternatives
             const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
@@ -96,9 +118,14 @@ export class TokenImageReplacementWindow extends Application {
                 return searchTerms.some(term => 
                     term && term.length > 2 && fileName.includes(term.toLowerCase())
                 );
-            }).slice(0, 12); // Show up to 12 alternatives
+            }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
 
-            this.matches = alternatives;
+            // Mark alternatives as not current
+            alternatives.forEach(alt => {
+                alt.isCurrent = false;
+            });
+
+            this.matches.push(...alternatives);
         }
     }
 
@@ -107,6 +134,12 @@ export class TokenImageReplacementWindow extends Application {
         const imageName = event.currentTarget.dataset.imageName;
         
         if (!this.selectedToken || !imagePath) return;
+
+        // Don't apply the same image that's already current
+        if (imagePath === this.selectedToken.texture.src) {
+            ui.notifications.info("This is already the current image");
+            return;
+        }
 
         try {
             await this.selectedToken.document.update({
@@ -137,6 +170,12 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
+    _onRefreshDetection() {
+        console.log('Token Image Replacement: Manual refresh detection triggered');
+        this._detectSelectedToken();
+        this.render();
+    }
+
     _onClose() {
         this.close();
     }
@@ -158,6 +197,9 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async render(force = false, options = {}) {
+        // Detect selected token before rendering
+        this._detectSelectedToken();
+        
         const result = await super.render(force, options);
         
         // Listen for token selection changes

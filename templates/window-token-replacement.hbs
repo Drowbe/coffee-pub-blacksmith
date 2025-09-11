@@ -31,67 +31,39 @@
     {{/if}}
     
     <div class="tir-content">
-        <!-- Left Column -->
-        <div class="tir-column">
-            <div class="tir-column-header">
-                <div class="tir-header-left">
-                    <i class="fas fa-user-circle"></i> Selected Token
+        {{#if selectedToken}}
+            <!-- Token Info Header -->
+            <div class="tir-token-info-header">
+                <div class="tir-token-preview-small">
+                    <img src="{{selectedToken.texture.src}}" alt="{{selectedToken.name}}" class="tir-token-image-small">
                 </div>
-            </div>
-
-            {{#if selectedToken}}
-                <div class="tir-token-display">
-                    <div class="tir-token-preview">
-                        <img src="{{selectedToken.texture.src}}" alt="{{selectedToken.name}}" class="tir-token-image">
-                    </div>
-                    <div class="tir-token-info">
-                        <div class="tir-token-name">{{selectedToken.name}}</div>
-                        <div class="tir-token-details">
-                            <span class="tir-token-type">{{selectedToken.actor.type}}</span>
-                            {{#if selectedToken.actor.system.details.level}}
-                                <span class="tir-token-level">Level {{selectedToken.actor.system.details.level}}</span>
-                            {{/if}}
-                        </div>
-                        <div class="tir-token-current">
-                            <small>Current: {{selectedToken.texture.src}}</small>
-                        </div>
-                    </div>
+                <div class="tir-token-details">
+                    <div class="tir-token-name">{{selectedToken.name}}</div>
+                    <div class="tir-token-type">{{selectedToken.actor.type}}</div>
                 </div>
-            {{else}}
-                <div class="tir-no-token">
-                    <div class="tir-no-token-icon">
-                        <i class="fas fa-user-slash"></i>
-                    </div>
-                    <div class="tir-no-token-text">
-                        <p>No token selected</p>
-                        <p>Select a token on the canvas to view replacement options</p>
-                    </div>
-                </div>
-            {{/if}}
-        </div>
-
-        <!-- Right Column -->
-        <div class="tir-column">
-            <div class="tir-column-header">
-                <div class="tir-header-left">
-                    <i class="fas fa-images"></i> Image Matches
-                </div>
-                <div class="tir-header-right">
+                <div class="tir-header-actions">
                     <button class="tir-button tir-button-secondary refresh-cache-btn" title="Refresh Image Cache">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </div>
 
+            <!-- Image Grid -->
             {{#if hasMatches}}
                 <div class="tir-thumbnails-grid">
                     {{#each matches}}
-                    <div class="tir-thumbnail-item" data-image-path="{{fullPath}}" data-image-name="{{name}}">
+                    <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" data-image-name="{{name}}">
                         <div class="tir-thumbnail-image">
                             <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
+                            {{#if isCurrent}}
+                            <div class="tir-thumbnail-current-badge">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            {{else}}
                             <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
                             </div>
+                            {{/if}}
                         </div>
                         <div class="tir-thumbnail-name">{{name}}</div>
                     </div>
@@ -108,7 +80,20 @@
                     </div>
                 </div>
             {{/if}}
-        </div>
+        {{else}}
+            <div class="tir-no-token">
+                <div class="tir-no-token-icon">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <div class="tir-no-token-text">
+                    <p>No token selected</p>
+                    <p>Select a token on the canvas to view replacement options</p>
+                    <button class="tir-button tir-button-primary refresh-detection-btn" style="margin-top: 15px;">
+                        <i class="fas fa-sync-alt"></i> Refresh Detection
+                    </button>
+                </div>
+            </div>
+        {{/if}}
     </div>
     
     <!-- Footer -->
