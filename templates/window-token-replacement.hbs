@@ -3,7 +3,7 @@
     <div class="tir-header">
         <div class="tir-header-content">
             <div class="tir-header-icon">
-                <img src="{{selectedToken.texture.src}}" alt="{{selectedToken.name}}">
+                <img src="{{selectedToken.document.texture.src}}" alt="{{selectedToken.name}}">
             </div>
             <div class="tir-header-title">
                 <div class="tir-main-title">{{selectedToken.name}}</div>
@@ -46,6 +46,28 @@
             {{#if hasMatches}}
                 <div class="tir-thumbnails-grid">
                     {{#each matches}}
+                    {{#if isCacheLoading}}
+                    <div class="tir-thumbnail-item tir-status-message">
+                        <div class="tir-thumbnail-image">
+                            <i class="fas fa-sync-alt fa-spin"></i>
+                        </div>
+                        <div class="tir-thumbnail-name">{{name}}</div>
+                    </div>
+                    {{else if isNoCache}}
+                    <div class="tir-thumbnail-item tir-status-message">
+                        <div class="tir-thumbnail-image">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="tir-thumbnail-name">{{name}}</div>
+                    </div>
+                    {{else if isNoMatches}}
+                    <div class="tir-thumbnail-item tir-status-message">
+                        <div class="tir-thumbnail-image">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="tir-thumbnail-name">{{name}}</div>
+                    </div>
+                    {{else}}
                     <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" data-image-name="{{name}}">
                         <div class="tir-thumbnail-image">
                             <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
@@ -61,6 +83,7 @@
                         </div>
                         <div class="tir-thumbnail-name">{{name}}</div>
                     </div>
+                    {{/if}}
                     {{/each}}
                 </div>
             {{else}}

@@ -299,6 +299,18 @@ Hooks.once('ready', async () => {
         // Initialize CanvasTools
         CanvasTools.initialize();
         
+        // Handle cache management settings BEFORE initializing TokenImageReplacement (GM only)
+        if (game.user.isGM) {
+            // Reset cache settings first to prevent unnecessary rescans
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Resetting cache settings before initialization", "", false, false);
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
+            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
+            
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
+            await handleCacheManagementSettings();
+        }
+
         // Initialize TokenImageReplacement (GM only)
         if (game.user.isGM) {
             try {
@@ -307,19 +319,6 @@ Hooks.once('ready', async () => {
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageReplacement", error, true, false);
             }
-        }
-
-        // Handle cache management settings (GM only)
-        if (game.user.isGM) {
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to call handleCacheManagementSettings", "", false, false);
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: handleCacheManagementSettings function exists:", typeof handleCacheManagementSettings, false, false);
-            await handleCacheManagementSettings();
-            
-            // Always reset both cache settings to false after function completes
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: About to reset cache settings", "", false, false);
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
-            await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
-            postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Cache settings reset completed", "", false, false);
         }
 
 
@@ -2232,11 +2231,8 @@ async function handleCacheManagementSettings() {
             }
         }
 
-        // Always reset both settings to false, regardless of their current state
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementRefreshCache', false);
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementClearCache', false);
-        
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache settings reset to unchecked", "", false, false);
+        // Settings are now reset before initialization, no need to reset again here
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache settings handled", "", false, false);
         
     } catch (error) {
         console.error("handleCacheManagementSettings: Error occurred:", error);

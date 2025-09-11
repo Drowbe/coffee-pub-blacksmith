@@ -111,9 +111,27 @@ export class TokenImageReplacementWindow extends Application {
         };
         this.matches.push(currentImage);
 
-        // Only try to find alternatives if cache is ready
-        if (TokenImageReplacement.cache.files.size > 0) {
-            // Find matching images
+        // Check cache status and provide appropriate feedback
+        if (TokenImageReplacement.cache.isScanning) {
+            // Cache is currently scanning
+            this.matches.push({
+                name: 'Cache Loading...',
+                fullPath: '',
+                fileName: '',
+                isCurrent: false,
+                isCacheLoading: true
+            });
+        } else if (TokenImageReplacement.cache.files.size === 0) {
+            // Cache is empty/not ready
+            this.matches.push({
+                name: 'No Cache Available',
+                fullPath: '',
+                fileName: '',
+                isCurrent: false,
+                isNoCache: true
+            });
+        } else {
+            // Cache is ready - find alternatives
             const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
             
             if (matchingImage) {
@@ -140,10 +158,20 @@ export class TokenImageReplacementWindow extends Application {
                     alt.isCurrent = false;
                 });
 
-                this.matches.push(...alternatives);
+                if (alternatives.length > 0) {
+                    this.matches.push(...alternatives);
+                } else {
+                    // No matches found
+                    this.matches.push({
+                        name: 'No Matches Found',
+                        fullPath: '',
+                        fileName: '',
+                        isCurrent: false,
+                        isNoMatches: true
+                    });
+                }
             }
         }
-        // If cache not ready, just show current image - alternatives will be added when cache is ready
     }
 
     async _onSelectImage(event) {
