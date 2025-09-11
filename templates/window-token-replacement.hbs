@@ -1,24 +1,26 @@
-<div class="token-replacement-dialog">
-    {{!-- Unified Header --}}
-    {{> "partial-unified-header" 
-        diceIcon="fas fa-images"
-        mainTitle="Token Image Replacement"
-        subtitle="Replace Token Images • Browse Matches • Manual Selection"
-        rollMode="roll"
-        dcValue=""
-        isReadOnly=true
-        showToggles=false
-    }}
+<div class="token-replacement-window">
+    {{!-- Custom Header --}}
+    <div class="tir-header">
+        <div class="tir-header-content">
+            <div class="tir-header-icon">
+                <i class="fas fa-images"></i>
+            </div>
+            <div class="tir-header-title">
+                <div class="tir-main-title">Token Image Replacement</div>
+                <div class="tir-subtitle">Replace Token Images • Browse Matches • Manual Selection</div>
+            </div>
+        </div>
+    </div>
     
     {{#if isScanning}}
-    <div class="cpb-scan-progress">
-        <div class="cpb-progress-header">
+    <div class="tir-scan-progress">
+        <div class="tir-progress-header">
             <h3><i class="fas fa-sync-alt fa-spin"></i> Scanning Token Images...</h3>
         </div>
-        <div class="cpb-progress-bar">
-            <div class="cpb-progress-fill" style="width: {{#if scanTotal}}{{math scanProgress "*" 100 "/" scanTotal}}{{else}}0{{/if}}%"></div>
+        <div class="tir-progress-bar">
+            <div class="tir-progress-fill" style="width: {{#if scanTotal}}{{math scanProgress "*" 100 "/" scanTotal}}{{else}}0{{/if}}%"></div>
         </div>
-        <div class="cpb-progress-text">
+        <div class="tir-progress-text">
             {{#if scanTotal}}
                 {{scanProgress}} of {{scanTotal}} files scanned
             {{else}}
@@ -28,44 +30,43 @@
     </div>
     {{/if}}
     
-    <div class="cpb-dialog-content">
+    <div class="tir-content">
         <!-- Left Column -->
-        <div class="cpb-dialog-column">
-            <div class="cpb-column-header">
-                <div class="cpb-header-left">
+        <div class="tir-column">
+            <div class="tir-column-header">
+                <div class="tir-header-left">
                     <i class="fas fa-user-circle"></i> Selected Token
                 </div>
-                <div class="cpb-header-right"></div>
             </div>
 
             {{#if selectedToken}}
-                <div class="cpb-token-display">
-                    <div class="cpb-token-preview">
-                        <img src="{{selectedToken.texture.src}}" alt="{{selectedToken.name}}" class="cpb-token-image">
+                <div class="tir-token-display">
+                    <div class="tir-token-preview">
+                        <img src="{{selectedToken.texture.src}}" alt="{{selectedToken.name}}" class="tir-token-image">
                     </div>
-                    <div class="cpb-token-info">
-                        <div class="cpb-token-name">{{selectedToken.name}}</div>
-                        <div class="cpb-token-details">
-                            <span class="cpb-token-type">{{selectedToken.actor.type}}</span>
+                    <div class="tir-token-info">
+                        <div class="tir-token-name">{{selectedToken.name}}</div>
+                        <div class="tir-token-details">
+                            <span class="tir-token-type">{{selectedToken.actor.type}}</span>
                             {{#if selectedToken.actor.system.details.level}}
-                                <span class="cpb-token-level">Level {{selectedToken.actor.system.details.level}}</span>
+                                <span class="tir-token-level">Level {{selectedToken.actor.system.details.level}}</span>
                             {{/if}}
                         </div>
-                        <div class="cpb-token-current">
+                        <div class="tir-token-current">
                             <small>Current: {{selectedToken.texture.src}}</small>
                         </div>
                     </div>
                 </div>
             {{else}}
-                <div class="cpb-no-token">
-                    <div class="cpb-no-token-icon">
+                <div class="tir-no-token">
+                    <div class="tir-no-token-icon">
                         <i class="fas fa-user-slash"></i>
                     </div>
-                    <div class="cpb-no-token-text">
+                    <div class="tir-no-token-text">
                         <p>No token selected</p>
                         <p>Select a token on the canvas to view replacement options</p>
                     </div>
-                    <button class="cpb-button cpb-button-primary token-select-btn">
+                    <button class="tir-button tir-button-primary token-select-btn">
                         <i class="fas fa-mouse-pointer"></i> Select Current Token
                     </button>
                 </div>
@@ -73,38 +74,38 @@
         </div>
 
         <!-- Right Column -->
-        <div class="cpb-dialog-column">
-            <div class="cpb-column-header">
-                <div class="cpb-header-left">
+        <div class="tir-column">
+            <div class="tir-column-header">
+                <div class="tir-header-left">
                     <i class="fas fa-images"></i> Image Matches
                 </div>
-                <div class="cpb-header-right">
-                    <button class="cpb-button cpb-button-secondary refresh-cache-btn" title="Refresh Image Cache">
+                <div class="tir-header-right">
+                    <button class="tir-button tir-button-secondary refresh-cache-btn" title="Refresh Image Cache">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </div>
 
             {{#if hasMatches}}
-                <div class="cpb-thumbnails-grid">
+                <div class="tir-thumbnails-grid">
                     {{#each matches}}
-                    <div class="cpb-thumbnail-item" data-image-path="{{fullPath}}" data-image-name="{{name}}">
-                        <div class="cpb-thumbnail-image">
+                    <div class="tir-thumbnail-item" data-image-path="{{fullPath}}" data-image-name="{{name}}">
+                        <div class="tir-thumbnail-image">
                             <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
-                            <div class="cpb-thumbnail-overlay">
+                            <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
                             </div>
                         </div>
-                        <div class="cpb-thumbnail-name">{{name}}</div>
+                        <div class="tir-thumbnail-name">{{name}}</div>
                     </div>
                     {{/each}}
                 </div>
             {{else}}
-                <div class="cpb-no-matches">
-                    <div class="cpb-no-matches-icon">
+                <div class="tir-no-matches">
+                    <div class="tir-no-matches-icon">
                         <i class="fas fa-search"></i>
                     </div>
-                    <div class="cpb-no-matches-text">
+                    <div class="tir-no-matches-text">
                         <p>No matches found for this token</p>
                         <p>Try refreshing the cache or selecting a different token</p>
                     </div>
@@ -114,8 +115,8 @@
     </div>
     
     <!-- Footer -->
-    <div class="cpb-dialog-footer">
-        <button class="cpb-button cpb-button-secondary close-btn">
+    <div class="tir-footer">
+        <button class="tir-button tir-button-secondary close-btn">
             <i class="fas fa-times"></i> Close
         </button>
     </div>

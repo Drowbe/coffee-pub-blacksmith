@@ -29,7 +29,7 @@ export class TokenImageReplacementWindow extends Application {
             resizable: true,
             minimizable: true,
             maximizable: true,
-            classes: ['token-replacement-dialog', 'coffee-pub-blacksmith']
+            classes: ['token-replacement-window']
         });
     }
 
@@ -51,7 +51,7 @@ export class TokenImageReplacementWindow extends Application {
         html.find('.token-select-btn').on('click', this._onSelectToken.bind(this));
         
         // Thumbnail clicks
-        html.find('.cpb-thumbnail-item').on('click', this._onSelectImage.bind(this));
+        html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
         
         // Refresh button
         html.find('.refresh-cache-btn').on('click', this._onRefreshCache.bind(this));
