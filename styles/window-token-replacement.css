@@ -1,0 +1,353 @@
+/* Token Image Replacement Window Styles - Matching SkillCheck Design */
+:root {
+    --blacksmith-token-banner-image: url('../images/backgrounds/background-skull-red.webp');
+}
+
+/* Window Background */
+div#token-replacement-window {
+    min-height: 550px;
+    min-width: 800px;
+}
+
+.token-replacement-dialog.app {
+    min-width: 800px;
+    min-height: 650px;
+}
+
+/* Window Content */
+div#token-replacement-window .window-content {
+    opacity: 0.85;
+    padding: 0px;
+    background: #222222;
+    color: rgba(255, 47, 47, 1.0);
+}
+
+.token-replacement-dialog {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #232323;
+    border: 1px solid #444;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    font-family: "Signika", sans-serif;
+    color: #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Scan Progress Styles */
+.cpb-scan-progress {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px;
+    text-align: center;
+}
+
+.cpb-progress-header h3 {
+    margin: 0 0 15px 0;
+    color: #4CAF50;
+    font-size: 1.2em;
+}
+
+.cpb-progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.cpb-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    transition: width 0.3s ease;
+}
+
+.cpb-progress-text {
+    margin: 0;
+    color: #ccc;
+    font-size: 0.9em;
+}
+
+/* Dialog Content */
+.cpb-dialog-content {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    min-height: 400px;
+}
+
+/* Column Styles */
+.cpb-dialog-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #444;
+}
+
+.cpb-dialog-column:last-child {
+    border-right: none;
+}
+
+/* Column Headers */
+.cpb-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid #444;
+}
+
+.cpb-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    color: #4CAF50;
+    font-size: 1.1em;
+}
+
+.cpb-header-right {
+    display: flex;
+    gap: 8px;
+}
+
+/* Token Display */
+.cpb-token-display {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.cpb-token-preview {
+    flex-shrink: 0;
+}
+
+.cpb-token-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    border: 2px solid #4CAF50;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cpb-token-info {
+    text-align: center;
+    width: 100%;
+}
+
+.cpb-token-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.cpb-token-details {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.cpb-token-type, .cpb-token-level {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.cpb-token-current {
+    color: #888;
+    font-size: 0.8em;
+    word-break: break-all;
+}
+
+/* No Token State */
+.cpb-no-token {
+    padding: 40px 20px;
+    text-align: center;
+    color: #888;
+}
+
+.cpb-no-token-icon {
+    font-size: 3em;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.cpb-no-token-text p {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+}
+
+.cpb-no-token-text p:first-child {
+    font-size: 1.1em;
+    color: #ccc;
+}
+
+/* Thumbnails Grid */
+.cpb-thumbnails-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.cpb-thumbnail-item {
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.cpb-thumbnail-item:hover {
+    background: #3a3a3a;
+    border-color: #4CAF50;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cpb-thumbnail-image {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.cpb-thumbnail-image img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #555;
+}
+
+.cpb-thumbnail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(76, 175, 80, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 4px;
+}
+
+.cpb-thumbnail-item:hover .cpb-thumbnail-overlay {
+    opacity: 1;
+}
+
+.cpb-thumbnail-overlay i {
+    color: white;
+    font-size: 1.5em;
+}
+
+.cpb-thumbnail-name {
+    font-size: 0.8em;
+    color: #ccc;
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+/* No Matches State */
+.cpb-no-matches {
+    padding: 40px 20px;
+    text-align: center;
+    color: #888;
+}
+
+.cpb-no-matches-icon {
+    font-size: 3em;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.cpb-no-matches-text p {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+}
+
+.cpb-no-matches-text p:first-child {
+    font-size: 1.1em;
+    color: #ccc;
+}
+
+/* Dialog Footer */
+.cpb-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid #444;
+}
+
+/* Button Styles */
+.cpb-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.cpb-button-primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.cpb-button-primary:hover {
+    background: #45a049;
+}
+
+.cpb-button-secondary {
+    background: #666;
+    color: white;
+}
+
+.cpb-button-secondary:hover {
+    background: #555;
+}
+
+/* Scrollbar styling */
+.cpb-thumbnails-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cpb-thumbnails-grid::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 4px;
+}
+
+.cpb-thumbnails-grid::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+}
+
+.cpb-thumbnails-grid::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}

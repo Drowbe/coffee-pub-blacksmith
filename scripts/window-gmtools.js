@@ -50,6 +50,7 @@ export class CSSEditor extends FormApplication {
             this.element[0].classList.toggle('dark-mode', isDark);
         });
 
+
         // Add refresh button listener
         html.find('.refresh-button').click(() => {
             window.location.reload();

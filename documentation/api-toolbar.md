@@ -38,6 +38,8 @@ const success = blacksmith.registerToolbarTool('my-custom-tool', {
     moduleId: "my-module",  // Optional: your module ID
     gmOnly: false,          // Optional: whether tool is GM-only
     leaderOnly: false,      // Optional: whether tool is leader-only
+    onCoffeePub: true,      // Optional: show in Blacksmith toolbar (default: true)
+    onFoundry: false,       // Optional: show in FoundryVTT toolbar (default: false)
     onClick: () => {
         // Your tool logic here
         console.log("My custom tool clicked!");
@@ -77,6 +79,8 @@ Registers a new tool with the Blacksmith toolbar system.
 - `moduleId` (string, optional): Module identifier (default: "blacksmith-core")
 - `gmOnly` (boolean, optional): Whether tool is GM-only (default: false)
 - `leaderOnly` (boolean, optional): Whether tool is leader-only (default: false)
+- `onCoffeePub` (boolean, optional): Whether to show in Blacksmith toolbar (default: true)
+- `onFoundry` (boolean, optional): Whether to show in FoundryVTT native toolbar (default: false)
 
 #### `unregisterToolbarTool(toolId)`
 
@@ -136,6 +140,43 @@ Updates toolbar settings.
   - `showDividers` (boolean, optional): Whether to show toolbar dividers
   - `showLabels` (boolean, optional): Whether to show toolbar labels
 
+## Toolbar Targeting
+
+The Blacksmith toolbar system supports two different toolbar locations:
+
+### Toolbar Types:
+- **`onCoffeePub: true`**: Shows in the Blacksmith Utilities toolbar (custom toolbar)
+- **`onFoundry: true`**: Shows in FoundryVTT's native token control toolbar
+
+### Usage Examples:
+
+```javascript
+// Tool only in Blacksmith toolbar (default behavior)
+blacksmith.registerToolbarTool('blacksmith-only', {
+    // ... other properties
+    onCoffeePub: true,
+    onFoundry: false
+});
+
+// Tool only in FoundryVTT toolbar
+blacksmith.registerToolbarTool('foundry-only', {
+    // ... other properties
+    onCoffeePub: false,
+    onFoundry: true
+});
+
+// Tool in both toolbars
+blacksmith.registerToolbarTool('both-toolbars', {
+    // ... other properties
+    onCoffeePub: true,
+    onFoundry: true
+});
+```
+
+### Default Behavior:
+- **`onCoffeePub`**: `true` (backward compatibility)
+- **`onFoundry`**: `false` (current behavior)
+
 ## Tool Zones
 
 The toolbar system organizes tools into predefined zones:
@@ -186,7 +227,7 @@ Tools within each zone are ordered by their `order` property:
 ### Basic Tool Registration
 
 ```javascript
-// Register a simple utility tool
+// Register a simple utility tool (Blacksmith toolbar only)
 blacksmith.registerToolbarTool('my-utility', {
     icon: "fa-solid fa-calculator",
     name: "my-utility",
@@ -196,6 +237,8 @@ blacksmith.registerToolbarTool('my-utility', {
     zone: "utilities",
     order: 10,
     moduleId: "my-module",
+    onCoffeePub: true,      // Show in Blacksmith toolbar
+    onFoundry: false,       // Don't show in FoundryVTT toolbar
     onClick: () => {
         // Your utility logic
         ui.notifications.info("Utility tool activated!");
@@ -245,17 +288,66 @@ blacksmith.registerToolbarTool('my-leader-tool', {
 });
 ```
 
+### FoundryVTT Toolbar Integration
+
+```javascript
+// Register a tool for FoundryVTT's token toolbar
+blacksmith.registerToolbarTool('my-token-tool', {
+    icon: "fa-solid fa-dice-d20",
+    name: "my-token-tool",
+    title: "Token Tool",
+    button: true,
+    visible: true,
+    zone: "rolls",
+    order: 5,
+    moduleId: "my-module",
+    onCoffeePub: false,     // Don't show in Blacksmith toolbar
+    onFoundry: true,        // Show in FoundryVTT toolbar
+    gmOnly: true,           // Only GMs can use this tool
+    onClick: () => {
+        // Tool logic for token operations
+        ui.notifications.info("Token tool activated!");
+    }
+});
+```
+
+### Tool in Both Toolbars
+
+```javascript
+// Register a tool that appears in both toolbars
+blacksmith.registerToolbarTool('my-universal-tool', {
+    icon: "fa-solid fa-star",
+    name: "my-universal-tool",
+    title: "Universal Tool",
+    button: true,
+    visible: true,
+    zone: "utilities",
+    order: 10,
+    moduleId: "my-module",
+    onCoffeePub: true,      // Show in Blacksmith toolbar
+    onFoundry: true,        // Show in FoundryVTT toolbar
+    onClick: () => {
+        // Tool logic
+        ui.notifications.info("Universal tool activated!");
+    }
+});
+```
+
 ### Dynamic Visibility
 
 ```javascript
 // Register a tool with dynamic visibility
-blacksmith.api.registerToolbarTool('my-conditional-tool', {
+blacksmith.registerToolbarTool('my-conditional-tool', {
     icon: "fa-solid fa-eye",
     name: "my-conditional-tool",
     title: "Conditional Tool",
+    button: true,
+    visible: true,
     zone: "utilities",
     order: 20,
     moduleId: "my-module",
+    onCoffeePub: true,
+    onFoundry: false,
     visible: () => {
         // Only show if certain conditions are met
         return game.user.isGM || game.settings.get('my-module', 'enableFeature');
@@ -332,6 +424,12 @@ For issues or questions about the Blacksmith Toolbar API:
 4. Contact the Blacksmith development team
 
 ## Version History
+
+- **v12.1.3**: Enhanced toolbar targeting
+  - Added `onCoffeePub` and `onFoundry` parameters for toolbar targeting
+  - Support for FoundryVTT native toolbar integration
+  - Backward compatibility maintained
+  - Updated API documentation
 
 - **v12.1.2**: Initial toolbar API release
   - Basic tool registration/unregistration

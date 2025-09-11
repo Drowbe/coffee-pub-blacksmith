@@ -1617,15 +1617,6 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	game.settings.register(MODULE.ID, 'tokenImageReplacementStrictValidation', {
-		name: 'Strict Path Validation',
-		hint: 'Enable strict validation of file paths to prevent invalid characters and patterns from being used.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
 
 	// Cache Management Settings
 	// game.settings.register(MODULE.ID, 'tokenImageReplacementCacheStats', {

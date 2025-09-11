@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.1.3] - Enhanced Toolbar Targeting
+
+### Added
+- **Toolbar Targeting System:** Added `onCoffeePub` and `onFoundry` parameters for precise toolbar targeting control
+- **FoundryVTT Native Toolbar Integration:** External modules can now add tools to FoundryVTT's native token control toolbar
+- **Dual Toolbar Support:** Tools can now appear in both Blacksmith and FoundryVTT toolbars simultaneously
+- **Backward Compatibility:** All existing tools default to `onCoffeePub: true, onFoundry: false` for seamless migration
+- **Enhanced API Documentation:** Updated API documentation with comprehensive examples for toolbar targeting
+
+### Changed
+- **Request Roll Tool:** Now appears in both Blacksmith and FoundryVTT toolbars for maximum accessibility
+- **Tool Registration Logic:** Updated to filter tools based on `onCoffeePub` and `onFoundry` parameters
+- **FoundryVTT Integration:** Enhanced to support multiple tools in native toolbars instead of hardcoded single tool
+- **API Examples:** Updated all API documentation examples to show new targeting parameters
+
+### Technical Details
+- Added `getFoundryToolbarTools()` function to filter tools for FoundryVTT integration
+- Updated `getVisibleToolsByZones()` to only include `onCoffeePub: true` tools
+- Enhanced FoundryVTT toolbar integration to support multiple tools with proper visibility checking
+- Maintained full backward compatibility with existing tool registrations
+
 ## [12.1.2] - Toolbar Manager
 
 ### Added

@@ -301,11 +301,12 @@ Hooks.once('ready', async () => {
         
         // Initialize TokenImageReplacement (GM only)
         if (game.user.isGM) {
-            import('./token-image-replacement.js').then(({ TokenImageReplacement }) => {
-                TokenImageReplacement.initialize();
-            }).catch(error => {
+            try {
+                const { TokenImageReplacement } = await import('./token-image-replacement.js');
+                await TokenImageReplacement.initialize();
+            } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageReplacement", error, true, false);
-            });
+            }
         }
 
         // Handle cache management settings (GM only)

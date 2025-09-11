@@ -67,10 +67,10 @@ function getVisibleTools() {
 }
 
 /**
- * Get tools organized by zones and ordered
+ * Get tools organized by zones and ordered (CoffeePub toolbar only)
  */
 function getVisibleToolsByZones() {
-    const visibleTools = getVisibleTools();
+    const visibleTools = getVisibleTools().filter(tool => tool.onCoffeePub === true);
     
     // Group tools by zone
     const toolsByZone = {};
@@ -102,6 +102,13 @@ function getVisibleToolsByZones() {
 }
 
 /**
+ * Get tools that should appear in FoundryVTT native toolbars
+ */
+function getFoundryToolbarTools() {
+    return getVisibleTools().filter(tool => tool.onFoundry === true);
+}
+
+/**
  * Register a tool for the toolbar
  */
 function registerTool(toolId, toolData) {
@@ -125,6 +132,8 @@ function registerTool(toolId, toolData) {
             order: toolData.order || 999,
             gmOnly: toolData.gmOnly || false,
             leaderOnly: toolData.leaderOnly || false,
+            onCoffeePub: toolData.onCoffeePub !== undefined ? toolData.onCoffeePub : true, // Default to true for backward compatibility
+            onFoundry: toolData.onFoundry || false, // Default to false
             registeredAt: Date.now()
         });
         
@@ -153,6 +162,8 @@ async function registerDefaultTools() {
                 title: "Consult the Regent",
                 button: true,
                 visible: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: buildButtonEventRegent,
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -165,6 +176,8 @@ async function registerDefaultTools() {
                 title: "Open Lookup Worksheet",
                 button: true,
                 visible: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => buildButtonEventRegent('lookup'),
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -177,6 +190,8 @@ async function registerDefaultTools() {
                 title: "Open Character Worksheet",
                 button: true,
                 visible: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => buildButtonEventRegent('character'),
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -190,6 +205,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => buildButtonEventRegent('assistant'),
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -203,6 +220,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => buildButtonEventRegent('encounter'),
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -216,6 +235,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => buildButtonEventRegent('narrative'),
         moduleId: 'blacksmith-core',
         zone: 'utilities',
@@ -229,6 +250,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
                 onClick: () => {
             const cssEditor = new CSSEditor();
             cssEditor.render(true);
@@ -238,6 +261,29 @@ async function registerDefaultTools() {
         order: 10
     });
     
+    registerTool('token-replacement', {
+        icon: "fa-solid fa-images",
+                name: "token-replacement",
+        title: "Token Image Replacement",
+                button: true,
+        visible: true,
+        gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
+                onClick: async () => {
+            try {
+                const { TokenImageReplacement } = await import('./token-image-replacement.js');
+                TokenImageReplacement.openWindow();
+            } catch (error) {
+                ui.notifications.error('Failed to open Token Image Replacement window');
+                postConsoleAndNotification(MODULE.NAME, 'Failed to open Token Image Replacement window', error, false, true);
+            }
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 20
+    });
+    
     registerTool('journal-tools', {
                 icon: "fa-solid fa-book-open",
                 name: "journal-tools",
@@ -245,6 +291,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
                 onClick: () => {
                     const dummyJournal = { id: null, name: "Select Journal" };
                     const journalTools = new JournalToolsWindow(dummyJournal);
@@ -262,6 +310,8 @@ async function registerDefaultTools() {
                 button: true,
         visible: true,
         gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
                 onClick: () => {
                     window.location.reload();
         },
@@ -277,6 +327,8 @@ async function registerDefaultTools() {
         button: true,
         visible: true,
         gmOnly: true, // Only GMs can request rolls
+        onCoffeePub: true, // Show in Blacksmith toolbar
+        onFoundry: true, // Show in FoundryVTT toolbar
         onClick: () => {
             const dialog = new SkillCheckDialog();
             dialog.render(true);
@@ -293,6 +345,8 @@ async function registerDefaultTools() {
         button: true,
         visible: true,
         leaderOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
         onClick: () => {
             new VoteConfig().render(true);
         },
@@ -440,46 +494,47 @@ export function addToolbarButton() {
                 tools: tools
             });
 
-            // Add Request Roll tool to the default token toolbar
+            // Add tools to FoundryVTT native toolbars
+            const foundryTools = getFoundryToolbarTools();
+            
+            // Add tools to token toolbar (default behavior for now)
             const tokenControl = controls.find(control => control.name === "token");
-            if (tokenControl) {
-                // Check if request-roll tool already exists
-                const existingRequestRoll = tokenControl.tools.find(tool => tool.name === "request-roll");
-                if (!existingRequestRoll) {
-                    // Find the request-roll tool from our registered tools
-                    const requestRollTool = registeredTools.get('request-roll');
-                    if (requestRollTool) {
+            if (tokenControl && foundryTools.length > 0) {
+                foundryTools.forEach(tool => {
+                    // Check if tool already exists
+                    const existingTool = tokenControl.tools.find(existing => existing.name === tool.name);
+                    if (!existingTool) {
                         // Check visibility using the same logic as our toolbar
                         const isGM = game.user.isGM;
                         const isLeaderUser = isLeader();
                         let shouldShow = true;
                         
-                        if (requestRollTool.gmOnly && !isGM) {
+                        if (tool.gmOnly && !isGM) {
                             shouldShow = false;
-                        } else if (requestRollTool.leaderOnly && !isLeaderUser && !isGM) {
+                        } else if (tool.leaderOnly && !isLeaderUser && !isGM) {
                             shouldShow = false;
-                        } else if (typeof requestRollTool.visible === 'function') {
+                        } else if (typeof tool.visible === 'function') {
                             try {
-                                shouldShow = requestRollTool.visible();
+                                shouldShow = tool.visible();
                             } catch (error) {
                                 shouldShow = false;
                             }
                         } else {
-                            shouldShow = requestRollTool.visible;
+                            shouldShow = tool.visible;
                         }
                         
                         if (shouldShow) {
                             tokenControl.tools.push({
-                                icon: requestRollTool.icon,
-                                name: requestRollTool.name,
-                                title: requestRollTool.title,
-                                button: requestRollTool.button,
+                                icon: tool.icon,
+                                name: tool.name,
+                                title: tool.title,
+                                button: tool.button,
                                 visible: true,
-                                onClick: requestRollTool.onClick
+                                onClick: tool.onClick
                             });
                         }
                     }
-                }
+                });
             }
             // --- END - HOOKMANAGER CALLBACK ---
         }

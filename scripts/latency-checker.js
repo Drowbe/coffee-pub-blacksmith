@@ -131,6 +131,11 @@ export class LatencyChecker {
             return;
         }
 
+        // Check if game.user is available before accessing its properties
+        if (!game.user) {
+            return;
+        }
+
         if (data.type === "ping" && data.to === game.user.id) {
             // Respond to ping with a pong
             const socket = SocketManager.getSocket();
