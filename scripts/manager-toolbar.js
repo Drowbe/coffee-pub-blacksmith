@@ -105,7 +105,17 @@ function getVisibleToolsByZones() {
  * Get tools that should appear in FoundryVTT native toolbars
  */
 function getFoundryToolbarTools() {
-    return getVisibleTools().filter(tool => tool.onFoundry === true);
+    return getVisibleTools().filter(tool => {
+        if (typeof tool.onFoundry === 'function') {
+            try {
+                return tool.onFoundry();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error evaluating onFoundry", error, false, false);
+                return false;
+            }
+        }
+        return tool.onFoundry === true;
+    });
 }
 
 /**
@@ -266,10 +276,10 @@ async function registerDefaultTools() {
                 name: "token-replacement",
         title: "Token Image Replacement",
                 button: true,
-        visible: true,
+        visible: () => game.settings.get(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar'),
         gmOnly: true,
         onCoffeePub: true,
-        onFoundry: false,
+        onFoundry: () => game.settings.get(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar'),
                 onClick: async () => {
             try {
                 const { TokenImageReplacement } = await import('./token-image-replacement.js');

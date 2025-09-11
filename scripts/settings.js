@@ -1548,6 +1548,26 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
+		name: 'Show in CoffeePub Toolbar',
+		hint: 'Show the Token Image Replacement button in the CoffeePub toolbar.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', {
+		name: 'Show in FoundryVTT Toolbar',
+		hint: 'Show the Token Image Replacement button in the FoundryVTT native toolbar.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
 	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
 		name: 'Image Replacement Folder',
 		hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
