@@ -31,6 +31,16 @@
                     </div>
                 </div>
             </div>
+            <div class="tir-scan-progress">
+                <div class="tir-progress-bar">
+                    <div class="tir-progress-fill" style="width: {{overallProgressPercentage}}%"></div>
+                    <div class="tir-progress-text">
+                        <i class="fas fa-sync-alt fa-spin"></i>
+                        <span class="tir-progress-total">{{#if totalSteps}}Step {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span>
+                        | <span class="tir-progress-details">{{currentStepName}}</span>
+                    </div>
+                </div>
+            </div>
         {{/if}}
 
     </div>
@@ -44,9 +54,13 @@
                 <i class="fas fa-dice"></i> Available Tokens: {{matches.length}}
             </div>
             <div class="tir-token-replacement-header-right">
+                <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups.">
+                    <i class="fas fa-pause"></i> Pause Scan
+                </button>
                 <button class="button-refresh-cache" data-tooltip="Refresh Image Cache: This will refresh the entire image cache and can take a while to complete.">
                     <i class="fas fa-sync-alt"></i> Refresh Cache
                 </button>
+                |
                 <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection">
                     <i class="fas fa-sync-alt"></i> Refresh Token Detection
                 </button>

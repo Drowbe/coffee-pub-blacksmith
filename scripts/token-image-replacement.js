@@ -58,7 +58,11 @@ export class TokenImageReplacementWindow extends Application {
             hasMatches: this.matches.length > 0,
             notificationIcon: this.notificationIcon,
             notificationText: this.notificationText,
-            hasNotification: !!(this.notificationIcon && this.notificationText)
+            hasNotification: !!(this.notificationIcon && this.notificationText),
+            overallProgress: TokenImageReplacement.cache.overallProgress,
+            totalSteps: TokenImageReplacement.cache.totalSteps,
+            overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
+            currentStepName: TokenImageReplacement.cache.currentStepName
         };
     }
 
@@ -91,6 +95,9 @@ export class TokenImageReplacementWindow extends Application {
         // Thumbnail clicks
         html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
         
+        // Pause cache button
+        html.find('.button-pause-cache').on('click', this._onPauseCache.bind(this));
+        
         // Refresh button
         html.find('.button-refresh-cache').on('click', this._onRefreshCache.bind(this));
         
@@ -117,41 +124,28 @@ export class TokenImageReplacementWindow extends Application {
         this.matches.push(currentImage);
 
         // Set notification based on cache status
-        if (TokenImageReplacement.cache.isScanning) {
+        if (TokenImageReplacement.cache.isPaused) {
+            // Cache scanning was paused
+            this.notificationIcon = 'fas fa-pause';
+            this.notificationText = 'Cache scanning paused. Use "Refresh Cache" to resume.';
+        } else if (TokenImageReplacement.cache.isScanning) {
             // Cache is currently scanning
-            this.notificationIcon = 'fas fa-sync-alt fa-spin';
+            this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'The Cache is currently loading and may impact performance.';
-        } else if (TokenImageReplacement.cache.files.size === 0) {
-            // Cache is empty/not ready - try real-time search
-            try {
-                const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
-                if (realTimeMatch) {
-                    realTimeMatch.isCurrent = false;
-                    this.matches.push(realTimeMatch);
-                    this.notificationIcon = null;
-                    this.notificationText = null;
-                } else {
-                    this.notificationIcon = 'fas fa-exclamation-triangle';
-                    this.notificationText = 'No Cache Found - Please refresh cache.';
-                }
-            } catch (error) {
-                this.notificationIcon = 'fas fa-sync-alt fa-spin';
-                this.notificationText = 'The Cache is currently loading and may impact performance.';
-            }
         } else {
-            // Cache is ready - find alternatives
-            const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
+            // Try to find matches using available cache (regardless of size)
+            let foundMatches = false;
             
-            if (matchingImage) {
-                // Add the automatic match if it's different from current
-                if (matchingImage.fullPath !== currentImageSrc) {
-                    matchingImage.isCurrent = false;
-                    this.matches.push(matchingImage);
-                }
-                this.notificationIcon = null;
-                this.notificationText = null;
-            } else {
-                // If no automatic match, show some alternatives
+            // First try the automatic matching system
+            const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
+            if (matchingImage && matchingImage.fullPath !== currentImageSrc) {
+                matchingImage.isCurrent = false;
+                this.matches.push(matchingImage);
+                foundMatches = true;
+            }
+            
+            // If no automatic match, try manual search through available cache
+            if (!foundMatches && TokenImageReplacement.cache.files.size > 0) {
                 const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
                 const allFiles = Array.from(TokenImageReplacement.cache.files.values());
                 
@@ -163,20 +157,42 @@ export class TokenImageReplacementWindow extends Application {
                     );
                 }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
 
-                // Mark alternatives as not current
-                alternatives.forEach(alt => {
-                    alt.isCurrent = false;
-                });
-
                 if (alternatives.length > 0) {
+                    // Mark alternatives as not current
+                    alternatives.forEach(alt => {
+                        alt.isCurrent = false;
+                    });
                     this.matches.push(...alternatives);
-                    this.notificationIcon = null;
-                    this.notificationText = null;
-                } else {
-                    // No matches found
-                    this.notificationIcon = 'fas fa-search';
-                    this.notificationText = 'No matches found.';
+                    foundMatches = true;
                 }
+            }
+            
+            // If still no matches and cache is empty, try real-time search
+            if (!foundMatches && TokenImageReplacement.cache.files.size === 0) {
+                try {
+                    const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
+                    if (realTimeMatch) {
+                        realTimeMatch.isCurrent = false;
+                        this.matches.push(realTimeMatch);
+                        foundMatches = true;
+                    }
+                } catch (error) {
+                    // Real-time search failed, will show appropriate notification below
+                }
+            }
+            
+            // Set notification based on results
+            if (foundMatches) {
+                this.notificationIcon = null;
+                this.notificationText = null;
+            } else if (TokenImageReplacement.cache.files.size === 0) {
+                // No cache and no real-time matches
+                this.notificationIcon = 'fas fa-exclamation-triangle';
+                this.notificationText = 'No Cache Found - Please refresh cache.';
+            } else {
+                // Cache exists but no matches found
+                this.notificationIcon = 'fas fa-search';
+                this.notificationText = 'No matches found.';
             }
         }
     }
@@ -219,6 +235,16 @@ export class TokenImageReplacementWindow extends Application {
         } finally {
             this.isScanning = false;
             this.render();
+        }
+    }
+
+    _onPauseCache() {
+        const paused = TokenImageReplacement.pauseCache();
+        if (paused) {
+            ui.notifications.info("Cache scanning paused. You can resume by refreshing the cache.");
+            this.render();
+        } else {
+            ui.notifications.warn("No cache scanning in progress to pause.");
         }
     }
 
@@ -296,7 +322,11 @@ export class TokenImageReplacement {
         creatureTypes: new Map(),   // creature type -> array of files
         lastScan: null,            // timestamp of last scan
         isScanning: false,         // prevent multiple simultaneous scans
-        totalFiles: 0              // total count for progress tracking
+        isPaused: false,           // pause state for scanning
+        totalFiles: 0,             // total count for progress tracking
+        overallProgress: 0,        // current step in overall process
+        totalSteps: 0,             // total steps in overall process
+        currentStepName: ''        // name of current step/folder
     };
     
     // Supported image formats
@@ -365,6 +395,7 @@ export class TokenImageReplacement {
                 game.TokenImageReplacement.forceCleanupInvalidPaths = this.forceCleanupInvalidPaths.bind(this);
                 game.TokenImageReplacement.isScanning = this.isScanning.bind(this);
                 game.TokenImageReplacement.forceRefreshCache = this.forceRefreshCache.bind(this);
+                game.TokenImageReplacement.pauseCache = this.pauseCache.bind(this);
                 game.TokenImageReplacement.openWindow = this.openWindow.bind(this);
             }
     }
@@ -439,11 +470,33 @@ export class TokenImageReplacement {
             this.cache.isScanning = false; // Stop current scan
         }
         
+        // Reset pause state when refreshing
+        this.cache.isPaused = false;
+        
         this._clearCacheFromStorage();
         const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
+    }
+    
+    /**
+     * Pause the current cache scanning process
+     */
+    static pauseCache() {
+        if (this.cache.isScanning) {
+            this.cache.isPaused = true;
+            this.cache.isScanning = false;
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache scanning paused. You can resume by refreshing the cache.", "", false, false);
+            
+            // Update window if it exists
+            if (this.window && this.window.updateScanProgress) {
+                this.window.updateScanProgress(0, 100, "Scanning paused");
+            }
+            
+            return true;
+        }
+        return false;
     }
     
     /**
@@ -544,8 +597,20 @@ export class TokenImageReplacement {
             return;
         }
         
+        // Check if we were paused
+        if (this.cache.isPaused) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan was paused. Use 'Refresh Cache' to resume.", "", false, false);
+            return;
+        }
+        
         this.cache.isScanning = true;
+        this.cache.isPaused = false; // Reset pause state when starting
         const startTime = Date.now();
+        
+        // Initialize overall progress tracking
+        this.cache.overallProgress = 0;
+        this.cache.currentStepName = '';
+        
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting folder scan...", "", false, false);
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: This may take a few minutes for large token collections...", "", false, false);
         
@@ -662,9 +727,23 @@ export class TokenImageReplacement {
             if (response.dirs && response.dirs.length > 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.dirs.length} subdirectories, scanning recursively...`, "", false, false);
                 
+                // Set total steps for overall progress (1 for base directory + subdirectories)
+                this.cache.totalSteps = response.dirs.length + 1;
+                this.cache.overallProgress = 0;
+                
                 for (let i = 0; i < response.dirs.length; i++) {
+                    // Check if we should pause
+                    if (this.cache.isPaused) {
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan paused by user.", "", false, false);
+                        return;
+                    }
+                    
                     const subDir = response.dirs[i];
                     const subDirName = subDir.split('/').pop();
+                    
+                    // Update overall progress
+                    this.cache.overallProgress = i + 1;
+                    this.cache.currentStepName = subDirName;
                     
                     // Update window progress if it exists
                     if (this.window && this.window.updateScanProgress) {
@@ -916,11 +995,10 @@ export class TokenImageReplacement {
             return null;
         }
         
-        // If cache is not ready, we can still search but with limited scope
+        // If cache is empty, return null - real-time search will be handled by caller
         if (this.cache.files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache not ready, attempting real-time search", "", false, false);
-            // We'll do a limited real-time search instead of giving up
-            return this._findMatchInRealTime(tokenDocument);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache empty, skipping automatic matching", "", false, false);
+            return null;
         }
         
         // Get search terms for this token
