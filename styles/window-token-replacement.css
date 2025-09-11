@@ -35,7 +35,7 @@ div#token-replacement-window .window-content {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Custom Header */
+/* Window Header */
 .tir-header {
     background: rgba(0, 0, 0, 0.8);
     background-image: var(--tir-banner-image);
@@ -54,6 +54,9 @@ div#token-replacement-window .window-content {
     width: 100%;
 }
 
+
+/* --- Header Icon --- */
+
 .tir-header-icon {
     display: flex;
     align-items: center;
@@ -66,16 +69,26 @@ div#token-replacement-window .window-content {
     flex-shrink: 0;
 }
 
+/* Image */
+.tir-header-icon img {
+    font-size: 2.5em;
+    padding: 2px 2px 2px 2px;
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    border: 0px solid rgba(0, 0, 0, 1.0);
+}
+
+/* If Icon instead of Image */
 .tir-header-icon i {
     font-size: 2.5em;
     padding-top: 2px;
     color: rgba(255, 255, 255, 0.8);
-    animation: tir-rotate 25.0s linear infinite; 
 }
 
-@keyframes tir-rotate {
-  to { transform: rotate(360deg); }
-}
+
+
+/* --- Header Title --- */
+
 
 .tir-header-title {
     display: flex;
@@ -85,8 +98,8 @@ div#token-replacement-window .window-content {
 }
 
 .tir-main-title {
-    font-size: 2.2em;
-    font-weight: bold;
+    font-size: 2.0em;
+    font-weight: 700;
     color: rgba(255, 255, 255, 0.95);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     margin: 0;
@@ -94,7 +107,7 @@ div#token-replacement-window .window-content {
 }
 
 .tir-subtitle {
-    font-size: 1.1em;
+    font-size: 1.5em;
     color: rgba(255, 255, 255, 0.7);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     margin: 0;
@@ -207,13 +220,14 @@ div#token-replacement-window .window-content {
     color: rgba(145, 133, 107, 1.0);
     background: rgba(0, 0, 0, 1.0);
     border: 0px solid rgba(255, 255, 255, 0.9);
-    margin: 0;
-    padding: 1px 1px 1px 1px  !important;
+    margin: 0px 0px 0px 0px ;
+    padding: 1px 1px 1px 12px !important;
     line-height: 1;          /* keeps height minimal */
     height: auto;            /* shrink to fit content */
     min-height: unset;       /* override Foundry/system defaults */
     display: inline-flex;    /* shrink-wrap around content */
     align-items: center;     /* keep icon/text aligned vertically */
+    white-space: nowrap;     /* prevent wrapping */
 }
 .tir-token-replacement-header-right button:hover {
     color: rgba(255, 100, 0, 1.0);
@@ -226,6 +240,17 @@ div#token-replacement-window .window-content {
     padding: 0 !important;
 }
 
+/* Notification */
+.tir-token-replacement-notification-container {
+    font-size: 1.0em;
+    font-weight: 100;
+    color: rgba(255, 255, 255, 1.0);
+    background: rgba(40, 93, 153, 0.6);
+    border-radius: 6px;
+    border: 1px solid rgba(40, 93, 153, 0.8);
+    padding: 6px 12px 6px 12px;
+    margin: 20px 20px 20px 20px;
+}
 
 /* ********** CONTENT -TILES GRID ********** */
 

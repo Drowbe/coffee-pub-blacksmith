@@ -3,11 +3,20 @@
     <div class="tir-header">
         <div class="tir-header-content">
             <div class="tir-header-icon">
-                <img src="{{selectedToken.document.texture.src}}" alt="{{selectedToken.name}}">
+                {{#if selectedToken.name}}
+                    <img src="{{selectedToken.document.texture.src}}" alt="{{selectedToken.name}}">
+                {{else}}
+                    <i class="fas fa-user-group-crown"></i>
+                {{/if}}
             </div>
             <div class="tir-header-title">
-                <div class="tir-main-title">{{selectedToken.name}}</div>
-                <div class="tir-subtitle">{{selectedToken.actor.type}}</div>
+                {{#if selectedToken.name}}
+                    <div class="tir-main-title">{{selectedToken.name}}</div>
+                    <div class="tir-subtitle">{{selectedToken.actor.name}}  •  {{selectedToken.actor.type}}  •  {{selectedToken.actor.system.traits.size}} </div>
+                {{else}}
+                    <div class="tir-main-title">No token selected</div>
+                    <div class="tir-subtitle">Select a token on the canvas</div>
+                {{/if}}
             </div>
         </div>
         <!-- SCANNING PROGRESS -->
@@ -28,89 +37,74 @@
 
     <!-- CONTENT -->
     <div class="tir-content">
+
+        <!-- Token Info Header -->
+        <div class="tir-token-replacement-header-container">
+            <div class="tir-token-replacement-header-left">
+                <i class="fas fa-dice"></i> Available Tokens: {{matches.length}}
+            </div>
+            <div class="tir-token-replacement-header-right">
+                <button class="button-refresh-cache" data-tooltip="Refresh Image Cache: This will refresh the entire image cache and can take a while to complete.">
+                    <i class="fas fa-sync-alt"></i> Refresh Cache
+                </button>
+                <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection">
+                    <i class="fas fa-sync-alt"></i> Refresh Token Detection
+                </button>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        {{#if hasNotification}}
+        <div class="tir-token-replacement-notification-container">
+            <i class="{{notificationIcon}}"></i> {{notificationText}}
+        </div>
+        {{/if}}
+
+        <!-- Image Grid -->
+        <div class="tir-thumbnails-grid">
         {{#if selectedToken}}
             
-            <!-- Token Info Header -->
-            <div class="tir-token-replacement-header-container">
-                <div class="tir-token-replacement-header-left">
-                    <i class="fas fa-dice"></i> Available Tokens: {{matches.length}}
-                </div>
-                <div class="tir-token-replacement-header-right">
-                    <button class="button-refresh-cache" title="Refresh Image Cache">
-                        <i class="fas fa-sync-alt"></i> Refresh Cache
-                    </button>
-                </div>
-            </div>
-
-            <!-- Image Grid -->
+            
             {{#if hasMatches}}
-                <div class="tir-thumbnails-grid">
-                    {{#each matches}}
-                    {{#if isCacheLoading}}
-                    <div class="tir-thumbnail-item tir-status-message">
-                        <div class="tir-thumbnail-image">
-                            <i class="fas fa-sync-alt fa-spin"></i>
+                {{#each matches}}
+                <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" data-image-name="{{name}}">
+                    <div class="tir-thumbnail-image">
+                        <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
+                        {{#if isCurrent}}
+                        <div class="tir-thumbnail-current-badge">
+                            <i class="fas fa-check"></i>
                         </div>
-                        <div class="tir-thumbnail-name">{{name}}</div>
-                    </div>
-                    {{else if isNoCache}}
-                    <div class="tir-thumbnail-item tir-status-message">
-                        <div class="tir-thumbnail-image">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        {{else}}
+                        <div class="tir-thumbnail-overlay">
+                            <i class="fas fa-check"></i>
                         </div>
-                        <div class="tir-thumbnail-name">{{name}}</div>
+                        {{/if}}
                     </div>
-                    {{else if isNoMatches}}
-                    <div class="tir-thumbnail-item tir-status-message">
-                        <div class="tir-thumbnail-image">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <div class="tir-thumbnail-name">{{name}}</div>
-                    </div>
-                    {{else}}
-                    <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" data-image-name="{{name}}">
-                        <div class="tir-thumbnail-image">
-                            <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
-                            {{#if isCurrent}}
-                            <div class="tir-thumbnail-current-badge">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            {{else}}
-                            <div class="tir-thumbnail-overlay">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            {{/if}}
-                        </div>
-                        <div class="tir-thumbnail-name">{{name}}</div>
-                    </div>
-                    {{/if}}
-                    {{/each}}
+                    <div class="tir-thumbnail-name">{{name}}</div>
                 </div>
+                {{/each}}
             {{else}}
-                <div class="tir-no-matches">
+                <div class="tir-thumbnail-item tir-no-matches">
                     <div class="tir-no-matches-icon">
                         <i class="fas fa-search"></i>
                     </div>
                     <div class="tir-no-matches-text">
-                        <p>No matches found for this token</p>
-                        <p>Try refreshing the cache or selecting a different token</p>
+                        <p>No matches found</p>
                     </div>
                 </div>
             {{/if}}
         {{else}}
-            <div class="tir-no-token">
+            <div class="tir-thumbnail-item tir-no-token">
                 <div class="tir-no-token-icon">
-                    <i class="fas fa-user-slash"></i>
+                    <i class="fas fa-user-group-crown"></i>
                 </div>
                 <div class="tir-no-token-text">
                     <p>No token selected</p>
-                    <p>Select a token on the canvas to view replacement options</p>
-                    <button class="tir-button tir-button-primary refresh-detection-btn" style="margin-top: 15px;">
-                        <i class="fas fa-sync-alt"></i> Refresh Detection
-                    </button>
                 </div>
             </div>
         {{/if}}
+
+        </div>
     </div>
     
     <!-- Footer -->

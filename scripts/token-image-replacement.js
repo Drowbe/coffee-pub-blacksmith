@@ -18,6 +18,8 @@ export class TokenImageReplacementWindow extends Application {
         this.scanProgress = 0;
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
+        this.notificationIcon = null;
+        this.notificationText = null;
         this._tokenSelectionHandler = this._onTokenSelectionChange.bind(this);
     }
 
@@ -53,11 +55,14 @@ export class TokenImageReplacementWindow extends Application {
             scanTotal: this.scanTotal,
             scanProgressPercentage: progressPercentage,
             scanStatusText: this.scanStatusText || "Scanning Token Images...",
-            hasMatches: this.matches.length > 0
+            hasMatches: this.matches.length > 0,
+            notificationIcon: this.notificationIcon,
+            notificationText: this.notificationText,
+            hasNotification: !!(this.notificationIcon && this.notificationText)
         };
     }
 
-    _detectSelectedToken() {
+    async _detectSelectedToken() {
         // Get the first selected token (if multiple are selected)
         console.log('Token Image Replacement: Canvas available:', !!canvas);
         console.log('Token Image Replacement: Canvas tokens available:', !!canvas?.tokens);
@@ -72,7 +77,7 @@ export class TokenImageReplacementWindow extends Application {
             console.log('Token Image Replacement: Selected token document:', this.selectedToken.document);
             console.log('Token Image Replacement: Selected token texture:', this.selectedToken.texture?.src);
             // Automatically find matches for the selected token
-            this._findMatches();
+            await this._findMatches();
         } else {
             console.log('Token Image Replacement: No tokens selected');
             this.selectedToken = null;
@@ -97,7 +102,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
 
-    _findMatches() {
+    async _findMatches() {
         if (!this.selectedToken) return;
 
         this.matches = [];
@@ -111,25 +116,28 @@ export class TokenImageReplacementWindow extends Application {
         };
         this.matches.push(currentImage);
 
-        // Check cache status and provide appropriate feedback
+        // Set notification based on cache status
         if (TokenImageReplacement.cache.isScanning) {
             // Cache is currently scanning
-            this.matches.push({
-                name: 'Cache Loading...',
-                fullPath: '',
-                fileName: '',
-                isCurrent: false,
-                isCacheLoading: true
-            });
+            this.notificationIcon = 'fas fa-sync-alt fa-spin';
+            this.notificationText = 'The Cache is currently loading and may impact performance.';
         } else if (TokenImageReplacement.cache.files.size === 0) {
-            // Cache is empty/not ready
-            this.matches.push({
-                name: 'No Cache Available',
-                fullPath: '',
-                fileName: '',
-                isCurrent: false,
-                isNoCache: true
-            });
+            // Cache is empty/not ready - try real-time search
+            try {
+                const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
+                if (realTimeMatch) {
+                    realTimeMatch.isCurrent = false;
+                    this.matches.push(realTimeMatch);
+                    this.notificationIcon = null;
+                    this.notificationText = null;
+                } else {
+                    this.notificationIcon = 'fas fa-exclamation-triangle';
+                    this.notificationText = 'No Cache Found - Please refresh cache.';
+                }
+            } catch (error) {
+                this.notificationIcon = 'fas fa-sync-alt fa-spin';
+                this.notificationText = 'The Cache is currently loading and may impact performance.';
+            }
         } else {
             // Cache is ready - find alternatives
             const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
@@ -140,6 +148,8 @@ export class TokenImageReplacementWindow extends Application {
                     matchingImage.isCurrent = false;
                     this.matches.push(matchingImage);
                 }
+                this.notificationIcon = null;
+                this.notificationText = null;
             } else {
                 // If no automatic match, show some alternatives
                 const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
@@ -160,15 +170,12 @@ export class TokenImageReplacementWindow extends Application {
 
                 if (alternatives.length > 0) {
                     this.matches.push(...alternatives);
+                    this.notificationIcon = null;
+                    this.notificationText = null;
                 } else {
                     // No matches found
-                    this.matches.push({
-                        name: 'No Matches Found',
-                        fullPath: '',
-                        fileName: '',
-                        isCurrent: false,
-                        isNoMatches: true
-                    });
+                    this.notificationIcon = 'fas fa-search';
+                    this.notificationText = 'No matches found.';
                 }
             }
         }
@@ -215,9 +222,9 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
-    _onRefreshDetection() {
+    async _onRefreshDetection() {
         console.log('Token Image Replacement: Manual refresh detection triggered');
-        this._detectSelectedToken();
+        await this._detectSelectedToken();
         this.render();
     }
 
@@ -247,7 +254,7 @@ export class TokenImageReplacementWindow extends Application {
 
     async render(force = false, options = {}) {
         // Detect selected token before rendering
-        this._detectSelectedToken();
+        await this._detectSelectedToken();
         
         const result = await super.render(force, options);
         
@@ -271,9 +278,9 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     // Method to refresh matches when cache becomes ready
-    refreshMatches() {
+    async refreshMatches() {
         if (this.selectedToken) {
-            this._findMatches();
+            await this._findMatches();
             this.render();
         }
     }
@@ -591,7 +598,7 @@ export class TokenImageReplacement {
             
             // Refresh any open windows now that cache is ready
             if (this.window && this.window.refreshMatches) {
-                this.window.refreshMatches();
+                await this.window.refreshMatches();
             }
             
         } catch (error) {
@@ -909,10 +916,11 @@ export class TokenImageReplacement {
             return null;
         }
         
-        // Check if cache is ready
+        // If cache is not ready, we can still search but with limited scope
         if (this.cache.files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache not ready, skipping image replacement", "", false, false);
-            return null;
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache not ready, attempting real-time search", "", false, false);
+            // We'll do a limited real-time search instead of giving up
+            return this._findMatchInRealTime(tokenDocument);
         }
         
         // Get search terms for this token
@@ -927,6 +935,70 @@ export class TokenImageReplacement {
         }
         
         return null;
+    }
+    
+    /**
+     * Find a match using real-time directory scanning when cache is not ready
+     */
+    static async _findMatchInRealTime(tokenDocument) {
+        try {
+            const searchTerms = this._getSearchTerms(tokenDocument);
+            const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementBasePath') || 'assets/images/tokens';
+            
+            // Try to find matches in common creature type folders first
+            const creatureType = tokenDocument.actor?.system?.details?.type;
+            let searchPaths = [basePath];
+            
+            if (creatureType && typeof creatureType === 'object' && creatureType.value) {
+                const typeValue = creatureType.value.toLowerCase();
+                const creatureFolders = this.CREATURE_TYPE_FOLDERS[typeValue] || [];
+                
+                // Add creature-specific subdirectories to search
+                for (const folder of creatureFolders) {
+                    searchPaths.push(`${basePath}/${folder}`);
+                }
+            }
+            
+            // Search each path for matching files
+            for (const searchPath of searchPaths) {
+                try {
+                    const files = await FilePicker.browse('data', searchPath);
+                    if (files.target && files.files) {
+                        // Look for files that match our search terms
+                        const matchingFiles = files.files.filter(file => {
+                            const fileName = file.toLowerCase();
+                            return searchTerms.some(term => 
+                                term && term.length > 2 && fileName.includes(term.toLowerCase())
+                            );
+                        });
+                        
+                        if (matchingFiles.length > 0) {
+                            // Return the first match found
+                            const matchFile = matchingFiles[0];
+                            const fullPath = `${searchPath}/${matchFile}`;
+                            
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Real-time match found: ${matchFile}`, "", false, false);
+                            
+                            return {
+                                name: matchFile.replace(/\.[^/.]+$/, ""), // Remove extension
+                                fileName: matchFile,
+                                fullPath: fullPath
+                            };
+                        }
+                    }
+                } catch (error) {
+                    // Directory might not exist, continue to next path
+                    continue;
+                }
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No real-time matches found", "", false, false);
+            return null;
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Real-time search error: ${error.message}`, "", false, false);
+            return null;
+        }
     }
     
     /**
