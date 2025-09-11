@@ -1,6 +1,6 @@
 /* Token Image Replacement Window Styles - Independent Design */
 :root {
-    --tir-banner-image: url('modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp');
+    --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
 }
 
 /* Window Background */
@@ -101,163 +101,139 @@ div#token-replacement-window .window-content {
     line-height: 1.2;
 }
 
-/* Scan Progress Styles */
+/* ********** PROGRESS ********** */
+
+/* Container */
 .tir-scan-progress {
     background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px;
-    text-align: center;
+    border-top: 1px solid #444;
+    padding: 2px 0px 0px 0px;
+    margin: 10px 0px 0px 0px;
+    text-align: left;
 }
-
-.tir-progress-header h3 {
-    margin: 0 0 15px 0;
-    color: #4CAF50;
-    font-size: 1.2em;
-}
-
+/* Progress Bar */
 .tir-progress-bar {
+    position: relative; /* allows absolute children */
     width: 100%;
-    height: 20px;
-    background: #333;
-    border-radius: 10px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #444;
+    border-radius: 4px;
+    margin-top: 6px;
     overflow: hidden;
-    margin-bottom: 10px;
 }
-
+/* Bar Fill */
 .tir-progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
     height: 100%;
-    background: linear-gradient(90deg, #4CAF50, #45a049);
+    background: rgba(188, 83, 14, 0.9);
+    border-radius: 4px;
+    border: 2px solid rgba(0, 0, 0, 0.9);
     transition: width 0.3s ease;
+    z-index: 1;
 }
-
+/* Text Container */
 .tir-progress-text {
-    margin: 0;
-    color: #ccc;
+    position: absolute;
+    top: 50%;
+    left: 12px;              /* small padding from the left edge */
+    transform: translateY(-50%); /* only vertical centering */
+    text-align: left;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 0.9em;
+    z-index: 2;             /* make sure it's above the fill */
+    pointer-events: none;
+}
+/* Progress Text */
+.tir-progress-text .tir-progress-total {
+    padding: 0px 4px 0px 4px;
+}
+.tir-progress-text .tir-progress-details {
+     padding: 0px 4px 0px 4px;
 }
 
-/* Content */
+
+/* ********** CONTENT - HEADER ********** */
+
+/* HEADER */
+
 .tir-content {
     flex: 1;
-    padding: 20px;
-    min-height: 400px;
+    padding: 8px;
+    min-height: 200px;
 }
 
 /* Token Info Header */
-.tir-token-info-header {
+.tir-token-replacement-header-container {
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid #444;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    width: 100%;
+    color: rgba(145, 133, 107, 1.0);
+    background: rgba(0, 0, 0, 1.0);
+    border-top: 0px solid rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid #444;
+    border-left: 0px solid #444;
+    border-right: 0px solid #444;
+    border-radius: 0px;
+    margin-bottom: 10px;
+    padding: 4px 6px 4px 6px;
 }
 
-.tir-token-preview-small {
-    flex-shrink: 0;
-}
-
-.tir-token-image-small {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    border: 2px solid #4CAF50;
-    object-fit: cover;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.tir-token-details {
-    flex: 1;
-}
-
-.tir-token-name {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 4px;
-}
-
-.tir-token-type {
-    color: #4CAF50;
-    font-size: 0.9em;
-    background: rgba(76, 175, 80, 0.2);
-    padding: 2px 8px;
-    border-radius: 12px;
-    display: inline-block;
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.tir-header-actions {
+/* Token Info Header - Left */
+.tir-token-replacement-header-left {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    font-size: 1.1em;
+    font-weight: 800;
+    text-transform: uppercase;
+    gap: 4px;
 }
+.tir-token-replacement-header-left i {
+    font-size: .9em;
+    padding: 0px 0px 0px 0px;
+}
+
+/* Token Info Header - Right*/
+.tir-token-replacement-header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Button */
+.tir-token-replacement-header-right button {
+    color: rgba(145, 133, 107, 1.0);
+    background: rgba(0, 0, 0, 1.0);
+    border: 0px solid rgba(255, 255, 255, 0.9);
+    margin: 0;
+    padding: 1px 1px 1px 1px  !important;
+    line-height: 1;          /* keeps height minimal */
+    height: auto;            /* shrink to fit content */
+    min-height: unset;       /* override Foundry/system defaults */
+    display: inline-flex;    /* shrink-wrap around content */
+    align-items: center;     /* keep icon/text aligned vertically */
+}
+.tir-token-replacement-header-right button:hover {
+    color: rgba(255, 100, 0, 1.0);
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
+}
+
+.tir-token-replacement-header-right button i {
+    margin: 0 4px 0 0; /* small spacing between icon and text */
+    padding: 0 !important;
+}
+
+
+/* ********** CONTENT -TILES GRID ********** */
+
+
+/* TILES GRID */
+
 
 /* Token Display */
-.tir-token-display {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
-
-.tir-token-preview {
-    flex-shrink: 0;
-}
-
-.tir-token-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    border: 2px solid #4CAF50;
-    object-fit: cover;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.tir-token-info {
-    text-align: center;
-    width: 100%;
-}
-
-.tir-token-name {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 8px;
-}
-
-.tir-token-details {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.tir-token-type, .tir-token-level {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4CAF50;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8em;
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.tir-token-current {
-    color: #888;
-    font-size: 0.8em;
-    word-break: break-all;
-}
-
-/* No Token State */
-.tir-no-token {
-    padding: 40px 20px;
-    text-align: center;
-    color: #888;
-}
 
 .tir-no-token-icon {
     font-size: 3em;
@@ -274,6 +250,8 @@ div#token-replacement-window .window-content {
     font-size: 1.1em;
     color: #ccc;
 }
+
+
 
 /* Thumbnails Grid */
 .tir-thumbnails-grid {

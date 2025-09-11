@@ -23,7 +23,7 @@ export class TokenImageReplacementWindow extends Application {
 
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
-            id: "token-image-replacement-window",
+            id: "token-replacement-window",
             title: "Token Image Replacement",
             template: "modules/coffee-pub-blacksmith/templates/window-token-replacement.hbs",
             width: 900,
@@ -39,12 +39,19 @@ export class TokenImageReplacementWindow extends Application {
         // Check if the main system is scanning
         const systemScanning = TokenImageReplacement.cache.isScanning;
         
+        // Calculate progress percentage
+        let progressPercentage = 0;
+        if (this.scanTotal > 0 && this.scanProgress > 0) {
+            progressPercentage = Math.round((this.scanProgress / this.scanTotal) * 100);
+        }
+        
         return {
             selectedToken: this.selectedToken,
             matches: this.matches,
             isScanning: this.isScanning || systemScanning,
             scanProgress: this.scanProgress,
             scanTotal: this.scanTotal,
+            scanProgressPercentage: progressPercentage,
             scanStatusText: this.scanStatusText || "Scanning Token Images...",
             hasMatches: this.matches.length > 0
         };
@@ -80,7 +87,7 @@ export class TokenImageReplacementWindow extends Application {
         html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
         
         // Refresh button
-        html.find('.refresh-cache-btn').on('click', this._onRefreshCache.bind(this));
+        html.find('.button-refresh-cache').on('click', this._onRefreshCache.bind(this));
         
         // Refresh detection button
         html.find('.refresh-detection-btn').on('click', this._onRefreshDetection.bind(this));
@@ -298,21 +305,7 @@ export class TokenImageReplacement {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | createToken", "token-image-replacement-creation", true, false);
         
-        // Register Handlebars helpers
-        if (typeof Handlebars !== 'undefined' && !Handlebars.helpers.math) {
-            Handlebars.registerHelper('math', function(lvalue, operator, rvalue, options) {
-                lvalue = parseFloat(lvalue);
-                rvalue = parseFloat(rvalue);
-                
-                return {
-                    "+": lvalue + rvalue,
-                    "-": lvalue - rvalue,
-                    "*": lvalue * rvalue,
-                    "/": lvalue / rvalue,
-                    "%": lvalue % rvalue
-                }[operator];
-            });
-        }
+        // No Handlebars helpers needed - all calculations done in JavaScript
         
         // Add test function to global scope for debugging
         if (game.user.isGM) {
@@ -522,12 +515,22 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: This may take a few minutes for large token collections...", "", false, false);
         
         try {
+            // Update window with initial scan status
+            if (this.window && this.window.updateScanProgress) {
+                this.window.updateScanProgress(0, 100, "Starting directory scan...");
+            }
+            
             // Use Foundry's FilePicker to get directory contents
             const files = await this._getDirectoryContents(basePath);
             
             if (files.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No supported image files found", "", false, false);
                 return;
+            }
+            
+            // Update window with processing status
+            if (this.window && this.window.updateScanProgress) {
+                this.window.updateScanProgress(95, 100, `Processing ${files.length} files...`);
             }
             
             // Process and categorize files
@@ -552,6 +555,11 @@ export class TokenImageReplacement {
             
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
+            
+            // Update window with completion status
+            if (this.window && this.window.updateScanProgress) {
+                this.window.updateScanProgress(100, 100, "Scan completed successfully!");
+            }
             
             // Refresh any open windows now that cache is ready
             if (this.window && this.window.refreshMatches) {
@@ -626,7 +634,9 @@ export class TokenImageReplacement {
                     // Update window progress if it exists
                     if (this.window && this.window.updateScanProgress) {
                         const statusText = this._truncateStatusText(`Scanning ${subDirName}: ${files.length} files found`);
-                        this.window.updateScanProgress(i, response.dirs.length, statusText);
+                        this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
+                        // Small delay to make progress visible
+                        await new Promise(resolve => setTimeout(resolve, 50));
                     }
                     
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${i + 1}/${response.dirs.length}] Scanning ${subDirName}...`, "", false, false);
@@ -682,7 +692,7 @@ export class TokenImageReplacement {
                     // Update window progress with detailed subdirectory info
                     if (this.window && this.window.updateScanProgress) {
                         const statusText = this._truncateStatusText(`Scanning ${parentDirName}/${deeperDirName}: ${files.length} files found`);
-                        this.window.updateScanProgress(i, response.dirs.length, statusText);
+                        this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
                     }
                     
                     const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
@@ -1639,4 +1649,5 @@ export class TokenImageReplacement {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
         }
     }
+
 }
