@@ -15,7 +15,7 @@
     {{#if isScanning}}
     <div class="tir-scan-progress">
         <div class="tir-progress-header">
-            <h3><i class="fas fa-sync-alt fa-spin"></i> Scanning Token Images...</h3>
+            <h3><i class="fas fa-sync-alt fa-spin"></i> {{scanStatusText}}</h3>
         </div>
         <div class="tir-progress-bar">
             <div class="tir-progress-fill" style="width: {{#if scanTotal}}{{math scanProgress "*" 100 "/" scanTotal}}{{else}}0{{/if}}%"></div>

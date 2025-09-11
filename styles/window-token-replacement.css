@@ -1,12 +1,12 @@
 /* Token Image Replacement Window Styles - Independent Design */
 :root {
-    --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
+    --tir-banner-image: url('modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp');
 }
 
 /* Window Background */
 div#token-replacement-window {
     min-height: 550px;
-    min-width: 800px;
+    min-width: 400px;
 }
 
 .token-replacement-window.app {

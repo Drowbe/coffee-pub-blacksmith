@@ -17,6 +17,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
+        this.scanStatusText = "Scanning Token Images...";
         this._tokenSelectionHandler = this._onTokenSelectionChange.bind(this);
     }
 
@@ -35,12 +36,16 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     getData() {
+        // Check if the main system is scanning
+        const systemScanning = TokenImageReplacement.cache.isScanning;
+        
         return {
             selectedToken: this.selectedToken,
             matches: this.matches,
-            isScanning: this.isScanning,
+            isScanning: this.isScanning || systemScanning,
             scanProgress: this.scanProgress,
             scanTotal: this.scanTotal,
+            scanStatusText: this.scanStatusText || "Scanning Token Images...",
             hasMatches: this.matches.length > 0
         };
     }
@@ -90,43 +95,48 @@ export class TokenImageReplacementWindow extends Application {
 
         this.matches = [];
 
-        // Add current token image as the first match with special indicator
+        // Always add current token image as the first match, even if cache isn't ready
+        const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
         const currentImage = {
             name: "Current Image",
-            fullPath: this.selectedToken.texture.src,
+            fullPath: currentImageSrc,
             isCurrent: true
         };
         this.matches.push(currentImage);
 
-        // Find matching images
-        const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
-        
-        if (matchingImage) {
-            // Add the automatic match if it's different from current
-            if (matchingImage.fullPath !== this.selectedToken.texture.src) {
-                matchingImage.isCurrent = false;
-                this.matches.push(matchingImage);
-            }
-        } else {
-            // If no automatic match, show some alternatives
-            const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
-            const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        // Only try to find alternatives if cache is ready
+        if (TokenImageReplacement.cache.files.size > 0) {
+            // Find matching images
+            const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
             
-            // Find files that contain any of the search terms
-            const alternatives = allFiles.filter(file => {
-                const fileName = file.name.toLowerCase();
-                return searchTerms.some(term => 
-                    term && term.length > 2 && fileName.includes(term.toLowerCase())
-                );
-            }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
+            if (matchingImage) {
+                // Add the automatic match if it's different from current
+                if (matchingImage.fullPath !== currentImageSrc) {
+                    matchingImage.isCurrent = false;
+                    this.matches.push(matchingImage);
+                }
+            } else {
+                // If no automatic match, show some alternatives
+                const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+                
+                // Find files that contain any of the search terms
+                const alternatives = allFiles.filter(file => {
+                    const fileName = file.name.toLowerCase();
+                    return searchTerms.some(term => 
+                        term && term.length > 2 && fileName.includes(term.toLowerCase())
+                    );
+                }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
 
-            // Mark alternatives as not current
-            alternatives.forEach(alt => {
-                alt.isCurrent = false;
-            });
+                // Mark alternatives as not current
+                alternatives.forEach(alt => {
+                    alt.isCurrent = false;
+                });
 
-            this.matches.push(...alternatives);
+                this.matches.push(...alternatives);
+            }
         }
+        // If cache not ready, just show current image - alternatives will be added when cache is ready
     }
 
     async _onSelectImage(event) {
@@ -181,10 +191,13 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     // Method to update scan progress
-    updateScanProgress(current, total) {
+    updateScanProgress(current, total, statusText = null) {
         this.isScanning = true;
         this.scanProgress = current;
         this.scanTotal = total;
+        if (statusText) {
+            this.scanStatusText = statusText;
+        }
         this.render();
     }
 
@@ -193,6 +206,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
+        this.scanStatusText = "Scanning Token Images...";
         this.render();
     }
 
@@ -219,6 +233,14 @@ export class TokenImageReplacementWindow extends Application {
     _onTokenSelectionChange() {
         // Re-render when token selection changes
         this.render();
+    }
+
+    // Method to refresh matches when cache becomes ready
+    refreshMatches() {
+        if (this.selectedToken) {
+            this._findMatches();
+            this.render();
+        }
     }
 }
 
@@ -277,18 +299,20 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | createToken", "token-image-replacement-creation", true, false);
         
         // Register Handlebars helpers
-        Handlebars.registerHelper('math', function(lvalue, operator, rvalue, options) {
-            lvalue = parseFloat(lvalue);
-            rvalue = parseFloat(rvalue);
-            
-            return {
-                "+": lvalue + rvalue,
-                "-": lvalue - rvalue,
-                "*": lvalue * rvalue,
-                "/": lvalue / rvalue,
-                "%": lvalue % rvalue
-            }[operator];
-        });
+        if (typeof Handlebars !== 'undefined' && !Handlebars.helpers.math) {
+            Handlebars.registerHelper('math', function(lvalue, operator, rvalue, options) {
+                lvalue = parseFloat(lvalue);
+                rvalue = parseFloat(rvalue);
+                
+                return {
+                    "+": lvalue + rvalue,
+                    "-": lvalue - rvalue,
+                    "*": lvalue * rvalue,
+                    "/": lvalue / rvalue,
+                    "%": lvalue % rvalue
+                }[operator];
+            });
+        }
         
         // Add test function to global scope for debugging
         if (game.user.isGM) {
@@ -468,11 +492,14 @@ export class TokenImageReplacement {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cleaned cache to storage", "", false, false);
             }
             
+            // Check if we need incremental updates
+            await this._checkForIncrementalUpdates(basePath);
+            
             return;
         }
         
         // Start background scan if no valid cache found
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No valid cache found, starting scan...", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No valid cache found, starting full scan...", "", false, false);
         await this._scanFolderStructure(basePath);
         
         // Log final cache status
@@ -525,6 +552,11 @@ export class TokenImageReplacement {
             
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
+            
+            // Refresh any open windows now that cache is ready
+            if (this.window && this.window.refreshMatches) {
+                this.window.refreshMatches();
+            }
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", true, false);
@@ -590,6 +622,13 @@ export class TokenImageReplacement {
                 for (let i = 0; i < response.dirs.length; i++) {
                     const subDir = response.dirs[i];
                     const subDirName = subDir.split('/').pop();
+                    
+                    // Update window progress if it exists
+                    if (this.window && this.window.updateScanProgress) {
+                        const statusText = this._truncateStatusText(`Scanning ${subDirName}: ${files.length} files found`);
+                        this.window.updateScanProgress(i, response.dirs.length, statusText);
+                    }
+                    
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${i + 1}/${response.dirs.length}] Scanning ${subDirName}...`, "", false, false);
                     const subDirFiles = await this._scanSubdirectory(subDir, basePath);
                     files.push(...subDirFiles);
@@ -639,6 +678,13 @@ export class TokenImageReplacement {
                 for (let i = 0; i < response.dirs.length; i++) {
                     const deeperDir = response.dirs[i];
                     const deeperDirName = deeperDir.split('/').pop();
+                    
+                    // Update window progress with detailed subdirectory info
+                    if (this.window && this.window.updateScanProgress) {
+                        const statusText = this._truncateStatusText(`Scanning ${parentDirName}/${deeperDirName}: ${files.length} files found`);
+                        this.window.updateScanProgress(i, response.dirs.length, statusText);
+                    }
+                    
                     const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
                     files.push(...deeperFiles);
                     
@@ -1558,6 +1604,39 @@ export class TokenImageReplacement {
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status setting: ${error.message}`, "", true, false);
+        }
+    }
+
+    /**
+     * Truncate status text to fit in the progress bar
+     */
+    static _truncateStatusText(text, maxLength = 80) {
+        if (text.length <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength - 3) + '...';
+    }
+
+    /**
+     * Check for incremental updates to the cache
+     */
+    static async _checkForIncrementalUpdates(basePath) {
+        try {
+            // Check if folder fingerprint changed (file system changes)
+            const currentFingerprint = await this._generateFolderFingerprint(basePath);
+            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+            
+            if (savedCache) {
+                const cacheData = JSON.parse(savedCache);
+                if (cacheData.folderFingerprint !== currentFingerprint) {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, starting incremental update...", "", false, false);
+                    await this._scanFolderStructure(basePath);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is up to date", "", false, false);
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
         }
     }
 }
