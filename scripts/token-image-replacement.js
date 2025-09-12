@@ -305,7 +305,7 @@ export class TokenImageReplacementWindow extends Application {
         // Register token selection hook only once when first rendered
         // Use a small delay to ensure the DOM is ready
         if (!this._tokenHookRegistered) {
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (!this._tokenHookRegistered) {
                     postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Registering controlToken hook', 'token-image-replacement-selection', false, false);
                     console.log('Token Image Replacement: Window rendered, registering hook...');
@@ -321,6 +321,9 @@ export class TokenImageReplacementWindow extends Application {
                     });
                     this._tokenHookRegistered = true;
                     console.log('Token Image Replacement: Hook registered with ID:', this._tokenHookId);
+                    
+                    // Check for currently selected token after hook registration
+                    await this._checkForSelectedToken();
                 }
             }, 100);
         }
@@ -353,6 +356,29 @@ export class TokenImageReplacementWindow extends Application {
         // Detect the newly selected token and update matches
         await this._detectSelectedToken();
         this.render();
+    }
+
+    /**
+     * Check for currently selected token when window opens
+     */
+    async _checkForSelectedToken() {
+        try {
+            // Check if there are any controlled tokens
+            const controlledTokens = canvas.tokens.controlled;
+            if (controlledTokens.length > 0) {
+                const selectedToken = controlledTokens[0];
+                console.log('Token Image Replacement: Found currently selected token:', selectedToken.name);
+                
+                // Store the selected token and find matches
+                this.selectedToken = selectedToken;
+                await this._findMatches();
+                this.render();
+            } else {
+                console.log('Token Image Replacement: No currently selected token found');
+            }
+        } catch (error) {
+            console.log('Token Image Replacement: Error checking for selected token:', error);
+        }
     }
 
     // Method to refresh matches when cache becomes ready
@@ -520,6 +546,22 @@ export class TokenImageReplacement {
      * Scan for images and update the cache (non-destructive)
      */
     static async scanForImages() {
+        // Check if we already have a working cache
+        if (this.cache.files.size > 0) {
+            const confirm = await Dialog.confirm({
+                title: "Token Image Replacement",
+                content: `<p>You already have ${this.cache.files.size} images in your cache. Do you want to scan again?</p><p><strong>Note:</strong> This will take several minutes and may not be necessary.</p>`,
+                yes: () => true,
+                no: () => false,
+                defaultYes: false
+            });
+            
+            if (!confirm) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan cancelled by user", "", false, false);
+                return;
+            }
+        }
+        
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scanning for images...", "", false, false);
         
         if (this.cache.isScanning) {
@@ -1366,11 +1408,11 @@ export class TokenImageReplacement {
         }
         
         // Only return matches with a reasonable score
-        if (bestScore >= 0.5) {
+        if (bestScore >= 0.3) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Best match for ${tokenDocument.name}: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`, "", false, false);
             return bestMatch;
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found for ${tokenDocument.name} (best score: ${bestScore.toFixed(2)}, threshold: 0.5)`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found for ${tokenDocument.name} (best score: ${bestScore.toFixed(2)}, threshold: 0.3)`, "", false, false);
         }
         
         return null;
@@ -1737,7 +1779,7 @@ export class TokenImageReplacement {
                 files: Array.from(this.cache.files.entries()),
                 folders: Array.from(this.cache.folders.entries()),
                 creatureTypes: Array.from(this.cache.creatureTypes.entries()),
-                lastScan: this.cache.lastScan,
+                lastScan: this.cache.lastScan || Date.now(), // Use current time if lastScan is null
                 totalFiles: this.cache.totalFiles,
                 basePath: basePath,
                 folderFingerprint: folderFingerprint,
@@ -1977,15 +2019,25 @@ export class TokenImageReplacement {
         
         try {
             const cacheData = JSON.parse(savedCache);
-            const cacheAge = Date.now() - (cacheData.lastScan || 0);
+            
+            // Handle the case where lastScan is null, 0, or invalid
+            let lastScanTime = cacheData.lastScan;
+            if (!lastScanTime || lastScanTime === 0) {
+                lastScanTime = Date.now(); // Use current time as fallback
+            }
+            
+            const cacheAge = Date.now() - lastScanTime;
             const ageHours = (cacheAge / (1000 * 60 * 60)).toFixed(1);
+            
+            // Cap the age display at a reasonable maximum (e.g., 9999 hours)
+            const displayAge = Math.min(parseFloat(ageHours), 9999);
             
             return {
                 hasStoredCache: true,
                 fileCount: cacheData.files?.length || 0,
-                lastScan: cacheData.lastScan,
-                ageHours: ageHours,
-                message: `${cacheData.files?.length || 0} files, ${ageHours} hours old`
+                lastScan: lastScanTime,
+                ageHours: displayAge,
+                message: `${cacheData.files?.length || 0} files, ${displayAge} hours old`
             };
         } catch (error) {
             return { hasStoredCache: false, message: `Error reading cache: ${error.message}` };
