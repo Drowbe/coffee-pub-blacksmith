@@ -6,26 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [12.1.3] - Enhanced Toolbar Targeting
+## [12.1.3] - Token Image Replacement System
 
 ### Added
-- **Toolbar Targeting System:** Added `onCoffeePub` and `onFoundry` parameters for precise toolbar targeting control
-- **FoundryVTT Native Toolbar Integration:** External modules can now add tools to FoundryVTT's native token control toolbar
-- **Dual Toolbar Support:** Tools can now appear in both Blacksmith and FoundryVTT toolbars simultaneously
-- **Backward Compatibility:** All existing tools default to `onCoffeePub: true, onFoundry: false` for seamless migration
-- **Enhanced API Documentation:** Updated API documentation with comprehensive examples for toolbar targeting
+- **Token Image Replacement System:** Complete token image replacement functionality with automatic matching and manual selection
+- **Dual Use Case Support:** Separate logic for automatic replacement (best match) vs manual selection (all matches)
+- **Token Image Replacement Window:** Dedicated UI window for GMs to manually select token images from available alternatives
+- **Cache Management System:** Comprehensive image caching with incremental updates, pause/resume, and storage persistence
+- **CoffeePub Toolbar Integration:** Added Token Image Replacement button to CoffeePub toolbar for easy access
+- **Progress Tracking:** Real-time progress bars showing scan status with detailed folder and file information
+- **Smart Cache Updates:** Incremental update system that only rescans when folder structure changes
+- **Confirmation Dialogs:** User-friendly dialogs for scan type selection (Incremental Update vs Full Rescan vs Cancel)
+- **Token Selection Detection:** Automatic detection of currently selected tokens when window opens
+- **Multiple Match Display:** Shows up to 11 alternative images plus current image (12 total) in thumbnail grid
+- **Current Image Highlighting:** Green checkmark and border to identify the currently assigned token image
+
+### Fixed
+- **Cache Age Calculation:** Fixed incorrect cache age display (was showing 488,232 hours instead of reasonable values)
+- **Cache Persistence:** Resolved cache being cleared on every client reload
+- **SUPPORTED_FORMATS Context:** Fixed undefined errors in folder fingerprinting and file processing
+- **Search Threshold:** Lowered matching threshold from 0.5 to 0.3 for better match detection
+- **Multiple Match Display:** Fixed window showing only 1 match instead of all available alternatives
+- **Infinite Render Loop:** Prevented Foundry crashes caused by render loop issues
+- **Automatic Scanning Bypass:** Fixed scans starting even when auto-update setting was disabled
+- **FilePicker Scope:** Corrected FilePicker.browse calls to use 'data' instead of 'public' scope
+- **Incremental Cache Processing:** Ensured files are added to cache immediately during scanning
+- **Token Selection Hook:** Fixed token selection not working when window opens with token selected
 
 ### Changed
-- **Request Roll Tool:** Now appears in both Blacksmith and FoundryVTT toolbars for maximum accessibility
-- **Tool Registration Logic:** Updated to filter tools based on `onCoffeePub` and `onFoundry` parameters
-- **FoundryVTT Integration:** Enhanced to support multiple tools in native toolbars instead of hardcoded single tool
-- **API Examples:** Updated all API documentation examples to show new targeting parameters
+- **Cache Management:** Replaced confusing cache settings with single "Automatically update image cache" checkbox
+- **Dialog Buttons:** Updated scan confirmation dialog with proper button labels (Incremental Update, Full Rescan, Cancel)
+- **Search Algorithm:** Enhanced matching algorithm to find multiple alternatives for manual selection
+- **Progress Display:** Improved progress bar text with detailed folder paths and file counts
+- **Cache Storage:** Implemented incremental saves during long scans to prevent data loss
+- **Error Handling:** Enhanced error handling with detailed logging and user notifications
 
 ### Technical Details
-- Added `getFoundryToolbarTools()` function to filter tools for FoundryVTT integration
-- Updated `getVisibleToolsByZones()` to only include `onCoffeePub: true` tools
-- Enhanced FoundryVTT toolbar integration to support multiple tools with proper visibility checking
-- Maintained full backward compatibility with existing tool registrations
+- Implemented `TokenImageReplacement` class with comprehensive cache management
+- Added `TokenImageReplacementWindow` for manual token image selection
+- Created `_doIncrementalUpdate()` method for efficient cache updates
+- Enhanced `_findMatches()` method to display all alternatives for manual selection
+- Fixed `_saveCacheToStorage()` to handle incremental saves properly
+- Updated `_generateFolderFingerprint()` to use correct FilePicker scope
+- Implemented proper hook registration/unregistration for token selection
+- Added comprehensive debugging and logging throughout the system
 
 ## [12.1.2] - Toolbar Manager
 

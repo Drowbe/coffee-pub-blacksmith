@@ -610,29 +610,46 @@ export class TokenImageReplacement {
         this.cache.isPaused = false;
         
         try {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental folder scan...", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", false, false);
             
-            // Use the existing directory scanning logic but don't clear the cache
-            const files = await this._getDirectoryContents(basePath);
+            // Check if folder structure has changed
+            const currentFingerprint = await this._generateFolderFingerprint(basePath);
+            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
             
-            if (files.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No new files found during incremental update", "", false, false);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Incremental update found ${files.length} files`, "", false, false);
+            let needsUpdate = false;
+            if (savedCache) {
+                const cacheData = JSON.parse(savedCache);
+                if (cacheData.folderFingerprint !== currentFingerprint) {
+                    needsUpdate = true;
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, files need to be rescanned", "", false, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No changes detected in folder structure", "", false, false);
+                }
             }
             
-            // Update lastScan timestamp
-            this.cache.lastScan = Date.now();
-            this.cache.totalFiles = this.cache.files.size;
-            
-            // Save the updated cache
-            await this._saveCacheToStorage(false); // false = final save
-            
-            // Update the cache status setting for display
-            this._updateCacheStatusSetting();
-            
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache now contains ${this.cache.totalFiles} files`, "", false, false);
+            if (needsUpdate) {
+                // If structure changed, we need to do a full rescan
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected - falling back to full scan", "", false, false);
+                this.cache.isScanning = false; // Stop incremental mode
+                await this._scanFolderStructure(basePath); // Do full scan
+                return;
+            } else {
+                // No changes detected, just update the timestamp
+                const originalFileCount = this.cache.files.size;
+                
+                // Update lastScan timestamp to current time
+                this.cache.lastScan = Date.now();
+                this.cache.totalFiles = this.cache.files.size;
+                
+                // Save the updated cache with new timestamp
+                await this._saveCacheToStorage(false); // false = final save
+                
+                // Update the cache status setting for display
+                this._updateCacheStatusSetting();
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
+            }
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during incremental update: ${error.message}`, "", true, false);

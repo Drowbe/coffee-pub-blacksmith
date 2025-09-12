@@ -53,23 +53,14 @@
 
         <!-- Token Info Header -->
         <div class="tir-token-replacement-header-container">
-            <div class="tir-token-replacement-header-left">
-                <i class="fas fa-dice"></i> Available Tokens: {{matches.length}}
-            </div>
+            <div class="tir-token-replacement-header-left"><i class="fas fa-dice"></i> Available Tokens: {{matches.length}}</div>
             <div class="tir-token-replacement-header-right">
-                <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups.">
-                    <i class="fas fa-pause"></i> Pause Scan
-                </button>
-                <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images.">
-                    <i class="fas fa-search"></i> Scan for Images
-                </button>
-                <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data.">
-                    <i class="fas fa-trash"></i> Delete Cache
-                </button>
-                |
-                <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection">
-                    <i class="fas fa-sync-alt"></i> Refresh Token Detection
-                </button>
+                <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
+                <span class="button-divider">|</span>
+                <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Pause Scan</button>
+                <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
+                <span class="button-divider">|</span>
+                <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection"><i class="fas fa-sync-alt"></i> Refresh Token Detection</button>
             </div>
         </div>
 

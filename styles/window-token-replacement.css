@@ -263,6 +263,12 @@ div#token-replacement-window .window-content {
     padding: 0 !important;
 }
 
+.tir-token-replacement-header-right .button-divider {
+    color: rgba(145, 133, 107, 0.5);
+    padding: 0px 0px 0px 12px !important;
+}  
+
+
 /* Notification */
 .tir-token-replacement-notification-container {
     font-size: 1.0em;
