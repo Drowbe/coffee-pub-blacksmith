@@ -126,7 +126,7 @@ export class TokenImageReplacementWindow extends Application {
         // Always add current token image as the first match, even if cache isn't ready
         const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
         const currentImage = {
-            name: "Current Image",
+            name: currentImageSrc.split('/').pop() || 'Unknown',
             fullPath: currentImageSrc,
             isCurrent: true
         };

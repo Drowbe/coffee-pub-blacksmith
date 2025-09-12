@@ -343,11 +343,14 @@ div#token-replacement-window .window-content {
     border-radius: 6px;
     border: 1px solid rgba(40, 93, 153, 0.8);
     padding: 6px 12px 6px 12px;
-    margin: 20px 20px 20px 20px;
+    margin: 12px 0px 12px 0px;
+}
+.tir-token-replacement-notification-container i {
+    padding: 0px 0px 0px 0px;
+    margin: 0px 6px 0px 0px;
 }
 
 /* ********** CONTENT -TILES GRID ********** */
-
 
 
 
@@ -533,6 +536,7 @@ div#token-replacement-window .window-content {
   
   /* Tag container: wraps, caps to N rows, hides overflow cleanly */
   .tir-thumbnail-tagset {
+      
     display: flex;
     flex-wrap: wrap;
     justify-content: center;                 /* or flex-start */
@@ -543,10 +547,12 @@ div#token-replacement-window .window-content {
   }
   
   /* Optional: soft bottom fade to hint overflow (Chrome-only) */
+    /* 
   .tir-thumbnail-tagset {
     -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
             mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
   }
+   */
   
   /* Tag pill */
   .tir-thumbnail-tag {
@@ -619,67 +625,34 @@ div#token-replacement-window .window-content {
 
 
 
+/* ********** NO TOKEN/MATCHES ********** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* THUMBNAIL ITEM - NO TOKEN DISPLAY */
-
-.tir-no-token-icon {
-    font-size: 3em;
-    color: #555;
-    margin-bottom: 15px;
-}
-
-.tir-no-token-text p {
-    margin: 0 0 10px 0;
-    font-size: 1em;
-}
-
-.tir-no-token-text p:first-child {
-    font-size: 1.1em;
-    color: #ccc;
-}
-
-
-/* THUMBNAIL ITEM - NO MATCHES */
-
+/* Container */
+.tir-no-token,
 .tir-no-matches {
     padding: 40px 20px;
     text-align: center;
-    color: #888;
+    color: rgba(255, 255, 255, 0.9);
 }
 
+/* Icon */
+.tir-no-token-icon,
 .tir-no-matches-icon {
     font-size: 3em;
-    color: #555;
+    color: rgba(255, 255, 255, 0.9);
     margin-bottom: 15px;
+    width: 100%;
+    height: 100%;
 }
 
+/* Text */
+.tir-no-token-text p,
 .tir-no-matches-text p {
     margin: 0 0 10px 0;
     font-size: 1em;
 }
-
+.tir-no-token-text p:first-child,
 .tir-no-matches-text p:first-child {
     font-size: 1.1em;
-    color: #ccc;
+    color: rgba(255, 255, 255, 0.9);
 }
