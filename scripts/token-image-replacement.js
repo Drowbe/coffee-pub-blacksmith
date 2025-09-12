@@ -107,30 +107,31 @@ export class TokenImageReplacementWindow extends Application {
         // Close button
         html.find('.close-btn').on('click', this._onClose.bind(this));
 
-        // Manual search functionality
-        html.find('.tir-search-btn').on('click', this._onManualSearch.bind(this));
-        html.find('.tir-clear-search-btn').on('click', this._onClearSearch.bind(this));
+        // Search functionality
+        html.find('.tir-search-input').on('input', this._onSearchInput.bind(this));
         html.find('.tir-search-input').on('keypress', (event) => {
             if (event.which === 13) { // Enter key
-                this._onManualSearch(event);
+                event.preventDefault();
             }
         });
     }
 
 
     async _findMatches() {
-        if (!this.selectedToken) return;
-
         this.matches = [];
 
-        // Always add current token image as the first match, even if cache isn't ready
-        const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
-        const currentImage = {
-            name: currentImageSrc.split('/').pop() || 'Unknown',
-            fullPath: currentImageSrc,
-            isCurrent: true
-        };
-        this.matches.push(currentImage);
+        // Always add current token image as the first match if token exists
+        if (this.selectedToken) {
+            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            if (currentImageSrc) {
+                const currentImage = {
+                    name: currentImageSrc.split('/').pop() || 'Unknown',
+                    fullPath: currentImageSrc,
+                    isCurrent: true
+                };
+                this.matches.push(currentImage);
+            }
+        }
 
         // Set notification based on cache status
         if (TokenImageReplacement.cache.isPaused) {
@@ -145,31 +146,46 @@ export class TokenImageReplacementWindow extends Application {
             // Try to find matches using available cache (regardless of size)
             let foundMatches = false;
             
-            // For manual selection window, show ALL matches (not just the best one)
+            // For manual selection window, show matches based on token selection
             if (TokenImageReplacement.cache.files.size > 0) {
-                const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
-                const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-                
-                // Find ALL files that contain any of the search terms (for manual selection)
-                const alternatives = allFiles.filter(file => {
-                    const fileName = file.name.toLowerCase();
-                    return searchTerms.some(term => 
-                        term && term.length > 2 && fileName.includes(term.toLowerCase())
-                    );
-                }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
+                if (this.selectedToken) {
+                    // If token is selected, find matches based on token characteristics
+                    const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                    const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+                    
+                    // Find ALL files that contain any of the search terms (for manual selection)
+                    const alternatives = allFiles.filter(file => {
+                        const fileName = file.name.toLowerCase();
+                        return searchTerms.some(term => 
+                            term && term.length > 2 && fileName.includes(term.toLowerCase())
+                        );
+                    }).slice(0, 11); // Show up to 11 alternatives (12 total with current)
 
-                if (alternatives.length > 0) {
-                    // Mark alternatives as not current
-                    alternatives.forEach(alt => {
-                        alt.isCurrent = false;
-                    });
-                    this.matches.push(...alternatives);
-                    foundMatches = true;
+                    if (alternatives.length > 0) {
+                        // Mark alternatives as not current
+                        alternatives.forEach(alt => {
+                            alt.isCurrent = false;
+                        });
+                        this.matches.push(...alternatives);
+                        foundMatches = true;
+                    }
+                } else {
+                    // If no token selected, show all available images
+                    const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+                    const alternatives = allFiles.slice(0, 20); // Show up to 20 images
+                    
+                    if (alternatives.length > 0) {
+                        alternatives.forEach(alt => {
+                            alt.isCurrent = false;
+                        });
+                        this.matches.push(...alternatives);
+                        foundMatches = true;
+                    }
                 }
             }
             
-            // If still no matches and cache is empty, try real-time search
-            if (!foundMatches && TokenImageReplacement.cache.files.size === 0) {
+            // If still no matches and cache is empty, try real-time search (only if token selected)
+            if (!foundMatches && TokenImageReplacement.cache.files.size === 0 && this.selectedToken) {
                 try {
                     const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
                     if (realTimeMatch) {
@@ -396,41 +412,104 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
-    async _onManualSearch(event) {
-        const searchInput = $(event.currentTarget).closest('.tir-search-container').find('.tir-search-input');
-        const searchTerm = searchInput.val().trim();
+    async _onSearchInput(event) {
+        const searchTerm = $(event.currentTarget).val().trim();
         
-        if (!searchTerm) {
-            ui.notifications.warn("Please enter a search term");
+        // Clear any existing timeout
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
+        
+        // If search term is too short, show all results
+        if (searchTerm.length < 3) {
+            await this._findMatches();
+            this.render();
             return;
         }
-
-        if (!this.selectedToken) {
-            ui.notifications.warn("Please select a token first");
-            return;
-        }
-
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Manual search for "${searchTerm}"`, "", false, false);
         
-        // Perform manual search
-        const manualMatches = await this._performManualSearch(searchTerm);
-        
-        // Replace matches with manual search results
-        this.matches = manualMatches;
-        this.render();
-        
-        ui.notifications.info(`Found ${manualMatches.length} matches for "${searchTerm}"`);
+        // Debounce search to avoid too many calls
+        this.searchTimeout = setTimeout(async () => {
+            await this._performSearch(searchTerm);
+        }, 300);
     }
 
     async _onClearSearch(event) {
         // Clear the search input
         $(event.currentTarget).closest('.tir-search-container').find('.tir-search-input').val('');
         
+        // Clear any pending search timeout
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
+        
         // Restore automatic matches
         await this._findMatches();
         this.render();
+    }
+
+    async _performSearch(searchTerm) {
+        if (TokenImageReplacement.cache.files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform search`, "", false, false);
+            this.matches = [];
+            this.render();
+            return;
+        }
+
+        const searchTermLower = searchTerm.toLowerCase();
+        const matches = [];
         
-        ui.notifications.info("Cleared search, showing automatic matches");
+        // Always add current token image first if it exists
+        if (this.selectedToken) {
+            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            if (currentImageSrc) {
+                const currentImage = {
+                    name: currentImageSrc.split('/').pop() || 'Unknown',
+                    fullPath: currentImageSrc,
+                    isCurrent: true
+                };
+                matches.push(currentImage);
+            }
+        }
+        
+        // Search through all cached files
+        for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
+            const fileNameLower = fileName.toLowerCase();
+            
+            // Check if filename contains the search term
+            if (fileNameLower.includes(searchTermLower)) {
+                let score = 0;
+                
+                // Exact match gets highest score
+                if (fileNameLower === searchTermLower) {
+                    score = 100;
+                }
+                // Starts with search term
+                else if (fileNameLower.startsWith(searchTermLower)) {
+                    score = 80;
+                }
+                // Contains search term
+                else {
+                    score = 60;
+                }
+                
+                matches.push({
+                    name: fileInfo.name,
+                    fullPath: fileInfo.fullPath,
+                    searchScore: score,
+                    isCurrent: false
+                });
+            }
+        }
+        
+        // Sort by score (highest first), but keep current image at top
+        matches.sort((a, b) => {
+            if (a.isCurrent) return -1;
+            if (b.isCurrent) return 1;
+            return b.searchScore - a.searchScore;
+        });
+        
+        this.matches = matches;
+        this.render();
     }
 
     async _performManualSearch(searchTerm) {
