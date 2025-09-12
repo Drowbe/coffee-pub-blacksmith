@@ -136,20 +136,12 @@ export class TokenImageReplacementWindow extends Application {
             // Try to find matches using available cache (regardless of size)
             let foundMatches = false;
             
-            // First try the automatic matching system
-            const matchingImage = TokenImageReplacement.findMatchingImage(this.selectedToken.document);
-            if (matchingImage && matchingImage.fullPath !== currentImageSrc) {
-                matchingImage.isCurrent = false;
-                this.matches.push(matchingImage);
-                foundMatches = true;
-            }
-            
-            // If no automatic match, try manual search through available cache
-            if (!foundMatches && TokenImageReplacement.cache.files.size > 0) {
+            // For manual selection window, show ALL matches (not just the best one)
+            if (TokenImageReplacement.cache.files.size > 0) {
                 const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
                 const allFiles = Array.from(TokenImageReplacement.cache.files.values());
                 
-                // Find files that contain any of the search terms
+                // Find ALL files that contain any of the search terms (for manual selection)
                 const alternatives = allFiles.filter(file => {
                     const fileName = file.name.toLowerCase();
                     return searchTerms.some(term => 
@@ -548,21 +540,48 @@ export class TokenImageReplacement {
     static async scanForImages() {
         // Check if we already have a working cache
         if (this.cache.files.size > 0) {
-            const confirm = await Dialog.confirm({
-                title: "Token Image Replacement",
-                content: `<p>You already have ${this.cache.files.size} images in your cache. Do you want to scan again?</p><p><strong>Note:</strong> This will take several minutes and may not be necessary.</p>`,
-                yes: () => true,
-                no: () => false,
-                defaultYes: false
+            const choice = await new Promise((resolve) => {
+                new Dialog({
+                    title: "Token Image Replacement",
+                    content: `<p>You already have ${this.cache.files.size} images in your cache.</p><p>Choose your scan type:</p><ul><li><strong>Incremental Update:</strong> Only scan for new/changed images (faster)</li><li><strong>Full Rescan:</strong> Start over and scan everything (slower)</li></ul>`,
+                    buttons: {
+                        incremental: {
+                            icon: '<i class="fas fa-sync-alt"></i>',
+                            label: "Incremental Update",
+                            callback: () => resolve('incremental')
+                        },
+                        full: {
+                            icon: '<i class="fas fa-redo"></i>',
+                            label: "Full Rescan",
+                            callback: () => resolve('full')
+                        },
+                        cancel: {
+                            icon: '<i class="fas fa-times"></i>',
+                            label: "Cancel",
+                            callback: () => resolve(false)
+                        }
+                    },
+                    default: "incremental"
+                }).render(true);
             });
             
-            if (!confirm) {
+            if (choice === false) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan cancelled by user", "", false, false);
+                return;
+            }
+            
+            // Do incremental update if cache exists
+            if (choice === 'incremental') {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", false, false);
+                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
+                if (basePath) {
+                    await this._doIncrementalUpdate(basePath);
+                }
                 return;
             }
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scanning for images...", "", false, false);
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting full scan...", "", false, false);
         
         if (this.cache.isScanning) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Stopping current scan and starting fresh...", "", false, false);
@@ -575,6 +594,50 @@ export class TokenImageReplacement {
         const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (basePath) {
             await this._scanFolderStructure(basePath);
+        }
+    }
+    
+    /**
+     * Do an incremental update without clearing existing cache
+     */
+    static async _doIncrementalUpdate(basePath) {
+        if (this.cache.isScanning) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Stopping current scan for incremental update...", "", false, false);
+            this.cache.isScanning = false;
+        }
+        
+        this.cache.isScanning = true;
+        this.cache.isPaused = false;
+        
+        try {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental folder scan...", "", false, false);
+            
+            // Use the existing directory scanning logic but don't clear the cache
+            const files = await this._getDirectoryContents(basePath);
+            
+            if (files.length === 0) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No new files found during incremental update", "", false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Incremental update found ${files.length} files`, "", false, false);
+            }
+            
+            // Update lastScan timestamp
+            this.cache.lastScan = Date.now();
+            this.cache.totalFiles = this.cache.files.size;
+            
+            // Save the updated cache
+            await this._saveCacheToStorage(false); // false = final save
+            
+            // Update the cache status setting for display
+            this._updateCacheStatusSetting();
+            
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache now contains ${this.cache.totalFiles} files`, "", false, false);
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during incremental update: ${error.message}`, "", true, false);
+        } finally {
+            this.cache.isScanning = false;
         }
     }
     

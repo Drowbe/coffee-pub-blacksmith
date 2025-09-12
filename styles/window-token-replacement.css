@@ -107,8 +107,9 @@ div#token-replacement-window .window-content {
 }
 
 .tir-subtitle {
-    font-size: 1.5em;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2em;
+    font-weight: 500;
+    color: rgba(172, 159, 129, 0.9);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     margin: 0;
     line-height: 1.2;
@@ -121,6 +122,9 @@ div#token-replacement-window .window-content {
     align-items: center;
     gap: 12px;
     margin-left: auto;
+    font-size: 1.0em;
+    font-weight: 500;
+    color: rgba(172, 159, 129, 0.9);
 }
 
 
