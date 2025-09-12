@@ -64,6 +64,20 @@
             </div>
         </div>
 
+        <!-- Manual Search Area -->
+        {{#if selectedToken.name}}
+        <div class="tir-search-container">
+            <div class="tir-search-input-container">
+                <input type="text" class="tir-search-input" placeholder="Search for images manually..." value="">
+                <button class="tir-search-btn" data-tooltip="Search for images matching this text"><i class="fas fa-search"></i></button>
+                <button class="tir-clear-search-btn" data-tooltip="Clear search and show automatic matches"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="tir-search-info">
+                <span class="tir-search-status">Searching in {{cacheStatus}}</span>
+            </div>
+        </div>
+        {{/if}}
+
         <!-- Notification -->
         {{#if hasNotification}}
         <div class="tir-token-replacement-notification-container">

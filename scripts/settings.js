@@ -1690,6 +1690,21 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
+		name: 'Matching Threshold',
+		hint: 'How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		range: {
+			min: 0.1,
+			max: 1.0,
+			step: 0.05
+		},
+		default: 0.3,
+	});
+
 
 
 	// ---------- Dead Tokens ----------

@@ -106,6 +106,15 @@ export class TokenImageReplacementWindow extends Application {
         
         // Close button
         html.find('.close-btn').on('click', this._onClose.bind(this));
+
+        // Manual search functionality
+        html.find('.tir-search-btn').on('click', this._onManualSearch.bind(this));
+        html.find('.tir-clear-search-btn').on('click', this._onClearSearch.bind(this));
+        html.find('.tir-search-input').on('keypress', (event) => {
+            if (event.which === 13) { // Enter key
+                this._onManualSearch(event);
+            }
+        });
     }
 
 
@@ -385,6 +394,90 @@ export class TokenImageReplacementWindow extends Application {
             await this._findMatches();
             this.render();
         }
+    }
+
+    async _onManualSearch(event) {
+        const searchInput = $(event.currentTarget).closest('.tir-search-container').find('.tir-search-input');
+        const searchTerm = searchInput.val().trim();
+        
+        if (!searchTerm) {
+            ui.notifications.warn("Please enter a search term");
+            return;
+        }
+
+        if (!this.selectedToken) {
+            ui.notifications.warn("Please select a token first");
+            return;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Manual search for "${searchTerm}"`, "", false, false);
+        
+        // Perform manual search
+        const manualMatches = await this._performManualSearch(searchTerm);
+        
+        // Replace matches with manual search results
+        this.matches = manualMatches;
+        this.render();
+        
+        ui.notifications.info(`Found ${manualMatches.length} matches for "${searchTerm}"`);
+    }
+
+    async _onClearSearch(event) {
+        // Clear the search input
+        $(event.currentTarget).closest('.tir-search-container').find('.tir-search-input').val('');
+        
+        // Restore automatic matches
+        await this._findMatches();
+        this.render();
+        
+        ui.notifications.info("Cleared search, showing automatic matches");
+    }
+
+    async _performManualSearch(searchTerm) {
+        if (TokenImageReplacement.cache.files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform manual search`, "", false, false);
+            return [];
+        }
+
+        const searchTermLower = searchTerm.toLowerCase();
+        const matches = [];
+        
+        // Search through all cached files
+        for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
+            const fileNameLower = fileName.toLowerCase();
+            
+            // Check if filename contains the search term
+            if (fileNameLower.includes(searchTermLower)) {
+                // Calculate a simple relevance score
+                let score = 0;
+                
+                // Exact match gets highest score
+                if (fileNameLower === searchTermLower) {
+                    score = 1.0;
+                }
+                // Starts with search term
+                else if (fileNameLower.startsWith(searchTermLower)) {
+                    score = 0.8;
+                }
+                // Contains search term
+                else {
+                    score = 0.6;
+                }
+                
+                matches.push({
+                    ...fileInfo,
+                    searchScore: score,
+                    isCurrent: false,
+                    isManualSearch: true
+                });
+            }
+        }
+        
+        // Sort by relevance score (highest first)
+        matches.sort((a, b) => b.searchScore - a.searchScore);
+        
+        // Limit to top 20 results
+        return matches.slice(0, 20);
     }
 }
 
@@ -1393,13 +1486,13 @@ export class TokenImageReplacement {
     static _getSearchTerms(tokenDocument) {
         const terms = [];
         
-        // Priority 1: Represented Actor name (if different from token name)
+        // Priority 1: Token name (usually most specific and accurate)
+        terms.push(tokenDocument.name);
+        
+        // Priority 2: Represented Actor name (if different from token name)
         if (tokenDocument.actor && tokenDocument.actor.name !== tokenDocument.name) {
             terms.push(tokenDocument.actor.name);
         }
-        
-        // Priority 2: Token name
-        terms.push(tokenDocument.name);
         
         // Priority 3: Base name (remove parentheticals and numbers)
         const baseName = tokenDocument.name.replace(/\([^)]*\)/g, '').replace(/\s*\d+$/, '').trim();
@@ -1429,6 +1522,12 @@ export class TokenImageReplacement {
      * Find the best matching image for the given search terms
      */
     static _findBestMatch(searchTerms, tokenDocument) {
+        // Enhanced debug logging
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] ===== MATCHING DEBUG START =====`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Token: "${tokenDocument.name}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Search terms: ${JSON.stringify(searchTerms)}`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Cache files count: ${this.cache.files.size}`, "", false, false);
+        
         // First, try to optimize search scope using creature type
         let creatureType = tokenDocument.actor?.system?.details?.type;
         // Handle both string and object formats
@@ -1465,13 +1564,30 @@ export class TokenImageReplacement {
         // Debug logging to see search scope contents
         postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Search scope size: ${searchScope.size}`, "", false, false);
         if (searchScope.size > 0) {
-            const firstFew = Array.from(searchScope.keys()).slice(0, 5);
-            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] First few items in search scope: ${firstFew.join(', ')}`, "", false, false);
+            const firstFew = Array.from(searchScope.keys()).slice(0, 10);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] First 10 items in search scope: ${firstFew.join(', ')}`, "", false, false);
+            
+            // Show some sample file names to understand the format
+            const sampleFiles = Array.from(searchScope.values()).slice(0, 5);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Sample file names:`, "", false, false);
+            sampleFiles.forEach(file => {
+                postConsoleAndNotification(MODULE.NAME, `  - "${file.name}" (path: ${file.fullPath})`, "", false, false);
+            });
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] WARNING: Search scope is empty!`, "", false, false);
         }
         
         let goblinFiles = [];
+        let scoredFiles = [];
+        
         for (const [fileName, fileInfo] of searchScope.entries()) {
             const score = this._calculateMatchScore(fileName, searchTerms, tokenDocument);
+            
+            // Track all files with scores for debugging
+            if (score > 0) {
+                scoredFiles.push({ fileName, score });
+            }
+            
             if (score > bestScore) {
                 bestScore = score;
                 bestMatch = fileInfo;
@@ -1481,6 +1597,17 @@ export class TokenImageReplacement {
             if (fileName.toLowerCase().includes('goblin')) {
                 goblinFiles.push({ fileName, score });
             }
+        }
+        
+        // Debug: show top scoring files
+        postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Files with scores > 0: ${scoredFiles.length}`, "", false, false);
+        if (scoredFiles.length > 0) {
+            scoredFiles.sort((a, b) => b.score - a.score);
+            const topScores = scoredFiles.slice(0, 10);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Top scoring files:`, "", false, false);
+            topScores.forEach(file => {
+                postConsoleAndNotification(MODULE.NAME, `  - "${file.fileName}" (score: ${file.score.toFixed(3)})`, "", false, false);
+            });
         }
         
         // Debug logging for goblin files found
@@ -1493,12 +1620,17 @@ export class TokenImageReplacement {
             postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] No goblin-related files found in search scope`, "", false, false);
         }
         
+        // Get threshold from settings
+        const threshold = getSettingSafely(MODULE.ID, 'tokenImageReplacementThreshold', 0.3);
+        
         // Only return matches with a reasonable score
-        if (bestScore >= 0.3) {
+        if (bestScore >= threshold) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Best match for ${tokenDocument.name}: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] ===== MATCHING DEBUG END (SUCCESS) =====`, "", false, false);
             return bestMatch;
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found for ${tokenDocument.name} (best score: ${bestScore.toFixed(2)}, threshold: 0.3)`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found for ${tokenDocument.name} (best score: ${bestScore.toFixed(2)}, threshold: ${threshold})`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] ===== MATCHING DEBUG END (NO MATCH) =====`, "", false, false);
         }
         
         return null;
@@ -1511,6 +1643,9 @@ export class TokenImageReplacement {
         const fileNameLower = fileName.toLowerCase();
         let totalScore = 0;
         let termCount = 0;
+        
+        // Debug: only log for first few files to avoid spam
+        const shouldDebug = Math.random() < 0.01; // 1% chance to debug
         
         for (const term of searchTerms) {
             if (!term || term.length < 2) continue;
@@ -1555,8 +1690,15 @@ export class TokenImageReplacement {
             termCount++;
         }
         
-        // Normalize score by number of terms
-        return termCount > 0 ? totalScore / termCount : 0;
+            // Normalize score by number of terms
+            const finalScore = termCount > 0 ? totalScore / termCount : 0;
+            
+            // Debug logging for sample files
+            if (shouldDebug && finalScore > 0) {
+                postConsoleAndNotification(MODULE.NAME, `[TokenImageReplacement] Scoring "${fileName}" against terms [${searchTerms.join(', ')}] = ${finalScore.toFixed(3)}`, "", false, false);
+            }
+            
+            return finalScore;
     }
     
 
