@@ -12,17 +12,18 @@
             <div class="tir-header-title">
                 {{#if selectedToken.name}}
                     <div class="tir-main-title">{{selectedToken.name}}</div>
-                    <div class="tir-subtitle">{{selectedToken.actor.name}}  •  {{selectedToken.actor.type}}  •  {{selectedToken.actor.system.traits.size}} </div>
+                    <div class="tir-subtitle">{{selectedToken.actor.name}}  •  {{selectedToken.actor.type}}  •  {{selectedToken.actor.system.details.type.value}}  •  {{selectedToken.actor.system.details.type.subtype}}</div>
                 {{else}}
                     <div class="tir-main-title">No token selected</div>
                     <div class="tir-subtitle">Select a token on the canvas</div>
                 {{/if}}
             </div>
+            <div class="tir-header-controls"><span>{{cacheStatus}}</span></div>
         </div>
         <!-- SCANNING PROGRESS -->
         {{#if isScanning}}
             <!-- OVERALL PROGRESS -->
-            <div class="tir-scan-progress">
+            <div class="tir-scan-progress progress-overall">
                 <div class="tir-progress-bar">
                     <div class="tir-progress-fill" style="width: {{overallProgressPercentage}}%"></div>
                     <div class="tir-progress-text">
@@ -32,13 +33,13 @@
                 </div>
             </div>
             <!-- Current Step PROGRESS -->
-            <div class="tir-scan-progress">
+            <div class="tir-scan-progress progress-current">
                 <div class="tir-progress-bar">
                     <div class="tir-progress-fill" style="width: {{currentStepProgressPercentage}}%"></div>
                     <div class="tir-progress-text">
-                        <i class="fas fa-sync-alt fa-spin"></i>
+                        <i class="fas fa-image-user"></i>
+                        {{#if currentPath}}<span class="tir-progress-details">{{currentPath}}</span>{{/if}}
                         <span class="tir-progress-total">{{#if currentStepTotal}}{{currentStepProgress}} of {{currentStepTotal}}{{else}}Initializing...{{/if}}</span>
-                        {{#if currentPath}} | <span class="tir-progress-details">{{currentPath}}</span>{{/if}}
                         {{#if currentFileName}} | <span class="tir-progress-file">{{currentFileName}}</span>{{/if}}
                     </div>
                 </div>

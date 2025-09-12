@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 /**
@@ -20,7 +20,6 @@ export class TokenImageReplacementWindow extends Application {
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
         this.notificationText = null;
-        this._tokenSelectionHandler = this._onTokenSelectionChange.bind(this);
     }
 
     static get defaultOptions() {
@@ -68,28 +67,20 @@ export class TokenImageReplacementWindow extends Application {
             currentStepTotal: TokenImageReplacement.cache.currentStepTotal,
             currentStepProgressPercentage: TokenImageReplacement.cache.currentStepTotal > 0 ? Math.round((TokenImageReplacement.cache.currentStepProgress / TokenImageReplacement.cache.currentStepTotal) * 100) : 0,
             currentPath: TokenImageReplacement.cache.currentPath,
-            currentFileName: TokenImageReplacement.cache.currentFileName
+            currentFileName: TokenImageReplacement.cache.currentFileName,
+            cacheStatus: getSettingSafely(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', 'Cache status not available')
         };
     }
 
     async _detectSelectedToken() {
         // Get the first selected token (if multiple are selected)
-        console.log('Token Image Replacement: Canvas available:', !!canvas);
-        console.log('Token Image Replacement: Canvas tokens available:', !!canvas?.tokens);
-        console.log('Token Image Replacement: Canvas tokens controlled:', canvas?.tokens?.controlled);
-        
         const selectedTokens = canvas?.tokens?.controlled || [];
-        console.log('Token Image Replacement: Detecting tokens. Found:', selectedTokens.length);
         
         if (selectedTokens.length > 0) {
             this.selectedToken = selectedTokens[0];
-            console.log('Token Image Replacement: Selected token:', this.selectedToken.name);
-            console.log('Token Image Replacement: Selected token document:', this.selectedToken.document);
-            console.log('Token Image Replacement: Selected token texture:', this.selectedToken.texture?.src);
             // Automatically find matches for the selected token
             await this._findMatches();
         } else {
-            console.log('Token Image Replacement: No tokens selected');
             this.selectedToken = null;
             this.matches = [];
         }
@@ -309,27 +300,58 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async render(force = false, options = {}) {
-        // Detect selected token before rendering
-        await this._detectSelectedToken();
-        
         const result = await super.render(force, options);
         
-        // Listen for token selection changes
-        if (this.rendered) {
-            canvas.tokens.on('control', this._tokenSelectionHandler);
+        // Register token selection hook only once when first rendered
+        // Use a small delay to ensure the DOM is ready
+        if (!this._tokenHookRegistered) {
+            setTimeout(() => {
+                if (!this._tokenHookRegistered) {
+                    postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Registering controlToken hook', 'token-image-replacement-selection', false, false);
+                    console.log('Token Image Replacement: Window rendered, registering hook...');
+                    this._tokenHookId = HookManager.registerHook({
+                        name: 'controlToken',
+                        description: 'Token Image Replacement: Handle token selection changes',
+                        context: 'token-image-replacement-selection',
+                        priority: 3,
+                        callback: async (token, controlled) => {
+                            console.log('Token Image Replacement: Hook fired!', token.name, controlled);
+                            await this._onTokenSelectionChange(token, controlled);
+                        }
+                    });
+                    this._tokenHookRegistered = true;
+                    console.log('Token Image Replacement: Hook registered with ID:', this._tokenHookId);
+                }
+            }, 100);
         }
         
         return result;
     }
 
     async close(options = {}) {
-        // Remove token selection listener
-        canvas.tokens.off('control', this._tokenSelectionHandler);
+        // Remove token selection hook
+        if (this._tokenHookRegistered && this._tokenHookId) {
+            HookManager.removeCallback(this._tokenHookId);
+            this._tokenHookRegistered = false;
+            this._tokenHookId = null;
+        }
         return super.close(options);
     }
 
-    _onTokenSelectionChange() {
-        // Re-render when token selection changes
+    async _onTokenSelectionChange(token, controlled) {
+        console.log('Token Image Replacement: _onTokenSelectionChange called', token?.name, controlled);
+        console.log('Token Image Replacement: game.user.isGM:', game.user?.isGM);
+        
+        // Only proceed if it's a GM (token image replacement is a GM tool)
+        if (!game.user.isGM) {
+            console.log('Token Image Replacement: Not GM, skipping');
+            return;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token ${token.name} ${controlled ? 'selected' : 'deselected'}`, 'token-image-replacement-selection', false, false);
+        
+        // Detect the newly selected token and update matches
+        await this._detectSelectedToken();
         this.render();
     }
 
@@ -508,7 +530,7 @@ export class TokenImageReplacement {
         // Reset pause state when scanning
         this.cache.isPaused = false;
         
-        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
@@ -574,7 +596,7 @@ export class TokenImageReplacement {
             this.cache.totalFiles = this.cache.files.size;
             
             // Save cleaned cache to storage
-            await this._saveCacheToStorage();
+            await this._saveCacheToStorage(false);
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Forced cleanup completed. Removed ${cleanedCount} invalid paths and saved cleaned cache.`, "", false, false);
         } else {
@@ -593,11 +615,14 @@ export class TokenImageReplacement {
             return;
         }
         
+        console.log('Token Image Replacement: Opening window...');
         if (!this.window) {
+            console.log('Token Image Replacement: Creating new window instance');
             this.window = new TokenImageReplacementWindow();
         }
-        
+        console.log('Token Image Replacement: Rendering window...');
         this.window.render(true);
+        console.log('Token Image Replacement: Window rendered');
     }
     
     /**
@@ -607,12 +632,12 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing cache system...", "", false, false);
         
         // Only initialize if the feature is enabled
-        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Feature disabled in settings", "", false, false);
             return;
         }
         
-        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (!basePath) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No base path configured", "", false, false);
             return;
@@ -642,7 +667,7 @@ export class TokenImageReplacement {
         }
         
         // No cache found - show appropriate notification
-        const autoUpdate = game.settings.get(MODULE.ID, 'tokenImageReplacementAutoUpdate');
+        const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
         if (autoUpdate) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache found, starting automatic scan...", "", false, false);
             ui.notifications.info("No Token Image Replacement images found. Scanning for images.");
@@ -680,6 +705,11 @@ export class TokenImageReplacement {
         this.cache.isPaused = false; // Reset pause state when starting
         const startTime = Date.now();
         
+        // Clear cache at the start of a complete scan
+        this.cache.files.clear();
+        this.cache.folders.clear();
+        this.cache.creatureTypes.clear();
+        
         // Initialize overall progress tracking
         this.cache.overallProgress = 0;
         this.cache.currentStepName = '';
@@ -703,11 +733,8 @@ export class TokenImageReplacement {
             
             // Update window with processing status
             if (this.window && this.window.updateScanProgress) {
-                this.window.updateScanProgress(95, 100, `Processing ${files.length} files...`);
+                this.window.updateScanProgress(95, 100, `Scan completed - files already processed incrementally`);
             }
-            
-            // Process and categorize files
-            this._processFiles(files, basePath);
             
             this.cache.lastScan = Date.now();
             this.cache.totalFiles = this.cache.files.size;
@@ -723,8 +750,8 @@ export class TokenImageReplacement {
             // Log some statistics about the cache
             this._logCacheStatistics();
             
-            // Save cache to persistent storage
-            await this._saveCacheToStorage();
+            // Save cache to persistent storage (final save)
+            await this._saveCacheToStorage(false); // false = final save
             
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
@@ -788,11 +815,18 @@ export class TokenImageReplacement {
             if (response.files && response.files.length > 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in base directory`, "", false, false);
                 
+                const baseFiles = [];
                 for (const filePath of response.files) {
                     const fileInfo = await this._processFileInfo(filePath, basePath);
                     if (fileInfo) {
                         files.push(fileInfo);
+                        baseFiles.push(fileInfo);
                     }
+                }
+                
+                // Process base directory files into cache immediately
+                if (baseFiles.length > 0) {
+                    this._processFiles(baseFiles, basePath, false); // Don't clear cache, just add files
                 }
             }
             
@@ -829,6 +863,17 @@ export class TokenImageReplacement {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${i + 1}/${response.dirs.length}] Scanning ${subDirName}...`, "", false, false);
                     const subDirFiles = await this._scanSubdirectory(subDir, basePath);
                     files.push(...subDirFiles);
+                    
+                    // Process files into cache immediately so they're available for incremental saves
+                    if (subDirFiles.length > 0) {
+                        this._processFiles(subDirFiles, basePath, false); // Don't clear cache, just add files
+                    }
+                    
+                    // Save cache incrementally after each main folder to prevent data loss
+                    if (subDirFiles.length > 0) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
+                        await this._saveCacheToStorage(true); // true = incremental save
+                    }
                     
                     // Log progress with percentage and file count
                     const progressPercent = Math.round(((i + 1) / response.dirs.length) * 100);
@@ -868,6 +913,12 @@ export class TokenImageReplacement {
                 this.cache.currentPath = pathParts.join(' | ');
                 
                 for (let i = 0; i < response.files.length; i++) {
+                    // Check if we should pause
+                    if (this.cache.isPaused) {
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan paused by user during file processing.", "", false, false);
+                        return files;
+                    }
+                    
                     const filePath = response.files[i];
                     const fileName = filePath.split('/').pop();
                     
@@ -934,7 +985,7 @@ export class TokenImageReplacement {
         
         // Check if file has supported extension
         const extension = filePath.split('.').pop()?.toLowerCase();
-        if (!this.SUPPORTED_FORMATS.includes(`.${extension}`)) {
+        if (!TokenImageReplacement.SUPPORTED_FORMATS.includes(`.${extension}`)) {
             return null;
         }
         
@@ -1000,11 +1051,17 @@ export class TokenImageReplacement {
     /**
      * Process and categorize files for the cache
      */
-    static _processFiles(files, basePath) {
-        // Clear existing cache
-        this.cache.files.clear();
-        this.cache.folders.clear();
-        this.cache.creatureTypes.clear();
+    static _processFiles(files, basePath, clearCache = false) {
+        console.log('Token Image Replacement: _processFiles called with', files.length, 'files');
+        console.log('Token Image Replacement: Cache size before processing:', this.cache.files.size);
+        
+        // Only clear existing cache if explicitly requested (for complete rescans)
+        if (clearCache) {
+            console.log('Token Image Replacement: Clearing cache as requested');
+            this.cache.files.clear();
+            this.cache.folders.clear();
+            this.cache.creatureTypes.clear();
+        }
         
         let validFiles = 0;
         let skippedFiles = 0;
@@ -1013,6 +1070,8 @@ export class TokenImageReplacement {
             // Extract filename and path information
             const fileName = file.name || file;
             const filePath = file.path || file;
+            
+            console.log('Token Image Replacement: Processing file:', fileName, 'path:', filePath);
             
             // Validate the full path before storing
             const fullPath = `${basePath}/${filePath}`;
@@ -1037,6 +1096,7 @@ export class TokenImageReplacement {
             this._categorizeFile(fileName, filePath);
         }
         
+        console.log('Token Image Replacement: Cache size after processing:', this.cache.files.size);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", false, false);
     }
     
@@ -1081,7 +1141,7 @@ export class TokenImageReplacement {
      */
     static findMatchingImage(tokenDocument) {
         // Check if feature is enabled
-        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             return null;
         }
         
@@ -1385,7 +1445,7 @@ export class TokenImageReplacement {
             return;
         }
         
-        if (!game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled')) {
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", false, false);
             return;
         }
@@ -1502,7 +1562,7 @@ export class TokenImageReplacement {
      * Refresh the cache
      */
     static async refreshCache() {
-        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
@@ -1661,11 +1721,17 @@ export class TokenImageReplacement {
     
     /**
      * Save cache to localStorage
+     * @param {boolean} isIncremental - If true, this is an incremental save during scanning
      */
-    static async _saveCacheToStorage() {
+    static async _saveCacheToStorage(isIncremental = false) {
         try {
-            const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
-            const folderFingerprint = await this._generateFolderFingerprint(basePath);
+            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
+            
+            // Only generate fingerprint for final saves, not incremental ones (performance)
+            let folderFingerprint = null;
+            if (!isIncremental) {
+                folderFingerprint = await this._generateFolderFingerprint(basePath);
+            }
             
             const cacheData = {
                 files: Array.from(this.cache.files.entries()),
@@ -1675,11 +1741,32 @@ export class TokenImageReplacement {
                 totalFiles: this.cache.totalFiles,
                 basePath: basePath,
                 folderFingerprint: folderFingerprint,
-                version: '1.1' // Bumped version for new cache structure
+                version: '1.1', // Bumped version for new cache structure
+                isIncremental: isIncremental // Flag to indicate this is a partial save
             };
             
+            console.log('Token Image Replacement: Saving cache to localStorage...');
+            console.log('Token Image Replacement: Cache files count:', this.cache.files.size);
+            console.log('Token Image Replacement: Cache folders count:', this.cache.folders.size);
+            console.log('Token Image Replacement: Cache lastScan:', this.cache.lastScan);
+            console.log('Token Image Replacement: Cache totalFiles:', this.cache.totalFiles);
+            console.log('Token Image Replacement: Cache data size:', JSON.stringify(cacheData).length, 'bytes');
+            
+            // Debug: Show first few files in cache
+            if (this.cache.files.size > 0) {
+                const firstFewFiles = Array.from(this.cache.files.entries()).slice(0, 3);
+                console.log('Token Image Replacement: First few files in cache:', firstFewFiles);
+            } else {
+                console.log('Token Image Replacement: Cache is empty!');
+            }
             localStorage.setItem('tokenImageReplacement_cache', JSON.stringify(cacheData));
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
+            console.log('Token Image Replacement: Cache saved successfully');
+            
+            if (isIncremental) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error saving cache: ${error.message}`, "", true, false);
         }
@@ -1710,30 +1797,36 @@ export class TokenImageReplacement {
             }
             
             // Check if base path changed
-            const currentBasePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+            const currentBasePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
             if (cacheData.basePath !== currentBasePath) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Base path changed, will rescan", "", false, false);
                 return false;
             }
             
             // Check if cache is still valid (less than 30 days old)
-            const cacheAge = Date.now() - (cacheData.lastScan || 0);
-            const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-            
-            if (cacheAge > maxAge) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", false, false);
-                return false;
+            // Only check age if lastScan exists and is not from an incremental save
+            if (cacheData.lastScan && !cacheData.isIncremental) {
+                const cacheAge = Date.now() - cacheData.lastScan;
+                const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+                
+                if (cacheAge > maxAge) {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", false, false);
+                    return false;
+                }
             }
             
             // Check if folder fingerprint changed (file system changes)
-            const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
-            if (cacheData.folderFingerprint !== currentFingerprint) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", false, false);
-                return false;
+            // Only check fingerprint if it exists and is not from an incremental save
+            if (cacheData.folderFingerprint && !cacheData.isIncremental) {
+                const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
+                if (cacheData.folderFingerprint !== currentFingerprint) {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", false, false);
+                    return false;
+                }
             }
             
             // Check if we need to update the cache
-            const autoUpdate = game.settings.get(MODULE.ID, 'tokenImageReplacementAutoUpdate');
+            const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
             const needsUpdate = await this._checkForIncrementalUpdates(currentBasePath);
             
             if (needsUpdate && autoUpdate) {
@@ -1804,7 +1897,7 @@ export class TokenImageReplacement {
             const allPaths = [];
             async function collectPaths(dir) {
                 try {
-                    const result = await FilePicker.browse('public', dir);
+                    const result = await FilePicker.browse('data', dir);
                     // Add directories
                     for (const subdir of result.dirs) {
                         allPaths.push(`dir:${subdir}`);
@@ -1812,7 +1905,7 @@ export class TokenImageReplacement {
                     }
                     // Add files (only image files)
                     for (const file of result.files) {
-                        if (this.SUPPORTED_FORMATS.some(format => file.toLowerCase().endsWith(format))) {
+                        if (TokenImageReplacement.SUPPORTED_FORMATS.some(format => file.toLowerCase().endsWith(format))) {
                             allPaths.push(`file:${file}`);
                         }
                     }
@@ -1850,7 +1943,7 @@ export class TokenImageReplacement {
     static async forceRefreshCache() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
         this._clearCacheFromStorage();
-        const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath');
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (basePath) {
             await this._scanFolderStructure(basePath);
         }
@@ -1861,8 +1954,25 @@ export class TokenImageReplacement {
      */
     static getCacheStorageStatus() {
         const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+        console.log('Token Image Replacement: Checking cache storage...');
+        console.log('Token Image Replacement: localStorage key exists:', !!savedCache);
+        console.log('Token Image Replacement: localStorage data size:', savedCache ? savedCache.length : 0, 'bytes');
         if (!savedCache) {
+            console.log('Token Image Replacement: No cache found in localStorage');
             return { hasStoredCache: false, message: "No cache in storage" };
+        }
+        
+        try {
+            const cacheData = JSON.parse(savedCache);
+            console.log('Token Image Replacement: Parsed cache data:', {
+                version: cacheData.version,
+                filesCount: cacheData.files ? cacheData.files.length : 0,
+                lastScan: cacheData.lastScan,
+                totalFiles: cacheData.totalFiles,
+                isIncremental: cacheData.isIncremental
+            });
+        } catch (error) {
+            console.log('Token Image Replacement: Error parsing cache data:', error.message);
         }
         
         try {
@@ -1919,8 +2029,15 @@ export class TokenImageReplacement {
             if (savedCache) {
                 const cacheData = JSON.parse(savedCache);
                 if (cacheData.folderFingerprint !== currentFingerprint) {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, starting incremental update...", "", false, false);
-                    await this._scanFolderStructure(basePath);
+                    // Only start scan if auto-update is enabled
+                    const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
+                    console.log('Token Image Replacement: Auto-update setting:', autoUpdate);
+                    if (autoUpdate) {
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, starting incremental update...", "", false, false);
+                        await this._scanFolderStructure(basePath);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, manual update needed", "", false, false);
+                    }
                 } else {
                     postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is up to date", "", false, false);
                 }

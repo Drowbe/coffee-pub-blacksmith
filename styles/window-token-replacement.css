@@ -114,6 +114,16 @@ div#token-replacement-window .window-content {
     line-height: 1.2;
 }
 
+
+/* --- Header Controls --- */
+.tir-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+
 /* ********** PROGRESS ********** */
 
 /* Container */
@@ -285,7 +295,7 @@ div#token-replacement-window .window-content {
     gap: 15px;
     flex: 1;
     overflow-y: auto;
-    max-height: 500px;
+    padding: 5px 0px 0px 0px;
 }
 
 

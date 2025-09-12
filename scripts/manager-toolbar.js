@@ -276,10 +276,10 @@ async function registerDefaultTools() {
                 name: "token-replacement",
         title: "Token Image Replacement",
                 button: true,
-        visible: () => game.settings.get(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar'),
+        visible: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', true),
         gmOnly: true,
         onCoffeePub: true,
-        onFoundry: () => game.settings.get(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar'),
+        onFoundry: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false),
                 onClick: async () => {
             try {
                 const { TokenImageReplacement } = await import('./token-image-replacement.js');
