@@ -106,11 +106,12 @@
                         {{/if}}
                     </div>
                     <div class="tir-thumbnail-name">{{name}}</div>
+                    <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">beast</span><span class="tir-thumbnail-tag">humanoid</span><span class="tir-thumbnail-tag">npc</span><span class="tir-thumbnail-tag">goblin</span><span class="tir-thumbnail-tag">boss</span></div>
                 </div>
                 {{/each}}
             {{else}}
                 <!-- Show current token image even when no matches -->
-                {{#if selectedToken}}
+                {{#if selectedToken.document.texture.src}}
                 <div class="tir-thumbnail-item tir-current-image" data-image-path="{{selectedToken.document.texture.src}}" data-image-name="Current Image">
                     <div class="tir-thumbnail-image">
                         <img src="{{selectedToken.document.texture.src}}" alt="Current Image" loading="lazy">
@@ -118,18 +119,18 @@
                             <i class="fas fa-check"></i>
                         </div>
                     </div>
-                    <div class="tir-thumbnail-name">Current Image</div>
+                    <div class="tir-thumbnail-name">{{selectedToken.document.texture.src}}</div>
+                    <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">CURRENT IMAGE</span></div>
                 </div>
                 {{/if}}
-                
                 <!-- Show "No Matches" message -->
                 <div class="tir-thumbnail-item tir-no-matches">
                     <div class="tir-no-matches-icon">
                         <i class="fas fa-search"></i>
                     </div>
                     <div class="tir-no-matches-text">
-                        <p>No Matches</p>
                         <p>No alternative images found for this token</p>
+                        <p><span class="tir-thumbnail-tag">NO MATCHES</span></p>
                     </div>
                 </div>
             {{/if}}
