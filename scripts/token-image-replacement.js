@@ -206,6 +206,12 @@ export class TokenImageReplacementWindow extends Application {
                 'texture.src': imagePath
             });
             
+            // Refresh the selected token object to get the updated image
+            this.selectedToken = canvas.tokens.get(this.selectedToken.id);
+            
+            // Refresh the matches to update current image highlighting
+            await this._findMatches();
+            
             ui.notifications.info(`Applied image: ${imageName}`);
             this.render();
         } catch (error) {
