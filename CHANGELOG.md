@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [12.1.3] - Token Image Replacement System
+## [12.1.3] - NEW Token Image Replacement System
 
 ### Added
 - **Token Image Replacement System:** Complete token image replacement functionality with automatic matching and manual selection
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented proper hook registration/unregistration for token selection
 - Added comprehensive debugging and logging throughout the system
 
-## [12.1.2] - Toolbar Manager
+## [12.1.2] - NEW Toolbar Manager
 
 ### Added
 - **Dynamic Toolbar System:** Implemented comprehensive toolbar management system with dynamic tool registration and zone-based organization
