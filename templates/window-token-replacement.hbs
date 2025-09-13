@@ -88,13 +88,11 @@
                     <span class="tir-filter-category" data-category="bosses">Bosses</span>
                 </div>
                 <div class="tir-results-container">
-                    <span class="tir-results-text">
-                        {{#if isSearching}}
-                            <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status"><i class="fas fa-sync-alt fa-spin"></i> Searching for more...</span>
-                        {{else}}
-                            <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status">Complete</span>
-                        {{/if}}
-                    </span>
+                    {{#if isSearching}}
+                        <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status"><i class="fas fa-sync-alt fa-spin"></i> Searching for more...</span>
+                    {{else}}
+                        <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status">Complete</span>
+                    {{/if}}
                 </div>
             </div>
             
