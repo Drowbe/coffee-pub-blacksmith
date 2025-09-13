@@ -588,6 +588,9 @@ export class TokenImageReplacementWindow extends Application {
         if ($element) {
             $element.find('.tir-thumbnails-grid').html(resultsHtml);
             
+            // Re-attach event handlers for the new thumbnail items
+            $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
+            
             // Update the results summary with current counts
             $element.find('.tir-results-text').text(`${this.matches.length} of ${this.allMatches.length} results`);
             
