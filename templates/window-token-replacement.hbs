@@ -77,24 +77,39 @@
 
         <!-- Results Summary & Filters -->
         <div class="tir-results-summary">
-            <div class="tir-results-count">
-                <i class="fas fa-images"></i>
-                <span class="tir-results-text">
-                    {{#if isSearching}}
-                        <span id="tir-results-text-results" class="tir-results-text-results">{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status"><i class="fas fa-sync-alt fa-spin"></i> Searching for more...</span>
-                    {{else}}
-                        <span id="tir-results-text-results" class="tir-results-text-results">{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status">Complete</span>
-                    {{/if}}
-                </span>
+            <!-- Row 1: Filters (left) and Result Counts (right) -->
+            <div class="tir-summary-row-1">
+                <div id="tir-filters-left" class="tir-filters-left">
+                    <span class="tir-filter-category active" data-category="all">All</span>
+                    <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
+                    <span class="tir-filter-category" data-category="creatures">Creatures</span>
+                    <span class="tir-filter-category" data-category="npcs">NPCs</span>
+                    <span class="tir-filter-category" data-category="monsters">Monsters</span>
+                    <span class="tir-filter-category" data-category="bosses">Bosses</span>
+                </div>
+                <div class="tir-results-count">
+                    <i class="fas fa-images"></i>
+                    <span class="tir-results-text">
+                        {{#if isSearching}}
+                            <span id="tir-results-text-results" class="tir-results-text-results">{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status"><i class="fas fa-sync-alt fa-spin"></i> Searching for more...</span>
+                        {{else}}
+                            <span id="tir-results-text-results" class="tir-results-text-results">{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status">Complete</span>
+                        {{/if}}
+                    </span>
+                </div>
             </div>
-            <div class="tir-tag-filters">
-                <span class="tir-filter-label">Tags:</span>
-                <div class="tir-filter-tags">
+            
+            <!-- Row 2: Tags (only if tags exist) -->
+            {{#if hasAggregatedTags}}
+            <div id="tir-summary-row-2" class="tir-summary-row-2">
+                <span class="tir-tags-label">Tags:</span>
+                <div id="tir-tags-container" class="tir-tags-container">
                     {{#each aggregatedTags}}
-                    <span class="tir-filter-tag" data-search-term="{{this}}">{{this}}</span>
+                    <span class="tir-tag" data-search-term="{{this}}">{{this}}</span>
                     {{/each}}
                 </div>
             </div>
+            {{/if}}
         </div>
 
         <!-- Notification -->
@@ -131,8 +146,6 @@
                     <div class="tir-thumbnail-tagset">
                         {{#if isCurrent}}
                         <span class="tir-thumbnail-tag">CURRENT IMAGE</span>
-                        {{else}}
-                        <span class="tir-thumbnail-tag">tage here</span>
                         {{/if}}
                     </div>
                 </div>

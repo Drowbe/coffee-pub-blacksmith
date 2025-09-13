@@ -22,6 +22,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.isSearching = false;
         this.scanProgress = 0;
+        this.currentFilter = 'all'; // Track current category filter
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
@@ -77,6 +78,45 @@ export class TokenImageReplacementWindow extends Application {
         // Sort by score and limit to first 50 for speed
         fastResults.sort((a, b) => b.searchScore - a.searchScore);
         return fastResults.slice(0, 50);
+    }
+
+    /**
+     * Apply category filter to search results
+     */
+    _applyCategoryFilter(results) {
+        if (this.currentFilter === 'all') {
+            return results;
+        }
+        
+        return results.filter(result => {
+            const path = result.path || '';
+            const fileName = result.name || '';
+            
+            // Check if the result matches the current category filter
+            switch (this.currentFilter) {
+                case 'adversaries':
+                    return path.toLowerCase().includes('adversaries') || 
+                           path.toLowerCase().includes('enemies') ||
+                           fileName.toLowerCase().includes('adversary') ||
+                           fileName.toLowerCase().includes('enemy');
+                case 'creatures':
+                    return path.toLowerCase().includes('creatures') || 
+                           fileName.toLowerCase().includes('creature');
+                case 'npcs':
+                    return path.toLowerCase().includes('npcs') || 
+                           path.toLowerCase().includes('npc') ||
+                           fileName.toLowerCase().includes('npc');
+                case 'monsters':
+                    return path.toLowerCase().includes('monsters') || 
+                           fileName.toLowerCase().includes('monster');
+                case 'bosses':
+                    return path.toLowerCase().includes('bosses') || 
+                           path.toLowerCase().includes('boss') ||
+                           fileName.toLowerCase().includes('boss');
+                default:
+                    return true;
+            }
+        });
     }
 
     /**
@@ -229,7 +269,9 @@ export class TokenImageReplacementWindow extends Application {
             totalResults: this.allMatches.length,
             isLoadingMore: this.isLoadingMore,
             isSearching: this.isSearching,
+            currentFilter: this.currentFilter,
             aggregatedTags: this._getAggregatedTags(),
+            hasAggregatedTags: this._getAggregatedTags().length > 0,
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
             overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
@@ -291,6 +333,12 @@ export class TokenImageReplacementWindow extends Application {
         
         // Tag click handlers (using event delegation for dynamically added tags)
         html.find('.tir-filter-tags').on('click', '.tir-filter-tag', this._onTagClick.bind(this));
+        
+        // Filter category click handlers
+        html.find('#tir-filters-left').on('click', '.tir-filter-category', this._onCategoryFilterClick.bind(this));
+        
+        // Tag click handlers for new tags row
+        html.find('#tir-tags-container').on('click', '.tir-tag', this._onTagClick.bind(this));
     }
 
 
@@ -720,7 +768,8 @@ export class TokenImageReplacementWindow extends Application {
         
         // PHASE 1: Fast filename search for instant results
         const fastResults = this._performFastSearch(searchTerm);
-        this.allMatches.push(...fastResults);
+        const filteredFastResults = this._applyCategoryFilter(fastResults);
+        this.allMatches.push(...filteredFastResults);
         
         // Sort by score (current image first, then by score)
         this.allMatches.sort((a, b) => {
@@ -827,7 +876,8 @@ export class TokenImageReplacementWindow extends Application {
             
             // Add batch results to allMatches
             if (batchResults.length > 0) {
-                this.allMatches.push(...batchResults);
+                const filteredBatchResults = this._applyCategoryFilter(batchResults);
+                this.allMatches.push(...filteredBatchResults);
                 
                 // Sort by score (highest first), but keep current image at top
                 this.allMatches.sort((a, b) => {
@@ -875,8 +925,15 @@ export class TokenImageReplacementWindow extends Application {
             
             // Update aggregated tags
             const aggregatedTags = this._getAggregatedTags();
-            const tagHtml = aggregatedTags.map(tag => `<span class="tir-filter-tag" data-search-term="${tag}">${tag}</span>`).join('');
-            $element.find('.tir-filter-tags').html(tagHtml);
+            const tagHtml = aggregatedTags.map(tag => `<span class="tir-tag" data-search-term="${tag}">${tag}</span>`).join('');
+            $element.find('#tir-tags-container').html(tagHtml);
+            
+            // Show/hide tags row based on whether there are tags
+            if (aggregatedTags.length > 0) {
+                $element.find('#tir-summary-row-2').show();
+            } else {
+                $element.find('#tir-summary-row-2').hide();
+            }
         }
     }
 
@@ -939,7 +996,6 @@ export class TokenImageReplacementWindow extends Application {
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
-            return tags;
         }
         
         // Get creature type from cache
@@ -965,8 +1021,8 @@ export class TokenImageReplacementWindow extends Application {
             });
         }
         
-        // If no tags found, add a generic one
-        if (tags.length === 0) {
+        // If no tags found (and not current image), add a generic one
+        if (tags.length === 0 || (tags.length === 1 && tags[0] === 'CURRENT IMAGE')) {
             tags.push('image');
         }
         
@@ -1010,6 +1066,30 @@ export class TokenImageReplacementWindow extends Application {
             
             // Trigger the search
             await this._performSearch(searchTerm);
+        }
+    }
+
+    async _onCategoryFilterClick(event) {
+        const category = event.currentTarget.dataset.category;
+        if (!category || category === this.currentFilter) return;
+        
+        // Update active filter
+        const $element = this.element;
+        if ($element) {
+            // Remove active class from all filter categories
+            $element.find('#tir-filters-left .tir-filter-category').removeClass('active');
+            $(event.currentTarget).addClass('active');
+            
+            // Set new filter
+            this.currentFilter = category;
+            
+            // Re-run current search with new filter
+            const currentSearchTerm = $element.find('.tir-search-input').val().trim();
+            if (currentSearchTerm.length >= 3) {
+                await this._performSearch(currentSearchTerm);
+            } else if (this.selectedToken) {
+                await this._findMatches();
+            }
         }
     }
 
