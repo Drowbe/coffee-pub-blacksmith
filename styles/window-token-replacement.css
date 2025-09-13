@@ -267,6 +267,15 @@ div#token-replacement-window .window-content {
     font-size: 11px;
     font-weight: 500;
     text-transform: lowercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tir-filter-tag:hover {
+    background: rgba(60, 120, 200, 0.4);
+    border-color: rgba(120, 170, 230, 0.6);
+    color: rgba(255, 255, 255, 1.0);
+    transform: translateY(-1px);
 }
 
 /* Search Box Container */

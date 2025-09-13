@@ -127,6 +127,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Infinite scroll
         html.find('.tir-thumbnails-grid').on('scroll', this._onScroll.bind(this));
+        
+        // Tag click handlers (using event delegation for dynamically added tags)
+        html.find('.tir-filter-tags').on('click', '.tir-filter-tag', this._onTagClick.bind(this));
     }
 
 
@@ -540,11 +543,19 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _updateResults() {
-        // Only update the results grid without re-rendering the entire window
+        // Update the results grid and the results summary
         const resultsHtml = this._renderResults();
         const $element = this.element;
         if ($element) {
             $element.find('.tir-thumbnails-grid').html(resultsHtml);
+            
+            // Update the results summary with current counts
+            $element.find('.tir-results-text').text(`${this.matches.length} of ${this.allMatches.length} results`);
+            
+            // Update aggregated tags
+            const aggregatedTags = this._getAggregatedTags();
+            const tagHtml = aggregatedTags.map(tag => `<span class="tir-filter-tag" data-search-term="${tag}">${tag}</span>`).join('');
+            $element.find('.tir-filter-tags').html(tagHtml);
         }
     }
 
@@ -665,6 +676,20 @@ export class TokenImageReplacementWindow extends Application {
         this._applyPagination();
         this._updateResults();
         this.isLoadingMore = false;
+    }
+
+    async _onTagClick(event) {
+        const searchTerm = event.currentTarget.dataset.searchTerm;
+        if (!searchTerm) return;
+        
+        // Set the search input value
+        const $element = this.element;
+        if ($element) {
+            $element.find('.tir-search-input').val(searchTerm);
+            
+            // Trigger the search
+            await this._performSearch(searchTerm);
+        }
     }
 
     _getAggregatedTags() {

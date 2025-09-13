@@ -53,7 +53,7 @@
 
         <!-- Token Info Header -->
         <div class="tir-token-replacement-header-container">
-            <div class="tir-token-replacement-header-left"><i class="fas fa-dice"></i> Available Tokens: {{matches.length}}</div>
+            <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Image Replacements</div>
             <div class="tir-token-replacement-header-right">
                 <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
                 <span class="button-divider">|</span>
@@ -81,7 +81,7 @@
                 <span class="tir-filter-label">Tags:</span>
                 <div class="tir-filter-tags">
                     {{#each aggregatedTags}}
-                    <span class="tir-filter-tag">{{this}}</span>
+                    <span class="tir-filter-tag" data-search-term="{{this}}">{{this}}</span>
                     {{/each}}
                 </div>
             </div>
