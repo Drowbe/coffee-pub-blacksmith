@@ -11,7 +11,7 @@ div#token-replacement-window {
 }
 
 .token-replacement-window.app {
-    min-width: 800px;
+    min-width: 700px;
     min-height: 400px;
 }
 
@@ -203,7 +203,7 @@ div#token-replacement-window .window-content {
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    margin: 10px 0px 10px 0px;
+    margin: 0px 0px 8px 0px;
 }
 
 /* Search Box Container */
@@ -358,32 +358,38 @@ div#token-replacement-window .window-content {
 
 
 
+
+
 /* =========================
    Tunables (one place to size)
    ========================= */
    :root {
-    --tile: 140px;          /* fixed tile WIDTH and image size (square) */
+    --tile: 160px;          /* fixed tile WIDTH and image size (square) */
+    --card-gap: 5px;          /* fixed tile WIDTH and image size (square) */
     --pad: 6px;            /* inner padding on the card */
-    --gap-v: 8px;           /* space between image and name */
+    --card-gap: 8px;           /* space between image and name */
   
     /* Name block sizing (controls UNIFORM card HEIGHT) */
     --name-fs: 1em;       /* caption font size */
     --name-lh: 1.25;      /* line height multiplier */
     --name-lines: 2;      /* << set to 1, 2, 3… to change clamp */
-  
+
+    /* Colors */
+    --card-bg: rgba(55, 55, 55, 0.9);
+    --card-border: rgba(68, 68, 68, 0.9);
+    --card-border-hover: rgba(255, 100, 0, 0.9);
+    --card-background-hover: rgba(255, 100, 0, 0.1);
+    --img-border: rgba(85, 85, 85, 0.9);
+    --img-background: rgba(0, 0, 0, 0.6);
+    --overlay: rgba(76, 175, 80, 0.8);
+    
     /* tags */
     --tag-fs: 0.75em;
     --tag-gap: 4px;
     --tag-pad-y: 2px;
     --tag-pad-x: 6px;
-    --tag-rows: 2;   /* << cap to 1 / 2 / 3 rows */
+    --tag-rows: 1;   /* << cap to 1 / 2 / 3 rows */
     
-    /* Colors */
-    --card-bg: rgba(55, 55, 55, 0.9);
-    --card-border: rgba(68, 68, 68, 0.9);
-    --card-border-hover: rgba(255, 100, 0, 0.9);
-    --img-border: rgba(85, 85, 85, 0.9);
-    --overlay: rgba(76, 175, 80, 0.8);
     
     /* Tag Colors */
     --tag-bg: rgba(60, 120, 200, 0.18);
@@ -398,7 +404,7 @@ div#token-replacement-window .window-content {
     --name-h: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
   
     /* rough per-row height for a tag line (text + vertical padding + gap) */
-    --tag-row-h: calc(var(--tag-fs) * 1.2 + (2 * var(--tag-pad-y)) + var(--tag-gap));
+    --tag-row-h: calc(var(--tag-fs) * 1.2 + (6 * var(--tag-pad-y)) + var(--tag-gap));
     --tag-block-h: calc(var(--tag-rows) * var(--tag-row-h));
   
     /* total uniform tile height = padding + image + gap + name + tags */
@@ -413,7 +419,7 @@ div#token-replacement-window .window-content {
     display: grid;
     grid-template-columns: repeat(auto-fill, var(--tile)); /* fixed column width */
     grid-auto-rows: var(--tile-total-h);                   /* uniform row height */
-    gap: 15px;
+    gap: var(--card-gap);
   
     justify-content: start;  /* left align */
     align-content: start;    /* pin to top */
@@ -465,7 +471,7 @@ div#token-replacement-window .window-content {
   }
   
   .tir-thumbnail-item:hover {
-    background: #3a3a3a;
+    background: var(--card-background-hover); 
     border-color: var(--card-border-hover);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,.3);
@@ -502,6 +508,7 @@ div#token-replacement-window .window-content {
     object-fit: cover; /* cover or contain */
     object-position: center;
     border: 1px solid var(--img-border);
+    background: var(--img-background);
     border-radius: inherit;
     display: block;
   }
@@ -540,12 +547,13 @@ div#token-replacement-window .window-content {
   
   /* Tag container: wraps, caps to N rows, hides overflow cleanly */
   .tir-thumbnail-tagset {
-      
+    border-top: 1px dotted var(--img-border);
+    width: 100%;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;                 /* or flex-start */
     gap: var(--tag-gap);
-    padding: 2px 6px;
+    padding: 10px 2px;
     max-height: var(--tag-block-h);          /* cap rows */
     overflow: hidden;                         /* hide extras to keep tile height fixed */
   }
@@ -573,6 +581,7 @@ div#token-replacement-window .window-content {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-transform: uppercase;
   }
   
   /* Hover (only when the card is hovered) */
