@@ -65,6 +65,7 @@ export class TokenImageReplacementWindow extends Application {
             hasMoreResults: this.allMatches.length > this.matches.length,
             currentResults: this.matches.length,
             totalResults: this.allMatches.length,
+            aggregatedTags: this._getAggregatedTags(),
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
             overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
@@ -647,6 +648,26 @@ export class TokenImageReplacementWindow extends Application {
         this.currentPage++;
         this._applyPagination();
         this._updateResults();
+    }
+
+    _getAggregatedTags() {
+        const tagCounts = new Map();
+        
+        // Count all tags from currently displayed matches
+        this.matches.forEach(match => {
+            const tags = this._getTagsForMatch(match);
+            tags.forEach(tag => {
+                if (tag !== 'CURRENT IMAGE') { // Don't count current image tag
+                    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                }
+            });
+        });
+        
+        // Sort by frequency and return top tags
+        return Array.from(tagCounts.entries())
+            .sort((a, b) => b[1] - a[1]) // Sort by count descending
+            .slice(0, 8) // Limit to top 8 tags
+            .map(([tag]) => tag); // Return just the tag names
     }
 
     async _performManualSearch(searchTerm) {
