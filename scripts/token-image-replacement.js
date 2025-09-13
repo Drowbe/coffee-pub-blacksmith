@@ -27,6 +27,84 @@ export class TokenImageReplacementWindow extends Application {
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
         this.notificationText = null;
+        
+        // Window state management
+        this.windowState = {
+            width: 800,
+            height: 600,
+            left: null,
+            top: null
+        };
+    }
+
+    /**
+     * Get the default window options
+     */
+    static get defaultOptions() {
+        return foundry.utils.mergeObject(super.defaultOptions, {
+            id: "token-image-replacement",
+            title: "Image Replacements",
+            template: "modules/coffee-pub-blacksmith/templates/window-token-replacement.hbs",
+            width: 800,
+            height: 600,
+            resizable: true,
+            minimizable: true,
+            maximizable: true
+        });
+    }
+
+    /**
+     * Get the window state from settings
+     */
+    _getWindowState() {
+        const state = getSettingSafely(MODULE.ID, 'tokenImageReplacementWindowState', {});
+        return {
+            width: state.width || 800,
+            height: state.height || 600,
+            left: state.left || null,
+            top: state.top || null
+        };
+    }
+
+    /**
+     * Save the window state to settings
+     */
+    _saveWindowState() {
+        if (this.element && this.element.length) {
+            const position = this.position;
+            const state = {
+                width: position.width,
+                height: position.height,
+                left: position.left,
+                top: position.top
+            };
+            game.settings.set(MODULE.ID, 'tokenImageReplacementWindowState', state);
+        }
+    }
+
+    /**
+     * Render the window with saved state
+     */
+    async render(force = false, options = {}) {
+        // Get saved window state
+        const savedState = this._getWindowState();
+        
+        // Apply saved dimensions and position
+        if (savedState.width) this.options.width = savedState.width;
+        if (savedState.height) this.options.height = savedState.height;
+        if (savedState.left !== null) this.options.left = savedState.left;
+        if (savedState.top !== null) this.options.top = savedState.top;
+        
+        // Call parent render
+        await super.render(force, options);
+        
+        // Add resize and move event listeners to save state
+        if (this.element && this.element.length) {
+            this.element.off('resize.tokenImageReplacement move.tokenImageReplacement');
+            this.element.on('resize.tokenImageReplacement move.tokenImageReplacement', () => {
+                this._saveWindowState();
+            });
+        }
     }
 
     /**

@@ -3522,5 +3522,15 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+		name: 'Token Image Replacement Window State',
+		hint: 'Stores the size and position of the Token Image Replacement window',
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 } // END OF "export const registerSettings"
 

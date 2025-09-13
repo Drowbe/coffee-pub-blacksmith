@@ -207,6 +207,61 @@ div#token-replacement-window .window-content {
     margin: 0px 0px 8px 0px;
 }
 
+/* Search Box Container */
+
+.tir-search-input-container {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0px 0px 0px 0px;
+}
+
+/* Input Box */
+
+.tir-search-input {
+    flex: 1;
+    padding-right: 24px;
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px;
+    padding: 0.3em 0.5em;
+    font-size: 0.95em;
+    caret-color: rgba(255, 47, 47, 1.0);
+}
+.tir-search-input:focus {
+    outline: none;
+    border-color: rgba(255, 100, 0, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+/* Input Box */
+
+.tir-clear-search-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    font-size: 0.8em;
+}
+
+
+
+/* *************RESULTS AND FILTERS ************* */
+
+
+
+/* *************RESULTS AND FILTERS ************* */
+
 /* Results Summary & Filters */
 .tir-results-summary {
     padding: 8px 15px;
@@ -216,20 +271,26 @@ div#token-replacement-window .window-content {
     margin-bottom: 8px;
 }
 
-.tir-results-count {
+
+
+.tir-results-container {
     display: flex;
     align-items: center;
     gap: 6px;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.tir-results-count i {
+.tir-results-container i {
     color: rgba(172, 159, 129, 0.9);
-    font-size: 14px;
+    font-size: 1.0em;
 }
 
+
+
+
+
 .tir-results-text {
-    font-weight: 500;
+    font-weight: 200;
 }
 
 .tir-tag-filters {
@@ -359,54 +420,6 @@ div#token-replacement-window .window-content {
     color: rgba(255, 255, 255, 1.0);
     transform: translateY(-1px);
 }
-
-/* Search Box Container */
-
-.tir-search-input-container {
-    position: relative;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin: 0px 0px 0px 0px;
-}
-
-/* Input Box */
-
-.tir-search-input {
-    flex: 1;
-    padding-right: 24px;
-    background-color: rgba(0, 0, 0, 0.9) !important;
-    color: #e0e0e0 !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 4px;
-    padding: 0.3em 0.5em;
-    font-size: 0.95em;
-    caret-color: rgba(255, 47, 47, 1.0);
-}
-.tir-search-input:focus {
-    outline: none;
-    border-color: rgba(255, 100, 0, 0.8) !important;
-    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
-}
-
-/* Input Box */
-
-.tir-clear-search-btn {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 4px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
-    font-size: 0.8em;
-}
-
 
 
 
@@ -823,6 +836,10 @@ div#token-replacement-window .window-content {
     font-size: 1.1em;
     color: rgba(255, 255, 255, 0.9);
 }
+
+
+
+/* ********** LOADING INDICATOR - DOES'T SEEM TO SHOW ********** */
 
 /* Loading Indicator */
 .tir-loading-indicator {
