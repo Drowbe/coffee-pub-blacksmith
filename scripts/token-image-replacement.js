@@ -17,6 +17,8 @@ export class TokenImageReplacementWindow extends Application {
         this.allMatches = []; // Store all matches for pagination
         this.currentPage = 0;
         this.resultsPerPage = 50;
+        this.isLoadingMore = false;
+        this.hasMoreResults = false;
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
@@ -62,9 +64,10 @@ export class TokenImageReplacementWindow extends Application {
             notificationIcon: this.notificationIcon,
             notificationText: this.notificationText,
             hasNotification: !!(this.notificationIcon && this.notificationText),
-            hasMoreResults: this.allMatches.length > this.matches.length,
+            hasMoreResults: this.hasMoreResults,
             currentResults: this.matches.length,
             totalResults: this.allMatches.length,
+            isLoadingMore: this.isLoadingMore,
             aggregatedTags: this._getAggregatedTags(),
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
@@ -122,8 +125,8 @@ export class TokenImageReplacementWindow extends Application {
             }
         });
         
-        // Load More button
-        html.find('.tir-load-more-btn').on('click', this._onLoadMore.bind(this));
+        // Infinite scroll
+        html.find('.tir-thumbnails-grid').on('scroll', this._onScroll.bind(this));
     }
 
 
@@ -639,15 +642,29 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _applyPagination() {
-        const startIndex = this.currentPage * this.resultsPerPage;
-        const endIndex = startIndex + this.resultsPerPage;
+        const startIndex = 0; // Always start from beginning for infinite scroll
+        const endIndex = (this.currentPage + 1) * this.resultsPerPage;
         this.matches = this.allMatches.slice(startIndex, endIndex);
+        this.hasMoreResults = this.allMatches.length > this.matches.length;
     }
 
-    _onLoadMore() {
+    async _onScroll(event) {
+        const element = event.currentTarget;
+        const threshold = 100; // Load more when 100px from bottom
+        
+        if (element.scrollTop + element.clientHeight >= element.scrollHeight - threshold) {
+            if (this.hasMoreResults && !this.isLoadingMore) {
+                await this._loadMoreResults();
+            }
+        }
+    }
+
+    async _loadMoreResults() {
+        this.isLoadingMore = true;
         this.currentPage++;
         this._applyPagination();
         this._updateResults();
+        this.isLoadingMore = false;
     }
 
     _getAggregatedTags() {

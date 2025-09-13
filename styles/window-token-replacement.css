@@ -8,11 +8,13 @@
 div#token-replacement-window {
     min-width: 700px;
     min-height: 400px;
+    max-height: 900px;
 }
 
 .token-replacement-window.app {
     min-width: 700px;
     min-height: 400px;
+    max-height: 900px;
 }
 
 /* Window Content */
@@ -24,7 +26,6 @@ div#token-replacement-window .window-content {
 }
 
 .token-replacement-window {
-    height: 100%;
     max-height: 80vh; /* Constrain window height */
     display: flex;
     flex-direction: column;
@@ -732,32 +733,20 @@ div#token-replacement-window .window-content {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Load More Button */
-.tir-load-more-container {
+/* Loading Indicator */
+.tir-loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 15px;
-    text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
     background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.tir-load-more-btn {
-    padding: 10px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.tir-loading-indicator i {
+    color: rgba(172, 159, 129, 0.9);
     font-size: 14px;
-    font-weight: 500;
-}
-
-.tir-load-more-btn:hover {
-    background: rgba(255, 100, 0, 0.8);
-    border-color: rgba(255, 100, 0, 0.6);
-    transform: translateY(-1px);
-}
-
-.tir-load-more-btn i {
-    margin-right: 8px;
 }

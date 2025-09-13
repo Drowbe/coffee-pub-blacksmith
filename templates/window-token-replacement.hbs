@@ -175,12 +175,11 @@
 
         </div>
         
-        <!-- Load More Button -->
-        {{#if hasMoreResults}}
-        <div class="tir-load-more-container">
-            <button class="tir-load-more-btn">
-                <i class="fas fa-plus"></i> Load More Results ({{currentResults}} of {{totalResults}})
-            </button>
+        <!-- Loading Indicator -->
+        {{#if isLoadingMore}}
+        <div class="tir-loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading more results...</span>
         </div>
         {{/if}}
     </div>
