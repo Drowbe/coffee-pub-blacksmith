@@ -171,82 +171,97 @@ export class TokenImageReplacementWindow extends Application {
                     const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
                     const alternatives = [];
                     
-                    // Use the same comprehensive search logic as _performSearch
-                    for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
-                        let score = 0;
-                        let foundMatch = false;
-                        
-                        // Search each term from the token
-                        for (const searchTerm of searchTerms) {
-                            if (!searchTerm || searchTerm.length < 2) continue;
+                    // Pre-process search terms for efficiency
+                    const processedTerms = searchTerms
+                        .filter(term => term && term.length >= 2)
+                        .map(term => term.toLowerCase());
+                    
+                    if (processedTerms.length === 0) {
+                        // No valid search terms, show all files
+                        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+                        const allResults = allFiles.map(file => ({
+                            ...file,
+                            searchScore: 10,
+                            isCurrent: false
+                        }));
+                        this.allMatches.push(...allResults);
+                        foundMatches = true;
+                    } else {
+                        // Use comprehensive search with progressive loading
+                        for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
+                            let score = 0;
+                            let foundMatch = false;
                             
-                            const searchTermLower = searchTerm.toLowerCase();
-                            
-                            // Search filename
-                            const fileNameLower = fileName.toLowerCase();
-                            if (fileNameLower.includes(searchTermLower)) {
-                                if (fileNameLower === searchTermLower) {
-                                    score += 100; // Exact filename match
-                                } else if (fileNameLower.startsWith(searchTermLower)) {
-                                    score += 80; // Filename starts with term
-                                } else {
-                                    score += 60; // Filename contains term
-                                }
-                                foundMatch = true;
-                            }
-                            
-                            // Search folder path
-                            if (fileInfo.path) {
-                                const pathLower = fileInfo.path.toLowerCase();
-                                if (pathLower.includes(searchTermLower)) {
-                                    if (pathLower.includes(`/${searchTermLower}/`)) {
-                                        score += 70; // Folder name match
+                            // Search each term from the token
+                            for (const searchTerm of processedTerms) {
+                                const searchTermLower = searchTerm.toLowerCase();
+                                
+                                // Search filename
+                                const fileNameLower = fileName.toLowerCase();
+                                if (fileNameLower.includes(searchTermLower)) {
+                                    if (fileNameLower === searchTermLower) {
+                                        score += 100; // Exact filename match
+                                    } else if (fileNameLower.startsWith(searchTermLower)) {
+                                        score += 80; // Filename starts with term
                                     } else {
-                                        score += 40; // Path contains term
+                                        score += 60; // Filename contains term
                                     }
                                     foundMatch = true;
                                 }
-                            }
-                            
-                            // Search by creature type
-                            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                                if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
-                                    score += 90; // Creature type match
-                                    foundMatch = true;
-                                    break;
+                                
+                                // Search folder path
+                                if (fileInfo.path) {
+                                    const pathLower = fileInfo.path.toLowerCase();
+                                    if (pathLower.includes(searchTermLower)) {
+                                        if (pathLower.includes(`/${searchTermLower}/`)) {
+                                            score += 70; // Folder name match
+                                        } else {
+                                            score += 40; // Path contains term
+                                        }
+                                        foundMatch = true;
+                                    }
                                 }
-                            }
-                            
-                            // Search by folder categorization
-                            for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                                if (files.includes(fileName)) {
-                                    const folderName = folderPath.split('/').pop().toLowerCase();
-                                    if (folderName.includes(searchTermLower)) {
-                                        score += 50; // Folder name match
+                                
+                                // Search by creature type
+                                for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                                    if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
+                                        score += 90; // Creature type match
                                         foundMatch = true;
                                         break;
                                     }
                                 }
+                                
+                                // Search by folder categorization
+                                for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                                    if (files.includes(fileName)) {
+                                        const folderName = folderPath.split('/').pop().toLowerCase();
+                                        if (folderName.includes(searchTermLower)) {
+                                            score += 50; // Folder name match
+                                            foundMatch = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (foundMatch) {
+                                alternatives.push({
+                                    name: fileInfo.name,
+                                    path: fileInfo.path,
+                                    fullPath: fileInfo.fullPath,
+                                    searchScore: score,
+                                    isCurrent: false
+                                });
                             }
                         }
                         
-                        if (foundMatch) {
-                            alternatives.push({
-                                name: fileInfo.name,
-                                path: fileInfo.path,
-                                fullPath: fileInfo.fullPath,
-                                searchScore: score,
-                                isCurrent: false
-                            });
-                        }
-                    }
-                    
-                    // Sort by score and remove limit
-                    alternatives.sort((a, b) => b.searchScore - a.searchScore);
+                        // Sort by score (no limit - progressive loading handles this)
+                        alternatives.sort((a, b) => b.searchScore - a.searchScore);
 
-                    if (alternatives.length > 0) {
-                        this.allMatches.push(...alternatives);
-                        foundMatches = true;
+                        if (alternatives.length > 0) {
+                            this.allMatches.push(...alternatives);
+                            foundMatches = true;
+                        }
                     }
                 } else {
                     // If no token selected, show all available images
@@ -479,8 +494,10 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Store the selected token and find matches
                 this.selectedToken = selectedToken;
+                this._showSearchSpinner();
                 await this._findMatches();
                 this.render();
+                this._hideSearchSpinner();
             } else {
                 console.log('Token Image Replacement: No currently selected token found');
             }
@@ -492,8 +509,10 @@ export class TokenImageReplacementWindow extends Application {
     // Method to refresh matches when cache becomes ready
     async refreshMatches() {
         if (this.selectedToken) {
+            this._showSearchSpinner();
             await this._findMatches();
             this.render();
+            this._hideSearchSpinner();
         }
     }
 
@@ -507,14 +526,18 @@ export class TokenImageReplacementWindow extends Application {
         
         // If search term is too short, show all results
         if (searchTerm.length < 3) {
+            this._showSearchSpinner();
             await this._findMatches();
             this._updateResults();
+            this._hideSearchSpinner();
             return;
         }
         
         // Debounce search to avoid too many calls
         this.searchTimeout = setTimeout(async () => {
+            this._showSearchSpinner();
             await this._performSearch(searchTerm);
+            this._hideSearchSpinner();
         }, 300);
     }
 
@@ -2745,6 +2768,22 @@ export class TokenImageReplacement {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
         }
+    }
+
+    /**
+     * Show the search spinner overlay
+     */
+    _showSearchSpinner() {
+        const html = this.element;
+        html.find('.tir-search-spinner').removeClass('hidden');
+    }
+
+    /**
+     * Hide the search spinner overlay
+     */
+    _hideSearchSpinner() {
+        const html = this.element;
+        html.find('.tir-search-spinner').addClass('hidden');
     }
 
 }
