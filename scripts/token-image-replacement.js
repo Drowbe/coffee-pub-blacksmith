@@ -20,11 +20,28 @@ export class TokenImageReplacementWindow extends Application {
         this.isLoadingMore = false;
         this.hasMoreResults = false;
         this.isScanning = false;
+        this.isSearching = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
         this.notificationText = null;
+    }
+
+    /**
+     * Show the search spinner overlay
+     */
+    _showSearchSpinner() {
+        const html = this.element;
+        html.find('.tir-search-spinner').removeClass('hidden');
+    }
+
+    /**
+     * Hide the search spinner overlay
+     */
+    _hideSearchSpinner() {
+        const html = this.element;
+        html.find('.tir-search-spinner').addClass('hidden');
     }
 
     static get defaultOptions() {
@@ -68,6 +85,7 @@ export class TokenImageReplacementWindow extends Application {
             currentResults: this.matches.length,
             totalResults: this.allMatches.length,
             isLoadingMore: this.isLoadingMore,
+            isSearching: this.isSearching,
             aggregatedTags: this._getAggregatedTags(),
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
@@ -524,6 +542,9 @@ export class TokenImageReplacementWindow extends Application {
             clearTimeout(this.searchTimeout);
         }
         
+        // Cancel any ongoing search
+        this.isSearching = false;
+        
         // If search term is too short, show all results
         if (searchTerm.length < 3) {
             this._showSearchSpinner();
@@ -565,10 +586,10 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
 
-        const searchTermLower = searchTerm.toLowerCase();
-        const matches = [];
+        // Clear previous results
         this.allMatches = [];
         this.currentPage = 0;
+        this.isSearching = true;
         
         // Always add current token image first if it exists
         if (this.selectedToken) {
@@ -579,88 +600,130 @@ export class TokenImageReplacementWindow extends Application {
                     fullPath: currentImageSrc,
                     isCurrent: true
                 };
-                matches.push(currentImage);
+                this.allMatches.push(currentImage);
             }
         }
         
-        // Search through all cached files
-        for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
-            let score = 0;
-            let foundMatch = false;
-            
-            // Search filename
-            const fileNameLower = fileName.toLowerCase();
-            if (fileNameLower.includes(searchTermLower)) {
-                if (fileNameLower === searchTermLower) {
-                    score += 100; // Exact filename match
-                } else if (fileNameLower.startsWith(searchTermLower)) {
-                    score += 80; // Filename starts with term
-                } else {
-                    score += 60; // Filename contains term
-                }
-                foundMatch = true;
+        // Show initial results immediately
+        this._applyPagination();
+        this._updateResults();
+        
+        // Start streaming search
+        this._streamSearchResults(searchTerm);
+    }
+
+    async _streamSearchResults(searchTerm) {
+        const searchTermLower = searchTerm.toLowerCase();
+        const batchSize = 100; // Process files in batches
+        let processedCount = 0;
+        const totalFiles = TokenImageReplacement.cache.files.size;
+        
+        // Process files in batches to avoid blocking the UI
+        const fileEntries = Array.from(TokenImageReplacement.cache.files.entries());
+        
+        for (let i = 0; i < fileEntries.length; i += batchSize) {
+            // Check if search was cancelled (new search started)
+            if (!this.isSearching) {
+                break;
             }
             
-            // Search folder path
-            if (fileInfo.path) {
-                const pathLower = fileInfo.path.toLowerCase();
-                if (pathLower.includes(searchTermLower)) {
-                    if (pathLower.includes(`/${searchTermLower}/`)) {
-                        score += 70; // Folder name match
+            const batch = fileEntries.slice(i, i + batchSize);
+            const batchResults = [];
+            
+            // Process this batch
+            for (const [fileName, fileInfo] of batch) {
+                let score = 0;
+                let foundMatch = false;
+                
+                // Search filename
+                const fileNameLower = fileName.toLowerCase();
+                if (fileNameLower.includes(searchTermLower)) {
+                    if (fileNameLower === searchTermLower) {
+                        score += 100; // Exact filename match
+                    } else if (fileNameLower.startsWith(searchTermLower)) {
+                        score += 80; // Filename starts with term
                     } else {
-                        score += 40; // Path contains term
+                        score += 60; // Filename contains term
                     }
                     foundMatch = true;
                 }
-            }
-            
-            // Search by creature type
-            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
-                    score += 90; // Creature type match
-                    foundMatch = true;
-                    break;
+                
+                // Search folder path
+                if (fileInfo.path) {
+                    const pathLower = fileInfo.path.toLowerCase();
+                    if (pathLower.includes(searchTermLower)) {
+                        if (pathLower.includes(`/${searchTermLower}/`)) {
+                            score += 70; // Folder name match
+                        } else {
+                            score += 40; // Path contains term
+                        }
+                        foundMatch = true;
+                    }
                 }
-            }
-            
-            // Search by folder categorization
-            for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                if (files.includes(fileName)) {
-                    const folderName = folderPath.split('/').pop().toLowerCase();
-                    if (folderName.includes(searchTermLower)) {
-                        score += 50; // Folder name match
+                
+                // Search by creature type
+                for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                    if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
+                        score += 90; // Creature type match
                         foundMatch = true;
                         break;
                     }
                 }
+                
+                // Search by folder categorization
+                for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                    if (files.includes(fileName)) {
+                        const folderName = folderPath.split('/').pop().toLowerCase();
+                        if (folderName.includes(searchTermLower)) {
+                            score += 50; // Folder name match
+                            foundMatch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Search file extension
+                const extension = fileInfo.name.split('.').pop().toLowerCase();
+                if (extension.includes(searchTermLower)) {
+                    score += 30; // Extension match
+                    foundMatch = true;
+                }
+                
+                if (foundMatch) {
+                    batchResults.push({
+                        name: fileInfo.name,
+                        path: fileInfo.path,
+                        fullPath: fileInfo.fullPath,
+                        searchScore: score,
+                        isCurrent: false
+                    });
+                }
             }
             
-            // Search file extension
-            const extension = fileInfo.name.split('.').pop().toLowerCase();
-            if (extension.includes(searchTermLower)) {
-                score += 30; // Extension match
-                foundMatch = true;
-            }
-            
-            if (foundMatch) {
-                matches.push({
-                    name: fileInfo.name,
-                    path: fileInfo.path,
-                    fullPath: fileInfo.fullPath,
-                    searchScore: score,
-                    isCurrent: false
+            // Add batch results to allMatches
+            if (batchResults.length > 0) {
+                this.allMatches.push(...batchResults);
+                
+                // Sort by score (highest first), but keep current image at top
+                this.allMatches.sort((a, b) => {
+                    if (a.isCurrent) return -1;
+                    if (b.isCurrent) return 1;
+                    return b.searchScore - a.searchScore;
                 });
+                
+                // Update display with new results
+                this._applyPagination();
+                this._updateResults();
             }
+            
+            processedCount += batch.length;
+            
+            // Small delay to allow UI to update
+            await new Promise(resolve => setTimeout(resolve, 10));
         }
         
-        // Sort by score (highest first), but keep current image at top
-        matches.sort((a, b) => {
-            if (a.isCurrent) return -1;
-            if (b.isCurrent) return 1;
-            return b.searchScore - a.searchScore;
-        });
-        
-        this.allMatches = matches;
+        // Search complete
+        this.isSearching = false;
         this._applyPagination();
         this._updateResults();
     }
@@ -2770,20 +2833,6 @@ export class TokenImageReplacement {
         }
     }
 
-    /**
-     * Show the search spinner overlay
-     */
-    _showSearchSpinner() {
-        const html = this.element;
-        html.find('.tir-search-spinner').removeClass('hidden');
-    }
-
-    /**
-     * Hide the search spinner overlay
-     */
-    _hideSearchSpinner() {
-        const html = this.element;
-        html.find('.tir-search-spinner').addClass('hidden');
-    }
 
 }
+

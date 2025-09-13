@@ -79,7 +79,13 @@
         <div class="tir-results-summary">
             <div class="tir-results-count">
                 <i class="fas fa-images"></i>
-                <span class="tir-results-text">{{currentResults}} of {{totalResults}} results</span>
+                <span class="tir-results-text">
+                    {{#if isSearching}}
+                        Searching... {{currentResults}} results so far
+                    {{else}}
+                        {{currentResults}} of {{totalResults}} results
+                    {{/if}}
+                </span>
             </div>
             <div class="tir-tag-filters">
                 <span class="tir-filter-label">Tags:</span>
