@@ -423,7 +423,7 @@ export class TokenImageReplacementWindow extends Application {
         // If search term is too short, show all results
         if (searchTerm.length < 3) {
             await this._findMatches();
-            this.render();
+            this._updateResults();
             return;
         }
         
@@ -509,7 +509,66 @@ export class TokenImageReplacementWindow extends Application {
         });
         
         this.matches = matches;
-        this.render();
+        this._updateResults();
+    }
+
+    _updateResults() {
+        // Only update the results grid without re-rendering the entire window
+        const resultsHtml = this._renderResults();
+        const $element = this.element;
+        if ($element) {
+            $element.find('.tir-thumbnails-grid').html(resultsHtml);
+        }
+    }
+
+    _renderResults() {
+        if (!this.selectedToken && this.matches.length === 0) {
+            return `
+                <div class="tir-thumbnail-item tir-no-token">
+                    <div class="tir-no-token-icon">
+                        <i class="fas fa-user-group-crown"></i>
+                    </div>
+                    <div class="tir-no-token-text">
+                        <p>No token selected</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (this.matches.length === 0) {
+            return `
+                <div class="tir-thumbnail-item tir-no-matches">
+                    <div class="tir-no-matches-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="tir-no-matches-text">
+                        <p>No alternative images found for this token</p>
+                        <p><span class="tir-thumbnail-tag">NO MATCHES</span></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        return this.matches.map(match => `
+            <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-image-name="${match.name}">
+                <div class="tir-thumbnail-image">
+                    <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
+                    ${match.isCurrent ? `
+                        <div class="tir-thumbnail-current-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    ` : `
+                        <div class="tir-thumbnail-overlay">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    `}
+                </div>
+                <div class="tir-thumbnail-name">${match.name}</div>
+                <div class="tir-thumbnail-tagset">
+                    ${match.isCurrent ? '<span class="tir-thumbnail-tag">CURRENT IMAGE</span>' : '<span class="tir-thumbnail-tag">beast</span><span class="tir-thumbnail-tag">humanoid</span><span class="tir-thumbnail-tag">npc</span><span class="tir-thumbnail-tag">goblin</span><span class="tir-thumbnail-tag">boss</span>'}
+                </div>
+            </div>
+        `).join('');
     }
 
     async _performManualSearch(searchTerm) {

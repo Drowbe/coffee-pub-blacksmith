@@ -516,13 +516,13 @@ div#skill-check-dialog .window-content {
 .cpb-search-container input[type="text"] {
     flex: 1;
     padding-right: 24px;
-  background-color: rgba(0, 0, 0, 0.9) !important;
-  color: #e0e0e0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 4px;
-  padding: 0.3em 0.5em;
-  font-size: 0.95em;
-  caret-color: rgba(255, 47, 47, 1.0);
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px;
+    padding: 0.3em 0.5em;
+    font-size: 0.95em;
+    caret-color: rgba(255, 47, 47, 1.0);
 }
 .cpb-search-container input[type="text"]:focus {
   outline: none;
