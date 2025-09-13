@@ -212,6 +212,9 @@ export class TokenImageReplacementWindow extends Application {
                 this.notificationText = 'No matches found.';
             }
         }
+        
+        // Update results to show proper tags
+        this._updateResults();
     }
 
     async _onSelectImage(event) {
@@ -494,6 +497,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 matches.push({
                     name: fileInfo.name,
+                    path: fileInfo.path,
                     fullPath: fileInfo.fullPath,
                     searchScore: score,
                     isCurrent: false
@@ -549,26 +553,69 @@ export class TokenImageReplacementWindow extends Application {
             `;
         }
 
-        return this.matches.map(match => `
-            <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-image-name="${match.name}">
-                <div class="tir-thumbnail-image">
-                    <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
-                    ${match.isCurrent ? `
-                        <div class="tir-thumbnail-current-badge">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    ` : `
-                        <div class="tir-thumbnail-overlay">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    `}
+        return this.matches.map(match => {
+            const tags = this._getTagsForMatch(match);
+            return `
+                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-image-name="${match.name}">
+                    <div class="tir-thumbnail-image">
+                        <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
+                        ${match.isCurrent ? `
+                            <div class="tir-thumbnail-current-badge">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        ` : `
+                            <div class="tir-thumbnail-overlay">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        `}
+                    </div>
+                    <div class="tir-thumbnail-name">${match.name}</div>
+                    <div class="tir-thumbnail-tagset">
+                        ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
+                    </div>
                 </div>
-                <div class="tir-thumbnail-name">${match.name}</div>
-                <div class="tir-thumbnail-tagset">
-                    ${match.isCurrent ? '<span class="tir-thumbnail-tag">CURRENT IMAGE</span>' : '<span class="tir-thumbnail-tag">beast</span><span class="tir-thumbnail-tag">humanoid</span><span class="tir-thumbnail-tag">npc</span><span class="tir-thumbnail-tag">goblin</span><span class="tir-thumbnail-tag">boss</span>'}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+
+    _getTagsForMatch(match) {
+        const tags = [];
+        
+        // Add current image tag if applicable
+        if (match.isCurrent) {
+            tags.push('CURRENT IMAGE');
+            return tags;
+        }
+        
+        // Get creature type from cache
+        const fileName = match.name.toLowerCase();
+        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+            if (files.includes(fileName)) {
+                tags.push(creatureType);
+                break; // Only add the first matching creature type
+            }
+        }
+        
+        // Get folder hierarchy tags
+        if (match.path) {
+            const pathParts = match.path.split('/').slice(0, -1); // Remove filename, keep folder parts
+            pathParts.forEach(part => {
+                if (part && part !== 'creatures' && part !== 'tokens') {
+                    // Clean up folder name for display
+                    const cleanPart = part.replace(/[-_]/g, ' ').toLowerCase();
+                    if (!tags.includes(cleanPart)) {
+                        tags.push(cleanPart);
+                    }
+                }
+            });
+        }
+        
+        // If no tags found, add a generic one
+        if (tags.length === 0) {
+            tags.push('image');
+        }
+        
+        return tags;
     }
 
     async _performManualSearch(searchTerm) {

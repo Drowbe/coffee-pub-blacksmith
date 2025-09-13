@@ -85,10 +85,10 @@
             
             {{#if hasMatches}}
                 {{#each matches}}
-                <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" data-image-name="{{name}}">
+                <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" datatooltip="{{fullPath}}" data-image-name="{{name}}">
                     <div class="tir-thumbnail-image">
                         <!-- Image -->
-                        <img src="{{fullPath}}" alt="{{name}}" datatooltip="{{fullPath}}" loading="lazy">
+                        <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
                         <!-- Current Badge -->
                         {{#if isCurrent}}
                         <div class="tir-thumbnail-current-badge">
@@ -101,28 +101,29 @@
                         {{/if}}
                     </div>
                     <!-- Filename-->
-                    <div class="tir-thumbnail-name" datatooltip="{{fullPath}}">{{name}}</div>
-                    <!-- Tags -->
-                    {{#if isCurrent}}
-                    <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">CURRENT IMAGE</span></div>
-                    {{else}}
-                    <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">beast</span><span class="tir-thumbnail-tag">humanoid</span><span class="tir-thumbnail-tag">npc</span><span class="tir-thumbnail-tag">goblin</span><span class="tir-thumbnail-tag">boss</span></div>
-                    {{/if}}
+                    <div class="tir-thumbnail-name">{{name}}</div>
+                    <div class="tir-thumbnail-tagset">
+                        {{#if isCurrent}}
+                        <span class="tir-thumbnail-tag">CURRENT IMAGE</span>
+                        {{else}}
+                        <span class="tir-thumbnail-tag">tage here</span>
+                        {{/if}}
+                    </div>
                 </div>
                 {{/each}}
             {{else}}
                 <!-- Show current token image even when no matches -->
                 {{#if selectedToken.document.texture.src}}
-                <div class="tir-thumbnail-item tir-current-image" data-image-path="{{selectedToken.document.texture.src}}" data-image-name="Current Image">
+                <div class="tir-thumbnail-item tir-current-image" data-image-path="{{selectedToken.document.texture.src}}" datatooltip="{{selectedToken.document.texture.src}}" data-image-name="Current Image">
                     <!-- Image -->
                     <div class="tir-thumbnail-image">
-                        <img src="{{selectedToken.document.texture.src}}" datatooltip="{{selectedToken.document.texture.src}}" alt="Current Image" loading="lazy">
+                        <img src="{{selectedToken.document.texture.src}}" alt="Current Image" loading="lazy">
                         <div class="tir-thumbnail-current-badge">
                             <i class="fas fa-check"></i>
                         </div>
                     </div>
                     <!-- Filename-->
-                    <div class="tir-thumbnail-name" datatooltip="{{selectedToken.document.texture.src}}">{{selectedToken.document.texture.src}}</div>
+                    <div class="tir-thumbnail-name">{{selectedToken.document.texture.src}}</div>
                     <!-- Tags -->
                     <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">CURRENT IMAGE</span></div>
                 </div>
