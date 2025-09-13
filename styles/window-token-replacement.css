@@ -263,7 +263,7 @@ div#token-replacement-window .window-content {
 /* *************RESULTS AND FILTERS ************* */
 
 /* Results Summary & Filters */
-.tir-results-summary {
+.tir-search-tools-container {
     padding: 8px 15px;
     background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -273,14 +273,14 @@ div#token-replacement-window .window-content {
 
 
 
-.tir-results-container {
+.tir-results-details-container {
     display: flex;
     align-items: center;
     gap: 6px;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.tir-results-container i {
+.tir-results-details-container i {
     color: rgba(172, 159, 129, 0.9);
     font-size: 1.0em;
 }
@@ -334,7 +334,7 @@ div#token-replacement-window .window-content {
 }
 
 /* Row 1: Filters (left) and Result Counts (right) */
-.tir-summary-row-1 {
+.tir-search-tools-filters {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -374,7 +374,7 @@ div#token-replacement-window .window-content {
 }
 
 /* Row 2: Tags */
-.tir-summary-row-2 {
+.tir-search-tools-tags {
     display: flex;
     align-items: flex-start;
     gap: 8px;

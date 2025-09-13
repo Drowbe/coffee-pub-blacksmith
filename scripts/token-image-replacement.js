@@ -992,13 +992,13 @@ export class TokenImageReplacementWindow extends Application {
             $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
             
             // Update the results summary with current counts
-            $element.find('#tir-results-text-results').text(`${this.matches.length} of ${this.allMatches.length} Found`);
+            $element.find('#tir-results-details-count').html(`<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`);
             
             // Update the status text based on search state
             if (this.isSearching) {
-                $element.find('#tir-results-text-status').html('<i class="fas fa-sync-alt fa-spin"></i> Searching for more...');
+                $element.find('#tir-results-details-status').html('<i class="fas fa-sync-alt fa-spin"></i>Searching for more...');
             } else {
-                $element.find('#tir-results-text-status').text('Complete');
+                $element.find('#tir-results-details-status').html('<i class="fas fa-square-check"></i>Complete');
             }
             
             // Update aggregated tags
@@ -1008,33 +1008,41 @@ export class TokenImageReplacementWindow extends Application {
             
             // Show/hide tags row based on whether there are tags
             if (aggregatedTags.length > 0) {
-                $element.find('#tir-summary-row-2').show();
+                $element.find('#tir-search-tools-tags').show();
             } else {
-                $element.find('#tir-summary-row-2').hide();
+                $element.find('#tir-search-tools-tags').hide();
             }
         }
     }
 
     _renderResults() {
+        // ***** BUILD: NO TOKEN SELECTED *****
         if (!this.selectedToken && this.matches.length === 0) {
             return `
+                <!-- Show "No TOKEN" message -->
                 <div class="tir-thumbnail-item tir-no-token">
+                    <!-- Image -->
                     <div class="tir-no-token-icon">
                         <i class="fas fa-user-group-crown"></i>
                     </div>
-                    <div class="tir-no-token-text">
-                        <p>No token selected</p>
+                    <!-- Description -->
+                    <div class="tir-no-matches-text">
+                        <p>Select a token to replace its image.</p>
+                        <p><span class="tir-thumbnail-tag">NO TOKEN</span></p>
                     </div>
                 </div>
             `;
         }
-
+        // ***** BUILD: NO MATCHING RESULTS *****
         if (this.matches.length === 0) {
             return `
+                <!-- Show "No Matches" message -->
                 <div class="tir-thumbnail-item tir-no-matches">
+                    <!-- Image -->
                     <div class="tir-no-matches-icon">
                         <i class="fas fa-search"></i>
                     </div>
+                    <!-- Description -->
                     <div class="tir-no-matches-text">
                         <p>No alternative images found for this token</p>
                         <p><span class="tir-thumbnail-tag">NO MATCHES</span></p>
@@ -1042,11 +1050,11 @@ export class TokenImageReplacementWindow extends Application {
                 </div>
             `;
         }
-
+        // ***** BUILD: MATCHING RESULT *****
         return this.matches.map(match => {
             const tags = this._getTagsForMatch(match);
             return `
-                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-image-name="${match.name}">
+                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${match.fullPath}" data-image-name="${match.name}">
                     <div class="tir-thumbnail-image">
                         <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
                         ${match.isCurrent ? `

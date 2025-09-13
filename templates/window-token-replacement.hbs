@@ -76,9 +76,9 @@
         </div>
 
         <!-- Results Summary & Filters -->
-        <div class="tir-results-summary">
+        <div class="tir-search-tools-container">
             <!-- Row 1: Filters (left) and Result Counts (right) -->
-            <div class="tir-summary-row-1">
+            <div class="tir-search-tools-filters">
                 <div id="tir-filters-left" class="tir-filters-left">
                     <span class="tir-filter-category active" data-category="all">All</span>
                     <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
@@ -87,18 +87,17 @@
                     <span class="tir-filter-category" data-category="monsters">Monsters</span>
                     <span class="tir-filter-category" data-category="bosses">Bosses</span>
                 </div>
-                <div class="tir-results-container">
-                    {{#if isSearching}}
-                        <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status"><i class="fas fa-sync-alt fa-spin"></i> Searching for more...</span>
-                    {{else}}
-                        <span id="tir-results-text-results" class="tir-results-text-results"><i class="fas fa-images"></i>{{currentResults}} of {{totalResults}} Found</span>  |  <span id="tir-results-text-status" class="tir-results-text-status">Complete</span>
-                    {{/if}}
+                <div class="tir-results-details-container">
+                    <!-- These results get dynamically overridden in token-image-replacement.js -->
+                    <span id="tir-results-details-count" class="tir-results-details-count"><i class="fas fa-images"></i>0 of 0 Showing</span>
+                    <span class="tir-results-details-divider">|</span>
+                    <span id="tir-results-details-status" class="tir-results-details-status"><i class="fas fa-square-check"></i>Complete</span>
                 </div>
             </div>
             
             <!-- Row 2: Tags (only if tags exist) -->
             {{#if hasAggregatedTags}}
-            <div id="tir-summary-row-2" class="tir-summary-row-2">
+            <div id="tir-search-tools-tags" class="tir-search-tools-tags">
                 <span class="tir-tags-label">Tags:</span>
                 <div id="tir-tags-container" class="tir-tags-container">
                     {{#each aggregatedTags}}
@@ -118,80 +117,18 @@
 
         <!-- Image Grid -->
         <div class="tir-thumbnails-grid">
-        {{#if selectedToken}}
-            
-            
-            {{#if hasMatches}}
-                {{#each matches}}
-                <div class="tir-thumbnail-item {{#if isCurrent}}tir-current-image{{/if}}" data-image-path="{{fullPath}}" datatooltip="{{fullPath}}" data-image-name="{{name}}">
-                    <div class="tir-thumbnail-image">
-                        <!-- Image -->
-                        <img src="{{fullPath}}" alt="{{name}}" loading="lazy">
-                        <!-- Current Badge -->
-                        {{#if isCurrent}}
-                        <div class="tir-thumbnail-current-badge">
-                            <i class="fas fa-check"></i>
-                        </div>
-                        {{else}}
-                        <div class="tir-thumbnail-overlay">
-                            <i class="fas fa-check"></i>
-                        </div>
-                        {{/if}}
-                    </div>
-                    <!-- Filename-->
-                    <div class="tir-thumbnail-name">{{name}}</div>
-                    <div class="tir-thumbnail-tagset">
-                        {{#if isCurrent}}
-                        <span class="tir-thumbnail-tag">CURRENT IMAGE</span>
-                        {{/if}}
-                    </div>
-                </div>
-                {{/each}}
-            {{else}}
-                <!-- Show current token image even when no matches -->
-                {{#if selectedToken.document.texture.src}}
-                <div class="tir-thumbnail-item tir-current-image" data-image-path="{{selectedToken.document.texture.src}}" datatooltip="{{selectedToken.document.texture.src}}" data-image-name="Current Image">
-                    <!-- Image -->
-                    <div class="tir-thumbnail-image">
-                        <img src="{{selectedToken.document.texture.src}}" alt="Current Image" loading="lazy">
-                        <div class="tir-thumbnail-current-badge">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-                    <!-- Filename-->
-                    <div class="tir-thumbnail-name">{{selectedToken.document.texture.src}}</div>
-                    <!-- Tags -->
-                    <div class="tir-thumbnail-tagset"><span class="tir-thumbnail-tag">CURRENT IMAGE</span></div>
-                </div>
-                {{/if}}
-                <!-- Show "No Matches" message -->
-                <div class="tir-thumbnail-item tir-no-matches">
-                    <!-- Image -->
-                    <div class="tir-no-matches-icon">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <!-- Description -->
-                    <div class="tir-no-matches-text">
-                        <p>No alternative images found for this token</p>
-                        <p><span class="tir-thumbnail-tag">NO MATCHES</span></p>
-                    </div>
-                </div>
-            {{/if}}
-        {{else}}
-            <!-- Show "No Matches" message -->
-            <div class="tir-thumbnail-item tir-no-token">
-                <!-- Image -->
-                <div class="tir-no-token-icon">
-                    <i class="fas fa-user-group-crown"></i>
-                </div>
-                <!-- Description -->
-                <div class="tir-no-matches-text">
-                    <p>Select a token to replace its image.</p>
-                    <p><span class="tir-thumbnail-tag">NO TOKEN</span></p>
-                </div>
-            </div>
-            
-        {{/if}}
+
+
+            <!-- 
+            ===============================================
+            ALL RESULTS PROCESSING IS IN token-image-replacement.js TO SUPPORT PROCESSING SPEED
+
+            See these Sections in _renderResults:
+                BUILD: MATCHING RESULT
+                BUILD: NO MATCHING RESULTS
+                BUILD: NO TOKEN SELECTED
+            ===============================================
+            -->
 
         </div>
         
