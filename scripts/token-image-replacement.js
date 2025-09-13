@@ -14,6 +14,9 @@ export class TokenImageReplacementWindow extends Application {
         super(options);
         this.selectedToken = null;
         this.matches = [];
+        this.allMatches = []; // Store all matches for pagination
+        this.currentPage = 0;
+        this.resultsPerPage = 50;
         this.isScanning = false;
         this.scanProgress = 0;
         this.scanTotal = 0;
@@ -59,6 +62,9 @@ export class TokenImageReplacementWindow extends Application {
             notificationIcon: this.notificationIcon,
             notificationText: this.notificationText,
             hasNotification: !!(this.notificationIcon && this.notificationText),
+            hasMoreResults: this.allMatches.length > this.matches.length,
+            currentResults: this.matches.length,
+            totalResults: this.allMatches.length,
             overallProgress: TokenImageReplacement.cache.overallProgress,
             totalSteps: TokenImageReplacement.cache.totalSteps,
             overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
@@ -114,11 +120,16 @@ export class TokenImageReplacementWindow extends Application {
                 event.preventDefault();
             }
         });
+        
+        // Load More button
+        html.find('.tir-load-more-btn').on('click', this._onLoadMore.bind(this));
     }
 
 
     async _findMatches() {
         this.matches = [];
+        this.allMatches = [];
+        this.currentPage = 0;
 
         // Always add current token image as the first match if token exists
         if (this.selectedToken) {
@@ -129,7 +140,7 @@ export class TokenImageReplacementWindow extends Application {
                     fullPath: currentImageSrc,
                     isCurrent: true
                 };
-                this.matches.push(currentImage);
+                this.allMatches.push(currentImage);
             }
         }
 
@@ -166,7 +177,7 @@ export class TokenImageReplacementWindow extends Application {
                         alternatives.forEach(alt => {
                             alt.isCurrent = false;
                         });
-                        this.matches.push(...alternatives);
+                        this.allMatches.push(...alternatives);
                         foundMatches = true;
                     }
                 } else {
@@ -178,7 +189,7 @@ export class TokenImageReplacementWindow extends Application {
                         alternatives.forEach(alt => {
                             alt.isCurrent = false;
                         });
-                        this.matches.push(...alternatives);
+                        this.allMatches.push(...alternatives);
                         foundMatches = true;
                     }
                 }
@@ -190,7 +201,7 @@ export class TokenImageReplacementWindow extends Application {
                     const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
                     if (realTimeMatch) {
                         realTimeMatch.isCurrent = false;
-                        this.matches.push(realTimeMatch);
+                        this.allMatches.push(realTimeMatch);
                         foundMatches = true;
                     }
                 } catch (error) {
@@ -212,6 +223,9 @@ export class TokenImageReplacementWindow extends Application {
                 this.notificationText = 'No matches found.';
             }
         }
+        
+        // Apply pagination to show only first batch
+        this._applyPagination();
         
         // Update results to show proper tags
         this._updateResults();
@@ -454,12 +468,16 @@ export class TokenImageReplacementWindow extends Application {
         if (TokenImageReplacement.cache.files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform search`, "", false, false);
             this.matches = [];
+            this.allMatches = [];
+            this.currentPage = 0;
             this.render();
             return;
         }
 
         const searchTermLower = searchTerm.toLowerCase();
         const matches = [];
+        this.allMatches = [];
+        this.currentPage = 0;
         
         // Always add current token image first if it exists
         if (this.selectedToken) {
@@ -512,7 +530,8 @@ export class TokenImageReplacementWindow extends Application {
             return b.searchScore - a.searchScore;
         });
         
-        this.matches = matches;
+        this.allMatches = matches;
+        this._applyPagination();
         this._updateResults();
     }
 
@@ -616,6 +635,18 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         return tags;
+    }
+
+    _applyPagination() {
+        const startIndex = this.currentPage * this.resultsPerPage;
+        const endIndex = startIndex + this.resultsPerPage;
+        this.matches = this.allMatches.slice(startIndex, endIndex);
+    }
+
+    _onLoadMore() {
+        this.currentPage++;
+        this._applyPagination();
+        this._updateResults();
     }
 
     async _performManualSearch(searchTerm) {

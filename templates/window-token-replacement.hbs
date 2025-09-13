@@ -71,6 +71,22 @@
             </div>
         </div>
 
+        <!-- Results Summary & Filters -->
+        <div class="tir-results-summary">
+            <div class="tir-results-count">
+                <i class="fas fa-images"></i>
+                <span class="tir-results-text">{{currentResults}} of {{totalResults}} results</span>
+            </div>
+            <div class="tir-tag-filters">
+                <span class="tir-filter-label">Tags:</span>
+                <div class="tir-filter-tags">
+                    {{#each aggregatedTags}}
+                    <span class="tir-filter-tag">{{this}}</span>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+
         <!-- Notification -->
         {{#if hasNotification}}
         <div class="tir-token-replacement-notification-container">
@@ -158,5 +174,14 @@
         {{/if}}
 
         </div>
+        
+        <!-- Load More Button -->
+        {{#if hasMoreResults}}
+        <div class="tir-load-more-container">
+            <button class="tir-load-more-btn">
+                <i class="fas fa-plus"></i> Load More Results ({{currentResults}} of {{totalResults}})
+            </button>
+        </div>
+        {{/if}}
     </div>
 </div>
