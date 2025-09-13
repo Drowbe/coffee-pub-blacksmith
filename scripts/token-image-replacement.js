@@ -501,25 +501,64 @@ export class TokenImageReplacementWindow extends Application {
         
         // Search through all cached files
         for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
-            const fileNameLower = fileName.toLowerCase();
+            let score = 0;
+            let foundMatch = false;
             
-            // Check if filename contains the search term
+            // Search filename
+            const fileNameLower = fileName.toLowerCase();
             if (fileNameLower.includes(searchTermLower)) {
-                let score = 0;
-                
-                // Exact match gets highest score
                 if (fileNameLower === searchTermLower) {
-                    score = 100;
+                    score += 100; // Exact filename match
+                } else if (fileNameLower.startsWith(searchTermLower)) {
+                    score += 80; // Filename starts with term
+                } else {
+                    score += 60; // Filename contains term
                 }
-                // Starts with search term
-                else if (fileNameLower.startsWith(searchTermLower)) {
-                    score = 80;
+                foundMatch = true;
+            }
+            
+            // Search folder path
+            if (fileInfo.path) {
+                const pathLower = fileInfo.path.toLowerCase();
+                if (pathLower.includes(searchTermLower)) {
+                    if (pathLower.includes(`/${searchTermLower}/`)) {
+                        score += 70; // Folder name match
+                    } else {
+                        score += 40; // Path contains term
+                    }
+                    foundMatch = true;
                 }
-                // Contains search term
-                else {
-                    score = 60;
+            }
+            
+            // Search by creature type
+            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
+                    score += 90; // Creature type match
+                    foundMatch = true;
+                    break;
                 }
-                
+            }
+            
+            // Search by folder categorization
+            for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                if (files.includes(fileName)) {
+                    const folderName = folderPath.split('/').pop().toLowerCase();
+                    if (folderName.includes(searchTermLower)) {
+                        score += 50; // Folder name match
+                        foundMatch = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Search file extension
+            const extension = fileInfo.name.split('.').pop().toLowerCase();
+            if (extension.includes(searchTermLower)) {
+                score += 30; // Extension match
+                foundMatch = true;
+            }
+            
+            if (foundMatch) {
                 matches.push({
                     name: fileInfo.name,
                     path: fileInfo.path,
@@ -721,28 +760,66 @@ export class TokenImageReplacementWindow extends Application {
         const searchTermLower = searchTerm.toLowerCase();
         const matches = [];
         
-        // Search through all cached files
+        // Search through all cached files using comprehensive search
         for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
-            const fileNameLower = fileName.toLowerCase();
+            let score = 0;
+            let foundMatch = false;
             
-            // Check if filename contains the search term
+            // Search filename
+            const fileNameLower = fileName.toLowerCase();
             if (fileNameLower.includes(searchTermLower)) {
-                // Calculate a simple relevance score
-                let score = 0;
-                
-                // Exact match gets highest score
                 if (fileNameLower === searchTermLower) {
-                    score = 1.0;
+                    score += 100; // Exact filename match
+                } else if (fileNameLower.startsWith(searchTermLower)) {
+                    score += 80; // Filename starts with term
+                } else {
+                    score += 60; // Filename contains term
                 }
-                // Starts with search term
-                else if (fileNameLower.startsWith(searchTermLower)) {
-                    score = 0.8;
+                foundMatch = true;
+            }
+            
+            // Search folder path
+            if (fileInfo.path) {
+                const pathLower = fileInfo.path.toLowerCase();
+                if (pathLower.includes(searchTermLower)) {
+                    if (pathLower.includes(`/${searchTermLower}/`)) {
+                        score += 70; // Folder name match
+                    } else {
+                        score += 40; // Path contains term
+                    }
+                    foundMatch = true;
                 }
-                // Contains search term
-                else {
-                    score = 0.6;
+            }
+            
+            // Search by creature type
+            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
+                    score += 90; // Creature type match
+                    foundMatch = true;
+                    break;
                 }
-                
+            }
+            
+            // Search by folder categorization
+            for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                if (files.includes(fileName)) {
+                    const folderName = folderPath.split('/').pop().toLowerCase();
+                    if (folderName.includes(searchTermLower)) {
+                        score += 50; // Folder name match
+                        foundMatch = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Search file extension
+            const extension = fileInfo.name.split('.').pop().toLowerCase();
+            if (extension.includes(searchTermLower)) {
+                score += 30; // Extension match
+                foundMatch = true;
+            }
+            
+            if (foundMatch) {
                 matches.push({
                     ...fileInfo,
                     searchScore: score,
