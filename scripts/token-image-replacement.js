@@ -864,7 +864,14 @@ export class TokenImageReplacementWindow extends Application {
             $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
             
             // Update the results summary with current counts
-            $element.find('.tir-results-text').text(`${this.matches.length} of ${this.allMatches.length} results`);
+            $element.find('#tir-results-text-results').text(`${this.matches.length} of ${this.allMatches.length} Found`);
+            
+            // Update the status text based on search state
+            if (this.isSearching) {
+                $element.find('#tir-results-text-status').html('<i class="fas fa-sync-alt fa-spin"></i> Searching for more...');
+            } else {
+                $element.find('#tir-results-text-status').text('Complete');
+            }
             
             // Update aggregated tags
             const aggregatedTags = this._getAggregatedTags();
