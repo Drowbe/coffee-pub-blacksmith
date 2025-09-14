@@ -909,20 +909,43 @@ export class TokenImageReplacementWindow extends Application {
             const tokenImage = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             
             // Update token name
-            $element.find('.tir-token-name').text(tokenName);
+            $element.find('.tir-main-title').text(tokenName);
             
-            // Update token image
-            const $tokenImage = $element.find('.tir-token-image img');
-            if ($tokenImage.length > 0) {
-                $tokenImage.attr('src', tokenImage);
+            // Update token image - ensure image element exists and is visible
+            const $headerIcon = $element.find('.tir-header-icon');
+            let $tokenImage = $headerIcon.find('img');
+            
+            if ($tokenImage.length === 0) {
+                // Create image element if it doesn't exist
+                $tokenImage = $('<img>').appendTo($headerIcon);
             }
+            
+            // Hide the icon and show the image
+            $headerIcon.find('i').hide();
+            $tokenImage.attr('src', tokenImage).show();
+            
+            // Update subtitle with actor info
+            const actorName = this.selectedToken.actor?.name || '';
+            const actorType = this.selectedToken.actor?.type || '';
+            const actorSubtype = this.selectedToken.actor?.system?.details?.type?.subtype || '';
+            const actorValue = this.selectedToken.actor?.system?.details?.type?.value || '';
+            
+            let subtitle = '';
+            if (actorName) subtitle += actorName;
+            if (actorType) subtitle += (subtitle ? '  •  ' : '') + actorType;
+            if (actorValue) subtitle += (subtitle ? '  •  ' : '') + actorValue;
+            if (actorSubtype) subtitle += (subtitle ? '  •  ' : '') + actorSubtype;
+            
+            $element.find('.tir-subtitle').text(subtitle);
         } else {
             // Clear token info when no token selected
-            $element.find('.tir-token-name').text('No token selected');
-            const $tokenImage = $element.find('.tir-token-image img');
-            if ($tokenImage.length > 0) {
-                $tokenImage.attr('src', '');
-            }
+            $element.find('.tir-main-title').text('No Token Selected');
+            $element.find('.tir-subtitle').text('Select a token on the canvas');
+            
+            // Hide the image and show the icon
+            const $headerIcon = $element.find('.tir-header-icon');
+            $headerIcon.find('img').hide();
+            $headerIcon.find('i').show();
         }
     }
 
