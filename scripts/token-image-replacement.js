@@ -1298,13 +1298,8 @@ export class TokenImageReplacementWindow extends Application {
             this.currentFilter = category;
             this._cachedSearchTerms = null; // Clear cache when filter changes
             
-            // Re-run current search with new filter
-            const currentSearchTerm = $element.find('.tir-search-input').val().trim();
-            if (currentSearchTerm.length >= 3) {
-                await this._performSearch(currentSearchTerm);
-            } else if (this.selectedToken) {
-                await this._findMatches();
-            }
+            // Re-run search with new filter
+            await this._findMatches();
         }
     }
 
