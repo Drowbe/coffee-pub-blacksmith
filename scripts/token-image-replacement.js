@@ -22,6 +22,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.isSearching = false;
         this.scanProgress = 0;
+        this.sortOrder = 'relevance'; // Default sort order
         this.currentFilter = 'all'; // Track current category filter
         this._cachedSearchTerms = null; // Cache for search terms
         this.scanTotal = 0;
@@ -362,12 +363,8 @@ export class TokenImageReplacementWindow extends Application {
             if (batchResults.length > 0) {
                 this.allMatches.push(...batchResults);
                 
-                // Sort by score (highest first), but keep current image at top
-                this.allMatches.sort((a, b) => {
-                    if (a.isCurrent) return -1;
-                    if (b.isCurrent) return 1;
-                    return b.searchScore - a.searchScore;
-                });
+                // Sort results based on current sort order
+                this.allMatches = this._sortResults(this.allMatches);
                 
                 // Update display with new results
                 this._applyPagination();
@@ -427,6 +424,7 @@ export class TokenImageReplacementWindow extends Application {
             isLoadingMore: this.isLoadingMore,
             isSearching: this.isSearching,
             currentFilter: this.currentFilter,
+            sortOrder: this.sortOrder,
             aggregatedTags: this._getAggregatedTags(),
             hasAggregatedTags: this._getAggregatedTags().length > 0,
             overallProgress: TokenImageReplacement.cache.overallProgress,
@@ -480,6 +478,9 @@ export class TokenImageReplacementWindow extends Application {
 
         // Search functionality
         html.find('.tir-search-input').on('input', this._onSearchInput.bind(this));
+        
+        // Sort order change
+        html.find('.tir-select').on('change', this._onSortOrderChange.bind(this));
         html.find('.tir-search-input').on('keypress', (event) => {
             if (event.which === 13) { // Enter key
                 event.preventDefault();
@@ -545,6 +546,9 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatches = true;
                     console.log('Token Image Replacement: Added', allResults.length, 'results to allMatches. Total:', this.allMatches.length);
                     console.log('Token Image Replacement: First 5 results:', allResults.slice(0, 5));
+                    
+                    // Sort results based on current sort order
+                    this.allMatches = this._sortResults(this.allMatches);
                 }
             }
             
@@ -1040,12 +1044,8 @@ export class TokenImageReplacementWindow extends Application {
         const fastResults = this._performFastSearch(searchTerm, filteredFiles);
         this.allMatches.push(...fastResults);
         
-        // Sort by score (current image first, then by score)
-        this.allMatches.sort((a, b) => {
-            if (a.isCurrent) return -1;
-            if (b.isCurrent) return 1;
-            return b.searchScore - a.searchScore;
-        });
+        // Sort results based on current sort order
+        this.allMatches = this._sortResults(this.allMatches);
         
         // Show Phase 1 results immediately
         this._applyPagination();
@@ -1152,12 +1152,8 @@ export class TokenImageReplacementWindow extends Application {
                 const filteredBatchResults = this._applyCategoryFilter(batchResults);
                 this.allMatches.push(...filteredBatchResults);
                 
-                // Sort by score (highest first), but keep current image at top
-                this.allMatches.sort((a, b) => {
-                    if (a.isCurrent) return -1;
-                    if (b.isCurrent) return 1;
-                    return b.searchScore - a.searchScore;
-                });
+                // Sort results based on current sort order
+                this.allMatches = this._sortResults(this.allMatches);
                 
                 // Update display with new results
                 this._applyPagination();
@@ -1415,6 +1411,45 @@ export class TokenImageReplacementWindow extends Application {
             // Re-run search with new filter
             await this._findMatches();
         }
+    }
+
+    async _onSortOrderChange(event) {
+        const newSortOrder = event.currentTarget.value;
+        if (!newSortOrder || newSortOrder === this.sortOrder) return;
+        
+        console.log('Token Image Replacement: Sort order changed to:', newSortOrder);
+        
+        // Update sort order
+        this.sortOrder = newSortOrder;
+        
+        // Re-sort and update results for current tab
+        this._showSearchSpinner();
+        await this._findMatches();
+        this._hideSearchSpinner();
+    }
+
+    /**
+     * Sort results based on current sort order
+     */
+    _sortResults(results) {
+        if (!results || results.length === 0) return results;
+        
+        return results.sort((a, b) => {
+            // Always keep current image at top
+            if (a.isCurrent) return -1;
+            if (b.isCurrent) return 1;
+            
+            // Apply sort order
+            switch (this.sortOrder) {
+                case 'atoz':
+                    return a.name.localeCompare(b.name);
+                case 'ztoa':
+                    return b.name.localeCompare(a.name);
+                case 'relevance':
+                default:
+                    return b.searchScore - a.searchScore;
+            }
+        });
     }
 
     _getAggregatedTags() {

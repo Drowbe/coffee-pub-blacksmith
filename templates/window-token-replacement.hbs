@@ -89,10 +89,10 @@
                <!-- Sort Order Selector -->
                <div class="cpb-form-group">
                     <div class="tir-form-fields">
-                        <select name="rollMode" class="tir-select">
-                            <option value="relevance" {{#if (eq rollMode "roll")}}selected{{/if}}>Relevance</option>
-                            <option value="atoz" {{#if (eq rollMode "gmroll")}}selected{{/if}}>A to Z</option>
-                            <option value="ztoa" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Z to A</option>
+                        <select name="sortOrder" class="tir-select">
+                            <option value="relevance" {{#if (eq sortOrder "relevance")}}selected{{/if}}>Relevance</option>
+                            <option value="atoz" {{#if (eq sortOrder "atoz")}}selected{{/if}}>A to Z</option>
+                            <option value="ztoa" {{#if (eq sortOrder "ztoa")}}selected{{/if}}>Z to A</option>
                         </select>
                     </div>
                 </div>
