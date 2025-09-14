@@ -48,12 +48,11 @@
 
     </div>
 
-    <!-- CONTENT -->
-    <div class="tir-content">
-        <!-- Search Spinner Overlay -->
-        <div class="tir-search-spinner hidden">
-            <div class="tir-spinner"></div>
-        </div>
+
+
+
+
+
 
         <!-- Token Info Header -->
         <div class="tir-token-replacement-header-container">
@@ -71,18 +70,17 @@
             </div>
         </div>
 
-        <!-- Manual Search Area -->
-        <div class="tir-search-container">
-            <div class="tir-search-input-container">
-                <input type="text" class="tir-search-input" placeholder="Search for images..." value="">
-            </div>
-        </div>
+
+
+
+
 
         <!-- Results Summary & Filters -->
         <div class="tir-search-tools-container">
+
             <!-- Row 1: Filters (left) and Result Counts (right) -->
-            <div class="tir-search-tools-filters">
-                <div id="tir-filters-left" class="tir-filters-left">
+            <div class="tir-search-tools-row-container row-category row-style-tabs">
+                <div id="tir-filter-category-container" class="tir-search-tools-row-left">
                     {{#if selectedToken}}
                     <span class="tir-filter-category active" data-category="selected">Selected</span>
                     {{/if}}
@@ -94,15 +92,29 @@
                     <span class="tir-filter-category" data-category="bosses">Bosses</span>
                 </div>
 
-                <div class="tir-results-details-container">
+                <div class="tir-search-tools-row-right">
+                   Replace Mode
+                </div>
+            </div>
+
+            <!-- Row 2: Search Area and Results Counts -->
+            <div class="tir-search-tools-row-container row-search">
+                <div id="tir-search-tools-row-left" class="tir-search-tools-row-left">
+
+                    <div class="tir-search-container">
+                            <input type="text" class="tir-search-input" placeholder="Search for images..." value="">
+                    </div>
+
+                </div>
+                <div id="tir-search-tools-row-right" class="tir-search-tools-row-right">
                     <!-- These results get dynamically overridden in token-image-replacement.js -->
                     <span id="tir-results-details-count" class="tir-results-details-count"><i class="fas fa-images"></i>0 of 0 Showing</span>
                     <span class="tir-results-details-divider">|</span>
                     <span id="tir-results-details-status" class="tir-results-details-status"><i class="fas fa-check"></i>Complete</span>
                 </div>
             </div>
-            
-            <!-- Row 2: Tags (only if tags exist) -->
+
+            <!-- Row 3: Tags (only if tags exist) -->
             {{#if hasAggregatedTags}}
             <div id="tir-search-tools-tag-container" class="tir-search-tools-tag-container">
                 {{#each aggregatedTags}}
@@ -111,6 +123,19 @@
             </div>
             {{/if}}
         </div>
+
+
+
+
+    <!-- CONTENT -->
+    <div class="tir-content">
+        <!-- Search Spinner Overlay -->
+        <div class="tir-search-spinner hidden">
+            <div class="tir-spinner"></div>
+        </div>
+
+
+
 
         <!-- Notification -->
         {{#if hasNotification}}

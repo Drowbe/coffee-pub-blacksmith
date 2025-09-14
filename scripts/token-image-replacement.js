@@ -491,7 +491,7 @@ export class TokenImageReplacementWindow extends Application {
         
         
         // Filter category click handlers
-        html.find('#tir-filters-left').on('click', '.tir-filter-category', this._onCategoryFilterClick.bind(this));
+        html.find('#tir-filter-category-container').on('click', '.tir-filter-category', this._onCategoryFilterClick.bind(this));
         
         // Tag click handlers for new tags row
         html.find('#tir-search-tools-tag-container').on('click', '.tir-search-tools-tag', this._onTagClick.bind(this));
@@ -1291,7 +1291,7 @@ export class TokenImageReplacementWindow extends Application {
         const $element = this.element;
         if ($element) {
             // Remove active class from all filter categories
-            $element.find('#tir-filters-left .tir-filter-category').removeClass('active');
+            $element.find('#tir-filter-category-container .tir-filter-category').removeClass('active');
             $(event.currentTarget).addClass('active');
             
             // Set new filter
