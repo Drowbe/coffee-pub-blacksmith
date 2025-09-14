@@ -12,9 +12,14 @@
             <div class="tir-header-title">
                 {{#if selectedToken.name}}
                     <div class="tir-main-title">{{selectedToken.name}}</div>
-                    <div class="tir-subtitle">{{selectedToken.actor.name}}  •  {{selectedToken.actor.type}}  •  {{selectedToken.actor.system.details.type.value}}  •  {{selectedToken.actor.system.details.type.subtype}}</div>
+                    <div class="tir-subtitle">
+                        {{#if selectedToken.actor.name}}{{selectedToken.actor.name}}{{/if}}
+                        {{#if selectedToken.actor.type}}  •  {{selectedToken.actor.type}}{{/if}}
+                        {{#if selectedToken.actor.system.details.type.value}}  •  {{selectedToken.actor.system.details.type.value}}{{/if}}
+                        {{#if selectedToken.actor.system.details.type.subtype}}  •  {{selectedToken.actor.system.details.type.subtype}}{{/if}}
+                    </div>
                 {{else}}
-                    <div class="tir-main-title">No token selected</div>
+                    <div class="tir-main-title">No Token Selected</div>
                     <div class="tir-subtitle">Select a token on the canvas</div>
                 {{/if}}
             </div>
@@ -48,74 +53,68 @@
 
     </div>
 
-
-
-
-
-
-
-        <!-- Token Info Header -->
-        <div class="tir-token-replacement-header-container">
-            <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Image Replacements</div>
-            <div class="tir-token-replacement-header-right">
-                <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
-                <span class="button-divider">|</span>
-                {{#if isScanning}}
-                <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Pause Scan</button>
-                {{else}}
-                <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
-                {{/if}}
-                <span class="button-divider">|</span>
-                <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection"><i class="fas fa-sync-alt"></i> Refresh Token Detection</button>
-            </div>
-        </div>
-
-        <!-- Results Summary & Filters -->
-        <div class="tir-search-tools-container">
-
-            <!-- Row 1: Filters (left) and Result Counts (right) -->
-            <div class="tir-search-tools-row-container row-category row-style-tabs">
-                <div id="tir-filter-category-container" class="tir-search-tools-row-left">
-                    <span class="tir-filter-category {{#if selectedToken}}active{{/if}}" data-category="selected">Selected</span>
-                    <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}" data-category="all">All</span>
-                    <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
-                    <span class="tir-filter-category" data-category="creatures">Creatures</span>
-                    <span class="tir-filter-category" data-category="npcs">NPCs</span>
-                    <span class="tir-filter-category" data-category="monsters">Monsters</span>
-                    <span class="tir-filter-category" data-category="bosses">Bosses</span>
-                </div>
-
-                <div class="tir-search-tools-row-right">
-                   Replace Mode
-                </div>
-            </div>
-
-            <!-- Row 2: Search Area and Results Counts -->
-            <div class="tir-search-tools-row-container row-search">
-                <div id="tir-search-tools-row-left" class="tir-search-tools-row-left">
-
-                    <div class="tir-search-container">
-                            <input type="text" class="tir-search-input" placeholder="Search for images..." value="">
-                    </div>
-
-                </div>
-                <div id="tir-search-tools-row-right" class="tir-search-tools-row-right">
-                    <!-- These results get dynamically overridden in token-image-replacement.js -->
-                    <span id="tir-results-details-count" class="tir-results-details-count"><i class="fas fa-images"></i>0 of 0 Showing</span>
-                    <span class="tir-results-details-divider">|</span>
-                    <span id="tir-results-details-status" class="tir-results-details-status"><i class="fas fa-check"></i>Complete</span>
-                </div>
-            </div>
-
-            <!-- Row 3: Tags (only if tags exist) -->
-            {{#if hasAggregatedTags}}
-            <div id="tir-search-tools-tag-container" class="tir-search-tools-tag-container">
-                {{#each aggregatedTags}}
-                <span class="tir-search-tools-tag" data-search-term="{{this}}">{{this}}</span>
-                {{/each}}
-            </div>
+    <!-- Token Info Header -->
+    <div class="tir-token-replacement-header-container">
+        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Image Replacements</div>
+        <div class="tir-token-replacement-header-right">
+            <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
+            <span class="button-divider">|</span>
+            {{#if isScanning}}
+            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Pause Scan</button>
+            {{else}}
+            <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
             {{/if}}
+            <span class="button-divider">|</span>
+            <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection"><i class="fas fa-sync-alt"></i> Refresh Token Detection</button>
         </div>
+    </div>
+
+    <!-- Results Summary & Filters -->
+    <div class="tir-search-tools-container">
+
+        <!-- Row 1: Filters (left) and Result Counts (right) -->
+        <div class="tir-search-tools-row-container row-category row-style-tabs">
+            <div id="tir-filter-category-container" class="tir-search-tools-row-left">
+                <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected" data-category="selected">Selected</span>
+                <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}" data-category="all">All</span>
+                <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
+                <span class="tir-filter-category" data-category="creatures">Creatures</span>
+                <span class="tir-filter-category" data-category="npcs">NPCs</span>
+                <span class="tir-filter-category" data-category="monsters">Monsters</span>
+                <span class="tir-filter-category" data-category="bosses">Bosses</span>
+            </div>
+
+            <div class="tir-search-tools-row-right">
+                Sorted by Relevance
+            </div>
+        </div>
+
+        <!-- Row 2: Search Area and Results Counts -->
+        <div class="tir-search-tools-row-container row-search">
+            <div id="tir-search-tools-row-left" class="tir-search-tools-row-left">
+
+                <div class="tir-search-container">
+                        <input type="text" class="tir-search-input" placeholder="Search for images..." value="">
+                </div>
+
+            </div>
+            <div id="tir-search-tools-row-right" class="tir-search-tools-row-right">
+                <!-- These results get dynamically overridden in token-image-replacement.js -->
+                <span id="tir-results-details-count" class="tir-results-details-count"><i class="fas fa-images"></i>0 of 0 Showing</span>
+                <span class="tir-results-details-divider">|</span>
+                <span id="tir-results-details-status" class="tir-results-details-status"><i class="fas fa-check"></i>Complete</span>
+            </div>
+        </div>
+
+        <!-- Row 3: Tags (only if tags exist) -->
+        {{#if hasAggregatedTags}}
+        <div id="tir-search-tools-tag-container" class="tir-search-tools-tag-container">
+            {{#each aggregatedTags}}
+            <span class="tir-search-tools-tag" data-search-term="{{this}}">{{this}}</span>
+            {{/each}}
+        </div>
+        {{/if}}
+    </div>
 
     <!-- CONTENT -->
     <div class="tir-content">

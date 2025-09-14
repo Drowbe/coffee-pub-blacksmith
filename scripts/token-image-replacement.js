@@ -831,9 +831,95 @@ export class TokenImageReplacementWindow extends Application {
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token ${token.name} ${controlled ? 'selected' : 'deselected'}`, 'token-image-replacement-selection', false, false);
         
-        // Detect the newly selected token and update matches
-        await this._detectSelectedToken();
-        this.render();
+        // Handle token switching when window is already open
+        await this._handleTokenSwitch();
+    }
+
+    /**
+     * Handle token switching when window is already open
+     * Preserves current tab and search criteria
+     */
+    async _handleTokenSwitch() {
+        try {
+            // Store current state before switching
+            const currentSearchTerms = this._cachedSearchTerms;
+            
+            // Get the newly selected token
+            const selectedTokens = canvas?.tokens?.controlled || [];
+            
+            if (selectedTokens.length > 0) {
+                this.selectedToken = selectedTokens[0];
+                console.log('Token Image Replacement: Switched to token:', this.selectedToken.name);
+                
+                // When a token is selected, switch to "selected" tab and update results
+                this.currentFilter = 'selected';
+                console.log('Token Image Replacement: Switched to Selected tab, updating results for new token');
+                this._showSearchSpinner();
+                await this._findMatches();
+                this._hideSearchSpinner();
+            } else {
+                this.selectedToken = null;
+                console.log('Token Image Replacement: No token selected');
+                
+                // When no token is selected, switch to "all" tab and update results
+                this.currentFilter = 'all';
+                console.log('Token Image Replacement: Switched to All tab, updating results');
+                this._showSearchSpinner();
+                await this._findMatches();
+                this._hideSearchSpinner();
+            }
+            
+            // Update the header with new token info and active tab without full re-render
+            // The DOM is already updated by _findMatches() -> _updateResults()
+            // We just need to update the tab states and token info in the header
+            this._updateTabStates();
+            this._updateTokenInfo();
+            
+        } catch (error) {
+            console.log('Token Image Replacement: Error handling token switch:', error);
+        }
+    }
+
+    /**
+     * Update tab states without full re-render
+     */
+    _updateTabStates() {
+        const $element = this.element;
+        if (!$element) return;
+        
+        // Update active tab states
+        $element.find('.tir-filter-category').removeClass('active');
+        $element.find(`[data-category="${this.currentFilter}"]`).addClass('active');
+    }
+
+    /**
+     * Update token info in header without full re-render
+     */
+    _updateTokenInfo() {
+        const $element = this.element;
+        if (!$element) return;
+        
+        // Update token name and image in header
+        if (this.selectedToken) {
+            const tokenName = this.selectedToken.name || 'Unknown Token';
+            const tokenImage = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            
+            // Update token name
+            $element.find('.tir-token-name').text(tokenName);
+            
+            // Update token image
+            const $tokenImage = $element.find('.tir-token-image img');
+            if ($tokenImage.length > 0) {
+                $tokenImage.attr('src', tokenImage);
+            }
+        } else {
+            // Clear token info when no token selected
+            $element.find('.tir-token-name').text('No token selected');
+            const $tokenImage = $element.find('.tir-token-image img');
+            if ($tokenImage.length > 0) {
+                $tokenImage.attr('src', '');
+            }
+        }
     }
 
     /**
@@ -917,7 +1003,6 @@ export class TokenImageReplacementWindow extends Application {
         
         // Restore automatic matches
         await this._findMatches();
-        this.render();
     }
 
     async _performSearch(searchTerm) {
@@ -1099,13 +1184,16 @@ export class TokenImageReplacementWindow extends Application {
         const $element = this.element;
         if ($element) {
             const $grid = $element.find('.tir-thumbnails-grid');
-            console.log('Token Image Replacement: _updateResults - found grid element:', $grid.length, 'grid HTML before:', $grid.html().substring(0, 100));
+            const gridHtmlBefore = $grid.html() || '';
+            console.log('Token Image Replacement: _updateResults - found grid element:', $grid.length, 'grid HTML before:', gridHtmlBefore.substring(0, 100));
             $grid.html(resultsHtml);
-            console.log('Token Image Replacement: _updateResults - grid HTML after:', $grid.html().substring(0, 100));
+            const gridHtmlAfter = $grid.html() || '';
+            console.log('Token Image Replacement: _updateResults - grid HTML after:', gridHtmlAfter.substring(0, 100));
             
             // Check if HTML is still there after a short delay
             setTimeout(() => {
-                console.log('Token Image Replacement: _updateResults - grid HTML after delay:', $grid.html().substring(0, 100));
+                const gridHtmlAfterDelay = $grid.html() || '';
+                console.log('Token Image Replacement: _updateResults - grid HTML after delay:', gridHtmlAfterDelay.substring(0, 100));
             }, 100);
             
             // Re-attach event handlers for the new thumbnail items
