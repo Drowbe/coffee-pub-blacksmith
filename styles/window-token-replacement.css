@@ -195,6 +195,96 @@ div#token-replacement-window .window-content {
 }
 
 
+
+
+
+
+/* ********** CONTENT ********** */
+
+.tir-content {
+    flex: 1;
+    padding: 8px;
+    min-height: 200px;
+    overflow: hidden; /* Prevent content from overflowing */
+    display: flex;
+    flex-direction: column; /* Allow grid to take remaining space */
+}
+
+/* ********** CONTENT - HEADER ********** */
+
+/* HEADER */
+
+
+
+/* Token Info Header */
+.tir-token-replacement-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    color: rgba(145, 133, 107, 1.0);
+    background: rgba(0, 0, 0, 1.0);
+    border-top: 0px solid rgba(255, 255, 255, 0.9);
+    border-bottom: 0px solid #444;
+    border-left: 0px solid #444;
+    border-right: 0px solid #444;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    padding: 6px 12px 6px 12px;
+}
+
+/* Token Info Header - Left */
+.tir-token-replacement-header-left {
+    display: flex;
+    align-items: center;
+    font-size: 1.1em;
+    font-weight: 800;
+    text-transform: uppercase;
+    gap: 4px;
+}
+.tir-token-replacement-header-left i {
+    font-size: .9em;
+    padding: 2px 0px 0px 0px;
+}
+
+/* Token Info Header - Right*/
+.tir-token-replacement-header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Button */
+.tir-token-replacement-header-right button {
+    color: rgba(145, 133, 107, 1.0);
+    background: rgba(0, 0, 0, 1.0);
+    border: 0px solid rgba(255, 255, 255, 0.9);
+    margin: 0px 0px 0px 0px ;
+    padding: 1px 1px 1px 12px !important;
+    line-height: 1;          /* keeps height minimal */
+    height: auto;            /* shrink to fit content */
+    min-height: unset;       /* override Foundry/system defaults */
+    display: inline-flex;    /* shrink-wrap around content */
+    align-items: center;     /* keep icon/text aligned vertically */
+    white-space: nowrap;     /* prevent wrapping */
+}
+.tir-token-replacement-header-right button:hover {
+    color: rgba(255, 100, 0, 1.0);
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
+}
+
+.tir-token-replacement-header-right button i {
+    margin: 0 4px 0 0; /* small spacing between icon and text */
+    padding: 0px 0px 0px 0px !important;
+}
+
+.tir-token-replacement-header-right .button-divider {
+    color: rgba(145, 133, 107, 0.5);
+    padding: 0px 0px 0px 12px !important;
+}  
+
+
+
 /* ************* Manual Search Area ************* */
 
 /* Search Containner */
@@ -204,8 +294,8 @@ div#token-replacement-window .window-content {
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    margin: 0px 0px 8px 0px;
-}
+    margin: 0px 0px 0px 0px;
+}  
 
 /* Search Box Container */
 
@@ -254,92 +344,17 @@ div#token-replacement-window .window-content {
     font-size: 0.8em;
 }
 
-
-
 /* *************RESULTS AND FILTERS ************* */
 
 
 
-/* *************RESULTS AND FILTERS ************* */
+/* ----- SEARCH TOOLS - FILTERS ----- */
 
-/* Results Summary & Filters */
-.tir-search-tools-container {
-    padding: 8px 15px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 13px;
-    margin-bottom: 8px;
-}
-
-
-
-.tir-results-details-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.tir-results-details-container i {
-    color: rgba(172, 159, 129, 0.9);
-    font-size: 1.0em;
-}
-
-
-
-
-
-
-.tir-tag-filters {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.tir-filter-label {
-    color: rgba(172, 159, 129, 0.9);
-    font-weight: 500;
-    font-size: 12px;
-}
-
-.tir-filter-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-width: 300px;
-    justify-content: flex-end;
-}
-
-.tir-filter-tag {
-    display: inline-block;
-    padding: 2px 6px;
-    background: rgba(60, 120, 200, 0.2);
-    border: 1px solid rgba(120, 170, 230, 0.3);
-    border-radius: 3px;
-    color: rgba(220, 230, 245, 0.9);
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: lowercase;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.tir-filter-tag:hover {
-    background: rgba(60, 120, 200, 0.4);
-    border-color: rgba(120, 170, 230, 0.6);
-    color: rgba(255, 255, 255, 1.0);
-    transform: translateY(-1px);
-}
-
-/* Row 1: Filters (left) and Result Counts (right) */
 .tir-search-tools-filters {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    margin-bottom: 8px;
 }
 
 .tir-filters-left {
@@ -351,8 +366,8 @@ div#token-replacement-window .window-content {
 .tir-filter-category {
     display: inline-block;
     padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(105, 93, 78, 0.8);
+    border: 1px solid rgba(85, 79, 65, 0.6);
     border-radius: 4px;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
@@ -362,145 +377,102 @@ div#token-replacement-window .window-content {
 }
 
 .tir-filter-category:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 47, 47, 0.4);
+    border-color: rgba(255, 47, 47, 1.0);
+    color: rgba(255, 255, 255, 1.0);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
 }
 
 .tir-filter-category.active {
-    background: rgba(172, 159, 129, 0.3);
-    border-color: rgba(172, 159, 129, 0.6);
+    background: rgba(83, 26, 24, 0.6);
+    border-color: rgba(83, 26, 24, 1.0);
     color: rgba(255, 255, 255, 1);
 }
 
-/* Row 2: Tags */
-.tir-search-tools-tags {
+/* ----- SEARCH TOOLS - RESULTS ----- */
+
+.tir-search-tools-container {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 200;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+}
+
+.tir-results-details-container {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-.tir-tags-label {
-    font-size: 12px;
+.tir-results-details-count {
     color: rgba(255, 255, 255, 0.7);
-    white-space: nowrap;
-    margin-top: 2px;
+    font-size: 1.0em;
+    font-weight: 200;
 }
 
-.tir-tags-container {
+.tir-results-details-status {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.0em;
+    font-weight: 200;
+}
+
+.tir-results-details-status i,
+.tir-results-details-count i {
+    color: rgba(172, 159, 129, 0.9);
+    font-size: 0.9em;
+    padding: 0px 0px 0px 0px;
+    margin:  0px 4px 0px 0px;
+
+}
+
+.tir-results-details-divider {
+    color: rgba(172, 159, 129, 0.3);
+    font-size: 1.0em;
+    margin: 0px 3px 0px 3px;
+}
+
+/* ----- SEARCH TOOLS - TAGS ----- */
+
+.tir-search-tools-tag-container {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
     flex: 1;
+    padding-top: 8px;
+    border-top: 1px dotted rgba(255, 255, 255, 0.1);
+    margin-top: 8px;
 }
-
-.tir-tag {
+.tir-search-tools-tag {
     display: inline-block;
-    padding: 2px 6px;
-    margin: 2px;
+    padding: 2px 4px;
+    margin: 0px;
     background: rgba(60, 120, 200, 0.2);
     border: 1px solid rgba(120, 170, 230, 0.3);
     border-radius: 3px;
     color: rgba(220, 230, 245, 0.9);
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: lowercase;
+    font-size: 0.80em;
+    font-weight: 200;
+    text-transform: uppercase;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.tir-tag:hover {
-    background: rgba(60, 120, 200, 0.4);
-    border-color: rgba(120, 170, 230, 0.6);
+.tir-search-tools-tag:hover {
+    background: rgba(255, 47, 47, 0.4);
+    border-color: rgba(255, 47, 47, 1.0);
     color: rgba(255, 255, 255, 1.0);
     transform: translateY(-1px);
-}
-
-
-
-
-/* ********** CONTENT - HEADER ********** */
-
-/* HEADER */
-
-.tir-content {
-    flex: 1;
-    padding: 8px;
-    min-height: 200px;
-    overflow: hidden; /* Prevent content from overflowing */
-    display: flex;
-    flex-direction: column; /* Allow grid to take remaining space */
-}
-
-/* Token Info Header */
-.tir-token-replacement-header-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    color: rgba(145, 133, 107, 1.0);
-    background: rgba(0, 0, 0, 1.0);
-    border-top: 0px solid rgba(255, 255, 255, 0.9);
-    border-bottom: 1px solid #444;
-    border-left: 0px solid #444;
-    border-right: 0px solid #444;
-    border-radius: 0px;
-    margin-bottom: 10px;
-    padding: 4px 6px 4px 6px;
-}
-
-/* Token Info Header - Left */
-.tir-token-replacement-header-left {
-    display: flex;
-    align-items: center;
-    font-size: 1.1em;
-    font-weight: 800;
-    text-transform: uppercase;
-    gap: 4px;
-}
-.tir-token-replacement-header-left i {
-    font-size: .9em;
-    padding: 0px 0px 0px 0px;
-}
-
-/* Token Info Header - Right*/
-.tir-token-replacement-header-right {
-    display: flex;
-    align-items: center;
-}
-
-/* Button */
-.tir-token-replacement-header-right button {
-    color: rgba(145, 133, 107, 1.0);
-    background: rgba(0, 0, 0, 1.0);
-    border: 0px solid rgba(255, 255, 255, 0.9);
-    margin: 0px 0px 0px 0px ;
-    padding: 1px 1px 1px 12px !important;
-    line-height: 1;          /* keeps height minimal */
-    height: auto;            /* shrink to fit content */
-    min-height: unset;       /* override Foundry/system defaults */
-    display: inline-flex;    /* shrink-wrap around content */
-    align-items: center;     /* keep icon/text aligned vertically */
-    white-space: nowrap;     /* prevent wrapping */
-}
-.tir-token-replacement-header-right button:hover {
-    color: rgba(255, 100, 0, 1.0);
-    border-color: rgba(255, 100, 0, 0.6);
     box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
 }
 
-.tir-token-replacement-header-right button i {
-    margin: 0 4px 0 0; /* small spacing between icon and text */
-    padding: 0 !important;
-}
 
-.tir-token-replacement-header-right .button-divider {
-    color: rgba(145, 133, 107, 0.5);
-    padding: 0px 0px 0px 12px !important;
-}  
 
+/* ********** NOTIFICATIONS ********** */
 
 /* Notification */
 .tir-token-replacement-notification-container {
@@ -518,10 +490,9 @@ div#token-replacement-window .window-content {
     margin: 0px 6px 0px 0px;
 }
 
+
+
 /* ********** CONTENT -TILES GRID ********** */
-
-
-
 
 
 /* =========================
@@ -677,8 +648,9 @@ div#token-replacement-window .window-content {
     display: block;
   }
   
-  /* Hover overlay for non-current */
-  .tir-thumbnail-overlay {
+/* Hover overlay for non-current */
+  
+.tir-thumbnail-overlay {
     position: absolute; inset: 0;
     background: var(--overlay);
     display: grid; place-items: center;
@@ -686,10 +658,26 @@ div#token-replacement-window .window-content {
     transition: opacity 120ms ease;
     border-radius: inherit;
   }
-  .tir-thumbnail-item:hover .tir-thumbnail-overlay { opacity: 1; }
-  
-  .tir-thumbnail-overlay i { color: #fff; font-size: 1.6em; }
-  
+  .tir-thumbnail-item:hover .tir-thumbnail-overlay {
+      opacity: 1; 
+  }
+  .tir-thumbnail-overlay i {
+      color: rgba(255, 255, 255, 0.9); 
+      font-size: 3.5em; 
+      border: 0px solid rgba(255, 255, 255, 0.9);
+      padding: 0px 0px 0px 0px;
+      margin: 20px 0px 0px 0px;
+  }
+  .tir-overlay-text {
+      color: rgba(255, 255, 255, 0.9); 
+      font-size: 1.3em; 
+      font-weight: 900;
+      border: 0px solid rgba(255, 255, 255, 0.9);
+      padding: 0px 0px 0px 0px;
+      margin: 0px 0px 20px 0px;
+  }
+
+
   /* Current badge (always visible) */
   .tir-thumbnail-current-badge {
     position: absolute;

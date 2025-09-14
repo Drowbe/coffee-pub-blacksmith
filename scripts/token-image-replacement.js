@@ -409,14 +409,12 @@ export class TokenImageReplacementWindow extends Application {
         // Infinite scroll
         html.find('.tir-thumbnails-grid').on('scroll', this._onScroll.bind(this));
         
-        // Tag click handlers (using event delegation for dynamically added tags)
-        html.find('.tir-filter-tags').on('click', '.tir-filter-tag', this._onTagClick.bind(this));
         
         // Filter category click handlers
         html.find('#tir-filters-left').on('click', '.tir-filter-category', this._onCategoryFilterClick.bind(this));
         
         // Tag click handlers for new tags row
-        html.find('#tir-tags-container').on('click', '.tir-tag', this._onTagClick.bind(this));
+        html.find('#tir-search-tools-tag-container').on('click', '.tir-search-tools-tag', this._onTagClick.bind(this));
     }
 
 
@@ -998,19 +996,19 @@ export class TokenImageReplacementWindow extends Application {
             if (this.isSearching) {
                 $element.find('#tir-results-details-status').html('<i class="fas fa-sync-alt fa-spin"></i>Searching for more...');
             } else {
-                $element.find('#tir-results-details-status').html('<i class="fas fa-square-check"></i>Complete');
+                $element.find('#tir-results-details-status').html('<i class="fas fa-check"></i>Complete');
             }
             
             // Update aggregated tags
             const aggregatedTags = this._getAggregatedTags();
-            const tagHtml = aggregatedTags.map(tag => `<span class="tir-tag" data-search-term="${tag}">${tag}</span>`).join('');
-            $element.find('#tir-tags-container').html(tagHtml);
+            const tagHtml = aggregatedTags.map(tag => `<span class="tir-search-tools-tag" data-search-term="${tag}">${tag}</span>`).join('');
+            $element.find('#tir-search-tools-tag-container').html(tagHtml);
             
             // Show/hide tags row based on whether there are tags
             if (aggregatedTags.length > 0) {
-                $element.find('#tir-search-tools-tags').show();
+                $element.find('#tir-search-tools-tag-container').show();
             } else {
-                $element.find('#tir-search-tools-tags').hide();
+                $element.find('#tir-search-tools-tag-container').hide();
             }
         }
     }
@@ -1064,6 +1062,7 @@ export class TokenImageReplacementWindow extends Application {
                         ` : `
                             <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
+                                <span class="tir-overlay-text">Apply to Token</span>
                             </div>
                         `}
                     </div>
