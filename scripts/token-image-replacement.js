@@ -22,7 +22,7 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.isSearching = false;
         this.scanProgress = 0;
-        this.currentFilter = 'all'; // Track current category filter
+        this.currentFilter = 'selected'; // Track current category filter
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
@@ -172,6 +172,9 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check if the result matches the current category filter
             switch (this.currentFilter) {
+                case 'selected':
+                    // Only show results when a token is selected
+                    return this.selectedToken !== null;
                 case 'adversaries':
                     return path.toLowerCase().includes('adversaries') || 
                            path.toLowerCase().includes('enemies') ||
