@@ -1784,7 +1784,7 @@ export class TokenImageReplacement {
     /**
      * Open the Token Image Replacement window
      */
-    static openWindow() {
+    static async openWindow() {
         if (!game.user.isGM) {
             ui.notifications.warn("Only GMs can use the Token Image Replacement window");
             return;
@@ -1795,6 +1795,10 @@ export class TokenImageReplacement {
             console.log('Token Image Replacement: Creating new window instance');
             this.window = new TokenImageReplacementWindow();
         }
+        
+        // Check for selected token before rendering
+        await this.window._checkForSelectedToken();
+        
         console.log('Token Image Replacement: Rendering window...');
         this.window.render(true);
         console.log('Token Image Replacement: Window rendered');
