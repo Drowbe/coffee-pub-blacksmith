@@ -1143,8 +1143,8 @@ export class TokenImageReplacementWindow extends Application {
     _renderResults() {
         console.log('Token Image Replacement: _renderResults - selectedToken:', !!this.selectedToken, 'matches.length:', this.matches.length, 'allMatches.length:', this.allMatches.length);
         // ***** BUILD: NO TOKEN SELECTED *****
-        if (!this.selectedToken && this.matches.length === 0) {
-            return `
+        if (!this.selectedToken) {
+            let html = `
                 <!-- Show "No TOKEN" message -->
                 <div class="tir-thumbnail-item tir-no-token">
                     <!-- Image -->
@@ -1158,6 +1158,32 @@ export class TokenImageReplacementWindow extends Application {
                     </div>
                 </div>
             `;
+            
+            // Also show the results for browsing
+            if (this.matches.length > 0) {
+                html += this.matches.map(match => {
+                    const tags = this._getTagsForMatch(match);
+                    return `
+                        <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${match.fullPath}" data-image-name="${match.name}">
+                            <div class="tir-thumbnail-image">
+                                <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
+                                ${match.isCurrent ? `
+                                    <div class="tir-thumbnail-current-badge">
+                                        <i class="fas fa-check"></i>
+                                        <span class="tir-overlay-text">Apply to Token</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="tir-thumbnail-name">${match.name}</div>
+                            <div class="tir-thumbnail-tagset">
+                                ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            return html;
         }
         // ***** BUILD: NO MATCHING RESULTS *****
         if (this.matches.length === 0) {
