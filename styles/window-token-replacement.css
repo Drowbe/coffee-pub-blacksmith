@@ -483,11 +483,23 @@ div#token-replacement-window .window-content {
     border-radius: 6px;
     border: 1px solid rgba(40, 93, 153, 0.8);
     padding: 6px 12px 6px 12px;
-    margin: 12px 0px 12px 0px;
+    margin: 0px 0px 12px 0px;
 }
 .tir-token-replacement-notification-container i {
     padding: 0px 0px 0px 0px;
     margin: 0px 6px 0px 0px;
+}
+.tir-token-replacement-notification-container.notification-type-information {
+    background: rgba(40, 93, 153, 0.6);
+    border: 1px solid rgba(40, 93, 153, 0.8);
+}
+.tir-token-replacement-notification-container.notification-type-warning {
+    background: rgba(204, 188, 122, 0.6);
+    border: 1px solid rgba(204, 188, 122, 0.8);
+}
+.tir-token-replacement-notification-container.notification-type-error {
+    background: rgba(204, 0, 0, 0.6);
+    border: 1px solid rgba(204, 0, 0, 0.8);
 }
 
 /* ********** CONTENT -TILES GRID ********** */
