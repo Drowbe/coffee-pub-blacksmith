@@ -22,7 +22,8 @@ export class TokenImageReplacementWindow extends Application {
         this.isScanning = false;
         this.isSearching = false;
         this.scanProgress = 0;
-        this.currentFilter = 'selected'; // Track current category filter
+        this.currentFilter = 'all'; // Track current category filter
+        this._cachedSearchTerms = null; // Cache for search terms
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
         this.notificationIcon = null;
@@ -126,12 +127,16 @@ export class TokenImageReplacementWindow extends Application {
     /**
      * Phase 1: Fast filename-only search for instant results
      */
-    _performFastSearch(searchTerm) {
+    _performFastSearch(searchTerm, filteredFiles = null) {
         const searchTermLower = searchTerm.toLowerCase();
         const fastResults = [];
         
+        // Use filtered files if provided, otherwise use all files
+        const filesToSearch = filteredFiles || Array.from(TokenImageReplacement.cache.files.values());
+        
         // Only search filenames for speed
-        for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
+        for (const fileInfo of filesToSearch) {
+            const fileName = fileInfo.name || '';
             const fileNameLower = fileName.toLowerCase();
             if (fileNameLower.includes(searchTermLower)) {
                 let score = 0;
@@ -161,6 +166,65 @@ export class TokenImageReplacementWindow extends Application {
     /**
      * Apply category filter to search results
      */
+    _getFilteredFiles() {
+        // Get all files from cache
+        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        console.log('Token Image Replacement: _getFilteredFiles - allFiles.length:', allFiles.length, 'currentFilter:', this.currentFilter);
+        console.log('Token Image Replacement: _getFilteredFiles - first 3 files:', allFiles.slice(0, 3));
+        
+        // Apply category filter to get the subset of files to search
+        if (this.currentFilter === 'all') {
+            console.log('Token Image Replacement: _getFilteredFiles - returning all files:', allFiles.length);
+            return allFiles;
+        }
+        
+        // Cache search terms for "selected" filter to avoid repeated calls
+        let processedTerms = null;
+        if (this.currentFilter === 'selected' && this.selectedToken) {
+            const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+            processedTerms = searchTerms
+                .filter(term => term && term.length >= 2)
+                .map(term => term.toLowerCase());
+        }
+        
+        return allFiles.filter(file => {
+            const path = file.path || '';
+            const fileName = file.name || '';
+            
+            // Check if the file matches the current category filter
+            switch (this.currentFilter) {
+                case 'selected':
+                    // Only show files that match the selected token's characteristics
+                    if (!this.selectedToken || !processedTerms) return false;
+                    
+                    // Check if file matches any of the token's search terms
+                    const fileText = `${path} ${fileName}`.toLowerCase();
+                    return processedTerms.some(term => fileText.includes(term));
+                case 'adversaries':
+                    return path.toLowerCase().includes('adversaries') || 
+                           path.toLowerCase().includes('enemies') ||
+                           fileName.toLowerCase().includes('adversary') ||
+                           fileName.toLowerCase().includes('enemy');
+                case 'creatures':
+                    return path.toLowerCase().includes('creatures') || 
+                           fileName.toLowerCase().includes('creature');
+                case 'npcs':
+                    return path.toLowerCase().includes('npcs') || 
+                           path.toLowerCase().includes('npc') ||
+                           fileName.toLowerCase().includes('npc');
+                case 'monsters':
+                    return path.toLowerCase().includes('monsters') || 
+                           fileName.toLowerCase().includes('monster');
+                case 'bosses':
+                    return path.toLowerCase().includes('bosses') || 
+                           path.toLowerCase().includes('boss') ||
+                           fileName.toLowerCase().includes('boss');
+                default:
+                    return true;
+            }
+        });
+    }
+
     _applyCategoryFilter(results) {
         if (this.currentFilter === 'all') {
             return results;
@@ -173,8 +237,20 @@ export class TokenImageReplacementWindow extends Application {
             // Check if the result matches the current category filter
             switch (this.currentFilter) {
                 case 'selected':
-                    // Only show results when a token is selected
-                    return this.selectedToken !== null;
+                    // Only show results that match the selected token's characteristics
+                    if (!this.selectedToken) return false;
+                    
+                    // Use cached search terms if available, otherwise get them
+                    if (!this._cachedSearchTerms) {
+                        const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                        this._cachedSearchTerms = searchTerms
+                            .filter(term => term && term.length >= 2)
+                            .map(term => term.toLowerCase());
+                    }
+                    
+                    // Check if result matches any of the token's search terms
+                    const resultText = `${path} ${fileName}`.toLowerCase();
+                    return this._cachedSearchTerms.some(term => resultText.includes(term));
                 case 'adversaries':
                     return path.toLowerCase().includes('adversaries') || 
                            path.toLowerCase().includes('enemies') ||
@@ -376,7 +452,8 @@ export class TokenImageReplacementWindow extends Application {
             await this._findMatches();
         } else {
             this.selectedToken = null;
-            this.matches = [];
+            // Still find matches for "All" filter when no token selected
+            await this._findMatches();
         }
     }
 
@@ -428,13 +505,13 @@ export class TokenImageReplacementWindow extends Application {
 
         // Always add current token image as the first match if token exists
         if (this.selectedToken) {
-            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+        const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             if (currentImageSrc) {
-                const currentImage = {
+        const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
-                    fullPath: currentImageSrc,
-                    isCurrent: true
-                };
+            fullPath: currentImageSrc,
+            isCurrent: true
+        };
                 this.allMatches.push(currentImage);
             }
         }
@@ -452,11 +529,30 @@ export class TokenImageReplacementWindow extends Application {
             // Try to find matches using available cache (regardless of size)
             let foundMatches = false;
             
-            // For manual selection window, show matches based on token selection
+            // For manual selection window, show matches based on current filter
             if (TokenImageReplacement.cache.files.size > 0) {
+                // Get filtered files based on current category filter
+                const filteredFiles = this._getFilteredFiles();
+                
+                if (filteredFiles.length > 0) {
+                    // Show limited results for speed (first 50)
+                    const limitedResults = filteredFiles.slice(0, 50).map(file => ({
+                        ...file,
+                        searchScore: 10,
+                        isCurrent: false
+                    }));
+                    this.allMatches.push(...limitedResults);
+                    foundMatches = true;
+                    console.log('Token Image Replacement: Added', limitedResults.length, 'results to allMatches. Total:', this.allMatches.length);
+                    console.log('Token Image Replacement: First 5 results:', limitedResults.slice(0, 5));
+                }
+            }
+            
+            // Legacy code - keeping for now but should be removed
+            if (false && TokenImageReplacement.cache.files.size > 0) {
                 if (this.selectedToken) {
                     // If token is selected, use two-phase loading for instant results
-                    const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
                     
                     // Pre-process search terms for efficiency
                     const processedTerms = searchTerms
@@ -465,7 +561,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     if (processedTerms.length === 0) {
                         // No valid search terms, show limited files for speed
-                        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+                const allFiles = Array.from(TokenImageReplacement.cache.files.values());
                         const limitedResults = allFiles.slice(0, 50).map(file => ({
                             ...file,
                             searchScore: 10,
@@ -526,13 +622,13 @@ export class TokenImageReplacementWindow extends Application {
                     // If no token selected, show all available images
                     const allFiles = Array.from(TokenImageReplacement.cache.files.values());
                     const alternatives = allFiles.slice(0, 20); // Show up to 20 images
-                    
-                    if (alternatives.length > 0) {
-                        alternatives.forEach(alt => {
-                            alt.isCurrent = false;
-                        });
+
+                if (alternatives.length > 0) {
+                    alternatives.forEach(alt => {
+                        alt.isCurrent = false;
+                    });
                         this.allMatches.push(...alternatives);
-                        foundMatches = true;
+                    foundMatches = true;
                     }
                 }
             }
@@ -751,14 +847,22 @@ export class TokenImageReplacementWindow extends Application {
                 const selectedToken = controlledTokens[0];
                 console.log('Token Image Replacement: Found currently selected token:', selectedToken.name);
                 
-                // Store the selected token and find matches
+                // Store the selected token and set filter
                 this.selectedToken = selectedToken;
+                this.currentFilter = 'selected';
+                this._cachedSearchTerms = null; // Clear cache for new token
                 this._showSearchSpinner();
                 await this._findMatches();
-                this.render();
                 this._hideSearchSpinner();
             } else {
                 console.log('Token Image Replacement: No currently selected token found');
+                // Reset to "all" filter when no token selected
+                this.selectedToken = null;
+                this.currentFilter = 'all';
+                this._cachedSearchTerms = null; // Clear cache
+                this._showSearchSpinner();
+                await this._findMatches();
+                this._hideSearchSpinner();
             }
         } catch (error) {
             console.log('Token Image Replacement: Error checking for selected token:', error);
@@ -768,10 +872,9 @@ export class TokenImageReplacementWindow extends Application {
     // Method to refresh matches when cache becomes ready
     async refreshMatches() {
         if (this.selectedToken) {
-            this._showSearchSpinner();
+        this._showSearchSpinner();
             await this._findMatches();
-            this.render();
-            this._hideSearchSpinner();
+        this._hideSearchSpinner();
         }
     }
 
@@ -794,7 +897,7 @@ export class TokenImageReplacementWindow extends Application {
             this._hideSearchSpinner();
             return;
         }
-        
+
         // Debounce search to avoid too many calls
         this.searchTimeout = setTimeout(async () => {
             this._showSearchSpinner();
@@ -845,10 +948,12 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // PHASE 1: Fast filename search for instant results
-        const fastResults = this._performFastSearch(searchTerm);
-        const filteredFastResults = this._applyCategoryFilter(fastResults);
-        this.allMatches.push(...filteredFastResults);
+        // Get filtered files based on current category filter
+        const filteredFiles = this._getFilteredFiles();
+        
+        // PHASE 1: Fast filename search within filtered files
+        const fastResults = this._performFastSearch(searchTerm, filteredFiles);
+        this.allMatches.push(...fastResults);
         
         // Sort by score (current image first, then by score)
         this.allMatches.sort((a, b) => {
@@ -869,10 +974,13 @@ export class TokenImageReplacementWindow extends Application {
         const searchTermLower = searchTerm.toLowerCase();
         const batchSize = 100; // Process files in batches
         let processedCount = 0;
-        const totalFiles = TokenImageReplacement.cache.files.size;
+        
+        // Get filtered files based on current category filter
+        const filteredFiles = this._getFilteredFiles();
+        const totalFiles = filteredFiles.length;
         
         // Process files in batches to avoid blocking the UI
-        const fileEntries = Array.from(TokenImageReplacement.cache.files.entries());
+        const fileEntries = filteredFiles;
         
         for (let i = 0; i < fileEntries.length; i += batchSize) {
             // Check if search was cancelled (new search started)
@@ -884,7 +992,8 @@ export class TokenImageReplacementWindow extends Application {
             const batchResults = [];
             
             // Process this batch
-            for (const [fileName, fileInfo] of batch) {
+            for (const fileInfo of batch) {
+                const fileName = fileInfo.name || '';
                 let score = 0;
                 let foundMatch = false;
                 
@@ -983,17 +1092,30 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _updateResults() {
+        console.log('Token Image Replacement: _updateResults - CALLED');
         // Update the results grid and the results summary
         const resultsHtml = this._renderResults();
+        console.log('Token Image Replacement: _updateResults - resultsHtml length:', resultsHtml.length, 'preview:', resultsHtml.substring(0, 200));
         const $element = this.element;
         if ($element) {
-            $element.find('.tir-thumbnails-grid').html(resultsHtml);
+            const $grid = $element.find('.tir-thumbnails-grid');
+            console.log('Token Image Replacement: _updateResults - found grid element:', $grid.length, 'grid HTML before:', $grid.html().substring(0, 100));
+            $grid.html(resultsHtml);
+            console.log('Token Image Replacement: _updateResults - grid HTML after:', $grid.html().substring(0, 100));
+            
+            // Check if HTML is still there after a short delay
+            setTimeout(() => {
+                console.log('Token Image Replacement: _updateResults - grid HTML after delay:', $grid.html().substring(0, 100));
+            }, 100);
             
             // Re-attach event handlers for the new thumbnail items
             $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
             
             // Update the results summary with current counts
-            $element.find('#tir-results-details-count').html(`<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`);
+            const $countElement = $element.find('#tir-results-details-count');
+            console.log('Token Image Replacement: _updateResults - count element found:', $countElement.length, 'current text:', $countElement.text());
+            $countElement.html(`<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`);
+            console.log('Token Image Replacement: _updateResults - count element after update:', $countElement.text());
             
             // Update the status text based on search state
             if (this.isSearching) {
@@ -1007,6 +1129,8 @@ export class TokenImageReplacementWindow extends Application {
             const tagHtml = aggregatedTags.map(tag => `<span class="tir-search-tools-tag" data-search-term="${tag}">${tag}</span>`).join('');
             $element.find('#tir-search-tools-tag-container').html(tagHtml);
             
+            // Note: Do not call this.render() here as it overwrites the DOM updates
+            
             // Show/hide tags row based on whether there are tags
             if (aggregatedTags.length > 0) {
                 $element.find('#tir-search-tools-tag-container').show();
@@ -1017,6 +1141,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _renderResults() {
+        console.log('Token Image Replacement: _renderResults - selectedToken:', !!this.selectedToken, 'matches.length:', this.matches.length, 'allMatches.length:', this.allMatches.length);
         // ***** BUILD: NO TOKEN SELECTED *****
         if (!this.selectedToken && this.matches.length === 0) {
             return `
@@ -1122,6 +1247,7 @@ export class TokenImageReplacementWindow extends Application {
         const endIndex = (this.currentPage + 1) * this.resultsPerPage;
         this.matches = this.allMatches.slice(startIndex, endIndex);
         this.hasMoreResults = this.allMatches.length > this.matches.length;
+        console.log('Token Image Replacement: Pagination - allMatches:', this.allMatches.length, 'matches:', this.matches.length, 'hasMore:', this.hasMoreResults);
     }
 
     async _onScroll(event) {
@@ -1170,6 +1296,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Set new filter
             this.currentFilter = category;
+            this._cachedSearchTerms = null; // Clear cache when filter changes
             
             // Re-run current search with new filter
             const currentSearchTerm = $element.find('.tir-search-input').val().trim();
@@ -1212,9 +1339,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Search through all cached files using comprehensive search
         for (const [fileName, fileInfo] of TokenImageReplacement.cache.files.entries()) {
-            let score = 0;
+                let score = 0;
             let foundMatch = false;
-            
+                
             // Search filename
             const fileNameLower = fileName.toLowerCase();
             if (fileNameLower.includes(searchTermLower)) {
