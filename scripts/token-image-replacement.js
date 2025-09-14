@@ -535,16 +535,16 @@ export class TokenImageReplacementWindow extends Application {
                 const filteredFiles = this._getFilteredFiles();
                 
                 if (filteredFiles.length > 0) {
-                    // Show limited results for speed (first 50)
-                    const limitedResults = filteredFiles.slice(0, 50).map(file => ({
+                    // Add all filtered results to allMatches for pagination
+                    const allResults = filteredFiles.map(file => ({
                         ...file,
                         searchScore: 10,
                         isCurrent: false
                     }));
-                    this.allMatches.push(...limitedResults);
+                    this.allMatches.push(...allResults);
                     foundMatches = true;
-                    console.log('Token Image Replacement: Added', limitedResults.length, 'results to allMatches. Total:', this.allMatches.length);
-                    console.log('Token Image Replacement: First 5 results:', limitedResults.slice(0, 5));
+                    console.log('Token Image Replacement: Added', allResults.length, 'results to allMatches. Total:', this.allMatches.length);
+                    console.log('Token Image Replacement: First 5 results:', allResults.slice(0, 5));
                 }
             }
             
