@@ -38,6 +38,7 @@ div#token-replacement-window .window-content {
     overflow: hidden; /* Prevent window from being scrollable */
 }
 
+
 /* Window Header */
 .tir-header {
     background: rgba(0, 0, 0, 0.8);
@@ -188,6 +189,102 @@ div#token-replacement-window .window-content {
      padding: 0px 4px 0px 4px;
 }
 
+
+
+/* ********** FORM STYLES ********** */
+
+
+
+.tir-form-group {
+    margin: 0 0 0;
+}
+.tir-form-group label {
+    display: block;
+    font-weight: bold;
+    font-size: 0.8em;
+    margin-bottom: 0px;
+    margin-top: 6px;
+    margin-left: 8px;
+}
+.tir-form-group label.cpb-checkbox {
+    display: inline-flex;
+    align-items: center;
+    font-weight: normal;
+    font-size: 1.0em;
+    margin: 0;
+    gap: 2px;
+}
+
+.tir-form-fields {
+    display: flex;
+    gap: 8px;
+}
+.tir-form-fields input[type="text"],
+.tir-form-fields input[type="number"],
+.tir-form-fields select,
+.tir-form-fields textarea {
+    width: 100%;
+    border-radius: 3px;
+    flex: 1;
+    padding-right: 24px;
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px;
+    padding: 0.1em 0.5em;
+    font-size: 1.0em;
+    caret-color: rgba(255, 47, 47, 1.0);  
+}
+.tir-form-fields input[type="text"],
+.tir-form-fields input[type="number"],
+.tir-form-fields select {
+    height: 22px;
+}
+.tir-form-fields textarea {
+    resize: vertical;
+    min-height: 30px;
+}
+.tir-form-fields input[type="text"]:focus,
+.tir-form-fields input[type="number"]:focus,
+.tir-form-fields select:focus,
+.tir-form-fields textarea:focus {
+  outline: none;
+  border-color: rgba(255, 100, 0, 0.8) !important;
+}
+.tir-form-fields input[type="text"]::placeholder,
+.tir-form-fields input[type="number"]::placeholder,
+.tir-form-fields textarea:focus::placeholder {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ********** CONTENT ********** */
 
 .tir-content {
@@ -296,15 +393,16 @@ div#token-replacement-window .window-content {
     border-radius: 0px;
     padding: 8px 8px 8px 8px;
     margin-bottom: 0px;
+
     
 }
 .tir-search-tools-row-container.row-category.row-style-tabs {
     border-bottom: 2px solid rgba(145, 133, 107, 0.6);
-    padding: 12px 8px 0px 8px;
+    padding: 8px 8px 0px 8px;
 }
 .tir-search-tools-row-container.row-category.row-style-buttons{
     border-bottom: 2px solid rgba(145, 133, 107, 0.6);
-    padding: 12px 8px 0px 8px;
+    padding: 8px 8px 8px 8px;
 }
 
 .tir-search-tools-row-container.row-search{
@@ -332,20 +430,38 @@ div#token-replacement-window .window-content {
 /* ----- SEARCH TOOLS - FILTERS ----- */
 
 .tir-filter-category {
-    display: inline-block;
-    padding: 4px 8px;
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box; 
+    min-height: 25px; 
+    padding: 0 10px; 
     background: rgba(105, 93, 78, 0.8);
-    border-top: 1px solid rgba(145, 133, 107, 0.6);
-    border-left: 1px solid rgba(145, 133, 107, 0.6);
-    border-right: 1px solid rgba(145, 133, 107, 0.6);
-    border-radius: 4px 4px 0px 0px;
-    font-size: 0.9em;
+    font-size: 1.0em;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
     text-transform: uppercase;
+    height: 25px;
 }
+.tir-filter-category.row-style-tabs {
+    background: rgba(105, 93, 78, 0.8);
+    border-top: 1px solid rgba(145, 133, 107, 0.6);
+    border-left: 1px solid rgba(145, 133, 107, 0.6);
+    border-right: 1px solid rgba(145, 133, 107, 0.6);
+    border-radius: 4px 4px 0px 0px;
+}
+.tir-filter-category.row-style-buttons {
+    background: rgba(105, 93, 78, 0.8);
+    border-top: 1px solid rgba(145, 133, 107, 0.6);
+    border-bottom: 1px solid rgba(145, 133, 107, 0.6);
+    border-left: 1px solid rgba(145, 133, 107, 0.6);
+    border-right: 1px solid rgba(145, 133, 107, 0.6);
+    border-radius: 4px 4px 4px 4px;
+}
+
+
 .tir-filter-category:hover {
     background: rgba(255, 47, 47, 0.4);
     border-color: rgba(255, 47, 47, 1.0);

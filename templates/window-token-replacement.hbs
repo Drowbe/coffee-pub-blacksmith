@@ -73,19 +73,29 @@
     <div class="tir-search-tools-container">
 
         <!-- Row 1: Filters (left) and Result Counts (right) -->
-        <div class="tir-search-tools-row-container row-category row-style-tabs">
+        <div class="tir-search-tools-row-container row-category row-style-buttons">
             <div id="tir-filter-category-container" class="tir-search-tools-row-left">
-                <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected" data-category="selected">Selected</span>
-                <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}" data-category="all">All</span>
-                <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
-                <span class="tir-filter-category" data-category="creatures">Creatures</span>
-                <span class="tir-filter-category" data-category="npcs">NPCs</span>
-                <span class="tir-filter-category" data-category="monsters">Monsters</span>
-                <span class="tir-filter-category" data-category="bosses">Bosses</span>
+                <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected  row-style-buttons" data-category="selected">Selected</span>
+                <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}  row-style-buttons" data-category="all">All</span>
+                <span class="tir-filter-category row-style-buttons" data-category="adversaries">Adversaries</span>
+                <span class="tir-filter-category row-style-buttons" data-category="creatures">Creatures</span>
+                <span class="tir-filter-category row-style-buttons" data-category="npcs">NPCs</span>
+                <span class="tir-filter-category row-style-buttons" data-category="monsters">Monsters</span>
+                <span class="tir-filter-category row-style-buttons" data-category="bosses">Bosses</span>
             </div>
 
             <div class="tir-search-tools-row-right">
-                Sorted by Relevance
+                
+               <!-- Sort Order Selector -->
+               <div class="cpb-form-group">
+                    <div class="tir-form-fields">
+                        <select name="rollMode" class="tir-select">
+                            <option value="relevance" {{#if (eq rollMode "roll")}}selected{{/if}}>Relevance</option>
+                            <option value="atoz" {{#if (eq rollMode "gmroll")}}selected{{/if}}>A to Z</option>
+                            <option value="ztoa" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Z to A</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
 
