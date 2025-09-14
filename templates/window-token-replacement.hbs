@@ -76,9 +76,7 @@
             <!-- Row 1: Filters (left) and Result Counts (right) -->
             <div class="tir-search-tools-row-container row-category row-style-tabs">
                 <div id="tir-filter-category-container" class="tir-search-tools-row-left">
-                    {{#if selectedToken}}
-                    <span class="tir-filter-category active" data-category="selected">Selected</span>
-                    {{/if}}
+                    <span class="tir-filter-category {{#if selectedToken}}active{{/if}}" data-category="selected">Selected</span>
                     <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}" data-category="all">All</span>
                     <span class="tir-filter-category" data-category="adversaries">Adversaries</span>
                     <span class="tir-filter-category" data-category="creatures">Creatures</span>
