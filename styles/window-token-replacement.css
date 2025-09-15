@@ -3,18 +3,18 @@
     --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
 }
 
+
 /* Window Background */
 div#token-replacement-window {
     min-width: 700px;
     min-height: 400px;
-    max-height: 900px;
 }
 
 .token-replacement-window.app {
     min-width: 700px;
     min-height: 400px;
-    max-height: 900px;
 }
+
 
 /* Window Content */
 div#token-replacement-window .window-content {
@@ -258,33 +258,6 @@ div#token-replacement-window .window-content {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ********** CONTENT ********** */
 
 
@@ -292,6 +265,7 @@ div#token-replacement-window .window-content {
     flex: 1;
     padding: 0px;
     min-height: 200px;
+    height: 100%;
     overflow: hidden; /* Prevent content from overflowing */
     display: flex;
     flex-direction: column; /* Allow grid to take remaining space */

@@ -55,7 +55,7 @@
 
     <!-- Token Info Header -->
     <div class="tir-token-replacement-header-container">
-        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Search Filters</div>
+        <div class="tir-token-replacement-header-left"><i class="fas fa-search"></i> Search Filters</div>
         <div class="tir-token-replacement-header-right">
             <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
             <span class="button-divider">|</span>
@@ -72,6 +72,7 @@
 
         <!-- Row 1: Filters (left) and Result Counts (right) -->
         <div class="tir-search-tools-row-container row-category row-style-{{categoryStyle}}">
+            <!-- Filters -->
             <div id="tir-filter-category-container" class="tir-search-tools-row-left">
                 <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected row-style-{{categoryStyle}}" data-category="selected">Selected</span>
                 <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}} row-style-{{categoryStyle}}" data-category="all">All</span>
@@ -79,20 +80,8 @@
                     <span class="tir-filter-category {{#if isActive}}active{{/if}} row-style-{{../categoryStyle}}" data-tooltip="{{name}} ({{count}})" data-category="{{key}}">{{name}}</span>
                 {{/each}}
             </div>
-
-            <div class="tir-search-tools-row-right">
-                
-               <!-- Sort Order Selector -->
-               <div class="cpb-form-group">
-                    <div class="tir-form-fields">
-                        <select name="sortOrder" class="tir-select">
-                            <option value="relevance" {{#if (eq sortOrder "relevance")}}selected{{/if}}>Relevance</option>
-                            <option value="atoz" {{#if (eq sortOrder "atoz")}}selected{{/if}}>A to Z</option>
-                            <option value="ztoa" {{#if (eq sortOrder "ztoa")}}selected{{/if}}>Z to A</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+            <!-- Actions -->
+            <div class="tir-search-tools-row-right"><!-- Future Actions Here --></div>
         </div>
 
         <!-- Row 2: Search Area and Results Counts -->
@@ -130,8 +119,21 @@
 
     <!-- Token Info Header -->
     <div class="tir-token-replacement-header-container">
-        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Matching Results</div>
-        <div class="tir-token-replacement-header-right"><!-- Future Actions Here --></div>
+        <!-- Title -->
+        <div class="tir-token-replacement-header-left"><i class="fas fa-images"></i> Matching Results</div>
+        <!-- Actions -->
+        <div class="tir-token-replacement-header-right">
+            <!-- Sort Order Selector -->
+            <div class="cpb-form-group">
+                <div class="tir-form-fields">
+                    <select name="sortOrder" class="tir-select">
+                        <option value="relevance" {{#if (eq sortOrder "relevance")}}selected{{/if}}>Relevance</option>
+                        <option value="atoz" {{#if (eq sortOrder "atoz")}}selected{{/if}}>A to Z</option>
+                        <option value="ztoa" {{#if (eq sortOrder "ztoa")}}selected{{/if}}>Z to A</option>
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
 
 
