@@ -1574,21 +1574,41 @@ export class TokenImageReplacementWindow extends Application {
     _getAggregatedTags() {
         const tagCounts = new Map();
         
-        // Check if we're in category mode (not 'selected' and no search term)
-        const isCategoryMode = this.currentFilter !== 'selected' && 
-                              !this.searchTerm;
+        // Check if we're in category mode (no search term)
+        const isCategoryMode = !this.searchTerm;
         
         if (isCategoryMode) {
             // Category mode: Show ALL tags for this category
             const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-            const categoryFiles = this.currentFilter === 'all' 
-                ? allFiles  // For 'all', use all files
-                : allFiles.filter(file => {
+            let categoryFiles;
+            if (this.currentFilter === 'all') {
+                categoryFiles = allFiles;  // For 'all', use all files
+            } else if (this.currentFilter === 'selected') {
+                // For 'selected', filter by token characteristics
+                if (!this.selectedToken) {
+                    categoryFiles = []; // No files if no token selected
+                } else {
+                    const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                    const processedTerms = searchTerms
+                        .filter(term => term && term.length >= 2)
+                        .map(term => term.toLowerCase());
+                    
+                    categoryFiles = allFiles.filter(file => {
+                        const path = file.path || '';
+                        const fileName = file.name || '';
+                        const fileText = `${path} ${fileName}`.toLowerCase();
+                        return processedTerms.some(term => fileText.includes(term));
+                    });
+                }
+            } else {
+                // For other categories, filter by folder
+                categoryFiles = allFiles.filter(file => {
                     const path = file.path || '';
                     const pathParts = path.split('/');
                     const topLevel = pathParts[0];
                     return topLevel && topLevel.toLowerCase() === this.currentFilter;
                 });
+            }
             
             // Count tags from all files in this category
             categoryFiles.forEach(file => {
