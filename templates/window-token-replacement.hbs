@@ -55,17 +55,15 @@
 
     <!-- Token Info Header -->
     <div class="tir-token-replacement-header-container">
-        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Image Replacements</div>
+        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Search Filters</div>
         <div class="tir-token-replacement-header-right">
             <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
             <span class="button-divider">|</span>
             {{#if isScanning}}
-            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Delay Scan</button>
+            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Delay Scan</span></button>
             {{else}}
             <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
             {{/if}}
-            <span class="button-divider">|</span>
-            <button class="refresh-detection-btn" data-tooltip="Refresh Token Detection"><i class="fas fa-sync-alt"></i> Refresh Token Detection</button>
         </div>
     </div>
 
@@ -102,9 +100,15 @@
             <div id="tir-search-tools-row-left" class="tir-search-tools-row-left">
                 <div class="tir-search-container">
                     <input type="text" class="tir-search-input" placeholder="Search for images..." value="">
+                    <button type="button" class="tir-clear-search-btn" title="Clear search">
+                        <i class="fas fa-square-xmark"></i>
+                    </button>
                 </div>
+                <button type="button" class="tir-filter-toggle-btn active" title="Toggle tags">
+                    <i class="fas fa-filter"></i>
+                </button>
             </div>
-            <div id="tir-search-tools-row-right" class="tir-search-tools-row-right">
+            <div id="tir-search-tools-row-right" class="tir-search-tools-row-right tir-results-details">
                 <!-- These results get dynamically overridden in token-image-replacement.js -->
                 <span id="tir-results-details-count" class="tir-results-details-count"><i class="fas fa-images"></i>0 of 0 Showing</span>
                 <span class="tir-results-details-divider">|</span>
@@ -121,6 +125,15 @@
         </div>
         {{/if}}
     </div>
+
+
+
+    <!-- Token Info Header -->
+    <div class="tir-token-replacement-header-container">
+        <div class="tir-token-replacement-header-left"><i class="fas fa-image"></i> Matching Results</div>
+        <div class="tir-token-replacement-header-right"><!-- Future Actions Here --></div>
+    </div>
+
 
     <!-- CONTENT -->
     <div class="tir-content">

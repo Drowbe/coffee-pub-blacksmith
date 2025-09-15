@@ -429,20 +429,6 @@ export class TokenImageReplacementWindow extends Application {
         };
     }
 
-    async _detectSelectedToken() {
-        // Get the first selected token (if multiple are selected)
-        const selectedTokens = canvas?.tokens?.controlled || [];
-        
-        if (selectedTokens.length > 0) {
-            this.selectedToken = selectedTokens[0];
-            // Automatically find matches for the selected token
-            await this._findMatches();
-        } else {
-            this.selectedToken = null;
-            // Still find matches for "All" filter when no token selected
-            await this._findMatches();
-        }
-    }
 
     activateListeners(html) {
         super.activateListeners(html);
@@ -459,8 +445,6 @@ export class TokenImageReplacementWindow extends Application {
         // Delete cache button
         html.find('.button-delete-cache').on('click', this._onDeleteCache.bind(this));
         
-        // Refresh detection button
-        html.find('.refresh-detection-btn').on('click', this._onRefreshDetection.bind(this));
         
         // Close button
         html.find('.close-btn').on('click', this._onClose.bind(this));
@@ -485,6 +469,12 @@ export class TokenImageReplacementWindow extends Application {
         
         // Tag click handlers for new tags row
         html.find('#tir-search-tools-tag-container').on('click', '.tir-search-tools-tag', this._onTagClick.bind(this));
+        
+        // Clear search button
+        html.find('.tir-clear-search-btn').on('click', this._onClearSearch.bind(this));
+        
+        // Filter toggle button
+        html.find('.tir-filter-toggle-btn').on('click', this._onFilterToggle.bind(this));
     }
 
 
@@ -746,11 +736,6 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
-    async _onRefreshDetection() {
-        console.log('Token Image Replacement: Manual refresh detection triggered');
-        await this._detectSelectedToken();
-        this.render();
-    }
 
     _onClose() {
         this.close();
@@ -1476,6 +1461,42 @@ export class TokenImageReplacementWindow extends Application {
             
             // Trigger the search
             await this._performSearch(searchTerm);
+        }
+    }
+
+    async _onClearSearch(event) {
+        event.preventDefault();
+        
+        const $element = this.element;
+        if ($element) {
+            // Clear the search input
+            $element.find('.tir-search-input').val('');
+            
+            // Clear search term and refresh results
+            this.searchTerm = '';
+            this._showSearchSpinner();
+            await this._findMatches();
+            this._hideSearchSpinner();
+        }
+    }
+
+    _onFilterToggle(event) {
+        event.preventDefault();
+        
+        const $element = this.element;
+        if ($element) {
+            const $button = $(event.currentTarget);
+            const $tagContainer = $element.find('#tir-search-tools-tag-container');
+            
+            // Toggle the active state
+            $button.toggleClass('active');
+            
+            // Toggle tag container visibility
+            if ($button.hasClass('active')) {
+                $tagContainer.show();
+            } else {
+                $tagContainer.hide();
+            }
         }
     }
 
