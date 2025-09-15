@@ -287,13 +287,15 @@ div#token-replacement-window .window-content {
 
 /* ********** CONTENT ********** */
 
+
 .tir-content {
     flex: 1;
-    padding: 8px;
+    padding: 0px;
     min-height: 200px;
     overflow: hidden; /* Prevent content from overflowing */
     display: flex;
     flex-direction: column; /* Allow grid to take remaining space */
+    border-top: 1px solid rgba(255, 255, 255, 0.1); 
 }
 
 /* ********** CONTENT - HEADER ********** */
@@ -378,7 +380,7 @@ div#token-replacement-window .window-content {
     font-size: 0.8em;
     font-weight: 200;
     margin-top: 0px;
-    margin-bottom: 8px;
+    margin-bottom: 0px;
     padding: 0px 0px;
 }
 
@@ -702,24 +704,25 @@ div#token-replacement-window .window-content {
   }
   
   
-  /* =========================
-     Grid: fixed-width columns, uniform fixed rows
-     ========================= */
-  .tir-thumbnails-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, var(--tile)); /* fixed column width */
-    grid-auto-rows: var(--tile-total-h);                   /* uniform row height */
-    gap: var(--card-gap);
-  
-    justify-content: start;  /* left align */
-    align-content: start;    /* pin to top */
-    align-items: start;      /* prevent stretch */
-  
-    flex: 1;                 /* allow the grid to grow in a flex parent */
-    overflow-y: auto;
-    padding: 5px 0 0 0;
-    min-height: 0;
-  }
+
+    /* =========================
+    Grid: fixed-width columns, uniform fixed rows
+    ========================= */
+    .tir-thumbnails-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, var(--tile)); /* fixed column width */
+        grid-auto-rows: var(--tile-total-h); /* uniform row height */
+        gap: var(--card-gap);
+
+        justify-content: start;  /* left align */
+        align-content: start;    /* pin to top */
+        align-items: start;      /* prevent stretch */
+
+        flex: 1;                 /* allow the grid to grow in a flex parent */
+        overflow-y: auto;
+        padding: 8px 8px 8px 8px ;
+        min-height: 0;
+    }
   
   /* Scrollbar styling */
   .tir-thumbnails-grid::-webkit-scrollbar {
