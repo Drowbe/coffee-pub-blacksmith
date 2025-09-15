@@ -202,27 +202,12 @@ export class TokenImageReplacementWindow extends Application {
                     // Check if file matches any of the token's search terms
                     const fileText = `${path} ${fileName}`.toLowerCase();
                     return processedTerms.some(term => fileText.includes(term));
-                case 'adversaries':
-                    return path.toLowerCase().includes('adversaries') || 
-                           path.toLowerCase().includes('enemies') ||
-                           fileName.toLowerCase().includes('adversary') ||
-                           fileName.toLowerCase().includes('enemy');
-                case 'creatures':
-                    return path.toLowerCase().includes('creatures') || 
-                           fileName.toLowerCase().includes('creature');
-                case 'npcs':
-                    return path.toLowerCase().includes('npcs') || 
-                           path.toLowerCase().includes('npc') ||
-                           fileName.toLowerCase().includes('npc');
-                case 'monsters':
-                    return path.toLowerCase().includes('monsters') || 
-                           fileName.toLowerCase().includes('monster');
-                case 'bosses':
-                    return path.toLowerCase().includes('bosses') || 
-                           path.toLowerCase().includes('boss') ||
-                           fileName.toLowerCase().includes('boss');
                 default:
-                    return true;
+                    // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
+                    // check if file is in that top-level folder
+                    const pathParts = path.split('/');
+                    const topLevel = pathParts[0];
+                    return topLevel && topLevel.toLowerCase() === this.currentFilter;
             }
         });
     }
@@ -1575,16 +1560,10 @@ export class TokenImageReplacementWindow extends Application {
         // Convert to array of category objects for template
         const categories = [];
         for (const [categoryName, fileCount] of topLevelFolders) {
-            // For the current filter, show the actual filtered count, not the folder count
-            let displayCount = fileCount;
-            if (this.currentFilter === categoryName.toLowerCase()) {
-                displayCount = this.allMatches.length;
-            }
-            
             categories.push({
                 name: TokenImageReplacement._cleanCategoryName(categoryName),
                 key: categoryName.toLowerCase(),
-                count: displayCount,
+                count: fileCount,
                 isActive: this.currentFilter === categoryName.toLowerCase()
             });
         }
