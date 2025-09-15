@@ -417,6 +417,7 @@ div#token-replacement-window .window-content {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
+    flex: 1;
     border: 0px solid rgb(245, 151, 9);
 }
 
@@ -512,7 +513,8 @@ div#token-replacement-window .window-content {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     margin: 0px 0px 0px 0px;
-    width: 350px;
+    flex: 1;
+    min-width: 200px;
 }  
 
 /* Input Box */
