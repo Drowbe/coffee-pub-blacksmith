@@ -589,11 +589,11 @@ div#token-replacement-window .window-content {
     flex-wrap: wrap;
     flex: 1;
     gap: 4px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.4);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 0px;
     padding: 8px 8px;
-    max-height: 120px;
+    max-height: 80px;
     overflow-y: auto;
     overflow-x: hidden;
 }
