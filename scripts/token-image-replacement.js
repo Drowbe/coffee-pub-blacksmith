@@ -154,7 +154,8 @@ export class TokenImageReplacementWindow extends Application {
                     path: fileInfo.path,
                     fullPath: fileInfo.fullPath,
                     searchScore: score,
-                    isCurrent: false
+                    isCurrent: false,
+                    metadata: fileInfo.metadata || null
                 });
             }
         }
@@ -354,7 +355,8 @@ export class TokenImageReplacementWindow extends Application {
                         path: fileInfo.path,
                         fullPath: fileInfo.fullPath,
                         searchScore: score,
-                        isCurrent: false
+                        isCurrent: false,
+                        metadata: fileInfo.metadata || null
                     });
                 }
             }
@@ -425,6 +427,8 @@ export class TokenImageReplacementWindow extends Application {
             isSearching: this.isSearching,
             currentFilter: this.currentFilter,
             sortOrder: this.sortOrder,
+            categoryStyle: getSettingSafely(MODULE.ID, 'tokenImageReplacementCategoryStyle', 'buttons'),
+            categories: this._getCategories(),
             aggregatedTags: this._getAggregatedTags(),
             hasAggregatedTags: this._getAggregatedTags().length > 0,
             overallProgress: TokenImageReplacement.cache.overallProgress,
@@ -511,7 +515,8 @@ export class TokenImageReplacementWindow extends Application {
         const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
             fullPath: currentImageSrc,
-            isCurrent: true
+            isCurrent: true,
+            metadata: null
         };
                 this.allMatches.push(currentImage);
             }
@@ -540,7 +545,8 @@ export class TokenImageReplacementWindow extends Application {
                     const allResults = filteredFiles.map(file => ({
                         ...file,
                         searchScore: 10,
-                        isCurrent: false
+                        isCurrent: false,
+                        metadata: file.metadata || null
                     }));
                     this.allMatches.push(...allResults);
                     foundMatches = true;
@@ -569,7 +575,8 @@ export class TokenImageReplacementWindow extends Application {
                         const limitedResults = allFiles.slice(0, 50).map(file => ({
                             ...file,
                             searchScore: 10,
-                            isCurrent: false
+                            isCurrent: false,
+                            metadata: file.metadata || null
                         }));
                         this.allMatches.push(...limitedResults);
                         foundMatches = true;
@@ -602,7 +609,8 @@ export class TokenImageReplacementWindow extends Application {
                                     path: fileInfo.path,
                                     fullPath: fileInfo.fullPath,
                                     searchScore: score,
-                                    isCurrent: false
+                                    isCurrent: false,
+                                    metadata: fileInfo.metadata || null
                                 });
                             }
                         }
@@ -625,12 +633,13 @@ export class TokenImageReplacementWindow extends Application {
                 } else {
                     // If no token selected, show all available images
                     const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-                    const alternatives = allFiles.slice(0, 20); // Show up to 20 images
+                    const alternatives = allFiles.slice(0, 20).map(file => ({
+                        ...file,
+                        isCurrent: false,
+                        metadata: file.metadata || null
+                    })); // Show up to 20 images
 
                 if (alternatives.length > 0) {
-                    alternatives.forEach(alt => {
-                        alt.isCurrent = false;
-                    });
                         this.allMatches.push(...alternatives);
                     foundMatches = true;
                     }
@@ -643,6 +652,7 @@ export class TokenImageReplacementWindow extends Application {
                     const realTimeMatch = await TokenImageReplacement._findMatchInRealTime(this.selectedToken.document);
                     if (realTimeMatch) {
                         realTimeMatch.isCurrent = false;
+                        realTimeMatch.metadata = realTimeMatch.metadata || null;
                         this.allMatches.push(realTimeMatch);
                         foundMatches = true;
                     }
@@ -1109,7 +1119,8 @@ export class TokenImageReplacementWindow extends Application {
                 const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
                     fullPath: currentImageSrc,
-                    isCurrent: true
+                    isCurrent: true,
+                    metadata: null
                 };
                 this.allMatches.push(currentImage);
             }
@@ -1220,7 +1231,8 @@ export class TokenImageReplacementWindow extends Application {
                         path: fileInfo.path,
                         fullPath: fileInfo.fullPath,
                         searchScore: score,
-                        isCurrent: false
+                        isCurrent: false,
+                        metadata: fileInfo.metadata || null
                     });
                 }
             }
@@ -1399,27 +1411,38 @@ export class TokenImageReplacementWindow extends Application {
             tags.push('CURRENT IMAGE');
         }
         
-        // Get creature type from cache
-        const fileName = match.name.toLowerCase();
-        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-            if (files.includes(fileName)) {
-                tags.push(creatureType);
-                break; // Only add the first matching creature type
-            }
-        }
-        
-        // Get folder hierarchy tags
-        if (match.path) {
-            const pathParts = match.path.split('/').slice(0, -1); // Remove filename, keep folder parts
-            pathParts.forEach(part => {
-                if (part && part !== 'creatures' && part !== 'tokens') {
-                    // Clean up folder name for display
-                    const cleanPart = part.replace(/[-_]/g, ' ').toLowerCase();
-                    if (!tags.includes(cleanPart)) {
-                        tags.push(cleanPart);
-                    }
+        // Use metadata-based tags if available
+        if (match.metadata && match.metadata.tags) {
+            // Add metadata tags (already processed and formatted)
+            match.metadata.tags.forEach(tag => {
+                if (!tags.includes(tag)) {
+                    tags.push(tag);
                 }
             });
+        } else {
+            // Fallback to old method if no metadata
+            // Get creature type from cache
+            const fileName = match.name.toLowerCase();
+            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                if (files.includes(fileName)) {
+                    tags.push(creatureType);
+                    break; // Only add the first matching creature type
+                }
+            }
+            
+            // Get folder hierarchy tags
+            if (match.path) {
+                const pathParts = match.path.split('/').slice(0, -1); // Remove filename, keep folder parts
+                pathParts.forEach(part => {
+                    if (part && part !== 'creatures' && part !== 'tokens') {
+                        // Clean up folder name for display
+                        const cleanPart = TokenImageReplacement._cleanCategoryName(part).toLowerCase();
+                        if (!tags.includes(cleanPart)) {
+                            tags.push(cleanPart);
+                        }
+                    }
+                });
+            }
         }
         
         // If no tags found (and not current image), add a generic one
@@ -1506,14 +1529,7 @@ export class TokenImageReplacementWindow extends Application {
         this._hideSearchSpinner();
     }
 
-    /**
-     * Check if a folder should be ignored based on settings
-     */
-    static _isFolderIgnored(folderName) {
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
-        const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
-        return ignoredFolders.includes(folderName.toLowerCase());
-    }
+
 
     /**
      * Sort results based on current sort order
@@ -1537,6 +1553,43 @@ export class TokenImageReplacementWindow extends Application {
                     return b.searchScore - a.searchScore;
             }
         });
+    }
+
+    _getCategories() {
+        // Generate categories from existing folder structure
+        const topLevelFolders = new Map();
+        
+        // Extract top-level folders from the folder cache
+        for (const folderPath of TokenImageReplacement.cache.folders.keys()) {
+            const pathParts = folderPath.split('/');
+            const topLevel = pathParts[0];
+            
+            // Skip ignored folders
+            if (topLevel && !TokenImageReplacement._isFolderIgnored(topLevel)) {
+                const files = TokenImageReplacement.cache.folders.get(folderPath);
+                const currentCount = topLevelFolders.get(topLevel) || 0;
+                topLevelFolders.set(topLevel, currentCount + files.length);
+            }
+        }
+        
+        // Convert to array of category objects for template
+        const categories = [];
+        for (const [categoryName, fileCount] of topLevelFolders) {
+            // For the current filter, show the actual filtered count, not the folder count
+            let displayCount = fileCount;
+            if (this.currentFilter === categoryName.toLowerCase()) {
+                displayCount = this.allMatches.length;
+            }
+            
+            categories.push({
+                name: TokenImageReplacement._cleanCategoryName(categoryName),
+                key: categoryName.toLowerCase(),
+                count: displayCount,
+                isActive: this.currentFilter === categoryName.toLowerCase()
+            });
+        }
+        
+        return categories;
     }
 
     _getAggregatedTags() {
@@ -1688,6 +1741,258 @@ export class TokenImageReplacement {
         'vehicle': ['vehicles', 'vehicle'],
         'npc': ['npcs', 'npc', 'humanoids', 'humanoid']
     };
+    
+    // Metadata extraction patterns and constants
+    static METADATA_PATTERNS = {
+        // Sizes
+        size: /^(tiny|small|medium|large|huge|giant)$/i,
+        
+        // Scales
+        scale: /^scale(\d+)$/i,
+        
+        // Creature types
+        creatureType: /^(beast|humanoid|dragon|elemental|undead|fiend|celestial|construct|plant|monstrosity|aberration|fey|giant|ooze)$/i,
+        
+        // Classes
+        class: /^(archer|fighter|wizard|mage|merchant|rogue|cleric|paladin|ranger|barbarian|monk|sorcerer|warlock|druid|bard|knight|warrior|assassin|thief|priest|shaman|necromancer|enchanter|illusionist|conjurer|evoker|abjurer|diviner|transmuter)$/i,
+        
+        // Professions
+        profession: /^(merchant|guard|noble|peasant|soldier|knight|lord|lady|king|queen|prince|princess|duke|duchess|baron|baroness|count|countess|earl|viscount|mayor|sheriff|captain|lieutenant|sergeant|corporal|private|recruit|veteran|elite|master|apprentice|novice|expert|grandmaster)$/i,
+        
+        // Equipment
+        weapon: /^(sword|bow|staff|axe|spear|mace|dagger|crossbow|wand|orb|hammer|flail|whip|sling|javelin|trident|halberd|glaive|scythe|scimitar|rapier|longsword|shortsword|greatsword|battleaxe|handaxe|warhammer|maul|club|quarterstaff|shortbow|longbow|heavy_crossbow|light_crossbow|hand_crossbow)$/i,
+        armor: /^(leather|chain|plate|robe|cloth|hide|scale|ring|splint|banded|studded|padded|quilted|brigandine|lamellar|scale_mail|chain_mail|splint_mail|banded_mail|plate_mail|full_plate|half_plate|breastplate|field_plate|gothic_plate|maximilian_plate)$/i,
+        
+        // Actions/Poses
+        action: /^(attacking|defending|casting|idle|flying|sitting|crouching)$/i,
+        direction: /^(front|side|back|three-quarter|profile)$/i,
+        
+        // Quality
+        quality: /^(high|medium|low|premium|standard)$/i
+    };
+    
+    // Words to ignore when extracting tags
+    static IGNORED_WORDS = [
+        // Articles
+        'the', 'a', 'an',
+        
+        // Numbers (standalone) - but keep size numbers
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+        '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+        '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
+        
+        // Common symbols
+        '-', '_', '.', '(', ')', '[', ']', '{', '}',
+        
+        // File extensions
+        'webp', 'png', 'jpg', 'jpeg', 'gif',
+        
+        // Common filler words
+        'of', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'with', 'by',
+        
+        // Generic descriptors
+        'image', 'pic', 'photo', 'img', 'token', 'icon',
+        
+        // Version identifiers
+        'A1', 'A2', 'B1', 'B2', 'C1', 'C2'
+    ];
+    
+    /**
+     * Check if a folder should be ignored based on settings
+     */
+    static _isFolderIgnored(folderName) {
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
+        const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
+        return ignoredFolders.includes(folderName.toLowerCase());
+    }
+
+    /**
+     * Clean up category names by removing special characters and underscores
+     */
+    static _cleanCategoryName(categoryName) {
+        if (!categoryName) return '';
+        
+        return categoryName
+            .replace(/[-_]/g, ' ')           // Replace hyphens and underscores with spaces
+            .replace(/[^\w\s]/g, '')         // Remove special characters except word chars and spaces
+            .replace(/\s+/g, ' ')            // Replace multiple spaces with single space
+            .trim()                          // Remove leading/trailing spaces
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Title case
+            .join(' ');
+    }
+
+
+
+    /**
+     * Extract comprehensive metadata from filename and path
+     */
+    static _extractMetadata(fileName, filePath) {
+        const metadata = {
+            // Basic info
+            name: fileName,
+            path: filePath,
+            
+            // Size information
+            size: null,
+            scale: null,
+            sizeCategory: null,
+            
+            // Creature/Character type
+            creatureType: null,
+            subtype: null,
+            specificType: null,
+            
+            // Class information
+            class: null,
+            classType: null,
+            profession: null,
+            
+            // Equipment/Weapon info
+            weapon: null,
+            armor: null,
+            equipment: [],
+            
+            // Pose/Action
+            pose: null,
+            action: null,
+            direction: null,
+            
+            // Quality
+            quality: null,
+            
+            // Subcategories from folder structure
+            subcategories: [],
+            mainCategory: null,
+            fullPath: null,
+            
+            // Generated tags
+            tags: []
+        };
+        
+        // Extract folder path information
+        const pathParts = filePath.split('/');
+        metadata.fullPath = pathParts.slice(0, -1).join('/');
+        metadata.mainCategory = this._cleanCategoryName(pathParts[0] || '');
+        metadata.subcategories = pathParts.slice(0, -1).map(part => this._cleanCategoryName(part));
+        
+        // Extract filename without extension
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        const nameParts = nameWithoutExt.split(/[-_]/).filter(part => part.length > 0);
+        
+        // Process each part of the filename
+        for (const part of nameParts) {
+            const cleanPart = part.toLowerCase();
+            
+            // Skip ignored words
+            if (this.IGNORED_WORDS.includes(cleanPart)) {
+                continue;
+            }
+            
+            // Check each metadata pattern
+            for (const [key, pattern] of Object.entries(this.METADATA_PATTERNS)) {
+                if (pattern.test(cleanPart)) {
+                    if (key === 'scale') {
+                        const match = cleanPart.match(pattern);
+                        if (match) {
+                            metadata.scale = match[1];
+                            metadata.sizeCategory = this._getSizeCategoryFromScale(parseInt(match[1]));
+                        }
+                    } else {
+                        metadata[key] = cleanPart;
+                    }
+                    break; // Found a match, move to next part
+                }
+            }
+        }
+        
+        // Determine class type based on class
+        if (metadata.class) {
+            metadata.classType = this._getClassType(metadata.class);
+        }
+        
+        // Generate tags from metadata
+        metadata.tags = this._generateTagsFromMetadata(metadata);
+        
+        return metadata;
+    }
+    
+    /**
+     * Get size category from scale number
+     */
+    static _getSizeCategoryFromScale(scale) {
+        if (scale <= 50) return 'tiny';
+        if (scale <= 100) return 'small';
+        if (scale <= 150) return 'medium';
+        if (scale <= 200) return 'large';
+        if (scale <= 300) return 'huge';
+        return 'giant';
+    }
+    
+    /**
+     * Get class type from class name
+     */
+    static _getClassType(className) {
+        const martialClasses = ['fighter', 'barbarian', 'monk', 'ranger', 'paladin', 'archer', 'knight', 'warrior', 'assassin', 'thief'];
+        const casterClasses = ['wizard', 'mage', 'sorcerer', 'warlock', 'druid', 'cleric', 'priest', 'shaman', 'necromancer', 'enchanter', 'illusionist', 'conjurer', 'evoker', 'abjurer', 'diviner', 'transmuter'];
+        const hybridClasses = ['bard', 'ranger', 'paladin'];
+        
+        if (martialClasses.includes(className)) return 'martial';
+        if (casterClasses.includes(className)) return 'caster';
+        if (hybridClasses.includes(className)) return 'hybrid';
+        return 'utility';
+    }
+    
+    /**
+     * Generate tags from extracted metadata
+     */
+    static _generateTagsFromMetadata(metadata) {
+        const tags = [];
+        
+        // Add size tags
+        if (metadata.size) tags.push(metadata.size.toUpperCase());
+        if (metadata.scale) tags.push(`SCALE${metadata.scale}`);
+        if (metadata.sizeCategory) tags.push(metadata.sizeCategory.toUpperCase());
+        
+        // Add creature type tags
+        if (metadata.creatureType) tags.push(metadata.creatureType.toUpperCase());
+        if (metadata.subtype) tags.push(metadata.subtype.toUpperCase());
+        if (metadata.specificType) tags.push(metadata.specificType.toUpperCase());
+        
+        // Add class tags
+        if (metadata.class) tags.push(metadata.class.toUpperCase());
+        if (metadata.classType) tags.push(metadata.classType.toUpperCase());
+        if (metadata.profession) tags.push(metadata.profession.toUpperCase());
+        
+        // Add equipment tags
+        if (metadata.weapon) tags.push(metadata.weapon.toUpperCase());
+        if (metadata.armor) tags.push(metadata.armor.toUpperCase());
+        if (metadata.equipment && metadata.equipment.length > 0) {
+            metadata.equipment.forEach(eq => tags.push(eq.toUpperCase()));
+        }
+        
+        // Add action/pose tags
+        if (metadata.action) tags.push(metadata.action.toUpperCase());
+        if (metadata.pose) tags.push(metadata.pose.toUpperCase());
+        if (metadata.direction) tags.push(metadata.direction.toUpperCase());
+        
+        // Add quality tags
+        if (metadata.quality) tags.push(metadata.quality.toUpperCase());
+        
+        // Add subcategory tags (already cleaned)
+        metadata.subcategories.forEach(subcat => {
+            if (subcat && subcat.length > 0) {
+                tags.push(subcat.toUpperCase());
+            }
+        });
+        
+        // Add main category tag (already cleaned)
+        if (metadata.mainCategory) {
+            tags.push(metadata.mainCategory.toUpperCase());
+        }
+        
+        return [...new Set(tags)]; // Remove duplicates
+    }
     
     static async initialize() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing system...", "", false, false);
@@ -2262,7 +2567,7 @@ export class TokenImageReplacement {
                     const subDirName = subDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (this._isFolderIgnored(subDirName)) {
+                    if (TokenImageReplacement._isFolderIgnored(subDirName)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring folder: ${subDirName}`, "", false, false);
                         continue;
                     }
@@ -2323,6 +2628,8 @@ export class TokenImageReplacement {
             if (response.files && response.files.length > 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in ${subDir}`, "", false, false);
                 
+                // Categories will be generated from folder structure when window opens
+                
                 // Update progress tracking for current step
                 this.cache.currentStepTotal = response.files.length;
                 this.cache.currentStepProgress = 0;
@@ -2369,7 +2676,7 @@ export class TokenImageReplacement {
                     const deeperDirName = deeperDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (this._isFolderIgnored(deeperDirName)) {
+                    if (TokenImageReplacement._isFolderIgnored(deeperDirName)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring subfolder: ${parentDirName}/${deeperDirName}`, "", false, false);
                         continue;
                     }
@@ -2382,6 +2689,8 @@ export class TokenImageReplacement {
                     
                     const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
                     files.push(...deeperFiles);
+                    
+                    // Categories will be generated from folder structure when window opens
                     
                     // Log progress more frequently - every 3 items or at the end
                     if ((i + 1) % 3 === 0 || i === response.dirs.length - 1) {
@@ -2442,12 +2751,16 @@ export class TokenImageReplacement {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Could not get file info for ${filePath}: ${error.message}`, "", false, false);
         }
         
+        // Extract metadata from filename and path
+        const metadata = TokenImageReplacement._extractMetadata(fileName, relativePath);
+        
         return {
             name: fileName,
             path: relativePath,
             fullPath: filePath,
             size: fileSize,
-            lastModified: lastModified
+            lastModified: lastModified,
+            metadata: metadata
         };
     }
     
@@ -2506,13 +2819,14 @@ export class TokenImageReplacement {
                 continue;
             }
             
-            // Store in main files cache
+            // Store in main files cache with metadata
             this.cache.files.set(fileName.toLowerCase(), {
                 name: fileName,
                 path: filePath,
                 fullPath: fullPath,
                 size: file.size || 0,
-                lastModified: file.lastModified || Date.now()
+                lastModified: file.lastModified || Date.now(),
+                metadata: file.metadata || null
             });
             
             validFiles++;

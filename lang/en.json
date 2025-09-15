@@ -219,6 +219,9 @@
 		"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
 		"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
 
+		"tokenImageReplacementCategoryStyle-Label": "Category Style",
+		"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
+
 		"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
 		"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
 

@@ -33,7 +33,7 @@
                     <div class="tir-progress-fill" style="width: {{overallProgressPercentage}}%"></div>
                     <div class="tir-progress-text">
                         <i class="fas fa-sync-alt fa-spin"></i>
-                        <span class="tir-progress-total">{{#if totalSteps}}Step {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span> | <span class="tir-progress-details">{{currentStepName}}</span>
+                        <span class="tir-progress-total">{{#if totalSteps}}Phase {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span> | <span class="tir-progress-details">{{currentStepName}}</span>
                     </div>
                 </div>
             </div>
@@ -60,7 +60,7 @@
             <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
             <span class="button-divider">|</span>
             {{#if isScanning}}
-            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Pause Scan</button>
+            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Delay Scan</button>
             {{else}}
             <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
             {{/if}}
@@ -73,15 +73,13 @@
     <div class="tir-search-tools-container">
 
         <!-- Row 1: Filters (left) and Result Counts (right) -->
-        <div class="tir-search-tools-row-container row-category row-style-buttons">
+        <div class="tir-search-tools-row-container row-category row-style-{{categoryStyle}}">
             <div id="tir-filter-category-container" class="tir-search-tools-row-left">
-                <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected  row-style-buttons" data-category="selected">Selected</span>
-                <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}}  row-style-buttons" data-category="all">All</span>
-                <span class="tir-filter-category row-style-buttons" data-category="adversaries">Adversaries</span>
-                <span class="tir-filter-category row-style-buttons" data-category="creatures">Creatures</span>
-                <span class="tir-filter-category row-style-buttons" data-category="npcs">NPCs</span>
-                <span class="tir-filter-category row-style-buttons" data-category="monsters">Monsters</span>
-                <span class="tir-filter-category row-style-buttons" data-category="bosses">Bosses</span>
+                <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected row-style-{{categoryStyle}}" data-category="selected">Selected</span>
+                <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}} row-style-{{categoryStyle}}" data-category="all">All</span>
+                {{#each categories}}
+                <span class="tir-filter-category {{#if isActive}}active{{/if}} row-style-{{../categoryStyle}}" data-category="{{key}}">{{name}} ({{count}})</span>
+                {{/each}}
             </div>
 
             <div class="tir-search-tools-row-right">

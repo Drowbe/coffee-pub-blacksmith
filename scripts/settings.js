@@ -1623,6 +1623,20 @@ export const registerSettings = async () => {
 		requiresReload: true
 	});
 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
+		name: 'Token Image Replacement: Category Style',
+		hint: 'Choose how category filters are displayed in the Token Image Replacement window',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'buttons': 'Buttons',
+			'tabs': 'Tabs'
+		},
+		default: 'buttons',
+		requiresReload: true
+	});
+
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
 		name: 'Update Monsters',
 		hint: 'Replace images for monster tokens (non-NPC creatures with Challenge Rating).',
