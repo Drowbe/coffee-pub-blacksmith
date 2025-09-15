@@ -1574,21 +1574,50 @@ export class TokenImageReplacementWindow extends Application {
     _getAggregatedTags() {
         const tagCounts = new Map();
         
-        // Count all tags from currently displayed matches
-        this.matches.forEach(match => {
-            const tags = this._getTagsForMatch(match);
-            tags.forEach(tag => {
-                if (tag !== 'CURRENT IMAGE') { // Don't count current image tag
-                    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+        // Check if we're in category mode (not 'all' and not 'selected' and no search term)
+        const isCategoryMode = this.currentFilter !== 'all' && 
+                              this.currentFilter !== 'selected' && 
+                              !this.searchTerm;
+        
+        if (isCategoryMode) {
+            // Category mode: Show ALL tags for this category
+            const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+            const categoryFiles = allFiles.filter(file => {
+                const path = file.path || '';
+                const pathParts = path.split('/');
+                const topLevel = pathParts[0];
+                return topLevel && topLevel.toLowerCase() === this.currentFilter;
+            });
+            
+            // Count tags from all files in this category
+            categoryFiles.forEach(file => {
+                if (file.metadata && file.metadata.tags) {
+                    file.metadata.tags.forEach(tag => {
+                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                    });
                 }
             });
-        });
-        
-        // Sort by frequency and return top tags
-        return Array.from(tagCounts.entries())
-            .sort((a, b) => b[1] - a[1]) // Sort by count descending
-            .slice(0, 8) // Limit to top 8 tags
-            .map(([tag]) => tag); // Return just the tag names
+            
+            // Return ALL tags for category (no limit)
+            return Array.from(tagCounts.entries())
+                .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                .map(([tag]) => tag); // Return just the tag names
+        } else {
+            // Search/Selected mode: Show tags from currently displayed results only
+            this.matches.forEach(match => {
+                const tags = this._getTagsForMatch(match);
+                tags.forEach(tag => {
+                    if (tag !== 'CURRENT IMAGE') { // Don't count current image tag
+                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                    }
+                });
+            });
+            
+            // Sort by frequency and return all tags
+            return Array.from(tagCounts.entries())
+                .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                .map(([tag]) => tag); // Return just the tag names
+        }
     }
 
     async _performManualSearch(searchTerm) {
