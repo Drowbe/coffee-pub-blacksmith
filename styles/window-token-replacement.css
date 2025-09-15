@@ -3,31 +3,22 @@
     --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
 }
 
-
-/* Window Background */
-div#token-replacement-window {
-    min-width: 700px;
-    min-height: 400px;
-}
-
-.token-replacement-window.app {
-    min-width: 700px;
-    min-height: 400px;
-}
-
-
-/* Window Content */
-div#token-replacement-window .window-content {
-    opacity: 0.85;
-    padding: 0px;
-    background: #222222;
-    color: rgba(255, 47, 47, 1.0);
-}
-
-.token-replacement-window {
-    max-height: 80vh; /* Constrain window height */
+/* DEFIN THE WINDOW AND CONTAINER */
+/* Make Foundry’s content a flex column so your app can fill it */
+.window-app .window-content {
     display: flex;
     flex-direction: column;
+    padding: 0 !important;
+    height: 100%;
+}
+  
+  /* Your template root: give it a definite height or let it flex */
+.token-replacement-window {
+    flex: 1; min-height: 0;
+    /* fill .window-content */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: #232323;
     border: 1px solid #444;
     border-bottom-left-radius: 8px;
@@ -37,6 +28,8 @@ div#token-replacement-window .window-content {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden; /* Prevent window from being scrollable */
 }
+
+
 
 
 /* Window Header */
@@ -260,17 +253,14 @@ div#token-replacement-window .window-content {
 
 /* ********** CONTENT ********** */
 
-
 .tir-content {
     flex: 1;
-    padding: 0px;
-    min-height: 200px;
-    height: 100%;
     overflow: hidden; /* Prevent content from overflowing */
     display: flex;
     flex-direction: column; /* Allow grid to take remaining space */
     border-top: 1px solid rgba(255, 255, 255, 0.1); 
 }
+
 
 /* ********** CONTENT - HEADER ********** */
 
@@ -699,59 +689,60 @@ div#token-replacement-window .window-content {
 
 /* ********** CONTENT -TILES GRID ********** */
 
-/* =========================
-   Tunables (one place to size)
-   ========================= */
-   :root {
-    --tile: 160px;          /* fixed tile WIDTH and image size (square) */
-    --card-gap: 5px;          /* fixed tile WIDTH and image size (square) */
-    --pad: 6px;            /* inner padding on the card */
-    --card-gap: 8px;           /* space between image and name */
-  
-    /* Name block sizing (controls UNIFORM card HEIGHT) */
-    --name-fs: 1em;       /* caption font size */
-    --name-lh: 1.25;      /* line height multiplier */
-    --name-lines: 2;      /* << set to 1, 2, 3… to change clamp */
+    /* =========================
+    Tunables (one place to size)
+    ========================= */
+    :root {
 
-    /* Colors */
-    --card-bg: rgba(55, 55, 55, 0.9);
-    --card-border: rgba(68, 68, 68, 0.9);
-    --card-border-hover: rgba(255, 100, 0, 0.9);
-    --card-background-hover: rgba(255, 100, 0, 0.1);
-    --img-border: rgba(85, 85, 85, 0.9);
-    --img-background: rgba(0, 0, 0, 0.6);
-    --overlay: rgba(76, 175, 80, 0.8);
-    
-    /* tags */
-    --tag-fs: 0.75em;
-    --tag-gap: 4px;
-    --tag-pad-y: 2px;
-    --tag-pad-x: 6px;
-    --tag-rows: 1;   /* << cap to 1 / 2 / 3 rows */
-    
-    
-    /* Tag Colors */
-    --tag-bg: rgba(60, 120, 200, 0.18);
-    --tag-border: rgba(120, 170, 230, 0.35);
-    --tag-text: rgba(220, 230, 245, 0.95);
-    --tag-bg-hover: rgba(80, 150, 230, 0.25);
-    --tag-border-hover: rgba(140, 190, 255, 0.55);
-  }
-  
-  /* Derived heights (uniform) */
-  :root {
-    --name-h: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
-  
-    /* rough per-row height for a tag line (text + vertical padding + gap) */
-    --tag-row-h: calc(var(--tag-fs) * 1.2 + (6 * var(--tag-pad-y)) + var(--tag-gap));
-    --tag-block-h: calc(var(--tag-rows) * var(--tag-row-h));
-  
-    /* total uniform tile height = padding + image + gap + name + tags */
-    --tile-total-h: calc((2 * var(--pad)) + var(--tile) + var(--gap-v) + var(--name-h) + var(--tag-block-h));
-  }
-  
-  
+        /* --- Tunables (one place to size) --- */
+        --tile: 160px;          /* fixed tile WIDTH and image size (square) */
+        --card-gap: 5px;          /* fixed tile WIDTH and image size (square) */
+        --pad: 6px;            /* inner padding on the card */
+        --card-gap: 8px;           /* space between image and name */
 
+        /* --- Name block sizing (controls UNIFORM card HEIGHT) --- */
+        --name-fs: 1em;       /* caption font size */
+        --name-lh: 1.25;      /* line height multiplier */
+        --name-lines: 2;      /* << set to 1, 2, 3… to change clamp */
+
+        /* --- Colors --- */
+        --card-bg: rgba(55, 55, 55, 0.9);
+        --card-border: rgba(68, 68, 68, 0.9);
+        --card-border-hover: rgba(255, 100, 0, 0.9);
+        --card-background-hover: rgba(255, 100, 0, 0.1);
+        --img-border: rgba(85, 85, 85, 0.9);
+        --img-background: rgba(0, 0, 0, 0.6);
+        --overlay: rgba(76, 175, 80, 0.8);
+
+        /* --- tags --- */
+        --tag-fs: 0.75em;
+        --tag-gap: 4px;
+        --tag-pad-y: 2px;
+        --tag-pad-x: 6px;
+        --tag-rows: 1;   /* << cap to 1 / 2 / 3 rows */
+
+
+        /* --- Tag Colors --- */
+        --tag-bg: rgba(60, 120, 200, 0.18);
+        --tag-border: rgba(120, 170, 230, 0.35);
+        --tag-text: rgba(220, 230, 245, 0.95);
+        --tag-bg-hover: rgba(80, 150, 230, 0.25);
+        --tag-border-hover: rgba(140, 190, 255, 0.55);
+
+
+        /* --- Derived heights (uniform) --- */
+        --name-h: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
+
+        /* rough per-row height for a tag line (text + vertical padding + gap) */
+        --tag-row-h: calc(var(--tag-fs) * 1.2 + (6 * var(--tag-pad-y)) + var(--tag-gap));
+        --tag-block-h: calc(var(--tag-rows) * var(--tag-row-h));
+
+        /* total uniform tile height = padding + image + gap + name + tags */
+        --tile-total-h: calc((2 * var(--pad)) + var(--tile) + var(--gap-v) + var(--name-h) + var(--tag-block-h));
+
+    }
+
+  
     /* =========================
     Grid: fixed-width columns, uniform fixed rows
     ========================= */
@@ -770,22 +761,22 @@ div#token-replacement-window .window-content {
         padding: 8px 8px 8px 8px ;
         min-height: 0;
     }
-  
-  /* Scrollbar styling */
-  .tir-thumbnails-grid::-webkit-scrollbar {
-      width: 8px;
-  }
-  .tir-thumbnails-grid::-webkit-scrollbar-track {
-      background: rgba(51, 51, 51, 0.9);
-      border-radius: 4px;
-  }
-  .tir-thumbnails-grid::-webkit-scrollbar-thumb {
-      background: rgba(102, 102, 102, 0.9);
-      border-radius: 4px;
-  }
-  .tir-thumbnails-grid::-webkit-scrollbar-thumb:hover {
-      background: rgba(136, 136, 136, 0.9);
-  }
+
+    /* Scrollbar styling */
+    .tir-thumbnails-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+    .tir-thumbnails-grid::-webkit-scrollbar-track {
+        background: rgba(51, 51, 51, 0.9);
+        border-radius: 4px;
+    }
+    .tir-thumbnails-grid::-webkit-scrollbar-thumb {
+        background: rgba(102, 102, 102, 0.9);
+        border-radius: 4px;
+    }
+    .tir-thumbnails-grid::-webkit-scrollbar-thumb:hover {
+        background: rgba(136, 136, 136, 0.9);
+    }
   
   /* =========================
      Card / Tile (fixed size)
