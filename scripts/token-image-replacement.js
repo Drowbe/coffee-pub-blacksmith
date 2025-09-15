@@ -1574,20 +1574,21 @@ export class TokenImageReplacementWindow extends Application {
     _getAggregatedTags() {
         const tagCounts = new Map();
         
-        // Check if we're in category mode (not 'all' and not 'selected' and no search term)
-        const isCategoryMode = this.currentFilter !== 'all' && 
-                              this.currentFilter !== 'selected' && 
+        // Check if we're in category mode (not 'selected' and no search term)
+        const isCategoryMode = this.currentFilter !== 'selected' && 
                               !this.searchTerm;
         
         if (isCategoryMode) {
             // Category mode: Show ALL tags for this category
             const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-            const categoryFiles = allFiles.filter(file => {
-                const path = file.path || '';
-                const pathParts = path.split('/');
-                const topLevel = pathParts[0];
-                return topLevel && topLevel.toLowerCase() === this.currentFilter;
-            });
+            const categoryFiles = this.currentFilter === 'all' 
+                ? allFiles  // For 'all', use all files
+                : allFiles.filter(file => {
+                    const path = file.path || '';
+                    const pathParts = path.split('/');
+                    const topLevel = pathParts[0];
+                    return topLevel && topLevel.toLowerCase() === this.currentFilter;
+                });
             
             // Count tags from all files in this category
             categoryFiles.forEach(file => {
