@@ -216,6 +216,9 @@
 		"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
 		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
 
+		"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+		"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
+
 		"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
 		"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
 

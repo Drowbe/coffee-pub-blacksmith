@@ -1538,6 +1538,23 @@ export const registerSettings = async () => {
 		type: String,
 	});
 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
+        scope: 'world',
+        config: false,
+        type: String,
+        default: ''
+    });
+
+	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+		name: "Token Image Replacement",
+		hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+
+
 	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
 		name: 'Enable Token Image Replacement',
 		hint: 'Replace token images with custom images from a specified folder when tokens are dropped from compendiums.',
@@ -1585,7 +1602,26 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+		name: 'Token Image Replacement Window State',
+		hint: 'Stores the size and position of the Token Image Replacement window',
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
 
+	// ---------- TOKEN IMAGE REPLACEMENT IGNORED FOLDERS ----------
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
+		name: 'Token Image Replacement: Ignored Folders',
+		hint: 'Comma-separated list of folder names to ignore when scanning for token images (e.g., _gsdata_, Build_a_Token, .DS_Store)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '_gsdata_,Build_a_Token,.DS_Store',
+		requiresReload: true
+	});
 
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
 		name: 'Update Monsters',
@@ -1636,48 +1672,6 @@ export const registerSettings = async () => {
 		scope: 'world',
 		default: true,
 	});
-
-
-	// Cache Management Settings
-	// game.settings.register(MODULE.ID, 'tokenImageReplacementCacheStats', {
-	// 	name: 'Cache Status',
-	// 	hint: 'Current status of the token image replacement cache.',
-	// 	type: String,
-	// 	config: true,
-	// 	requiresReload: false,
-	// 	scope: 'world',
-	// 	default: 'Cache not initialized',
-	// });
-
-	// headingH4tokenImageReplacementCacheStats
-	// game.TokenImageReplacement.testMatchingAlgorithm() // Test matching logic 
-	// game.TokenImageReplacement.testTokenCreation() // Test token creation hook 
-	// game.TokenImageReplacement.getIntegrationStatus() // Check overall system status 
-	// game.TokenImageReplacement.getCacheStorageStatus() // Check persistent cache status 
-	// game.TokenImageReplacement.refreshCache() // Manually refresh the cache 
-	// game.TokenImageReplacement.forceRefreshCache() // Force refresh (ignores stored cache) 
-	// game.TokenImageReplacement.getCacheStats() - // cache statistics 
-	// game.TokenImageReplacement.cleanupInvalidPaths() // Remove invalid file paths from cache 
-
-	//getTokenImageReplacementCacheStats()
-	
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
-        scope: 'world',
-        config: false,
-        type: String,
-        default: ''
-    });
-
-	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: "Token Image Replacement",
-		hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
 
 
 	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
@@ -3522,15 +3516,7 @@ export const registerSettings = async () => {
 		}
 	});
 
-	// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
-		name: 'Token Image Replacement Window State',
-		hint: 'Stores the size and position of the Token Image Replacement window',
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {}
-	});
+
 
 } // END OF "export const registerSettings"
 

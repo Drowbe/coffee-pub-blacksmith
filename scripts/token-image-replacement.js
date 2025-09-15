@@ -781,6 +781,61 @@ export class TokenImageReplacementWindow extends Application {
         this.render();
     }
 
+    // Show completion notification in the window
+    showCompletionNotification(totalFiles, totalFolders, timeString) {
+        const $element = this.element;
+        if (!$element) return;
+        
+        // Update the notification area with completion info
+        this.notificationIcon = 'fas fa-check-circle';
+        this.notificationText = `Scan Complete! Found ${totalFiles} files across ${totalFolders} folders in ${timeString}`;
+        
+        // Update the notification display
+        const $notification = $element.find('.tir-notification');
+        if ($notification.length > 0) {
+            $notification.html(`
+                <i class="${this.notificationIcon}"></i>
+                <span>${this.notificationText}</span>
+            `).show();
+        }
+    }
+
+    // Show error notification in the window
+    showErrorNotification(errorMessage) {
+        const $element = this.element;
+        if (!$element) return;
+        
+        // Update the notification area with error info
+        this.notificationIcon = 'fas fa-exclamation-triangle';
+        this.notificationText = `Scan Failed: ${errorMessage}`;
+        
+        // Update the notification display
+        const $notification = $element.find('.tir-notification');
+        if ($notification.length > 0) {
+            $notification.html(`
+                <i class="${this.notificationIcon}"></i>
+                <span>${this.notificationText}</span>
+            `).show();
+        }
+    }
+
+    // Hide progress bars after completion
+    hideProgressBars() {
+        const $element = this.element;
+        if (!$element) return;
+        
+        // Hide the progress bars
+        $element.find('.tir-scan-progress').hide();
+        
+        // Clear the notification after a delay
+        setTimeout(() => {
+            const $notification = $element.find('.tir-notification');
+            if ($notification.length > 0) {
+                $notification.fadeOut(500);
+            }
+        }, 2000); // Hide notification after 2 more seconds
+    }
+
     async render(force = false, options = {}) {
         const result = await super.render(force, options);
         
@@ -1452,6 +1507,15 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
+     * Check if a folder should be ignored based on settings
+     */
+    static _isFolderIgnored(folderName) {
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
+        const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
+        return ignoredFolders.includes(folderName.toLowerCase());
+    }
+
+    /**
      * Sort results based on current sort order
      */
     _sortResults(results) {
@@ -2083,7 +2147,19 @@ export class TokenImageReplacement {
             
             // Update window with completion status
             if (this.window && this.window.updateScanProgress) {
-                this.window.updateScanProgress(100, 100, "Scan completed successfully!");
+                this.window.updateScanProgress(100, 100, "Scan Complete");
+            }
+            
+            // Show completion notification in the window
+            if (this.window && this.window.showCompletionNotification) {
+                this.window.showCompletionNotification(this.cache.totalFiles, this.cache.folders.size, timeString);
+            }
+            
+            // Hide progress bars after a delay
+            if (this.window && this.window.hideProgressBars) {
+                setTimeout(() => {
+                    this.window.hideProgressBars();
+                }, 3000); // Hide after 3 seconds
             }
             
             // Refresh any open windows now that cache is ready
@@ -2093,6 +2169,18 @@ export class TokenImageReplacement {
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", true, false);
+            
+            // Show error notification in the window
+            if (this.window && this.window.showErrorNotification) {
+                this.window.showErrorNotification(error.message);
+            }
+            
+            // Hide progress bars after error
+            if (this.window && this.window.hideProgressBars) {
+                setTimeout(() => {
+                    this.window.hideProgressBars();
+                }, 3000); // Hide after 3 seconds
+            }
         } finally {
             this.cache.isScanning = false;
         }
@@ -2172,6 +2260,12 @@ export class TokenImageReplacement {
                     
                     const subDir = response.dirs[i];
                     const subDirName = subDir.split('/').pop();
+                    
+                    // Check if this folder should be ignored
+                    if (this._isFolderIgnored(subDirName)) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring folder: ${subDirName}`, "", false, false);
+                        continue;
+                    }
                     
                     // Update overall progress
                     this.cache.overallProgress = i + 1;
@@ -2273,6 +2367,12 @@ export class TokenImageReplacement {
                 for (let i = 0; i < response.dirs.length; i++) {
                     const deeperDir = response.dirs[i];
                     const deeperDirName = deeperDir.split('/').pop();
+                    
+                    // Check if this folder should be ignored
+                    if (this._isFolderIgnored(deeperDirName)) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring subfolder: ${parentDirName}/${deeperDirName}`, "", false, false);
+                        continue;
+                    }
                     
                     // Update window progress with detailed subdirectory info
                     if (this.window && this.window.updateScanProgress) {
