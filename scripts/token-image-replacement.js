@@ -433,6 +433,7 @@ export class TokenImageReplacementWindow extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+
         // Thumbnail clicks
         html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
         
@@ -740,6 +741,7 @@ export class TokenImageReplacementWindow extends Application {
     _onClose() {
         this.close();
     }
+
 
     // Method to update scan progress
     updateScanProgress(current, total, statusText = null) {

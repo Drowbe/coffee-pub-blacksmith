@@ -3,9 +3,9 @@
     --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
 }
 
-/* DEFIN THE WINDOW AND CONTAINER */
-/* Make Foundry’s content a flex column so your app can fill it */
-.window-app .window-content {
+/* DEFINE THE WINDOW AND CONTAINER */
+/* Make Foundry's content a flex column so your app can fill it */
+.token-replacement-window .window-content {
     display: flex;
     flex-direction: column;
     padding: 0 !important;
@@ -14,8 +14,8 @@
   
   /* Your template root: give it a definite height or let it flex */
 .token-replacement-window {
-    flex: 1; min-height: 0;
-    /* fill .window-content */
+    flex: 1; 
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -28,9 +28,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden; /* Prevent window from being scrollable */
 }
-
-
-
+  
 
 /* Window Header */
 .tir-header {
