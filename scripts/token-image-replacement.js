@@ -1915,7 +1915,7 @@ export class TokenImageReplacementWindow extends Application {
                 .sort((a, b) => b[1] - a[1]) // Sort by count descending
                 .map(([tag]) => tag); // Return just the tag names
         } else {
-            // Search/Selected mode: Show tags from currently displayed results only
+            // Search/Selected mode: Show tags from currently displayed results
             this.matches.forEach(match => {
                 const tags = this._getTagsForMatch(match);
                 tags.forEach(tag => {
@@ -1925,9 +1925,23 @@ export class TokenImageReplacementWindow extends Application {
                 });
             });
             
+            // ALWAYS include selected tags, even if they don't appear in current results
+            this.selectedTags.forEach(selectedTag => {
+                if (!tagCounts.has(selectedTag)) {
+                    tagCounts.set(selectedTag, 0); // Add with 0 count but still show it
+                }
+            });
+            
             // Sort by frequency and return all tags
             return Array.from(tagCounts.entries())
-                .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                .sort((a, b) => {
+                    // Selected tags should appear first, then by frequency
+                    const aIsSelected = this.selectedTags.has(a[0]);
+                    const bIsSelected = this.selectedTags.has(b[0]);
+                    if (aIsSelected && !bIsSelected) return -1;
+                    if (!aIsSelected && bIsSelected) return 1;
+                    return b[1] - a[1]; // Sort by count descending
+                })
                 .map(([tag]) => tag); // Return just the tag names
         }
     }
