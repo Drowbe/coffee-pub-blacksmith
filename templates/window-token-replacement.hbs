@@ -23,7 +23,18 @@
                     <div class="tir-subtitle">Select a token on the canvas</div>
                 {{/if}}
             </div>
-            <div class="tir-header-controls"><span>{{cacheStatus}}</span></div>
+            <div class="tir-header-controls">
+                <!-- Group DC Toggle -->
+                <div class="tir-toggle-container">
+                    <span class="tir-toggle-label">Update Dropped Tokens</span>
+                    <div class="tir-toggle">
+                        <input type="checkbox" name="updateDropped" id="updateDropped" {{#if updateDropped}}checked{{/if}}>
+                        <label for="updateDropped" class="tir-toggle-slider"></label>
+                    </div>
+                </div>
+                
+
+            </div>
         </div>
         <!-- SCANNING PROGRESS -->
         {{#if isScanning}}
@@ -81,7 +92,10 @@
                 {{/each}}
             </div>
             <!-- Actions -->
-            <div class="tir-search-tools-row-right"><!-- Future Actions Here --></div>
+            <div class="tir-search-tools-row-right">
+                <!-- Future Actions Here -->
+                <span>{{cacheStatus}}</span>
+            </div>
         </div>
 
         <!-- Row 2: Search Area and Results Counts -->

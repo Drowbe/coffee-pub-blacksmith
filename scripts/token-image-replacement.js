@@ -500,6 +500,11 @@ export class TokenImageReplacementWindow extends Application {
                         });
                     }
                     
+                    // Apply search term if any
+                    if (this.searchTerm && this.searchTerm.length >= 3) {
+                        finalResults = this._performFastSearch(this.searchTerm, finalResults);
+                    }
+                    
                     // Add all filtered results to allMatches for pagination
                     const allResults = finalResults.map(file => ({
                         ...file,
@@ -1013,6 +1018,7 @@ export class TokenImageReplacementWindow extends Application {
 
     async _onSearchInput(event) {
         const searchTerm = $(event.currentTarget).val().trim();
+        this.searchTerm = searchTerm; // Store the search term
         
         // Clear any existing timeout
         if (this.searchTimeout) {
@@ -1022,11 +1028,10 @@ export class TokenImageReplacementWindow extends Application {
         // Cancel any ongoing search
         this.isSearching = false;
         
-        // If search term is too short, show all results
+        // If search term is too short, show all results (with tag filters applied)
         if (searchTerm.length < 3) {
             this._showSearchSpinner();
             await this._findMatches();
-            this._updateResults();
             this._hideSearchSpinner();
             return;
         }
@@ -1058,7 +1063,7 @@ export class TokenImageReplacementWindow extends Application {
             this.matches = [];
             this.allMatches = [];
             this.currentPage = 0;
-        this.render();
+            this.render();
             return;
         }
 
@@ -1081,17 +1086,28 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Get filtered files based on current category filter
-        const filteredFiles = this._getFilteredFiles();
+        // Step 1: Get files filtered by category (Selected, Creatures, etc.)
+        const categoryFiles = this._getFilteredFiles();
         
-        // PHASE 1: Fast filename search within filtered files
-        const fastResults = this._performFastSearch(searchTerm, filteredFiles);
-        this.allMatches.push(...fastResults);
+        // Step 2: Apply tag filters to category files
+        let tagFilteredFiles = categoryFiles;
+        if (this.selectedTags.size > 0) {
+            tagFilteredFiles = categoryFiles.filter(file => {
+                const fileTags = this._getTagsForFile(file);
+                return Array.from(this.selectedTags).some(selectedTag => 
+                    fileTags.includes(selectedTag)
+                );
+            });
+        }
+        
+        // Step 3: Apply search term to tag-filtered files
+        const searchResults = this._performFastSearch(searchTerm, tagFilteredFiles);
+        this.allMatches.push(...searchResults);
         
         // Sort results based on current sort order
         this.allMatches = this._sortResults(this.allMatches);
         
-        // Show Phase 1 results immediately
+        // Show results immediately
         this._applyPagination();
         this._updateResults();
         
@@ -1472,17 +1488,22 @@ export class TokenImageReplacementWindow extends Application {
         // Get the base filtered files (by category)
         const baseFiles = this._getFilteredFiles();
         
-        if (this.selectedTags.size === 0) {
-            // No tag filters, use all base files
-            this.allMatches = baseFiles;
-        } else {
-            // Filter files that have ANY of the selected tags
-            this.allMatches = baseFiles.filter(file => {
+        // Apply tag filters
+        let tagFilteredFiles = baseFiles;
+        if (this.selectedTags.size > 0) {
+            tagFilteredFiles = baseFiles.filter(file => {
                 const fileTags = this._getTagsForFile(file);
                 return Array.from(this.selectedTags).some(selectedTag => 
                     fileTags.includes(selectedTag)
                 );
             });
+        }
+        
+        // Apply search term if any
+        if (this.searchTerm && this.searchTerm.length >= 3) {
+            this.allMatches = this._performFastSearch(this.searchTerm, tagFilteredFiles);
+        } else {
+            this.allMatches = tagFilteredFiles;
         }
         
         // Apply pagination and update results
@@ -1549,6 +1570,11 @@ export class TokenImageReplacementWindow extends Application {
             // Clear selected tags
             this.selectedTags.clear();
             $element.find('.tir-search-tools-tag').removeClass('selected');
+            
+            // Clear any pending search timeout
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
             
             // Refresh results
             this._showSearchSpinner();

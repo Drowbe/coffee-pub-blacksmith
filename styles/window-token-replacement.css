@@ -245,6 +245,85 @@
 }
 
 
+
+
+
+/* Toggle Button Styling */
+.tir-toggle-container {
+    display: flex;
+    align-items: center;
+  justify-content: flex-start; /* keep label next to slider */
+  width: auto;/* don't stretch full width */
+  gap: 2px; /* small space between label and slider */
+}
+
+.tir-toggle-label {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    flex: 0 0 auto; /* don't grow */
+
+}
+/* Toggle Container */
+.tir-toggle {
+    position: relative;
+    display: inline-block;
+    width: 35px;
+    height: 14px;
+    flex-shrink: 0;
+}
+/* Override Normal Checkbox */
+.tir-toggle input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+/* Toggle Grip */
+.tir-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+.tir-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    left: 2px;
+    bottom: 1px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tir-toggle input:checked + .tir-toggle-slider {
+    background-color: rgba(128, 118, 96, 0.8);
+    border-color: rgba(128, 118, 96, 0.6);
+}
+.tir-toggle input:checked + .tir-toggle-slider:before {
+    transform: translateX(14px);
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.tir-toggle input:hover+ .tir-toggle-slider {
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
+}
+
+
+
+
+
 /* ********** CONTENT ********** */
 
 .tir-content {
