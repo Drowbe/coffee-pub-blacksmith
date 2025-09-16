@@ -494,7 +494,7 @@ export class TokenImageReplacementWindow extends Application {
                     if (this.selectedTags.size > 0) {
                         finalResults = filteredFiles.filter(file => {
                             const fileTags = this._getTagsForFile(file);
-                            return Array.from(this.selectedTags).every(selectedTag => 
+                            return Array.from(this.selectedTags).some(selectedTag => 
                                 fileTags.includes(selectedTag)
                             );
                         });
@@ -1476,10 +1476,10 @@ export class TokenImageReplacementWindow extends Application {
             // No tag filters, use all base files
             this.allMatches = baseFiles;
         } else {
-            // Filter files that have ALL selected tags
+            // Filter files that have ANY of the selected tags
             this.allMatches = baseFiles.filter(file => {
                 const fileTags = this._getTagsForFile(file);
-                return Array.from(this.selectedTags).every(selectedTag => 
+                return Array.from(this.selectedTags).some(selectedTag => 
                     fileTags.includes(selectedTag)
                 );
             });
