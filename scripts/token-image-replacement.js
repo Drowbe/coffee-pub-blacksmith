@@ -32,8 +32,8 @@ export class TokenImageReplacementWindow extends Application {
         
         // Window state management - let Foundry handle it automatically
         this.windowState = {
-            width: 800,
-            height: 600,
+            width: 700,
+            height: 500,
             left: null,
             top: null
         };
@@ -47,8 +47,8 @@ export class TokenImageReplacementWindow extends Application {
             id: "token-image-replacement",
             title: "Image Replacements",
             template: "modules/coffee-pub-blacksmith/templates/window-token-replacement.hbs",
-            width: 800,
-            height: 600,
+            width: 700,
+            height: 500,
             resizable: true,
             minimizable: true,
             maximizable: true,
@@ -533,8 +533,8 @@ export class TokenImageReplacementWindow extends Application {
                         
                         if (limitedFastResults.length > 0) {
                             this.allMatches.push(...limitedFastResults);
-                            foundMatches = true;
-                        }
+                    foundMatches = true;
+                }
                         
                         // PHASE 2: Start comprehensive search in background (if we have more than 50 results)
                         if (fastResults.length > 50) {
@@ -1011,7 +1011,7 @@ export class TokenImageReplacementWindow extends Application {
             this.matches = [];
             this.allMatches = [];
             this.currentPage = 0;
-            this.render();
+        this.render();
             return;
         }
 
@@ -1407,13 +1407,13 @@ export class TokenImageReplacementWindow extends Application {
         
         const $element = this.element;
         if ($element) {
-            // Clear the search input
+        // Clear the search input
             $element.find('.tir-search-input').val('');
-            
+        
             // Clear search term and refresh results
             this.searchTerm = '';
             this._showSearchSpinner();
-            await this._findMatches();
+        await this._findMatches();
             this._hideSearchSpinner();
         }
     }
