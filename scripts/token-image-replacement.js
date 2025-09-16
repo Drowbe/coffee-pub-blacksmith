@@ -54,7 +54,6 @@ export class TokenImageReplacementWindow extends Application {
                 saved = game.settings.get(MODULE.ID, 'tokenImageReplacementWindowState') || {};
             }
         } catch (e) {
-            console.log('Token Image Replacement: Could not load saved window state:', e);
             saved = {};
         }
         
@@ -192,12 +191,8 @@ export class TokenImageReplacementWindow extends Application {
     _getFilteredFiles() {
         // Get all files from cache
         const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-        console.log('Token Image Replacement: _getFilteredFiles - allFiles.length:', allFiles.length, 'currentFilter:', this.currentFilter);
-        console.log('Token Image Replacement: _getFilteredFiles - first 3 files:', allFiles.slice(0, 3));
-        
         // Apply category filter to get the subset of files to search
         if (this.currentFilter === 'all') {
-            console.log('Token Image Replacement: _getFilteredFiles - returning all files:', allFiles.length);
             return allFiles;
         }
         
@@ -551,8 +546,6 @@ export class TokenImageReplacementWindow extends Application {
                     }));
                     this.allMatches.push(...allResults);
                     foundMatches = true;
-                    console.log('Token Image Replacement: Added', allResults.length, 'results to allMatches. Total:', this.allMatches.length);
-                    console.log('Token Image Replacement: First 5 results:', allResults.slice(0, 5));
                     
                     // Sort results based on current sort order
                     this.allMatches = this._sortResults(this.allMatches);
@@ -852,19 +845,16 @@ export class TokenImageReplacementWindow extends Application {
             setTimeout(async () => {
                 if (!this._tokenHookRegistered) {
                     postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Registering controlToken hook', 'token-image-replacement-selection', false, false);
-                    console.log('Token Image Replacement: Window rendered, registering hook...');
                     this._tokenHookId = HookManager.registerHook({
                         name: 'controlToken',
                         description: 'Token Image Replacement: Handle token selection changes',
                         context: 'token-image-replacement-selection',
                         priority: 3,
                         callback: async (token, controlled) => {
-                            console.log('Token Image Replacement: Hook fired!', token.name, controlled);
                             await this._onTokenSelectionChange(token, controlled);
                         }
                     });
                     this._tokenHookRegistered = true;
-                    console.log('Token Image Replacement: Hook registered with ID:', this._tokenHookId);
                     
                     // Check for currently selected token after hook registration
                     await this._checkForSelectedToken();
@@ -886,12 +876,8 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _onTokenSelectionChange(token, controlled) {
-        console.log('Token Image Replacement: _onTokenSelectionChange called', token?.name, controlled);
-        console.log('Token Image Replacement: game.user.isGM:', game.user?.isGM);
-        
         // Only proceed if it's a GM (token image replacement is a GM tool)
         if (!game.user.isGM) {
-            console.log('Token Image Replacement: Not GM, skipping');
             return;
         }
         
@@ -915,21 +901,16 @@ export class TokenImageReplacementWindow extends Application {
             
             if (selectedTokens.length > 0) {
                 this.selectedToken = selectedTokens[0];
-                console.log('Token Image Replacement: Switched to token:', this.selectedToken.name);
                 
                 // When a token is selected, switch to "selected" tab and update results
                 this.currentFilter = 'selected';
-                console.log('Token Image Replacement: Switched to Selected tab, updating results for new token');
                 this._showSearchSpinner();
                 await this._findMatches();
                 this._hideSearchSpinner();
             } else {
                 this.selectedToken = null;
-                console.log('Token Image Replacement: No token selected');
-                
                 // When no token is selected, switch to "all" tab and update results
                 this.currentFilter = 'all';
-                console.log('Token Image Replacement: Switched to All tab, updating results');
                 this._showSearchSpinner();
                 await this._findMatches();
                 this._hideSearchSpinner();
@@ -942,7 +923,6 @@ export class TokenImageReplacementWindow extends Application {
             this._updateTokenInfo();
             
         } catch (error) {
-            console.log('Token Image Replacement: Error handling token switch:', error);
         }
     }
 
@@ -1020,7 +1000,6 @@ export class TokenImageReplacementWindow extends Application {
             const controlledTokens = canvas.tokens.controlled;
             if (controlledTokens.length > 0) {
                 const selectedToken = controlledTokens[0];
-                console.log('Token Image Replacement: Found currently selected token:', selectedToken.name);
                 
                 // Store the selected token and set filter
                 this.selectedToken = selectedToken;
@@ -1030,7 +1009,6 @@ export class TokenImageReplacementWindow extends Application {
                 await this._findMatches();
                 this._hideSearchSpinner();
             } else {
-                console.log('Token Image Replacement: No currently selected token found');
                 // Reset to "all" filter when no token selected
                 this.selectedToken = null;
                 this.currentFilter = 'all';
@@ -1040,7 +1018,6 @@ export class TokenImageReplacementWindow extends Application {
                 this._hideSearchSpinner();
             }
         } catch (error) {
-            console.log('Token Image Replacement: Error checking for selected token:', error);
         }
     }
 
@@ -1349,33 +1326,19 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _updateResults() {
-        console.log('Token Image Replacement: _updateResults - CALLED');
         // Update the results grid and the results summary
         const resultsHtml = this._renderResults();
-        console.log('Token Image Replacement: _updateResults - resultsHtml length:', resultsHtml.length, 'preview:', resultsHtml.substring(0, 200));
         const $element = this.element;
         if ($element) {
             const $grid = $element.find('.tir-thumbnails-grid');
-            const gridHtmlBefore = $grid.html() || '';
-            console.log('Token Image Replacement: _updateResults - found grid element:', $grid.length, 'grid HTML before:', gridHtmlBefore.substring(0, 100));
             $grid.html(resultsHtml);
-            const gridHtmlAfter = $grid.html() || '';
-            console.log('Token Image Replacement: _updateResults - grid HTML after:', gridHtmlAfter.substring(0, 100));
-            
-            // Check if HTML is still there after a short delay
-            setTimeout(() => {
-                const gridHtmlAfterDelay = $grid.html() || '';
-                console.log('Token Image Replacement: _updateResults - grid HTML after delay:', gridHtmlAfterDelay.substring(0, 100));
-            }, 100);
             
             // Re-attach event handlers for the new thumbnail items
             $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
             
             // Update the results summary with current counts
             const $countElement = $element.find('#tir-results-details-count');
-            console.log('Token Image Replacement: _updateResults - count element found:', $countElement.length, 'current text:', $countElement.text());
             $countElement.html(`<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`);
-            console.log('Token Image Replacement: _updateResults - count element after update:', $countElement.text());
             
             // Update the status text based on search state
             if (this.isSearching) {
@@ -1405,7 +1368,6 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _renderResults() {
-        console.log('Token Image Replacement: _renderResults - selectedToken:', !!this.selectedToken, 'matches.length:', this.matches.length, 'allMatches.length:', this.allMatches.length);
         // ***** BUILD: NO TOKEN SELECTED *****
         if (!this.selectedToken) {
             let html = `
@@ -1548,7 +1510,6 @@ export class TokenImageReplacementWindow extends Application {
         const endIndex = (this.currentPage + 1) * this.resultsPerPage;
         this.matches = this.allMatches.slice(startIndex, endIndex);
         this.hasMoreResults = this.allMatches.length > this.matches.length;
-        console.log('Token Image Replacement: Pagination - allMatches:', this.allMatches.length, 'matches:', this.matches.length, 'hasMore:', this.hasMoreResults);
     }
 
     async _onScroll(event) {
@@ -1834,7 +1795,6 @@ export class TokenImageReplacementWindow extends Application {
         const newSortOrder = event.currentTarget.value;
         if (!newSortOrder || newSortOrder === this.sortOrder) return;
         
-        console.log('Token Image Replacement: Sort order changed to:', newSortOrder);
         
         // Update sort order
         this.sortOrder = newSortOrder;
@@ -2665,18 +2625,14 @@ export class TokenImageReplacement {
             return;
         }
         
-        console.log('Token Image Replacement: Opening window...');
         if (!this.window) {
-            console.log('Token Image Replacement: Creating new window instance');
             this.window = new TokenImageReplacementWindow();
         }
         
         // Check for selected token before rendering
         await this.window._checkForSelectedToken();
         
-        console.log('Token Image Replacement: Rendering window...');
         this.window.render(true);
-        console.log('Token Image Replacement: Window rendered');
     }
     
     /**
@@ -3150,12 +3106,9 @@ export class TokenImageReplacement {
      * Process and categorize files for the cache
      */
     static _processFiles(files, basePath, clearCache = false) {
-        console.log('Token Image Replacement: _processFiles called with', files.length, 'files');
-        console.log('Token Image Replacement: Cache size before processing:', this.cache.files.size);
         
         // Only clear existing cache if explicitly requested (for complete rescans)
         if (clearCache) {
-            console.log('Token Image Replacement: Clearing cache as requested');
             this.cache.files.clear();
             this.cache.folders.clear();
             this.cache.creatureTypes.clear();
@@ -3169,7 +3122,6 @@ export class TokenImageReplacement {
             const fileName = file.name || file;
             const filePath = file.path || file;
             
-            console.log('Token Image Replacement: Processing file:', fileName, 'path:', filePath);
             
             // Validate the full path before storing
             const fullPath = `${basePath}/${filePath}`;
@@ -3195,7 +3147,6 @@ export class TokenImageReplacement {
             this._categorizeFile(fileName, filePath);
         }
         
-        console.log('Token Image Replacement: Cache size after processing:', this.cache.files.size);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", false, false);
     }
     
@@ -3893,22 +3844,8 @@ export class TokenImageReplacement {
                 isIncremental: isIncremental // Flag to indicate this is a partial save
             };
             
-            console.log('Token Image Replacement: Saving cache to localStorage...');
-            console.log('Token Image Replacement: Cache files count:', this.cache.files.size);
-            console.log('Token Image Replacement: Cache folders count:', this.cache.folders.size);
-            console.log('Token Image Replacement: Cache lastScan:', this.cache.lastScan);
-            console.log('Token Image Replacement: Cache totalFiles:', this.cache.totalFiles);
-            console.log('Token Image Replacement: Cache data size:', JSON.stringify(cacheData).length, 'bytes');
             
-            // Debug: Show first few files in cache
-            if (this.cache.files.size > 0) {
-                const firstFewFiles = Array.from(this.cache.files.entries()).slice(0, 3);
-                console.log('Token Image Replacement: First few files in cache:', firstFewFiles);
-            } else {
-                console.log('Token Image Replacement: Cache is empty!');
-            }
             localStorage.setItem('tokenImageReplacement_cache', JSON.stringify(cacheData));
-            console.log('Token Image Replacement: Cache saved successfully');
             
             if (isIncremental) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
@@ -4102,25 +4039,13 @@ export class TokenImageReplacement {
      */
     static getCacheStorageStatus() {
         const savedCache = localStorage.getItem('tokenImageReplacement_cache');
-        console.log('Token Image Replacement: Checking cache storage...');
-        console.log('Token Image Replacement: localStorage key exists:', !!savedCache);
-        console.log('Token Image Replacement: localStorage data size:', savedCache ? savedCache.length : 0, 'bytes');
         if (!savedCache) {
-            console.log('Token Image Replacement: No cache found in localStorage');
             return { hasStoredCache: false, message: "No cache in storage" };
         }
         
         try {
             const cacheData = JSON.parse(savedCache);
-            console.log('Token Image Replacement: Parsed cache data:', {
-                version: cacheData.version,
-                filesCount: cacheData.files ? cacheData.files.length : 0,
-                lastScan: cacheData.lastScan,
-                totalFiles: cacheData.totalFiles,
-                isIncremental: cacheData.isIncremental
-            });
         } catch (error) {
-            console.log('Token Image Replacement: Error parsing cache data:', error.message);
         }
         
         try {
@@ -4189,7 +4114,6 @@ export class TokenImageReplacement {
                 if (cacheData.folderFingerprint !== currentFingerprint) {
                     // Only start scan if auto-update is enabled
                     const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
-                    console.log('Token Image Replacement: Auto-update setting:', autoUpdate);
                     if (autoUpdate) {
                         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, starting incremental update...", "", false, false);
                         await this._scanFolderStructure(basePath);
