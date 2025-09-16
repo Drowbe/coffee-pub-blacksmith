@@ -24,7 +24,15 @@
                 {{/if}}
             </div>
             <div class="tir-header-controls">
-                <!-- Group DC Toggle -->
+                <!-- Fuzzy Search Toggle -->
+                <div class="tir-toggle-container">
+                    <span class="tir-toggle-label">Fuzzy Search</span>
+                    <div class="tir-toggle">
+                        <input type="checkbox" name="fuzzySearch" id="fuzzySearch" {{#if fuzzySearch}}checked{{/if}}>
+                        <label for="fuzzySearch" class="tir-toggle-slider"></label>
+                    </div>
+                </div>
+                <!-- Update Dropped Tokens Toggle -->
                 <div class="tir-toggle-container">
                     <span class="tir-toggle-label">Update Dropped Tokens</span>
                     <div class="tir-toggle">
@@ -32,7 +40,6 @@
                         <label for="updateDropped" class="tir-toggle-slider"></label>
                     </div>
                 </div>
-                
 
             </div>
         </div>

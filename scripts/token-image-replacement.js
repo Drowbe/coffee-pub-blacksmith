@@ -119,20 +119,57 @@ export class TokenImageReplacementWindow extends Application {
         // Use filtered files if provided, otherwise use all files
         const filesToSearch = filteredFiles || Array.from(TokenImageReplacement.cache.files.values());
         
-        // Only search filenames for speed
+        // Split search term into individual words
+        const searchWords = searchTermLower.split(/\s+/).filter(word => word.length > 0);
+        
+        // Search filenames and metadata for speed
         for (const fileInfo of filesToSearch) {
             const fileName = fileInfo.name || '';
             const fileNameLower = fileName.toLowerCase();
-            if (fileNameLower.includes(searchTermLower)) {
-                let score = 0;
-                if (fileNameLower === searchTermLower) {
-                    score = 100; // Exact match
-                } else if (fileNameLower.startsWith(searchTermLower)) {
-                    score = 80; // Starts with
-                } else {
-                    score = 60; // Contains
+            let score = 0;
+            let foundMatch = false;
+            let matchedWords = 0;
+            
+            // Search filename with multi-word support
+            for (const word of searchWords) {
+                if (fileNameLower.includes(word)) {
+                    matchedWords++;
+                    if (fileNameLower === word) {
+                        score += 100; // Exact match
+                    } else if (fileNameLower.startsWith(word)) {
+                        score += 80; // Starts with
+                    } else {
+                        score += 60; // Contains
+                    }
+                    foundMatch = true;
                 }
-                
+            }
+            
+            // Bonus for matching all words
+            if (matchedWords === searchWords.length && searchWords.length > 1) {
+                score += 20; // Multi-word bonus
+            }
+            
+            // Search metadata tags (quick check)
+            if (fileInfo.metadata && fileInfo.metadata.tags) {
+                for (const tag of fileInfo.metadata.tags) {
+                    const tagLower = tag.toLowerCase();
+                    for (const word of searchWords) {
+                        if (tagLower.includes(word)) {
+                            if (tagLower === word) {
+                                score = Math.max(score, 95); // Exact metadata tag match
+                            } else if (tagLower.startsWith(word)) {
+                                score = Math.max(score, 85); // Metadata tag starts with term
+                            } else {
+                                score = Math.max(score, 75); // Metadata tag contains term
+                            }
+                            foundMatch = true;
+                        }
+                    }
+                }
+            }
+            
+            if (foundMatch) {
                 fastResults.push({
                     name: fileInfo.name,
                     path: fileInfo.path,
@@ -1124,6 +1161,9 @@ export class TokenImageReplacementWindow extends Application {
         const filteredFiles = this._getFilteredFiles();
         const totalFiles = filteredFiles.length;
         
+        // Split search term into individual words
+        const searchWords = searchTermLower.split(/\s+/).filter(word => word.length > 0);
+        
         // Process files in batches to avoid blocking the UI
         const fileEntries = filteredFiles;
         
@@ -1141,59 +1181,134 @@ export class TokenImageReplacementWindow extends Application {
                 const fileName = fileInfo.name || '';
                 let score = 0;
                 let foundMatch = false;
+                let matchedWords = 0;
                 
-                // Search filename
+                // Search filename with multi-word support
                 const fileNameLower = fileName.toLowerCase();
-                if (fileNameLower.includes(searchTermLower)) {
-                    if (fileNameLower === searchTermLower) {
-                        score += 100; // Exact filename match
-                    } else if (fileNameLower.startsWith(searchTermLower)) {
-                        score += 80; // Filename starts with term
-                    } else {
-                        score += 60; // Filename contains term
-                    }
-                    foundMatch = true;
-                }
-                
-                // Search folder path
-                if (fileInfo.path) {
-                    const pathLower = fileInfo.path.toLowerCase();
-                    if (pathLower.includes(searchTermLower)) {
-                        if (pathLower.includes(`/${searchTermLower}/`)) {
-                            score += 70; // Folder name match
+                for (const word of searchWords) {
+                    if (fileNameLower.includes(word)) {
+                        matchedWords++;
+                        if (fileNameLower === word) {
+                            score += 100; // Exact filename match
+                        } else if (fileNameLower.startsWith(word)) {
+                            score += 80; // Filename starts with term
                         } else {
-                            score += 40; // Path contains term
+                            score += 60; // Filename contains term
                         }
                         foundMatch = true;
                     }
                 }
                 
-                // Search by creature type
+                // Bonus for matching all words
+                if (matchedWords === searchWords.length && searchWords.length > 1) {
+                    score += 20; // Multi-word bonus
+                }
+                
+                // Search folder path with multi-word support
+                if (fileInfo.path) {
+                    const pathLower = fileInfo.path.toLowerCase();
+                    for (const word of searchWords) {
+                        if (pathLower.includes(word)) {
+                            if (pathLower.includes(`/${word}/`)) {
+                                score += 70; // Folder name match
+                            } else {
+                                score += 40; // Path contains term
+                            }
+                            foundMatch = true;
+                        }
+                    }
+                }
+                
+                // Search by creature type with multi-word support
                 for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                    if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTermLower)) {
-                        score += 90; // Creature type match
+                    if (files.includes(fileName)) {
+                        const creatureTypeLower = creatureType.toLowerCase();
+                        for (const word of searchWords) {
+                            if (creatureTypeLower.includes(word)) {
+                                score += 90; // Creature type match
+                                foundMatch = true;
+                                break;
+                            }
+                        }
+                        if (foundMatch) break;
+                    }
+                }
+                
+                // Search by folder categorization with multi-word support
+                for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                    if (files.includes(fileName)) {
+                        const folderName = folderPath.split('/').pop().toLowerCase();
+                        for (const word of searchWords) {
+                            if (folderName.includes(word)) {
+                                score += 50; // Folder name match
+                                foundMatch = true;
+                                break;
+                            }
+                        }
+                        if (foundMatch) break;
+                    }
+                }
+                
+                // Search file extension with multi-word support
+                const extension = fileInfo.name.split('.').pop().toLowerCase();
+                for (const word of searchWords) {
+                    if (extension.includes(word)) {
+                        score += 30; // Extension match
                         foundMatch = true;
                         break;
                     }
                 }
                 
-                // Search by folder categorization
-                for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                    if (files.includes(fileName)) {
-                        const folderName = folderPath.split('/').pop().toLowerCase();
-                        if (folderName.includes(searchTermLower)) {
-                            score += 50; // Folder name match
-                            foundMatch = true;
-                            break;
+                // Search metadata tags with multi-word support
+                if (fileInfo.metadata && fileInfo.metadata.tags) {
+                    for (const tag of fileInfo.metadata.tags) {
+                        const tagLower = tag.toLowerCase();
+                        for (const word of searchWords) {
+                            if (tagLower.includes(word)) {
+                                if (tagLower === word) {
+                                    score += 95; // Exact metadata tag match
+                                } else if (tagLower.startsWith(word)) {
+                                    score += 85; // Metadata tag starts with term
+                                } else {
+                                    score += 75; // Metadata tag contains term
+                                }
+                                foundMatch = true;
+                            }
                         }
                     }
                 }
                 
-                // Search file extension
-                const extension = fileInfo.name.split('.').pop().toLowerCase();
-                if (extension.includes(searchTermLower)) {
-                    score += 30; // Extension match
-                    foundMatch = true;
+                // Search specific metadata fields with multi-word support
+                if (fileInfo.metadata) {
+                    const metadataFields = [
+                        'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
+                        'equipment', 'pose', 'action', 'direction', 'quality', 'class', 'profession'
+                    ];
+                    
+                    for (const field of metadataFields) {
+                        const value = fileInfo.metadata[field];
+                        if (value && typeof value === 'string') {
+                            const valueLower = value.toLowerCase();
+                            for (const word of searchWords) {
+                                if (valueLower.includes(word)) {
+                                    if (valueLower === word) {
+                                        score += 90; // Exact metadata field match
+                                    } else if (valueLower.startsWith(word)) {
+                                        score += 80; // Metadata field starts with term
+                                    } else {
+                                        score += 70; // Metadata field contains term
+                                    }
+                                    foundMatch = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Apply token context weighting if a token is selected
+                if (foundMatch && this.selectedToken) {
+                    const contextBonus = this._calculateTokenContextBonus(fileInfo, searchTermLower);
+                    score += contextBonus;
                 }
                 
                 if (foundMatch) {
@@ -1556,6 +1671,98 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         return tags;
+    }
+
+    /**
+     * Calculate token context bonus for search relevance
+     */
+    _calculateTokenContextBonus(fileInfo, searchTermLower) {
+        if (!this.selectedToken) return 0;
+        
+        let contextBonus = 0;
+        const tokenDoc = this.selectedToken.document;
+        
+        // Get token characteristics
+        const tokenName = (tokenDoc.name || '').toLowerCase();
+        const tokenType = (tokenDoc.type || '').toLowerCase();
+        const tokenSystem = tokenDoc.system || {};
+        
+        // Check if file metadata matches token characteristics
+        if (fileInfo.metadata) {
+            // Check creature type matches
+            if (fileInfo.metadata.creatureType) {
+                const fileCreatureType = fileInfo.metadata.creatureType.toLowerCase();
+                if (tokenType.includes(fileCreatureType) || fileCreatureType.includes(tokenType)) {
+                    contextBonus += 25; // Strong creature type match
+                }
+            }
+            
+            // Check subtype matches
+            if (fileInfo.metadata.subtype) {
+                const fileSubtype = fileInfo.metadata.subtype.toLowerCase();
+                if (tokenName.includes(fileSubtype) || fileSubtype.includes(tokenName)) {
+                    contextBonus += 20; // Subtype match
+                }
+            }
+            
+            // Check class/profession matches
+            if (fileInfo.metadata.class || fileInfo.metadata.profession) {
+                const fileClass = (fileInfo.metadata.class || '').toLowerCase();
+                const fileProfession = (fileInfo.metadata.profession || '').toLowerCase();
+                
+                // Check against token system data
+                if (tokenSystem.classes) {
+                    for (const className of Object.keys(tokenSystem.classes)) {
+                        if (fileClass.includes(className.toLowerCase()) || className.toLowerCase().includes(fileClass)) {
+                            contextBonus += 20; // Class match
+                        }
+                    }
+                }
+                
+                if (fileProfession && tokenName.includes(fileProfession)) {
+                    contextBonus += 15; // Profession match
+                }
+            }
+            
+            // Check size matches
+            if (fileInfo.metadata.size) {
+                const fileSize = fileInfo.metadata.size.toLowerCase();
+                const tokenSize = (tokenSystem.traits?.size || '').toLowerCase();
+                if (fileSize === tokenSize) {
+                    contextBonus += 15; // Size match
+                }
+            }
+            
+            // Check weapon/armor matches
+            if (fileInfo.metadata.weapon || fileInfo.metadata.armor) {
+                const fileWeapon = (fileInfo.metadata.weapon || '').toLowerCase();
+                const fileArmor = (fileInfo.metadata.armor || '').toLowerCase();
+                
+                // Check against token equipment
+                if (tokenSystem.equipment) {
+                    const equipment = JSON.stringify(tokenSystem.equipment).toLowerCase();
+                    if (equipment.includes(fileWeapon) || equipment.includes(fileArmor)) {
+                        contextBonus += 15; // Equipment match
+                    }
+                }
+            }
+        }
+        
+        // Check if filename contains token name or type
+        const fileName = (fileInfo.name || '').toLowerCase();
+        if (tokenName && fileName.includes(tokenName)) {
+            contextBonus += 30; // Filename contains token name
+        }
+        if (tokenType && fileName.includes(tokenType)) {
+            contextBonus += 25; // Filename contains token type
+        }
+        
+        // Check if search term matches token characteristics
+        if (searchTermLower === tokenName || searchTermLower === tokenType) {
+            contextBonus += 20; // Search term matches token name/type
+        }
+        
+        return Math.min(contextBonus, 50); // Cap at 50 points to avoid overwhelming other scores
     }
 
     async _onClearSearch(event) {
