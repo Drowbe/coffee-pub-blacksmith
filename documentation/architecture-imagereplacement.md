@@ -1,13 +1,23 @@
 # Token Image Replacement Architecture
 
 ## Overview
-The Token Image Replacement system is a FoundryVTT module that allows GMs to automatically replace token images with better alternatives from a cached library of images. The system consists of two main classes: `TokenImageReplacementWindow` (the UI) and `TokenImageReplacement` (the core logic and cache).
+The Token Image Replacement system is a FoundryVTT module that allows GMs to automatically replace token images with better alternatives from a cached library of images. The system uses a unified matching algorithm across all interfaces, with the only difference being auto-apply vs. user choice.
+
+## Core Philosophy
+**Token Drop = Selected Tab + Auto-Apply**
+- Same matching algorithm, scoring system, and threshold filtering
+- Only difference: Auto-apply the top result vs. show all results
+
+**Selected Tab = Token Drop + User Choice**
+- Same matching algorithm, scoring system, and threshold filtering  
+- Only difference: Show all results above threshold vs. just the top one
 
 ## Core Classes
 
 ### TokenImageReplacementWindow
 **Purpose**: Handles the UI window for manual image selection and replacement.
 
+.
 **Key Properties**:
 - `selectedToken`: Currently selected token on canvas (null if none)
 - `matches`: Array of currently displayed results (paginated subset)
@@ -47,6 +57,43 @@ static cache = {
 };
 ```
 
+## Unified Matching System
+
+### Three Types of Filtering
+
+#### 1. Category/Filter Tabs (All, Creatures, etc.)
+- **Purpose**: Browse available options
+- **No relevance scoring** - nothing to be relative to
+- **Sort by**: A-Z, Z-A, or other non-relevance criteria
+- **Shows**: All files in that category
+
+#### 2. Selected Tab
+- **Purpose**: Find matches for a specific token
+- **Has relevance target**: The selected token
+- **Uses sophisticated scoring** - relative to token characteristics
+- **Shows**: All matches above threshold, sorted by relevance
+
+#### 3. Search Mode (any tab + search term)
+- **Purpose**: Find matches for search query
+- **Has relevance target**: The search terms
+- **Uses sophisticated scoring** - relative to search terms
+- **Shows**: All matches above threshold, sorted by relevance
+
+### Unified Logic Flow
+```
+IF (has token target OR has search terms):
+    ├── Use sophisticated scoring algorithm
+    ├── Apply threshold filtering
+    ├── Sort by relevance score
+    └── Show all results above threshold
+
+ELSE (browsing mode):
+    ├── No scoring (all get same score)
+    ├── No threshold filtering
+    ├── Sort by name (A-Z/Z-A)
+    └── Show all results in category
+```
+
 ## Data Flow
 
 ### 1. Window Initialization
@@ -61,32 +108,41 @@ static cache = {
 1. Reset `matches` and `allMatches` arrays
 2. If token selected: Add current token image as first match
 3. Check cache status and set appropriate notifications
-4. If cache has files:
-   - Call `_getFilteredFiles()` to get files based on current filter
-   - Take first 50 files and add to `allMatches`
-   - Set `foundMatches = true`
+4. Determine filtering mode:
+   - **Relevance Mode** (has token target OR search terms): Use unified matching algorithm
+   - **Browse Mode** (category tabs only): Use simple category filtering
 5. Call `_applyPagination()` to populate `matches` from `allMatches`
 6. Call `_updateResults()` to update UI
 
-### 3. Filtering (`_getFilteredFiles()`)
+### 3. Unified Matching Algorithm
+**Input**: Files from cache + relevance target (token or search terms)
+**Output**: Scored and filtered results
+
+**Process**:
+1. **Search Scope Optimization**: Use creature type if available
+2. **Sophisticated Scoring**: Calculate relevance scores (0.0-1.0) for all files
+3. **Threshold Filtering**: Only return results above threshold setting
+4. **Sorting**: Sort by relevance score (highest first)
+5. **Return**: All results above threshold
+
+### 4. Category Filtering (Browse Mode)
 **Input**: All files from cache
 **Output**: Filtered subset based on `currentFilter`
 
 **Filter Types**:
 - `'all'`: Returns all files
-- `'selected'`: Returns files matching selected token's search terms
-- `'adversaries'`: Returns files with 'adversaries' or 'enemies' in path/name
-- `'creatures'`: Returns files with 'creatures' in path/name
-- `'npcs'`: Returns files with 'npcs' in path/name
-- `'monsters'`: Returns files with 'monsters' in path/name
-- `'bosses'`: Returns files with 'bosses' in path/name
+- `'creatures'`: Returns files in 'creatures' folders
+- `'adversaries'`: Returns files in 'adversaries' folders
+- `'npcs'`: Returns files in 'npcs' folders
+- `'monsters'`: Returns files in 'monsters' folders
+- `'bosses'`: Returns files in 'bosses' folders
 
-### 4. Pagination (`_applyPagination()`)
+### 5. Pagination (`_applyPagination()`)
 1. Calculate start/end indices based on `currentPage` and `resultsPerPage`
 2. Slice `allMatches` to populate `matches` array
 3. Set `hasMoreResults` flag
 
-### 5. Rendering (`_renderResults()`)
+### 6. Rendering (`_renderResults()`)
 **Input**: `this.matches` array
 **Output**: HTML string for display
 
@@ -94,8 +150,9 @@ static cache = {
 1. If no token selected AND no matches: Show "No TOKEN" message
 2. If no matches: Show "No MATCHES" message  
 3. If matches exist: Render thumbnail grid with image data
+4. **Highlight recommended match** (top result in relevance mode)
 
-### 6. UI Update (`_updateResults()`)
+### 7. UI Update (`_updateResults()`)
 1. Call `_renderResults()` to get HTML
 2. Insert HTML into `.tir-thumbnails-grid` element
 3. Update results count display (`#tir-results-details-count`)
@@ -103,81 +160,68 @@ static cache = {
 5. Update aggregated tags display
 6. Re-attach event handlers for thumbnail clicks
 
-## Filter System
+## Implementation Strategy
 
-### Filter Categories
-- **All**: Shows all cached images (17,520+ files)
-- **Selected**: Shows images matching the selected token's characteristics
-- **Adversaries**: Shows images in 'adversaries' or 'enemies' folders
-- **Creatures**: Shows images in 'creatures' folders
-- **NPCs**: Shows images in 'npcs' folders
-- **Monsters**: Shows images in 'monsters' folders
-- **Bosses**: Shows images in 'bosses' folders
+### Phase 1: Unify Matching Algorithms
+1. **Create unified `_calculateRelevanceScore()` method** that both systems use
+2. **Apply the same scoring logic** to Selected tab results
+3. **Use the Matching Threshold setting** for both automatic and manual matching
+4. **Ensure consistent search term generation** across both systems
 
-### Filter Logic
-Each filter uses `_getFilteredFiles()` to:
-1. Get all files from cache
-2. Apply category-specific filtering based on path/name patterns
-3. Return filtered subset
+### Phase 2: Mark Recommended Token
+1. **Calculate the "recommended" token** using the unified matching algorithm
+2. **Add visual indicator** (e.g., gold border, "RECOMMENDED" badge, star icon)
+3. **Show the match score** in the token card
+4. **Make it clickable** to apply the automatic replacement
 
-## Search System
+### Phase 3: Improve Matching Threshold Integration
+1. **Apply threshold to manual search** - filter out low-scoring results
+2. **Add threshold indicator** in the UI (e.g., "Showing matches above 0.3 threshold")
+3. **Make threshold adjustable** from the window (not just settings)
+4. **Show why results were filtered** (e.g., "5 results hidden below threshold")
 
-### Manual Search (`_performSearch()`)
-1. Clear previous results
-2. Add current token image if selected
-3. Get filtered files based on current filter
-4. Perform fast filename search within filtered files
-5. Sort results by relevance score
-6. Apply pagination and update UI
-7. Start comprehensive background search
+### Phase 4: Enhanced UX Features
+1. **Match confidence indicators** - color coding based on score
+2. **"Why this match?" tooltip** - explain the scoring
+3. **Quick apply button** - one-click to apply recommended match
+4. **Match history** - remember recent successful matches
 
-### Search Scoring
-- Current image: Always first
-- Filename matches: Higher scores
-- Creature type matches: 90 points
-- Folder name matches: 50 points
-- Extension matches: 30 points
+## Key Benefits of Unified Approach
 
-## Current Issue Analysis
+### Consistency
+- **Same behavior everywhere** - token drop and selected tab use identical logic
+- **Predictable results** - users see the same matches in both interfaces
+- **Unified scoring** - sophisticated algorithm applied consistently
 
-### Problem
-When no token is selected and "All" filter is active:
-- ✅ 50 results are found and added to `allMatches`
-- ✅ HTML is generated (62,366 characters)
-- ✅ HTML is inserted into DOM
-- ✅ Results count is updated to "50 of 50 Showing"
-- ❌ Visual display still shows "0 of 0 Showing" and empty grid
+### User Experience
+- **Clear recommendations** - users see what would be auto-chosen
+- **Exploration freedom** - users can see alternatives and choose
+- **Transparent scoring** - users understand why matches were chosen
 
-### Root Cause
-The issue appears to be a **CSS visibility problem**. The HTML is correctly generated and inserted into the DOM, but something is preventing the visual display from updating. This could be:
-
-1. **CSS hiding the results**: Some CSS rule hiding `.tir-thumbnails-grid` or `.tir-thumbnail-item` elements
-2. **Window re-rendering issue**: The window not re-rendering after DOM updates
-3. **Template binding issue**: The Handlebars template not updating properly
-4. **Timing issue**: Some asynchronous operation overwriting the results
-
-### Evidence
-- Console logs show correct data flow
-- DOM contains correct HTML
-- Results count updates correctly
-- Same code works when token is selected
-- Issue only occurs with "All" filter when no token selected
+### Performance
+- **Optimized search scope** - creature type optimization for faster searching
+- **Threshold filtering** - only shows relevant results, reducing noise
+- **Consistent caching** - same cache used by both systems
 
 ## Key Methods
 
+### Unified Matching Methods
+- `_calculateRelevanceScore()`: **NEW** - Unified scoring algorithm for all relevance-based matching
+- `_getSearchTerms()`: Extracts search terms from token document
+- `_findBestMatch()`: Finds best matching image for token (uses unified scoring)
+- `_applyUnifiedMatching()`: **NEW** - Main method that determines relevance vs. browse mode
+
 ### Window Methods
 - `_checkForSelectedToken()`: Detects selected tokens on window open
-- `_findMatches()`: Main method to find and populate results
-- `_getFilteredFiles()`: Filters files based on current category
+- `_findMatches()`: Main method to find and populate results (uses unified matching)
+- `_getFilteredFiles()`: Filters files based on current category (browse mode)
 - `_applyPagination()`: Handles pagination logic
-- `_renderResults()`: Generates HTML for results display
+- `_renderResults()`: Generates HTML for results display (highlights recommended)
 - `_updateResults()`: Updates UI with new results
 
 ### Core Methods
-- `_getSearchTerms()`: Extracts search terms from token document
-- `_findBestMatch()`: Finds best matching image for token
-- `_calculateMatchScore()`: Calculates relevance score for matches
 - `_initializeCache()`: Initializes the image cache system
+- `_onTokenCreated()`: Hook for automatic token replacement (uses unified matching)
 
 ## Template Structure
 
@@ -208,6 +252,7 @@ The issue appears to be a **CSS visibility problem**. The HTML is correctly gene
 - `.tir-no-token`: No token selected state
 - `.tir-no-matches`: No matches found state
 - `.tir-current-image`: Current token image
+- `.tir-recommended`: **NEW** - Recommended match highlighting
 - `.tir-search-spinner`: Search loading state
 
 ## Event Handlers
