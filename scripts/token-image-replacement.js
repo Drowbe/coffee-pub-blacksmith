@@ -37,6 +37,9 @@ export class TokenImageReplacementWindow extends Application {
             left: null,
             top: null
         };
+        
+        // Tag filtering system
+        this.selectedTags = new Set(); // Track which tags are currently selected as filters
     }
 
     /**
@@ -486,8 +489,19 @@ export class TokenImageReplacementWindow extends Application {
                 const filteredFiles = this._getFilteredFiles();
                 
                 if (filteredFiles.length > 0) {
+                    // Apply tag filters if any are selected
+                    let finalResults = filteredFiles;
+                    if (this.selectedTags.size > 0) {
+                        finalResults = filteredFiles.filter(file => {
+                            const fileTags = this._getTagsForFile(file);
+                            return Array.from(this.selectedTags).every(selectedTag => 
+                                fileTags.includes(selectedTag)
+                            );
+                        });
+                    }
+                    
                     // Add all filtered results to allMatches for pagination
-                    const allResults = filteredFiles.map(file => ({
+                    const allResults = finalResults.map(file => ({
                         ...file,
                         searchScore: 10,
                         isCurrent: false,
@@ -1241,7 +1255,11 @@ export class TokenImageReplacementWindow extends Application {
             
             // Update aggregated tags
             const aggregatedTags = this._getAggregatedTags();
-            const tagHtml = aggregatedTags.map(tag => `<span class="tir-search-tools-tag" data-search-term="${tag}">${tag}</span>`).join('');
+            const tagHtml = aggregatedTags.map(tag => {
+                const isSelected = this.selectedTags.has(tag);
+                const selectedClass = isSelected ? ' selected' : '';
+                return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
+            }).join('');
             $element.find('#tir-search-tools-tag-container').html(tagHtml);
             
             // Note: Do not call this.render() here as it overwrites the DOM updates
@@ -1422,17 +1440,101 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _onTagClick(event) {
-        const searchTerm = event.currentTarget.dataset.searchTerm;
-        if (!searchTerm) return;
+        const tagName = event.currentTarget.dataset.searchTerm;
+        if (!tagName) return;
         
-        // Set the search input value
         const $element = this.element;
-        if ($element) {
-            $element.find('.tir-search-input').val(searchTerm);
-            
-            // Trigger the search
-            await this._performSearch(searchTerm);
+        if (!$element) return;
+        
+        // Toggle the tag in the selected tags set
+        if (this.selectedTags.has(tagName)) {
+            this.selectedTags.delete(tagName);
+        } else {
+            this.selectedTags.add(tagName);
         }
+        
+        // Update the visual state of the tag
+        const $tag = $(event.currentTarget);
+        if (this.selectedTags.has(tagName)) {
+            $tag.addClass('selected');
+        } else {
+            $tag.removeClass('selected');
+        }
+        
+        // Apply the tag filters and refresh results
+        await this._applyTagFilters();
+    }
+
+    /**
+     * Apply tag filters to current results
+     */
+    async _applyTagFilters() {
+        // Get the base filtered files (by category)
+        const baseFiles = this._getFilteredFiles();
+        
+        if (this.selectedTags.size === 0) {
+            // No tag filters, use all base files
+            this.allMatches = baseFiles;
+        } else {
+            // Filter files that have ALL selected tags
+            this.allMatches = baseFiles.filter(file => {
+                const fileTags = this._getTagsForFile(file);
+                return Array.from(this.selectedTags).every(selectedTag => 
+                    fileTags.includes(selectedTag)
+                );
+            });
+        }
+        
+        // Apply pagination and update results
+        this._applyPagination();
+        this._updateResults();
+    }
+
+    /**
+     * Get tags for a specific file
+     */
+    _getTagsForFile(file) {
+        const tags = [];
+        
+        // Add current image tag if this is the current token's image
+        if (file.isCurrent) {
+            tags.push('CURRENT IMAGE');
+        }
+        
+        // Add metadata tags
+        if (file.metadata && file.metadata.tags) {
+            file.metadata.tags.forEach(tag => {
+                if (!tags.includes(tag)) {
+                    tags.push(tag);
+                }
+            });
+        }
+        
+        // Add creature type tags
+        const fileName = file.name || '';
+        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+            if (files.includes(fileName)) {
+                const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
+                if (!tags.includes(cleanType)) {
+                    tags.push(cleanType);
+                }
+            }
+        }
+        
+        // Add folder path tags
+        if (file.path) {
+            const pathParts = file.path.split('/');
+            pathParts.forEach(part => {
+                if (part && part !== 'creatures' && part !== 'tokens') {
+                    const cleanPart = part.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (cleanPart && !tags.includes(cleanPart)) {
+                        tags.push(cleanPart);
+                    }
+                }
+            });
+        }
+        
+        return tags;
     }
 
     async _onClearSearch(event) {
@@ -1440,13 +1542,17 @@ export class TokenImageReplacementWindow extends Application {
         
         const $element = this.element;
         if ($element) {
-        // Clear the search input
+            // Clear the search input
             $element.find('.tir-search-input').val('');
-        
-            // Clear search term and refresh results
             this.searchTerm = '';
+            
+            // Clear selected tags
+            this.selectedTags.clear();
+            $element.find('.tir-search-tools-tag').removeClass('selected');
+            
+            // Refresh results
             this._showSearchSpinner();
-        await this._findMatches();
+            await this._findMatches();
             this._hideSearchSpinner();
         }
     }

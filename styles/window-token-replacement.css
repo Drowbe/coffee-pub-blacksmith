@@ -651,6 +651,20 @@
     box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
 }
 
+.tir-search-tools-tag.selected {
+    background: rgba(255, 100, 0, 0.9);
+    border-color: rgba(255, 100, 0, 1.0);
+    color: rgba(255, 255, 255, 1.0);
+    font-weight: 500;
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.5);
+}
+
+.tir-search-tools-tag.selected:hover {
+    background: rgba(255, 100, 0, 1.0);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(255, 100, 0, 0.7);
+}
+
 /* ********** NOTIFICATIONS ********** */
 
 /* Notification */
