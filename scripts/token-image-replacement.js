@@ -33,7 +33,7 @@ export class TokenImageReplacementWindow extends Application {
         // Window state management - let Foundry handle it automatically
         this.windowState = {
             width: 700,
-            height: 500,
+            height: 550,
             left: null,
             top: null
         };
@@ -43,12 +43,32 @@ export class TokenImageReplacementWindow extends Application {
      * Get the default window options
      */
     static get defaultOptions() {
+        // Try to load saved position/size
+        let saved = {};
+        try {
+            // Check if game.settings is available and the setting exists
+            if (game.settings && game.settings.get) {
+                saved = game.settings.get(MODULE.ID, 'tokenImageReplacementWindowState') || {};
+            }
+        } catch (e) {
+            console.log('Token Image Replacement: Could not load saved window state:', e);
+            saved = {};
+        }
+        
+        // Use saved values or defaults
+        const width = saved.width ?? 700;  // Default width
+        const height = saved.height ?? 500; // Default height
+        const top = (typeof saved.top === 'number') ? saved.top : Math.max(0, (window.innerHeight - height) / 2);
+        const left = (typeof saved.left === 'number') ? saved.left : Math.max(0, (window.innerWidth - width) / 2);
+        
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: "token-image-replacement",
             title: "Image Replacements",
             template: "modules/coffee-pub-blacksmith/templates/window-token-replacement.hbs",
-            width: 700,
-            height: 500,
+            width,
+            height,
+            top,
+            left,
             resizable: true,
             minimizable: true,
             maximizable: true,
@@ -56,6 +76,19 @@ export class TokenImageReplacementWindow extends Application {
         });
     }
 
+    /**
+     * Override setPosition to save window position and size
+     */
+    setPosition(options={}) {
+        const pos = super.setPosition(options);
+        
+        // Save position/size to settings
+        if (this.rendered) {
+            const { top, left, width, height } = this.position;
+            game.settings.set(MODULE.ID, 'tokenImageReplacementWindowState', { top, left, width, height });
+        }
+        return pos;
+    }
 
     /**
      * Show the search spinner overlay
