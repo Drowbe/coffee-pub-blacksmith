@@ -473,7 +473,7 @@ export class TokenImageReplacementWindow extends Application {
                 const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
                     fullPath: currentImageSrc,
-                    searchScore: 1.0, // Perfect score for current image
+                    searchScore: 0, // Will be calculated normally
                     isCurrent: true,
                     metadata: null
                 };
@@ -527,6 +527,20 @@ export class TokenImageReplacementWindow extends Application {
                 // Apply unified matching
                 const matchedResults = this._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode);
                 this.allMatches.push(...matchedResults);
+                
+                // Calculate score for current image if it exists
+                if (this.selectedToken && this.allMatches.length > 0) {
+                    const currentImage = this.allMatches.find(match => match.isCurrent);
+                    if (currentImage) {
+                        const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken);
+                        const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
+                            name: currentImage.name,
+                            path: currentImage.fullPath,
+                            metadata: currentImage.metadata
+                        };
+                        currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+                    }
+                }
                 
                 // Sort results based on current sort order
                 this.allMatches = this._sortResults(this.allMatches);
@@ -976,7 +990,7 @@ export class TokenImageReplacementWindow extends Application {
                 const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
                     fullPath: currentImageSrc,
-                    searchScore: 1.0, // Perfect score for current image
+                    searchScore: 0, // Will be calculated normally
                     isCurrent: true,
                     metadata: null
                 };
@@ -1001,6 +1015,20 @@ export class TokenImageReplacementWindow extends Application {
         // Step 3: Apply unified matching with search terms
         const searchResults = this._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search');
         this.allMatches.push(...searchResults);
+        
+        // Step 4: Calculate score for current image if it exists
+        if (this.selectedToken && this.allMatches.length > 0) {
+            const currentImage = this.allMatches.find(match => match.isCurrent);
+            if (currentImage) {
+                const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken);
+                const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
+                    name: currentImage.name,
+                    path: currentImage.fullPath,
+                    metadata: currentImage.metadata
+                };
+                currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+            }
+        }
         
         // Sort results based on current sort order
         this.allMatches = this._sortResults(this.allMatches);
