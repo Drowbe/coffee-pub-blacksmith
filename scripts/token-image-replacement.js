@@ -539,6 +539,15 @@ export class TokenImageReplacementWindow extends Application {
                             metadata: currentImage.metadata
                         };
                         currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+                        
+                        // Remove current image if it doesn't meet threshold
+                        const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+                        if (currentImage.searchScore < threshold) {
+                            const index = this.allMatches.indexOf(currentImage);
+                            if (index > -1) {
+                                this.allMatches.splice(index, 1);
+                            }
+                        }
                     }
                 }
                 
@@ -1027,6 +1036,15 @@ export class TokenImageReplacementWindow extends Application {
                     metadata: currentImage.metadata
                 };
                 currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+                
+                // Remove current image if it doesn't meet threshold
+                const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+                if (currentImage.searchScore < threshold) {
+                    const index = this.allMatches.indexOf(currentImage);
+                    if (index > -1) {
+                        this.allMatches.splice(index, 1);
+                    }
+                }
             }
         }
         
