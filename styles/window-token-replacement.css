@@ -1006,9 +1006,15 @@
       border-width: 2px !important;
       box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
       background: rgba(76, 175, 80, 0.1);
+      cursor: default !important;
+      opacity: 0.8;
   }
   .tir-current-image img {
       border-color: rgba(76, 175, 80, 0.4) !important;
+  }
+  .tir-current-image:hover {
+      transform: none !important;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important;
   }
   
   .tir-recommended-image {

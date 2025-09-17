@@ -549,19 +549,19 @@ export class TokenImageReplacementWindow extends Application {
         const imagePath = event.currentTarget.dataset.imagePath;
         const imageName = event.currentTarget.dataset.imageName;
         const isQuickApply = event.target.closest('[data-quick-apply="true"]');
+        const isCurrentImage = event.currentTarget.classList.contains('tir-current-image');
         
         if (!this.selectedToken || !imagePath) return;
+        
+        // Don't allow clicking on current image
+        if (isCurrentImage) {
+            return;
+        }
         
         // Handle quick apply for recommended token
         if (isQuickApply) {
             event.stopPropagation();
             await this._applyImageToToken(imagePath, imageName);
-            return;
-        }
-
-        // Don't apply the same image that's already current
-        if (imagePath === this.selectedToken.texture.src) {
-            ui.notifications.info("This is already the current image");
             return;
         }
 
@@ -1326,6 +1326,11 @@ export class TokenImageReplacementWindow extends Application {
             const isRecommended = this.recommendedToken && match.fullPath === this.recommendedToken.fullPath;
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
             
+            // Debug logging for recommended token display
+            if (this.recommendedToken) {
+                postConsoleAndNotification(`DEBUG: Checking match "${match.name}" (${match.fullPath}) against recommended "${this.recommendedToken.name}" (${this.recommendedToken.fullPath}) - isRecommended: ${isRecommended}`, 'debug');
+            }
+            
             const tooltipText = this._generateTooltipText(match, isRecommended);
             const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
             
@@ -1868,32 +1873,59 @@ export class TokenImageReplacementWindow extends Application {
      */
     _calculateRecommendedToken() {
         if (!this.selectedToken || this.allMatches.length === 0) {
+            postConsoleAndNotification('DEBUG: No selected token or no matches for recommended calculation', 'debug');
             return null;
         }
         
         const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         
+        postConsoleAndNotification(`DEBUG: Calculating recommended token. Search terms: ${JSON.stringify(searchTerms)}, Threshold: ${threshold}, Total matches: ${this.allMatches.length}`, 'debug');
+        
         let bestMatch = null;
         let bestScore = 0;
         
         // Find the best match from current results (excluding current image)
+        console.log(`DEBUG: Starting to process ${this.allMatches.length} matches for recommended token`);
         for (const match of this.allMatches) {
-            if (match.isCurrent) continue; // Skip current image
+            if (match.isCurrent) {
+                console.log(`DEBUG: Skipping current image: ${match.name}`);
+                continue; // Skip current image
+            }
             
             // Get file info from cache
             const fileInfo = TokenImageReplacement.cache.files.get(match.name);
-            if (!fileInfo) continue;
+            if (!fileInfo) {
+                console.log(`DEBUG: No fileInfo found for match: ${match.name}`);
+                console.log(`DEBUG: Match object keys: ${Object.keys(match)}`);
+                console.log(`DEBUG: Cache files size: ${TokenImageReplacement.cache.files.size}`);
+                console.log(`DEBUG: First few cache keys: ${Array.from(TokenImageReplacement.cache.files.keys()).slice(0, 5)}`);
+                // Try using the match object directly as fallback
+                console.log(`DEBUG: Using match object directly as fallback`);
+                const score = this._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token');
+                console.log(`DEBUG: Match "${match.name}" scored ${score.toFixed(3)} (threshold: ${threshold}) using match object`);
+                
+                if (score > bestScore && score >= threshold) {
+                    bestScore = score;
+                    bestMatch = match;
+                    console.log(`DEBUG: New best match: "${match.name}" with score ${score.toFixed(3)}`);
+                }
+                continue;
+            }
             
             // Calculate score using unified algorithm
             const score = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
             
+            console.log(`DEBUG: Match "${match.name}" scored ${score.toFixed(3)} (threshold: ${threshold})`);
+            
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
                 bestMatch = match;
+                postConsoleAndNotification(`DEBUG: New best match: "${match.name}" with score ${score.toFixed(3)}`, 'debug');
             }
         }
         
+        postConsoleAndNotification(`DEBUG: Recommended token result: ${bestMatch ? bestMatch.name : 'NONE'} (score: ${bestScore.toFixed(3)})`, 'debug');
         return bestMatch;
     }
 
