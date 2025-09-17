@@ -1275,6 +1275,7 @@ export class TokenImageReplacementWindow extends Application {
                 html += this.matches.map(match => {
                     const tags = this._getTagsForMatch(match);
                     const tooltipText = this._generateTooltipText(match, false);
+                    const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
                     return `
                         <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                             <div class="tir-thumbnail-image">
@@ -1282,12 +1283,16 @@ export class TokenImageReplacementWindow extends Application {
                                 ${match.isCurrent ? `
                                     <div class="tir-thumbnail-current-badge">
                                         <i class="fas fa-check"></i>
+                                    </div>
+                                ` : `
+                                    <div class="tir-thumbnail-overlay">
+                                        <i class="fas fa-check"></i>
                                         <span class="tir-overlay-text">Apply to Token</span>
                                     </div>
-                                ` : ''}
+                                `}
                             </div>
                             <div class="tir-thumbnail-name">${match.name}</div>
-                            <div class="tir-thumbnail-score">Score: ${match.searchScore ? match.searchScore.toFixed(3) : 'N/A'}</div>
+                            <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
                             <div class="tir-thumbnail-tagset">
                                 ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
                             </div>
@@ -1322,6 +1327,8 @@ export class TokenImageReplacementWindow extends Application {
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
             
             const tooltipText = this._generateTooltipText(match, isRecommended);
+            const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
+            
             return `
                 <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                     <div class="tir-thumbnail-image">
@@ -1333,7 +1340,6 @@ export class TokenImageReplacementWindow extends Application {
                         ` : isRecommended ? `
                             <div class="tir-thumbnail-recommended-badge" data-quick-apply="true">
                                 <i class="fas fa-star"></i>
-                                <span class="tir-overlay-text">Recommended</span>
                             </div>
                         ` : `
                             <div class="tir-thumbnail-overlay">
@@ -1343,7 +1349,7 @@ export class TokenImageReplacementWindow extends Application {
                         `}
                     </div>
                     <div class="tir-thumbnail-name">${match.name}</div>
-                    <div class="tir-thumbnail-score">Score: ${match.searchScore ? match.searchScore.toFixed(3) : 'N/A'}</div>
+                    <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
                     <div class="tir-thumbnail-tagset">
                         ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
                     </div>
@@ -1837,13 +1843,6 @@ export class TokenImageReplacementWindow extends Application {
             parts.push(`Score: ${match.searchScore.toFixed(3)}`);
         }
         
-        // Status indicators
-        if (match.isCurrent) {
-            parts.push(`<span style="color: #4CAF50;">✓ Current Image</span>`);
-        }
-        if (isRecommended) {
-            parts.push(`<span style="color: #FFC107;">★ Recommended</span>`);
-        }
         
         // Metadata info
         if (match.metadata) {
