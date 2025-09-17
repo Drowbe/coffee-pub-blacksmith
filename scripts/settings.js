@@ -1760,10 +1760,21 @@ export const registerSettings = async () => {
 		default: 20
 	});
 
-	// Creature Class Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureClass', {
-		name: 'Creature Class Weight',
-		hint: 'How important the creature class/role is for matching (e.g., "Warrior", "Mage", "Archer")',
+	// Creature Type Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
+		name: 'Creature Type Weight',
+		hint: 'How important the creature type is for matching (e.g., "Humanoid", "Dragon", "Beast") - Official D&D5e type',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 15
+	});
+
+	// Creature Subtype Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', {
+		name: 'Creature Subtype Weight',
+		hint: 'How important the creature subtype is for matching (e.g., "Goblinoid", "Orc", "Elf") - Official D&D5e subtype',
 		type: Number,
 		config: true,
 		scope: 'world',

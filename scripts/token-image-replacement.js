@@ -1646,9 +1646,9 @@ export class TokenImageReplacementWindow extends Application {
         // Get weighted settings
         const weights = {
             representedActor: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') || 80) / 100,
-            creatureClass: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureClass') || 15) / 100,
+            creatureType: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') || 15) / 100,
+            creatureSubtype: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') || 15) / 100,
             equipment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') || 10) / 100,
-            subtype: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSubtype') || 8) / 100,
             background: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightBackground') || 5) / 100,
             size: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') || 3) / 100,
             alignment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightAlignment') || 2) / 100,
@@ -1673,12 +1673,6 @@ export class TokenImageReplacementWindow extends Application {
         if (tokenDocument && searchMode === 'token') {
             tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
             
-            // Debug: Log token data extraction for goblin files
-            const isGoblinFile = fileNameLower.includes('goblin');
-            if (isGoblinFile) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token data extraction - actor.name: "${tokenDocument.actor?.name}", token.name: "${tokenDocument.name}"`, "", false, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Extracted token data: ${JSON.stringify(tokenData)}`, "", false, false);
-            }
         }
         
         // Calculate maximum possible score upfront (only for applicable token data points)
@@ -1691,9 +1685,9 @@ export class TokenImageReplacementWindow extends Application {
             
             // Only add weights for token data that actually exists
             if (tokenData.representedActor) maxPossibleScore += weights.representedActor;
-            if (tokenData.creatureClass) maxPossibleScore += weights.creatureClass;
+            if (tokenData.creatureType) maxPossibleScore += weights.creatureType;
+            if (tokenData.creatureSubtype) maxPossibleScore += weights.creatureSubtype;
             if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
-            if (tokenData.subtype) maxPossibleScore += weights.subtype;
             if (tokenData.background) maxPossibleScore += weights.background;
             if (tokenData.size) maxPossibleScore += weights.size;
             if (tokenData.alignment) maxPossibleScore += weights.alignment;
@@ -1712,15 +1706,6 @@ export class TokenImageReplacementWindow extends Application {
             maxPossibleScore += 0.1;
         }
         
-        // Debug: Only log for goblin files and ranger files to avoid spam
-        const isGoblinFile = fileNameLower.includes('goblin');
-        const isRangerFile = fileNameLower.includes('ranger');
-        if (isGoblinFile || isRangerFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scoring "${fileName}" with terms [${searchWords.join(', ')}]`, "", false, false);
-            if (tokenData) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token data - representedActor: "${tokenData.representedActor}", creatureClass: "${tokenData.creatureClass}"`, "", false, false);
-            }
-        }
         
         // 1. TOKEN DATA WEIGHTED SCORING (for token matching mode)
         let tokenNameMatch = 0;
@@ -1733,10 +1718,6 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatch = true;
                 }
                 
-                // Debug: Log token name matching for goblin files and ranger files
-                if (isGoblinFile || isRangerFile) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name "${tokenDocument.name}" match: ${tokenNameMatch} (weight: ${weights.tokenName})`, "", false, false);
-                }
             }
             
             // Represented Actor (most important)
@@ -1747,17 +1728,22 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatch = true;
                 }
                 
-                // Debug: Log actor matching for goblin files
-                if (isGoblinFile) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Represented Actor "${tokenData.representedActor}" match: ${actorMatch} (weight: ${weights.representedActor})`, "", false, false);
+            }
+            
+            // Creature Type (Official D&D5e field)
+            if (tokenData.creatureType) {
+                const typeMatch = this._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
+                if (typeMatch > 0) {
+                    totalScore += typeMatch * weights.creatureType;
+                    foundMatch = true;
                 }
             }
             
-            // Creature Class/Role
-            if (tokenData.creatureClass) {
-                const classMatch = this._calculateTokenDataMatch(tokenData.creatureClass, fileNameLower, filePathLower, fileInfo);
-                if (classMatch > 0) {
-                    totalScore += classMatch * weights.creatureClass;
+            // Creature Subtype (Official D&D5e field)
+            if (tokenData.creatureSubtype) {
+                const subtypeMatch = this._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
+                if (subtypeMatch > 0) {
+                    totalScore += subtypeMatch * weights.creatureSubtype;
                     foundMatch = true;
                 }
             }
@@ -1774,14 +1760,6 @@ export class TokenImageReplacementWindow extends Application {
                 }
             }
             
-            // Subtype
-            if (tokenData.subtype) {
-                const subtypeMatch = this._calculateTokenDataMatch(tokenData.subtype, fileNameLower, filePathLower, fileInfo);
-                if (subtypeMatch > 0) {
-                    totalScore += subtypeMatch * weights.subtype;
-                    foundMatch = true;
-                }
-            }
             
             // Background
             if (tokenData.background) {
@@ -1916,52 +1894,6 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Debug: Log detailed breakdown for goblin files and ranger files
-        if (isGoblinFile || isRangerFile) {
-            const breakdown = [];
-            if (searchMode === 'token' && tokenData) {
-                // Token Name (flexible matching for any naming convention)
-                if (tokenNameMatch > 0) {
-                    breakdown.push(`Token Name: ${(tokenNameMatch * weights.tokenName * 100).toFixed(1)}%`);
-                }
-                if (tokenData.representedActor) {
-                    const actorMatch = this._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
-                    if (actorMatch > 0) {
-                        breakdown.push(`Represented Actor: ${(actorMatch * weights.representedActor * 100).toFixed(1)}%`);
-                    }
-                }
-                if (tokenData.creatureClass) {
-                    const classMatch = this._calculateTokenDataMatch(tokenData.creatureClass, fileNameLower, filePathLower, fileInfo);
-                    if (classMatch > 0) {
-                        breakdown.push(`Creature Class: ${(classMatch * weights.creatureClass * 100).toFixed(1)}%`);
-                    }
-                }
-                if (tokenData.equipment && tokenData.equipment.length > 0) {
-                    for (const equipment of tokenData.equipment) {
-                        const equipmentMatch = this._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
-                        if (equipmentMatch > 0) {
-                            breakdown.push(`Equipment: ${(equipmentMatch * weights.equipment * 100).toFixed(1)}%`);
-                            break;
-                        }
-                    }
-                }
-                if (tokenData.subtype) {
-                    const subtypeMatch = this._calculateTokenDataMatch(tokenData.subtype, fileNameLower, filePathLower, fileInfo);
-                    if (subtypeMatch > 0) {
-                        breakdown.push(`Subtype: ${(subtypeMatch * weights.subtype * 100).toFixed(1)}%`);
-                    }
-                }
-                if (tokenData.size) {
-                    const sizeMatch = this._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
-                    if (sizeMatch > 0) {
-                        breakdown.push(`Size: ${(sizeMatch * weights.size * 100).toFixed(1)}%`);
-                    }
-                }
-            }
-            
-            const breakdownText = breakdown.length > 0 ? ` [${breakdown.join(', ')}]` : '';
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Final score for "${fileName}": ${clampedScore.toFixed(3)} (raw: ${totalScore.toFixed(3)}/${maxPossibleScore.toFixed(3)})${breakdownText}`, "", false, false);
-        }
         
         return clampedScore;
     }
@@ -2063,10 +1995,6 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debug: Log token name matching attempt
         const isGoblinFile = fileNameLower.includes('goblin');
-        const isRangerFile = fileNameLower.includes('ranger');
-        if (isGoblinFile || isRangerFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name Match - Token: "${tokenName}" -> File: "${fileNameLower}"`, "", false, false);
-        }
         
         // Extract potential creature names from token name
         const potentialCreatureNames = [];
@@ -2107,9 +2035,6 @@ export class TokenImageReplacementWindow extends Application {
         );
         
         // Debug: Log extracted creature names
-        if (isGoblinFile || isRangerFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Extracted creature names: [${uniqueNames.join(', ')}]`, "", false, false);
-        }
         
         // Test each potential creature name against the file
         for (const creatureName of uniqueNames) {
@@ -2147,10 +2072,6 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Debug: Log final token name match score
-        if (isGoblinFile || isRangerFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name Match final score: ${maxScore}`, "", false, false);
-        }
         
         return maxScore;
     }
@@ -3046,9 +2967,9 @@ export class TokenImageReplacement {
 
         const data = {
             representedActor: null,
-            creatureClass: null,
+            creatureType: null,
+            creatureSubtype: null,
             equipment: [],
-            subtype: null,
             background: null,
             size: null,
             alignment: null
@@ -3063,20 +2984,19 @@ export class TokenImageReplacement {
             const words = name.split(/\s+/);
             data.representedActor = words[0]; // First word is the creature type
             
-            // Debug: Log actor name extraction
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Actor name extraction - actor.name: "${actor.name}", extracted representedActor: "${data.representedActor}"`, "", false, false);
         }
 
-        // 2. Creature Class/Role
-        if (actor.name) {
-            const name = actor.name;
-            const words = name.split(/\s+/);
-            if (words.length > 1) {
-                data.creatureClass = words.slice(1).join(' '); // Everything after first word
-            }
+        // 2. Creature Type (Official D&D5e field)
+        if (actor.system?.details?.type?.value) {
+            data.creatureType = actor.system.details.type.value.toLowerCase();
         }
 
-        // 3. Equipment (from actor items)
+        // 3. Creature Subtype (Official D&D5e field)
+        if (actor.system?.details?.type?.subtype) {
+            data.creatureSubtype = actor.system.details.type.subtype.toLowerCase();
+        }
+
+        // 4. Equipment (from actor items)
         if (actor.items) {
             const equipment = [];
             for (const item of actor.items) {
@@ -3095,11 +3015,6 @@ export class TokenImageReplacement {
                 }
             }
             data.equipment = [...new Set(equipment)]; // Remove duplicates
-        }
-
-        // 4. Subtype/Subrace (from actor type or traits)
-        if (actor.type) {
-            data.subtype = actor.type.toLowerCase();
         }
 
         // 5. Background/Profession (from actor details)
@@ -4591,7 +4506,31 @@ export class TokenImageReplacement {
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Processing token: ${tokenDocument.name}`, "", false, false);
+        // Extract token data and weights
+        const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+        const weights = {
+            representedActor: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', 80) / 100,
+            tokenName: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightTokenName', 20) / 100,
+            creatureType: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureType', 15) / 100,
+            creatureSubtype: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', 15) / 100,
+            equipment: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightEquipment', 10) / 100,
+            background: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightBackground', 5) / 100,
+            size: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightSize', 5) / 100,
+            alignment: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightAlignment', 5) / 100
+        };
+        
+        // Log formatted breakdown
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== TOKEN DATA BREAKDOWN =====`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Criteria | Weight | Data from Token`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: representedActor | ${weights.representedActor} | "${tokenData.representedActor || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: tokenName | ${weights.tokenName} | "${tokenDocument.name || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | ${weights.creatureType} | "${tokenData.creatureType || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | ${weights.creatureSubtype} | "${tokenData.creatureSubtype || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | ${weights.equipment} | [${tokenData.equipment?.join(', ') || 'none'}]`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: background | ${weights.background} | "${tokenData.background || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | ${weights.size} | "${tokenData.size || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: alignment | ${weights.alignment} | "${tokenData.alignment || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: =================================`, "", false, false);
         
         // Wait a moment for the token to be fully created on the canvas
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -4636,7 +4575,7 @@ export class TokenImageReplacement {
                     'texture.src': matchingImage.fullPath
                 });
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name}`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", false, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", false, false);
                 
@@ -4673,6 +4612,7 @@ export class TokenImageReplacement {
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search Summary - Token Data: representedActor="${tokenData.representedActor}", creatureType="${tokenData.creatureType}", creatureSubtype="${tokenData.creatureSubtype}", equipment=[${tokenData.equipment?.join(', ') || 'none'}]`, "", false, false);
         }
     }
     
