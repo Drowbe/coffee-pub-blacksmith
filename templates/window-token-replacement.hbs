@@ -24,6 +24,18 @@
                 {{/if}}
             </div>
             <div class="tir-header-controls">
+                <!-- Threshold Slider -->
+                <div class="tir-rangeslider-container">
+                    <span class="tir-rangeslider-label">Matching Threshold</span>
+                    <div class="tir-rangeslider">
+                        <input type="range" name="searchThreshold" id="searchThreshold" min="0" max="100" value="30" class="tir-rangeslider-input">
+                        <div class="tir-rangeslider-track">
+                            <div class="tir-rangeslider-fill"></div>
+                            <div class="tir-rangeslider-thumb"></div>
+                        </div>
+                        <span class="tir-rangeslider-value">30%</span>
+                    </div>
+                </div>
                 <!-- Fuzzy Search Toggle -->
                 <div class="tir-toggle-container">
                     <span class="tir-toggle-label">Fuzzy Search</span>
@@ -148,9 +160,9 @@
             <div class="cpb-form-group">
                 <div class="tir-form-fields">
                     <select name="sortOrder" class="tir-select">
-                        <option value="relevance" {{#if (eq sortOrder "relevance")}}selected{{/if}}>Relevance</option>
-                        <option value="atoz" {{#if (eq sortOrder "atoz")}}selected{{/if}}>A to Z</option>
-                        <option value="ztoa" {{#if (eq sortOrder "ztoa")}}selected{{/if}}>Z to A</option>
+                        <option value="relevance" {{#if (eq sortOrder "relevance")}}selected{{/if}}>Sort by Relevance</option>
+                        <option value="atoz" {{#if (eq sortOrder "atoz")}}selected{{/if}}>Alphabetical: A to Z</option>
+                        <option value="ztoa" {{#if (eq sortOrder "ztoa")}}selected{{/if}}>Alphabetical: Z to A</option>
                     </select>
                 </div>
             </div>

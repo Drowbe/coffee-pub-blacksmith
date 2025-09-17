@@ -322,6 +322,95 @@
 
 
 
+/* Range Slider Styling */
+.tir-rangeslider-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    gap: 8px;
+}
+
+.tir-rangeslider-label {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.tir-rangeslider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 120px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.tir-rangeslider-input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.tir-rangeslider-track {
+    position: absolute;
+    width: 100%;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.tir-rangeslider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background-color: rgba(128, 118, 96, 0.8);
+    border-radius: 8px;
+    transition: width 0.2s ease;
+    width: 30%; /* Default to 30% */
+}
+
+.tir-rangeslider-thumb {
+    position: absolute;
+    top: 50%;
+    left: 30%; /* Default to 30% */
+    width: 16px;
+    height: 16px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.9);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: left 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+.tir-rangeslider-value {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    margin-left: 8px;
+    min-width: 35px;
+    text-align: center;
+}
+
+.tir-rangeslider:hover .tir-rangeslider-track {
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
+}
+
+.tir-rangeslider:hover .tir-rangeslider-thumb {
+    background-color: rgba(255, 100, 0, 0.9);
+    transform: translate(-50%, -50%) scale(1.1);
+}
 
 
 /* ********** CONTENT ********** */
@@ -676,8 +765,25 @@
     font-weight: 200;
 }
 
+.tir-results-details-threshold {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.0em;
+    font-weight: 200;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.tir-results-details-threshold:hover {
+    color: rgba(255, 100, 0, 1.0);
+    background: rgba(255, 100, 0, 0.1);
+    transform: translateY(-1px);
+}
+
 .tir-results-details-status i,
-.tir-results-details-count i {
+.tir-results-details-count i,
+.tir-results-details-threshold i {
     color: rgba(172, 159, 129, 0.9);
     font-size: 0.9em;
     padding: 0px 0px 0px 0px;
@@ -905,6 +1011,16 @@
       border-color: rgba(76, 175, 80, 0.4) !important;
   }
   
+  .tir-recommended-image {
+      border-color: rgba(255, 193, 7, 0.9) !important;
+      border-width: 2px !important;
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+      background: rgba(255, 193, 7, 0.1);
+  }
+  .tir-recommended-image img {
+      border-color: rgba(255, 193, 7, 0.4) !important;
+  }
+  
   
   /* =========================
      Image area (square, centered)
@@ -974,6 +1090,34 @@
     box-shadow: 0 0 0 2px #1b1b1b55;
   }
   .tir-thumbnail-current-badge i { color: #fff; font-size: 0.9em; }
+  
+  /* Recommended badge (always visible) */
+  .tir-thumbnail-recommended-badge {
+    position: absolute;
+    right: 6%;
+    top: 6%;
+    width: calc(var(--tile) * 0.22);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background: rgba(255, 193, 7, 0.9);
+    display: grid; place-items: center;
+    box-shadow: 0 0 0 2px #1b1b1b55;
+  }
+  .tir-thumbnail-recommended-badge i { 
+    color: #000; 
+    font-size: 0.9em; 
+  }
+  .tir-thumbnail-recommended-badge .tir-overlay-text {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 193, 7, 0.9);
+    font-size: 0.7em;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
   
   /* =========================
      Tags
@@ -1062,6 +1206,22 @@
     word-break: break-word;       /* fallback */
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  
+  /* =========================
+     Score (match confidence)
+     ========================= */
+  .tir-thumbnail-score {
+    width: 100%;
+    color: rgba(172, 159, 129, 0.8);
+    text-align: center;
+    font-size: 0.8em;
+    font-weight: 500;
+    margin: 2px 0;
+    padding: 2px 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    border: 1px solid rgba(172, 159, 129, 0.2);
   }
   
   /* =========================
