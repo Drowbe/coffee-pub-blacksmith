@@ -79,6 +79,110 @@ static cache = {
 - **Uses sophisticated scoring** - relative to search terms
 - **Shows**: All matches above threshold, sorted by relevance
 
+## Weighted Scoring System
+
+### Token Data Hierarchy (Most Important → Least Important)
+
+The system extracts data from the selected token and applies configurable weights to each data point:
+
+#### 1. **Represented Actor** (Default: 80%)
+- **Most Critical**: "Goblin", "Golem", "Pixie", "Bullywug"
+- **Why**: This is literally what we need an image of
+- **Example**: Token name "Rinian (Bullywug Warrior)" → "Bullywug" is the key
+
+#### 2. **Creature Class/Role** (Default: 15%)
+- **High Priority**: "Fighter", "Mage", "Archer", "Warrior", "Rogue"
+- **Why**: Narrows down the specific type of that creature
+- **Example**: "Bullywug Warrior" vs "Bullywug Shaman"
+
+#### 3. **Equipment** (Default: 10%)
+- **Medium-High Priority**: "Sword", "Bow", "Staff", "Shield"
+- **Why**: Can draw conclusions not specified in represented actor
+- **Example**: "Goblin" + "Bow" = "Goblin Archer"
+
+#### 4. **Subtype/Subrace** (Default: 8%)
+- **Medium Priority**: "Goblinoid", "Dragon", "Elemental", "Undead"
+- **Why**: Helps narrow the search pool
+- **Example**: "Goblin" + "Goblinoid" = more specific than just "Humanoid"
+
+#### 5. **Background/Profession** (Default: 5%)
+- **Medium-Low Priority**: "Soldier", "Noble", "Hermit", "Cultist"
+- **Why**: Narrowing data, especially useful for specific contexts
+- **Example**: "Cultist" + "Evil" = "Evil Cultist"
+
+#### 6. **Size** (Default: 3%)
+- **Low-Medium Priority**: "Large", "Medium", "Huge", "Small"
+- **Why**: Helps narrow down, but many creatures can be the same size
+- **Example**: Many creatures can be "Large"
+
+#### 7. **Alignment** (Default: 2%)
+- **Low Priority**: "Chaotic Evil", "Neutral", "Lawful Good"
+- **Why**: Only useful for specific contexts like "evil cultist"
+- **Example**: "Cultist" + "Evil" = more specific than just "Cultist"
+
+### Configurable Weighting
+
+Each token data point has a configurable slider (0-100%) in the module settings:
+
+```javascript
+// Settings for token data weighting
+game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
+    name: 'Represented Actor Weight',
+    hint: 'How important the represented actor name is for matching (e.g., "Goblin", "Bullywug")',
+    type: Number,
+    config: true,
+    scope: 'world',
+    range: { min: 0, max: 100, step: 5 },
+    default: 80
+});
+
+game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureClass', {
+    name: 'Creature Class Weight',
+    hint: 'How important the creature class/role is for matching (e.g., "Warrior", "Mage")',
+    type: Number,
+    config: true,
+    scope: 'world',
+    range: { min: 0, max: 100, step: 5 },
+    default: 15
+});
+
+// ... additional settings for each data point
+```
+
+### Scoring Calculation
+
+The final score is calculated as:
+
+```
+Final Score = (Token Data Score + File Metadata Score + Bonuses) × Penalties
+```
+
+Where:
+- **Token Data Score**: Sum of weighted token data matches
+- **File Metadata Score**: Sum of weighted file metadata matches  
+- **Bonuses**: Multi-word bonus, basic creature priority, token context
+- **Penalties**: Deprioritized words penalty
+
+### Example Scoring
+
+For a "Bullywug Warrior" token vs "Bullywug_Warrior_A1_Sword_01.webp":
+
+- **"Bullywug" match**: 80% × 0.8 = **64%**
+- **"Warrior" match**: 15% × 0.8 = **12%**
+- **"Sword" match**: 10% × 0.8 = **8%**
+- **"Monstrosity" match**: 8% × 0.8 = **6.4%**
+- **"Large" match**: 3% × 0.8 = **2.4%**
+- **Total**: ~**93%** (excellent match)
+
+For the same token vs "Sea_Serpent_A1_Segment_A_Huge_Dragon_01.webp":
+
+- **"Bullywug" match**: 0% (no match)
+- **"Monstrosity" match**: 8% × 0.8 = **6.4%**
+- **"Large" match**: 3% × 0.8 = **2.4%**
+- **Total**: ~**9%** (poor match)
+
+This makes Bullywug images score **10x higher** than Sea Serpent images!
+
 ### Unified Logic Flow
 ```
 IF (has token target OR has search terms):
