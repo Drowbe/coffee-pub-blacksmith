@@ -1496,6 +1496,42 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
+     * Robust cache lookup that handles special characters and case differences
+     * @param {string} fileName - The filename to look up
+     * @returns {Object|null} - The file info from cache or null if not found
+     */
+    _getFileInfoFromCache(fileName) {
+        // First try exact match (case-insensitive)
+        const exactKey = fileName.toLowerCase();
+        let fileInfo = TokenImageReplacement.cache.files.get(exactKey);
+        if (fileInfo) {
+            return fileInfo;
+        }
+        
+        // Try removing special characters and matching
+        const cleanFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
+        if (cleanFileName !== exactKey) {
+            fileInfo = TokenImageReplacement.cache.files.get(cleanFileName);
+            if (fileInfo) {
+                return fileInfo;
+            }
+        }
+        
+        // Try fuzzy matching by iterating through cache keys
+        for (const [cacheKey, cacheValue] of TokenImageReplacement.cache.files.entries()) {
+            // Remove special characters from both names for comparison
+            const cleanCacheKey = cacheKey.replace(/[^a-zA-Z0-9._-]/g, '');
+            const cleanMatchName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
+            
+            if (cleanCacheKey === cleanMatchName) {
+                return cacheValue;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Get tags for a specific file
      */
     _getTagsForFile(file) {
@@ -1893,8 +1929,8 @@ export class TokenImageReplacementWindow extends Application {
                 continue; // Skip current image
             }
             
-            // Get file info from cache
-            const fileInfo = TokenImageReplacement.cache.files.get(match.name);
+            // Get file info from cache with robust lookup
+            const fileInfo = this._getFileInfoFromCache(match.name);
             if (!fileInfo) {
                 console.log(`DEBUG: No fileInfo found for match: ${match.name}`);
                 console.log(`DEBUG: Match object keys: ${Object.keys(match)}`);
