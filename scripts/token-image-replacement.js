@@ -465,22 +465,22 @@ export class TokenImageReplacementWindow extends Application {
         this.allMatches = [];
         this.currentPage = 0;
         this.recommendedToken = null; // Reset recommended token
-        
+
         // If we have a selected token, add it as the first match
         if (this.selectedToken) {
-            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+        const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             if (currentImageSrc) {
-                const currentImage = {
+        const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
-                    fullPath: currentImageSrc,
+            fullPath: currentImageSrc,
                     searchScore: 0, // Will be calculated normally
                     isCurrent: true,
                     metadata: null
-                };
+        };
                 this.allMatches.push(currentImage);
             }
         }
-        
+
         // Check cache status
         if (TokenImageReplacement.cache.isPaused) {
             this.notificationIcon = 'fas fa-pause';
@@ -575,12 +575,12 @@ export class TokenImageReplacementWindow extends Application {
         const isCurrentImage = event.currentTarget.classList.contains('tir-current-image');
         
         if (!this.selectedToken || !imagePath) return;
-        
+
         // Don't allow clicking on current image
         if (isCurrentImage) {
             return;
         }
-        
+
         // Handle quick apply for recommended token
         if (isQuickApply) {
             event.stopPropagation();
@@ -983,7 +983,7 @@ export class TokenImageReplacementWindow extends Application {
             this.matches = [];
             this.allMatches = [];
             this.currentPage = 0;
-            this.render();
+        this.render();
             return;
         }
 
@@ -1223,13 +1223,13 @@ export class TokenImageReplacementWindow extends Application {
                         name: fileInfo.name,
                         path: fileInfo.path,
                         fullPath: fileInfo.fullPath,
-                        searchScore: score,
-                        isCurrent: false,
+                    searchScore: score,
+                    isCurrent: false,
                         metadata: fileInfo.metadata || null
-                    });
-                }
+                });
             }
-            
+        }
+        
             // Add batch results to allMatches
             if (batchResults.length > 0) {
                 const filteredBatchResults = this._applyCategoryFilter(batchResults);
@@ -1372,9 +1372,9 @@ export class TokenImageReplacementWindow extends Application {
             const isRecommended = this.recommendedToken && match.fullPath === this.recommendedToken.fullPath;
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
             
-            // Debug logging for recommended token display
+            // Debug logging for recommended token display 
             if (this.recommendedToken) {
-                postConsoleAndNotification(`DEBUG: Checking match "${match.name}" (${match.fullPath}) against recommended "${this.recommendedToken.name}" (${this.recommendedToken.fullPath}) - isRecommended: ${isRecommended}`, 'debug');
+                postConsoleAndNotification(MODULE.NAME, `Image Replacement | Checking match`, `${match.name} (${match.fullPath}) against recommended ${this.recommendedToken.name} (${this.recommendedToken.fullPath}) - isRecommended: ${isRecommended}`, true, false);
             }
             
             const tooltipText = this._generateTooltipText(match, isRecommended);
@@ -1625,8 +1625,8 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * UNIFIED RELEVANCE SCORING ALGORITHM
-     * This method provides consistent scoring across all matching scenarios:
+     * WEIGHTED RELEVANCE SCORING ALGORITHM
+     * This method provides consistent scoring across all matching scenarios with configurable weights:
      * - Token drop (automatic replacement)
      * - Selected tab (manual selection)
      * - Search mode (any tab + search terms)
@@ -1643,8 +1643,19 @@ export class TokenImageReplacementWindow extends Application {
         const filePath = fileInfo.path || '';
         const filePathLower = filePath.toLowerCase();
         
+        // Get weighted settings
+        const weights = {
+            representedActor: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') || 80) / 100,
+            creatureClass: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureClass') || 15) / 100,
+            equipment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') || 10) / 100,
+            subtype: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSubtype') || 8) / 100,
+            background: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightBackground') || 5) / 100,
+            size: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') || 3) / 100,
+            alignment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightAlignment') || 2) / 100,
+            tokenName: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') || 20) / 100
+        };
+        
         let totalScore = 0;
-        let maxPossibleScore = 0;
         let foundMatch = false;
         
         // Normalize search terms
@@ -1657,132 +1668,217 @@ export class TokenImageReplacementWindow extends Application {
         
         if (searchWords.length === 0) return 0;
         
-        // Debug: Only log for goblin files to avoid spam
-        const isGoblinFile = fileNameLower.includes('goblin');
-        if (isGoblinFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scoring "${fileName}" with terms [${searchWords.join(', ')}]`, "", false, false);
+        // Extract token data for weighted scoring
+        let tokenData = {};
+        if (tokenDocument && searchMode === 'token') {
+            tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+            
+            // Debug: Log token data extraction for goblin files
+            const isGoblinFile = fileNameLower.includes('goblin');
+            if (isGoblinFile) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token data extraction - actor.name: "${tokenDocument.actor?.name}", token.name: "${tokenDocument.name}"`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Extracted token data: ${JSON.stringify(tokenData)}`, "", false, false);
+            }
         }
         
-        // Calculate base score for each search word
-        for (const word of searchWords) {
-            let wordScore = 0;
-            let wordFound = false;
-            
-            // 1. FILENAME MATCHING (highest priority)
-            if (fileNameLower === word) {
-                wordScore = 1.0; // Exact filename match
-                wordFound = true;
-            } else if (fileNameLower.replace(/\.[^.]*$/, '') === word) {
-                wordScore = 0.95; // Exact match without extension
-                wordFound = true;
-            } else if (fileNameLower.startsWith(word)) {
-                wordScore = 0.85; // Filename starts with word
-                wordFound = true;
-            } else if (fileNameLower.endsWith(word)) {
-                wordScore = 0.75; // Filename ends with word
-                wordFound = true;
-            } else if (fileNameLower.includes(word)) {
-                wordScore = 0.65; // Filename contains word
-                wordFound = true;
-            } else {
-                // Partial word match (for compound terms)
-                const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
-                for (const fileNameWord of fileNameWords) {
-                    if (fileNameWord.includes(word) || word.includes(fileNameWord)) {
-                        wordScore = Math.max(wordScore, 0.45);
-                        wordFound = true;
-                    }
-                }
+        // Calculate maximum possible score upfront (only for applicable token data points)
+        let maxPossibleScore = 0;
+        if (searchMode === 'token' && tokenData) {
+            // Token Name weight (always applicable if token has a name)
+            if (tokenDocument && tokenDocument.name) {
+                maxPossibleScore += weights.tokenName;
             }
             
-            // 2. METADATA TAGS MATCHING
-            if (fileInfo.metadata && fileInfo.metadata.tags) {
-                for (const tag of fileInfo.metadata.tags) {
-                    const tagLower = tag.toLowerCase();
-                    if (tagLower === word) {
-                        wordScore = Math.max(wordScore, 0.9); // Exact metadata tag match
-                        wordFound = true;
-                    } else if (tagLower.startsWith(word)) {
-                        wordScore = Math.max(wordScore, 0.8); // Metadata tag starts with word
-                        wordFound = true;
-                    } else if (tagLower.includes(word)) {
-                        wordScore = Math.max(wordScore, 0.7); // Metadata tag contains word
-                        wordFound = true;
-                    }
-                }
+            // Only add weights for token data that actually exists
+            if (tokenData.representedActor) maxPossibleScore += weights.representedActor;
+            if (tokenData.creatureClass) maxPossibleScore += weights.creatureClass;
+            if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
+            if (tokenData.subtype) maxPossibleScore += weights.subtype;
+            if (tokenData.background) maxPossibleScore += weights.background;
+            if (tokenData.size) maxPossibleScore += weights.size;
+            if (tokenData.alignment) maxPossibleScore += weights.alignment;
+        }
+        
+        // Add search terms weight (1.0 per term)
+        maxPossibleScore += searchWords.length;
+        
+        // Add multi-word bonus potential (only if applicable)
+        if (searchWords.length > 1) {
+            maxPossibleScore += 0.2;
+        }
+        
+        // Add basic creature priority bonus potential (only if applicable)
+        if (searchMode === 'token' && tokenData && tokenData.representedActor) {
+            maxPossibleScore += 0.1;
+        }
+        
+        // Debug: Only log for goblin files and ranger files to avoid spam
+        const isGoblinFile = fileNameLower.includes('goblin');
+        const isRangerFile = fileNameLower.includes('ranger');
+        if (isGoblinFile || isRangerFile) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scoring "${fileName}" with terms [${searchWords.join(', ')}]`, "", false, false);
+            if (tokenData) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token data - representedActor: "${tokenData.representedActor}", creatureClass: "${tokenData.creatureClass}"`, "", false, false);
             }
-            
-            // 3. SPECIFIC METADATA FIELDS MATCHING
-            if (fileInfo.metadata) {
-                const metadataFields = [
-                    'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
-                    'equipment', 'pose', 'action', 'direction', 'quality', 'class', 'profession'
-                ];
+        }
+        
+        // 1. TOKEN DATA WEIGHTED SCORING (for token matching mode)
+        let tokenNameMatch = 0;
+        if (searchMode === 'token' && tokenData) {
+            // Token Name (flexible matching for any naming convention)
+            if (tokenDocument && tokenDocument.name) {
+                tokenNameMatch = this._calculateTokenNameMatch(tokenDocument.name, fileNameLower, filePathLower, fileInfo);
+                if (tokenNameMatch > 0) {
+                    totalScore += tokenNameMatch * weights.tokenName;
+                    foundMatch = true;
+                }
                 
-                for (const field of metadataFields) {
-                    const value = fileInfo.metadata[field];
-                    if (value && typeof value === 'string') {
-                        const valueLower = value.toLowerCase();
-                        if (valueLower === word) {
-                            wordScore = Math.max(wordScore, 0.85); // Exact metadata field match
-                            wordFound = true;
-                        } else if (valueLower.startsWith(word)) {
-                            wordScore = Math.max(wordScore, 0.75); // Metadata field starts with word
-                            wordFound = true;
-                        } else if (valueLower.includes(word)) {
-                            wordScore = Math.max(wordScore, 0.65); // Metadata field contains word
+                // Debug: Log token name matching for goblin files and ranger files
+                if (isGoblinFile || isRangerFile) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name "${tokenDocument.name}" match: ${tokenNameMatch} (weight: ${weights.tokenName})`, "", false, false);
+                }
+            }
+            
+            // Represented Actor (most important)
+            if (tokenData.representedActor) {
+                const actorMatch = this._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
+                if (actorMatch > 0) {
+                    totalScore += actorMatch * weights.representedActor;
+                    foundMatch = true;
+                }
+                
+                // Debug: Log actor matching for goblin files
+                if (isGoblinFile) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Represented Actor "${tokenData.representedActor}" match: ${actorMatch} (weight: ${weights.representedActor})`, "", false, false);
+                }
+            }
+            
+            // Creature Class/Role
+            if (tokenData.creatureClass) {
+                const classMatch = this._calculateTokenDataMatch(tokenData.creatureClass, fileNameLower, filePathLower, fileInfo);
+                if (classMatch > 0) {
+                    totalScore += classMatch * weights.creatureClass;
+                    foundMatch = true;
+                }
+            }
+            
+            // Equipment
+            if (tokenData.equipment && tokenData.equipment.length > 0) {
+                for (const equipment of tokenData.equipment) {
+                    const equipmentMatch = this._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
+                    if (equipmentMatch > 0) {
+                        totalScore += equipmentMatch * weights.equipment;
+                        foundMatch = true;
+                        break; // Only count first equipment match
+                    }
+                }
+            }
+            
+            // Subtype
+            if (tokenData.subtype) {
+                const subtypeMatch = this._calculateTokenDataMatch(tokenData.subtype, fileNameLower, filePathLower, fileInfo);
+                if (subtypeMatch > 0) {
+                    totalScore += subtypeMatch * weights.subtype;
+                    foundMatch = true;
+                }
+            }
+            
+            // Background
+            if (tokenData.background) {
+                const backgroundMatch = this._calculateTokenDataMatch(tokenData.background, fileNameLower, filePathLower, fileInfo);
+                if (backgroundMatch > 0) {
+                    totalScore += backgroundMatch * weights.background;
+                    foundMatch = true;
+                }
+            }
+            
+            // Size
+            if (tokenData.size) {
+                const sizeMatch = this._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
+                if (sizeMatch > 0) {
+                    totalScore += sizeMatch * weights.size;
+                    foundMatch = true;
+                }
+            }
+            
+            // Alignment
+            if (tokenData.alignment) {
+                const alignmentMatch = this._calculateTokenDataMatch(tokenData.alignment, fileNameLower, filePathLower, fileInfo);
+                if (alignmentMatch > 0) {
+                    totalScore += alignmentMatch * weights.alignment;
+                    foundMatch = true;
+                }
+            }
+        }
+        
+        // 2. SEARCH TERMS SCORING (for search mode or fallback)
+        if (searchMode === 'search' || !foundMatch) {
+            for (const word of searchWords) {
+                let wordScore = 0;
+                let wordFound = false;
+                
+                // Filename matching
+                if (fileNameLower === word) {
+                    wordScore = 1.0;
+                    wordFound = true;
+                } else if (fileNameLower.replace(/\.[^.]*$/, '') === word) {
+                    wordScore = 0.95;
+                    wordFound = true;
+                } else if (fileNameLower.startsWith(word)) {
+                    wordScore = 0.85;
+                    wordFound = true;
+                } else if (fileNameLower.endsWith(word)) {
+                    wordScore = 0.75;
+                    wordFound = true;
+                } else if (fileNameLower.includes(word)) {
+                    wordScore = 0.65;
+                    wordFound = true;
+                } else {
+                    // Partial word match
+                    const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
+                    for (const fileNameWord of fileNameWords) {
+                        if (fileNameWord.includes(word) || word.includes(fileNameWord)) {
+                            wordScore = Math.max(wordScore, 0.45);
                             wordFound = true;
                         }
                     }
                 }
-            }
-            
-            // 4. FOLDER PATH MATCHING
-            if (filePathLower.includes(word)) {
-                if (filePathLower.includes(`/${word}/`)) {
-                    wordScore = Math.max(wordScore, 0.6); // Folder name match
-                } else {
-                    wordScore = Math.max(wordScore, 0.4); // Path contains word
-                }
-                wordFound = true;
-            }
-            
-            // 5. CREATURE TYPE MATCHING
-            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                if (files.includes(fileName) && creatureType.toLowerCase().includes(word)) {
-                    wordScore = Math.max(wordScore, 0.8); // Creature type match
-                    wordFound = true;
-                    break;
-                }
-            }
-            
-            // 6. FOLDER CATEGORIZATION MATCHING
-            for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                if (files.includes(fileName)) {
-                    const folderName = folderPath.split('/').pop().toLowerCase();
-                    if (folderName.includes(word)) {
-                        wordScore = Math.max(wordScore, 0.5); // Folder name match
-                        wordFound = true;
-                        break;
+                
+                // Metadata matching
+                if (fileInfo.metadata && fileInfo.metadata.tags) {
+                    for (const tag of fileInfo.metadata.tags) {
+                        const tagLower = tag.toLowerCase();
+                        if (tagLower === word) {
+                            wordScore = Math.max(wordScore, 0.9);
+                            wordFound = true;
+                        } else if (tagLower.startsWith(word)) {
+                            wordScore = Math.max(wordScore, 0.8);
+                            wordFound = true;
+                        } else if (tagLower.includes(word)) {
+                            wordScore = Math.max(wordScore, 0.7);
+                            wordFound = true;
+                        }
                     }
                 }
+                
+                // Folder path matching
+                if (filePathLower.includes(word)) {
+                    if (filePathLower.includes(`/${word}/`)) {
+                        wordScore = Math.max(wordScore, 0.6);
+                    } else {
+                        wordScore = Math.max(wordScore, 0.4);
+                    }
+                    wordFound = true;
+                }
+                
+                if (wordFound) {
+                    totalScore += wordScore;
+                    foundMatch = true;
+                }
             }
-            
-            // 7. FILE EXTENSION MATCHING
-            const extension = fileName.split('.').pop().toLowerCase();
-            if (extension.includes(word)) {
-                wordScore = Math.max(wordScore, 0.3); // Extension match
-                wordFound = true;
-            }
-            
-            if (wordFound) {
-                totalScore += wordScore;
-                foundMatch = true;
-            }
-            maxPossibleScore += 1.0; // Each word can contribute up to 1.0
         }
         
-        // Multi-word bonus - if all words matched, give a bonus
+        // Multi-word bonus
         if (foundMatch && searchWords.length > 1) {
             const matchedWords = searchWords.filter(word => {
                 const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
@@ -1793,28 +1889,18 @@ export class TokenImageReplacementWindow extends Application {
             });
             
             if (matchedWords.length === searchWords.length) {
-                totalScore += 0.2; // Multi-word bonus
-                maxPossibleScore += 0.2;
+                totalScore += 0.2;
             }
         }
         
-        // Apply token context weighting if we have a token document
-        if (foundMatch && tokenDocument && searchMode === 'token') {
-            const contextBonus = this._calculateTokenContextBonus(fileInfo, searchWords.join(' '));
-            totalScore += Math.min(contextBonus / 100, 0.3); // Cap context bonus at 0.3
-            maxPossibleScore += 0.3;
-        }
-        
-        // BASIC CREATURE PRIORITY BONUS
-        // Prioritize basic creature types over specialized variants
+        // Basic creature priority bonus
         if (foundMatch && this._isBasicCreature(fileName, fileInfo)) {
-            totalScore += 0.1; // Small bonus for basic creatures
-            maxPossibleScore += 0.1;
+            totalScore += 0.1;
         }
         
         // Normalize score to 0.0-1.0 range
         const finalScore = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
-        let clampedScore = Math.min(Math.max(finalScore, 0), 1); // Ensure 0.0-1.0 range
+        let clampedScore = Math.min(Math.max(finalScore, 0), 1);
         
         // Apply deprioritized words penalty
         const deprioritizedWords = game.settings.get(MODULE.ID, 'tokenImageReplacementDeprioritizedWords') || '';
@@ -1824,18 +1910,249 @@ export class TokenImageReplacementWindow extends Application {
             
             for (const word of words) {
                 if (fileNameAndPath.includes(word)) {
-                    clampedScore *= 0.75; // Reduce score by 25% for each deprioritized word found
-                    break; // Only apply penalty once per file, even if multiple deprioritized words are found
+                    clampedScore *= 0.75;
+                    break;
                 }
             }
         }
         
-        // Debug: Log final score for goblin files
-        if (isGoblinFile) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Final score for "${fileName}": ${clampedScore.toFixed(3)} (raw: ${totalScore.toFixed(3)}/${maxPossibleScore.toFixed(3)})`, "", false, false);
+        // Debug: Log detailed breakdown for goblin files and ranger files
+        if (isGoblinFile || isRangerFile) {
+            const breakdown = [];
+            if (searchMode === 'token' && tokenData) {
+                // Token Name (flexible matching for any naming convention)
+                if (tokenNameMatch > 0) {
+                    breakdown.push(`Token Name: ${(tokenNameMatch * weights.tokenName * 100).toFixed(1)}%`);
+                }
+                if (tokenData.representedActor) {
+                    const actorMatch = this._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
+                    if (actorMatch > 0) {
+                        breakdown.push(`Represented Actor: ${(actorMatch * weights.representedActor * 100).toFixed(1)}%`);
+                    }
+                }
+                if (tokenData.creatureClass) {
+                    const classMatch = this._calculateTokenDataMatch(tokenData.creatureClass, fileNameLower, filePathLower, fileInfo);
+                    if (classMatch > 0) {
+                        breakdown.push(`Creature Class: ${(classMatch * weights.creatureClass * 100).toFixed(1)}%`);
+                    }
+                }
+                if (tokenData.equipment && tokenData.equipment.length > 0) {
+                    for (const equipment of tokenData.equipment) {
+                        const equipmentMatch = this._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
+                        if (equipmentMatch > 0) {
+                            breakdown.push(`Equipment: ${(equipmentMatch * weights.equipment * 100).toFixed(1)}%`);
+                            break;
+                        }
+                    }
+                }
+                if (tokenData.subtype) {
+                    const subtypeMatch = this._calculateTokenDataMatch(tokenData.subtype, fileNameLower, filePathLower, fileInfo);
+                    if (subtypeMatch > 0) {
+                        breakdown.push(`Subtype: ${(subtypeMatch * weights.subtype * 100).toFixed(1)}%`);
+                    }
+                }
+                if (tokenData.size) {
+                    const sizeMatch = this._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
+                    if (sizeMatch > 0) {
+                        breakdown.push(`Size: ${(sizeMatch * weights.size * 100).toFixed(1)}%`);
+                    }
+                }
+            }
+            
+            const breakdownText = breakdown.length > 0 ? ` [${breakdown.join(', ')}]` : '';
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Final score for "${fileName}": ${clampedScore.toFixed(3)} (raw: ${totalScore.toFixed(3)}/${maxPossibleScore.toFixed(3)})${breakdownText}`, "", false, false);
         }
         
         return clampedScore;
+    }
+
+    /**
+     * Calculate match score for a specific token data point
+     * @param {string} tokenValue - The token data value to match
+     * @param {string} fileNameLower - Lowercase filename
+     * @param {string} filePathLower - Lowercase file path
+     * @param {Object} fileInfo - File information object
+     * @returns {number} Match score (0.0 to 1.0)
+     */
+    _calculateTokenDataMatch(tokenValue, fileNameLower, filePathLower, fileInfo) {
+        if (!tokenValue) return 0;
+        
+        const valueLower = tokenValue.toLowerCase();
+        let maxScore = 0;
+        
+        // Filename matching
+        if (fileNameLower === valueLower) {
+            maxScore = Math.max(maxScore, 1.0);
+        } else if (fileNameLower.startsWith(valueLower)) {
+            maxScore = Math.max(maxScore, 0.9);
+        } else if (fileNameLower.endsWith(valueLower)) {
+            maxScore = Math.max(maxScore, 0.8);
+        } else if (fileNameLower.includes(valueLower)) {
+            maxScore = Math.max(maxScore, 0.7);
+        } else {
+            // Partial word match
+            const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
+            for (const fileNameWord of fileNameWords) {
+                if (fileNameWord.includes(valueLower) || valueLower.includes(fileNameWord)) {
+                    maxScore = Math.max(maxScore, 0.6);
+                }
+            }
+        }
+        
+        // Metadata matching
+        if (fileInfo.metadata && fileInfo.metadata.tags) {
+            for (const tag of fileInfo.metadata.tags) {
+                const tagLower = tag.toLowerCase();
+                if (tagLower === valueLower) {
+                    maxScore = Math.max(maxScore, 0.95);
+                } else if (tagLower.startsWith(valueLower)) {
+                    maxScore = Math.max(maxScore, 0.85);
+                } else if (tagLower.includes(valueLower)) {
+                    maxScore = Math.max(maxScore, 0.75);
+                }
+            }
+        }
+        
+        // Specific metadata fields
+        if (fileInfo.metadata) {
+            const metadataFields = [
+                'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
+                'equipment', 'pose', 'action', 'direction', 'quality', 'class', 'profession'
+            ];
+            
+            for (const field of metadataFields) {
+                const value = fileInfo.metadata[field];
+                if (value && typeof value === 'string') {
+                    const fieldValueLower = value.toLowerCase();
+                    if (fieldValueLower === valueLower) {
+                        maxScore = Math.max(maxScore, 0.9);
+                    } else if (fieldValueLower.startsWith(valueLower)) {
+                        maxScore = Math.max(maxScore, 0.8);
+                    } else if (fieldValueLower.includes(valueLower)) {
+                        maxScore = Math.max(maxScore, 0.7);
+                    }
+                }
+            }
+        }
+        
+        // Folder path matching
+        if (filePathLower.includes(valueLower)) {
+            if (filePathLower.includes(`/${valueLower}/`)) {
+                maxScore = Math.max(maxScore, 0.6);
+            } else {
+                maxScore = Math.max(maxScore, 0.4);
+            }
+        }
+        
+        return maxScore;
+    }
+
+    /**
+     * Calculate match score for token name (flexible matching for any naming convention)
+     * @param {string} tokenName - The token name (e.g., "Bob (Goblin)", "Goblin 1", "Bob")
+     * @param {string} fileNameLower - Lowercase filename
+     * @param {string} filePathLower - Lowercase file path
+     * @param {Object} fileInfo - File information object
+     * @returns {number} Match score (0.0 to 1.0)
+     */
+    _calculateTokenNameMatch(tokenName, fileNameLower, filePathLower, fileInfo) {
+        if (!tokenName) return 0;
+        
+        const tokenNameLower = tokenName.toLowerCase();
+        let maxScore = 0;
+        
+        // Debug: Log token name matching attempt
+        const isGoblinFile = fileNameLower.includes('goblin');
+        const isRangerFile = fileNameLower.includes('ranger');
+        if (isGoblinFile || isRangerFile) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name Match - Token: "${tokenName}" -> File: "${fileNameLower}"`, "", false, false);
+        }
+        
+        // Extract potential creature names from token name
+        const potentialCreatureNames = [];
+        
+        // 1. Check for parentheses: "Bob (Goblin)" -> "Goblin"
+        const parenMatch = tokenNameLower.match(/\(([^)]+)\)/);
+        if (parenMatch) {
+            const parenContent = parenMatch[1].trim();
+            potentialCreatureNames.push(parenContent); // Add the whole parenthetical content
+        }
+        
+        // 2. Check for numbers: "Goblin 1" -> "Goblin"
+        const numberMatch = tokenNameLower.match(/^([a-z]+)\s+\d+$/);
+        if (numberMatch) {
+            potentialCreatureNames.push(numberMatch[1]);
+        }
+        
+        // 3. Check for "the": "Bob the Goblin" -> "Goblin"
+        const theMatch = tokenNameLower.match(/\bthe\s+([a-z]+)$/);
+        if (theMatch) {
+            potentialCreatureNames.push(theMatch[1]);
+        }
+        
+        // 4. If no patterns match, try splitting by spaces and taking the last word
+        if (potentialCreatureNames.length === 0) {
+            const words = tokenNameLower.split(/\s+/);
+            if (words.length > 1) {
+                potentialCreatureNames.push(words[words.length - 1]);
+            } else {
+                potentialCreatureNames.push(tokenNameLower);
+            }
+        }
+        
+        // Remove duplicates and filter out common words
+        const uniqueNames = [...new Set(potentialCreatureNames)].filter(name => 
+            name.length >= 2 && 
+            !['the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for'].includes(name)
+        );
+        
+        // Debug: Log extracted creature names
+        if (isGoblinFile || isRangerFile) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Extracted creature names: [${uniqueNames.join(', ')}]`, "", false, false);
+        }
+        
+        // Test each potential creature name against the file
+        for (const creatureName of uniqueNames) {
+            // Filename matching
+            if (fileNameLower === creatureName) {
+                maxScore = Math.max(maxScore, 1.0);
+            } else if (fileNameLower.startsWith(creatureName)) {
+                maxScore = Math.max(maxScore, 0.9);
+            } else if (fileNameLower.endsWith(creatureName)) {
+                maxScore = Math.max(maxScore, 0.8);
+            } else if (fileNameLower.includes(creatureName)) {
+                maxScore = Math.max(maxScore, 0.7);
+            } else {
+                // Partial word match
+                const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
+                for (const fileNameWord of fileNameWords) {
+                    if (fileNameWord.includes(creatureName) || creatureName.includes(fileNameWord)) {
+                        maxScore = Math.max(maxScore, 0.6);
+                    }
+                }
+            }
+            
+            // Metadata matching
+            if (fileInfo.metadata && fileInfo.metadata.tags) {
+                for (const tag of fileInfo.metadata.tags) {
+                    const tagLower = tag.toLowerCase();
+                    if (tagLower === creatureName) {
+                        maxScore = Math.max(maxScore, 0.95);
+                    } else if (tagLower.startsWith(creatureName)) {
+                        maxScore = Math.max(maxScore, 0.85);
+                    } else if (tagLower.includes(creatureName)) {
+                        maxScore = Math.max(maxScore, 0.75);
+                    }
+                }
+            }
+        }
+        
+        // Debug: Log final token name match score
+        if (isGoblinFile || isRangerFile) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token Name Match final score: ${maxScore}`, "", false, false);
+        }
+        
+        return maxScore;
     }
 
     /**
@@ -1969,14 +2286,14 @@ export class TokenImageReplacementWindow extends Application {
      */
     _calculateRecommendedToken() {
         if (!this.selectedToken || this.allMatches.length === 0) {
-            postConsoleAndNotification('DEBUG: No selected token or no matches for recommended calculation', 'debug');
+            postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', 'No selected token or no matches for recommended calculation', true, false);
             return null;
         }
         
         const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         
-        postConsoleAndNotification(`DEBUG: Calculating recommended token. Search terms: ${JSON.stringify(searchTerms)}, Threshold: ${threshold}, Total matches: ${this.allMatches.length}`, 'debug');
+        postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `Search terms: ${JSON.stringify(searchTerms)}, Threshold: ${threshold}, Total matches: ${this.allMatches.length}`, true, false);
         
         let bestMatch = null;
         let bestScore = 0;
@@ -2017,11 +2334,11 @@ export class TokenImageReplacementWindow extends Application {
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
                 bestMatch = match;
-                postConsoleAndNotification(`DEBUG: New best match: "${match.name}" with score ${score.toFixed(3)}`, 'debug');
+                postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `New best match: ${match.name} with score ${score.toFixed(3)}`, true, false);
             }
         }
         
-        postConsoleAndNotification(`DEBUG: Recommended token result: ${bestMatch ? bestMatch.name : 'NONE'} (score: ${bestScore.toFixed(3)})`, 'debug');
+        postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `Recommended token result: ${bestMatch ? bestMatch.name : 'NONE'} (score: ${bestScore.toFixed(3)})`, true, false);
         return bestMatch;
     }
 
@@ -2410,7 +2727,7 @@ export class TokenImageReplacement {
         'fey': ['fey', 'creatures'],
         'fiend': ['fiends', 'fiend', 'creatures', 'demons', 'devils'],
         'giant': ['giants', 'giant', 'creatures'],
-        'humanoid': ['humanoids', 'humanoid', 'creatures', 'npcs', 'goblinoids', 'adversaries'],
+        'humanoid': ['humanoids', 'humanoid', 'creatures', 'npcs', 'goblinoids', 'adversaries', 'goblins'],
         'monstrosity': ['monstrosities', 'monstrosity', 'creatures'],
         'ooze': ['oozes', 'ooze', 'creatures'],
         'plant': ['plants', 'plant', 'creatures'],
@@ -2714,6 +3031,253 @@ export class TokenImageReplacement {
         }
         
         return [...new Set(tags)]; // Remove duplicates
+    }
+
+    /**
+     * Extract token data points for weighted scoring
+     * @param {Object} tokenDocument - The token document
+     * @returns {Object} Token data points with their values
+     */
+    static _extractTokenData(tokenDocument) {
+        if (!tokenDocument) return {};
+
+        const actor = tokenDocument.actor;
+        if (!actor) return {};
+
+        const data = {
+            representedActor: null,
+            creatureClass: null,
+            equipment: [],
+            subtype: null,
+            background: null,
+            size: null,
+            alignment: null
+        };
+
+        // 1. Represented Actor (most important)
+        if (actor.name) {
+            // The actor name IS the creature type
+            // Examples: "Goblin" -> "Goblin"
+            //          "Bullywug Warrior" -> "Bullywug Warrior" (use first word)
+            const name = actor.name;
+            const words = name.split(/\s+/);
+            data.representedActor = words[0]; // First word is the creature type
+            
+            // Debug: Log actor name extraction
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Actor name extraction - actor.name: "${actor.name}", extracted representedActor: "${data.representedActor}"`, "", false, false);
+        }
+
+        // 2. Creature Class/Role
+        if (actor.name) {
+            const name = actor.name;
+            const words = name.split(/\s+/);
+            if (words.length > 1) {
+                data.creatureClass = words.slice(1).join(' '); // Everything after first word
+            }
+        }
+
+        // 3. Equipment (from actor items)
+        if (actor.items) {
+            const equipment = [];
+            for (const item of actor.items) {
+                if (item.type === 'weapon' || item.type === 'equipment') {
+                    const itemName = item.name?.toLowerCase() || '';
+                    if (itemName.includes('sword')) equipment.push('sword');
+                    else if (itemName.includes('bow')) equipment.push('bow');
+                    else if (itemName.includes('staff')) equipment.push('staff');
+                    else if (itemName.includes('axe')) equipment.push('axe');
+                    else if (itemName.includes('spear')) equipment.push('spear');
+                    else if (itemName.includes('shield')) equipment.push('shield');
+                    else if (itemName.includes('dagger')) equipment.push('dagger');
+                    else if (itemName.includes('mace')) equipment.push('mace');
+                    else if (itemName.includes('hammer')) equipment.push('hammer');
+                    else if (itemName.includes('crossbow')) equipment.push('crossbow');
+                }
+            }
+            data.equipment = [...new Set(equipment)]; // Remove duplicates
+        }
+
+        // 4. Subtype/Subrace (from actor type or traits)
+        if (actor.type) {
+            data.subtype = actor.type.toLowerCase();
+        }
+
+        // 5. Background/Profession (from actor details)
+        if (actor.system?.details?.background) {
+            data.background = actor.system.details.background.toLowerCase();
+        }
+
+        // 6. Size (from actor size or token scale)
+        if (actor.system?.traits?.size) {
+            data.size = actor.system.traits.size.toLowerCase();
+        } else if (tokenDocument.scale) {
+            // Convert scale to size category
+            const scale = tokenDocument.scale;
+            if (scale <= 0.5) data.size = 'tiny';
+            else if (scale <= 0.75) data.size = 'small';
+            else if (scale <= 1.25) data.size = 'medium';
+            else if (scale <= 1.5) data.size = 'large';
+            else if (scale <= 2) data.size = 'huge';
+            else data.size = 'gargantuan';
+        }
+
+        // 7. Alignment (from actor alignment)
+        if (actor.system?.details?.alignment) {
+            data.alignment = actor.system.details.alignment.toLowerCase();
+        }
+
+        return data;
+    }
+
+    /**
+     * Test the weighted scoring system with example data
+     * Call this from console: TokenImageReplacement.testWeightedScoring()
+     */
+    static testWeightedScoring() {
+        console.log("=== WEIGHTED SCORING TEST ===");
+        
+        // Test data: Bullywug Warrior token
+        const testTokenData = {
+            representedActor: "bullywug",
+            creatureClass: "warrior", 
+            equipment: ["sword"],
+            subtype: "monstrosity",
+            background: null,
+            size: "large",
+            alignment: null
+        };
+        
+        // Test files
+        const testFiles = [
+            {
+                name: "Bullywug_Warrior_A1_Sword_01.webp",
+                path: "creatures/bullywug/",
+                metadata: { tags: ["BULLYWUG", "WARRIOR", "SWORD", "MONSTROSITY", "LARGE"] }
+            },
+            {
+                name: "Sea_Serpent_A1_Segment_A_Huge_Dragon_01.webp", 
+                path: "creatures/sea/",
+                metadata: { tags: ["SEA", "SERPENT", "DRAGON", "MONSTROSITY", "HUGE"] }
+            },
+            {
+                name: "Goblin_Archer_A1_Bow_01.webp",
+                path: "creatures/goblin/", 
+                metadata: { tags: ["GOBLIN", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
+            }
+        ];
+        
+        console.log("Test Token Data:", testTokenData);
+        console.log("Test Files:", testFiles.map(f => f.name));
+        console.log("");
+        
+        // Create a mock token document
+        const mockTokenDocument = {
+            actor: {
+                name: "Rinian (Bullywug Warrior)",
+                type: "monstrosity",
+                items: [
+                    { type: "weapon", name: "Longsword" }
+                ],
+                system: {
+                    traits: { size: "large" },
+                    details: { alignment: "neutral" }
+                }
+            },
+            scale: 1.2
+        };
+        
+        // Test each file
+        for (const fileInfo of testFiles) {
+            const searchTerms = ["Rinian (Bullywug Warrior)", "Bullywug", "Warrior"];
+            const score = TokenImageReplacement.prototype._calculateRelevanceScore.call(
+                TokenImageReplacement.prototype, 
+                fileInfo, 
+                searchTerms, 
+                mockTokenDocument, 
+                'token'
+            );
+            
+            console.log(`${fileInfo.name}: ${(score * 100).toFixed(1)}% match`);
+        }
+        
+        console.log("");
+        console.log("Expected: Bullywug should score highest, Sea Serpent lowest");
+        console.log("=== END TEST ===");
+    }
+
+    /**
+     * Debug the goblin vs ranger scoring issue
+     * Call this from console: TokenImageReplacement.debugGoblinScoring()
+     */
+    static debugGoblinScoring() {
+        console.log("=== DEBUG GOBLIN SCORING ===");
+        
+        // Create mock token document for "Acanos (Goblin)"
+        const mockTokenDocument = {
+            name: "Acanos (Goblin)", // Token name has parentheses
+            actor: {
+                name: "Goblin", // Actor name is just the creature type
+                type: "humanoid",
+                items: [],
+                system: {
+                    traits: { size: "small" },
+                    details: { alignment: "neutral" }
+                }
+            },
+            scale: 1.0
+        };
+        
+        // Extract token data
+        const tokenData = TokenImageReplacement._extractTokenData(mockTokenDocument);
+        console.log("Extracted Token Data:", tokenData);
+        
+        // Test files
+        const testFiles = [
+            {
+                name: "Goblin_Archer_A1_Bow_01.webp",
+                path: "creatures/goblin/",
+                metadata: { tags: ["GOBLIN", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
+            },
+            {
+                name: "!Core_Ranger_A1_Bow_01.webp",
+                path: "creatures/core/",
+                metadata: { tags: ["RANGER", "BOW", "HUMANOID", "MEDIUM"] }
+            }
+        ];
+        
+        // Create temp window for scoring
+        const tempWindow = new TokenImageReplacementWindow();
+        
+        for (const fileInfo of testFiles) {
+            console.log(`\n--- Testing ${fileInfo.name} ---`);
+            
+            // Test token name matching
+            const tokenNameMatch = tempWindow._calculateTokenNameMatch(
+                mockTokenDocument.name, 
+                fileInfo.name.toLowerCase(), 
+                fileInfo.path.toLowerCase(), 
+                fileInfo
+            );
+            console.log(`Token Name "${mockTokenDocument.name}" match: ${tokenNameMatch}`);
+            
+            // Test token data matching
+            if (tokenData.representedActor) {
+                const actorMatch = tempWindow._calculateTokenDataMatch(
+                    tokenData.representedActor, 
+                    fileInfo.name.toLowerCase(), 
+                    fileInfo.path.toLowerCase(), 
+                    fileInfo
+                );
+                console.log(`Represented Actor "${tokenData.representedActor}" match: ${actorMatch}`);
+            }
+            
+            // Test full scoring
+            const searchTerms = ["Goblin", "Acanos (Goblin)", "Goblinoid", "goblin", "acanos"];
+            const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, mockTokenDocument, 'token');
+            console.log(`Final Score: ${(score * 100).toFixed(1)}%`);
+        }
+        
+        console.log("\n=== END DEBUG ===");
     }
     
     static async initialize() {
@@ -3570,14 +4134,42 @@ export class TokenImageReplacement {
     }
     
     /**
-     * Categorize files by creature type based on folder structure
+     * Categorize files by creature type based on folder structure and filename
      */
     static _categorizeByCreatureType(fileName, folderPath) {
         const folderLower = folderPath.toLowerCase();
+        const fileNameLower = fileName.toLowerCase();
         
+        // First try folder-based categorization
         for (const [creatureType, folderNames] of Object.entries(this.CREATURE_TYPE_FOLDERS)) {
             for (const folderName of folderNames) {
                 if (folderLower.includes(folderName.toLowerCase())) {
+                    if (!this.cache.creatureTypes.has(creatureType)) {
+                        this.cache.creatureTypes.set(creatureType, []);
+                    }
+                    this.cache.creatureTypes.get(creatureType).push(fileName);
+                    return; // Found a match, no need to check other types
+                }
+            }
+        }
+        
+        // Fallback: categorize by filename keywords
+        const creatureKeywords = {
+            'goblin': ['goblin', 'goblinoid'],
+            'orc': ['orc', 'orcs'],
+            'elf': ['elf', 'elves', 'elven'],
+            'dwarf': ['dwarf', 'dwarves', 'dwarven'],
+            'human': ['human', 'humans'],
+            'dragon': ['dragon', 'drake', 'wyrm'],
+            'beast': ['bear', 'wolf', 'tiger', 'lion', 'eagle', 'hawk'],
+            'undead': ['skeleton', 'zombie', 'ghost', 'wraith', 'lich'],
+            'construct': ['golem', 'automaton', 'construct'],
+            'elemental': ['fire', 'water', 'earth', 'air', 'elemental']
+        };
+        
+        for (const [creatureType, keywords] of Object.entries(creatureKeywords)) {
+            for (const keyword of keywords) {
+                if (fileNameLower.includes(keyword)) {
                     if (!this.cache.creatureTypes.has(creatureType)) {
                         this.cache.creatureTypes.set(creatureType, []);
                     }
@@ -3619,7 +4211,14 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token details - name: "${tokenDocument.name}", creatureType: "${creatureType}"`, "", false, false);
         
         // Try to find a match
-        const match = this._findBestMatch(searchTerms, tokenDocument);
+        // Get current filter from any open window
+        let currentFilter = 'all';
+        const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+        if (openWindow) {
+            currentFilter = openWindow.currentFilter;
+        }
+        
+        const match = this._findBestMatch(searchTerms, tokenDocument, currentFilter);
         
         if (match) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found match for ${tokenDocument.name}: ${match.name}`, "", false, false);
@@ -3750,14 +4349,14 @@ export class TokenImageReplacement {
         if (tokenDocument.actor && tokenDocument.actor.name) {
             const baseName = tokenDocument.actor.name.replace(/\([^)]*\)/g, '').replace(/\s*\d+$/, '').trim();
             if (baseName && baseName !== tokenDocument.actor.name) {
-                terms.push(baseName);
+            terms.push(baseName);
             }
         }
         
         // Priority 5: Individual words from the represented actor name for better matching
         if (tokenDocument.actor && tokenDocument.actor.name) {
             const words = tokenDocument.actor.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
-            terms.push(...words);
+        terms.push(...words);
         }
         
         // Priority 6: Individual words from token name (as fallback)
@@ -3783,8 +4382,11 @@ export class TokenImageReplacement {
     
     /**
      * Find the best matching image for the given search terms
+     * @param {Array} searchTerms - Search terms for matching
+     * @param {Object} tokenDocument - The token document
+     * @param {string} currentFilter - Current filter to apply (optional)
      */
-    static _findBestMatch(searchTerms, tokenDocument) {
+    static _findBestMatch(searchTerms, tokenDocument, currentFilter = 'all') {
         // First, try to optimize search scope using creature type
         let creatureType = tokenDocument.actor?.system?.details?.type;
         // Handle both string and object formats
@@ -3844,10 +4446,63 @@ export class TokenImageReplacement {
                 searchScope = this.cache.files;
             }
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using full cache: ${searchScope.size} files`, "", false, false);
-            if (creatureType) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Creature type "${creatureType}" not found in cache, falling back to full cache`, "", false, false);
+            // If creature type not found, try to find goblin files specifically for goblin tokens
+            if (creatureType === 'humanoid' && searchTerms.some(term => term.toLowerCase().includes('goblin'))) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Searching for goblin files specifically`, "", false, false);
+                searchScope = new Map();
+                for (const [fileName, fileInfo] of this.cache.files) {
+            if (fileName.toLowerCase().includes('goblin')) {
+                        searchScope.set(fileName, fileInfo);
+                    }
+                }
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${searchScope.size} goblin files`, "", false, false);
+                
+                // If still no goblin files found, fall back to full cache
+                if (searchScope.size === 0) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No goblin files found, falling back to full cache`, "", false, false);
+                    searchScope = this.cache.files;
+                }
+        } else {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using full cache: ${searchScope.size} files`, "", false, false);
+                if (creatureType) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Creature type "${creatureType}" not found in cache, falling back to full cache`, "", false, false);
+                }
             }
+        }
+        
+        // Apply module filter if not 'all'
+        if (currentFilter !== 'all') {
+            const originalSize = searchScope.size;
+            const filteredScope = new Map();
+            
+            for (const [fileName, fileInfo] of searchScope.entries()) {
+                const path = fileInfo.path || '';
+                const name = fileInfo.name || '';
+                
+                // Apply the same filtering logic as _getFilteredFiles
+                let shouldInclude = false;
+                switch (currentFilter) {
+                    case 'selected':
+                        // Only show files that match the selected token's characteristics
+                        const fileText = `${path} ${name}`.toLowerCase();
+                        shouldInclude = searchTerms.some(term => fileText.includes(term.toLowerCase()));
+                        break;
+                    default:
+                        // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
+                        // check if file is in that top-level folder
+                        const pathParts = path.split('/');
+                        const topLevel = pathParts[0];
+                        shouldInclude = topLevel && topLevel.toLowerCase() === currentFilter;
+                        break;
+                }
+                
+                if (shouldInclude) {
+                    filteredScope.set(fileName, fileInfo);
+                }
+            }
+            
+            searchScope = filteredScope;
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied filter "${currentFilter}": ${originalSize} → ${searchScope.size} files`, "", false, false);
         }
         
         let bestMatch = null;
@@ -3954,7 +4609,13 @@ export class TokenImageReplacement {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed invalid path from cache: ${matchingImage.name}`, "", false, false);
                 
                 // Try to find an alternative match
-                const alternativeMatch = this._findBestMatch(this._getSearchTerms(tokenDocument), tokenDocument);
+                // Get current filter from any open window
+                let currentFilter = 'all';
+                const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+                if (openWindow) {
+                    currentFilter = openWindow.currentFilter;
+                }
+                const alternativeMatch = this._findBestMatch(this._getSearchTerms(tokenDocument), tokenDocument, currentFilter);
                 if (alternativeMatch && !this._isInvalidFilePath(alternativeMatch.fullPath)) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
                     try {
@@ -3985,7 +4646,13 @@ export class TokenImageReplacement {
                     this.cache.files.delete(matchingImage.name.toLowerCase());
                     
                     // Try to find an alternative match
-                    const alternativeMatch = this._findBestMatch(this._getSearchTerms(tokenDocument), tokenDocument);
+                    // Get current filter from any open window
+                    let currentFilter = 'all';
+                    const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+                    if (openWindow) {
+                        currentFilter = openWindow.currentFilter;
+                    }
+                    const alternativeMatch = this._findBestMatch(this._getSearchTerms(tokenDocument), tokenDocument, currentFilter);
                     if (alternativeMatch && !this._isInvalidFilePath(alternativeMatch.fullPath)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
                         try {

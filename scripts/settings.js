@@ -1622,7 +1622,17 @@ export const registerSettings = async () => {
 		default: '_gsdata_,Build_a_Token,.DS_Store',
 		requiresReload: true
 	});
-
+	// Deprioritized Words
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+		name: 'Deprioritized Words',
+		hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'spirit',
+	});
+	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
 		name: 'Token Image Replacement: Category Style',
 		hint: 'Choose how category filters are displayed in the Token Image Replacement window',
@@ -1637,6 +1647,9 @@ export const registerSettings = async () => {
 		requiresReload: true
 	});
 
+	// SET THE KIND OF TOKENS WE UPDATE
+
+	// Update Monsters
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
 		name: 'Update Monsters',
 		hint: 'Replace images for monster tokens (non-NPC creatures with Challenge Rating).',
@@ -1647,6 +1660,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// Update NPCs
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
 		name: 'Update NPCs', 
 		hint: 'Replace images for friendly NPC tokens (non-hostile NPCs).',
@@ -1657,6 +1671,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// Update Vehicles
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
 		name: 'Update Vehicles',
 		hint: 'Replace images for vehicle tokens.',
@@ -1667,6 +1682,7 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// Update Actors
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
 		name: 'Update Actors',
 		hint: 'Replace images for character/actor tokens (usually player characters).',
@@ -1677,6 +1693,7 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// Skip Linked Tokens
 	game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
 		name: 'Skip Linked Tokens',
 		hint: 'Do not replace images for tokens linked to actors (usually player characters).',
@@ -1688,6 +1705,9 @@ export const registerSettings = async () => {
 	});
 
 
+	// CACHE SETTINGS
+
+	// Automatically Update Image Cache
 	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
 		name: 'Automatically Update Image Cache',
 		hint: 'Automatically scan for new or changed token images when changes are detected.',
@@ -1698,6 +1718,7 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
+	// Matching Threshold
 	game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
 		name: 'Matching Threshold',
 		hint: 'How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.',
@@ -1713,15 +1734,99 @@ export const registerSettings = async () => {
 		default: 0.3,
 	});
 
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-		name: 'Deprioritized Words',
-		hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
-		type: String,
+	
+
+	// TOKEN DATA WEIGHTING
+
+	// Represented Actor Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
+		name: 'Represented Actor Weight',
+		hint: 'How important the represented actor name is for matching (e.g., "Goblin", "Bullywug") - Most critical data point',
+		type: Number,
 		config: true,
-		requiresReload: false,
 		scope: 'world',
-		default: 'spirit',
+		range: { min: 0, max: 100, step: 5 },
+		default: 80
 	});
+
+	// Token Name Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
+		name: 'Token Name Weight',
+		hint: 'How important the token name is for matching (e.g., "Bob (Goblin)", "Goblin 1", "Bob") - Use this when token names contain creature info',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 20
+	});
+
+	// Creature Class Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureClass', {
+		name: 'Creature Class Weight',
+		hint: 'How important the creature class/role is for matching (e.g., "Warrior", "Mage", "Archer")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 15
+	});
+
+	// Equipment Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightEquipment', {
+		name: 'Equipment Weight',
+		hint: 'How important equipment is for matching (e.g., "Sword", "Bow", "Staff")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 10
+	});
+
+	// Subtype Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSubtype', {
+		name: 'Subtype Weight',
+		hint: 'How important subtype/subrace is for matching (e.g., "Goblinoid", "Dragon", "Elemental")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 8
+	});
+
+	// Background Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightBackground', {
+		name: 'Background Weight',
+		hint: 'How important background/profession is for matching (e.g., "Soldier", "Noble", "Cultist")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 5
+	});
+
+	// Size Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
+		name: 'Size Weight',
+		hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 3
+	});
+
+	// Alignment Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightAlignment', {
+		name: 'Alignment Weight',
+		hint: 'How important alignment is for matching (e.g., "Chaotic Evil", "Neutral")',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 2
+	});
+
+
 
 
 

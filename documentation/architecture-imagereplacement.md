@@ -88,34 +88,43 @@ The system extracts data from the selected token and applies configurable weight
 #### 1. **Represented Actor** (Default: 80%)
 - **Most Critical**: "Goblin", "Golem", "Pixie", "Bullywug"
 - **Why**: This is literally what we need an image of
-- **Example**: Token name "Rinian (Bullywug Warrior)" → "Bullywug" is the key
+- **Example**: Actor name "Goblin" → "Goblin" is the key
 
-#### 2. **Creature Class/Role** (Default: 15%)
+#### 2. **Token Name** (Default: 20%)
+- **Flexible Matching**: Handles any naming convention
+- **Why**: GMs use arbitrary token names that may contain creature info
+- **Examples**: 
+  - "Bob (Goblin)" → extracts "Goblin"
+  - "Goblin 1" → extracts "Goblin" 
+  - "Bob the Goblin" → extracts "Goblin"
+  - "Acanos" → uses "Acanos" as fallback
+
+#### 3. **Creature Class/Role** (Default: 15%)
 - **High Priority**: "Fighter", "Mage", "Archer", "Warrior", "Rogue"
 - **Why**: Narrows down the specific type of that creature
 - **Example**: "Bullywug Warrior" vs "Bullywug Shaman"
 
-#### 3. **Equipment** (Default: 10%)
+#### 4. **Equipment** (Default: 10%)
 - **Medium-High Priority**: "Sword", "Bow", "Staff", "Shield"
 - **Why**: Can draw conclusions not specified in represented actor
 - **Example**: "Goblin" + "Bow" = "Goblin Archer"
 
-#### 4. **Subtype/Subrace** (Default: 8%)
+#### 5. **Subtype/Subrace** (Default: 8%)
 - **Medium Priority**: "Goblinoid", "Dragon", "Elemental", "Undead"
 - **Why**: Helps narrow the search pool
 - **Example**: "Goblin" + "Goblinoid" = more specific than just "Humanoid"
 
-#### 5. **Background/Profession** (Default: 5%)
+#### 6. **Background/Profession** (Default: 5%)
 - **Medium-Low Priority**: "Soldier", "Noble", "Hermit", "Cultist"
 - **Why**: Narrowing data, especially useful for specific contexts
 - **Example**: "Cultist" + "Evil" = "Evil Cultist"
 
-#### 6. **Size** (Default: 3%)
+#### 7. **Size** (Default: 3%)
 - **Low-Medium Priority**: "Large", "Medium", "Huge", "Small"
 - **Why**: Helps narrow down, but many creatures can be the same size
 - **Example**: Many creatures can be "Large"
 
-#### 7. **Alignment** (Default: 2%)
+#### 8. **Alignment** (Default: 2%)
 - **Low Priority**: "Chaotic Evil", "Neutral", "Lawful Good"
 - **Why**: Only useful for specific contexts like "evil cultist"
 - **Example**: "Cultist" + "Evil" = more specific than just "Cultist"
