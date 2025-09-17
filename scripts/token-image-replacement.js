@@ -1796,7 +1796,21 @@ export class TokenImageReplacementWindow extends Application {
         
         // Normalize score to 0.0-1.0 range
         const finalScore = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
-        const clampedScore = Math.min(Math.max(finalScore, 0), 1); // Ensure 0.0-1.0 range
+        let clampedScore = Math.min(Math.max(finalScore, 0), 1); // Ensure 0.0-1.0 range
+        
+        // Apply deprioritized words penalty
+        const deprioritizedWords = game.settings.get(MODULE.ID, 'tokenImageReplacementDeprioritizedWords') || '';
+        if (deprioritizedWords && deprioritizedWords.trim().length > 0) {
+            const words = deprioritizedWords.toLowerCase().split(',').map(word => word.trim()).filter(word => word.length > 0);
+            const fileNameAndPath = `${fileName} ${filePath}`.toLowerCase();
+            
+            for (const word of words) {
+                if (fileNameAndPath.includes(word)) {
+                    clampedScore *= 0.75; // Reduce score by 25% for each deprioritized word found
+                    break; // Only apply penalty once per file, even if multiple deprioritized words are found
+                }
+            }
+        }
         
         // Debug: Log final score for goblin files
         if (isGoblinFile) {

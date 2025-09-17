@@ -1713,6 +1713,16 @@ export const registerSettings = async () => {
 		default: 0.3,
 	});
 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+		name: 'Deprioritized Words',
+		hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'spirit',
+	});
+
 
 
 	// ---------- Dead Tokens ----------
