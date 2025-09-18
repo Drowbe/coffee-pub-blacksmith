@@ -4547,35 +4547,31 @@ export class TokenImageReplacement {
     /**
      * Store the original image for a token before any updates
      */
-    static _storeOriginalImage(tokenDocument) {
+    static async _storeOriginalImage(tokenDocument) {
         if (!tokenDocument || !tokenDocument.texture) {
             return;
         }
         
-        const tokenId = tokenDocument.id;
         const originalImage = {
             path: tokenDocument.texture.src,
             name: tokenDocument.texture.src.split('/').pop(),
             timestamp: Date.now()
         };
         
-        // Store in a simple object for now (could be enhanced to use game.settings for persistence)
-        if (!this.originalImages) {
-            this.originalImages = {};
-        }
-        
-        this.originalImages[tokenId] = originalImage;
+        // Store in token flags for persistence
+        await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
     }
 
     /**
      * Get the original image for a token
      */
     static _getOriginalImage(tokenDocument) {
-        if (!this.originalImages || !tokenDocument) {
+        if (!tokenDocument) {
             return null;
         }
         
-        return this.originalImages[tokenDocument.id] || null;
+        // Get from token flags for persistence
+        return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
     }
 
     /**
@@ -4585,7 +4581,7 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Hook fired for token: ${tokenDocument.name}`, "", false, false);
         
         // Store the original image before any updates
-        this._storeOriginalImage(tokenDocument);
+        await this._storeOriginalImage(tokenDocument);
         
         // Only process if we're a GM and the feature is enabled
         if (!game.user.isGM) {
