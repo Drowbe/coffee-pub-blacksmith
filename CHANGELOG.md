@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [12.1.5] - Token Movement System Enhancements
 
+### Fixed
+- **Token Movement Locking:** Fixed critical issue where players could still move tokens even when movement was set to "locked" mode
+- **HookManager Return Value Handling:** Modified HookManager to properly handle return values from `preUpdateToken` hooks, allowing movement restrictions to actually block token updates
+- **Movement Restriction Enforcement:** Players now receive warning messages AND movement is properly blocked when in "no-movement" mode
+
+### Technical Details
+- Updated `scripts/manager-hooks.js` to capture and respect return values from `preUpdateToken` hook callbacks
+- When any `preUpdateToken` callback returns `false`, the entire hook chain now returns `false` to block the action
+- This ensures FoundryVTT properly respects movement restriction settings
+
+### TODO
+- **HookManager Priority System:** Consider implementing proper priority-based execution order for hook callbacks (currently hooks run in registration order, not priority order)
+- **Comprehensive Hook Testing:** Test all hook types to ensure the return value handling doesn't break other functionality
 
 
 ## [12.1.4] - Token Image Replacement System Enhancements
