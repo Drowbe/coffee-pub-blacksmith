@@ -1412,51 +1412,36 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
+        // Debug: Only log for problematic files to avoid spam
+        if (match.name.includes('HALFORC') || match.name.includes('CORE')) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - _getTagsForMatch called for ${match.name}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - Has metadata: ${!!match.metadata}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - Tags: ${match.metadata && match.metadata.tags ? match.metadata.tags.join(', ') : 'none'}`, "", true, false);
+        }
+        
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
         }
         
-        // Use metadata-based tags if available
-        if (match.metadata && match.metadata.tags) {
+        // Only use metadata-based tags - no fallbacks
+        if (match.metadata && match.metadata.tags && match.metadata.tags.length > 0) {
             // Add metadata tags (already processed and formatted)
             match.metadata.tags.forEach(tag => {
                 if (!tags.includes(tag)) {
                     tags.push(tag);
                 }
             });
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using metadata tags for ${match.name}: ${match.metadata.tags.join(', ')}`, "", true, false);
         } else {
-            // Fallback to old method if no metadata
-            // Get creature type from cache
-            const fileName = match.name.toLowerCase();
-            for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                if (files.includes(fileName)) {
-                    tags.push(creatureType);
-                    break; // Only add the first matching creature type
-                }
-            }
-            
-            // Get folder hierarchy tags
-            if (match.path) {
-                const pathParts = match.path.split('/').slice(0, -1); // Remove filename, keep folder parts
-                pathParts.forEach(part => {
-                    if (part && part !== 'creatures' && part !== 'tokens') {
-                        // Clean up folder name for display
-                        const cleanPart = TokenImageReplacement._cleanCategoryName(part).toLowerCase();
-                        if (!tags.includes(cleanPart)) {
-                            tags.push(cleanPart);
-                        }
-                    }
-                });
-            }
+            // No fallback - this is a critical error that needs to be fixed
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR - No metadata available for ${match.name}. The scanning process is broken.`, "", false, false);
+            console.error(`Token Image Replacement: Missing metadata for file: ${match.name}`, match);
+            // Return empty array - no tags means no display
+            return [];
         }
         
-        // If no tags found (and not current image), add a generic one
-        if (tags.length === 0 || (tags.length === 1 && tags[0] === 'CURRENT IMAGE')) {
-            tags.push('image');
-        }
-        
-        return tags;
+        return [...new Set(tags)]; // Remove duplicates
     }
 
     _applyPagination() {
@@ -1995,7 +1980,7 @@ export class TokenImageReplacementWindow extends Application {
 
     /**
      * Calculate match score for token name (flexible matching for any naming convention)
-     * @param {string} tokenName - The token name (e.g., "Bob (Goblin)", "Goblin 1", "Bob")
+     * @param {string} tokenName - The token name (e.g., "Bob (Creature)", "Creature 1", "Bob")
      * @param {string} fileNameLower - Lowercase filename
      * @param {string} filePathLower - Lowercase file path
      * @param {Object} fileInfo - File information object
@@ -2008,25 +1993,24 @@ export class TokenImageReplacementWindow extends Application {
         let maxScore = 0;
         
         // Debug: Log token name matching attempt
-        const isGoblinFile = fileNameLower.includes('goblin');
         
         // Extract potential creature names from token name
         const potentialCreatureNames = [];
         
-        // 1. Check for parentheses: "Bob (Goblin)" -> "Goblin"
+        // 1. Check for parentheses: "Bob (Creature)" -> "Creature"
         const parenMatch = tokenNameLower.match(/\(([^)]+)\)/);
         if (parenMatch) {
             const parenContent = parenMatch[1].trim();
             potentialCreatureNames.push(parenContent); // Add the whole parenthetical content
         }
         
-        // 2. Check for numbers: "Goblin 1" -> "Goblin"
+        // 2. Check for numbers: "Creature 1" -> "Creature"
         const numberMatch = tokenNameLower.match(/^([a-z]+)\s+\d+$/);
         if (numberMatch) {
             potentialCreatureNames.push(numberMatch[1]);
         }
         
-        // 3. Check for "the": "Bob the Goblin" -> "Goblin"
+        // 3. Check for "the": "Bob the Creature" -> "Creature"
         const theMatch = tokenNameLower.match(/\bthe\s+([a-z]+)$/);
         if (theMatch) {
             potentialCreatureNames.push(theMatch[1]);
@@ -2662,7 +2646,7 @@ export class TokenImageReplacement {
         'fey': ['fey', 'creatures'],
         'fiend': ['fiends', 'fiend', 'creatures', 'demons', 'devils'],
         'giant': ['giants', 'giant', 'creatures'],
-        'humanoid': ['humanoids', 'humanoid', 'creatures', 'npcs', 'goblinoids', 'adversaries', 'goblins'],
+        'humanoid': ['humanoids', 'humanoid', 'creatures', 'npcs', 'adversaries'],
         'monstrosity': ['monstrosities', 'monstrosity', 'creatures'],
         'ooze': ['oozes', 'ooze', 'creatures'],
         'plant': ['plants', 'plant', 'creatures'],
@@ -2689,7 +2673,7 @@ export class TokenImageReplacement {
         profession: /^(merchant|guard|noble|peasant|soldier|knight|lord|lady|king|queen|prince|princess|duke|duchess|baron|baroness|count|countess|earl|viscount|mayor|sheriff|captain|lieutenant|sergeant|corporal|private|recruit|veteran|elite|master|apprentice|novice|expert|grandmaster)$/i,
         
         // Equipment
-        weapon: /^(sword|bow|staff|axe|spear|mace|dagger|crossbow|wand|orb|hammer|flail|whip|sling|javelin|trident|halberd|glaive|scythe|scimitar|rapier|longsword|shortsword|greatsword|battleaxe|handaxe|warhammer|maul|club|quarterstaff|shortbow|longbow|heavy_crossbow|light_crossbow|hand_crossbow)$/i,
+        weapon: /^(sword|bow|staff|axe|spear|mace|dagger|crossbow|wand|orb|hammer|flail|whip|sling|javelin|trident|halberd|glaive|scythe|scimitar|rapier|longsword|shortsword|greatsword|battleaxe|handaxe|warhammer|maul|club|quarterstaff|shortbow|longbow|heavy_crossbow|light_crossbow|hand_crossbow|dual|swords)$/i,
         armor: /^(leather|chain|plate|robe|cloth|hide|scale|ring|splint|banded|studded|padded|quilted|brigandine|lamellar|scale_mail|chain_mail|splint_mail|banded_mail|plate_mail|full_plate|half_plate|breastplate|field_plate|gothic_plate|maximilian_plate)$/i,
         
         // Actions/Poses
@@ -2702,7 +2686,6 @@ export class TokenImageReplacement {
     
     // Subtype patterns for folder-based extraction
     static SUBTYPE_PATTERNS = [
-        /goblinoids?/i,
         /dragonborn/i,
         /tieflings?/i,
         /aasimar/i,
@@ -2721,7 +2704,6 @@ export class TokenImageReplacement {
         /tabaxi/i,
         /tortles?/i,
         /bugbears?/i,
-        /hobgoblins?/i,
         /kobolds?/i,
         /lizardfolk/i,
         /minotaurs?/i,
@@ -2798,6 +2780,8 @@ export class TokenImageReplacement {
                 return;
             }
             
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Loading monster mapping data...", "", false, false);
+            
             // Load monster mapping from resources
             const response = await fetch('modules/coffee-pub-blacksmith/resources/monster-mapping.json');
             if (response.ok) {
@@ -2805,10 +2789,11 @@ export class TokenImageReplacement {
                 await game.settings.set(MODULE.ID, 'monsterMappingData', monsterData);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Loaded monster mapping data with ${Object.keys(monsterData.monsters).length} monsters`, "", false, false);
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Failed to load monster mapping data", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to load monster mapping data - HTTP ${response.status}`, "", false, false);
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error loading monster mapping data: ${error.message}`, "", false, false);
+            console.error('Monster mapping error:', error);
         }
     }
 
@@ -2870,49 +2855,34 @@ export class TokenImageReplacement {
             // Basic info
             name: fileName,
             path: filePath,
-            
-            // Size information
-            size: null,
-            scale: null,
-            sizeCategory: null,
-            
-            // Creature/Character type
-            creatureType: null,
-            subtype: null,
-            specificType: null,
-            
-            // Class information
-            class: null,
-            classType: null,
-            profession: null,
-            
-            // Equipment/Weapon info
-            weapon: null,
-            armor: null,
-            equipment: [],
-            
-            // Pose/Action
-            pose: null,
-            action: null,
-            direction: null,
-            
-            // Quality
-            quality: null,
-            
-            // Subcategories from folder structure
-            subcategories: [],
-            mainCategory: null,
             fullPath: null,
             
-            // Generated tags
+        // D&D 5e data (for matching with tokens)
+        dnd5eType: null,
+        dnd5eSubtype: null,
+        size: null,
+        challengeRating: null,
+        alignment: null,
+        
+        // Creature name (for matching)
+        creatureName: null,
+        
+        // Class information (for matching)
+        class: null,
+        
+        // Equipment (for matching) - arrays to match token data
+        weapons: [],
+        armor: [],
+            
+            // Generated tags (for display and filtering)
             tags: []
         };
         
-        // Extract folder path information
+        // Extract folder path information (for filtering)
         const pathParts = filePath.split('/');
         metadata.fullPath = pathParts.slice(0, -1).join('/');
-        metadata.mainCategory = this._cleanCategoryName(pathParts[0] || '');
-        metadata.subcategories = pathParts.slice(0, -1).map(part => this._cleanCategoryName(part));
+        metadata.folderPath = pathParts.slice(0, -1); // Array of folder names
+        metadata.topLevelFolder = pathParts[0] || ''; // First folder (for category filtering)
         
         // Extract filename without extension
         const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
@@ -2923,30 +2893,13 @@ export class TokenImageReplacement {
         if (monsterData) {
             metadata.dnd5eType = monsterData.dnd5eType;
             metadata.dnd5eSubtype = monsterData.dnd5eSubtype;
-            metadata.size = monsterData.size;
+            metadata.size = this._normalizeSize(monsterData.size);
             metadata.challengeRating = monsterData.challengeRating;
             metadata.alignment = monsterData.alignment;
-            metadata.commonClasses = monsterData.commonClasses;
-            metadata.commonEquipment = monsterData.commonEquipment;
-            metadata.monsterVariations = monsterData.variations;
-            
-            // Debug logging for goblin files
-            if (nameWithoutExt.toLowerCase().includes('goblin')) {
-                console.log(`🔍 MONSTER MAPPING DEBUG - File: ${fileName}`);
-                console.log(`   Monster Data Found:`, monsterData);
-                console.log(`   Final Metadata:`, {
-                    dnd5eType: metadata.dnd5eType,
-                    dnd5eSubtype: metadata.dnd5eSubtype,
-                    size: metadata.size,
-                    commonClasses: metadata.commonClasses,
-                    commonEquipment: metadata.commonEquipment
-                });
-            }
-        } else if (nameWithoutExt.toLowerCase().includes('goblin')) {
-            console.log(`❌ NO MONSTER MAPPING - File: ${fileName} (${nameWithoutExt})`);
+            metadata.creatureName = monsterData.name || nameWithoutExt;
         }
         
-        // Process each part of the filename
+        // Process each part of the filename - only extract what we need for matching
         for (const part of nameParts) {
             const cleanPart = part.toLowerCase();
             
@@ -2955,39 +2908,22 @@ export class TokenImageReplacement {
                 continue;
             }
             
-            // Check each metadata pattern
-            for (const [key, pattern] of Object.entries(this.METADATA_PATTERNS)) {
-                if (pattern.test(cleanPart)) {
-                    if (key === 'scale') {
-                        const match = cleanPart.match(pattern);
-                        if (match) {
-                            metadata.scale = match[1];
-                            metadata.sizeCategory = this._getSizeCategoryFromScale(parseInt(match[1]));
-                        }
-                    } else {
-                        metadata[key] = cleanPart;
-                    }
-                    break; // Found a match, move to next part
+            // Only check patterns that matter for token matching
+            if (this.METADATA_PATTERNS.class.test(cleanPart)) {
+                metadata.class = cleanPart;
+            } else if (this.METADATA_PATTERNS.weapon.test(cleanPart)) {
+                if (!metadata.weapons.includes(cleanPart)) {
+                    metadata.weapons.push(cleanPart);
                 }
+            } else if (this.METADATA_PATTERNS.armor.test(cleanPart)) {
+                if (!metadata.armor.includes(cleanPart)) {
+                    metadata.armor.push(cleanPart);
+                }
+            } else if (this.METADATA_PATTERNS.size.test(cleanPart)) {
+                metadata.size = this._normalizeSize(cleanPart);
             }
         }
         
-        // Extract subtype from folder structure
-        if (pathParts.length > 1) {
-            // Look for subtype in folder names (e.g., "Goblinoids" in "Adversaries/Goblinoids/")
-            for (let i = pathParts.length - 1; i >= 0; i--) {
-                const folderName = pathParts[i].toLowerCase();
-                if (this.SUBTYPE_PATTERNS.some(pattern => pattern.test(folderName))) {
-                    metadata.subtype = this._cleanCategoryName(pathParts[i]);
-                    break;
-                }
-            }
-        }
-        
-        // Determine class type based on class
-        if (metadata.class) {
-            metadata.classType = this._getClassType(metadata.class);
-        }
         
         // Generate tags from metadata
         metadata.tags = this._generateTagsFromMetadata(metadata);
@@ -2995,78 +2931,64 @@ export class TokenImageReplacement {
         return metadata;
     }
     
-    /**
-     * Get size category from scale number
-     */
-    static _getSizeCategoryFromScale(scale) {
-        if (scale <= 50) return 'tiny';
-        if (scale <= 100) return 'small';
-        if (scale <= 150) return 'medium';
-        if (scale <= 200) return 'large';
-        if (scale <= 300) return 'huge';
-        return 'giant';
-    }
     
     /**
-     * Get class type from class name
+     * Normalize size abbreviations to full names
+     * @param {string} size - Size abbreviation or full name
+     * @returns {string} Normalized size
      */
-    static _getClassType(className) {
-        const martialClasses = ['fighter', 'barbarian', 'monk', 'ranger', 'paladin', 'archer', 'knight', 'warrior', 'assassin', 'thief'];
-        const casterClasses = ['wizard', 'mage', 'sorcerer', 'warlock', 'druid', 'cleric', 'priest', 'shaman', 'necromancer', 'enchanter', 'illusionist', 'conjurer', 'evoker', 'abjurer', 'diviner', 'transmuter'];
-        const hybridClasses = ['bard', 'ranger', 'paladin'];
+    static _normalizeSize(size) {
+        if (!size) return null;
         
-        if (martialClasses.includes(className)) return 'martial';
-        if (casterClasses.includes(className)) return 'caster';
-        if (hybridClasses.includes(className)) return 'hybrid';
-        return 'utility';
+        const sizeMap = {
+            'tiny': 'tiny',
+            'sm': 'small',
+            'small': 'small',
+            'med': 'medium',
+            'medium': 'medium',
+            'lg': 'large',
+            'large': 'large',
+            'huge': 'huge',
+            'garg': 'gargantuan',
+            'gargantuan': 'gargantuan'
+        };
+        
+        return sizeMap[size.toLowerCase()] || size.toLowerCase();
     }
-    
+
     /**
      * Generate tags from extracted metadata
      */
     static _generateTagsFromMetadata(metadata) {
         const tags = [];
         
-        // Add size tags
+        // Add D&D 5e data tags (for matching)
+        if (metadata.dnd5eType) tags.push(metadata.dnd5eType.toUpperCase());
+        if (metadata.dnd5eSubtype) tags.push(metadata.dnd5eSubtype.toUpperCase());
         if (metadata.size) tags.push(metadata.size.toUpperCase());
-        if (metadata.scale) tags.push(`SCALE${metadata.scale}`);
-        if (metadata.sizeCategory) tags.push(metadata.sizeCategory.toUpperCase());
+        if (metadata.alignment) tags.push(metadata.alignment.toUpperCase());
         
-        // Add creature type tags
-        if (metadata.creatureType) tags.push(metadata.creatureType.toUpperCase());
-        if (metadata.subtype) tags.push(metadata.subtype.toUpperCase());
-        if (metadata.specificType) tags.push(metadata.specificType.toUpperCase());
-        
-        // Add class tags
+        // Add class tags (for matching)
         if (metadata.class) tags.push(metadata.class.toUpperCase());
-        if (metadata.classType) tags.push(metadata.classType.toUpperCase());
-        if (metadata.profession) tags.push(metadata.profession.toUpperCase());
         
-        // Add equipment tags
-        if (metadata.weapon) tags.push(metadata.weapon.toUpperCase());
-        if (metadata.armor) tags.push(metadata.armor.toUpperCase());
-        if (metadata.equipment && metadata.equipment.length > 0) {
-            metadata.equipment.forEach(eq => tags.push(eq.toUpperCase()));
+        // Add equipment tags (for matching)
+        if (metadata.weapons && metadata.weapons.length > 0) {
+            metadata.weapons.forEach(weapon => tags.push(weapon.toUpperCase()));
+        }
+        if (metadata.armor && metadata.armor.length > 0) {
+            metadata.armor.forEach(armor => tags.push(armor.toUpperCase()));
         }
         
-        // Add action/pose tags
-        if (metadata.action) tags.push(metadata.action.toUpperCase());
-        if (metadata.pose) tags.push(metadata.pose.toUpperCase());
-        if (metadata.direction) tags.push(metadata.direction.toUpperCase());
-        
-        // Add quality tags
-        if (metadata.quality) tags.push(metadata.quality.toUpperCase());
-        
-        // Add subcategory tags (already cleaned)
-        metadata.subcategories.forEach(subcat => {
-            if (subcat && subcat.length > 0) {
-                tags.push(subcat.toUpperCase());
-            }
-        });
-        
-        // Add main category tag (already cleaned)
-        if (metadata.mainCategory) {
-            tags.push(metadata.mainCategory.toUpperCase());
+        // Add folder tags (for filtering)
+        if (metadata.folderPath && metadata.folderPath.length > 0) {
+            metadata.folderPath.forEach(folder => {
+                if (folder && folder !== 'assets' && folder !== 'images' && folder !== 'tokens') {
+                    const cleanFolder = this._cleanCategoryName(folder);
+                    if (cleanFolder) {
+                        tags.push(cleanFolder.toUpperCase());
+                    }
+                }
+            });
         }
         
         return [...new Set(tags)]; // Remove duplicates
@@ -3096,8 +3018,8 @@ export class TokenImageReplacement {
         // 1. Represented Actor (most important)
         if (actor.name) {
             // The actor name IS the creature type
-            // Examples: "Goblin" -> "Goblin"
-            //          "Bullywug Warrior" -> "Bullywug Warrior" (use first word)
+            // Examples: "Creature" -> "Creature"
+            //          "Creature Warrior" -> "Creature Warrior" (use first word)
             const name = actor.name;
             const words = name.split(/\s+/);
             data.representedActor = words[0]; // First word is the creature type
@@ -3189,9 +3111,9 @@ export class TokenImageReplacement {
                 metadata: { tags: ["SEA", "SERPENT", "DRAGON", "MONSTROSITY", "HUGE"] }
             },
             {
-                name: "Goblin_Archer_A1_Bow_01.webp",
-                path: "creatures/goblin/", 
-                metadata: { tags: ["GOBLIN", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
+                name: "Creature_Archer_A1_Bow_01.webp",
+                path: "creatures/creature/", 
+                metadata: { tags: ["CREATURE", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
             }
         ];
         
@@ -3235,17 +3157,17 @@ export class TokenImageReplacement {
     }
 
     /**
-     * Debug the goblin vs ranger scoring issue
-     * Call this from console: TokenImageReplacement.debugGoblinScoring()
+     * Debug the scoring system
+     * Call this from console: TokenImageReplacement.debugScoring()
      */
-    static debugGoblinScoring() {
-        console.log("=== DEBUG GOBLIN SCORING ===");
+    static debugScoring() {
+        console.log("=== DEBUG SCORING ===");
         
-        // Create mock token document for "Acanos (Goblin)"
+        // Create mock token document for "Test (Creature)"
         const mockTokenDocument = {
-            name: "Acanos (Goblin)", // Token name has parentheses
+            name: "Test (Creature)", // Token name has parentheses
             actor: {
-                name: "Goblin", // Actor name is just the creature type
+                name: "Creature", // Actor name is just the creature type
                 type: "humanoid",
                 items: [],
                 system: {
@@ -3263,9 +3185,9 @@ export class TokenImageReplacement {
         // Test files
         const testFiles = [
             {
-                name: "Goblin_Archer_A1_Bow_01.webp",
-                path: "creatures/goblin/",
-                metadata: { tags: ["GOBLIN", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
+                name: "Creature_Archer_A1_Bow_01.webp",
+                path: "creatures/creature/",
+                metadata: { tags: ["CREATURE", "ARCHER", "BOW", "HUMANOID", "SMALL"] }
             },
             {
                 name: "!Core_Ranger_A1_Bow_01.webp",
@@ -3301,7 +3223,7 @@ export class TokenImageReplacement {
             }
             
             // Test full scoring
-            const searchTerms = ["Goblin", "Acanos (Goblin)", "Goblinoid", "goblin", "acanos"];
+            const searchTerms = ["Test", "Test (Creature)", "Creature", "test", "creature"];
             const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, mockTokenDocument, 'token');
             console.log(`Final Score: ${(score * 100).toFixed(1)}%`);
         }
@@ -3313,7 +3235,7 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing system...", "", false, false);
         
         // Load monster mapping data
-        this._loadMonsterMappingData();
+        await this._loadMonsterMappingData();
         
         // Initialize the caching system immediately since we're already in the ready hook
         await this._initializeCache();
@@ -3858,7 +3780,7 @@ export class TokenImageReplacement {
                 
                 // Process base directory files into cache immediately
                 if (baseFiles.length > 0) {
-                    this._processFiles(baseFiles, basePath, false); // Don't clear cache, just add files
+                    await this._processFiles(baseFiles, basePath, false); // Don't clear cache, just add files
                 }
             }
             
@@ -3904,7 +3826,7 @@ export class TokenImageReplacement {
                     
                     // Process files into cache immediately so they're available for incremental saves
                     if (subDirFiles.length > 0) {
-                        this._processFiles(subDirFiles, basePath, false); // Don't clear cache, just add files
+                        await this._processFiles(subDirFiles, basePath, false); // Don't clear cache, just add files
                     }
                     
                     // Save cache incrementally after each main folder to prevent data loss
@@ -4068,6 +3990,13 @@ export class TokenImageReplacement {
         // Extract metadata from filename and path
         const metadata = TokenImageReplacement._extractMetadata(fileName, relativePath);
         
+        // Debug: Only log for problematic files to avoid spam
+        if (fileName.includes('HALFORC') || fileName.includes('CORE')) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Generated metadata for ${fileName}:`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - Tags: ${metadata.tags ? metadata.tags.join(', ') : 'none'}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - D&D5e Type: ${metadata.dnd5eType || 'none'}`, "", true, false);
+        }
+        
         return {
             name: fileName,
             path: relativePath,
@@ -4103,7 +4032,7 @@ export class TokenImageReplacement {
     /**
      * Process and categorize files for the cache
      */
-    static _processFiles(files, basePath, clearCache = false) {
+    static async _processFiles(files, basePath, clearCache = false) {
         
         // Only clear existing cache if explicitly requested (for complete rescans)
         if (clearCache) {
@@ -4120,7 +4049,6 @@ export class TokenImageReplacement {
             const fileName = file.name || file;
             const filePath = file.path || file;
             
-            
             // Validate the full path before storing
             const fullPath = `${basePath}/${filePath}`;
             if (this._isInvalidFilePath(fullPath)) {
@@ -4129,15 +4057,16 @@ export class TokenImageReplacement {
                 continue;
             }
             
+            // Process file info to generate metadata
+            const fileInfo = await this._processFileInfo(fullPath, basePath);
+            if (!fileInfo) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping file that failed processing: ${fullPath}`, "", false, false);
+                skippedFiles++;
+                continue;
+            }
+            
             // Store in main files cache with metadata
-            this.cache.files.set(fileName.toLowerCase(), {
-                name: fileName,
-                path: filePath,
-                fullPath: fullPath,
-                size: file.size || 0,
-                lastModified: file.lastModified || Date.now(),
-                metadata: file.metadata || null
-            });
+            this.cache.files.set(fileName.toLowerCase(), fileInfo);
             
             validFiles++;
             
@@ -4187,7 +4116,6 @@ export class TokenImageReplacement {
         
         // Fallback: categorize by filename keywords
         const creatureKeywords = {
-            'goblin': ['goblin', 'goblinoid'],
             'orc': ['orc', 'orcs'],
             'elf': ['elf', 'elves', 'elven'],
             'dwarf': ['dwarf', 'dwarves', 'dwarven'],
@@ -4369,7 +4297,7 @@ export class TokenImageReplacement {
         // Priority 2: Token name (may contain additional context)
         terms.push(tokenDocument.name);
         
-        // Priority 3: Creature subtype (e.g., "Goblinoid" from the actor's system data)
+        // Priority 3: Creature subtype from the actor's system data
         if (tokenDocument.actor?.system?.details?.type) {
             const creatureType = tokenDocument.actor.system.details.type;
             if (typeof creatureType === 'object' && creatureType.subtype) {
@@ -4432,22 +4360,8 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Available creature types: ${Array.from(this.cache.creatureTypes.keys()).join(', ')}`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Total cache files: ${this.cache.files.size}`, "", false, false);
         
-        // Debug: Check if goblin files exist in cache
-        const goblinFilesInCache = Array.from(this.cache.files.keys()).filter(name => name.toLowerCase().includes('goblin'));
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Goblin files in cache: ${goblinFilesInCache.length}`, "", false, false);
-        if (goblinFilesInCache.length > 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample goblin files: ${goblinFilesInCache.slice(0, 3).join(', ')}`, "", false, false);
-            
-            // Debug: Check what folders goblin files are in
-            const goblinFolders = new Set();
-            for (const fileName of goblinFilesInCache.slice(0, 5)) {
-                const fileInfo = this.cache.files.get(fileName);
-                if (fileInfo && fileInfo.path) {
-                    goblinFolders.add(fileInfo.path);
-                }
-            }
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Goblin file folders: ${Array.from(goblinFolders).join(', ')}`, "", false, false);
-        }
+        // Debug: Log cache status
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache contains ${this.cache.files.size} files`, "", false, false);
         
         let searchScope = this.cache.files;
         
@@ -4469,27 +4383,10 @@ export class TokenImageReplacement {
                 searchScope = this.cache.files;
             }
         } else {
-            // If creature type not found, try to find goblin files specifically for goblin tokens
-            if (creatureType === 'humanoid' && searchTerms.some(term => term.toLowerCase().includes('goblin'))) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Searching for goblin files specifically`, "", false, false);
-                searchScope = new Map();
-                for (const [fileName, fileInfo] of this.cache.files) {
-            if (fileName.toLowerCase().includes('goblin')) {
-                        searchScope.set(fileName, fileInfo);
-                    }
-                }
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${searchScope.size} goblin files`, "", false, false);
-                
-                // If still no goblin files found, fall back to full cache
-                if (searchScope.size === 0) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No goblin files found, falling back to full cache`, "", false, false);
-                    searchScope = this.cache.files;
-                }
-        } else {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using full cache: ${searchScope.size} files`, "", false, false);
-                if (creatureType) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Creature type "${creatureType}" not found in cache, falling back to full cache`, "", false, false);
-                }
+            // If creature type not found, use full cache
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using full cache: ${searchScope.size} files`, "", false, false);
+            if (creatureType) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Creature type "${creatureType}" not found in cache, using full cache`, "", false, false);
             }
         }
         
@@ -4535,8 +4432,8 @@ export class TokenImageReplacement {
         // Create a temporary window instance to use the unified scoring method
         const tempWindow = new TokenImageReplacementWindow();
         
-        // Debug: Track scoring for goblin files
-        const goblinFiles = [];
+        // Debug: Track scoring for files
+        const scoredFiles = [];
         let totalScored = 0;
         
         // Search through the optimized scope using unified scoring
@@ -4544,10 +4441,6 @@ export class TokenImageReplacement {
             const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, 'token');
             totalScored++;
             
-            // Track goblin files for debugging
-            if (fileName.toLowerCase().includes('goblin')) {
-                goblinFiles.push({ fileName, score, fileInfo });
-            }
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
@@ -4570,14 +4463,7 @@ export class TokenImageReplacement {
         }
         
         // Debug logging
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scored ${totalScored} files, found ${goblinFiles.length} goblin files`, "", false, false);
-        if (goblinFiles.length > 0) {
-            goblinFiles.sort((a, b) => b.score - a.score);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Top goblin matches:`, "", false, false);
-            goblinFiles.slice(0, 5).forEach(file => {
-                postConsoleAndNotification(MODULE.NAME, `  - ${file.fileName}: ${file.score.toFixed(3)} (threshold: ${threshold})`, "", false, false);
-            });
-        }
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scored ${totalScored} files`, "", false, false);
         
         if (bestMatch) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Best match found: ${bestMatch.name} (score: ${bestScore.toFixed(3)})`, "", false, false);
@@ -4762,17 +4648,17 @@ export class TokenImageReplacement {
     /**
      * Test function to verify cache structure (for debugging)
      */
-    static testCacheStructure() {
+    static async testCacheStructure() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Testing cache structure...", "", false, false);
         
         // Test with some dummy data
         const testFiles = [
-            { name: 'goblin_01.webp', path: 'creatures/goblin_01.webp' },
+            { name: 'creature_01.webp', path: 'creatures/creature_01.webp' },
             { name: 'orc_01.webp', path: 'creatures/orc_01.webp' },
             { name: 'dragon_01.webp', path: 'creatures/dragon_01.webp' }
         ];
         
-        this._processFiles(testFiles, 'test/path');
+        await this._processFiles(testFiles, 'test/path');
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Test cache built. Files: ${this.cache.files.size}, Folders: ${this.cache.files.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
         
@@ -4789,24 +4675,24 @@ export class TokenImageReplacement {
     /**
      * Test the matching algorithm with a mock token
      */
-    static testMatchingAlgorithm() {
+    static async testMatchingAlgorithm() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Testing matching algorithm...", "", false, false);
         
         // First build a test cache
         const testFiles = [
-            { name: 'goblin_warrior_01.webp', path: 'creatures/goblin_warrior_01.webp' },
+            { name: 'creature_warrior_01.webp', path: 'creatures/creature_warrior_01.webp' },
             { name: 'orc_berserker_01.webp', path: 'creatures/orc_berserker_01.webp' },
             { name: 'red_dragon_01.webp', path: 'creatures/red_dragon_01.webp' },
             { name: 'skeleton_01.webp', path: 'creatures/skeleton_01.webp' },
             { name: 'zombie_01.webp', path: 'creatures/zombie_01.webp' }
         ];
         
-        this._processFiles(testFiles, 'test/path');
+        await this._processFiles(testFiles, 'test/path');
         
         // Test with different token types
         const testTokens = [
             {
-                name: "Goblin Warrior",
+                name: "Creature Warrior",
                 actor: { type: "npc", system: { details: { type: "humanoid" } } }
             },
             {
