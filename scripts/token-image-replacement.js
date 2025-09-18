@@ -540,14 +540,8 @@ export class TokenImageReplacementWindow extends Application {
                         };
                         currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
                         
-                        // Remove current image if it doesn't meet threshold
-                        const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
-                        if (currentImage.searchScore < threshold) {
-                            const index = this.allMatches.indexOf(currentImage);
-                            if (index > -1) {
-                                this.allMatches.splice(index, 1);
-                            }
-                        }
+                        // Note: Current image (selected token) is always shown regardless of threshold
+                        // The threshold only affects other matching images, not the selected token itself
                     }
                 }
                 
@@ -1037,14 +1031,8 @@ export class TokenImageReplacementWindow extends Application {
                 };
                 currentImage.searchScore = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
                 
-                // Remove current image if it doesn't meet threshold
-                const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
-                if (currentImage.searchScore < threshold) {
-                    const index = this.allMatches.indexOf(currentImage);
-                    if (index > -1) {
-                        this.allMatches.splice(index, 1);
-                    }
-                }
+                // Note: Current image (selected token) is always shown regardless of threshold
+                // The threshold only affects other matching images, not the selected token itself
             }
         }
         
@@ -3252,6 +3240,18 @@ export class TokenImageReplacement {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | createToken", "token-image-replacement-creation", true, false);
         
+        // Register global controlToken hook for token selection detection
+        const controlTokenHookId = HookManager.registerHook({
+            name: 'controlToken',
+            description: 'Token Image Replacement: Global token selection detection',
+            context: 'token-image-replacement-global',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onGlobalTokenSelectionChange.bind(this)
+        });
+
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | controlToken (global)", "token-image-replacement-global", true, false);
+        
         // No Handlebars helpers needed - all calculations done in JavaScript
         
         // Add test function to global scope for debugging
@@ -4477,6 +4477,24 @@ export class TokenImageReplacement {
     
 
     
+    /**
+     * Handle global token selection changes
+     */
+    static async _onGlobalTokenSelectionChange(token, controlled) {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+        
+        // Find any open Token Image Replacement windows and update them
+        const openWindows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+        
+        for (const window of openWindows) {
+            if (window._onTokenSelectionChange) {
+                await window._onTokenSelectionChange(token, controlled);
+            }
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
+
     /**
      * Hook for when tokens are created
      */
