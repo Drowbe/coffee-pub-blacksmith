@@ -606,10 +606,7 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
-        // Don't allow clicking on original image (it's just for reference)
-        if (isOriginalImage) {
-            return;
-        }
+        // Allow clicking on original image to apply it
 
         // Handle quick apply for recommended token
         if (isQuickApply) {
