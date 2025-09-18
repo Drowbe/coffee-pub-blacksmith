@@ -399,7 +399,8 @@ export class TokenImageReplacementWindow extends Application {
             currentStepProgressPercentage: TokenImageReplacement.cache.currentStepTotal > 0 ? Math.round((TokenImageReplacement.cache.currentStepProgress / TokenImageReplacement.cache.currentStepTotal) * 100) : 0,
             currentPath: TokenImageReplacement.cache.currentPath,
             currentFileName: TokenImageReplacement.cache.currentFileName,
-            cacheStatus: getSettingSafely(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', 'Cache status not available')
+            cacheStatus: getSettingSafely(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', 'Cache status not available'),
+            updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true)
         };
     }
 
@@ -458,6 +459,9 @@ export class TokenImageReplacementWindow extends Application {
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const thresholdPercentage = Math.round(currentThreshold * 100);
         html.find('.tir-threshold-value').text(`${thresholdPercentage}%`);
+        
+        // Update Dropped Tokens toggle
+        html.find('#updateDropped').on('change', this._onUpdateDroppedToggle.bind(this));
         
         // Initialize threshold slider with current value
         this._initializeThresholdSlider();
@@ -2113,6 +2117,18 @@ export class TokenImageReplacementWindow extends Application {
         
         // Refresh results with new threshold
         await this._findMatches();
+    }
+
+    /**
+     * Handle Update Dropped Tokens toggle change
+     */
+    async _onUpdateDroppedToggle(event) {
+        const isEnabled = event.target.checked;
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementUpdateDropped', isEnabled);
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Update Dropped Tokens ${isEnabled ? 'enabled' : 'disabled'}`, 
+            isEnabled ? 'Tokens dropped on canvas will be automatically updated' : 'Only manual updates via this window will work', 
+            false, false);
     }
 
     /**
@@ -4528,6 +4544,12 @@ export class TokenImageReplacement {
         
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", false, false);
+            return;
+        }
+        
+        // Check if Update Dropped Tokens is enabled
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true)) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - Update Dropped Tokens disabled", "", false, false);
             return;
         }
         

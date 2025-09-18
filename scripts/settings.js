@@ -1734,6 +1734,17 @@ export const registerSettings = async () => {
 		default: 0.3,
 	});
 
+	// Update Dropped Tokens
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
+		name: 'Update Dropped Tokens',
+		hint: 'Automatically update token images when tokens are dropped on the canvas. When disabled, only manual updates via the Image Replacements window will work.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
 	
 
 	// TOKEN DATA WEIGHTING
