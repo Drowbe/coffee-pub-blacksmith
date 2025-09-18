@@ -1649,9 +1649,7 @@ export class TokenImageReplacementWindow extends Application {
             creatureType: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') || 15) / 100,
             creatureSubtype: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') || 15) / 100,
             equipment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') || 10) / 100,
-            background: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightBackground') || 5) / 100,
             size: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') || 3) / 100,
-            alignment: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightAlignment') || 2) / 100,
             tokenName: (game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') || 20) / 100
         };
         
@@ -1688,9 +1686,7 @@ export class TokenImageReplacementWindow extends Application {
             if (tokenData.creatureType) maxPossibleScore += weights.creatureType;
             if (tokenData.creatureSubtype) maxPossibleScore += weights.creatureSubtype;
             if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
-            if (tokenData.background) maxPossibleScore += weights.background;
             if (tokenData.size) maxPossibleScore += weights.size;
-            if (tokenData.alignment) maxPossibleScore += weights.alignment;
         }
         
         // Add search terms weight (1.0 per term)
@@ -1730,18 +1726,44 @@ export class TokenImageReplacementWindow extends Application {
                 
             }
             
-            // Creature Type (Official D&D5e field)
+            // Creature Type (Official D&D5e field) - match with file metadata
             if (tokenData.creatureType) {
-                const typeMatch = this._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
+                let typeMatch = 0;
+                
+                // Try to match with file's D&D5e type if available
+                if (fileInfo.metadata?.dnd5eType) {
+                    if (tokenData.creatureType === fileInfo.metadata.dnd5eType) {
+                        typeMatch = 1.0; // Perfect match
+                    } else {
+                        typeMatch = 0; // No match
+                    }
+                } else {
+                    // Fallback to string matching
+                    typeMatch = this._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
+                }
+                
                 if (typeMatch > 0) {
                     totalScore += typeMatch * weights.creatureType;
                     foundMatch = true;
                 }
             }
             
-            // Creature Subtype (Official D&D5e field)
+            // Creature Subtype (Official D&D5e field) - match with file metadata
             if (tokenData.creatureSubtype) {
-                const subtypeMatch = this._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
+                let subtypeMatch = 0;
+                
+                // Try to match with file's D&D5e subtype if available
+                if (fileInfo.metadata?.dnd5eSubtype) {
+                    if (tokenData.creatureSubtype === fileInfo.metadata.dnd5eSubtype) {
+                        subtypeMatch = 1.0; // Perfect match
+                    } else {
+                        subtypeMatch = 0; // No match
+                    }
+                } else {
+                    // Fallback to string matching
+                    subtypeMatch = this._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
+                }
+                
                 if (subtypeMatch > 0) {
                     totalScore += subtypeMatch * weights.creatureSubtype;
                     foundMatch = true;
@@ -1779,14 +1801,6 @@ export class TokenImageReplacementWindow extends Application {
                 }
             }
             
-            // Alignment
-            if (tokenData.alignment) {
-                const alignmentMatch = this._calculateTokenDataMatch(tokenData.alignment, fileNameLower, filePathLower, fileInfo);
-                if (alignmentMatch > 0) {
-                    totalScore += alignmentMatch * weights.alignment;
-                    foundMatch = true;
-                }
-            }
         }
         
         // 2. SEARCH TERMS SCORING (for search mode or fallback)
@@ -2773,6 +2787,82 @@ export class TokenImageReplacement {
 
 
     /**
+     * Load monster mapping data from resources and store in settings
+     */
+    static async _loadMonsterMappingData() {
+        try {
+            // Check if we already have the data
+            const existingData = game.settings.get(MODULE.ID, 'monsterMappingData');
+            if (existingData && Object.keys(existingData).length > 0) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Monster mapping data already loaded", "", false, false);
+                return;
+            }
+            
+            // Load monster mapping from resources
+            const response = await fetch('modules/coffee-pub-blacksmith/resources/monster-mapping.json');
+            if (response.ok) {
+                const monsterData = await response.json();
+                await game.settings.set(MODULE.ID, 'monsterMappingData', monsterData);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Loaded monster mapping data with ${Object.keys(monsterData.monsters).length} monsters`, "", false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Failed to load monster mapping data", "", false, false);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error loading monster mapping data: ${error.message}`, "", false, false);
+        }
+    }
+
+    /**
+     * Load monster mapping data
+     */
+    static _loadMonsterMapping() {
+        if (this.monsterMapping) {
+            return this.monsterMapping;
+        }
+        
+        try {
+            // Load monster mapping from resources
+            const mappingPath = 'modules/coffee-pub-blacksmith/resources/monster-mapping.json';
+            const mappingData = game.settings.get(MODULE.ID, 'monsterMappingData');
+            
+            if (mappingData) {
+                this.monsterMapping = mappingData;
+            } else {
+                // Fallback: try to load from file system (for development)
+                console.warn('Monster mapping not found in settings, using empty mapping');
+                this.monsterMapping = { monsters: {} };
+            }
+        } catch (error) {
+            console.warn('Failed to load monster mapping:', error);
+            this.monsterMapping = { monsters: {} };
+        }
+        
+        return this.monsterMapping;
+    }
+
+    /**
+     * Identify monster type from filename using monster mapping
+     */
+    static _identifyMonsterFromFilename(filename) {
+        const mapping = this._loadMonsterMapping();
+        const filenameLower = filename.toLowerCase();
+        
+        // Try to find a matching monster in the mapping
+        for (const [monsterName, monsterData] of Object.entries(mapping.monsters)) {
+            // Check if filename contains the monster name or any of its variations
+            const variations = [monsterName, ...(monsterData.variations || [])];
+            
+            for (const variation of variations) {
+                if (filenameLower.includes(variation.toLowerCase())) {
+                    return monsterData;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Extract comprehensive metadata from filename and path
      */
     static _extractMetadata(fileName, filePath) {
@@ -2827,6 +2917,34 @@ export class TokenImageReplacement {
         // Extract filename without extension
         const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
         const nameParts = nameWithoutExt.split(/[-_]/).filter(part => part.length > 0);
+        
+        // Try to identify monster type from filename using monster mapping
+        const monsterData = this._identifyMonsterFromFilename(nameWithoutExt);
+        if (monsterData) {
+            metadata.dnd5eType = monsterData.dnd5eType;
+            metadata.dnd5eSubtype = monsterData.dnd5eSubtype;
+            metadata.size = monsterData.size;
+            metadata.challengeRating = monsterData.challengeRating;
+            metadata.alignment = monsterData.alignment;
+            metadata.commonClasses = monsterData.commonClasses;
+            metadata.commonEquipment = monsterData.commonEquipment;
+            metadata.monsterVariations = monsterData.variations;
+            
+            // Debug logging for goblin files
+            if (nameWithoutExt.toLowerCase().includes('goblin')) {
+                console.log(`🔍 MONSTER MAPPING DEBUG - File: ${fileName}`);
+                console.log(`   Monster Data Found:`, monsterData);
+                console.log(`   Final Metadata:`, {
+                    dnd5eType: metadata.dnd5eType,
+                    dnd5eSubtype: metadata.dnd5eSubtype,
+                    size: metadata.size,
+                    commonClasses: metadata.commonClasses,
+                    commonEquipment: metadata.commonEquipment
+                });
+            }
+        } else if (nameWithoutExt.toLowerCase().includes('goblin')) {
+            console.log(`❌ NO MONSTER MAPPING - File: ${fileName} (${nameWithoutExt})`);
+        }
         
         // Process each part of the filename
         for (const part of nameParts) {
@@ -3036,10 +3154,6 @@ export class TokenImageReplacement {
             else data.size = 'gargantuan';
         }
 
-        // 7. Alignment (from actor alignment)
-        if (actor.system?.details?.alignment) {
-            data.alignment = actor.system.details.alignment.toLowerCase();
-        }
 
         return data;
     }
@@ -3054,9 +3168,9 @@ export class TokenImageReplacement {
         // Test data: Bullywug Warrior token
         const testTokenData = {
             representedActor: "bullywug",
-            creatureClass: "warrior", 
+            creatureType: "monstrosity",
+            creatureSubtype: "bullywug", 
             equipment: ["sword"],
-            subtype: "monstrosity",
             background: null,
             size: "large",
             alignment: null
@@ -3197,6 +3311,9 @@ export class TokenImageReplacement {
     
     static async initialize() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing system...", "", false, false);
+        
+        // Load monster mapping data
+        this._loadMonsterMappingData();
         
         // Initialize the caching system immediately since we're already in the ready hook
         await this._initializeCache();
@@ -4122,7 +4239,7 @@ export class TokenImageReplacement {
         const searchTerms = this._getSearchTerms(tokenDocument);
         
         // Debug: Log token details
-        const creatureType = tokenDocument.actor?.system?.details?.type;
+        const creatureType = tokenDocument.actor?.system?.details?.type?.value;
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token details - name: "${tokenDocument.name}", creatureType: "${creatureType}"`, "", false, false);
         
         // Try to find a match
@@ -4345,15 +4462,6 @@ export class TokenImageReplacement {
             }
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using creature type optimization: ${searchScope.size} files`, "", false, false);
             
-            // Debug: Check what files are in the humanoid category
-            if (creatureType === 'humanoid') {
-                const humanoidFiles = Array.from(creatureFiles).slice(0, 5);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample humanoid files: ${humanoidFiles.join(', ')}`, "", false, false);
-                
-                // Check if any goblin files are in humanoid category
-                const goblinInHumanoid = Array.from(creatureFiles).filter(name => name.toLowerCase().includes('goblin'));
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Goblin files in humanoid category: ${goblinInHumanoid.length}`, "", false, false);
-            }
             
             // If creature type optimization returns 0 files, fall back to full cache
             if (searchScope.size === 0) {
@@ -4514,9 +4622,7 @@ export class TokenImageReplacement {
             creatureType: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureType', 15) / 100,
             creatureSubtype: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', 15) / 100,
             equipment: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightEquipment', 10) / 100,
-            background: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightBackground', 5) / 100,
             size: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightSize', 5) / 100,
-            alignment: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightAlignment', 5) / 100
         };
         
         // Log formatted breakdown
@@ -4527,9 +4633,7 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | ${weights.creatureType} | "${tokenData.creatureType || 'none'}"`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | ${weights.creatureSubtype} | "${tokenData.creatureSubtype || 'none'}"`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | ${weights.equipment} | [${tokenData.equipment?.join(', ') || 'none'}]`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: background | ${weights.background} | "${tokenData.background || 'none'}"`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | ${weights.size} | "${tokenData.size || 'none'}"`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: alignment | ${weights.alignment} | "${tokenData.alignment || 'none'}"`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: =================================`, "", false, false);
         
         // Wait a moment for the token to be fully created on the canvas

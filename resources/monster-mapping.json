@@ -1,0 +1,414 @@
+{
+  "monsters": {
+    "goblin": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "goblinoid",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "neutral evil",
+      "commonClasses": ["archer", "barbarian", "bomber", "druid", "fighter", "rogue", "shaman", "warrior"],
+      "commonEquipment": ["bow", "axe", "spear", "sword", "shield", "bomb", "javelin", "scimitar"],
+      "variations": ["goblin", "goblinoid", "goblinoid"]
+    },
+    "hobgoblin": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "goblinoid",
+      "size": "medium",
+      "challengeRating": 0.5,
+      "alignment": "lawful evil",
+      "commonClasses": ["fighter", "warlord", "archer", "warrior", "commander"],
+      "commonEquipment": ["sword", "bow", "spear", "armor", "shield", "longsword", "javelin"],
+      "variations": ["hobgoblin", "hobgoblinoid"]
+    },
+    "bugbear": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "goblinoid",
+      "size": "medium",
+      "challengeRating": 1,
+      "alignment": "chaotic evil",
+      "commonClasses": ["barbarian", "fighter", "rogue", "warrior", "assassin"],
+      "commonEquipment": ["club", "javelin", "spear", "sword", "morningstar", "longbow"],
+      "variations": ["bugbear", "bugbearoid"]
+    },
+    "orc": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "orc",
+      "size": "medium",
+      "challengeRating": 0.5,
+      "alignment": "chaotic evil",
+      "commonClasses": ["barbarian", "fighter", "warrior", "shaman", "chief"],
+      "commonEquipment": ["axe", "sword", "spear", "bow", "javelin", "greataxe", "longbow"],
+      "variations": ["orc", "orcs"]
+    },
+    "elf": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "elf",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "chaotic good",
+      "commonClasses": ["archer", "ranger", "wizard", "druid", "fighter", "rogue", "bard"],
+      "commonEquipment": ["bow", "sword", "spear", "staff", "longsword", "shortsword", "rapier"],
+      "variations": ["elf", "elves", "elven", "elvish"]
+    },
+    "dwarf": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "dwarf",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful good",
+      "commonClasses": ["fighter", "cleric", "barbarian", "warrior", "paladin"],
+      "commonEquipment": ["axe", "hammer", "sword", "shield", "battleaxe", "warhammer", "handaxe"],
+      "variations": ["dwarf", "dwarves", "dwarven", "dwarfish"]
+    },
+    "human": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "human",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "wizard", "rogue", "cleric", "ranger", "paladin", "barbarian", "monk", "sorcerer", "warlock", "druid", "bard"],
+      "commonEquipment": ["sword", "bow", "spear", "staff", "mace", "dagger", "crossbow", "shield"],
+      "variations": ["human", "humans", "man", "men", "woman", "women"]
+    },
+    "dragonborn": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "dragonborn",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "paladin", "sorcerer", "warlock", "barbarian", "monk"],
+      "commonEquipment": ["sword", "spear", "staff", "mace", "shield", "longsword", "battleaxe"],
+      "variations": ["dragonborn", "dragonborns"]
+    },
+    "tiefling": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "tiefling",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["warlock", "sorcerer", "wizard", "bard", "rogue", "fighter"],
+      "commonEquipment": ["sword", "staff", "dagger", "crossbow", "rapier", "longsword"],
+      "variations": ["tiefling", "tieflings"]
+    },
+    "halfling": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "halfling",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "lawful good",
+      "commonClasses": ["rogue", "ranger", "fighter", "bard", "cleric"],
+      "commonEquipment": ["sword", "bow", "sling", "shortsword", "shortbow", "dagger"],
+      "variations": ["halfling", "halflings", "hobbit", "hobbits"]
+    },
+    "gnome": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "gnome",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "good",
+      "commonClasses": ["wizard", "cleric", "bard", "rogue", "fighter"],
+      "commonEquipment": ["sword", "crossbow", "dagger", "shortsword", "light crossbow"],
+      "variations": ["gnome", "gnomes", "gnomish"]
+    },
+    "kobold": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "kobold",
+      "size": "small",
+      "challengeRating": 0.125,
+      "alignment": "lawful evil",
+      "commonClasses": ["rogue", "sorcerer", "fighter", "warrior", "trapmaster"],
+      "commonEquipment": ["sling", "javelin", "dagger", "shortsword", "crossbow", "spear"],
+      "variations": ["kobold", "kobolds"]
+    },
+    "lizardfolk": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "lizardfolk",
+      "size": "medium",
+      "challengeRating": 0.5,
+      "alignment": "neutral evil",
+      "commonClasses": ["druid", "ranger", "fighter", "shaman", "warrior"],
+      "commonEquipment": ["spear", "javelin", "club", "shield", "bite", "claw"],
+      "variations": ["lizardfolk", "lizardman", "lizardmen"]
+    },
+    "yuan-ti": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "yuan-ti",
+      "size": "medium",
+      "challengeRating": 1,
+      "alignment": "chaotic evil",
+      "commonClasses": ["warlock", "sorcerer", "wizard", "cleric", "fighter"],
+      "commonEquipment": ["spear", "bow", "dagger", "shortsword", "staff"],
+      "variations": ["yuan-ti", "yuan-ti pureblood", "yuan-ti malison", "yuan-ti abomination"]
+    },
+    "githyanki": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "githyanki",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful evil",
+      "commonClasses": ["fighter", "wizard", "psion", "warrior", "knight"],
+      "commonEquipment": ["sword", "spear", "crossbow", "longsword", "shortsword"],
+      "variations": ["githyanki", "gith"]
+    },
+    "githzerai": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "githzerai",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful neutral",
+      "commonClasses": ["monk", "wizard", "psion", "fighter", "rogue"],
+      "commonEquipment": ["sword", "dagger", "shortsword", "unarmed", "quarterstaff"],
+      "variations": ["githzerai", "gith"]
+    },
+    "aasimar": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "aasimar",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "good",
+      "commonClasses": ["paladin", "cleric", "sorcerer", "warlock", "fighter"],
+      "commonEquipment": ["sword", "mace", "bow", "longsword", "shortsword", "spear"],
+      "variations": ["aasimar", "aasimars"]
+    },
+    "genasi": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "genasi",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "wizard", "sorcerer", "monk", "barbarian"],
+      "commonEquipment": ["sword", "spear", "staff", "mace", "dagger"],
+      "variations": ["genasi", "fire genasi", "water genasi", "earth genasi", "air genasi"]
+    },
+    "goliath": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "goliath",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "neutral",
+      "commonClasses": ["barbarian", "fighter", "monk", "ranger", "warrior"],
+      "commonEquipment": ["axe", "spear", "javelin", "club", "battleaxe", "greatclub"],
+      "variations": ["goliath", "goliaths"]
+    },
+    "firbolg": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "firbolg",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "neutral good",
+      "commonClasses": ["druid", "cleric", "ranger", "fighter", "barbarian"],
+      "commonEquipment": ["spear", "club", "javelin", "staff", "warhammer"],
+      "variations": ["firbolg", "firbolgs"]
+    },
+    "kenku": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "kenku",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "chaotic neutral",
+      "commonClasses": ["rogue", "bard", "ranger", "fighter", "monk"],
+      "commonEquipment": ["shortsword", "shortbow", "dagger", "sling", "crossbow"],
+      "variations": ["kenku", "kenkus"]
+    },
+    "tabaxi": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "tabaxi",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "chaotic good",
+      "commonClasses": ["rogue", "ranger", "monk", "fighter", "bard"],
+      "commonEquipment": ["shortsword", "shortbow", "dagger", "sling", "rapier"],
+      "variations": ["tabaxi", "tabaxis", "catfolk"]
+    },
+    "triton": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "triton",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful good",
+      "commonClasses": ["paladin", "fighter", "cleric", "sorcerer", "warlock"],
+      "commonEquipment": ["spear", "trident", "sword", "crossbow", "longsword"],
+      "variations": ["triton", "tritons"]
+    },
+    "warforged": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "warforged",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "paladin", "monk", "wizard", "artificer"],
+      "commonEquipment": ["sword", "mace", "spear", "crossbow", "longsword", "warhammer"],
+      "variations": ["warforged", "warforgeds"]
+    },
+    "changeling": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "changeling",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["rogue", "bard", "sorcerer", "warlock", "fighter"],
+      "commonEquipment": ["sword", "dagger", "shortsword", "rapier", "crossbow"],
+      "variations": ["changeling", "changelings"]
+    },
+    "kalashtar": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "kalashtar",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["monk", "psion", "wizard", "cleric", "fighter"],
+      "commonEquipment": ["sword", "staff", "spear", "mace", "quarterstaff"],
+      "variations": ["kalashtar", "kalashtars"]
+    },
+    "shifter": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "shifter",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["barbarian", "ranger", "druid", "fighter", "monk"],
+      "commonEquipment": ["sword", "spear", "bow", "axe", "longsword"],
+      "variations": ["shifter", "shifters"]
+    },
+    "simic hybrid": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "simic hybrid",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "monk", "ranger", "barbarian", "druid"],
+      "commonEquipment": ["sword", "spear", "bow", "unarmed", "longsword"],
+      "variations": ["simic hybrid", "simic hybrids", "hybrid"]
+    },
+    "vedalken": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "vedalken",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful neutral",
+      "commonClasses": ["wizard", "artificer", "cleric", "fighter", "monk"],
+      "commonEquipment": ["staff", "spear", "crossbow", "quarterstaff", "mace"],
+      "variations": ["vedalken", "vedalkens"]
+    },
+    "loxodon": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "loxodon",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "lawful good",
+      "commonClasses": ["monk", "cleric", "fighter", "paladin", "barbarian"],
+      "commonEquipment": ["spear", "staff", "mace", "warhammer", "quarterstaff"],
+      "variations": ["loxodon", "loxodons", "elephantfolk"]
+    },
+    "minotaur": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "minotaur",
+      "size": "medium",
+      "challengeRating": 0.5,
+      "alignment": "chaotic evil",
+      "commonClasses": ["barbarian", "fighter", "warrior", "ranger"],
+      "commonEquipment": ["axe", "spear", "javelin", "greatclub", "battleaxe"],
+      "variations": ["minotaur", "minotaurs"]
+    },
+    "centaur": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "centaur",
+      "size": "large",
+      "challengeRating": 0.5,
+      "alignment": "neutral good",
+      "commonClasses": ["ranger", "fighter", "barbarian", "druid"],
+      "commonEquipment": ["spear", "javelin", "bow", "longbow", "shortbow"],
+      "variations": ["centaur", "centaurs"]
+    },
+    "satyr": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "satyr",
+      "size": "medium",
+      "challengeRating": 0.5,
+      "alignment": "chaotic good",
+      "commonClasses": ["bard", "ranger", "druid", "fighter", "rogue"],
+      "commonEquipment": ["spear", "shortbow", "shortsword", "sling", "rapier"],
+      "variations": ["satyr", "satyrs", "faun", "fauns"]
+    },
+    "leonin": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "leonin",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "paladin", "barbarian", "monk", "ranger"],
+      "commonEquipment": ["sword", "spear", "bow", "longsword", "shortsword"],
+      "variations": ["leonin", "leonins", "catfolk", "lionfolk"]
+    },
+    "owlin": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "owlin",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["ranger", "rogue", "monk", "fighter", "bard"],
+      "commonEquipment": ["shortsword", "shortbow", "dagger", "sling", "rapier"],
+      "variations": ["owlin", "owlins", "owlfolk", "birdfolk"]
+    },
+    "harengon": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "harengon",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["ranger", "rogue", "fighter", "monk", "bard"],
+      "commonEquipment": ["shortsword", "shortbow", "dagger", "sling", "rapier"],
+      "variations": ["harengon", "harengons", "rabbitfolk", "harefolk"]
+    },
+    "fairy": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "fairy",
+      "size": "small",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["sorcerer", "warlock", "bard", "druid", "wizard"],
+      "commonEquipment": ["shortsword", "shortbow", "dagger", "sling", "rapier"],
+      "variations": ["fairy", "fairies", "fey", "sprite"]
+    },
+    "hexblood": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "hexblood",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["warlock", "sorcerer", "wizard", "cleric", "bard"],
+      "commonEquipment": ["sword", "staff", "dagger", "shortsword", "rapier"],
+      "variations": ["hexblood", "hexbloods"]
+    },
+    "reborn": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "reborn",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["fighter", "rogue", "wizard", "cleric", "barbarian"],
+      "commonEquipment": ["sword", "spear", "bow", "longsword", "shortsword"],
+      "variations": ["reborn", "reborns", "undead", "zombie"]
+    },
+    "dhampir": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "dhampir",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["rogue", "ranger", "fighter", "monk", "bard"],
+      "commonEquipment": ["sword", "bow", "dagger", "shortsword", "rapier"],
+      "variations": ["dhampir", "dhampirs", "vampire", "half-vampire"]
+    },
+    "lineage": {
+      "dnd5eType": "humanoid",
+      "dnd5eSubtype": "lineage",
+      "size": "medium",
+      "challengeRating": 0.25,
+      "alignment": "any",
+      "commonClasses": ["any"],
+      "commonEquipment": ["any"],
+      "variations": ["lineage", "lineages"]
+    }
+  }
+}

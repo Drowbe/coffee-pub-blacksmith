@@ -1793,27 +1793,7 @@ export const registerSettings = async () => {
 		default: 10
 	});
 
-	// Subtype Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSubtype', {
-		name: 'Subtype Weight',
-		hint: 'How important subtype/subrace is for matching (e.g., "Goblinoid", "Dragon", "Elemental")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 8
-	});
 
-	// Background Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightBackground', {
-		name: 'Background Weight',
-		hint: 'How important background/profession is for matching (e.g., "Soldier", "Noble", "Cultist")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 5
-	});
 
 	// Size Weight
 	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
@@ -1826,20 +1806,20 @@ export const registerSettings = async () => {
 		default: 3
 	});
 
-	// Alignment Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightAlignment', {
-		name: 'Alignment Weight',
-		hint: 'How important alignment is for matching (e.g., "Chaotic Evil", "Neutral")',
-		type: Number,
-		config: true,
+
+
+
+
+
+	// Monster Mapping Data
+	game.settings.register(MODULE.ID, 'monsterMappingData', {
+		name: 'Monster Mapping Data',
+		hint: 'Internal setting for monster type mapping data',
+		type: Object,
+		config: false,
 		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 2
+		default: {}
 	});
-
-
-
-
 
 	// ---------- Dead Tokens ----------
 	game.settings.register(MODULE.ID, "headingH3TokenActions", {
