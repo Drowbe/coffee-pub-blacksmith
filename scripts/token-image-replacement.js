@@ -1675,7 +1675,7 @@ export class TokenImageReplacementWindow extends Application {
             if (tokenData.size) maxPossibleScore += weights.size;
         }
         
-        // Add search terms weight (1.0 per term)
+        // Add search terms weight (1.0 per term) - this is the main scoring mechanism
         maxPossibleScore += searchWords.length;
         
         // Add multi-word bonus potential (only if applicable)
@@ -1686,6 +1686,11 @@ export class TokenImageReplacementWindow extends Application {
         // Add basic creature priority bonus potential (only if applicable)
         if (searchMode === 'token' && tokenData && tokenData.representedActor) {
             maxPossibleScore += 0.1;
+        }
+        
+        // If no token data exists, ensure we have a reasonable max score based on search terms
+        if (maxPossibleScore < searchWords.length) {
+            maxPossibleScore = searchWords.length + (searchWords.length > 1 ? 0.2 : 0);
         }
         
         
@@ -1874,6 +1879,11 @@ export class TokenImageReplacementWindow extends Application {
         // Basic creature priority bonus
         if (foundMatch && this._isBasicCreature(fileName, fileInfo)) {
             totalScore += 0.1;
+        }
+        
+        // Debug logging for scoring issues
+        if (fileNameLower.includes('brown') && fileNameLower.includes('bear')) {
+            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING for ${fileName}`, `totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${(totalScore / maxPossibleScore).toFixed(3)}`, true, false);
         }
         
         // Normalize score to 0.0-1.0 range
@@ -4307,6 +4317,11 @@ export class TokenImageReplacement {
             terms.push(tokenDocument.actor.name);
         }
         
+        // Debug logging for search terms
+        if (tokenDocument.actor && tokenDocument.actor.name && tokenDocument.actor.name.toLowerCase().includes('brown')) {
+            postConsoleAndNotification(MODULE.NAME, `DEBUG SEARCH TERMS for ${tokenDocument.actor.name}`, `Initial terms: ${JSON.stringify(terms)}`, true, false);
+        }
+        
         // Priority 2: Token name (may contain additional context)
         terms.push(tokenDocument.name);
         
@@ -4341,6 +4356,11 @@ export class TokenImageReplacement {
         
         // Remove duplicates and empty terms
         const filteredTerms = [...new Set(terms.filter(term => term && typeof term === 'string' && term.trim().length > 0))];
+        
+        // Debug logging for brown bear specifically
+        if (tokenDocument.actor && tokenDocument.actor.name && tokenDocument.actor.name.toLowerCase().includes('brown')) {
+            postConsoleAndNotification(MODULE.NAME, `DEBUG BROWN BEAR SEARCH TERMS`, `Actor: ${tokenDocument.actor.name}, Final terms: ${JSON.stringify(filteredTerms)}`, true, false);
+        }
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtered search terms: ${JSON.stringify(filteredTerms)}`, "", false, false);
         
