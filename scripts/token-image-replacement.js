@@ -478,6 +478,7 @@ export class TokenImageReplacementWindow extends Application {
                     metadata: null
         };
                 this.allMatches.push(currentImage);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Added current image to results", `Name: ${currentImage.name}, isCurrent: ${currentImage.isCurrent}`, true, false);
             }
         }
 
@@ -526,7 +527,10 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Apply unified matching
                 const matchedResults = this._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode);
-                this.allMatches.push(...matchedResults);
+                
+                // Filter out any results that are the current image to avoid duplicates
+                const filteredResults = matchedResults.filter(result => !result.isCurrent);
+                this.allMatches.push(...filteredResults);
                 
                 // Calculate score for current image if it exists
                 if (this.selectedToken && this.allMatches.length > 0) {
@@ -1017,7 +1021,10 @@ export class TokenImageReplacementWindow extends Application {
         
         // Step 3: Apply unified matching with search terms
         const searchResults = this._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search');
-        this.allMatches.push(...searchResults);
+        
+        // Filter out any results that are the current image to avoid duplicates
+        const filteredResults = searchResults.filter(result => !result.isCurrent);
+        this.allMatches.push(...filteredResults);
         
         // Step 4: Calculate score for current image if it exists
         if (this.selectedToken && this.allMatches.length > 0) {
@@ -1400,6 +1407,11 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
+        // Debug: Log for current image to track the issue
+        if (match.isCurrent) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Processing current image: ${match.name}`, `isCurrent: ${match.isCurrent}`, true, false);
+        }
+        
         // Debug: Only log for problematic files to avoid spam
         if (match.name.includes('HALFORC') || match.name.includes('CORE')) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - _getTagsForMatch called for ${match.name}`, "", true, false);
@@ -1410,6 +1422,7 @@ export class TokenImageReplacementWindow extends Application {
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Added CURRENT IMAGE tag to ${match.name}`, "", true, false);
         }
         
         // Only use metadata-based tags - no fallbacks
