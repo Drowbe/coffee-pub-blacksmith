@@ -2,7 +2,35 @@
 
 ## CRITICAL ISSUES (High Severity)
 
-### 1. 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (BLOCKING)
+### 1. 🚨 HOOKMANAGER RETURN VALUE HANDLING (BLOCKING)
+- **Issue**: HookManager ignores return values from hook callbacks, breaking movement restrictions
+- **Location**: `scripts/manager-hooks.js` lines 58-67 in hookRunner function
+- **Impact**: **BREAKS TOKEN MOVEMENT LOCKING** - Players can move tokens even when set to "locked" mode
+- **Status**: 🚨 CRITICAL - BLOCKING CORE FUNCTIONALITY
+- **Root Cause**: HookManager executes callbacks but ignores return values, so `preUpdateToken` hooks that return `false` to block actions are ineffective
+- **Technical Details**: 
+  - Movement restriction hook (priority 2) returns `false` for "no-movement" mode
+  - Canvas tools hook (priority 3) returns `true` or undefined
+  - HookManager ignores the `false` and uses the last callback's result
+  - This allows movement despite restrictions
+- **Plan**: Modify HookManager to collect and respect return values from `preUpdateToken` hooks
+- **Risk**: MODERATE to HIGH - Core infrastructure change that could affect other hook functionality
+- **Dependencies**: Must be fixed before movement restrictions work properly
+- **Example of the problem**:
+  ```javascript
+  // Current broken behavior:
+  for (const cb of list) {
+      cb.callback(...args);  // ← Ignores return value!
+  }
+  
+  // Should be:
+  for (const cb of list) {
+      const result = cb.callback(...args);
+      if (result === false) return false;  // Block if any callback returns false
+  }
+  ```
+
+### 2. 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (BLOCKING)
 - **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
 - **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
 - **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration

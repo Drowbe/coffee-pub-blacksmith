@@ -57,9 +57,13 @@ export class HookManager {
                 
                 for (const cb of list) {
                     try {
-                        cb.callback(...args);
+                        const result = cb.callback(...args);
                         if (cb.options?.once) {
                             toRemove.push(cb.callbackId);
+                        }
+                        // For preUpdateToken hooks, if any callback returns false, block the action
+                        if (name === 'preUpdateToken' && result === false) {
+                            return false;
                         }
                     } catch (error) {
                         console.error(`Hook callback error in ${name}:`, error);
