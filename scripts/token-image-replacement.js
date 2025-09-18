@@ -3339,6 +3339,16 @@ export class TokenImageReplacement {
         // Add double-middle-click handler for tokens using HookManager
         this._addMiddleClickHandler();
         
+        // Set up cleanup when module is disabled
+        Hooks.on('ready', () => {
+            // Register cleanup hook for when module is disabled
+            Hooks.on('unloadModule', (moduleId) => {
+                if (moduleId === MODULE.ID) {
+                    this._removeMiddleClickHandler();
+                }
+            });
+        });
+        
         // No Handlebars helpers needed - all calculations done in JavaScript
         
         // Add test function to global scope for debugging
@@ -3353,6 +3363,7 @@ export class TokenImageReplacement {
                 game.TokenImageReplacement.deleteCache = this.deleteCache.bind(this);
                 game.TokenImageReplacement.pauseCache = this.pauseCache.bind(this);
                 game.TokenImageReplacement.openWindow = this.openWindow.bind(this);
+                game.TokenImageReplacement.cleanup = this._removeMiddleClickHandler.bind(this);
             }
     }
     
@@ -4555,17 +4566,8 @@ export class TokenImageReplacement {
             }
         };
         
-        // Register double-middle-click handler using HookManager
-        this._middleClickHookId = HookManager.registerHook({
-            name: 'canvasReady',
-            description: 'Token Image Replacement: Double-middle-click handler for tokens',
-            context: 'token-image-replacement-double-click',
-            priority: 3,
-            callback: () => {
-                // Add event listener to the document for double-middle-click events
-                document.addEventListener('mousedown', this._middleClickHandler);
-            }
-        });
+        // Add event listener directly - HookManager will clean up when module is disabled
+        document.addEventListener('mousedown', this._middleClickHandler);
     }
 
     /**
@@ -4575,10 +4577,6 @@ export class TokenImageReplacement {
         if (this._middleClickHandler) {
             document.removeEventListener('mousedown', this._middleClickHandler);
             this._middleClickHandler = null;
-        }
-        if (this._middleClickHookId) {
-            HookManager.removeCallback(this._middleClickHookId);
-            this._middleClickHookId = null;
         }
     }
 
