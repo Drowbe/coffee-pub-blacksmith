@@ -1794,8 +1794,8 @@ export class TokenImageReplacementWindow extends Application {
             
         }
         
-        // 2. SEARCH TERMS SCORING (for search mode or fallback)
-        if (searchMode === 'search' || !foundMatch) {
+        // 2. SEARCH TERMS SCORING (always apply for better filename matching)
+        if (searchMode === 'search' || true) { // Always apply search terms scoring
             for (const word of searchWords) {
                 let wordScore = 0;
                 let wordFound = false;
@@ -1814,7 +1814,7 @@ export class TokenImageReplacementWindow extends Application {
                     wordScore = 0.75;
                     wordFound = true;
                 } else if (fileNameLower.includes(word)) {
-                    wordScore = 0.65;
+                    wordScore = 0.85; // Increased from 0.65 for better filename matching
                     wordFound = true;
                 } else {
                     // Partial word match
@@ -1930,13 +1930,13 @@ export class TokenImageReplacementWindow extends Application {
         } else if (fileNameLower.endsWith(valueLower)) {
             maxScore = Math.max(maxScore, 0.8);
         } else if (fileNameLower.includes(valueLower)) {
-            maxScore = Math.max(maxScore, 0.7);
+            maxScore = Math.max(maxScore, 0.85); // Increased from 0.7 for better filename matching
         } else {
             // Partial word match
             const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
             for (const fileNameWord of fileNameWords) {
                 if (fileNameWord.includes(valueLower) || valueLower.includes(fileNameWord)) {
-                    maxScore = Math.max(maxScore, 0.6);
+                    maxScore = Math.max(maxScore, 0.75); // Increased from 0.6 for better partial matching
                 }
             }
         }
