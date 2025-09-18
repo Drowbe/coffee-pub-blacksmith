@@ -6,7 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [12.1.4] - Image Replacement System Updates
+## [12.1.4] - Token Image Replacement System Enhancements
+
+### Added
+- **Original Image Tracking:** Tokens now store their original image when first dropped, allowing users to revert to the initial image
+- **Original Image Card:** Added "Original Image" card as the first result in the Token Image Replacement window with purple styling
+- **Double-Middle-Click Support:** Double-middle-click on any token to instantly open the Token Image Replacement window with that token selected
+- **Update Dropped Tokens Setting:** New world setting to control whether tokens are automatically updated when dropped on the canvas
+- **Fuzzy Search Toggle:** New toggle for manual search box input - when enabled, searches for individual words independently
+- **Threshold Display Enhancement:** Moved threshold percentage from slider to label for better readability (e.g., "Matching Threshold 32%")
+- **Current Image Tag:** Added "CURRENT IMAGE" tag to clearly identify the currently selected token's image
+
+### Fixed
+- **Duplicate Object Key:** Removed duplicate "kobold" entry from monster-mapping.json that was causing JSON parsing errors
+- **Selected Token Card Visibility:** Fixed issue where selected token card would disappear when relevance score was below threshold
+- **Current Image Tag Display:** Fixed "CURRENT IMAGE" tag not appearing consistently for selected tokens
+- **Scoring Algorithm:** Improved relevance scoring calculation for more accurate image matching (Brown Bear now scores 55%+ instead of 15%)
+- **Results Blanking:** Fixed window results being cleared after applying an image to a token - now properly refreshes
+- **Fuzzy Search Scope:** Corrected fuzzy search to only apply to manual search box input, not automatic token matching
+- **Original Image Persistence:** Fixed original image data to be stored in token flags for persistence across sessions
+- **Memory Leaks:** Fixed potential memory leaks with proper event listener cleanup and HookManager usage
+- **TypeError in Token Context:** Fixed TypeError when metadata fields are not strings in `_calculateTokenContextBonus`
+
+### Changed
+- **Image Application Flow:** After applying an image, the window now closes for a cleaner user experience
+- **Token Selection Detection:** Added global token selection hook to detect token changes system-wide
+- **Scoring System:** Restored user-configurable weights for more accurate and customizable scoring
+- **Debug Logging:** Removed excessive debug logging that was slowing down search performance
+- **Window Refresh Logic:** Simplified window refresh to use the same code path as the toolbar button
+
+### Technical Details
+- Implemented `_storeOriginalImage()` and `_getOriginalImage()` methods using token flags for persistence
+- Added `_addMiddleClickHandler()` with proper cleanup via `_removeMiddleClickHandler()`
+- Enhanced `_sortResults()` to prioritize original images first, then current images
+- Updated `_applyImageToToken()` to close window after successful image application
+- Fixed `_getTagsForMatch()` to handle original images without metadata
+- Improved `_calculateRelevanceScore()` with better maxPossibleScore calculation
+- Added proper memory management with HookManager integration
 
 
 
