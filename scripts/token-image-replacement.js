@@ -516,6 +516,7 @@ export class TokenImageReplacementWindow extends Application {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'The Cache is currently loading and may impact performance.';
         } else if (TokenImageReplacement.cache.files.size === 0) {
+            console.log(`Token Image Replacement: Cache check - files.size: ${TokenImageReplacement.cache.files.size}, cache exists: ${!!TokenImageReplacement.cache}`);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Cache Found - Please refresh cache.';
         } else {
@@ -623,18 +624,17 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _applyImageToToken(imagePath, imageName) {
         try {
+            // Update the token
             await this.selectedToken.document.update({
                 'texture.src': imagePath
             });
             
-            // Refresh the selected token object to get the updated image
-            this.selectedToken = canvas.tokens.get(this.selectedToken.id);
-            
-            // Refresh the matches to update current image highlighting
-            await this._findMatches();
-            
+            // Show success notification
             ui.notifications.info(`Applied image: ${imageName}`);
-            this.render();
+            
+            // Close the window
+            this.close();
+            
         } catch (error) {
             ui.notifications.error(`Failed to apply image: ${error.message}`);
         }
@@ -928,6 +928,12 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _checkForSelectedToken() {
         try {
+            // Ensure cache is initialized
+            if (!TokenImageReplacement.cache || TokenImageReplacement.cache.files.size === 0) {
+                console.log(`Token Image Replacement: Cache not initialized, initializing...`);
+                await TokenImageReplacement._initializeCache();
+            }
+            
             // Check if there are any controlled tokens
             const controlledTokens = canvas.tokens.controlled;
             if (controlledTokens.length > 0) {
