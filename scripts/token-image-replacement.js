@@ -1378,10 +1378,6 @@ export class TokenImageReplacementWindow extends Application {
             const isRecommended = this.recommendedToken && match.fullPath === this.recommendedToken.fullPath;
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
             
-            // Debug logging for recommended token display 
-            if (this.recommendedToken) {
-                postConsoleAndNotification(MODULE.NAME, `Image Replacement | Checking match`, `${match.name} (${match.fullPath}) against recommended ${this.recommendedToken.name} (${this.recommendedToken.fullPath}) - isRecommended: ${isRecommended}`, true, false);
-            }
             
             const tooltipText = this._generateTooltipText(match, isRecommended);
             const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
@@ -2277,14 +2273,12 @@ export class TokenImageReplacementWindow extends Application {
      */
     _calculateRecommendedToken() {
         if (!this.selectedToken || this.allMatches.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', 'No selected token or no matches for recommended calculation', true, false);
             return null;
         }
         
         const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         
-        postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `Search terms: ${JSON.stringify(searchTerms)}, Threshold: ${threshold}, Total matches: ${this.allMatches.length}`, true, false);
         
         let bestMatch = null;
         let bestScore = 0;
@@ -2315,11 +2309,9 @@ export class TokenImageReplacementWindow extends Application {
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
                 bestMatch = match;
-                postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `New best match: ${match.name} with score ${score.toFixed(3)}`, true, false);
             }
         }
         
-        postConsoleAndNotification(MODULE.NAME, 'Image Replacement | Recommended calculation', `Recommended token result: ${bestMatch ? bestMatch.name : 'NONE'} (score: ${bestScore.toFixed(3)})`, true, false);
         return bestMatch;
     }
 
