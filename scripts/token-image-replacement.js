@@ -3336,7 +3336,7 @@ export class TokenImageReplacement {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | controlToken (global)", "token-image-replacement-global", true, false);
         
-        // Add double-middle-click handler for tokens using a hook
+        // Add double-middle-click handler for tokens using HookManager
         this._addMiddleClickHandler();
         
         // No Handlebars helpers needed - all calculations done in JavaScript
@@ -4536,11 +4536,11 @@ export class TokenImageReplacement {
 
     
     /**
-     * Add double-middle-click handler for tokens
+     * Add double-middle-click handler for tokens using HookManager
      */
     static _addMiddleClickHandler() {
-        // Add event listener to the document for double-middle-click events
-        document.addEventListener('mousedown', (event) => {
+        // Store the handler function so we can remove it later
+        this._middleClickHandler = (event) => {
             // Check if it's a double-middle-click (button 1 with double-click timing)
             if (event.button === 1 && event.detail === 2) {
                 // Find the token under the mouse
@@ -4553,7 +4553,33 @@ export class TokenImageReplacement {
                     this.openWindow();
                 }
             }
+        };
+        
+        // Register double-middle-click handler using HookManager
+        this._middleClickHookId = HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'Token Image Replacement: Double-middle-click handler for tokens',
+            context: 'token-image-replacement-double-click',
+            priority: 3,
+            callback: () => {
+                // Add event listener to the document for double-middle-click events
+                document.addEventListener('mousedown', this._middleClickHandler);
+            }
         });
+    }
+
+    /**
+     * Remove double-middle-click handler
+     */
+    static _removeMiddleClickHandler() {
+        if (this._middleClickHandler) {
+            document.removeEventListener('mousedown', this._middleClickHandler);
+            this._middleClickHandler = null;
+        }
+        if (this._middleClickHookId) {
+            HookManager.removeCallback(this._middleClickHookId);
+            this._middleClickHookId = null;
+        }
     }
 
     /**
