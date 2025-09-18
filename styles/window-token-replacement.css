@@ -1016,6 +1016,22 @@
       box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important;
   }
   
+  .tir-original-image {
+      border-color: rgba(156, 39, 176, 0.9) !important;
+      border-width: 2px !important;
+      box-shadow: 0 0 8px rgba(156, 39, 176, 0.3);
+      background: rgba(156, 39, 176, 0.1);
+      cursor: default !important;
+      opacity: 0.8;
+  }
+  .tir-original-image img {
+      border-color: rgba(156, 39, 176, 0.4) !important;
+  }
+  .tir-original-image:hover {
+      transform: none !important;
+      box-shadow: 0 0 8px rgba(156, 39, 176, 0.3) !important;
+  }
+  
   .tir-recommended-image {
       border-color: rgba(255, 193, 7, 0.9) !important;
       border-width: 2px !important;
@@ -1178,6 +1194,12 @@
   .tir-current-image .tir-thumbnail-tag {
     background: rgba(60, 200, 120, 0.2);
     border-color: rgba(90, 230, 160, 0.45);
+  }
+  
+  /* Original tile variant (purple accent) */
+  .tir-original-image .tir-thumbnail-tag {
+    background: rgba(156, 39, 176, 0.2);
+    border-color: rgba(186, 69, 206, 0.45);
   }
   
   /* show first 20 tags, hide the rest */

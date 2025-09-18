@@ -479,17 +479,31 @@ export class TokenImageReplacementWindow extends Application {
         this.currentPage = 0;
         this.recommendedToken = null; // Reset recommended token
 
-        // If we have a selected token, add it as the first match
+        // If we have a selected token, add original and current images as the first matches
         if (this.selectedToken) {
-        const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            // Add original image as the very first card
+            const originalImage = TokenImageReplacement._getOriginalImage(this.selectedToken.document);
+            if (originalImage) {
+                const originalImageCard = {
+                    name: originalImage.name,
+                    fullPath: originalImage.path,
+                    searchScore: 0, // Will be calculated normally
+                    isOriginal: true,
+                    metadata: null
+                };
+                this.allMatches.push(originalImageCard);
+            }
+            
+            // Add current image as the second card
+            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             if (currentImageSrc) {
-        const currentImage = {
+                const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Unknown',
-            fullPath: currentImageSrc,
+                    fullPath: currentImageSrc,
                     searchScore: 0, // Will be calculated normally
                     isCurrent: true,
                     metadata: null
-        };
+                };
                 this.allMatches.push(currentImage);
             }
         }
@@ -583,11 +597,17 @@ export class TokenImageReplacementWindow extends Application {
         const imageName = event.currentTarget.dataset.imageName;
         const isQuickApply = event.target.closest('[data-quick-apply="true"]');
         const isCurrentImage = event.currentTarget.classList.contains('tir-current-image');
+        const isOriginalImage = event.currentTarget.classList.contains('tir-original-image');
         
         if (!this.selectedToken || !imagePath) return;
 
         // Don't allow clicking on current image
         if (isCurrentImage) {
+            return;
+        }
+        
+        // Don't allow clicking on original image (it's just for reference)
+        if (isOriginalImage) {
             return;
         }
 
@@ -1305,6 +1325,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _renderResults() {
+        
         // ***** BUILD: NO TOKEN SELECTED *****
         if (!this.selectedToken) {
             let html = `
@@ -1329,7 +1350,7 @@ export class TokenImageReplacementWindow extends Application {
                     const tooltipText = this._generateTooltipText(match, false);
                     const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
                     return `
-                        <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
+                        <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                             <div class="tir-thumbnail-image">
                                 <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
                                 ${match.isCurrent ? `
@@ -1383,7 +1404,7 @@ export class TokenImageReplacementWindow extends Application {
             const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
             
             return `
-                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
+                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                     <div class="tir-thumbnail-image">
                         <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
                         ${match.isCurrent ? `
@@ -1414,6 +1435,11 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
+        // Add original image tag if applicable
+        if (match.isOriginal) {
+            tags.push('ORIGINAL IMAGE');
+        }
+        
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
@@ -1427,14 +1453,14 @@ export class TokenImageReplacementWindow extends Application {
                     tags.push(tag);
                 }
             });
-        } else if (!match.isCurrent) {
-            // No fallback for non-current images - this is a critical error that needs to be fixed
+        } else if (!match.isCurrent && !match.isOriginal) {
+            // No fallback for non-current/non-original images - this is a critical error that needs to be fixed
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR - No metadata available for ${match.name}. The scanning process is broken.`, "", false, false);
             console.error(`Token Image Replacement: Missing metadata for file: ${match.name}`, match);
             // Return empty array - no tags means no display
             return [];
         }
-        // For current images without metadata, we still return the CURRENT IMAGE tag
+        // For current/original images without metadata, we still return their respective tags
         
         return [...new Set(tags)]; // Remove duplicates
     }
@@ -1444,6 +1470,7 @@ export class TokenImageReplacementWindow extends Application {
         const endIndex = (this.currentPage + 1) * this.resultsPerPage;
         this.matches = this.allMatches.slice(startIndex, endIndex);
         this.hasMoreResults = this.allMatches.length > this.matches.length;
+        
     }
 
     async _onScroll(event) {
@@ -2531,7 +2558,11 @@ export class TokenImageReplacementWindow extends Application {
         if (!results || results.length === 0) return results;
         
         return results.sort((a, b) => {
-            // Always keep current image at top
+            // Always keep original image at the very top
+            if (a.isOriginal) return -1;
+            if (b.isOriginal) return 1;
+            
+            // Then keep current image second
             if (a.isCurrent) return -1;
             if (b.isCurrent) return 1;
             
@@ -4517,10 +4548,47 @@ export class TokenImageReplacement {
     }
 
     /**
+     * Store the original image for a token before any updates
+     */
+    static _storeOriginalImage(tokenDocument) {
+        if (!tokenDocument || !tokenDocument.texture) {
+            return;
+        }
+        
+        const tokenId = tokenDocument.id;
+        const originalImage = {
+            path: tokenDocument.texture.src,
+            name: tokenDocument.texture.src.split('/').pop(),
+            timestamp: Date.now()
+        };
+        
+        // Store in a simple object for now (could be enhanced to use game.settings for persistence)
+        if (!this.originalImages) {
+            this.originalImages = {};
+        }
+        
+        this.originalImages[tokenId] = originalImage;
+    }
+
+    /**
+     * Get the original image for a token
+     */
+    static _getOriginalImage(tokenDocument) {
+        if (!this.originalImages || !tokenDocument) {
+            return null;
+        }
+        
+        return this.originalImages[tokenDocument.id] || null;
+    }
+
+    /**
      * Hook for when tokens are created
      */
     static async _onTokenCreated(tokenDocument, options, userId) {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Hook fired for token: ${tokenDocument.name}`, "", false, false);
+        
+        // Store the original image before any updates
+        this._storeOriginalImage(tokenDocument);
         
         // Only process if we're a GM and the feature is enabled
         if (!game.user.isGM) {
