@@ -1745,6 +1745,17 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	// Fuzzy Search
+	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
+		name: 'Fuzzy Search',
+		hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
+		type: Boolean,
+		config: false, // Hidden setting - controlled by UI toggle
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
 	
 
 	// TOKEN DATA WEIGHTING
