@@ -454,6 +454,11 @@ export class TokenImageReplacementWindow extends Application {
         // Threshold slider
         html.find('.tir-rangeslider-input').on('input', this._onThresholdSliderChange.bind(this));
         
+        // Set initial threshold value in label
+        const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        const thresholdPercentage = Math.round(currentThreshold * 100);
+        html.find('.tir-threshold-value').text(`${thresholdPercentage}%`);
+        
         // Initialize threshold slider with current value
         this._initializeThresholdSlider();
     }
@@ -1434,13 +1439,14 @@ export class TokenImageReplacementWindow extends Application {
                 }
             });
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using metadata tags for ${match.name}: ${match.metadata.tags.join(', ')}`, "", true, false);
-        } else {
-            // No fallback - this is a critical error that needs to be fixed
+        } else if (!match.isCurrent) {
+            // No fallback for non-current images - this is a critical error that needs to be fixed
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR - No metadata available for ${match.name}. The scanning process is broken.`, "", false, false);
             console.error(`Token Image Replacement: Missing metadata for file: ${match.name}`, match);
             // Return empty array - no tags means no display
             return [];
         }
+        // For current images without metadata, we still return the CURRENT IMAGE tag
         
         return [...new Set(tags)]; // Remove duplicates
     }
@@ -1659,15 +1665,16 @@ export class TokenImageReplacementWindow extends Application {
             
         }
         
-        // Calculate maximum possible score upfront (only for applicable token data points)
+        // Calculate maximum possible score using weighted system
         let maxPossibleScore = 0;
+        
+        // Base scoring categories (always applicable) - use fixed weights
+        maxPossibleScore += 1.0; // Filename matching (always possible)
+        maxPossibleScore += 1.0; // Search terms matching (always possible)
+        
+        // Token data categories (only if token data exists) - use user-configured weights
         if (searchMode === 'token' && tokenData) {
-            // Token Name weight (always applicable if token has a name)
-            if (tokenDocument && tokenDocument.name) {
-                maxPossibleScore += weights.tokenName;
-            }
-            
-            // Only add weights for token data that actually exists
+            if (tokenDocument && tokenDocument.name) maxPossibleScore += weights.tokenName;
             if (tokenData.representedActor) maxPossibleScore += weights.representedActor;
             if (tokenData.creatureType) maxPossibleScore += weights.creatureType;
             if (tokenData.creatureSubtype) maxPossibleScore += weights.creatureSubtype;
@@ -1675,22 +1682,9 @@ export class TokenImageReplacementWindow extends Application {
             if (tokenData.size) maxPossibleScore += weights.size;
         }
         
-        // Add search terms weight (1.0 per term) - this is the main scoring mechanism
-        maxPossibleScore += searchWords.length;
-        
-        // Add multi-word bonus potential (only if applicable)
-        if (searchWords.length > 1) {
-            maxPossibleScore += 0.2;
-        }
-        
-        // Add basic creature priority bonus potential (only if applicable)
-        if (searchMode === 'token' && tokenData && tokenData.representedActor) {
-            maxPossibleScore += 0.1;
-        }
-        
-        // If no token data exists, ensure we have a reasonable max score based on search terms
-        if (maxPossibleScore < searchWords.length) {
-            maxPossibleScore = searchWords.length + (searchWords.length > 1 ? 0.2 : 0);
+        // Ensure maxPossibleScore is never zero
+        if (maxPossibleScore === 0) {
+            maxPossibleScore = 1.0;
         }
         
         
@@ -1796,6 +1790,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // 2. SEARCH TERMS SCORING (always apply for better filename matching)
         if (searchMode === 'search' || true) { // Always apply search terms scoring
+            let searchTermsScore = 0;
+            let searchTermsFound = 0;
+            
             for (const word of searchWords) {
                 let wordScore = 0;
                 let wordFound = false;
@@ -1855,35 +1852,24 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 if (wordFound) {
-                    totalScore += wordScore;
+                    searchTermsScore = Math.max(searchTermsScore, wordScore); // Take best word score
+                    searchTermsFound++;
                     foundMatch = true;
                 }
             }
-        }
-        
-        // Multi-word bonus
-        if (foundMatch && searchWords.length > 1) {
-            const matchedWords = searchWords.filter(word => {
-                const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
-                return fileNameWords.some(fw => fw.includes(word) || word.includes(fw)) ||
-                       (fileInfo.metadata && fileInfo.metadata.tags && 
-                        fileInfo.metadata.tags.some(tag => tag.toLowerCase().includes(word))) ||
-                       (filePathLower.includes(word));
-            });
             
-            if (matchedWords.length === searchWords.length) {
-                totalScore += 0.2;
+            // Add search terms score as a single category (max 1.0)
+            if (searchTermsFound > 0) {
+                totalScore += searchTermsScore * 1.0; // Fixed weight for search terms
             }
         }
         
-        // Basic creature priority bonus
-        if (foundMatch && this._isBasicCreature(fileName, fileInfo)) {
-            totalScore += 0.1;
-        }
+        // Note: Multi-word bonus and basic creature priority bonus removed for simpler percentage-based scoring
         
         // Debug logging for scoring issues
         if (fileNameLower.includes('brown') && fileNameLower.includes('bear')) {
-            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING for ${fileName}`, `totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${(totalScore / maxPossibleScore).toFixed(3)}`, true, false);
+            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING v2.1 for ${fileName}`, `WEIGHTED SYSTEM: totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${(totalScore / maxPossibleScore).toFixed(3)}`, true, false);
+            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING BREAKDOWN v2.1`, `Token data exists: ${!!tokenData}, Search terms: ${searchWords.length}, Search mode: ${searchMode}`, true, false);
         }
         
         // Normalize score to 0.0-1.0 range
@@ -2116,11 +2102,11 @@ export class TokenImageReplacementWindow extends Application {
         const $slider = $(event.target).closest('.tir-rangeslider');
         const $fill = $slider.find('.tir-rangeslider-fill');
         const $thumb = $slider.find('.tir-rangeslider-thumb');
-        const $value = $slider.find('.tir-rangeslider-value');
+        const $thresholdValue = $('.tir-threshold-value');
         
         $fill.css('width', `${percentage}%`);
         $thumb.css('left', `${percentage}%`);
-        $value.text(`${percentage}%`);
+        $thresholdValue.text(`${percentage}%`);
         
         // Update the setting
         await game.settings.set(MODULE.ID, 'tokenImageReplacementThreshold', threshold);
@@ -4551,26 +4537,18 @@ export class TokenImageReplacement {
             return;
         }
         
-        // Extract token data and weights
+        // Extract token data
         const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
-        const weights = {
-            representedActor: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', 80) / 100,
-            tokenName: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightTokenName', 20) / 100,
-            creatureType: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureType', 15) / 100,
-            creatureSubtype: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', 15) / 100,
-            equipment: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightEquipment', 10) / 100,
-            size: getSettingSafely(MODULE.ID, 'tokenImageReplacementWeightSize', 5) / 100,
-        };
         
-        // Log formatted breakdown
+        // Log formatted breakdown (simplified for new scoring system)
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== TOKEN DATA BREAKDOWN =====`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Criteria | Weight | Data from Token`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: representedActor | ${weights.representedActor} | "${tokenData.representedActor || 'none'}"`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: tokenName | ${weights.tokenName} | "${tokenDocument.name || 'none'}"`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | ${weights.creatureType} | "${tokenData.creatureType || 'none'}"`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | ${weights.creatureSubtype} | "${tokenData.creatureSubtype || 'none'}"`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | ${weights.equipment} | [${tokenData.equipment?.join(', ') || 'none'}]`, "", false, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | ${weights.size} | "${tokenData.size || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Criteria | Data from Token`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: representedActor | "${tokenData.representedActor || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: tokenName | "${tokenDocument.name || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | "${tokenData.creatureType || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | "${tokenData.creatureSubtype || 'none'}"`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | [${tokenData.equipment?.join(', ') || 'none'}]`, "", false, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | "${tokenData.size || 'none'}"`, "", false, false);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: =================================`, "", false, false);
         
         // Wait a moment for the token to be fully created on the canvas
