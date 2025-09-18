@@ -3336,6 +3336,9 @@ export class TokenImageReplacement {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | controlToken (global)", "token-image-replacement-global", true, false);
         
+        // Add double-middle-click handler for tokens using a hook
+        this._addMiddleClickHandler();
+        
         // No Handlebars helpers needed - all calculations done in JavaScript
         
         // Add test function to global scope for debugging
@@ -4532,6 +4535,27 @@ export class TokenImageReplacement {
     
 
     
+    /**
+     * Add double-middle-click handler for tokens
+     */
+    static _addMiddleClickHandler() {
+        // Add event listener to the document for double-middle-click events
+        document.addEventListener('mousedown', (event) => {
+            // Check if it's a double-middle-click (button 1 with double-click timing)
+            if (event.button === 1 && event.detail === 2) {
+                // Find the token under the mouse
+                const token = canvas.tokens.placeables.find(t => t.hover);
+                if (token) {
+                    event.preventDefault();
+                    // Select the token first
+                    token.control({ releaseOthers: true });
+                    // Then open the window
+                    this.openWindow();
+                }
+            }
+        });
+    }
+
     /**
      * Handle global token selection changes
      */
