@@ -491,7 +491,6 @@ export class TokenImageReplacementWindow extends Application {
                     metadata: null
         };
                 this.allMatches.push(currentImage);
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Added current image to results", `Name: ${currentImage.name}, isCurrent: ${currentImage.isCurrent}`, true, false);
             }
         }
 
@@ -798,7 +797,6 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token ${token.name} ${controlled ? 'selected' : 'deselected'}`, 'token-image-replacement-selection', false, false);
         
         // Handle token switching when window is already open
         await this._handleTokenSwitch();
@@ -1420,22 +1418,9 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
-        // Debug: Log for current image to track the issue
-        if (match.isCurrent) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Processing current image: ${match.name}`, `isCurrent: ${match.isCurrent}`, true, false);
-        }
-        
-        // Debug: Only log for problematic files to avoid spam
-        if (match.name.includes('HALFORC') || match.name.includes('CORE')) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - _getTagsForMatch called for ${match.name}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - Has metadata: ${!!match.metadata}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - Tags: ${match.metadata && match.metadata.tags ? match.metadata.tags.join(', ') : 'none'}`, "", true, false);
-        }
-        
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Added CURRENT IMAGE tag to ${match.name}`, "", true, false);
         }
         
         // Only use metadata-based tags - no fallbacks
@@ -1446,7 +1431,6 @@ export class TokenImageReplacementWindow extends Application {
                     tags.push(tag);
                 }
             });
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using metadata tags for ${match.name}: ${match.metadata.tags.join(', ')}`, "", true, false);
         } else if (!match.isCurrent) {
             // No fallback for non-current images - this is a critical error that needs to be fixed
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR - No metadata available for ${match.name}. The scanning process is broken.`, "", false, false);
@@ -1935,11 +1919,6 @@ export class TokenImageReplacementWindow extends Application {
         
         // Note: Multi-word bonus and basic creature priority bonus removed for simpler percentage-based scoring
         
-        // Debug logging for scoring issues
-        if (fileNameLower.includes('brown') && fileNameLower.includes('bear')) {
-            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING v2.1 for ${fileName}`, `WEIGHTED SYSTEM: totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${(totalScore / maxPossibleScore).toFixed(3)}`, true, false);
-            postConsoleAndNotification(MODULE.NAME, `DEBUG SCORING BREAKDOWN v2.1`, `Token data exists: ${!!tokenData}, Search terms: ${searchWords.length}, Search mode: ${searchMode}`, true, false);
-        }
         
         // Normalize score to 0.0-1.0 range
         const finalScore = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
@@ -2311,29 +2290,20 @@ export class TokenImageReplacementWindow extends Application {
         let bestScore = 0;
         
         // Find the best match from current results (excluding current image)
-        console.log(`DEBUG: Starting to process ${this.allMatches.length} matches for recommended token`);
         for (const match of this.allMatches) {
             if (match.isCurrent) {
-                console.log(`DEBUG: Skipping current image: ${match.name}`);
                 continue; // Skip current image
             }
             
             // Get file info from cache with robust lookup
             const fileInfo = this._getFileInfoFromCache(match.name);
             if (!fileInfo) {
-                console.log(`DEBUG: No fileInfo found for match: ${match.name}`);
-                console.log(`DEBUG: Match object keys: ${Object.keys(match)}`);
-                console.log(`DEBUG: Cache files size: ${TokenImageReplacement.cache.files.size}`);
-                console.log(`DEBUG: First few cache keys: ${Array.from(TokenImageReplacement.cache.files.keys()).slice(0, 5)}`);
                 // Try using the match object directly as fallback
-                console.log(`DEBUG: Using match object directly as fallback`);
                 const score = this._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token');
-                console.log(`DEBUG: Match "${match.name}" scored ${score.toFixed(3)} (threshold: ${threshold}) using match object`);
                 
                 if (score > bestScore && score >= threshold) {
                     bestScore = score;
                     bestMatch = match;
-                    console.log(`DEBUG: New best match: "${match.name}" with score ${score.toFixed(3)}`);
                 }
                 continue;
             }
@@ -2341,7 +2311,6 @@ export class TokenImageReplacementWindow extends Application {
             // Calculate score using unified algorithm
             const score = this._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
             
-            console.log(`DEBUG: Match "${match.name}" scored ${score.toFixed(3)} (threshold: ${threshold})`);
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
@@ -2408,7 +2377,7 @@ export class TokenImageReplacementWindow extends Application {
         if (fileInfo.metadata) {
             // Check creature type matches
             if (fileInfo.metadata.creatureType) {
-                const fileCreatureType = fileInfo.metadata.creatureType.toLowerCase();
+                const fileCreatureType = (typeof fileInfo.metadata.creatureType === 'string' ? fileInfo.metadata.creatureType : '').toLowerCase();
                 if (tokenType.includes(fileCreatureType) || fileCreatureType.includes(tokenType)) {
                     contextBonus += 25; // Strong creature type match
                 }
@@ -2416,7 +2385,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check subtype matches
             if (fileInfo.metadata.subtype) {
-                const fileSubtype = fileInfo.metadata.subtype.toLowerCase();
+                const fileSubtype = (typeof fileInfo.metadata.subtype === 'string' ? fileInfo.metadata.subtype : '').toLowerCase();
                 if (tokenName.includes(fileSubtype) || fileSubtype.includes(tokenName)) {
                     contextBonus += 20; // Subtype match
                 }
@@ -2424,8 +2393,8 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check class/profession matches
             if (fileInfo.metadata.class || fileInfo.metadata.profession) {
-                const fileClass = (fileInfo.metadata.class || '').toLowerCase();
-                const fileProfession = (fileInfo.metadata.profession || '').toLowerCase();
+                const fileClass = (typeof fileInfo.metadata.class === 'string' ? fileInfo.metadata.class : '').toLowerCase();
+                const fileProfession = (typeof fileInfo.metadata.profession === 'string' ? fileInfo.metadata.profession : '').toLowerCase();
                 
                 // Check against token system data
                 if (tokenSystem.classes) {
@@ -2443,7 +2412,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check size matches
             if (fileInfo.metadata.size) {
-                const fileSize = fileInfo.metadata.size.toLowerCase();
+                const fileSize = (typeof fileInfo.metadata.size === 'string' ? fileInfo.metadata.size : '').toLowerCase();
                 const tokenSize = (tokenSystem.traits?.size || '').toLowerCase();
                 if (fileSize === tokenSize) {
                     contextBonus += 15; // Size match
@@ -2452,8 +2421,8 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check weapon/armor matches
             if (fileInfo.metadata.weapon || fileInfo.metadata.armor) {
-                const fileWeapon = (fileInfo.metadata.weapon || '').toLowerCase();
-                const fileArmor = (fileInfo.metadata.armor || '').toLowerCase();
+                const fileWeapon = (typeof fileInfo.metadata.weapon === 'string' ? fileInfo.metadata.weapon : '').toLowerCase();
+                const fileArmor = (typeof fileInfo.metadata.armor === 'string' ? fileInfo.metadata.armor : '').toLowerCase();
                 
                 // Check against token equipment
                 if (tokenSystem.equipment) {
@@ -3178,7 +3147,6 @@ export class TokenImageReplacement {
      * Call this from console: TokenImageReplacement.testWeightedScoring()
      */
     static testWeightedScoring() {
-        console.log("=== WEIGHTED SCORING TEST ===");
         
         // Test data: Bullywug Warrior token
         const testTokenData = {
@@ -3210,9 +3178,6 @@ export class TokenImageReplacement {
             }
         ];
         
-        console.log("Test Token Data:", testTokenData);
-        console.log("Test Files:", testFiles.map(f => f.name));
-        console.log("");
         
         // Create a mock token document
         const mockTokenDocument = {
@@ -3241,12 +3206,8 @@ export class TokenImageReplacement {
                 'token'
             );
             
-            console.log(`${fileInfo.name}: ${(score * 100).toFixed(1)}% match`);
         }
         
-        console.log("");
-        console.log("Expected: Bullywug should score highest, Sea Serpent lowest");
-        console.log("=== END TEST ===");
     }
 
     /**
@@ -3254,7 +3215,6 @@ export class TokenImageReplacement {
      * Call this from console: TokenImageReplacement.debugScoring()
      */
     static debugScoring() {
-        console.log("=== DEBUG SCORING ===");
         
         // Create mock token document for "Test (Creature)"
         const mockTokenDocument = {
@@ -3273,7 +3233,6 @@ export class TokenImageReplacement {
         
         // Extract token data
         const tokenData = TokenImageReplacement._extractTokenData(mockTokenDocument);
-        console.log("Extracted Token Data:", tokenData);
         
         // Test files
         const testFiles = [
@@ -3293,7 +3252,6 @@ export class TokenImageReplacement {
         const tempWindow = new TokenImageReplacementWindow();
         
         for (const fileInfo of testFiles) {
-            console.log(`\n--- Testing ${fileInfo.name} ---`);
             
             // Test token name matching
             const tokenNameMatch = tempWindow._calculateTokenNameMatch(
@@ -3302,7 +3260,6 @@ export class TokenImageReplacement {
                 fileInfo.path.toLowerCase(), 
                 fileInfo
             );
-            console.log(`Token Name "${mockTokenDocument.name}" match: ${tokenNameMatch}`);
             
             // Test token data matching
             if (tokenData.representedActor) {
@@ -3312,20 +3269,16 @@ export class TokenImageReplacement {
                     fileInfo.path.toLowerCase(), 
                     fileInfo
                 );
-                console.log(`Represented Actor "${tokenData.representedActor}" match: ${actorMatch}`);
             }
             
             // Test full scoring
             const searchTerms = ["Test", "Test (Creature)", "Creature", "test", "creature"];
             const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, mockTokenDocument, 'token');
-            console.log(`Final Score: ${(score * 100).toFixed(1)}%`);
         }
         
-        console.log("\n=== END DEBUG ===");
     }
     
     static async initialize() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Initializing system...", "", false, false);
         
         // Load monster mapping data
         await this._loadMonsterMappingData();
@@ -3362,20 +3315,6 @@ export class TokenImageReplacement {
         // Add test function to global scope for debugging
         if (game.user.isGM) {
                 game.TokenImageReplacement = this;
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Debug functions available via game.TokenImageReplacement", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Available test functions:", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testCacheStructure() - Test basic cache functionality", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testMatchingAlgorithm() - Test matching logic", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - testTokenCreation() - Test token creation hook", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getIntegrationStatus() - Check overall system status", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getCacheStorageStatus() - Check persistent cache status", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - refreshCache() - Manually refresh the cache", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - isScanning() - Check if a scan is currently in progress", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - forceRefreshCache() - Force refresh (stops current scan if running)", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - getCacheStats() - View cache statistics", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - cleanupInvalidPaths() - Remove invalid file paths from cache", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - forceCleanupInvalidPaths() - Force cleanup and save cleaned cache", "", true, false);
-                postConsoleAndNotification(MODULE.NAME, "  - openWindow() - Open the Token Image Replacement window", "", true, false);
                 
                 // Add the cleanup functions to the global scope
                 game.TokenImageReplacement.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);
@@ -4052,11 +3991,6 @@ export class TokenImageReplacement {
      * Process file information and filter for supported formats
      */
     static async _processFileInfo(filePath, basePath) {
-        // Debug logging for wildcard detection
-        if (filePath.includes('*') || filePath.includes('?') || filePath.includes('[') || filePath.includes(']')) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Wildcard detected in file path: ${filePath}`, "", false, true);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Base path: ${basePath}`, "", false, true);
-        }
         
         // Check if file has supported extension
         const extension = filePath.split('.').pop()?.toLowerCase();
@@ -4095,12 +4029,6 @@ export class TokenImageReplacement {
         // Extract metadata from filename and path
         const metadata = TokenImageReplacement._extractMetadata(fileName, relativePath);
         
-        // Debug: Only log for problematic files to avoid spam
-        if (fileName.includes('HALFORC') || fileName.includes('CORE')) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Generated metadata for ${fileName}:`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - Tags: ${metadata.tags ? metadata.tags.join(', ') : 'none'}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - D&D5e Type: ${metadata.dnd5eType || 'none'}`, "", true, false);
-        }
         
         return {
             name: fileName,
@@ -4399,10 +4327,6 @@ export class TokenImageReplacement {
             terms.push(tokenDocument.actor.name);
         }
         
-        // Debug logging for search terms
-        if (tokenDocument.actor && tokenDocument.actor.name && tokenDocument.actor.name.toLowerCase().includes('brown')) {
-            postConsoleAndNotification(MODULE.NAME, `DEBUG SEARCH TERMS for ${tokenDocument.actor.name}`, `Initial terms: ${JSON.stringify(terms)}`, true, false);
-        }
         
         // Priority 2: Token name (may contain additional context)
         terms.push(tokenDocument.name);
@@ -4433,18 +4357,8 @@ export class TokenImageReplacement {
         const tokenWords = tokenDocument.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
         terms.push(...tokenWords);
         
-        // Debug: log all terms before filtering (only once per token)
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Raw search terms: ${JSON.stringify(terms)}`, "", false, false);
-        
         // Remove duplicates and empty terms
         const filteredTerms = [...new Set(terms.filter(term => term && typeof term === 'string' && term.trim().length > 0))];
-        
-        // Debug logging for brown bear specifically
-        if (tokenDocument.actor && tokenDocument.actor.name && tokenDocument.actor.name.toLowerCase().includes('brown')) {
-            postConsoleAndNotification(MODULE.NAME, `DEBUG BROWN BEAR SEARCH TERMS`, `Actor: ${tokenDocument.actor.name}, Final terms: ${JSON.stringify(filteredTerms)}`, true, false);
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtered search terms: ${JSON.stringify(filteredTerms)}`, "", false, false);
         
         // Cache the result
         if (!this._searchTermsCache) {
@@ -5033,13 +4947,9 @@ export class TokenImageReplacement {
                 // Still load existing cache, just notify user
             }
             
-            // Restore cache with debug logging for wildcard detection
+            // Restore cache
             this.cache.files = new Map();
             for (const [fileName, fileInfo] of cacheData.files) {
-                // Debug logging for wildcard detection in cached data
-                if (fileInfo.fullPath && (fileInfo.fullPath.includes('*') || fileInfo.fullPath.includes('?') || fileInfo.fullPath.includes('[') || fileInfo.fullPath.includes(']'))) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - Wildcard detected in cached file path: ${fileInfo.fullPath}`, "", false, true);
-                }
                 this.cache.files.set(fileName, fileInfo);
             }
             this.cache.folders = new Map(cacheData.folders);

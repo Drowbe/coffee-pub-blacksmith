@@ -662,7 +662,7 @@
 .tir-search-input {
     flex: 1;
     padding-right: 24px;
-    background-color: rgba(0, 0, 0, 0.9) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
     color: #e0e0e0 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 4px;
@@ -675,7 +675,6 @@
     border-color: rgba(255, 100, 0, 0.8) !important;
     box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
 }
-
 /* Clear Button */
 
 .tir-clear-search-btn {
@@ -687,7 +686,7 @@
     height: auto;
     padding: 0;
     border: 0px solid #ffffff;
-    background: inherit;
+    background: transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -696,6 +695,7 @@
 }
 .tir-clear-search-btn i {
     color: rgba(145, 133, 107, 1.0);
+    background: transparent;
     font-size: 1.4em;
     padding: 2px 2px 0px 4px;
 }
@@ -708,7 +708,6 @@
     box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.01);
     outline: none !important;
 }
-
 
 /* Filter Toggle Button */
 
