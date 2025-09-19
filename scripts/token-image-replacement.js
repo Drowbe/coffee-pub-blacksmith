@@ -2616,6 +2616,9 @@ export class TokenImageReplacementWindow extends Application {
         } else if (TokenImageReplacement.cache.isScanning) {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
+        } else if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
+            this.notificationIcon = 'fas fa-check-circle';
+            this.notificationText = `Scan Complete! Found ${TokenImageReplacement.cache.completionData.totalFiles} files across ${TokenImageReplacement.cache.completionData.totalFolders} folders in ${TokenImageReplacement.cache.completionData.timeString}`;
         } else if (TokenImageReplacement.cache.files.size === 0) {
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
@@ -2754,6 +2757,8 @@ export class TokenImageReplacement {
         lastScan: null,            // timestamp of last scan
         isScanning: false,         // prevent multiple simultaneous scans
         isPaused: false,           // pause state for scanning
+        justCompleted: false,      // flag to show completion notification
+        completionData: null,      // data for completion notification
         totalFiles: 0,             // total count for progress tracking
         overallProgress: 0,        // current step in overall process
         totalSteps: 0,             // total steps in overall process
@@ -3547,6 +3552,8 @@ export class TokenImageReplacement {
         
         this.cache.isScanning = true;
         this.cache.isPaused = false;
+        this.cache.justCompleted = false;
+        this.cache.completionData = null;
         
         try {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", false, false);
@@ -3786,7 +3793,9 @@ export class TokenImageReplacement {
         }
         
         this.cache.isScanning = true;
-        this.cache.isPaused = false; // Reset pause state when starting
+        this.cache.isPaused = false;
+        this.cache.justCompleted = false;
+        this.cache.completionData = null; // Reset pause state when starting
         const startTime = Date.now();
         
         // Clear cache at the start of a complete scan
@@ -3866,10 +3875,33 @@ export class TokenImageReplacement {
                 await this.window.refreshMatches();
             }
             
-            // Force a full window render to update cache status
+            // Set scanning to false before final render
+            this.cache.isScanning = false;
+            
+            // Set completion state for in-window notification
+            this.cache.justCompleted = true;
+            this.cache.completionData = {
+                totalFiles: this.cache.totalFiles,
+                totalFolders: this.cache.folders.size,
+                timeString: timeString
+            };
+            
+            // Send completion notification
+            ui.notifications.info(`Token Image Replacement: Scan completed! Found ${this.cache.totalFiles} files across ${this.cache.folders.size} folders in ${timeString}`);
+            
+            // Force a full window render to update cache status and button state
             if (this.window && this.window.render) {
                 this.window.render();
             }
+            
+            // Clear completion state after 5 seconds
+            setTimeout(() => {
+                this.cache.justCompleted = false;
+                this.cache.completionData = null;
+                if (this.window && this.window.render) {
+                    this.window.render();
+                }
+            }, 5000);
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", true, false);
@@ -3886,12 +3918,15 @@ export class TokenImageReplacement {
                 }, 3000); // Hide after 3 seconds
             }
         } finally {
-            this.cache.isScanning = false;
-            
-            // Force window refresh to show updated notification
-            const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
-            if (windows.length > 0) {
-                windows[0].render();
+            // Ensure scanning is false even if there was an error
+            if (this.cache.isScanning) {
+                this.cache.isScanning = false;
+                
+                // Force window refresh to show updated notification and button state
+                const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+                if (windows.length > 0) {
+                    windows[0].render();
+                }
             }
         }
     }
