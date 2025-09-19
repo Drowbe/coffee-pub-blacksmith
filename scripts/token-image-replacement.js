@@ -649,7 +649,14 @@ export class TokenImageReplacementWindow extends Application {
 
         try {
             await TokenImageReplacement.scanForImages();
-            ui.notifications.info("Image scan completed");
+            
+            // Check if we have completion data to show
+            if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
+                const data = TokenImageReplacement.cache.completionData;
+                ui.notifications.info(`Token Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`);
+            } else {
+                ui.notifications.info("Image scan completed");
+            }
         } catch (error) {
             ui.notifications.error(`Image scan failed: ${error.message}`);
         }
@@ -3886,8 +3893,7 @@ export class TokenImageReplacement {
                 timeString: timeString
             };
             
-            // Send completion notification
-            ui.notifications.info(`Token Image Replacement: Scan completed! Found ${this.cache.totalFiles} files across ${this.cache.folders.size} folders in ${timeString}`);
+            // Completion notification will be sent by the button handler
             
             // Force a full window render to update cache status and button state
             if (this.window && this.window.render) {
