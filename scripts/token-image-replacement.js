@@ -649,11 +649,25 @@ export class TokenImageReplacementWindow extends Application {
         try {
             await TokenImageReplacement.scanForImages();
             ui.notifications.info("Image scan completed");
+            
+            // Force window refresh to show updated cache status
+            this.render();
         } catch (error) {
             ui.notifications.error(`Image scan failed: ${error.message}`);
         } finally {
             this.isScanning = false;
             this.render();
+        }
+    }
+
+    async _onPauseCache() {
+        const paused = TokenImageReplacement.pauseCache();
+        if (paused) {
+            this.isScanning = false;
+            this.render();
+            ui.notifications.info("Cache scanning paused");
+        } else {
+            ui.notifications.warn("No active scan to pause");
         }
     }
 
@@ -2835,7 +2849,10 @@ export class TokenImageReplacement {
     static _isFolderIgnored(folderName) {
         const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
         const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
-        return ignoredFolders.includes(folderName.toLowerCase());
+        const folderNameLower = folderName.toLowerCase();
+        const isIgnored = ignoredFolders.includes(folderNameLower);
+        
+        return isIgnored;
     }
 
     /**
@@ -3539,6 +3556,11 @@ export class TokenImageReplacement {
                 // Update the cache status setting for display
                 this._updateCacheStatusSetting();
                 
+                // Force window refresh to show updated cache status
+                if (this.window && this.window.render) {
+                    this.window.render();
+                }
+                
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
             }
@@ -3574,6 +3596,11 @@ export class TokenImageReplacement {
         
         // Update status
         this._updateCacheStatusSetting();
+        
+        // Force window refresh to show updated cache status
+        if (this.window && this.window.render) {
+            this.window.render();
+        }
         
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache deleted successfully", "", false, false);
     }
@@ -3770,6 +3797,11 @@ export class TokenImageReplacement {
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
             
+            // Force window refresh to show updated cache status
+            if (this.window && this.window.render) {
+                this.window.render();
+            }
+            
             // Update window with completion status
             if (this.window && this.window.updateScanProgress) {
                 this.window.updateScanProgress(100, 100, "Scan Complete");
@@ -3792,6 +3824,11 @@ export class TokenImageReplacement {
                 await this.window.refreshMatches();
             }
             
+            // Force a full window render to update cache status
+            if (this.window && this.window.render) {
+                this.window.render();
+            }
+            
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", true, false);
             
@@ -3808,6 +3845,11 @@ export class TokenImageReplacement {
             }
         } finally {
             this.cache.isScanning = false;
+            
+            // Force UI refresh to update loading status
+            if (this.window && this.window.render) {
+                this.window.render();
+            }
         }
     }
     
@@ -3870,12 +3912,37 @@ export class TokenImageReplacement {
             
             // Always scan subdirectories (this is where most token files will be)
             if (response.dirs && response.dirs.length > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.dirs.length} subdirectories, scanning recursively...`, "", false, false);
+                // Log all directories found
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.dirs.length} subdirectories:`, "", false, false);
+                const ignoredDirs = [];
+                const scanDirs = [];
+                for (let i = 0; i < response.dirs.length; i++) {
+                    const dirName = response.dirs[i].split('/').pop();
+                    const isIgnored = TokenImageReplacement._isFolderIgnored(dirName);
+                    if (isIgnored) {
+                        ignoredDirs.push(dirName);
+                    } else {
+                        scanDirs.push(dirName);
+                    }
+                }
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Will scan: [${scanDirs.join(', ')}]`, "", false, false);
+                if (ignoredDirs.length > 0) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring: [${ignoredDirs.join(', ')}]`, "", false, false);
+                }
                 
-                // Set total steps for overall progress (1 for base directory + subdirectories)
-                this.cache.totalSteps = response.dirs.length + 1;
+                // Count non-ignored directories for accurate progress tracking
+                const nonIgnoredDirs = response.dirs.filter(dir => {
+                    const dirName = dir.split('/').pop();
+                    return !TokenImageReplacement._isFolderIgnored(dirName);
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", false, false);
+                
+                // Set total steps for overall progress (1 for base directory + non-ignored subdirectories)
+                this.cache.totalSteps = nonIgnoredDirs.length + 1;
                 this.cache.overallProgress = 0;
                 
+                let processedCount = 0;
                 for (let i = 0; i < response.dirs.length; i++) {
                     // Check if we should pause
                     if (this.cache.isPaused) {
@@ -3892,19 +3959,22 @@ export class TokenImageReplacement {
                         continue;
                     }
                     
-                    // Update overall progress
-                    this.cache.overallProgress = i + 1;
+                    // Update overall progress (only count non-ignored directories)
+                    processedCount++;
+                    this.cache.overallProgress = processedCount;
                     this.cache.currentStepName = subDirName;
+                    
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Processing folder ${processedCount}/${nonIgnoredDirs.length}: ${subDirName}`, "", false, false);
                     
                     // Update window progress if it exists
                     if (this.window && this.window.updateScanProgress) {
                         const statusText = this._truncateStatusText(`Scanning ${subDirName}: ${files.length} files found`);
-                        this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
+                        this.window.updateScanProgress(processedCount, nonIgnoredDirs.length, statusText);
                         // Small delay to make progress visible
                         await new Promise(resolve => setTimeout(resolve, 50));
                     }
                     
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${i + 1}/${response.dirs.length}] Scanning ${subDirName}...`, "", false, false);
+                    // Progress logging is now handled above
                     const subDirFiles = await this._scanSubdirectory(subDir, basePath);
                     files.push(...subDirFiles);
                     
@@ -3920,7 +3990,7 @@ export class TokenImageReplacement {
                     }
                     
                     // Log progress with percentage and file count
-                    const progressPercent = Math.round(((i + 1) / response.dirs.length) * 100);
+                    const progressPercent = Math.round((processedCount / nonIgnoredDirs.length) * 100);
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
                 }
             }
@@ -4975,12 +5045,27 @@ export class TokenImageReplacement {
             };
             
             
-            localStorage.setItem('tokenImageReplacement_cache', JSON.stringify(cacheData));
+            const cacheJson = JSON.stringify(cacheData);
+            const cacheSize = new Blob([cacheJson]).size;
+            const cacheSizeMB = (cacheSize / (1024 * 1024)).toFixed(2);
             
-            if (isIncremental) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache size: ${cacheSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
+            
+            try {
+                localStorage.setItem('tokenImageReplacement_cache', cacheJson);
+                
+                if (isIncremental) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
+                }
+            } catch (storageError) {
+                if (storageError.name === 'QuotaExceededError') {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Storage quota exceeded! Cache size: ${cacheSizeMB}MB. Consider reducing image collection size.`, "", true, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Storage error: ${storageError.message}`, "", true, false);
+                }
+                throw storageError;
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error saving cache: ${error.message}`, "", true, false);
