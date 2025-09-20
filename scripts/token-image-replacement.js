@@ -3589,6 +3589,7 @@ export class TokenImageReplacement {
             } else {
                 // No changes detected, just update the timestamp
                 const originalFileCount = this.cache.files.size;
+                const startTime = Date.now();
                 
                 // Update lastScan timestamp to current time
                 this.cache.lastScan = Date.now();
@@ -3600,10 +3601,28 @@ export class TokenImageReplacement {
                 // Update the cache status setting for display
                 this._updateCacheStatusSetting();
                 
-                // Force window refresh to show updated cache status
+                // Set completion state for UI updates
+                this.cache.isScanning = false;
+                this.cache.justCompleted = true;
+                this.cache.completionData = {
+                    totalFiles: originalFileCount,
+                    totalFolders: this.cache.folders.size,
+                    timeString: "less than a second" // Incremental updates are very fast
+                };
+                
+                // Force window refresh to show updated cache status and button state
                 if (this.window && this.window.render) {
                     this.window.render();
                 }
+                
+                // Clear completion state after 3 seconds (shorter for incremental)
+                setTimeout(() => {
+                    this.cache.justCompleted = false;
+                    this.cache.completionData = null;
+                    if (this.window && this.window.render) {
+                        this.window.render();
+                    }
+                }, 3000);
                 
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
@@ -3612,7 +3631,15 @@ export class TokenImageReplacement {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during incremental update: ${error.message}`, "", true, false);
         } finally {
-            this.cache.isScanning = false;
+            // Ensure scanning is false even if there was an error
+            if (this.cache.isScanning) {
+                this.cache.isScanning = false;
+                
+                // Force window refresh to show updated button state
+                if (this.window && this.window.render) {
+                    this.window.render();
+                }
+            }
         }
     }
     
