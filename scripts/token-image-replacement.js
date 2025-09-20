@@ -160,6 +160,8 @@ export class TokenImageReplacementWindow extends Application {
     _getFilteredFiles() {
         // Get all files from cache
         const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtering ${allFiles.length} files with filter: ${this.currentFilter}`, "", false, false);
+        
         // Apply category filter to get the subset of files to search
         if (this.currentFilter === 'all') {
             return allFiles;
@@ -174,7 +176,7 @@ export class TokenImageReplacementWindow extends Application {
                 .map(term => term.toLowerCase());
         }
         
-        return allFiles.filter(file => {
+        const filteredFiles = allFiles.filter(file => {
             const path = file.path || '';
             const fileName = file.name || '';
             
@@ -182,10 +184,14 @@ export class TokenImageReplacementWindow extends Application {
             switch (this.currentFilter) {
                 case 'favorites':
                     // Only show files that have the FAVORITE tag
-                    const fileInfo = TokenImageReplacement.cache.files.get(fileName);
+                    const fileInfo = TokenImageReplacement.cache.files.get(fileName.toLowerCase());
                     const hasFavorite = fileInfo?.metadata?.tags?.includes('FAVORITE') || false;
                     if (hasFavorite) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found favorite file: ${fileName}`, "", false, false);
+                    }
+                    // Debug: Check the first few files to see their metadata structure
+                    if (allFiles.indexOf(file) < 5) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Debug - File: ${fileName}, Has metadata: ${!!fileInfo?.metadata}, Tags: ${JSON.stringify(fileInfo?.metadata?.tags)}`, "", false, false);
                     }
                     return hasFavorite;
                 case 'selected':
@@ -203,6 +209,9 @@ export class TokenImageReplacementWindow extends Application {
                     return topLevel && topLevel.toLowerCase() === this.currentFilter;
             }
         });
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtered to ${filteredFiles.length} files`, "", false, false);
+        return filteredFiles;
     }
 
     _applyCategoryFilter(results) {
@@ -666,12 +675,10 @@ export class TokenImageReplacementWindow extends Application {
                 // Remove favorite
                 fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
                 ui.notifications.info(`Removed ${imageName} from favorites`);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed FAVORITE tag from ${imageName}. Tags now: [${fileInfo.metadata.tags.join(', ')}]`, "", false, false);
             } else {
                 // Add favorite
                 fileInfo.metadata.tags.push('FAVORITE');
                 ui.notifications.info(`Added ${imageName} to favorites`);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Added FAVORITE tag to ${imageName}. Tags now: [${fileInfo.metadata.tags.join(', ')}]`, "", false, false);
             }
 
             // Save the updated cache
@@ -2631,7 +2638,12 @@ export class TokenImageReplacementWindow extends Application {
 
     async _onCategoryFilterClick(event) {
         const category = event.currentTarget.dataset.category;
-        if (!category || category === this.currentFilter) return;
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Category filter clicked: ${category}`, "", false, false);
+        
+        if (!category || category === this.currentFilter) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filter click ignored - category: ${category}, current: ${this.currentFilter}`, "", false, false);
+            return;
+        }
         
         // Update active filter
         const $element = this.element;
@@ -2644,18 +2656,7 @@ export class TokenImageReplacementWindow extends Application {
             this.currentFilter = category;
             this._cachedSearchTerms = null; // Clear cache when filter changes
             
-            // Debug logging for favorites
-            if (category === 'favorites') {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Switching to favorites filter`, "", false, false);
-                // Count how many files have FAVORITE tag
-                let favoriteCount = 0;
-                for (const [fileName, fileInfo] of TokenImageReplacement.cache.files) {
-                    if (fileInfo?.metadata?.tags?.includes('FAVORITE')) {
-                        favoriteCount++;
-                    }
-                }
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${favoriteCount} favorited files in cache`, "", false, false);
-            }
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filter changed to: ${category}`, "", false, false);
             
             // Re-run search with new filter
             await this._findMatches();
