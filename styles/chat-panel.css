@@ -105,9 +105,11 @@
 /* TIMER SECTION */
 
 
-/* Timer Progress */
 
-.session-timer::before {
+
+/* Timer Progress Bar */
+
+.timer-section::before {
     content: '';
     position: absolute;
     top: 0px;
@@ -118,26 +120,32 @@
     border-radius: 4px;
     background: linear-gradient(
         90deg,
-        var(--progress-color, rgba(37, 211, 102, 0.1)) var(--progress),
-        var(--background-color, rgba(37, 211, 102, 0.01)) var(--progress)
+        var(--progress-color, rgba(37, 211, 102, 0.2)) var(--progress),
+        transparent var(--progress)
     );
 }
 
-/* Timer States */
+/* Timer States - Default */
+.timer-section.default {
+    --progress-color: rgba(42, 100, 48, 0.9);
+    --background-color: rgba(42, 100, 48, 0.1);
+}
 
-.session-timer.warning {
+/* Timer States - Warning */
+.timer-section.warning {
     animation: borderPulse 2s ease-in-out infinite;
-    border-color: rgba(230, 170, 5, 0.1);
-    background: rgba(230, 170, 5, 0.3);
-}
-.session-timer.expired {
-    border-color: rgba(243, 0, 0, 0.1);
-    background: rgba(243, 0, 0, 0.3);
+    --progress-color: rgba(230, 170, 5, 0.7);
+    --background-color: rgba(230, 170, 5, 0.2);
 }
 
-.session-timer.expired::before {
-    background: rgba(157, 6, 6, 0.6);
+/* Timer States - Expired */
+.timer-section.expired {;
+    --progress-color: rgba(243, 0, 0, 0.8);
+    --background-color: rgba(243, 0, 0, 0.8);
 }
+
+
+
 
 
 

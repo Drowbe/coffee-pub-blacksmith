@@ -545,7 +545,7 @@ class ChatPanel {
             // If we're in or entering the warning period
             if (remainingMinutes <= warningThreshold && this.sessionEndTime !== null) {
                 timerSection.classList.add('warning');
-                timerSection.style.setProperty('--progress-color', 'hsl(9, 94%, 20%)');
+                timerSection.classList.remove('expired');
                 
                 // Detect when we first cross the warning threshold
                 const justEnteredWarning = previousRemainingMinutes > warningThreshold && 
@@ -560,7 +560,6 @@ class ChatPanel {
                 }
             } else {
                 timerSection.classList.remove('warning', 'expired');
-                timerSection.style.setProperty('--progress-color', '#c1bfb5');
                 // Reset warning flag when we're no longer in warning state
                 this.hasHandledWarning = false;
             }
@@ -572,7 +571,6 @@ class ChatPanel {
             postConsoleAndNotification(MODULE.NAME, "Error in timer warning check", error, false, false);
             // If settings aren't registered yet, just use default styling
             timerSection.classList.remove('warning', 'expired');
-            timerSection.style.setProperty('--progress-color', '#c1bfb5');
         }
 
         // Reset expiration flag if timer is not expired

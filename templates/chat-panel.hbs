@@ -43,7 +43,7 @@
             </div>
         </div>
         {{!-- SESSION TIMER --}}
-        <div class="tool timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
+        <div class="tool timer-section default {{#if isGM}}tool-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
             <div class="timer-info" >
                 <i class="fas fa-eclipse"></i>
                 <span class="session-timer">{{timerText}}</span>
