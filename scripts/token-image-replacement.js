@@ -3832,6 +3832,23 @@ export class TokenImageReplacement {
         this.cache.completionData = null; // Reset pause state when starting
         const startTime = Date.now();
         
+        // Set up timeout protection (3 hours max)
+        const maxScanTime = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+        const timeoutId = setTimeout(() => {
+            if (this.cache.isScanning) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: SCAN TIMEOUT - Forcing completion after 3 hours", "", true, false);
+                this.cache.isScanning = false;
+                this.cache.overallProgress = this.cache.totalSteps;
+                this.cache.currentStepName = "Timeout - Forced Complete";
+                
+                // Force window update
+                const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+                if (windows.length > 0) {
+                    windows[0].render();
+                }
+            }
+        }, maxScanTime);
+        
         // Clear cache at the start of a complete scan
         this.cache.files.clear();
         this.cache.folders.clear();
@@ -3909,6 +3926,13 @@ export class TokenImageReplacement {
                 await this.window.refreshMatches();
             }
             
+            // Validate completion before setting final state
+            if (this.cache.overallProgress !== this.cache.totalSteps) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Progress mismatch detected. Expected ${this.cache.totalSteps} steps but completed ${this.cache.overallProgress}`, "", true, false);
+                // Force completion
+                this.cache.overallProgress = this.cache.totalSteps;
+            }
+            
             // Set scanning to false before final render
             this.cache.isScanning = false;
             
@@ -3951,6 +3975,11 @@ export class TokenImageReplacement {
                 }, 3000); // Hide after 3 seconds
             }
         } finally {
+            // Clear timeout since scan is complete
+            if (typeof timeoutId !== 'undefined') {
+                clearTimeout(timeoutId);
+            }
+            
             // Ensure scanning is false even if there was an error
             if (this.cache.isScanning) {
                 this.cache.isScanning = false;
@@ -4049,8 +4078,8 @@ export class TokenImageReplacement {
                 
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", false, false);
                 
-                // Set total steps for overall progress (1 for base directory + non-ignored subdirectories)
-                this.cache.totalSteps = nonIgnoredDirs.length + 1;
+                // Set total steps for overall progress (non-ignored subdirectories only)
+                this.cache.totalSteps = nonIgnoredDirs.length;
                 this.cache.overallProgress = 0;
                 
                 let processedCount = 0;
@@ -4105,6 +4134,15 @@ export class TokenImageReplacement {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
                 }
             }
+            
+            // Validate that we've processed all expected directories
+            if (processedCount !== nonIgnoredDirs.length) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Expected to process ${nonIgnoredDirs.length} directories but only processed ${processedCount}`, "", true, false);
+            }
+            
+            // Ensure progress is complete
+            this.cache.overallProgress = nonIgnoredDirs.length;
+            this.cache.currentStepName = "Complete";
             
             if (files.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No supported image files found in ${basePath} or its subdirectories`, "", false, false);
