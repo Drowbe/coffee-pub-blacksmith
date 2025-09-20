@@ -180,6 +180,14 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check if the file matches the current category filter
             switch (this.currentFilter) {
+                case 'favorites':
+                    // Only show files that have the FAVORITE tag
+                    const fileInfo = TokenImageReplacement.cache.files.get(fileName);
+                    const hasFavorite = fileInfo?.metadata?.tags?.includes('FAVORITE') || false;
+                    if (hasFavorite) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found favorite file: ${fileName}`, "", false, false);
+                    }
+                    return hasFavorite;
                 case 'selected':
                     // Only show files that match the selected token's characteristics
                     if (!this.selectedToken || !processedTerms) return false;
@@ -208,6 +216,9 @@ export class TokenImageReplacementWindow extends Application {
             
             // Check if the result matches the current category filter
             switch (this.currentFilter) {
+                case 'favorites':
+                    // Only show results that have the FAVORITE tag
+                    return result.metadata?.tags?.includes('FAVORITE') || false;
                 case 'selected':
                     // Only show results that match the selected token's characteristics
                     if (!this.selectedToken) return false;
@@ -414,6 +425,7 @@ export class TokenImageReplacementWindow extends Application {
 
         // Thumbnail clicks
         html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
+        html.find('.tir-thumbnail-item').on('contextmenu', this._onImageRightClick.bind(this));
         
         // Pause cache button
         html.find('.button-pause-cache').on('click', this._onPauseCache.bind(this));
@@ -619,6 +631,65 @@ export class TokenImageReplacementWindow extends Application {
         }
 
         await this._applyImageToToken(imagePath, imageName);
+    }
+
+    /**
+     * Handle right-click on image to toggle favorite status
+     */
+    async _onImageRightClick(event) {
+        event.preventDefault();
+        
+        const imagePath = event.currentTarget.dataset.imagePath;
+        const imageName = event.currentTarget.dataset.imageName;
+        
+        if (!imagePath) return;
+
+        try {
+            // Get the file info from cache
+            const fileInfo = this._getFileInfoFromCache(imageName);
+            if (!fileInfo) {
+                ui.notifications.warn(`Could not find file info for ${imageName}`);
+                return;
+            }
+
+            // Ensure metadata and tags exist
+            if (!fileInfo.metadata) {
+                fileInfo.metadata = {};
+            }
+            if (!fileInfo.metadata.tags) {
+                fileInfo.metadata.tags = [];
+            }
+
+            // Toggle favorite status
+            const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
+            if (isFavorited) {
+                // Remove favorite
+                fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
+                ui.notifications.info(`Removed ${imageName} from favorites`);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed FAVORITE tag from ${imageName}. Tags now: [${fileInfo.metadata.tags.join(', ')}]`, "", false, false);
+            } else {
+                // Add favorite
+                fileInfo.metadata.tags.push('FAVORITE');
+                ui.notifications.info(`Added ${imageName} to favorites`);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Added FAVORITE tag to ${imageName}. Tags now: [${fileInfo.metadata.tags.join(', ')}]`, "", false, false);
+            }
+
+            // Save the updated cache
+            await TokenImageReplacement._saveCacheToStorage(true); // Incremental save
+
+            // Refresh the current view if we're on favorites
+            if (this.currentFilter === 'favorites') {
+                this._showSearchSpinner();
+                await this._findMatches();
+                this._hideSearchSpinner();
+            } else {
+                // Just update the current view to show the heart icon
+                this._updateResults();
+            }
+
+        } catch (error) {
+            ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
+        }
     }
 
     /**
@@ -1318,6 +1389,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Re-attach event handlers for the new thumbnail items
             $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
+            $element.find('.tir-thumbnail-item').off('contextmenu').on('contextmenu', this._onImageRightClick.bind(this));
             
             // Update the results summary with current counts
             const $countElement = $element.find('#tir-results-details-count');
@@ -1377,7 +1449,7 @@ export class TokenImageReplacementWindow extends Application {
                     const tooltipText = this._generateTooltipText(match, false);
                     const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
                     return `
-                        <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
+                        <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${match.metadata?.tags?.includes('FAVORITE') ? 'tir-favorite-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                             <div class="tir-thumbnail-image">
                                 <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
                                 ${match.isCurrent ? `
@@ -1390,6 +1462,11 @@ export class TokenImageReplacementWindow extends Application {
                                         <span class="tir-overlay-text">Apply to Token</span>
                                     </div>
                                 `}
+                                ${match.metadata?.tags?.includes('FAVORITE') ? `
+                                    <div class="tir-thumbnail-favorite-badge">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                ` : ''}
                             </div>
                             <div class="tir-thumbnail-name">${match.name}</div>
                             <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
@@ -1431,7 +1508,7 @@ export class TokenImageReplacementWindow extends Application {
             const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
             
             return `
-                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
+                <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${match.metadata?.tags?.includes('FAVORITE') ? 'tir-favorite-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                     <div class="tir-thumbnail-image">
                         <img src="${match.fullPath}" alt="${match.name}" loading="lazy">
                         ${match.isCurrent ? `
@@ -1448,6 +1525,11 @@ export class TokenImageReplacementWindow extends Application {
                                 <span class="tir-overlay-text">Apply to Token</span>
                             </div>
                         `}
+                        ${match.metadata?.tags?.includes('FAVORITE') ? `
+                            <div class="tir-thumbnail-favorite-badge">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="tir-thumbnail-name">${match.name}</div>
                     <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
@@ -1470,6 +1552,11 @@ export class TokenImageReplacementWindow extends Application {
         // Add current image tag if applicable
         if (match.isCurrent) {
             tags.push('CURRENT IMAGE');
+        }
+        
+        // Add favorite tag if applicable
+        if (match.metadata?.tags?.includes('FAVORITE')) {
+            tags.push('FAVORITE');
         }
         
         // Only use metadata-based tags - no fallbacks
@@ -2556,6 +2643,19 @@ export class TokenImageReplacementWindow extends Application {
             // Set new filter
             this.currentFilter = category;
             this._cachedSearchTerms = null; // Clear cache when filter changes
+            
+            // Debug logging for favorites
+            if (category === 'favorites') {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Switching to favorites filter`, "", false, false);
+                // Count how many files have FAVORITE tag
+                let favoriteCount = 0;
+                for (const [fileName, fileInfo] of TokenImageReplacement.cache.files) {
+                    if (fileInfo?.metadata?.tags?.includes('FAVORITE')) {
+                        favoriteCount++;
+                    }
+                }
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${favoriteCount} favorited files in cache`, "", false, false);
+            }
             
             // Re-run search with new filter
             await this._findMatches();

@@ -104,6 +104,7 @@
         <div class="tir-search-tools-row-container row-category row-style-{{categoryStyle}}">
             <!-- Filters -->
             <div id="tir-filter-category-container" class="tir-search-tools-row-left">
+                <span class="tir-filter-category row-style-{{categoryStyle}}" data-category="favorites"><i class="fas fa-heart"></i></span>
                 <span class="tir-filter-category {{#if selectedToken}}active{{/if}} category-selected row-style-{{categoryStyle}}" data-category="selected">Selected</span>
                 <span class="tir-filter-category {{#unless selectedToken}}active{{/unless}} row-style-{{categoryStyle}}" data-category="all">All</span>
                 {{#each categories}}
