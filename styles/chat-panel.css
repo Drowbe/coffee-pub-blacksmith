@@ -2,6 +2,12 @@
 /* --- BLACKSMITH MENUBAR ---------- */
 /* ------------------------------------ */
 
+/* MENUBAR */
+
+/* Push main interface down to account for fixed menubar */
+#interface {
+    margin-top: 32px;
+}
 
 .blacksmith-menubar-container {
     position: fixed;
@@ -29,65 +35,51 @@
     align-items: center;
     justify-content: center;
     padding: 0px 8px 0px 8px;
+    gap: 6px;
+    font-size: 1.0em;
 }
 
 .blacksmith-menubar-right {
-    background-color: rgba(41, 11, 20, 0.4);
-    width: 300px;
+    background-color: rgba(41, 11, 20, 0.2);
+    width: auto;
     height: 25px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 0px 8px 0px 8px;
+    padding: 0px 2px 0px 8px;
     border-left: 0px solid rgba(0, 0, 0, 0.6);
     border-radius: 3px 0px 6px 3px;
+    gap: 4px;
 }
 
-.leader-section, .timer-section {
-    display: flex;
-    align-items: center;
-    padding: 0px 0px;
-}
-
-.leader-section {
-    flex: 0 1 auto;
-    margin-right: 8px;
-}
-
-.timer-section {
-    flex: 0 1 auto;
-}
-
-/* Push main interface down to account for fixed menubar */
-#interface {
-    margin-top: 32px;
-}
 
 /* ------------------------------------ */
-
-/* TOOLBAR: Base styles and hover effects */
-
-.toolbar-icons {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    font-size: 0.9em;
-}
 
 /* Base styles for all tools */
 .tool-active, .tool-readonly {
     color: rgba(240, 240, 224, 0.9);
     cursor: default;
-    
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    padding:  2px 8px 2px 8px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-clip: padding-box;
+    white-space: nowrap;
 }
 
 .tool-active i , .tool-readonly i{
     color: rgba(240, 240, 224, 0.9);
-    font-size: 0.9em;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    
 }
 
 .tool-active span, .tool-readonly span {
     color: rgba(240, 240, 224, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     font-size: 1.0em;
     white-space: nowrap;
     overflow: hidden;
@@ -101,81 +93,50 @@
 .tool-active:hover span {
     color: rgba(255, 100, 0, 0.9);
     cursor: pointer;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 100, 0, 0.4);
 }
 
 
 /* ------------------------------------ */
 
-/* Timer Styles */
-
 /* TIMERS TEMPORARILY IN THE CSS CLIENT */
 
-/* Timer Styles */
-.session-timer {
-    white-space: nowrap;
-}
-.timer-info {
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    padding-left: 6px;
-    padding-right: 6px;
-    position: relative;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background-clip: padding-box;
-}
-.timer-info:hover {
-    border: 1px solid rgba(93, 187, 4, 0.05);
-    background: rgba(93, 187, 4, 0.3);
-    color: #eeeeed;
-}
-.timer-info:hover,
-.timer-info:hover i,
-.timer-info:hover span {
-    color: #eeeeed;
-}
+/* TIMER SECTION */
 
-/* TIMER ICON */
-.timer-info i {
-    padding-top: 2px;
-    padding-right: 3px;
-}
 
-/* TIMER PROGRESS */
+/* Timer Progress */
 
-.timer-info::before {
+.session-timer::before {
     content: '';
     position: absolute;
-    top: -1px;
-    right: -1px;
-    bottom: -1px;
-    left: -1px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
     z-index: -1;
-    border-radius: inherit;
+    border-radius: 4px;
     background: linear-gradient(
         90deg,
-        var(--progress-color, #c1bfb5) var(--progress),
-        var(--background-color, #74736d) var(--progress)
+        var(--progress-color, rgba(37, 211, 102, 0.1)) var(--progress),
+        var(--background-color, rgba(37, 211, 102, 0.01)) var(--progress)
     );
 }
 
-/* TIMER STATES*/
+/* Timer States */
 
-.timer-info.warning {
+.session-timer.warning {
     animation: borderPulse 2s ease-in-out infinite;
     border-color: rgba(230, 170, 5, 0.1);
     background: rgba(230, 170, 5, 0.3);
 }
-.timer-info.expired {
+.session-timer.expired {
     border-color: rgba(243, 0, 0, 0.1);
-	background: rgba(243, 0, 0, 0.3);
+    background: rgba(243, 0, 0, 0.3);
 }
 
-.timer-info.expired::before {
-    background: rgba(157, 6, 6, 0.0);
+.session-timer.expired::before {
+    background: rgba(157, 6, 6, 0.6);
 }
 
 

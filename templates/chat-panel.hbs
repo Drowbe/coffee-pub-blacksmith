@@ -1,13 +1,5 @@
 <div class="blacksmith-menubar-container">
     <div class="blacksmith-menubar-left">
-        <div class="toolbar-icons">
-            {{!--Movement --}}
-            <div class="tool movement {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
-                <div class="movement-info">
-                    <i class="fas {{currentMovement.icon}} movement-icon"></i>
-                    <span class="movement-label">{{currentMovement.name}}</span>
-                </div>
-            </div>
             {{!--Interface:  ui-left and ui-bottom, display none/inherit --}}
             <div class="tool interface tool-active" title="Toggle Core Interface including toolbars, party window, and macros">
                 <div class="interface-info">
@@ -15,7 +7,6 @@
                     <span class="interface-label">Hide UI</span>
                 </div>
             </div>
-            
             {{!-- Vote --}}
             {{#if (or isGM isLeader)}}
             <div class="tool vote tool-active" title="Vote">
@@ -25,8 +16,8 @@
                 </div>
             </div>
             {{/if}}
+            {{!--Skillcheck --}}
             {{#if isGM}}
-                {{!--Skillcheck --}}
                 <div class="tool skillcheck tool-active" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
                     <div class="skillcheck-info">
                         <i class="fas fa-dice skillcheck-icon"></i>
@@ -35,21 +26,27 @@
                 </div>
             {{/if}}
             {{!-- More tools will be added here --}}
-        </div>
     </div>
     <div class="blacksmith-menubar-right">
-        <div class="toolbar-icons">
-            <div class="leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
-                <div class="leader-info">
-                    <i class="fas fa-crown leader-icon"></i>
-                    <span class="party-leader">{{leaderText}}</span>
-                </div>
+        {{!-- LEADER --}}
+        <div class="tool leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
+            <div class="leader-info">
+                <i class="fas fa-crown leader-icon"></i>
+                <span class="party-leader">{{leaderText}}</span>
             </div>
-            <div class="timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
-                <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
-                    <i class="fas fa-eclipse"></i>
-                    <span class="session-timer">{{timerText}}</span>
-                </div>
+        </div>
+        {{!-- MOVEMENT --}}
+        <div class="tool movement {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+            <div class="movement-info">
+                <i class="fas {{currentMovement.icon}} movement-icon"></i>
+                <span class="movement-label">{{currentMovement.name}}</span>
+            </div>
+        </div>
+        {{!-- SESSION TIMER --}}
+        <div class="tool timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
+            <div class="timer-info" >
+                <i class="fas fa-eclipse"></i>
+                <span class="session-timer">{{timerText}}</span>
             </div>
         </div>
     </div>
