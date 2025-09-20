@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.6] - Token Image Replacement System Enhancements
+
+### Added
+- **Favorites System:** Added comprehensive favorites functionality for token images
+  - New "Favorites" filter tab in the category filters (left of "Selected")
+  - Right-click any image thumbnail to favorite/unfavorite it
+  - Favorites are stored persistently in the image cache metadata
+  - Favorites filter shows only favorited images plus original/current image cards when token is selected
+- **Visual Favorites Indicators:** Added heart icon badges for favorited images
+  - Red heart icon appears in top-left corner of favorited image thumbnails
+  - Clean design without background circle, matching other UI favorites styling
+  - Heart icon has dark shadow for visibility against light backgrounds
+
+### Fixed
+- **Cache Completion Notifications:** Fixed multiple issues with cache scanning completion
+  - "Delay Cache" button now properly changes back to "Scan for Images" when scan completes
+  - In-window notification now shows completion status instead of scanning status
+  - Added detailed completion data showing files found, folders scanned, and scan duration
+  - Fixed incremental scans not completing gracefully in the UI
+- **Progress Bar Issues:** Fixed "Phase 5 of 6" progress bar anomaly for large directories
+  - Removed phantom 6th step that was causing progress bar to get stuck
+  - Added progress validation to ensure completion state is properly triggered
+  - Added timeout protection (3 hours) for long-running scans to prevent indefinite hanging
+- **Player Character Support:** Fixed window dimming issue when selecting player characters
+  - Added proper error handling to hide search spinner overlay on token selection errors
+  - Enhanced token data extraction to handle player character data structure
+  - Added type checking for potentially undefined properties before calling string methods
+  - Player characters now default to 'humanoid' creature type, use race/ancestry for subtype, class for background, and 'medium' size
+- **Original Image Preservation:** Fixed original image storage when applying images from the window
+  - Original token image is now saved before applying new image (only if original doesn't already exist)
+  - Maintains consistency with drop-to-apply behavior
+  - Ensures original image can always be restored
+
+### Improved
+- **Cache Management:** Enhanced cache scanning with better error handling and completion detection
+  - Added completion state tracking with `justCompleted` and `completionData` fields
+  - Improved UI state management to prevent race conditions between scanning and completion
+  - Added safety mechanisms for long-running operations
+- **Token Data Extraction:** Improved robustness of token data parsing
+  - Added comprehensive type checking for all string operations
+  - Better handling of different actor data structures (NPCs vs Player Characters)
+  - More reliable search term generation for better image matching
+- **Favorites Integration:** Seamlessly integrated favorites with existing tag system
+  - Favorites use the existing metadata tag system for consistency
+  - Favorites filter works like other category filters (not as a hack)
+  - Original and current image cards always show when token is selected, regardless of filter
+
+### Technical Details
+- Updated `scripts/token-image-replacement.js` with comprehensive favorites functionality
+- Enhanced `templates/window-token-replacement.hbs` with favorites filter button
+- Updated `styles/window-token-replacement.css` with clean favorites styling
+- Fixed case sensitivity issues in cache file lookups (files stored with lowercase keys)
+- Improved error handling and debugging throughout the image replacement system
+
+
 ## [12.1.5] - Token Movement System Enhancements
 
 ### Fixed
