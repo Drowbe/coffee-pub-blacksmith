@@ -868,6 +868,11 @@ export class TokenImageReplacementWindow extends Application {
             this._updateTokenInfo();
             
         } catch (error) {
+            // Always hide the spinner, even if there's an error
+            this._hideSearchSpinner();
+            
+            // Log the error for debugging
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during token selection: ${error.message}`, "", true, false);
         }
     }
 
@@ -3162,6 +3167,10 @@ export class TokenImageReplacement {
             alignment: null
         };
 
+        // Check if this is a player character or NPC
+        const actorType = actor.type || 'npc';
+        const isPlayerCharacter = actorType === 'character';
+
         // 1. Represented Actor (most important)
         if (actor.name) {
             // The actor name IS the creature type
@@ -3174,13 +3183,22 @@ export class TokenImageReplacement {
         }
 
         // 2. Creature Type (Official D&D5e field)
-        if (actor.system?.details?.type?.value) {
+        if (actor.system?.details?.type?.value && typeof actor.system.details.type.value === 'string') {
             data.creatureType = actor.system.details.type.value.toLowerCase();
+        } else if (isPlayerCharacter) {
+            // For player characters, use "humanoid" as default creature type
+            data.creatureType = 'humanoid';
         }
 
         // 3. Creature Subtype (Official D&D5e field)
-        if (actor.system?.details?.type?.subtype) {
+        if (actor.system?.details?.type?.subtype && typeof actor.system.details.type.subtype === 'string') {
             data.creatureSubtype = actor.system.details.type.subtype.toLowerCase();
+        } else if (isPlayerCharacter) {
+            // For player characters, try to get race/ancestry
+            const race = actor.system?.details?.race || actor.system?.details?.ancestry;
+            if (race && typeof race === 'string') {
+                data.creatureSubtype = race.toLowerCase();
+            }
         }
 
         // 4. Equipment (from actor items)
@@ -3205,12 +3223,22 @@ export class TokenImageReplacement {
         }
 
         // 5. Background/Profession (from actor details)
-        if (actor.system?.details?.background) {
+        if (actor.system?.details?.background && typeof actor.system.details.background === 'string') {
             data.background = actor.system.details.background.toLowerCase();
+        } else if (isPlayerCharacter) {
+            // For player characters, try to get class as background
+            const characterClass = actor.system?.details?.class || actor.system?.classes;
+            if (characterClass) {
+                if (typeof characterClass === 'string') {
+                    data.background = characterClass.toLowerCase();
+                } else if (characterClass.primary && typeof characterClass.primary === 'string') {
+                    data.background = characterClass.primary.toLowerCase();
+                }
+            }
         }
 
         // 6. Size (from actor size or token scale)
-        if (actor.system?.traits?.size) {
+        if (actor.system?.traits?.size && typeof actor.system.traits.size === 'string') {
             data.size = actor.system.traits.size.toLowerCase();
         } else if (tokenDocument.scale) {
             // Convert scale to size category
@@ -3221,6 +3249,9 @@ export class TokenImageReplacement {
             else if (scale <= 1.5) data.size = 'large';
             else if (scale <= 2) data.size = 'huge';
             else data.size = 'gargantuan';
+        } else if (isPlayerCharacter) {
+            // For player characters, default to medium size
+            data.size = 'medium';
         }
 
 
