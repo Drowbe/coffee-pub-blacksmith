@@ -37,23 +37,7 @@ class ChatPanel {
             return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
         });
 
-        // Register renderChatLog hook for panel rendering
-        const renderChatLogHookId = HookManager.registerHook({
-            name: 'renderChatLog',
-            description: 'Chat Panel: Render custom chat panel with leader and timer info',
-            context: 'chat-panel-render',
-            priority: 3, // Normal priority - UI rendering
-            callback: (app, html, data) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                
-                this._onRenderChatLog(app, html, data);
-                
-                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
-            }
-        });
-
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatLog", "chat-panel-render", true, false);
+        // Simple DOM insertion - no complex hooks needed
 
         // Wait for socket to be ready
         Hooks.once('blacksmith.socketReady', () => {
@@ -65,15 +49,14 @@ class ChatPanel {
             await this.loadLeader();
             await this.loadTimer();
             this.isLoading = false;
-            this.updateLeaderDisplay();
             
             // Wait a brief moment to ensure settings are fully registered
             setTimeout(() => {
                 this.startTimerUpdates();
             }, 1000);
 
-            // Force a re-render of the chat log to update leader status
-            ui.chat.render(true);
+            // Render the menubar
+            this.renderMenubar();
         });
 
         // Register for module features
@@ -90,12 +73,8 @@ class ChatPanel {
         });
     }
 
-    static async _onRenderChatLog(app, html, data) {
+    static async renderMenubar() {
         try {
-            // Find the chat log element
-            const chatLog = html.find('#chat-log');
-            if (!chatLog.length) return;
-
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
             let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
@@ -141,28 +120,44 @@ class ChatPanel {
                 currentMovement: currentMovementData
             };
 
-
-
             // Render the template
             const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel.hbs', templateData);
 
-            // Remove any existing panel before adding the new one
-            html.find('.blacksmith-chat-panel').remove();
+            // Remove any existing menubar
+            document.querySelector('.blacksmith-menubar-container')?.remove();
             
-            // Insert before the chat log
-            chatLog.before(panelHtml);
+            // Find the interface element and insert before it
+            const interfaceElement = document.querySelector('#interface');
+            if (interfaceElement) {
+                interfaceElement.insertAdjacentHTML('beforebegin', panelHtml);
+                
+                // Add click handlers
+                this.addClickHandlers();
+            }
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error rendering menubar:", error, false, false);
+        }
+    }
 
-            // Add click handlers for GM only
-            if (game.user.isGM) {
-                const leaderSection = html.find('.leader-section');
-                leaderSection.on('click', () => this.showLeaderDialog());
-
-                const timerSection = html.find('.timer-section');
-                timerSection.on('click', () => this.showTimerDialog());
+    static addClickHandlers() {
+        // Add click handlers for GM only
+        if (game.user.isGM) {
+            const leaderSection = document.querySelector('.leader-section');
+            if (leaderSection) {
+                leaderSection.addEventListener('click', () => this.showLeaderDialog());
             }
 
-            // Add vote div click handler
-            html.find('.tool.vote').click(async (event) => {
+            const timerSection = document.querySelector('.timer-section');
+            if (timerSection) {
+                timerSection.addEventListener('click', () => this.showTimerDialog());
+            }
+        }
+
+        // Add vote div click handler
+        const voteTool = document.querySelector('.tool.vote');
+        if (voteTool) {
+            voteTool.addEventListener('click', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 
@@ -176,51 +171,38 @@ class ChatPanel {
                     return;
                 }
                 
-
                 new VoteConfig().render(true);
             });
+        }
 
-            // Track active context menu instance
-            let activeContextMenu;
-
-            // Remove the right-click context menu for quick rolls
-            html.find('.tool.skillcheck').off('contextmenu');
-            // Keep only the left-click handler for opening the full dialog
-            html.find('.tool.skillcheck').click(async (event) => {
+        // Add skill check click handler
+        const skillCheckTool = document.querySelector('.tool.skillcheck');
+        if (skillCheckTool) {
+            skillCheckTool.addEventListener('click', async (event) => {
                 event.preventDefault();
                 if (!game.user.isGM) return;
 
                 const dialog = new SkillCheckDialog();
                 dialog.render(true);
             });
+        }
 
-            html.find('.tool.movement').click(async (event) => {
+        // Add movement click handler
+        const movementTool = document.querySelector('.tool.movement');
+        if (movementTool) {
+            movementTool.addEventListener('click', async (event) => {
                 event.preventDefault();
                 if (!game.user.isGM) return;
 
                 const movementConfig = new MovementConfig();
                 movementConfig.render(true);
             });
+        }
 
-            // Add module toolbar icons
-            const toolbarSection = html.find('.toolbar-icons');
-            this.toolbarIcons.forEach((iconData, moduleId) => {
-                const icon = $(`<i class="${iconData.icon}" title="${iconData.tooltip}"></i>`);
-                icon.css('cursor', 'pointer');
-                
-                // Add click handler
-                icon.click(async (event) => {
-                    event.preventDefault();
-                    if (iconData.onClick) {
-                        await iconData.onClick(event);
-                    }
-                });
-
-                toolbarSection.append(icon);
-            });
-
-            // Add UI toggle handler
-            html.find('.tool.interface').on('click', async function() {
+        // Add UI toggle handler
+        const interfaceTool = document.querySelector('.tool.interface');
+        if (interfaceTool) {
+            interfaceTool.addEventListener('click', async function() {
                 const uiLeft = document.getElementById('ui-left');
                 const uiBottom = document.getElementById('ui-bottom');
                 const label = this.querySelector('.interface-label');
@@ -246,9 +228,6 @@ class ChatPanel {
                     label.textContent = 'Show UI';
                 }
             });
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error rendering panel:", error, false, false);
         }
     }
 
@@ -258,27 +237,21 @@ class ChatPanel {
     }
 
     static async updateLeaderDisplay() {
-
-        const panel = document.querySelector('.blacksmith-chat-panel');
+        const panel = document.querySelector('.blacksmith-menubar-container');
         if (!panel) {
-
-            ui.chat.render(true);
+            // If menubar doesn't exist, re-render it
+            this.renderMenubar();
             return;
         }
 
         const leaderText = this.getLeaderDisplayText();
-        panel.querySelector('.party-leader').textContent = leaderText;
+        const leaderElement = panel.querySelector('.party-leader');
+        if (leaderElement) {
+            leaderElement.textContent = leaderText;
+        }
         
         // Update vote icon state
         this.updateVoteIconState();
-
-        // Force a re-render of the chat log to update all components
-        
-        const chatLog = ui.chat;
-        if (chatLog) {
-            const html = chatLog.element;
-            this._onRenderChatLog(chatLog, html, chatLog.getData());
-        }
     }
 
     /**
@@ -871,9 +844,8 @@ class ChatPanel {
             this.updateVoteIconState();
 
 
-            // Force chat re-render to update leader status
-
-            ui.chat.render(true);
+            // Force menubar re-render to update leader status
+            this.renderMenubar();
 
             // Send the leader messages only if requested AND we are the GM
             if (sendMessages && game.user.isGM) {

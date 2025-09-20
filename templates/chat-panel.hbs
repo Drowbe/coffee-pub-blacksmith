@@ -1,23 +1,5 @@
-<div class="blacksmith-chat-panel">
-    <div class="leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
-        <div class="toolbar-icons">
-            <div class="leader-info">
-                <i class="fas fa-crown leader-icon"></i>
-                <span class="party-leader">{{leaderText}}</span>
-            </div>
-        </div>
-    </div>
-    <div class="timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
-        <div class="toolbar-icons">
-            <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
-                <i class="fas fa-eclipse"></i>
-                <span class="session-timer">{{timerText}}</span>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="blacksmith-chat-panel">
-    <div class="toolbar-section">
+<div class="blacksmith-menubar-container">
+    <div class="blacksmith-menubar-left">
         <div class="toolbar-icons">
             {{!--Movement --}}
             <div class="tool movement {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
@@ -53,6 +35,22 @@
                 </div>
             {{/if}}
             {{!-- More tools will be added here --}}
+        </div>
+    </div>
+    <div class="blacksmith-menubar-right">
+        <div class="toolbar-icons">
+            <div class="leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
+                <div class="leader-info">
+                    <i class="fas fa-crown leader-icon"></i>
+                    <span class="party-leader">{{leaderText}}</span>
+                </div>
+            </div>
+            <div class="timer-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
+                <div class="timer-info {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%">
+                    <i class="fas fa-eclipse"></i>
+                    <span class="session-timer">{{timerText}}</span>
+                </div>
+            </div>
         </div>
     </div>
 </div> 

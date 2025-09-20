@@ -1,38 +1,58 @@
 /* ------------------------------------ */
-/* --- CHAT PANEL ---------- */
+/* --- BLACKSMITH MENUBAR ---------- */
 /* ------------------------------------ */
 
-.blacksmith-chat-panel {
+.blacksmith-menubar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     background-color: rgba(0, 0, 0, 0.1);
-    border-top: 0px dotted#666;
-    border-bottom: 0px dotted#666;
+    border-bottom: 1px solid rgba(102, 102, 102, 0.3);
     padding: 0px 4px;
     width: 100%;
     min-height: 24px;
     max-height: 24px;
     display: flex;
-    align-items: left;
+    align-items: center;
     justify-content: space-between;
 }
 
-.leader-section, .timer-section, .toolbar-section {
+.blacksmith-menubar-left {
+    flex: 1;
     display: flex;
-    align-items: left;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 0px;
+}
+
+.blacksmith-menubar-right {
+    width: 298px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0px 0px;
+}
+
+.leader-section, .timer-section {
+    display: flex;
+    align-items: center;
     padding: 0px 0px;
 }
 
 .leader-section {
     flex: 0 1 auto;
+    margin-right: 8px;
 }
 
 .timer-section {
     flex: 0 1 auto;
 }
 
-.toolbar-section {
-    flex: 1;
-    justify-content: left;
-    gap: 8px;
+/* Push main interface down to account for fixed menubar */
+#interface {
+    margin-top: 24px;
 }
 
 /* ------------------------------------ */
