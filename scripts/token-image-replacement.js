@@ -626,6 +626,12 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _applyImageToToken(imagePath, imageName) {
         try {
+            // Store the original image before applying the new one (only if it doesn't already exist)
+            const existingOriginal = TokenImageReplacement._getOriginalImage(this.selectedToken.document);
+            if (!existingOriginal) {
+                await TokenImageReplacement._storeOriginalImage(this.selectedToken.document);
+            }
+            
             // Update the token
             await this.selectedToken.document.update({
                 'texture.src': imagePath
