@@ -1032,19 +1032,15 @@
       box-shadow: 0 0 8px rgba(156, 39, 176, 0.3) !important;
   }
   
-  /* Favorite Image Styling */
+  /* Favorite Image Styling - Remove special border, use default styling */
   .tir-favorite-image {
-      border-color: rgba(255, 193, 7, 0.9) !important;
-      border-width: 2px !important;
-      box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
-      background: rgba(255, 193, 7, 0.1);
+      /* No special border or background - use default thumbnail styling */
   }
   .tir-favorite-image img {
-      border-color: rgba(255, 193, 7, 0.4) !important;
+      /* No special border - use default image styling */
   }
   .tir-favorite-image:hover {
-      transform: scale(1.02) !important;
-      box-shadow: 0 0 12px rgba(255, 193, 7, 0.5) !important;
+      /* Use default hover effects */
   }
   
   .tir-recommended-image {
@@ -1155,22 +1151,21 @@
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   }
   
-  /* Favorite badge (always visible) */
+  /* Favorite badge (always visible) - Red heart without background circle */
   .tir-thumbnail-favorite-badge {
     position: absolute;
     left: 6%;
     top: 6%;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 193, 7, 0.9);
-    border-radius: 50%;
+    width: 20px;
+    height: 20px;
     display: grid; 
     place-items: center;
-    box-shadow: 0 0 0 2px #1b1b1b55;
+    /* No background, no border - just the heart icon */
   }
   .tir-thumbnail-favorite-badge i { 
-    color: #000; 
-    font-size: 0.8em; 
+    color: #ff0000; /* Red heart */
+    font-size: 1.2em; /* Slightly larger since no background */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Dark shadow for visibility */
   }
   
   /* =========================
