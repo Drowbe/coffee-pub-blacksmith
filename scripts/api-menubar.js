@@ -69,8 +69,280 @@ class MenuBar {
         
         toolbarFeatures.forEach(feature => {
             this.toolbarIcons.set(feature.moduleId, feature.data);
-
         });
+    }
+
+    // ================================================================== 
+    // ===== MENUBAR API METHODS ========================================
+    // ================================================================== 
+
+    /**
+     * Register a tool with the menubar system
+     * @param {string} toolId - Unique identifier for the tool
+     * @param {Object} toolData - Tool configuration object
+     * @param {string} toolData.icon - FontAwesome icon class
+     * @param {string} toolData.name - Tool name (used for data-tool attribute)
+     * @param {string} toolData.title - Tooltip text displayed on hover
+     * @param {Function} toolData.onClick - Function to execute when tool is clicked
+     * @param {string} toolData.zone - Zone placement (left, middle, right)
+     * @param {number} toolData.order - Order within zone (lower numbers appear first)
+     * @param {string} toolData.moduleId - Module identifier
+     * @param {boolean} toolData.gmOnly - Whether tool is GM-only
+     * @param {boolean} toolData.leaderOnly - Whether tool is leader-only
+     * @param {boolean} toolData.visible - Whether tool is visible (can be function)
+     * @returns {boolean} Success status
+     */
+    static registerMenubarTool(toolId, toolData) {
+        try {
+            // Validate required parameters
+            if (!toolId || typeof toolId !== 'string') {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Invalid toolId provided", { toolId }, false, false);
+                return false;
+            }
+
+            if (!toolData || typeof toolData !== 'object') {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Invalid toolData provided", { toolData }, false, false);
+                return false;
+            }
+
+            const requiredFields = ['icon', 'name', 'title', 'onClick'];
+            for (const field of requiredFields) {
+                if (!toolData[field]) {
+                    postConsoleAndNotification(MODULE.NAME, `Menubar API: Missing required field '${field}'`, { toolId, toolData }, false, false);
+                    return false;
+                }
+            }
+
+            // Check for duplicate toolId
+            if (this.toolbarIcons.has(toolId)) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool ID already exists", { toolId }, false, false);
+                return false;
+            }
+
+            // Set defaults
+            const tool = {
+                icon: toolData.icon,
+                name: toolData.name,
+                title: toolData.title,
+                onClick: toolData.onClick,
+                zone: toolData.zone || 'left',
+                order: toolData.order || 999,
+                moduleId: toolData.moduleId || 'unknown',
+                gmOnly: toolData.gmOnly || false,
+                leaderOnly: toolData.leaderOnly || false,
+                visible: toolData.visible !== undefined ? toolData.visible : true
+            };
+
+            // Register the tool
+            this.toolbarIcons.set(toolId, tool);
+
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool registered successfully", { toolId, moduleId: tool.moduleId }, true, false);
+
+            // Re-render the menubar to show the new tool
+            this.renderMenubar();
+
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Error registering tool", { toolId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Unregister a tool from the menubar system
+     * @param {string} toolId - Unique identifier for the tool
+     * @returns {boolean} Success status
+     */
+    static unregisterMenubarTool(toolId) {
+        try {
+            if (!toolId || typeof toolId !== 'string') {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Invalid toolId provided for unregistration", { toolId }, false, false);
+                return false;
+            }
+
+            if (!this.toolbarIcons.has(toolId)) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool ID not found for unregistration", { toolId }, false, false);
+                return false;
+            }
+
+            this.toolbarIcons.delete(toolId);
+
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool unregistered successfully", { toolId }, true, false);
+
+            // Re-render the menubar to remove the tool
+            this.renderMenubar();
+
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Error unregistering tool", { toolId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Get all registered menubar tools
+     * @returns {Map} Map of all registered tools (toolId -> toolData)
+     */
+    static getRegisteredMenubarTools() {
+        return new Map(this.toolbarIcons);
+    }
+
+    /**
+     * Get all tools registered by a specific module
+     * @param {string} moduleId - Module identifier
+     * @returns {Array} Array of tools registered by the module
+     */
+    static getMenubarToolsByModule(moduleId) {
+        const tools = [];
+        this.toolbarIcons.forEach((tool, toolId) => {
+            if (tool.moduleId === moduleId) {
+                tools.push({ toolId, ...tool });
+            }
+        });
+        return tools;
+    }
+
+    /**
+     * Check if a tool is registered
+     * @param {string} toolId - Unique identifier for the tool
+     * @returns {boolean} Whether the tool is registered
+     */
+    static isMenubarToolRegistered(toolId) {
+        return this.toolbarIcons.has(toolId);
+    }
+
+    /**
+     * Get tools organized by zone
+     * @returns {Object} Object with zone arrays containing visible tools
+     */
+    static getMenubarToolsByZone() {
+        const zones = {
+            left: [],
+            middle: [],
+            right: []
+        };
+
+        this.toolbarIcons.forEach((tool, toolId) => {
+            // Check visibility
+            let isVisible = true;
+            if (typeof tool.visible === 'function') {
+                isVisible = tool.visible();
+            } else {
+                isVisible = tool.visible;
+            }
+
+            // Check GM/Leader restrictions
+            if (tool.gmOnly && !game.user.isGM) {
+                isVisible = false;
+            }
+
+            if (tool.leaderOnly && !game.user.isGM) {
+                const isLeader = game.settings.get(MODULE.ID, 'partyLeader') === game.user.id;
+                if (!isLeader) {
+                    isVisible = false;
+                }
+            }
+
+            if (isVisible) {
+                const zone = tool.zone || 'left';
+                zones[zone].push({
+                    toolId,
+                    ...tool
+                });
+            }
+        });
+
+        // Sort each zone by order
+        Object.keys(zones).forEach(zone => {
+            zones[zone].sort((a, b) => (a.order || 999) - (b.order || 999));
+        });
+
+        return zones;
+    }
+
+    // ================================================================== 
+    // ===== MENUBAR API TESTING ========================================
+    // ================================================================== 
+
+    /**
+     * Test function to verify menubar API is working
+     * This can be called from console for testing
+     */
+    static testMenubarAPI() {
+        try {
+            console.log('🧪 Testing Menubar API...');
+            
+            // Test 1: Register a test tool
+            const testToolId = 'test-menubar-tool';
+            const success = this.registerMenubarTool(testToolId, {
+                icon: "fa-solid fa-flask",
+                name: "test-tool",
+                title: "Test Tool (API Test)",
+                zone: "left",
+                order: 999,
+                moduleId: "menubar-test",
+                onClick: () => {
+                    ui.notifications.info("Menubar API Test Tool Clicked!");
+                    console.log("✅ Menubar API test tool clicked successfully!");
+                }
+            });
+
+            if (success) {
+                console.log('✅ Test 1 PASSED: Tool registration successful');
+                
+                // Test 2: Check if tool is registered
+                const isRegistered = this.isMenubarToolRegistered(testToolId);
+                if (isRegistered) {
+                    console.log('✅ Test 2 PASSED: Tool found after registration');
+                    
+                    // Test 3: Get tools by module
+                    const moduleTools = this.getMenubarToolsByModule('menubar-test');
+                    if (moduleTools.length > 0) {
+                        console.log('✅ Test 3 PASSED: Tool found in module tools list');
+                        
+                        // Test 4: Get tools by zone
+                        const zoneTools = this.getMenubarToolsByZone();
+                        if (zoneTools.left && zoneTools.left.length > 0) {
+                            console.log('✅ Test 4 PASSED: Tool found in zone tools list');
+                            
+                            // Test 5: Unregister tool
+                            const unregisterSuccess = this.unregisterMenubarTool(testToolId);
+                            if (unregisterSuccess) {
+                                console.log('✅ Test 5 PASSED: Tool unregistration successful');
+                                
+                                // Test 6: Verify tool is gone
+                                const isStillRegistered = this.isMenubarToolRegistered(testToolId);
+                                if (!isStillRegistered) {
+                                    console.log('✅ Test 6 PASSED: Tool successfully removed');
+                                    console.log('🎉 ALL MENUBAR API TESTS PASSED!');
+                                    return true;
+                                } else {
+                                    console.log('❌ Test 6 FAILED: Tool still registered after unregistration');
+                                }
+                            } else {
+                                console.log('❌ Test 5 FAILED: Tool unregistration failed');
+                            }
+                        } else {
+                            console.log('❌ Test 4 FAILED: Tool not found in zone tools list');
+                        }
+                    } else {
+                        console.log('❌ Test 3 FAILED: Tool not found in module tools list');
+                    }
+                } else {
+                    console.log('❌ Test 2 FAILED: Tool not found after registration');
+                }
+            } else {
+                console.log('❌ Test 1 FAILED: Tool registration failed');
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('❌ Menubar API Test Error:', error);
+            return false;
+        }
     }
 
     static async renderMenubar() {

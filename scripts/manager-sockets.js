@@ -6,7 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
-import { MenuBar } from './menubar.js';
+import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { CSSEditor } from './window-gmtools.js';
 import { LatencyChecker } from './latency-checker.js';

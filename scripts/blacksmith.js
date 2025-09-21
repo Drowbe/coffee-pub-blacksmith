@@ -46,7 +46,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
-import { MenuBar } from './menubar.js';
+import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './manager-libwrapper.js';
 import { ModuleManager } from './manager-modules.js';
@@ -657,6 +657,21 @@ Hooks.once('init', async function() {
         postConsoleAndNotification(MODULE.NAME, "Failed to load toolbar API", error, false, false);
     });
 
+    // Import and expose menubar API functions
+    import('./api-menubar.js').then(({ MenuBar }) => {
+        module.api.registerMenubarTool = MenuBar.registerMenubarTool.bind(MenuBar);
+        module.api.unregisterMenubarTool = MenuBar.unregisterMenubarTool.bind(MenuBar);
+        module.api.getRegisteredMenubarTools = MenuBar.getRegisteredMenubarTools.bind(MenuBar);
+        module.api.getMenubarToolsByModule = MenuBar.getMenubarToolsByModule.bind(MenuBar);
+        module.api.isMenubarToolRegistered = MenuBar.isMenubarToolRegistered.bind(MenuBar);
+        module.api.getMenubarToolsByZone = MenuBar.getMenubarToolsByZone.bind(MenuBar);
+        module.api.testMenubarAPI = MenuBar.testMenubarAPI.bind(MenuBar);
+        
+        postConsoleAndNotification(MODULE.NAME, "Menubar API: Exposed for external modules", "", true, false);
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to load menubar API", error, false, false);
+    });
+
     hookCanvas();
 
     // Initialize SocketManager at 'ready' instead of 'init' for proper SocketLib integration
@@ -697,7 +712,15 @@ Hooks.once('init', async function() {
         getToolsByModule: null,
         isToolRegistered: null,
         getToolbarSettings: null,
-        setToolbarSettings: null
+        setToolbarSettings: null,
+        // ✅ NEW: Menubar API for external modules
+        registerMenubarTool: null,  // Will be set after menubar loads
+        unregisterMenubarTool: null,
+        getRegisteredMenubarTools: null,
+        getMenubarToolsByModule: null,
+        isMenubarToolRegistered: null,
+        getMenubarToolsByZone: null,
+        testMenubarAPI: null
     };
     
     // Toolbar management is now handled directly in manager-toolbar.js
