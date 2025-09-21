@@ -17,7 +17,7 @@ export class VoteManager {
      * @returns {boolean} True if the user is excluded
      */
     static _isUserExcluded(userId) {
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
         const user = game.users.get(userId);
         return excludedUsers.includes(userId) || excludedUsers.includes(user?.name);
     }

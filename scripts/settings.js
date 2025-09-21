@@ -552,10 +552,10 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
-		// *** CHAT PANEL SETTINGS ***
-		// ---------- SUBHEADING - CHAT PANEL ----------
-		game.settings.register(MODULE.ID, "headingH3simplechatPanel", {
-			name: 'BLACKSMITH CHAT PANEL',
+		// *** MENUBAR SETTINGS ***
+		// ---------- SUBHEADING - MENUBAR ----------
+		game.settings.register(MODULE.ID, "headingH3simplemenubar", {
+			name: 'BLACKSMITH MENUBAR',
 			hint: 'Settings for the panel that appears in the chat log.',
 			scope: "world",
 			config: true,
@@ -563,7 +563,7 @@ export const registerSettings = async () => {
 			type: String,
 		});
 
-		game.settings.register(MODULE.ID, 'enableChatPanel', {
+		game.settings.register(MODULE.ID, 'enableMenubar', {
 			name: 'Show Blacksmith Panel',
 			hint: 'Show the Blacksmith panel in the chat log.',
 			type: Boolean,
@@ -573,8 +573,8 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
-		game.settings.register(MODULE.ID, 'excludedUsersChatPanel', {
-			name: 'Excluded Chat Panel Users',
+		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
+			name: 'Excluded Menubar Users',
 			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
 			scope: 'world',
 			config: true,
@@ -622,7 +622,7 @@ export const registerSettings = async () => {
 			default: ''
 		});
 
-		// Chat Panel Settings
+		// Menubar Settings
 		game.settings.register(MODULE.ID, 'sessionTimerDefault', {
 			name: 'Default Session Time',
 			hint: 'The default duration of the session. (Up to 10 hours)',
@@ -637,7 +637,7 @@ export const registerSettings = async () => {
 			}
 		});
 
-		// Chat Panel Settings
+		// Menubar Settings
 		game.settings.register(MODULE.ID, 'sessionTimerWarningThreshold', {
 			name: 'Session Timer Warning Time',
 			hint: 'How many minutes before the end to show the warning (1-60 minutes)',

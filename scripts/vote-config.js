@@ -33,7 +33,7 @@ export class VoteConfig extends Application {
         }
 
         // Check if user is excluded
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
         const isExcluded = excludedUsers.includes(game.user.id) || excludedUsers.includes(game.user.name);
 
         if (isExcluded && !isGM) {

@@ -65,7 +65,7 @@ class MenuBar {
 
     static _registerModuleFeatures() {
         // Get all toolbar icons from registered modules
-        const toolbarFeatures = ModuleManager.getFeaturesByType('chatPanelIcon');
+        const toolbarFeatures = ModuleManager.getFeaturesByType('menubarIcon');
         
         toolbarFeatures.forEach(feature => {
             this.toolbarIcons.set(feature.moduleId, feature.data);
@@ -339,7 +339,7 @@ class MenuBar {
     static async showLeaderDialog() {
 
         // Get all player-owned characters that aren't excluded
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersChatPanel').split(',').map(id => id.trim());
+        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
         
         // Get all character actors and their owners
         const characterEntries = game.actors
@@ -435,7 +435,7 @@ class MenuBar {
         } catch (error) {
             // If we can't access the setting, assume no leader
             leaderData = { userId: '', actorId: '' };
-            postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Could not load leader data:', error, false, false);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar | Could not load leader data:', error, false, false);
         }
         
 
@@ -469,7 +469,7 @@ class MenuBar {
             }
     
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Chat Panel: Error loading timer:", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error loading timer:", error, false, false);
             this.sessionEndTime = null;
             this.sessionStartTime = null;
         }
@@ -769,7 +769,7 @@ class MenuBar {
             if (success) {
                 MenuBar.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false);
+                postConsoleAndNotification(MODULE.NAME, 'Menubar | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }
         } else {
             MenuBar.updateLeaderDisplay();
@@ -799,7 +799,7 @@ class MenuBar {
                 });
                 this.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false);
+                postConsoleAndNotification(MODULE.NAME, 'Menubar | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }
         }
     }
@@ -838,7 +838,7 @@ class MenuBar {
             
             if (!user || !actor) {
                 postConsoleAndNotification(MODULE.NAME, 'CHAT | Failed to find user or actor:', { user, actor }, false, false);
-                postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
+                postConsoleAndNotification(MODULE.NAME, "Menubar | Error", 
                     `Failed to set leader: User or character not found`, 
                     true, false
                 );
@@ -850,7 +850,7 @@ class MenuBar {
             // Store in settings
             const success = await setSettingSafely(MODULE.ID, 'partyLeader', leaderData);
             if (!success) {
-                postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Error', 'Settings not yet registered, cannot set leader', true, false);
+                postConsoleAndNotification(MODULE.NAME, 'Menubar | Error', 'Settings not yet registered, cannot set leader', true, false);
                 return false;
             }
 
@@ -909,7 +909,7 @@ class MenuBar {
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'CHAT | Error in setNewLeader:', error, false, false);
-            postConsoleAndNotification(MODULE.NAME, "Chat Panel | Error", 
+            postConsoleAndNotification(MODULE.NAME, "Menubar | Error", 
                 `Failed to set leader: ${error.message}`, 
                 true, false
             );

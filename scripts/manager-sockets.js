@@ -225,7 +225,7 @@ class SocketManager {
         this.socket.register("planningTimerAdjusted", PlanningTimer.timerAdjusted);
         this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
         
-        // Chat Panel
+        // Menubar
         this.socket.register("updateLeader", MenuBar.receiveLeaderUpdate);
         this.socket.register("updateTimer", MenuBar.receiveTimerUpdate);
 
@@ -240,7 +240,7 @@ class SocketManager {
             if (data.type === 'movementChange' && !game.user.isGM) {
                 ui.notifications.info(`Movement type changed to: ${data.name}`);
                 
-                // Force refresh of the chat panel for consistent update
+                // Force refresh of the menubar for consistent update
                 ui.chat.render();
                 
                 // Also try immediate update if elements exist

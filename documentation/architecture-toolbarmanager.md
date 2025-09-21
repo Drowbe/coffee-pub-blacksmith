@@ -12,7 +12,7 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 - **Structure**: Creates a "Blacksmith Utilities" toolbar with predefined tools (regent, lookup, character, assistant, encounter, narrative, css, journal-tools, refresh)
 - **Tools are hardcoded** in the `addToolbarButton()` function as individual tool objects with `icon`, `name`, `title`, `button`, `visible`, and `onClick` properties
 
-### 2. **Chat Panel Toolbar System** (Current Implementation)
+### 2. **Menubar Toolbar System** (Current Implementation)
 - **Location**: `scripts/menubar.js` 
 - **Hook Used**: `renderChatLog`
 - **Structure**: Has a `toolbarIcons` Map that stores module-specific toolbar icons

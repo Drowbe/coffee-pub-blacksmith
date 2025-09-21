@@ -295,10 +295,10 @@ export class MovementConfig extends Application {
             });
         }
 
-        // Force refresh of the chat panel
+        // Force refresh of the menubar
         ui.chat.render();
 
-        // Update chat panel locally immediately for GM
+        // Update menubar locally immediately for GM
         const movementIcon = document.querySelector('.movement-icon');
         const movementLabel = document.querySelector('.movement-label');
         

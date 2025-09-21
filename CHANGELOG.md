@@ -564,7 +564,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Party-wide roll success tracking
 
 - **UI Enhancements**
-  - New movement control icon in chat panel
+  - New movement control icon in menubar
   - Quick access to skill check dialog
   - Improved chat card spacing and margins
   - Better visual feedback for roll results
@@ -572,7 +572,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streamlined interface for GM controls
 
 ### Changed
-- Updated chat panel layout to accommodate new features
+- Updated menubar layout to accommodate new features
 - Improved error handling for settings access
 - Enhanced leader selection interface
 - Better synchronization of movement states
@@ -742,7 +742,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.4] - Vote System and UI Improvements
 
 ### Added
-- Added clickable vote tool area in chat panel
+- Added clickable vote tool area in menubar
 - Added improved styling for vote section to match other UI elements
 
 ### Changed
