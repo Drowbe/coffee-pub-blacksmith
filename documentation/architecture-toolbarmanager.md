@@ -16,7 +16,7 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 - **Location**: `scripts/menubar.js` 
 - **Hook Used**: `renderChatLog`
 - **Structure**: Has a `toolbarIcons` Map that stores module-specific toolbar icons
-- **Dynamic System**: Other modules can register toolbar icons via `ChatPanel.registerToolbarIcon(moduleId, iconData)`
+- **Dynamic System**: Other modules can register toolbar icons via `MenuBar.registerToolbarIcon(moduleId, iconData)`
 - **Template**: `templates/menubar.hbs` contains the HTML structure
 
 ### 3. **Encounter Toolbar System** (Current Implementation)
@@ -32,7 +32,7 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 **Current State**: Tools are hardcoded in `manager-toolbar.js`
 
 **Required Changes**:
-- **Create a Tool Registration System**: Similar to how `ChatPanel` has `toolbarIcons` Map
+- **Create a Tool Registration System**: Similar to how `MenuBar` has `toolbarIcons` Map
 - **Modify `addToolbarButton()`**: Change from hardcoded tools to dynamic tool collection
 - **Add API Methods**: 
   - `registerBlacksmithTool(toolId, toolData)` 
@@ -348,7 +348,7 @@ registerTool('request-roll', {
 
 - **Encounter Toolbar**: No changes planned - this system is dynamic and journal-content based
 - **Migration Approach**: Since we're the only consumer, we can safely refactor internal implementation
-- **API Design**: Follow existing `ChatPanel.toolbarIcons` pattern for consistency
+- **API Design**: Follow existing `MenuBar.toolbarIcons` pattern for consistency
 - **Zone System**: Provides visual organization and logical grouping of tools
 - **CSS Classes**: Applied dynamically via JavaScript after toolbar rendering
 - **Documentation**: Updated to reflect current implementation status

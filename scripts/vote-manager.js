@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
-import { ChatPanel } from './menubar.js';
+import { MenuBar } from './menubar.js';
 import { HookManager } from './manager-hooks.js';
 
 export class VoteManager {
@@ -554,7 +554,7 @@ export class VoteManager {
 
         // If this was a leader vote and we have a winner, update the leader
         if (this.activeVote.type === 'leader' && results.winner) {
-            await ChatPanel.setNewLeader(results.winner, true);
+            await MenuBar.setNewLeader(results.winner, true);
         }
 
         // Play completion sound
@@ -673,7 +673,7 @@ export class VoteManager {
                         }
                         this.activeVote.results.winner = { userId, actorId };
                         
-                        await ChatPanel.setNewLeader({ userId, actorId }, true);
+                        await MenuBar.setNewLeader({ userId, actorId }, true);
                         await this._updateVoteMessage();
                     },
                 },
@@ -826,7 +826,7 @@ export class VoteManager {
 
             // If this was a leader vote and we have a winner, update the leader
             if (this.activeVote.type === 'leader' && data.results.winner) {
-                await ChatPanel.setNewLeader(data.results.winner);
+                await MenuBar.setNewLeader(data.results.winner);
             }
         }
 

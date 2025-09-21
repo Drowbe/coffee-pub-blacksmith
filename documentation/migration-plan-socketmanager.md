@@ -22,7 +22,7 @@ This document outlines the plan to clean up the SocketManager from its current "
 // Current SocketManager imports (BAD - creates tight coupling)
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
-import { ChatPanel } from './menubar.js';
+import { MenuBar } from './menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { CSSEditor } from './window-gmtools.js';
 import { LatencyChecker } from './latency-checker.js';
@@ -39,7 +39,7 @@ Other Systems → SocketManager → Transport Layer
      ↓              ↓              ↓
 CombatTimer    (uses)         SocketLib
 PlanningTimer  (uses)         Native FoundryVTT
-ChatPanel      (uses)         Local Mode
+MenuBar      (uses)         Local Mode
 VoteManager    (uses)
 ```
 
@@ -50,7 +50,7 @@ VoteManager    (uses)
 // REMOVE these imports from SocketManager
 // import { CombatTimer } from './timer-combat.js';
 // import { PlanningTimer } from './timer-planning.js';
-// import { ChatPanel } from './menubar.js';
+// import { MenuBar } from './menubar.js';
 // import { VoteManager } from './vote-manager.js';
 // import { CSSEditor } from './window-gmtools.js';
 // import { LatencyChecker } from './latency-checker.js';

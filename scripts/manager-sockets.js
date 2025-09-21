@@ -6,7 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
-import { ChatPanel } from './menubar.js';
+import { MenuBar } from './menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { CSSEditor } from './window-gmtools.js';
 import { LatencyChecker } from './latency-checker.js';
@@ -226,8 +226,8 @@ class SocketManager {
         this.socket.register("timerCleanup", PlanningTimer.timerCleanup);
         
         // Chat Panel
-        this.socket.register("updateLeader", ChatPanel.receiveLeaderUpdate);
-        this.socket.register("updateTimer", ChatPanel.receiveTimerUpdate);
+        this.socket.register("updateLeader", MenuBar.receiveLeaderUpdate);
+        this.socket.register("updateTimer", MenuBar.receiveTimerUpdate);
 
         // Vote Manager
         this.socket.register("receiveVoteStart", VoteManager.receiveVoteStart.bind(VoteManager));

@@ -46,7 +46,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
-import { ChatPanel } from './menubar.js';
+import { MenuBar } from './menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './manager-libwrapper.js';
 import { ModuleManager } from './manager-modules.js';
@@ -618,7 +618,7 @@ Hooks.once('init', async function() {
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
     
     // Initialize other systems
-    ChatPanel.initialize();
+    MenuBar.initialize();
     // COMBAT TIMER
     CombatTimer.initialize();
     // PLANNING TIMER

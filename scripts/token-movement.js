@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
-import { ChatPanel } from "./menubar.js";
+import { MenuBar } from "./menubar.js";
 import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 

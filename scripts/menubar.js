@@ -11,8 +11,8 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
 
-class ChatPanel {
-    static ID = 'chat-panel';
+class MenuBar {
+    static ID = 'menubar';
     static currentLeader = null;
     static isLoading = true;
     static sessionEndTime = null;
@@ -407,7 +407,7 @@ class ChatPanel {
   
                             const [actorId, userId] = selectedValue.split('|');
                             // Send messages when selecting from dialog
-                            await ChatPanel.setNewLeader({ userId, actorId }, true);
+                            await MenuBar.setNewLeader({ userId, actorId }, true);
                         } else {
                     
                             // Handle clearing the leader if none selected
@@ -442,11 +442,11 @@ class ChatPanel {
         
         if (leaderData && leaderData.actorId) {
             // Don't send messages during initialization
-            await ChatPanel.setNewLeader(leaderData, false);
+            await MenuBar.setNewLeader(leaderData, false);
 
         } else {
-            ChatPanel.currentLeader = null;
-            await ChatPanel.updateLeader(null);
+            MenuBar.currentLeader = null;
+            await MenuBar.updateLeader(null);
 
         }
     }
@@ -761,27 +761,27 @@ class ChatPanel {
 
         if (!game?.user) return;
         
-        ChatPanel.currentLeader = data.leader;
+        MenuBar.currentLeader = data.leader;
 
         // Update local leader data if provided
         if (data.leaderData) {
             const success = await setSettingSafely(MODULE.ID, 'partyLeader', data.leaderData);
             if (success) {
-                ChatPanel.updateLeaderDisplay();
+                MenuBar.updateLeaderDisplay();
             } else {
                 postConsoleAndNotification(MODULE.NAME, 'Chat Panel | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }
         } else {
-            ChatPanel.updateLeaderDisplay();
+            MenuBar.updateLeaderDisplay();
         }
     }
 
     static receiveTimerUpdate(data) {
         if (!game?.user) return;
         
-        ChatPanel.sessionEndTime = data.endTime;
-        ChatPanel.sessionStartTime = data.startTime;
-        ChatPanel.updateTimerDisplay();
+        MenuBar.sessionEndTime = data.endTime;
+        MenuBar.sessionStartTime = data.startTime;
+        MenuBar.updateTimerDisplay();
     }
 
     // Update existing socket emits to use SocketManager
@@ -856,8 +856,8 @@ class ChatPanel {
 
 
             // Update the static currentLeader and display
-            ChatPanel.currentLeader = actor.name;
-            await ChatPanel.updateLeader(actor.name);
+            MenuBar.currentLeader = actor.name;
+            await MenuBar.updateLeader(actor.name);
 
 
             // Update vote icon permissions
@@ -943,4 +943,4 @@ class ChatPanel {
     }
 }
 
-export { ChatPanel }; 
+export { MenuBar }; 
