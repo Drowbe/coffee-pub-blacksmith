@@ -6,7 +6,7 @@
 
 /* Push main interface down to account for fixed menubar */
 #interface {
-    margin-top: 32px;
+    margin-top: 28px;
 }
 
 .blacksmith-menubar-container {
@@ -14,8 +14,8 @@
     top: 0px;
     left: 4px;
     right: 4px;
-    z-index: 1000;
-    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    background-color: rgba(255, 255, 255, 0.2);
     padding: 0;
     width: calc(100% - 8px);
     min-height: 26px;
@@ -24,78 +24,200 @@
     align-items: center;
     justify-content: space-between;
     border: 1px solid rgba(17, 17, 17, 0.8);
-    border-top: 0px solid rgba(17, 17, 17, 0.6);
+    border-top: 1px solid rgba(17, 17, 17, 0.4);
     border-radius: 0px 0px 6px 6px;
-    box-shadow: 0 0 20px var(--color-shadow-dark);
+    /* shadow in all directions */
+    box-shadow: 0 0 20px 4px var(--color-shadow-dark);
 }
-
 .blacksmith-menubar-left {
+    background-color: rgba(255, 255, 255, 0.2);
+    width: auto;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0px 8px 0px 8px;
+    border-right: 0px solid rgba(0, 0, 0, 0.3);
+    border-radius: 0px 0px 0px 0px;
+    gap: 4px;
+}
+.blacksmith-menubar-middle {
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
     padding: 0px 8px 0px 8px;
     gap: 6px;
     font-size: 1.0em;
 }
-
 .blacksmith-menubar-right {
-    background-color: rgba(41, 11, 20, 0.2);
+    background-color: rgba(41, 11, 20, 0.3);
     width: auto;
     height: 25px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 0px 2px 0px 8px;
-    border-left: 0px solid rgba(0, 0, 0, 0.6);
-    border-radius: 3px 0px 6px 3px;
-    gap: 4px;
+    padding: 0px 12px 0px 12px;
+    border-left: 0px solid rgba(0, 0, 0, 0.3);
+    border-radius: 0px 0px 0px 0px;
+    gap: 12px;
 }
 
+/* Dividers */
+.menu-divider {
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    height: 16px;
+    margin: 0px 4px 0px 4px;
+    box-shadow: 0 0 2px 0px var(--color-shadow-dark);
+}
+.menu-divider.line {
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.menu-divider.dotted {
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.menu-divider.double {
+    border-left: 4px double rgba(255, 255, 255, 0.3);
+}
+.menu-divider.groove {
+    border-left: 3px groove rgba(255, 255, 255, 0.3);
+}
+.menu-divider.ridge {
+    border-left: 3px ridge rgba(255, 255, 255, 0.3);
+}
 
 /* ------------------------------------ */
 
+/* LEFT BUTTONS */
+
 /* Base styles for all tools */
-.tool-active, .tool-readonly {
+.blacksmith-menubar-left .button-active, 
+.blacksmith-menubar-left .tool-readonly {
     color: rgba(240, 240, 224, 0.9);
     cursor: default;
     font-size: 0.9em;
     display: flex;
     align-items: center;
     border-radius: 4px;
-    padding:  2px 8px 2px 8px;
+    padding:  2px 0px 1px 0px;
+    position: relative;
+    background: transparent;
+    background-clip: padding-box;
+    white-space: nowrap;
+    text-transform: inherit;
+}
+.blacksmith-menubar-left .button-active i, 
+.blacksmith-menubar-left .tool-readonly i {
+    color: rgba(240, 240, 224, 0.9);
+    border: 0px solid rgba(0, 0, 0, 0.1);
+    margin: 0px 0px 0px 0px;
+}
+.blacksmith-menubar-left .button-active span, 
+.blacksmith-menubar-left .tool-readonly span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.blacksmith-menubar-left .button-active:hover,
+.blacksmith-menubar-left .button-active:hover i,
+.blacksmith-menubar-left .button-active:hover span {
+    color: rgba(255, 100, 0, 0.9);
+    cursor: pointer;
+}
+
+/* MIDDLE BUTTONS */
+
+/* Base styles for all tools */
+.blacksmith-menubar-middle .button-active, 
+.blacksmith-menubar-middle .tool-readonly {
+    color: rgba(240, 240, 224, 0.9);
+    cursor: default;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    padding:  2px 8px 1px 8px;
     position: relative;
     background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(0, 0, 0, 0.1);
     background-clip: padding-box;
     white-space: nowrap;
 }
-
-.tool-active i , .tool-readonly i{
+.blacksmith-menubar-middle .button-active i, 
+.blacksmith-menubar-middle .tool-readonly i {
     color: rgba(240, 240, 224, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    
+    margin: 0px 4px 0px 0px;
 }
 
-.tool-active span, .tool-readonly span {
+.blacksmith-menubar-middle .button-active span, 
+.blacksmith-menubar-middle .tool-readonly span {
     color: rgba(240, 240, 224, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.1);
     font-size: 1.0em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     margin-left: 2px;
 }
-
-/* Hover states for active tools */
-.tool-active:hover,
-.tool-active:hover i,
-.tool-active:hover span {
+.blacksmith-menubar-middle .button-active:hover,
+.blacksmith-menubar-middle .button-active:hover i,
+.blacksmith-menubar-middle .button-active:hover span {
     color: rgba(255, 100, 0, 0.9);
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid rgba(255, 100, 0, 0.4);
+    background: rgba(0, 0, 0, 0.3);
 }
+
+/* RIGHT BUTTONS */
+
+/* Base styles for all tools */
+.blacksmith-menubar-right .button-active, 
+.blacksmith-menubar-right .tool-readonly {
+    color: rgba(240, 240, 224, 0.9);
+    cursor: default;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    padding:  2px 0px 1px 0px;
+    position: relative;
+    background: transparent;
+    background-clip: padding-box;
+    white-space: nowrap;
+    text-transform: inherit;
+}
+.blacksmith-menubar-right .button-active i, 
+.blacksmith-menubar-right .tool-readonly i {
+    color: rgba(240, 240, 224, 0.9);
+    border: 0px solid rgba(0, 0, 0, 0.1);
+    margin: 0px 4px 0px 0px;
+}
+.blacksmith-menubar-right .button-active span, 
+.blacksmith-menubar-right .tool-readonly span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* Hover states for active tools */
+.blacksmith-menubar-right .button-active:hover,
+.blacksmith-menubar-right .button-active:hover i,
+.blacksmith-menubar-right .button-active:hover span {
+    color: rgba(255, 100, 0, 0.9);
+    cursor: pointer;
+}
+
+/* Notifications */
+
+.menu-notifications {
+    color: rgba(240, 240, 224, 0.9);
+    gap: 4px;
+    margin: 0px 0px 0px 8px;
+}
+.notification-content {
+    color: rgba(240, 240, 224, 0.9);
+    white-space: nowrap;
+}
+.notification-content i {
+    margin: 0px 4px 0px 0px;
+}
+
 
 
 /* ------------------------------------ */
@@ -103,52 +225,60 @@
 /* TIMERS TEMPORARILY IN THE CSS CLIENT */
 
 /* TIMER SECTION */
-
-
-
-
-/* Timer Progress Bar */
-
-.timer-section::before {
-    content: '';
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    bottom: 0px;
-    left: 0px;
-    z-index: -1;
+.timer-section {
+    --pad-x: 8px;
+    --pad-y: 2px;
+    position: relative;
+    display: flex; /* align icon + text in a row */
+    align-items: center; /* vertical centering */
+    justify-content: center; /* horizontal centering as a group */
+    gap: 4px; /* space between icon and text */
+    min-width:90px;
+    padding: var(--pad-y) var(--pad-x);
     border-radius: 4px;
+  }
+  
+.timer-section::before {
+content: "";
+    position: absolute;
+    inset: 0; /* full background */
+    border-radius: 4px;
+    z-index: -1;
     background: linear-gradient(
         90deg,
         var(--progress-color, rgba(37, 211, 102, 0.2)) var(--progress),
-        transparent var(--progress)
+        var(--background-color, rgba(0, 0, 0, 0.01)) var(--progress)
     );
+    pointer-events: none;
 }
-
+  
 /* Timer States - Default */
-.timer-section.default {
-    --progress-color: rgba(42, 100, 48, 0.9);
-    --background-color: rgba(42, 100, 48, 0.1);
-}
-
-/* Timer States - Warning */
 .timer-section.warning {
-    animation: borderPulse 2s ease-in-out infinite;
-    --progress-color: rgba(230, 170, 5, 0.7);
-    --background-color: rgba(230, 170, 5, 0.2);
+    --progress-color: rgba(255, 237, 118, 0.6);
+    --background-color: rgba(0, 0, 0, 0.1);
 }
-
 /* Timer States - Expired */
-.timer-section.expired {;
-    --progress-color: rgba(243, 0, 0, 0.8);
-    --background-color: rgba(243, 0, 0, 0.8);
+.timer-section.expired {
+    --progress-color: rgba(243, 0, 0, 0.1);
+    --background-color: rgba(243, 0, 0, 0.3);
 }
 
+.timer-section.warning .session-timer {
+    animation: textPulse 1.6s ease-in-out infinite;
+}
+   
+@keyframes textPulse {
+    0%, 100% {
+    color: rgba(255, 255, 255, 0.6);   /* dim */
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+    }
+    50% {
+    color: rgba(255, 255, 255, 1);     /* bright */
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+    }
+}
 
-
-
-
-
+ 
 
 /* ------------------------------------ */
 

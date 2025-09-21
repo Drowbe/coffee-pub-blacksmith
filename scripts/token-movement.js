@@ -178,31 +178,31 @@ export class MovementConfig extends Application {
             MovementTypes: [
                 {
                     id: 'normal-movement',
-                    name: 'Free',
+                    name: 'Free Movement',
                     description: 'All party members can move their tokens at will without limitations but potential consequences. Move wisely.',
                     icon: 'fa-person-walking',
                 },
                 {
                     id: 'no-movement',
-                    name: 'Locked',
+                    name: 'Movement Locked',
                     description: 'Movement is completly locked down for all party members.',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
-                    name: 'Combat',
+                    name: 'Combat Mode',
                     description: 'Movement is locked down while combat is active or manually enabled. Players can only move their tokens during their turn in combat.',
                     icon: 'fa-swords'
                 },
                 {
                     id: 'conga-movement',
-                    name: 'Conga',
+                    name: 'Conga Movement',
                     description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
                     icon: 'fa-people-pulling'
                 },
                 {
                     id: 'follow-movement',
-                    name: 'Follow (Experimental)',
+                    name: 'Fastest Path Movement',
                     description: 'The party leader moves freely while the reamining party loosely follows them in line.',
                     icon: 'fa-person-walking-arrow-right'
                 }

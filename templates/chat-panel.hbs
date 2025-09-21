@@ -1,53 +1,69 @@
 <div class="blacksmith-menubar-container">
     <div class="blacksmith-menubar-left">
-            {{!--Interface:  ui-left and ui-bottom, display none/inherit --}}
-            <div class="tool interface tool-active" title="Toggle Core Interface including toolbars, party window, and macros">
-                <div class="interface-info">
-                    <i class="fas fa-sidebar interface-icon"></i>
-                    <span class="interface-label">Hide UI</span>
-                </div>
+        {{!-- Settings --}}
+        <div class="button settings button-active" data-tooltip="Open Foundry Settings">
+            <i class="fas fa-gear"></i>
+        </div>
+        {{!-- Refresh --}}
+        <div class="button refresh button-active" data-tooltip="Refresh Foundry">
+            <i class="fas fa-rotate"></i>
+        </div>
+    </div>
+    <div class="blacksmith-menubar-middle">
+
+        {{!-- Vote --}}
+        {{#if (or isGM isLeader)}}
+        <div class="button vote button-active" title="Vote">
+            <i class="fas fa-check-to-slot"></i>
+            <span class="vote-label">Vote</span>
+        </div>
+        {{/if}}
+
+        
+
+        {{!--Skillcheck --}}
+        {{#if isGM}}
+
+            {{!-- DIVIDER: line, dotted, double, groove, ridge --}}
+            <div class="menu-divider groove"></div>
+
+
+            <div class="button skillcheck button-active" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
+                <i class="fas fa-dice"></i>
+                <span class="skillcheck-label">Rolls</span>
             </div>
-            {{!-- Vote --}}
-            {{#if (or isGM isLeader)}}
-            <div class="tool vote tool-active" title="Vote">
-                <div class="vote-info">
-                    <i class="fas fa-check-to-slot vote-icon"></i>
-                    <span class="vote-label">Vote</span>
-                </div>
+        {{/if}}
+
+        {{!--Interface:  ui-left and ui-bottom, display none/inherit --}}
+        <div class="button interface button-active" title="Toggle Core Interface including toolbars, party window, and macros">
+            <i class="fas fa-sidebar"></i>
+            <span class="interface-label">Hide UI</span>
+        </div>
+
+        {{#if isNotification}}
+            {{!-- DIVIDER: line, dotted, double, groove, ridge --}}
+            <div class="menu-divider groove"></div>
+
+            <div class="menu-notifications" title="Toggle Core Interface including toolbars, party window, and macros">
+                <span class="notification-content"><i class="fas fa-cards-blank"></i>This is a notification</span>
             </div>
-            {{/if}}
-            {{!--Skillcheck --}}
-            {{#if isGM}}
-                <div class="tool skillcheck tool-active" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
-                    <div class="skillcheck-info">
-                        <i class="fas fa-dice skillcheck-icon"></i>
-                        <span class="skillcheck-label">Rolls</span>
-                    </div>
-                </div>
-            {{/if}}
-            {{!-- More tools will be added here --}}
+        {{/if}}  
     </div>
     <div class="blacksmith-menubar-right">
         {{!-- LEADER --}}
-        <div class="tool leader-section {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}">
-            <div class="leader-info">
-                <i class="fas fa-crown leader-icon"></i>
-                <span class="party-leader">{{leaderText}}</span>
-            </div>
+        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}">
+            <i class="fas fa-crown"></i>
+            <span class="party-leader">{{leaderText}}</span>
         </div>
         {{!-- MOVEMENT --}}
-        <div class="tool movement {{#if isGM}}tool-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
-            <div class="movement-info">
-                <i class="fas {{currentMovement.icon}} movement-icon"></i>
-                <span class="movement-label">{{currentMovement.name}}</span>
-            </div>
+        <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+            <i class="fas {{currentMovement.icon}} movement-icon"></i>
+            <span class="movement-label">{{currentMovement.name}}</span>
         </div>
         {{!-- SESSION TIMER --}}
-        <div class="tool timer-section default {{#if isGM}}tool-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
-            <div class="timer-info" >
-                <i class="fas fa-eclipse"></i>
-                <span class="session-timer">{{timerText}}</span>
-            </div>
+        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
+            <i class="fas fa-eclipse"></i>
+            <span class="session-timer">{{timerText}}</span>
         </div>
     </div>
 </div> 

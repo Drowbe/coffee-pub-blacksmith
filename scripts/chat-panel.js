@@ -155,7 +155,7 @@ class ChatPanel {
         }
 
         // Add vote div click handler
-        const voteTool = document.querySelector('.tool.vote');
+        const voteTool = document.querySelector('.button.vote');
         if (voteTool) {
             voteTool.addEventListener('click', async (event) => {
                 event.preventDefault();
@@ -175,8 +175,30 @@ class ChatPanel {
             });
         }
 
+
+        // Add Settings div click handler
+        const settingsTool = document.querySelector('.button.settings');
+        if (settingsTool) {
+            settingsTool.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                game.settings.sheet.render(true);
+            });
+        }
+
+         // Add Refresh div click handler
+         const refreshTool = document.querySelector('.button.refresh');
+         if (refreshTool) {
+            refreshTool.addEventListener('click', async (event) => {
+                 event.preventDefault();
+                 event.stopPropagation();
+                 window.location.reload();
+             });
+         }
+
+
         // Add skill check click handler
-        const skillCheckTool = document.querySelector('.tool.skillcheck');
+        const skillCheckTool = document.querySelector('.button.skillcheck');
         if (skillCheckTool) {
             skillCheckTool.addEventListener('click', async (event) => {
                 event.preventDefault();
@@ -188,7 +210,7 @@ class ChatPanel {
         }
 
         // Add movement click handler
-        const movementTool = document.querySelector('.tool.movement');
+        const movementTool = document.querySelector('.button.movement');
         if (movementTool) {
             movementTool.addEventListener('click', async (event) => {
                 event.preventDefault();
@@ -200,7 +222,7 @@ class ChatPanel {
         }
 
         // Add UI toggle handler
-        const interfaceTool = document.querySelector('.tool.interface');
+        const interfaceTool = document.querySelector('.button.interface');
         if (interfaceTool) {
             interfaceTool.addEventListener('click', async function() {
                 const uiLeft = document.getElementById('ui-left');

@@ -92,6 +92,7 @@ export class CSSEditor extends FormApplication {
             game.settings.sheet.render(true);
         });
 
+
         // Add smart indentation handlers
         const textarea = html.find('textarea[name="css"]')[0];
         textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
