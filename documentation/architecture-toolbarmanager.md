@@ -13,11 +13,11 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 - **Tools are hardcoded** in the `addToolbarButton()` function as individual tool objects with `icon`, `name`, `title`, `button`, `visible`, and `onClick` properties
 
 ### 2. **Chat Panel Toolbar System** (Current Implementation)
-- **Location**: `scripts/chat-panel.js` 
+- **Location**: `scripts/menubar.js` 
 - **Hook Used**: `renderChatLog`
 - **Structure**: Has a `toolbarIcons` Map that stores module-specific toolbar icons
 - **Dynamic System**: Other modules can register toolbar icons via `ChatPanel.registerToolbarIcon(moduleId, iconData)`
-- **Template**: `templates/chat-panel.hbs` contains the HTML structure
+- **Template**: `templates/menubar.hbs` contains the HTML structure
 
 ### 3. **Encounter Toolbar System** (Current Implementation)
 - **Location**: `scripts/encounter-toolbar.js`

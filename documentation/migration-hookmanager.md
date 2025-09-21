@@ -51,7 +51,7 @@
 13. `token-handler.js` - 1 hook
 14. `token-image-replacement.js` - 1 hook
 15. `token-movement.js` - 4 hooks
-16. `chat-panel.js` - 1 hook
+16. `menubar.js` - 1 hook
 17. `xp-manager.js` - 3 hooks
 18. `api-core.js` - 1 hook
 19. `latency-checker.js` - 1 hook

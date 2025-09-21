@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { VoteManager } from "./vote-manager.js";
-import { ChatPanel } from "./chat-panel.js";
+import { ChatPanel } from "./menubar.js";
 
 export class VoteConfig extends Application {
     static get defaultOptions() {

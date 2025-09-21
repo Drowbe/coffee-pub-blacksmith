@@ -46,7 +46,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
-import { ChatPanel } from './chat-panel.js';
+import { ChatPanel } from './menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './manager-libwrapper.js';
 import { ModuleManager } from './manager-modules.js';

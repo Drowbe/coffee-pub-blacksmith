@@ -26,7 +26,7 @@ class ChatPanel {
     static initialize() {
         // Load the templates
         loadTemplates([
-            'modules/coffee-pub-blacksmith/templates/chat-panel.hbs',
+            'modules/coffee-pub-blacksmith/templates/menubar.hbs',
             'modules/coffee-pub-blacksmith/templates/cards-common.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
@@ -121,7 +121,7 @@ class ChatPanel {
             };
 
             // Render the template
-            const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/chat-panel.hbs', templateData);
+            const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
 
             // Remove any existing menubar
             document.querySelector('.blacksmith-menubar-container')?.remove();
