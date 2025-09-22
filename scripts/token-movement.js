@@ -60,13 +60,29 @@ const STATUS = {
 // Validate if token movement is allowed and return movement context
 function validateMovement(tokenDocument, changes, userId) {
     const currentMovement = getSettingSafely(MODULE.ID, 'movementType', 'none');
-    const partyLeaderUserId = getSettingSafely(MODULE.ID, 'partyLeader', null);
-    const movedByLeader = userId === partyLeaderUserId;
+    const partyLeaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
+    
+    // Check if this is the leader token
+    let movedByLeader = false;
+    if (partyLeaderData && partyLeaderData.actorId && tokenDocument.actorId === partyLeaderData.actorId) {
+        // If currentLeaderTokenId is not set, try to find the leader token
+        if (!currentLeaderTokenId) {
+            const leaderToken = canvas.tokens.placeables.find(token => 
+                token.actor?.id === partyLeaderData.actorId
+            );
+            if (leaderToken) {
+                currentLeaderTokenId = leaderToken.id;
+            }
+        }
+        
+        movedByLeader = tokenDocument.id === currentLeaderTokenId;
+    }
+    
     const movedByGM = game.users.get(userId)?.isGM;
     
     return {
         currentMovement,
-        partyLeaderUserId,
+        partyLeaderUserId: partyLeaderData?.userId,
         movedByLeader,
         movedByGM,
         isValid: (currentMovement === 'follow-movement' || currentMovement === 'conga-movement')
@@ -399,9 +415,21 @@ const preUpdateTokenHookId = HookManager.registerHook({
             // Get party leader data
             const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
             
-            // If the moving user is the party leader, allow movement
-            if (leaderData && leaderData.userId && game.user.id === leaderData.userId) {
-                return true;
+            // Check if the token being moved is the specific leader token
+            if (leaderData && leaderData.actorId && tokenDocument.actorId === leaderData.actorId) {
+                // If currentLeaderTokenId is not set, try to find the leader token
+                if (!currentLeaderTokenId) {
+                    const leaderToken = canvas.tokens.placeables.find(token => 
+                        token.actor?.id === leaderData.actorId
+                    );
+                    if (leaderToken) {
+                        currentLeaderTokenId = leaderToken.id;
+                    }
+                }
+                
+                if (tokenDocument.id === currentLeaderTokenId) {
+                    return true;
+                }
             }
             
             // Non-leader tokens can't be moved manually in conga/follow mode
@@ -502,12 +530,11 @@ const updateTokenHookId = HookManager.registerHook({
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     if (!changes.x && !changes.y) return;
     
-    // Only process for GMs to avoid duplicate processing
-    if (!game.user.isGM) return;
+    // Only process for GMs or when the leader is moving to avoid duplicate processing
+    const movementContext = validateMovement(tokenDocument, changes, userId);
+    if (!game.user.isGM && !movementContext.movedByLeader) return;
     
     try {
-        // Validate movement and get context
-        const movementContext = validateMovement(tokenDocument, changes, userId);
         if (!movementContext.isValid) return;
         
         // Get the token placeable from the document
