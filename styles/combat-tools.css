@@ -148,4 +148,32 @@ body:not(.gm) #combat-tracker .combatant {
 .portrait-dead .token-image {
     filter: brightness(90%) sepia(50%) saturate(300%) hue-rotate(-30deg);
     transition: filter 0.3s ease-in-out;
+}
+
+/* Combat Tracker Resizable */
+.combat-tracker-resizable #combat-popout {
+    resize: both !important;
+    overflow: auto !important;
+    min-width: 250px !important;
+    min-height: 200px !important;
+    max-width: 80vw !important;
+    max-height: 80vh !important;
+}
+
+/* Style the resize handle */
+.combat-tracker-resizable #combat-popout::-webkit-resizer {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+/* Ensure the combat tracker list fills the available space */
+.combat-tracker-resizable #combat-popout .window-content {
+    height: calc(100% - 60px); /* Account for header height */
+    overflow-y: auto;
+}
+
+.combat-tracker-resizable #combat-popout #combat-tracker {
+    height: 100%;
+    overflow-y: auto;
 } 

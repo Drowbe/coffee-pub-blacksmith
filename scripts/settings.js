@@ -2775,6 +2775,35 @@ export const registerSettings = async () => {
 		default: false
 	});
 
+	// -- Make Combat Tracker Resizable --
+	game.settings.register(MODULE.ID, 'combatTrackerResizable', {
+		name: 'Make it Resizable',
+		hint: 'When enabled, the combat tracker window can be resized by dragging the corner',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Remember Combat Tracker Size and Position --
+	game.settings.register(MODULE.ID, 'combatTrackerRememberSize', {
+		name: 'Remember size and position',
+		hint: 'When enabled, the combat tracker will remember its size and position between sessions',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Combat Tracker Size Data (Internal) --
+	game.settings.register(MODULE.ID, 'combatTrackerSize', {
+		name: 'Combat Tracker Size Data',
+		hint: 'Internal setting to store combat tracker size and position',
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
 
 	// -- Show Health Bar --
 	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {

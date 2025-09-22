@@ -17,6 +17,9 @@ Hooks.once('ready', () => {
         context: 'combat-tools',
         priority: 3, // Normal priority - UI enhancements
         callback: (app, html, data) => {
+        // Apply resizable functionality if enabled
+        CombatTools.applyResizableSettings(html);
+        
         // Find all combatant control groups
         const controlGroups = html.find('.combatant-controls');
         if (!controlGroups.length) return;
@@ -300,4 +303,86 @@ const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
     return above.initiative - ((above.initiative - below.initiative) / 2);
 };
 
-        postConsoleAndNotification(MODULE.NAME, "CombatTools | Module loaded", "", true, false); 
+// ================================================================== 
+// ===== COMBAT TOOLS CLASS ========================================
+// ================================================================== 
+
+class CombatTools {
+    /**
+     * Apply resizable settings to the combat tracker
+     * @param {jQuery} html - The combat tracker HTML
+     */
+    static applyResizableSettings(html) {
+        const combatPopout = document.querySelector('#combat-popout');
+        if (!combatPopout) return;
+
+        // Check if resizable is enabled
+        const isResizable = game.settings.get(MODULE.ID, 'combatTrackerResizable');
+        const rememberSize = game.settings.get(MODULE.ID, 'combatTrackerRememberSize');
+
+        if (isResizable) {
+            // Add resizable class to body to enable CSS
+            document.body.classList.add('combat-tracker-resizable');
+
+            // Restore saved size and position if enabled
+            if (rememberSize) {
+                this.restoreCombatTrackerSize(combatPopout);
+            }
+
+            // Set up resize event listener to save size and position
+            if (rememberSize) {
+                combatPopout.addEventListener('resize', () => {
+                    this.saveCombatTrackerSize(combatPopout);
+                });
+            }
+        } else {
+            // Remove resizable class
+            document.body.classList.remove('combat-tracker-resizable');
+        }
+    }
+
+    /**
+     * Save combat tracker size and position to settings
+     * @param {HTMLElement} combatPopout - The combat tracker popout element
+     */
+    static saveCombatTrackerSize(combatPopout) {
+        try {
+            const rect = combatPopout.getBoundingClientRect();
+            const sizeData = {
+                width: rect.width,
+                height: rect.height,
+                left: rect.left,
+                top: rect.top
+            };
+            
+            game.settings.set(MODULE.ID, 'combatTrackerSize', sizeData);
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker size saved", "", true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error saving combat tracker size", error, false, false);
+        }
+    }
+
+    /**
+     * Restore combat tracker size and position from settings
+     * @param {HTMLElement} combatPopout - The combat tracker popout element
+     */
+    static restoreCombatTrackerSize(combatPopout) {
+        try {
+            const savedSize = game.settings.get(MODULE.ID, 'combatTrackerSize');
+            if (savedSize && savedSize.width && savedSize.height) {
+                combatPopout.style.width = `${savedSize.width}px`;
+                combatPopout.style.height = `${savedSize.height}px`;
+                
+                // Only restore position if it's within screen bounds
+                if (savedSize.left >= 0 && savedSize.top >= 0) {
+                    combatPopout.style.left = `${savedSize.left}px`;
+                    combatPopout.style.top = `${savedSize.top}px`;
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker size restored", "", true, false);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error restoring combat tracker size", error, false, false);
+        }
+    }
+} 
