@@ -1,67 +1,56 @@
 <div class="blacksmith-menubar-container">
+    {{!-- LEFT ZONE --}}
     <div class="blacksmith-menubar-left">
-        {{!-- Settings --}}
-        <div class="button settings button-active" data-tooltip="Open Foundry Settings">
-            <i class="fas fa-gear"></i>
+        {{#each toolsByZone.left}}
+        <div class="button {{name}} button-active" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+            <i class="{{icon}}"></i>
+            {{#if (eq name "settings")}}
+            {{else if (eq name "refresh")}}
+            {{else}}
+            <span class="{{name}}-label">{{title}}</span>
+            {{/if}}
         </div>
-        {{!-- Refresh --}}
-        <div class="button refresh button-active" data-tooltip="Refresh Foundry">
-            <i class="fas fa-rotate"></i>
-        </div>
+        {{/each}}
     </div>
+
+    {{!-- MIDDLE ZONE --}}
     <div class="blacksmith-menubar-middle">
-
-        {{!-- Vote --}}
-        {{#if (or isGM isLeader)}}
-        <div class="button vote button-active" title="Vote">
-            <i class="fas fa-check-to-slot"></i>
-            <span class="vote-label">Vote</span>
+        {{#each toolsByZone.middle}}
+        <div class="button {{name}} button-active" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+            <i class="{{icon}}"></i>
+            <span class="{{name}}-label">{{title}}</span>
         </div>
-        {{/if}}
+        {{/each}}
 
-        
-
-        {{!--Skillcheck --}}
-        {{#if isGM}}
-
+        {{#if notifications.length}}
             {{!-- DIVIDER: line, dotted, double, groove, ridge --}}
             <div class="menu-divider groove"></div>
 
-
-            <div class="button skillcheck button-active" title="{{#if isGM}}Request a Roll{{else}}Only the GM can request rolls{{/if}}">
-                <i class="fas fa-dice"></i>
-                <span class="skillcheck-label">Rolls</span>
+            {{#each notifications}}
+            <div class="menu-notifications" data-notification-id="{{id}}">
+                <span class="notification-content">
+                    <i class="{{icon}}"></i>{{text}}
+                    <button class="notification-close" data-notification-id="{{id}}">&times;</button>
+                </span>
             </div>
+            {{/each}}
         {{/if}}
-
-        {{!--Interface:  ui-left and ui-bottom, display none/inherit --}}
-        <div class="button interface button-active" title="Toggle Core Interface including toolbars, party window, and macros">
-            <i class="fas fa-sidebar"></i>
-            <span class="interface-label">Hide UI</span>
-        </div>
-
-        {{#if isNotification}}
-            {{!-- DIVIDER: line, dotted, double, groove, ridge --}}
-            <div class="menu-divider groove"></div>
-
-            <div class="menu-notifications" title="Toggle Core Interface including toolbars, party window, and macros">
-                <span class="notification-content"><i class="fas fa-cards-blank"></i>This is a notification</span>
-            </div>
-        {{/if}}  
     </div>
+
+    {{!-- RIGHT ZONE --}}
     <div class="blacksmith-menubar-right">
         {{!-- LEADER --}}
-        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}">
+        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tool="leader-section">
             <i class="fas fa-crown"></i>
             <span class="party-leader">{{leaderText}}</span>
         </div>
         {{!-- MOVEMENT --}}
-        <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}">
+        <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}" data-tool="movement">
             <i class="fas {{currentMovement.icon}} movement-icon"></i>
             <span class="movement-label">{{currentMovement.name}}</span>
         </div>
         {{!-- SESSION TIMER --}}
-        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" >
+        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
             <i class="fas fa-eclipse"></i>
             <span class="session-timer">{{timerText}}</span>
         </div>

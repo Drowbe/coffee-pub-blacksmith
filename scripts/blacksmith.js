@@ -666,6 +666,18 @@ Hooks.once('init', async function() {
         module.api.isMenubarToolRegistered = MenuBar.isMenubarToolRegistered.bind(MenuBar);
         module.api.getMenubarToolsByZone = MenuBar.getMenubarToolsByZone.bind(MenuBar);
         module.api.testMenubarAPI = MenuBar.testMenubarAPI.bind(MenuBar);
+        module.api.testRefactoredMenubar = MenuBar.testRefactoredMenubar.bind(MenuBar);
+        module.api.testInterfaceTool = MenuBar.testInterfaceTool.bind(MenuBar);
+        module.api.testSettingsTool = MenuBar.testSettingsTool.bind(MenuBar);
+        module.api.testMovementTool = MenuBar.testMovementTool.bind(MenuBar);
+        
+        // Notification API
+        module.api.addNotification = MenuBar.addNotification.bind(MenuBar);
+        module.api.removeNotification = MenuBar.removeNotification.bind(MenuBar);
+        module.api.clearNotificationsByModule = MenuBar.clearNotificationsByModule.bind(MenuBar);
+        module.api.getActiveNotifications = MenuBar.getActiveNotifications.bind(MenuBar);
+        module.api.clearAllNotifications = MenuBar.clearAllNotifications.bind(MenuBar);
+        module.api.testNotificationSystem = MenuBar.testNotificationSystem.bind(MenuBar);
         
         postConsoleAndNotification(MODULE.NAME, "Menubar API: Exposed for external modules", "", true, false);
     }).catch(error => {
@@ -720,7 +732,19 @@ Hooks.once('init', async function() {
         getMenubarToolsByModule: null,
         isMenubarToolRegistered: null,
         getMenubarToolsByZone: null,
-        testMenubarAPI: null
+        testMenubarAPI: null,
+        testRefactoredMenubar: null,
+        testInterfaceTool: null,
+        testSettingsTool: null,
+        testMovementTool: null,
+        
+        // Notification API
+        addNotification: null,
+        removeNotification: null,
+        clearNotificationsByModule: null,
+        getActiveNotifications: null,
+        clearAllNotifications: null,
+        testNotificationSystem: null
     };
     
     // Toolbar management is now handled directly in manager-toolbar.js

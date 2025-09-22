@@ -52,6 +52,87 @@ if (success) {
 
 ## API Reference
 
+### Notification System
+
+#### `addNotification(text, icon, duration, moduleId)`
+Add a notification to the menubar.
+
+**Parameters:**
+- `text` (string): The notification text to display
+- `icon` (string, optional): FontAwesome icon class (default: "fas fa-info-circle")
+- `duration` (number, optional): Duration in seconds, 0 = until manually removed (default: 5)
+- `moduleId` (string, optional): The module ID adding the notification (default: "blacksmith-core")
+
+**Returns:** `string` - The notification ID for later removal
+
+**Example:**
+```javascript
+// Add a temporary notification
+const notificationId = game.modules.get('coffee-pub-blacksmith').api.addNotification(
+    "New message received",
+    "fas fa-envelope",
+    5,
+    "my-module"
+);
+
+// Add a persistent notification
+const persistentId = game.modules.get('coffee-pub-blacksmith').api.addNotification(
+    "Important system update available",
+    "fas fa-exclamation-triangle",
+    0, // 0 = until manually removed
+    "my-module"
+);
+```
+
+#### `removeNotification(notificationId)`
+Remove a specific notification from the menubar.
+
+**Parameters:**
+- `notificationId` (string): The notification ID to remove
+
+**Returns:** `boolean` - True if notification was removed, false if not found
+
+**Example:**
+```javascript
+game.modules.get('coffee-pub-blacksmith').api.removeNotification(notificationId);
+```
+
+#### `clearNotificationsByModule(moduleId)`
+Remove all notifications from a specific module.
+
+**Parameters:**
+- `moduleId` (string): The module ID to clear notifications for
+
+**Returns:** `number` - Number of notifications removed
+
+**Example:**
+```javascript
+const removedCount = game.modules.get('coffee-pub-blacksmith').api.clearNotificationsByModule('my-module');
+console.log(`Removed ${removedCount} notifications`);
+```
+
+#### `getActiveNotifications()`
+Get all currently active notifications.
+
+**Returns:** `Array` - Array of notification objects
+
+**Example:**
+```javascript
+const notifications = game.modules.get('coffee-pub-blacksmith').api.getActiveNotifications();
+console.log(`Currently ${notifications.length} active notifications`);
+```
+
+#### `clearAllNotifications()`
+Clear all notifications from the menubar.
+
+**Returns:** `number` - Number of notifications removed
+
+**Example:**
+```javascript
+const removedCount = game.modules.get('coffee-pub-blacksmith').api.clearAllNotifications();
+console.log(`Cleared ${removedCount} notifications`);
+```
+
 ### Tool Registration
 
 #### `registerMenubarTool(toolId, toolData)`
