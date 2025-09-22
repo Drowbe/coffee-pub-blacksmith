@@ -30,6 +30,7 @@ This document outlines the technical architecture and design decisions for the C
 - **Cross-Client Communication**: All features sync in real-time
 - **File Organization**: Consistent naming and loading patterns
 - **Module Architecture**: Clean, maintainable, and extensible
+- **Menubar System**: Global menu bar with extensible API for tools and notifications
 
 ### **🚧 In Development:**
 - **Asset Management System**: **PARTIALLY COMPLETED** - Data structure refactored with `value` field
@@ -48,6 +49,7 @@ This document outlines the technical architecture and design decisions for the C
 ### **2. Consistent Naming Convention**
 - **`manager-*`**: Core management systems
 - **`api-*`**: External APIs and interfaces
+- **`menubar-*`**: Global menubar system and UI components
 - **`window-*`**: UI windows and dialogs
 - **`timer-*`**: Timer and countdown systems
 - **`stats-*`**: Statistics and analytics systems

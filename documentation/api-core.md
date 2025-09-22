@@ -61,6 +61,7 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 - **Asset Constants**: All sound, image, theme, and volume constants
 - **Asset Lookup Tool**: Tag-based asset searching and filtering
 - **Data Structure**: New `id`/`value`/`path` separation for enhanced asset management
+- **Menubar API**: Register tools and send notifications to the global menubar
 
 
 ## **Integration Philosophy**
@@ -2034,6 +2035,62 @@ const result = await BlacksmithErrorHandler.safeOperation(
 2. **Retry Logic**: Attempt operations multiple times with delays
 3. **User Notification**: Inform users when features are unavailable
 4. **Logging**: Record errors for debugging and support
+
+# **Menubar API Integration**
+
+The Blacksmith menubar provides a global menu system that other modules can extend with tools and notifications.
+
+## **Accessing the Menubar API**
+
+```javascript
+// Get the menubar API
+const menubarAPI = game.modules.get('coffee-pub-blacksmith')?.api;
+
+// Check if available
+if (menubarAPI?.addNotification) {
+    // Menubar API is ready
+}
+```
+
+## **Quick Examples**
+
+### **Adding a Tool to the Menubar**
+```javascript
+menubarAPI.registerMenubarTool('my-tool', {
+    icon: "fas fa-star",
+    name: "my-tool",
+    title: "My Custom Tool",
+    zone: "left", // or "middle" or "right"
+    order: 10,
+    moduleId: "my-module",
+    onClick: () => {
+        console.log("My tool was clicked!");
+    }
+});
+```
+
+### **Sending a Notification**
+```javascript
+// Temporary notification (disappears in 5 seconds)
+const notificationId = menubarAPI.addNotification(
+    "New message received!",
+    "fas fa-envelope",
+    5,
+    "my-module"
+);
+
+// Persistent notification (until manually closed)
+const persistentId = menubarAPI.addNotification(
+    "System update available",
+    "fas fa-exclamation-triangle",
+    0, // 0 = until manually removed
+    "my-module"
+);
+```
+
+## **Complete Documentation**
+
+For full menubar API documentation, see: **`documentation/api-menubar.md`**
 
 # **Support and Community**
 
