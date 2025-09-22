@@ -408,7 +408,6 @@ class CombatTools {
             };
             
             game.settings.set(MODULE.ID, 'combatTrackerSize', sizeData);
-            postConsoleAndNotification(MODULE.NAME, `Combat Tracker saved: ${sizeData.width}x${sizeData.height} at (${sizeData.left}, ${sizeData.top})`, "", true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error saving combat tracker size", error, false, false);
         }
@@ -459,7 +458,6 @@ class CombatTools {
                     }
                 }
                 
-                postConsoleAndNotification(MODULE.NAME, `Combat Tracker restored: ${savedSize.width}x${savedSize.height} at (${savedSize.left}, ${savedSize.top})`, "", true, false);
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error restoring combat tracker size", error, false, false);
