@@ -363,14 +363,116 @@ The API includes robust error handling:
 - **Missing required properties**: Returns `false` and logs error
 - **API not available**: Check for API availability before use
 
+## ⚠️ Critical: Function Dependencies and Scope
+
+### **The Problem: Module Scope Isolation**
+
+When you register a tool with the menubar, the `onClick` function gets executed in the **Blacksmith menubar's context**, not your module's context. This means your function loses access to your module's imports and variables.
+
+### **❌ Common Error Pattern:**
+
+```javascript
+// In your-module.js
+import { MyManager } from './manager-my.js';
+
+const myFunction = () => {
+    MyManager.doSomething(); // ❌ ReferenceError: MyManager is not defined
+};
+
+// Register with menubar
+blacksmith.registerMenubarTool('my-tool', {
+    onClick: myFunction // ❌ Function loses access to MyManager
+});
+```
+
+**Error:** `ReferenceError: MyManager is not defined`
+
+### **✅ Solution: Self-Contained Functions**
+
+Make your `onClick` functions completely self-contained by importing all dependencies:
+
+```javascript
+// In your-module.js
+import { MyManager } from './manager-my.js';
+
+// ✅ Self-contained function with all dependencies
+const myFunction = () => {
+    try {
+        if (!MyManager) {
+            throw new Error('MyManager not available');
+        }
+        MyManager.doSomething();
+    } catch (error) {
+        console.error('My Module | Error in tool:', error);
+    }
+};
+
+// Register with menubar
+blacksmith.registerMenubarTool('my-tool', {
+    onClick: myFunction // ✅ Function has access to all its dependencies
+});
+```
+
+### **Alternative Solutions:**
+
+#### **1. Bound Context Functions**
+```javascript
+// Bind the function to maintain its original context
+blacksmith.registerMenubarTool('my-tool', {
+    onClick: myFunction.bind(this) // Maintains original context
+});
+```
+
+#### **2. Module API Access**
+```javascript
+// Access your module's API instead of direct imports
+const myFunction = () => {
+    const myAPI = game.modules.get('my-module')?.api;
+    myAPI.MyManager?.doSomething();
+};
+```
+
+#### **3. Wrapper Function**
+```javascript
+// Create a wrapper that handles the context
+const createMyHandler = () => {
+    return () => {
+        // This closure maintains access to your module's scope
+        MyManager.doSomething();
+    };
+};
+
+blacksmith.registerMenubarTool('my-tool', {
+    onClick: createMyHandler()
+});
+```
+
+### **🎯 Recommended Approach:**
+
+**Use self-contained functions** (Solution 1) because they:
+- Are explicit about dependencies
+- Work regardless of execution context
+- Are easier to debug
+- Are more reusable
+
+### **📋 Checklist for onClick Functions:**
+
+- [ ] All required imports are included in the same file
+- [ ] Function is self-contained (no external dependencies)
+- [ ] Error handling is included
+- [ ] Function works when called from any context
+- [ ] All variables and functions are properly scoped
+
 ## Best Practices
 
-1. **Unique Tool IDs**: Use descriptive, unique tool identifiers
-2. **Proper Zone Selection**: Choose the most appropriate zone for your tool
-3. **Consistent Ordering**: Use consistent order values within your module
-4. **Module Cleanup**: Unregister tools when your module is disabled
-5. **Error Handling**: Always check return values and handle errors gracefully
-6. **API Availability**: Check if the API is available before using it
+1. **Self-Contained Functions**: Make onClick functions completely self-contained with all dependencies imported
+2. **Unique Tool IDs**: Use descriptive, unique tool identifiers
+3. **Proper Zone Selection**: Choose the most appropriate zone for your tool
+4. **Consistent Ordering**: Use consistent order values within your module
+5. **Module Cleanup**: Unregister tools when your module is disabled
+6. **Error Handling**: Always check return values and handle errors gracefully
+7. **API Availability**: Check if the API is available before using it
+8. **Scope Awareness**: Understand that onClick functions execute in Blacksmith's context, not your module's context
 
 ## Troubleshooting
 
@@ -389,6 +491,12 @@ The API includes robust error handling:
 - Verify `zone` property is set correctly
 - Check zone spelling (must match "left", "middle", or "right" exactly)
 - Default zone is "left" if not specified
+
+### Tool Click Errors (ReferenceError)
+- **Error**: `ReferenceError: SomeClass is not defined`
+- **Cause**: onClick function loses access to module's imports when executed
+- **Solution**: Make onClick function self-contained with all dependencies imported
+- **Check**: Ensure all required classes/functions are imported in the same file as the onClick function
 
 ### Tool Not Clickable
 - Verify `onClick` function is provided and valid

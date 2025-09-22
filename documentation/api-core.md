@@ -2056,6 +2056,9 @@ if (menubarAPI?.addNotification) {
 
 ### **Adding a Tool to the Menubar**
 ```javascript
+// ⚠️ IMPORTANT: onClick functions must be self-contained!
+// Import all dependencies in the same file as the onClick function
+
 menubarAPI.registerMenubarTool('my-tool', {
     icon: "fas fa-star",
     name: "my-tool",
@@ -2064,6 +2067,8 @@ menubarAPI.registerMenubarTool('my-tool', {
     order: 10,
     moduleId: "my-module",
     onClick: () => {
+        // This function executes in Blacksmith's context, not your module's context
+        // Make sure all dependencies are imported in this file
         console.log("My tool was clicked!");
     }
 });
