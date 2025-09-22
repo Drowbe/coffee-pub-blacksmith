@@ -54,6 +54,13 @@ if (success) {
 
 ### Notification System
 
+Notifications appear in a dedicated notification area within the middle zone of the menubar. They are separate from the zone-based tool system and do not require zone specification.
+
+**Visual Layout:**
+```
+[LEFT ZONE TOOLS] [MIDDLE ZONE TOOLS] [NOTIFICATION AREA] [RIGHT ZONE TOOLS]
+```
+
 #### `addNotification(text, icon, duration, moduleId)`
 Add a notification to the menubar.
 
@@ -64,6 +71,8 @@ Add a notification to the menubar.
 - `moduleId` (string, optional): The module ID adding the notification (default: "blacksmith-core")
 
 **Returns:** `string` - The notification ID for later removal
+
+**Note:** Notifications do not use zones. They appear in a dedicated notification area within the middle zone of the menubar, separate from the zone-based tool system.
 
 **Example:**
 ```javascript

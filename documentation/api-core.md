@@ -2076,6 +2076,9 @@ menubarAPI.registerMenubarTool('my-tool', {
 
 ### **Sending a Notification**
 ```javascript
+// Notifications appear in a dedicated area within the middle zone
+// No zone parameter needed - they're separate from the tool system
+
 // Temporary notification (disappears in 5 seconds)
 const notificationId = menubarAPI.addNotification(
     "New message received!",
