@@ -432,6 +432,22 @@ div#xp-distribution-window .window-content {
   color: rgba(255, 255, 255, 1.0);
 }
 
+.player-inclusion-icon {
+  cursor: pointer;
+  font-size: 1.0em;
+  transition: opacity 0.15s, color 0.15s;
+  color: rgba(255, 47, 47, 1.0);
+  outline: none;
+  padding: 0px 2px 0px 2px;
+  user-select: none;
+  background: none;
+  margin-right: 0.5em;
+}
+.player-inclusion-icon.dimmed {
+  opacity: 0.3;
+  color: rgba(255, 255, 255, 1);
+}
+
 
 
 

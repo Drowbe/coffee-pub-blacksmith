@@ -564,6 +564,9 @@ class XpDistributionWindow extends FormApplication {
                 this._onMonsterResolutionIconClick(event);
             }
         });
+        
+        // Add event listeners for player inclusion icons
+        html.find('.player-inclusion-icon').on('click', this._onPlayerInclusionClick.bind(this));
     }
 
     _onPlayerAdjustmentChange(event) {
@@ -704,5 +707,20 @@ class XpDistributionWindow extends FormApplication {
             // Update all XP calculations and display
             this._updateXpDisplay();
         }
+    }
+
+    _onPlayerInclusionClick(event) {
+        const icon = $(event.currentTarget);
+        const playerId = icon.data('player-id');
+        
+        // Toggle the icon state
+        if (icon.hasClass('active')) {
+            icon.removeClass('active').addClass('dimmed');
+        } else {
+            icon.removeClass('dimmed').addClass('active');
+        }
+        
+        // Recalculate totals
+        this._updateXpDisplay();
     }
 } 
