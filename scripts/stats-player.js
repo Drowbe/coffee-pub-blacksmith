@@ -167,6 +167,12 @@ class CPBPlayerStats {
     }
 
     static async updatePlayerStats(actorId, updates) {
+        // Only GMs can update player statistics
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Player Stats: Only GMs can update player statistics", "", false, true);
+            return;
+        }
+        
         const actor = game.actors.get(actorId);
         if (!actor) return;
         
