@@ -1650,9 +1650,20 @@ class MenuBar {
 
         // Update local leader data if provided
         if (data.leaderData !== undefined) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar | Socket setting update", {
+                socketData: data,
+                currentUserId: game.user.id,
+                isGM: game.user.isGM,
+                settingValue: data.leaderData
+            }, true, false);
+            
             const success = await setSettingSafely(MODULE.ID, 'partyLeader', data.leaderData);
             if (success) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar | Setting updated successfully", "Should trigger settingChange hook", true, false);
                 MenuBar.updateLeaderDisplay();
+                
+                // Manually trigger toolbar refresh since settingChange hook doesn't fire on other clients
+                Hooks.callAll('blacksmith.leaderChanged', data.leaderData);
             } else {
                 postConsoleAndNotification(MODULE.NAME, 'Menubar | Warning', 'Settings not yet registered, skipping leader update', false, false);
             }

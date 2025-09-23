@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { SocketManager } from './manager-sockets.js';
 // Tool management will be handled directly in this file
 // -- Global utilities --
 import { rollCoffeePubDice, playSound } from './api-core.js';
@@ -603,11 +604,65 @@ export function addToolbarButton() {
         callback: (module, key, value) => {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
             if (module === MODULE.ID && key === 'partyLeader') {
-                // Refresh the toolbar when party leader changes
-                ui.controls.render();
+                // Refresh all toolbars when party leader changes
+                postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader change detected", "Refreshing all toolbars for leader change", true, false);
+                
+                // Clear active tool if it's a leader tool that might be removed
+                const activeTool = ui.controls.activeTool;
+                if (activeTool && registeredTools.has(activeTool)) {
+                    const tool = registeredTools.get(activeTool);
+                    if (tool.leaderOnly && !game.user.isGM) {
+                        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+                        const isLeader = leaderData?.userId === game.user.id;
+                        if (!isLeader) {
+                            // Clear the active tool since it's being removed
+                            ui.controls.activeTool = null;
+                        }
+                    }
+                }
+                
+                // Rebuild the controls list (fires getSceneControlButtons for all tools)
+                ui.controls.initialize();
+                
+                // Re-render the toolbar
+                ui.controls.render(true);
             }
             // --- END - HOOKMANAGER CALLBACK ---
         }
+    });
+
+    // Register custom hook to refresh toolbar when leader changes via socket
+    const leaderChangeHookId = HookManager.registerHook({
+        name: 'blacksmith.leaderChanged',
+        description: 'Manager Toolbar: Refresh toolbar when leader changes via socket',
+        context: 'manager-toolbar-leader-change',
+        priority: 3,
+        callback: (leaderData) => {
+            // --- BEGIN - HOOKMANAGER CALLBACK ---
+            postConsoleAndNotification(MODULE.NAME, "Toolbar | Socket leader change detected", "Refreshing toolbar from socket", true, false);
+            
+            // Clear active tool if it's a leader tool that might be removed
+            const activeTool = ui.controls.activeTool;
+            if (activeTool && registeredTools.has(activeTool)) {
+                const tool = registeredTools.get(activeTool);
+                if (tool.leaderOnly && !game.user.isGM) {
+                    const isLeader = leaderData?.userId === game.user.id;
+                    if (!isLeader) {
+                        // Clear the active tool since it's being removed
+                        ui.controls.activeTool = null;
+                    }
+                }
+            }
+            
+            // Rebuild the controls list (fires getSceneControlButtons for all tools)
+            ui.controls.initialize();
+            
+            // Re-render the toolbar
+            ui.controls.render(true);
+            // --- END - HOOKMANAGER CALLBACK ---
+        },
+        key: 'manager-toolbar-leader-change',
+        options: {}
     });
     
     // Log hook registration
@@ -615,6 +670,7 @@ export function addToolbarButton() {
 
     
 }
+
 
 // ================================================================== 
 // ===== TOOLBAR API FOR EXTERNAL MODULES ==========================
