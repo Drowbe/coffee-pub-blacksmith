@@ -75,17 +75,17 @@
 
 /* Middle fills everything between left and right */
 .blacksmith-menubar-middle {
-  background-color: var(--blacksmith-menubar-backgroundcolor-middle);
-  height: var(--blacksmith-menubar-zone-height);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* keep contents left */
-  gap: var(--blacksmith-menubar-gap-middle, 8px);
-  padding: 0; /* no outer gaps */
-  flex: 1 1 auto; /* << fill remaining width */
-  min-width: 0; /* << allow children to shrink */
-  overflow: hidden; /* clip overrun */
-}
+    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+    height: var(--blacksmith-menubar-zone-height);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* keep contents left */
+    gap: var(--blacksmith-menubar-gap-middle, 8px);
+    padding: 0px 8px 0px 8px;
+    flex: 1 1 auto; /* << fill remaining width */
+    min-width: 0; /* << allow children to shrink */
+    overflow: hidden; /* clip overrun */
+  }
 
 /* Dividers */
 .menu-divider {

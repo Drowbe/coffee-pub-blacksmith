@@ -396,7 +396,11 @@ class MenuBar {
     static getMenubarToolsByZone() {
         const zones = {
             left: [],
-            middle: [],
+            middle: {
+                general: [],    // All players/GM
+                leader: [],     // Leader/GM only
+                gm: []         // GM only
+            },
             right: []
         };
 
@@ -435,16 +439,44 @@ class MenuBar {
 
             if (isVisible) {
                 const zone = tool.zone || 'left';
-                zones[zone].push({
-                    toolId,
-                    ...tool
-                });
+                
+                if (zone === 'middle') {
+                    // Group middle tools by visibility requirements
+                    if (tool.gmOnly) {
+                        zones.middle.gm.push({
+                            toolId,
+                            ...tool
+                        });
+                    } else if (tool.leaderOnly) {
+                        zones.middle.leader.push({
+                            toolId,
+                            ...tool
+                        });
+                    } else {
+                        zones.middle.general.push({
+                            toolId,
+                            ...tool
+                        });
+                    }
+                } else {
+                    zones[zone].push({
+                        toolId,
+                        ...tool
+                    });
+                }
             }
         });
 
         // Sort each zone by order
         Object.keys(zones).forEach(zone => {
-            zones[zone].sort((a, b) => (a.order || 999) - (b.order || 999));
+            if (zone === 'middle') {
+                // Sort each group within middle zone
+                zones.middle.general.sort((a, b) => (a.order || 999) - (b.order || 999));
+                zones.middle.leader.sort((a, b) => (a.order || 999) - (b.order || 999));
+                zones.middle.gm.sort((a, b) => (a.order || 999) - (b.order || 999));
+            } else {
+                zones[zone].sort((a, b) => (a.order || 999) - (b.order || 999));
+            }
         });
 
         return zones;
@@ -756,9 +788,20 @@ class MenuBar {
                 
                 let zonesWorking = true;
                 expectedZones.forEach(zone => {
-                    if (!toolsByZone[zone] || !Array.isArray(toolsByZone[zone])) {
-                        console.log(`❌ Test 2 FAILED: Zone '${zone}' not working properly`);
-                        zonesWorking = false;
+                    if (zone === 'middle') {
+                        // Middle zone is now an object with arrays
+                        if (!toolsByZone[zone] || typeof toolsByZone[zone] !== 'object' || 
+                            !Array.isArray(toolsByZone[zone].general) || 
+                            !Array.isArray(toolsByZone[zone].leader) || 
+                            !Array.isArray(toolsByZone[zone].gm)) {
+                            console.log(`❌ Test 2 FAILED: Zone '${zone}' not working properly`);
+                            zonesWorking = false;
+                        }
+                    } else {
+                        if (!toolsByZone[zone] || !Array.isArray(toolsByZone[zone])) {
+                            console.log(`❌ Test 2 FAILED: Zone '${zone}' not working properly`);
+                            zonesWorking = false;
+                        }
                     }
                 });
                 
@@ -767,7 +810,7 @@ class MenuBar {
                     console.log('🎉 REFACTORED MENUBAR SYSTEM TESTS PASSED!');
                     console.log('📊 Zone Summary:');
                     console.log(`   Left: ${toolsByZone.left.length} tools`);
-                    console.log(`   Middle: ${toolsByZone.middle.length} tools`);
+                    console.log(`   Middle: ${toolsByZone.middle.general.length + toolsByZone.middle.leader.length + toolsByZone.middle.gm.length} tools (${toolsByZone.middle.general.length} general, ${toolsByZone.middle.leader.length} leader, ${toolsByZone.middle.gm.length} gm)`);
                     console.log(`   Right: ${toolsByZone.right.length} tools`);
                     return true;
                 } else {
@@ -1004,7 +1047,9 @@ class MenuBar {
                 isGM: game.user.isGM,
                 currentLeader: this.currentLeader,
                 isLoading: this.isLoading,
-                leaderToolsInMiddle: toolsByZone.middle.filter(tool => tool.leaderOnly).length
+                leaderToolsInMiddle: toolsByZone.middle.leader.length,
+                generalToolsInMiddle: toolsByZone.middle.general.length,
+                gmToolsInMiddle: toolsByZone.middle.gm.length
             }, true, false);
 
             const templateData = {
