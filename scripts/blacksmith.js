@@ -673,10 +673,12 @@ Hooks.once('init', async function() {
         
         // Notification API
         module.api.addNotification = MenuBar.addNotification.bind(MenuBar);
+        module.api.updateNotification = MenuBar.updateNotification.bind(MenuBar);
         module.api.removeNotification = MenuBar.removeNotification.bind(MenuBar);
         module.api.clearNotificationsByModule = MenuBar.clearNotificationsByModule.bind(MenuBar);
         module.api.getActiveNotifications = MenuBar.getActiveNotifications.bind(MenuBar);
         module.api.clearAllNotifications = MenuBar.clearAllNotifications.bind(MenuBar);
+        module.api.getNotificationIdsByModule = MenuBar.getNotificationIdsByModule.bind(MenuBar);
         module.api.testNotificationSystem = MenuBar.testNotificationSystem.bind(MenuBar);
         
         postConsoleAndNotification(MODULE.NAME, "Menubar API: Exposed for external modules", "", true, false);
@@ -740,10 +742,12 @@ Hooks.once('init', async function() {
         
         // Notification API
         addNotification: null,
+        updateNotification: null,
         removeNotification: null,
         clearNotificationsByModule: null,
         getActiveNotifications: null,
         clearAllNotifications: null,
+        getNotificationIdsByModule: null,
         testNotificationSystem: null
     };
     

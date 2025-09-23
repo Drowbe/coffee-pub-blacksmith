@@ -93,6 +93,37 @@ const persistentId = game.modules.get('coffee-pub-blacksmith').api.addNotificati
 );
 ```
 
+#### `updateNotification(notificationId, updates)`
+Update an existing notification.
+
+**Parameters:**
+- `notificationId` (string): The notification ID to update
+- `updates` (Object): Object containing fields to update
+  - `text` (string, optional): New notification text
+  - `icon` (string, optional): New FontAwesome icon class
+  - `duration` (number, optional): New duration in seconds (0 = persistent)
+
+**Returns:** `boolean` - True if notification was updated, false if not found
+
+**Example:**
+```javascript
+// Update notification text and icon
+blacksmith.updateNotification(notificationId, {
+    text: "Processing complete!",
+    icon: "fas fa-check-circle"
+});
+
+// Change notification to auto-remove after 3 seconds
+blacksmith.updateNotification(notificationId, {
+    duration: 3
+});
+
+// Make notification persistent again
+blacksmith.updateNotification(notificationId, {
+    duration: 0
+});
+```
+
 #### `removeNotification(notificationId)`
 Remove a specific notification from the menubar.
 
@@ -140,6 +171,20 @@ Clear all notifications from the menubar.
 ```javascript
 const removedCount = game.modules.get('coffee-pub-blacksmith').api.clearAllNotifications();
 console.log(`Cleared ${removedCount} notifications`);
+```
+
+#### `getNotificationIdsByModule(moduleId)`
+Get all notification IDs for a specific module.
+
+**Parameters:**
+- `moduleId` (string): The module ID to get notification IDs for
+
+**Returns:** `Array` - Array of notification IDs
+
+**Example:**
+```javascript
+const myNotificationIds = game.modules.get('coffee-pub-blacksmith').api.getNotificationIdsByModule('my-module');
+console.log(`My module has ${myNotificationIds.length} active notifications`);
 ```
 
 ### Tool Registration
@@ -274,6 +319,137 @@ Tools within each zone are ordered by their `order` property:
   - `101+`: Optional/advanced tools
 
 ## Example Usage
+
+### Notification Management
+
+#### Complete Module Notification Management
+```javascript
+class MyModule {
+    constructor() {
+        this.notificationIds = new Set(); // Track our notification IDs
+        this.moduleId = 'my-module';
+        this.blacksmith = null;
+    }
+
+    async initialize() {
+        // Wait for Blacksmith API to be ready
+        this.blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+        if (!this.blacksmith) {
+            console.error('Blacksmith API not available');
+            return;
+        }
+    }
+
+    // Add a notification and track the ID
+    addNotification(text, icon = "fas fa-info", duration = 5) {
+        if (!this.blacksmith) return null;
+
+        const notificationId = this.blacksmith.addNotification(text, icon, duration, this.moduleId);
+        if (notificationId) {
+            this.notificationIds.add(notificationId);
+        }
+        return notificationId;
+    }
+
+    // Update a specific notification
+    updateNotification(notificationId, newText, newIcon) {
+        if (!this.blacksmith) return false;
+
+        return this.blacksmith.updateNotification(notificationId, {
+            text: newText,
+            icon: newIcon
+        });
+    }
+
+    // Remove a specific notification
+    removeNotification(notificationId) {
+        if (!this.blacksmith) return false;
+
+        const success = this.blacksmith.removeNotification(notificationId);
+        if (success) {
+            this.notificationIds.delete(notificationId);
+        }
+        return success;
+    }
+
+    // Clean up all our notifications when module is disabled
+    cleanup() {
+        if (this.blacksmith) {
+            this.blacksmith.clearNotificationsByModule(this.moduleId);
+            this.notificationIds.clear();
+        }
+    }
+
+    // Get all our current notification IDs
+    getMyNotificationIds() {
+        if (!this.blacksmith) return [];
+        return this.blacksmith.getNotificationIdsByModule(this.moduleId);
+    }
+
+    // Example: Show a progress notification that updates
+    async showProgressNotification() {
+        const notificationId = this.addNotification(
+            "Starting process...", 
+            "fas fa-spinner fa-spin", 
+            0 // Persistent
+        );
+
+        // Simulate progress updates
+        setTimeout(() => {
+            this.updateNotification(notificationId, {
+                text: "Processing... 50%",
+                icon: "fas fa-spinner fa-spin"
+            });
+        }, 2000);
+
+        setTimeout(() => {
+            this.updateNotification(notificationId, {
+                text: "Processing complete!",
+                icon: "fas fa-check-circle",
+                duration: 3 // Auto-remove after 3 seconds
+            });
+        }, 4000);
+    }
+}
+
+// Register cleanup when module is disabled
+Hooks.once('disableModule', (moduleId) => {
+    if (moduleId === 'my-module') {
+        myModuleInstance.cleanup();
+    }
+});
+```
+
+#### Simple Notification Examples
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+
+// Add a temporary notification
+const tempId = blacksmith.addNotification(
+    "Task completed!", 
+    "fas fa-check", 
+    5, 
+    "my-module"
+);
+
+// Add a persistent notification
+const persistentId = blacksmith.addNotification(
+    "System is processing...", 
+    "fas fa-spinner fa-spin", 
+    0, // 0 = persistent
+    "my-module"
+);
+
+// Update the persistent notification when done
+blacksmith.updateNotification(persistentId, {
+    text: "Processing complete!",
+    icon: "fas fa-check-circle",
+    duration: 3 // Now auto-remove after 3 seconds
+});
+
+// Or remove it manually
+blacksmith.removeNotification(persistentId);
+```
 
 ### Basic Tool Registration
 
@@ -523,15 +699,23 @@ For issues or questions about the Blacksmith Menubar API:
 
 ## Version History
 
+- **v12.1.7**: Enhanced notification system
+  - Added `updateNotification()` method for real-time notification updates
+  - Added `getNotificationIdsByModule()` helper for module notification tracking
+  - Improved timeout management to prevent memory leaks
+  - Enhanced notification lifecycle management
+  - Added comprehensive notification management examples
+
 - **v12.1.6**: Initial menubar API release
   - Basic tool registration/unregistration
   - Zone-based organization (left, middle, right)
   - Three-tier visibility system (GM, Leader, Player)
   - Dynamic visibility support
   - Tool ordering and organization
+  - Basic notification system
 
 ---
 
-**Last Updated**: Current session - API fully functional and documented  
+**Last Updated**: Current session - Enhanced notification system with full lifecycle management  
 **Status**: Production ready with comprehensive integration support  
 **Next Milestone**: Enhanced menubar features and ecosystem integration

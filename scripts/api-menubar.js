@@ -410,7 +410,7 @@ class MenuBar {
             
             // Set up auto-removal if duration is specified
             if (duration > 0) {
-                setTimeout(() => {
+                notification.timeoutId = setTimeout(() => {
                     this.removeNotification(notificationId);
                 }, duration * 1000);
             }
@@ -428,6 +428,53 @@ class MenuBar {
     }
     
     /**
+     * Update an existing notification
+     * @param {string} notificationId - The notification ID to update
+     * @param {Object} updates - Object containing fields to update
+     * @param {string} updates.text - New notification text
+     * @param {string} updates.icon - New FontAwesome icon class
+     * @param {number} updates.duration - New duration in seconds (0 = persistent)
+     * @returns {boolean} - True if notification was updated, false if not found
+     */
+    static updateNotification(notificationId, updates) {
+        try {
+            if (!this.notifications.has(notificationId)) {
+                postConsoleAndNotification(MODULE.NAME, `Notification not found for update: ${notificationId}`, "", false, false);
+                return false;
+            }
+
+            const notification = this.notifications.get(notificationId);
+            
+            // Update fields if provided
+            if (updates.text !== undefined) notification.text = updates.text;
+            if (updates.icon !== undefined) notification.icon = updates.icon;
+            if (updates.duration !== undefined) {
+                notification.duration = updates.duration;
+                // Clear existing timeout if duration changed
+                if (notification.timeoutId) {
+                    clearTimeout(notification.timeoutId);
+                    notification.timeoutId = null;
+                }
+                // Set new timeout if duration > 0
+                if (updates.duration > 0) {
+                    notification.timeoutId = setTimeout(() => {
+                        this.removeNotification(notificationId);
+                    }, updates.duration * 1000);
+                }
+            }
+
+            // Re-render to show changes
+            this.renderMenubar();
+            
+            postConsoleAndNotification(MODULE.NAME, `Notification updated: ${notificationId}`, "", true, false);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error updating notification", error, false, false);
+            return false;
+        }
+    }
+
+    /**
      * Remove a notification from the menubar
      * @param {string} notificationId - The notification ID to remove
      * @returns {boolean} - True if notification was removed, false if not found
@@ -435,6 +482,11 @@ class MenuBar {
     static removeNotification(notificationId) {
         try {
             if (this.notifications.has(notificationId)) {
+                const notification = this.notifications.get(notificationId);
+                // Clear timeout if it exists
+                if (notification.timeoutId) {
+                    clearTimeout(notification.timeoutId);
+                }
                 this.notifications.delete(notificationId);
                 this.renderMenubar();
                 postConsoleAndNotification(MODULE.NAME, `Notification removed: ${notificationId}`, "", true, false);
@@ -489,6 +541,12 @@ class MenuBar {
     static clearAllNotifications() {
         try {
             const count = this.notifications.size;
+            // Clear all timeouts before clearing notifications
+            this.notifications.forEach(notification => {
+                if (notification.timeoutId) {
+                    clearTimeout(notification.timeoutId);
+                }
+            });
             this.notifications.clear();
             this.renderMenubar();
             postConsoleAndNotification(MODULE.NAME, `Cleared all ${count} notifications`, "", true, false);
@@ -496,6 +554,26 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error clearing all notifications", error, false, false);
             return 0;
+        }
+    }
+
+    /**
+     * Get all notification IDs for a specific module
+     * @param {string} moduleId - The module ID to get notification IDs for
+     * @returns {Array} - Array of notification IDs
+     */
+    static getNotificationIdsByModule(moduleId) {
+        try {
+            const notificationIds = [];
+            for (const [id, notification] of this.notifications.entries()) {
+                if (notification.moduleId === moduleId) {
+                    notificationIds.push(id);
+                }
+            }
+            return notificationIds;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error getting notification IDs by module", error, false, false);
+            return [];
         }
     }
 

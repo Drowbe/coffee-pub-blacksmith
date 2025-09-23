@@ -2,7 +2,7 @@
     {{!-- LEFT ZONE --}}
     <div class="blacksmith-menubar-left">
         {{#each toolsByZone.left}}
-        <div class="button {{name}} button-active" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             {{#if (eq name "settings")}}
             {{else if (eq name "refresh")}}
@@ -16,7 +16,7 @@
     {{!-- MIDDLE ZONE --}}
     <div class="blacksmith-menubar-middle">
         {{#each toolsByZone.middle}}
-        <div class="button {{name}} button-active" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
@@ -28,7 +28,7 @@
 
             {{#each notifications}}
             <div class="menu-notifications" data-notification-id="{{id}}">
-                <span class="notification-content">
+                <span class="notification-content" data-tooltip="{{text}}">
                     <i class="{{icon}}"></i>{{text}}
                     <button class="notification-close" data-notification-id="{{id}}">&times;</button>
                 </span>
@@ -40,17 +40,17 @@
     {{!-- RIGHT ZONE --}}
     <div class="blacksmith-menubar-right">
         {{!-- LEADER --}}
-        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tool="leader-section">
+        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tooltip="{{#if isGM}}Set the session leader.{{else}}Session leader.{{/if}}" data-tool="leader-section">
             <i class="fas fa-crown"></i>
             <span class="party-leader">{{leaderText}}</span>
         </div>
         {{!-- MOVEMENT --}}
-        <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" title="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}" data-tool="movement">
+        <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tooltip="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}" data-tool="movement">
             <i class="fas {{currentMovement.icon}} movement-icon"></i>
             <span class="movement-label">{{currentMovement.name}}</span>
         </div>
         {{!-- SESSION TIMER --}}
-        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
+        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" data-tooltip="{{#if isGM}}Set the session time.{{else}}Session time.{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
             <i class="fas fa-eclipse"></i>
             <span class="session-timer">{{timerText}}</span>
         </div>

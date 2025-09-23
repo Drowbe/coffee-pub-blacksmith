@@ -4,9 +4,26 @@
 
 /* MENUBAR */
 
+
+
+
+:root {
+    --blacksmith-menubar-height: 26px;
+    --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-height) - 2px);
+    --blacksmith-menubar-interface-offset:  calc(var(--blacksmith-menubar-height) + 2px);
+    --blacksmith-menubar-divider-height:  calc(var(--blacksmith-menubar-height) - 12px);
+    --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.1);
+    --blacksmith-menubar-backgroundcolor-endzones: rgba(48, 24, 29, 0.8);
+    --blacksmith-menubar-border-endzones: 3px solid rgba(0, 0, 0, 0.2);
+    --blacksmith-menubar-gap-endzones: 12px;
+    --blacksmith-menubar-backgroundcolor-middle: rgba(255, 255, 255, 0.2);
+    --blacksmith-menubar-gap-middle: 4px;
+ }
+
+
 /* Push main interface down to account for fixed menubar */
 #interface {
-    margin-top: 28px;
+    margin-top: var(--blacksmith-menubar-interface-offset);
 }
 
 .blacksmith-menubar-container {
@@ -15,76 +32,92 @@
     left: 4px;
     right: 4px;
     z-index: 100;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: transparent;
     padding: 0;
     width: calc(100% - 8px);
-    min-height: 26px;
-    max-height: 26px;
+    min-height: var(--blacksmith-menubar-height);
+    max-height: var(--blacksmith-menubar-height);
     display: flex;
     align-items: center;
     justify-content: space-between;
     border: 1px solid rgba(17, 17, 17, 0.8);
     border-top: 1px solid rgba(17, 17, 17, 0.4);
     border-radius: 0px 0px 6px 6px;
-    /* shadow in all directions */
     box-shadow: 0 0 20px 4px var(--color-shadow-dark);
 }
+
+
 .blacksmith-menubar-left {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
     width: auto;
-    height: 25px;
+    height: var(--blacksmith-menubar-zone-height);
     display: flex;
     align-items: center;
     justify-content: flex-start;
     padding: 0px 8px 0px 8px;
-    border-right: 0px solid rgba(0, 0, 0, 0.3);
-    border-radius: 0px 0px 0px 0px;
-    gap: 4px;
+    border-right: var(--blacksmith-menubar-border-endzones);
+    gap: var(--blacksmith-menubar-gap-endzones);
 }
+
 .blacksmith-menubar-middle {
     flex: 1;
     display: flex;
+    height: var(--blacksmith-menubar-zone-height);
+    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
     align-items: center;
     justify-content: left;
     padding: 0px 8px 0px 8px;
-    gap: 6px;
+    gap: var(--blacksmith-menubar-gap-middle);
     font-size: 1.0em;
 }
+
 .blacksmith-menubar-right {
-    background-color: rgba(41, 11, 20, 0.3);
+    background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
     width: auto;
-    height: 25px;
+    height: var(--blacksmith-menubar-zone-height);
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding: 0px 12px 0px 12px;
-    border-left: 0px solid rgba(0, 0, 0, 0.3);
-    border-radius: 0px 0px 0px 0px;
-    gap: 12px;
+    border-left: var(--blacksmith-menubar-border-endzones);
+    gap: var(--blacksmith-menubar-gap-endzones);
 }
 
 /* Dividers */
 .menu-divider {
     border-left: 1px solid rgba(255, 255, 255, 0.3);
-    height: 16px;
+    height: var(--blacksmith-menubar-divider-height);  
     margin: 0px 4px 0px 4px;
     box-shadow: 0 0 2px 0px var(--color-shadow-dark);
 }
 .menu-divider.line {
-    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: 1px solid var(--blacksmith-menubar-backgroundcolor-divider);
 }
 .menu-divider.dotted {
-    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: 1px solid var(--blacksmith-menubar-backgroundcolor-divider);
 }
 .menu-divider.double {
-    border-left: 4px double rgba(255, 255, 255, 0.3);
+    border-left: 4px double var(--blacksmith-menubar-backgroundcolor-divider);
 }
 .menu-divider.groove {
-    border-left: 3px groove rgba(255, 255, 255, 0.3);
+    border-left: 3px groove var(--blacksmith-menubar-backgroundcolor-divider);
 }
 .menu-divider.ridge {
-    border-left: 3px ridge rgba(255, 255, 255, 0.3);
+    border-left: 3px ridge var(--blacksmith-menubar-backgroundcolor-divider);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ------------------------------------ */
 
