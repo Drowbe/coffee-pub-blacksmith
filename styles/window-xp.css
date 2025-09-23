@@ -448,6 +448,14 @@ div#xp-distribution-window .window-content {
   color: rgba(255, 255, 255, 1);
 }
 
+/* Hide calculation elements for disabled players */
+.xp-player-row:has(.player-inclusion-icon.dimmed) .plus,
+.xp-player-row:has(.player-inclusion-icon.dimmed) .player-adjustment,
+.xp-player-row:has(.player-inclusion-icon.dimmed) .equals,
+.xp-player-row:has(.player-inclusion-icon.dimmed) .calculated-total {
+  display: none;
+}
+
 
 
 

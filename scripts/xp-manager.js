@@ -642,10 +642,12 @@ class XpDistributionWindow extends FormApplication {
         // Update summary
         const html = this.element;
         html.find('.xp-summary-item').eq(0).find('span').last().text(this.xpData.totalXp);
-        html.find('.xp-summary-item').eq(1).find('span').last().text(this.xpData.partySize);
+        const includedCount = this._getIncludedPlayerCount();
+        html.find('.xp-summary-item').eq(1).find('span').last().text(includedCount);
         html.find('.xp-summary-item').eq(2).find('span').last().text(this.xpData.partyMultiplier + 'x');
         html.find('.xp-summary-item').eq(3).find('span').last().text(this.xpData.adjustedTotalXp);
-        html.find('.xp-summary-item').eq(4).find('span').last().text(this.xpData.xpPerPlayer);
+        const newXpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.totalXp / includedCount) : 0;
+        html.find('.xp-summary-item').eq(4).find('span').last().text(newXpPerPlayer);
 
         // Update monster rows
         this.xpData.monsters.forEach((monster, i) => {
@@ -654,16 +656,26 @@ class XpDistributionWindow extends FormApplication {
         });
 
         // Update player rows
+        
         this.xpData.players.forEach((player, i) => {
             const row = html.find('.xp-player-row').eq(i);
-            // Get adjustment value from input
-            const adjInput = row.find('.player-adjustment');
-            let adjustment = parseInt(adjInput.val(), 10);
-            if (isNaN(adjustment)) adjustment = 0;
-            // Calculate total for this player
-            const total = this.xpData.xpPerPlayer + adjustment;
-            row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
-            row.find('.calculated-total').text(total);
+            const inclusionIcon = row.find('.player-inclusion-icon');
+            const isIncluded = inclusionIcon.hasClass('active');
+            
+            if (isIncluded) {
+                // Get adjustment value from input
+                const adjInput = row.find('.player-adjustment');
+                let adjustment = parseInt(adjInput.val(), 10);
+                if (isNaN(adjustment)) adjustment = 0;
+                // Calculate total for this player
+                const total = newXpPerPlayer + adjustment;
+                row.find('.player-base-xp').text(newXpPerPlayer);
+                row.find('.calculated-total').text(total);
+            } else {
+                // Show 0 for disabled players
+                row.find('.player-base-xp').text('0');
+                row.find('.calculated-total').text('0');
+            }
         });
     }
 
@@ -722,5 +734,9 @@ class XpDistributionWindow extends FormApplication {
         
         // Recalculate totals
         this._updateXpDisplay();
+    }
+
+    _getIncludedPlayerCount() {
+        return this.element.find('.player-inclusion-icon.active').length;
     }
 } 
