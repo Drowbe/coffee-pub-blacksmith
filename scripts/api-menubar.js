@@ -10,6 +10,7 @@ import { ModuleManager } from './manager-modules.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
+import { TokenImageReplacement } from './token-image-replacement.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -65,6 +66,9 @@ class MenuBar {
 
         // Register for module features
         this._registerModuleFeatures();
+        
+        // Register setting change hook to refresh menubar when party leader changes
+        this._registerLeaderChangeHook();
     }
 
     static _registerModuleFeatures() {
@@ -74,6 +78,45 @@ class MenuBar {
         toolbarFeatures.forEach(feature => {
             this.toolbarIcons.set(feature.moduleId, feature.data);
         });
+    }
+
+    static _registerLeaderChangeHook() {
+        // Register setting change hook to refresh menubar when party leader changes
+        const settingChangeHookId = HookManager.registerHook({
+            name: 'settingChange',
+            description: 'MenuBar: Refresh menubar when party leader changes',
+            context: 'menubar-leader-change',
+            priority: 3,
+            callback: (module, key, value) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (module === MODULE.ID && key === 'partyLeader') {
+                    postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Setting change hook fired", {
+                        module: module,
+                        key: key,
+                        value: value,
+                        currentUserId: game.user.id,
+                        isGM: game.user.isGM
+                    }, true, false);
+                    
+                    // Update the current leader display
+                    if (value && value.userId) {
+                        // Find the actor for the new leader
+                        const actor = game.actors.get(value.actorId);
+                        if (actor) {
+                            MenuBar.currentLeader = actor.name;
+                        }
+                    } else {
+                        MenuBar.currentLeader = null;
+                    }
+                    
+                    // Refresh the menubar to update tool visibility
+                    MenuBar.updateLeaderDisplay();
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Leader change hook registered", "", true, false);
     }
 
     /**
@@ -113,7 +156,6 @@ class MenuBar {
             zone: "middle",
             order: 1,
             moduleId: "blacksmith-core",
-            gmOnly: true,
             leaderOnly: true,
             onClick: () => {
                 new VoteConfig().render(true);
@@ -133,13 +175,26 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('imagereplace', {
+            icon: "fa-solid fa-images",
+            name: "imagereplace",
+            title: "Replace Image",
+            zone: "middle",
+            order: 3,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            onClick: () => {
+                TokenImageReplacement.openWindow();
+            }
+        });
+
         this.registerMenubarTool('interface', {
             icon: "fa-solid fa-sidebar",
             name: "interface",
             title: "Hide UI",
             tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
             zone: "middle",
-            order: 3,
+            order: 4,
             moduleId: "blacksmith-core",
             onClick: () => {
                 this.toggleInterface();
@@ -360,7 +415,19 @@ class MenuBar {
             }
 
             if (tool.leaderOnly && !game.user.isGM) {
-                const isLeader = game.settings.get(MODULE.ID, 'partyLeader') === game.user.id;
+                const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+                const isLeader = leaderData?.userId === game.user.id;
+                
+                postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Tool visibility check", {
+                    toolId: toolId,
+                    toolName: tool.name,
+                    leaderData: leaderData,
+                    currentUserId: game.user.id,
+                    isLeader: isLeader,
+                    isGM: game.user.isGM,
+                    willBeVisible: isLeader
+                }, true, false);
+                
                 if (!isLeader) {
                     isVisible = false;
                 }
@@ -928,6 +995,17 @@ class MenuBar {
 
             // Get tools organized by zone using our API
             const toolsByZone = this.getMenubarToolsByZone();
+            
+            // Debug: Log leader data during menubar rendering
+            const renderLeaderData = game.settings.get(MODULE.ID, 'partyLeader');
+            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Initial render", {
+                leaderData: renderLeaderData,
+                currentUserId: game.user.id,
+                isGM: game.user.isGM,
+                currentLeader: this.currentLeader,
+                isLoading: this.isLoading,
+                leaderToolsInMiddle: toolsByZone.middle.filter(tool => tool.leaderOnly).length
+            }, true, false);
 
             const templateData = {
                 isGM: game.user.isGM,
@@ -1065,6 +1143,10 @@ class MenuBar {
         
         // Update vote icon state
         this.updateVoteIconState();
+        
+        // Re-render the entire menubar to update tool visibility
+        // This ensures leader-only tools appear/disappear when leader changes
+        this.renderMenubar();
     }
 
     /**
@@ -1233,9 +1315,21 @@ class MenuBar {
         
         if (leaderData && leaderData.actorId) {
             // Don't send messages during initialization
+            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Loading leader during init", {
+                leaderData: leaderData,
+                currentUserId: game.user.id,
+                actorId: leaderData.actorId,
+                userId: leaderData.userId
+            }, true, false);
+            
             await MenuBar.setNewLeader(leaderData, false);
 
         } else {
+            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | No leader data during init", {
+                leaderData: leaderData,
+                currentUserId: game.user.id
+            }, true, false);
+            
             MenuBar.currentLeader = null;
             await MenuBar.updateLeader(null);
 
@@ -1555,7 +1649,7 @@ class MenuBar {
         MenuBar.currentLeader = data.leader;
 
         // Update local leader data if provided
-        if (data.leaderData) {
+        if (data.leaderData !== undefined) {
             const success = await setSettingSafely(MODULE.ID, 'partyLeader', data.leaderData);
             if (success) {
                 MenuBar.updateLeaderDisplay();
@@ -1588,10 +1682,17 @@ class MenuBar {
                     leader,  // for backward compatibility
                     leaderData // full leader data
                 });
-                this.updateLeaderDisplay();
             } else {
-                postConsoleAndNotification(MODULE.NAME, 'Menubar | Warning', 'Settings not yet registered, skipping leader update', false, false);
+                // Even if leaderData is null/empty, we still need to update other clients
+                // when clearing the leader
+                await socket.executeForOthers("updateLeader", { 
+                    leader,  // for backward compatibility
+                    leaderData: null // explicitly null
+                });
             }
+            
+            // Always update the display, regardless of leaderData status
+            this.updateLeaderDisplay();
         }
     }
 
