@@ -3240,6 +3240,12 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     async _performMassReplace(changes, caseSensitive) {
+        // Only GMs can perform mass replace operations
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Mass replace operations require GM permissions", "", false, true);
+            return;
+        }
+        
         // Batch updates per document/page to avoid repeated overwrites
         const pageUpdates = new Map(); // key: journalId|pageId, value: {journalId, pageId, content}
 
