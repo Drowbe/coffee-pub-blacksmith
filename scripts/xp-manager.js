@@ -732,6 +732,11 @@ class XpDistributionWindow extends FormApplication {
             icon.removeClass('dimmed').addClass('active');
         }
         
+        // Update xpData to reflect included players
+        const includedCount = this._getIncludedPlayerCount();
+        this.xpData.partySize = includedCount;
+        this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
+        
         // Recalculate totals
         this._updateXpDisplay();
     }

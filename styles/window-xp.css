@@ -449,10 +449,10 @@ div#xp-distribution-window .window-content {
 }
 
 /* Hide calculation elements for disabled players */
+.xp-player-row:has(.player-inclusion-icon.dimmed) .player-base-xp,
 .xp-player-row:has(.player-inclusion-icon.dimmed) .plus,
 .xp-player-row:has(.player-inclusion-icon.dimmed) .player-adjustment,
-.xp-player-row:has(.player-inclusion-icon.dimmed) .equals,
-.xp-player-row:has(.player-inclusion-icon.dimmed) .calculated-total {
+.xp-player-row:has(.player-inclusion-icon.dimmed) .equals {
   display: none;
 }
 
