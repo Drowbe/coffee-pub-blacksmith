@@ -4,9 +4,6 @@
 
 /* MENUBAR */
 
-
-
-
 :root {
     --blacksmith-menubar-height: 26px;
     --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-height) - 2px);
@@ -18,8 +15,10 @@
     --blacksmith-menubar-gap-endzones: 12px;
     --blacksmith-menubar-backgroundcolor-middle: rgba(255, 255, 255, 0.2);
     --blacksmith-menubar-gap-middle: 4px;
+    --blacksmith-menubar-fontsize: .9em;
+    --blacksmith-menubar-iconsize: .85em;
+    --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.9);
  }
-
 
 /* Push main interface down to account for fixed menubar */
 #interface {
@@ -27,60 +26,65 @@
 }
 
 .blacksmith-menubar-container {
-    position: fixed;
-    top: 0px;
-    left: 4px;
-    right: 4px;
-    z-index: 100;
-    background-color: transparent;
-    padding: 0;
-    width: calc(100% - 8px);
-    min-height: var(--blacksmith-menubar-height);
-    max-height: var(--blacksmith-menubar-height);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border: 1px solid rgba(17, 17, 17, 0.8);
-    border-top: 1px solid rgba(17, 17, 17, 0.4);
-    border-radius: 0px 0px 6px 6px;
-    box-shadow: 0 0 20px 4px var(--color-shadow-dark);
+  position: fixed;
+  top: 0;
+  left: 4px;
+  right: 4px;
+  z-index: 100;
+  background-color: transparent;
+  width: calc(100% - 8px);
+  min-height: var(--blacksmith-menubar-height);
+  max-height: var(--blacksmith-menubar-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;                /* was space-between */
+  border: 1px solid rgba(17,17,17,0.8);
+  border-top: 1px solid rgba(17,17,17,0.4);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 0 20px 4px var(--color-shadow-dark);
+  font-size: var(--blacksmith-menubar-fontsize);
+  color: var(--blacksmith-menubar-fontcolor);
+}
+.blacksmith-menubar-container i {
+  color: var(--blacksmith-menubar-fontcolor);
+  font-size: var(--blacksmith-menubar-iconsize);
+  padding: 1px 0 0 0;
 }
 
+/* Left / Right stay size-to-content */
+.blacksmith-menubar-left,
+.blacksmith-menubar-right {
+  background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
+  height: var(--blacksmith-menubar-zone-height);
+  display: flex;
+  align-items: center;
+  gap: var(--blacksmith-menubar-gap-endzones);
+  flex: 0 0 auto; /* do not grow */
+}
 
 .blacksmith-menubar-left {
-    background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
-    width: auto;
-    height: var(--blacksmith-menubar-zone-height);
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0px 8px 0px 8px;
-    border-right: var(--blacksmith-menubar-border-endzones);
-    gap: var(--blacksmith-menubar-gap-endzones);
+  justify-content: flex-start;
+  padding: 0 8px;
+  border-right: var(--blacksmith-menubar-border-endzones);
 }
-
-.blacksmith-menubar-middle {
-    flex: 1;
-    display: flex;
-    height: var(--blacksmith-menubar-zone-height);
-    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
-    align-items: center;
-    justify-content: left;
-    padding: 0px 8px 0px 8px;
-    gap: var(--blacksmith-menubar-gap-middle);
-    font-size: 1.0em;
-}
-
 .blacksmith-menubar-right {
-    background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
-    width: auto;
-    height: var(--blacksmith-menubar-zone-height);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0px 12px 0px 12px;
-    border-left: var(--blacksmith-menubar-border-endzones);
-    gap: var(--blacksmith-menubar-gap-endzones);
+  justify-content: flex-end;
+  padding: 0 12px;
+  border-left: var(--blacksmith-menubar-border-endzones);
+}
+
+/* Middle fills everything between left and right */
+.blacksmith-menubar-middle {
+  background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+  height: var(--blacksmith-menubar-zone-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* keep contents left */
+  gap: var(--blacksmith-menubar-gap-middle, 8px);
+  padding: 0; /* no outer gaps */
+  flex: 1 1 auto; /* << fill remaining width */
+  min-width: 0; /* << allow children to shrink */
+  overflow: hidden; /* clip overrun */
 }
 
 /* Dividers */
@@ -107,18 +111,6 @@
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* ------------------------------------ */
 
 /* LEFT BUTTONS */
@@ -126,9 +118,7 @@
 /* Base styles for all tools */
 .blacksmith-menubar-left .button-active, 
 .blacksmith-menubar-left .tool-readonly {
-    color: rgba(240, 240, 224, 0.9);
     cursor: default;
-    font-size: 0.9em;
     display: flex;
     align-items: center;
     border-radius: 4px;
@@ -141,7 +131,6 @@
 }
 .blacksmith-menubar-left .button-active i, 
 .blacksmith-menubar-left .tool-readonly i {
-    color: rgba(240, 240, 224, 0.9);
     border: 0px solid rgba(0, 0, 0, 0.1);
     margin: 0px 0px 0px 0px;
 }
@@ -163,13 +152,11 @@
 /* Base styles for all tools */
 .blacksmith-menubar-middle .button-active, 
 .blacksmith-menubar-middle .tool-readonly {
-    color: rgba(240, 240, 224, 0.9);
     cursor: default;
-    font-size: 0.9em;
     display: flex;
     align-items: center;
     border-radius: 4px;
-    padding:  2px 8px 1px 8px;
+    padding:  2px 8px 2px 8px;
     position: relative;
     background: rgba(0, 0, 0, 0.2);
     background-clip: padding-box;
@@ -183,19 +170,16 @@
 
 .blacksmith-menubar-middle .button-active span, 
 .blacksmith-menubar-middle .tool-readonly span {
-    color: rgba(240, 240, 224, 0.9);
-    font-size: 1.0em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-left: 2px;
 }
 .blacksmith-menubar-middle .button-active:hover,
 .blacksmith-menubar-middle .button-active:hover i,
 .blacksmith-menubar-middle .button-active:hover span {
     color: rgba(255, 100, 0, 0.9);
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.8);
 }
 
 /* RIGHT BUTTONS */
@@ -203,9 +187,7 @@
 /* Base styles for all tools */
 .blacksmith-menubar-right .button-active, 
 .blacksmith-menubar-right .tool-readonly {
-    color: rgba(240, 240, 224, 0.9);
     cursor: default;
-    font-size: 0.9em;
     display: flex;
     align-items: center;
     border-radius: 4px;
@@ -218,7 +200,6 @@
 }
 .blacksmith-menubar-right .button-active i, 
 .blacksmith-menubar-right .tool-readonly i {
-    color: rgba(240, 240, 224, 0.9);
     border: 0px solid rgba(0, 0, 0, 0.1);
     margin: 0px 4px 0px 0px;
 }
@@ -238,49 +219,61 @@
 
 /* Notifications */
 
+/* Notifications strip grows to use leftover middle space */
 .menu-notifications {
-    color: rgba(240, 240, 224, 0.9);
-    gap: 4px;
-    margin: 0px 0px 0px 8px;
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto; /* << take remainder of middle */
+  min-width: 0; /* << critical for ellipsis */
+  flex-wrap: nowrap;                             
+  overflow: hidden; /* hide extra if too many */
+}
+
+/* One notification item (no stretching) */
+.menu-notification-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto; /* don't grow across strip */
+  min-width: 0; /* allow inner text to shrink */
+  white-space: nowrap;
+}
+.menu-notifications i {
+    flex: 0 0 auto;   /* icon keeps its own width */
 }
 .notification-content {
-    color: rgba(240, 240, 224, 0.9);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  flex: 1 1 auto; /* take remaining width in item */
+  min-width: 0; /* << enables truncation in flex */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.notification-content i {
-    margin: 0px 4px 0px 0px;
-}
+/* Close Button */
 .notification-close {
     background: none;
     border: none;
     color: rgba(240, 240, 224, 0.7);
     cursor: pointer;
-    font-size: 1.2em;
     padding: 0;
-    margin-left: 4px;
-    width: 16px;
-    height: 16px;
+    width: var(--blacksmith-menubar-iconsize);     
+    height: var(--blacksmith-menubar-iconsize);   
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 2px;
+    flex: 0 0 auto;   /* button keeps its own width */
 }
 .notification-close:hover {
     color: rgba(255, 100, 0, 0.9);
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.01);
+    border: none;
+    outline: none;
+    box-shadow: none;
 }
-
-
 
 /* ------------------------------------ */
 
 /* TIMERS TEMPORARILY IN THE CSS CLIENT */
-
 /* TIMER SECTION */
 .timer-section {
     --pad-x: 8px;
@@ -296,45 +289,51 @@
   }
   
 .timer-section::before {
-content: "";
+    content: "";
     position: absolute;
     inset: 0; /* full background */
     border-radius: 4px;
     z-index: -1;
     background: linear-gradient(
         90deg,
-        var(--progress-color, rgba(37, 211, 102, 0.2)) var(--progress),
-        var(--background-color, rgba(0, 0, 0, 0.01)) var(--progress)
+        var(--progress-color, rgba(38, 167, 12, 0.2)) var(--progress),
+        var(--background-color, rgba(255, 255, 255, 0.8)) var(--progress)
     );
     pointer-events: none;
 }
   
 /* Timer States - Default */
-.timer-section.warning {
-    --progress-color: rgba(255, 237, 118, 0.6);
-    --background-color: rgba(0, 0, 0, 0.1);
+.timer-section.default{
+    --progress-color: rgba(5, 255, 5, 0.7);
+    --background-color: rgba(255, 255, 255, 0.4);
 }
 /* Timer States - Expired */
 .timer-section.expired {
-    --progress-color: rgba(243, 0, 0, 0.1);
-    --background-color: rgba(243, 0, 0, 0.3);
+    --progress-color: rgba(243, 0, 0, 0.9);
+    --background-color: rgba(243, 0, 0, 0.9);
+}
+
+.timer-section.warning {
+    --progress-color: rgba(243, 0, 0, 0.9);
+    --background-color: rgba(255, 255, 255, 0.4);
 }
 
 .timer-section.warning .session-timer {
     animation: textPulse 1.6s ease-in-out infinite;
+    --progress-color: rgba(255, 255, 8, 0.9);
+    --background-color: rgba(243, 243, 0, 0.9);
 }
    
 @keyframes textPulse {
     0%, 100% {
     color: rgba(255, 255, 255, 0.6);   /* dim */
-    text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+    text-shadow: 0 0 2px rgba(255, 255, 8, 0.4);
     }
     50% {
-    color: rgba(255, 255, 255, 1);     /* bright */
-    text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+    color: rgba(243, 0, 0, 1);     /* bright */
+    text-shadow: 0 0 2px rgba(255, 255, 8, 0.9);
     }
 }
-
  
 
 /* ------------------------------------ */

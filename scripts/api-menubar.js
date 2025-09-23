@@ -113,9 +113,8 @@ class MenuBar {
             zone: "middle",
             order: 1,
             moduleId: "blacksmith-core",
-            visible: () => {
-                return game.user.isGM || game.settings.get(MODULE.ID, 'partyLeader')?.userId === game.user.id;
-            },
+            gmOnly: true,
+            leaderOnly: true,
             onClick: () => {
                 new VoteConfig().render(true);
             }
@@ -137,8 +136,8 @@ class MenuBar {
         this.registerMenubarTool('interface', {
             icon: "fa-solid fa-sidebar",
             name: "interface",
-            title: "Toggle Interface",
-            tooltip: "Toggle Core Interface including toolbars, party window, and macros",
+            title: "Hide UI",
+            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
             zone: "middle",
             order: 3,
             moduleId: "blacksmith-core",

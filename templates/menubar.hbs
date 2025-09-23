@@ -24,16 +24,16 @@
 
         {{#if notifications.length}}
             {{!-- DIVIDER: line, dotted, double, groove, ridge --}}
-            <div class="menu-divider groove"></div>
-
-            {{#each notifications}}
-            <div class="menu-notifications" data-notification-id="{{id}}">
-                <span class="notification-content" data-tooltip="{{text}}">
-                    <i class="{{icon}}"></i>{{text}}
+            <div class="menu-divider line"></div>
+            <div class="menu-notifications">
+                {{#each notifications}}
+                <div class="menu-notification-item" data-notification-id="{{id}}">
+                    <i class="{{icon}}"></i>
+                    <span class="notification-content" data-tooltip="{{text}}">{{text}}</span>
                     <button class="notification-close" data-notification-id="{{id}}">&times;</button>
-                </span>
+                </div>
+                {{/each}}
             </div>
-            {{/each}}
         {{/if}}
     </div>
 
