@@ -4991,14 +4991,14 @@ export class TokenImageReplacement {
     static async _onTokenCreated(tokenDocument, options, userId) {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Hook fired for token: ${tokenDocument.name}`, "", false, false);
         
-        // Store the original image before any updates
-        await this._storeOriginalImage(tokenDocument);
-        
-        // Only process if we're a GM and the feature is enabled
+        // Only GMs can update tokens - skip for non-GM users
         if (!game.user.isGM) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - not GM", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - user is not GM", "", false, false);
             return;
         }
+        
+        // Store the original image before any updates
+        await this._storeOriginalImage(tokenDocument);
         
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", false, false);

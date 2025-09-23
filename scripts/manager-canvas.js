@@ -39,6 +39,11 @@ export class CanvasTools {
     }
 
     static _updateNameplates() {
+        // Only GMs can modify token nameplates
+        if (!game.user.isGM) {
+            return;
+        }
+        
         postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", true, false);
         let tokens = canvas.tokens.placeables;
         let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
@@ -129,6 +134,11 @@ export class CanvasTools {
     }
 
     static _onPreUpdateToken(tokenDocument, changes, options, userId) {
+        // Only GMs can apply token behavior overrides
+        if (!game.user.isGM) {
+            return;
+        }
+        
         // Apply token behavior overrides on updates to maintain settings
         let changesMade = [];
         
@@ -155,6 +165,11 @@ export class CanvasTools {
 
     // *** TOKEN SCENE OVERRIDES ***
     static async _onTokenAddedToScene(tokenDocument, options, userId) {
+        // Only GMs can apply token behavior overrides
+        if (!game.user.isGM) {
+            return;
+        }
+        
         // Apply token behavior overrides after token is created but before it's fully rendered
         let changesMade = [];
         let updates = {};
@@ -485,6 +500,11 @@ export class CanvasTools {
     }
 
     static async _addRandomCoins(actor) {
+        // Only GMs can add random coins to actors
+        if (!game.user.isGM) {
+            return;
+        }
+        
         try {
             const roll = await new Roll("1d100").evaluate();
             let coinRoll;
