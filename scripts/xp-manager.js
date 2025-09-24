@@ -629,6 +629,7 @@ class XpDistributionWindow extends FormApplication {
         // Set initial selected values for monster resolution dropdowns (remove old dropdown logic)
         // Add event listeners for dynamic updates
         html.find('.player-adjustment').on('input', this._onPlayerAdjustmentChange.bind(this));
+        html.find('.adjustment-sign').on('click', this._onPlayerAdjustmentSignClick.bind(this));
         html.find('.apply-xp').click(this._onApplyXp.bind(this));
         html.find('.cancel-xp').click(this._onCancelXp.bind(this));
         // Add event listeners for narrative XP input changes
@@ -658,6 +659,26 @@ class XpDistributionWindow extends FormApplication {
         
         // Then update xpData.players with new adjustment
         this._updateXpDataPlayers();
+    }
+
+    _onPlayerAdjustmentSignClick(event) {
+        const clickedIcon = $(event.currentTarget);
+        const playerRow = clickedIcon.closest('[data-row-type="player"]');
+        const playerId = playerRow.attr('data-player-id');
+        
+        // Remove active class from both icons in this row
+        playerRow.find('.adjustment-sign').removeClass('active');
+        
+        // Add active class to clicked icon
+        clickedIcon.addClass('active');
+        
+        // Update the player's sign preference
+        const player = this.xpData.players.find(p => p.actorId === playerId);
+        if (player) {
+            player.adjustmentSign = clickedIcon.attr('data-sign');
+            this._updateXpDataPlayers();
+            this._updateXpDisplay();
+        }
     }
 
     async _onApplyXp(event) {
@@ -750,8 +771,14 @@ class XpDistributionWindow extends FormApplication {
                 const adjInput = row.find('.player-adjustment');
                 let adjustment = parseInt(adjInput.val(), 10);
                 if (isNaN(adjustment)) adjustment = 0;
-                // Calculate total for this player
-                const total = this.xpData.xpPerPlayer + adjustment;
+                
+                // Get adjustment sign from active icon
+                const activeSign = row.find('.adjustment-sign.active').attr('data-sign') || '+';
+                const signedAdjustment = activeSign === '-' ? -adjustment : adjustment;
+                
+                // Calculate total for this player (minimum 0)
+                const calculatedTotal = this.xpData.xpPerPlayer + signedAdjustment;
+                const total = Math.max(0, calculatedTotal);
                 row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
                 row.find('.calculated-total').text(total);
             } else {
@@ -852,13 +879,19 @@ class XpDistributionWindow extends FormApplication {
             let adjustment = parseInt(adjInput.val(), 10);
             if (isNaN(adjustment)) adjustment = 0;
             
-            // Calculate final XP for this player
-            const finalXp = isIncluded ? this.xpData.xpPerPlayer + adjustment : 0;
+            // Get adjustment sign from active icon
+            const activeSign = row.find('.adjustment-sign.active').attr('data-sign') || '+';
+            const signedAdjustment = activeSign === '-' ? -adjustment : adjustment;
+            
+            // Calculate final XP for this player (minimum 0)
+            const calculatedXp = isIncluded ? this.xpData.xpPerPlayer + signedAdjustment : 0;
+            const finalXp = Math.max(0, calculatedXp);
             
             return {
                 ...player,
                 included: isIncluded,
                 adjustment: adjustment,
+                adjustmentSign: player.adjustmentSign || '+',
                 finalXp: finalXp
             };
         });

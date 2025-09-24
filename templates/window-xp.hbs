@@ -96,8 +96,11 @@
 
             <span class="xp-table-col-3" data-field="xp">
               <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
-              <span class="plus">+</span>
-              <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="-1000" max="10000" placeholder="0">
+              <div class="adjustment-controls">
+                <i class="fas fa-square-plus adjustment-sign active" data-sign="+"></i>
+                <i class="fas fa-square-minus adjustment-sign" data-sign="-"></i>
+                <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="0" max="10000" placeholder="0">
+              </div>
               <span class="equals">=</span>
               <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
             </span>

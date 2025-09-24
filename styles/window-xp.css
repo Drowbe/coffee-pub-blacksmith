@@ -513,6 +513,38 @@ div#xp-distribution-window .window-content {
   gap: 0.25em;
 }
 
+
+/* ADJUSTMENT BUTTONS */
+
+.adjustment-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0px 8px 0px 8px;
+}
+
+.adjustment-sign {
+  cursor: pointer;
+  color: rgba(96, 95, 95, 0.9);
+  transition: all 0.2s ease;
+  font-size: 1.3em;
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8)
+}
+
+.adjustment-sign:hover {
+  color: rgba(219, 182, 119, 0.9);
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+.adjustment-sign.active {
+  color: rgba(213, 48, 47, 0.9);
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+
+
+/* XP FIELD STYLING */
+
 .player-base-xp,
 .plus,
 .equals {
@@ -547,8 +579,7 @@ div#xp-distribution-window .window-content {
 
 /* Hide calculation elements for disabled players */
 [data-table-type="players"] .xp-table-row:has(.inclusion-toggle.dimmed) .player-base-xp,
-[data-table-type="players"] .xp-table-row:has(.inclusion-toggle.dimmed) .plus,
-[data-table-type="players"] .xp-table-row:has(.inclusion-toggle.dimmed) .player-adjustment,
+[data-table-type="players"] .xp-table-row:has(.inclusion-toggle.dimmed) .adjustment-controls,
 [data-table-type="players"] .xp-table-row:has(.inclusion-toggle.dimmed) .equals {
   display: none;
 }
