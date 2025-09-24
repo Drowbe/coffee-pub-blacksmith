@@ -163,8 +163,7 @@ export class XpManager {
                     resolutionType: resolutionType,
                     multiplier: multiplier,
                     finalXp: finalXp,
-                    actorId: monster.actorId,
-                    isIncluded: true
+                    actorId: monster.actorId
                 };
             });
 
@@ -482,7 +481,8 @@ export class XpManager {
             NEGOTIATED: game.settings.get(MODULE.ID, 'xpMultiplierNegotiated'),
             ESCAPED: game.settings.get(MODULE.ID, 'xpMultiplierEscaped'),
             IGNORED: game.settings.get(MODULE.ID, 'xpMultiplierIgnored'),
-            CAPTURED: game.settings.get(MODULE.ID, 'xpMultiplierCaptured')
+            CAPTURED: game.settings.get(MODULE.ID, 'xpMultiplierCaptured'),
+            REMOVED: 0.0  // Always 0 - no XP for removed monsters
         };
     }
 
@@ -548,10 +548,11 @@ class XpDistributionWindow extends FormApplication {
             NEGOTIATED: { label: "Negotiated", desc: "Diplomatic Success" },
             ESCAPED: { label: "Escaped", desc: "Monster Retreated" },
             IGNORED: { label: "Ignored", desc: "Avoided Entirely" },
-            CAPTURED: { label: "Captured", desc: "Tactical Success" }
+            CAPTURED: { label: "Captured", desc: "Tactical Success" },
+            REMOVED: { label: "Removed", desc: "Excluded Entirely" }
         };
         // Order for dropdowns and legend
-        const resolutionTypes = ["DEFEATED", "NEGOTIATED", "ESCAPED", "IGNORED", "CAPTURED"];
+        const resolutionTypes = ["DEFEATED", "NEGOTIATED", "ESCAPED", "IGNORED", "CAPTURED", "REMOVED"];
         // For dropdowns
         const dropdownTypes = resolutionTypes;
         // For legend
@@ -635,18 +636,17 @@ class XpDistributionWindow extends FormApplication {
             html.find('.player-narrative-xp').on('input', this._onNarrativeXpChange.bind(this));
         }
         // Add event listeners for monster resolution icons
-        html.find('.monster-resolution-icon').on('click', this._onMonsterResolutionIconClick.bind(this));
-        html.find('.monster-resolution-icon').on('keydown', (event) => {
+        html.find('[data-table-type="monsters"] .resolution-icon').on('click', this._onMonsterResolutionIconClick.bind(this));
+        html.find('[data-table-type="monsters"] .resolution-icon').on('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 this._onMonsterResolutionIconClick(event);
             }
         });
         
         // Add event listeners for player inclusion icons
-        html.find('.player-inclusion-icon').on('click', this._onPlayerInclusionClick.bind(this));
+        html.find('[data-table-type="players"] .inclusion-toggle').on('click', this._onPlayerInclusionClick.bind(this));
         
         // Add event listeners for monster inclusion icons
-        html.find('.monster-inclusion-icon').on('click', this._onMonsterInclusionClick.bind(this));
         
         // Initialize xpData.players with current state
         this._updateXpDataPlayers();
@@ -727,39 +727,22 @@ class XpDistributionWindow extends FormApplication {
 
         // Update monster rows
         this.xpData.monsters.forEach((monster, i) => {
-            const row = html.find('.xp-monster-row').eq(i);
-            const inclusionIcon = row.find('.monster-inclusion-icon');
-            const isIncluded = inclusionIcon.hasClass('active');
+            const row = html.find('[data-table-type="monsters"] [data-row-type="monster"]').eq(i);
             
-            // Update the XP display based on inclusion status
-            if (isIncluded) {
-                // Show the full calculation
-                row.find('.monster-xp-calc').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
+            // Show the calculation based on current resolution
+            if (monster.resolutionType === 'REMOVED') {
+                // Show red "0" for removed monsters
+                row.find('[data-field="xp"]').html('<span class="excluded-xp">0</span>');
             } else {
-                // Show red "0" for excluded monsters
-                row.find('.monster-xp-calc').html('<span class="excluded-xp">0</span>');
+                // Show the full calculation
+                row.find('[data-field="xp"]').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
             }
-            
-            // Update resolution icons based on inclusion status
-            const resolutionIcons = row.find('.monster-resolution-icon');
-            resolutionIcons.each(function() {
-                const icon = $(this);
-                if (isIncluded) {
-                    // Restore normal functionality
-                    icon.removeClass('disabled');
-                    icon.attr('tabindex', '0');
-                } else {
-                    // Disable all resolution icons
-                    icon.addClass('disabled');
-                    icon.attr('tabindex', '-1');
-                }
-            });
         });
 
         // Update player rows
         this.xpData.players.forEach((player, i) => {
-            const row = html.find('.xp-player-row').eq(i);
-            const inclusionIcon = row.find('.player-inclusion-icon');
+            const row = html.find('[data-table-type="players"] [data-row-type="player"]').eq(i);
+            const inclusionIcon = row.find('.inclusion-toggle');
             const isIncluded = inclusionIcon.hasClass('active');
             
             if (isIncluded) {
@@ -805,8 +788,8 @@ class XpDistributionWindow extends FormApplication {
             monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
             
             // Update the visual state of all icons for this monster
-            const monsterRow = icon.closest('.xp-monster-row');
-            monsterRow.find('.monster-resolution-icon').each((index, element) => {
+            const monsterRow = icon.closest('[data-row-type="monster"]');
+            monsterRow.find('.resolution-icon').each((index, element) => {
                 const $element = $(element);
                 const iconResolution = $element.data('resolution');
                 if (iconResolution === resolution) {
@@ -846,49 +829,9 @@ class XpDistributionWindow extends FormApplication {
         this._updateXpDataPlayers();
     }
 
-    _onMonsterInclusionClick(event) {
-        const icon = $(event.currentTarget);
-        const monsterId = icon.data('monster-id');
-        
-        // Toggle the icon state
-        if (icon.hasClass('active')) {
-            icon.removeClass('active').addClass('dimmed');
-        } else {
-            icon.removeClass('dimmed').addClass('active');
-        }
-        
-        // Update the monster data based on inclusion status
-        const monster = this.xpData.monsters.find(m => m.id === monsterId);
-        if (monster) {
-            const isIncluded = icon.hasClass('active');
-            monster.isIncluded = isIncluded;
-            
-            if (isIncluded) {
-                // Restore original resolution type and recalculate finalXp
-                // Find the original combatant to get the proper resolution
-                const originalCombatant = this.xpData.combat.combatants.find(c => c.id === monsterId);
-                if (originalCombatant) {
-                    monster.resolutionType = XpManager.detectMonsterResolution(originalCombatant, this.xpData.combat);
-                    monster.multiplier = XpManager.RESOLUTION_XP_MULTIPLIERS[monster.resolutionType] || 0;
-                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-                }
-            } else {
-                // Set to REMOVED resolution type
-                monster.resolutionType = 'REMOVED';
-                monster.multiplier = 0;
-                monster.finalXp = 0;
-            }
-        }
-        
-        // Recalculate totals and update display
-        this._updateXpDisplay();
-        
-        // Update player data with new calculated values
-        this._updateXpDataPlayers();
-    }
 
     _getIncludedPlayerCount() {
-        return this.element.find('.player-inclusion-icon.active').length;
+        return this.element.find('[data-table-type="players"] .inclusion-toggle.active').length;
     }
 
     _updateXpDataPlayers() {
@@ -900,8 +843,8 @@ class XpDistributionWindow extends FormApplication {
             }
             
             // Use actorId to find the row (from the logged data structure)
-            const row = this.element.find(`[data-player-id="${player.actorId}"]`).closest('.xp-player-row');
-            const inclusionIcon = row.find('.player-inclusion-icon');
+            const row = this.element.find(`[data-player-id="${player.actorId}"]`).closest('[data-row-type="player"]');
+            const inclusionIcon = row.find('.inclusion-toggle');
             const isIncluded = inclusionIcon.hasClass('active');
             
             // Get adjustment value from input

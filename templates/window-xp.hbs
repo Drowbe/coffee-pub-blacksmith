@@ -32,66 +32,78 @@
       </div>
     </div>
     {{else}}
-    <div class="xp-section">
-      <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
-      <div class="xp-monster-table">
-        <div class="xp-monster-table-header">
-          <span class="monster-col-name monster-col-header">Name</span>
-          <span class="monster-col-cr monster-col-header">CR</span>
-          <span class="monster-col-resolution monster-col-header">Resolution</span>
-          <span class="monster-col-xp monster-col-header">XP</span>
-        </div>
-        <div class="xp-monster-list">
-          {{#each xpData.monsters}}
-          <div class="xp-monster-row">
-            <span class="monster-col-name monster-name">
-              <span class="monster-inclusion-icon active" data-monster-id="{{id}}" tabindex="0">
-                <i class="fas fa-swords"></i>
-              </span>
-              {{name}}
-            </span>
-            <span class="monster-col-cr monster-cr">CR {{cr}}</span>
-            <span class="monster-col-resolution">
-              <div class="monster-resolution-icons" role="group" aria-label="Monster Resolution">
-                {{#each ../resolutionTypes}}
-                  <span class="monster-resolution-icon {{#if ../isIncluded}}{{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}{{else}}disabled{{/if}}"
+      <div class="xp-section">
+        <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
+        <div class="xp-table-wrapper" data-table-type="monsters">
+          <div class="xp-table-header">
+            <span class="xp-table-col-1 xp-table-col-header">Name</span>
+            <span class="xp-table-col-2 xp-table-col-header">CR</span>
+            <span class="xp-table-col-3 xp-table-col-header">Resolution</span>
+            <span class="xp-table-col-4 xp-table-col-header">XP</span>
+          </div>
+          <div class="xp-table-body">
+            {{#each xpData.monsters}}
+            <div class="xp-table-row" data-row-type="monster" data-monster-id="{{id}}">
+              <span class="xp-table-col-1" data-field="name">{{name}}</span>
+              <span class="xp-table-col-2" data-field="cr">CR {{cr}}</span>
+              <span class="xp-table-col-3" data-field="resolution">
+                <div class="resolution-icons" role="group" aria-label="Monster Resolution">
+                  {{#each ../resolutionTypes}}
+                  <span class="resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
                         data-monster-id="{{../id}}"
                         data-resolution="{{this}}"
                         data-tooltip="{{prettifyResolution this}}"
                         aria-label="{{prettifyResolution this}}"
-                        {{#if ../isIncluded}}tabindex="0"{{else}}tabindex="-1"{{/if}}>
+                        tabindex="0">
                     {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
                     {{#if (eq this "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
                     {{#if (eq this "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
                     {{#if (eq this "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
                     {{#if (eq this "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                    {{#if (eq this "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
                   </span>
-                {{/each}}
-              </div>
+                  {{/each}}
+                </div>
+              </span>
+              <span class="xp-table-col-4" data-field="xp">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-users"></i> Player Adjustments</div>
+      
+      <div class="xp-table-wrapper" data-table-type="players">
+        <div class="xp-table-header">
+          <span class="xp-table-col-1 xp-table-col-header">Name</span>
+          <span class="xp-table-col-2 xp-table-col-header">Level</span>
+          <span class="xp-table-col-3 xp-table-col-header">XP</span>
+        </div>
+      
+        <div class="xp-table-body">
+          {{#each xpData.players}}
+          <div class="xp-table-row" data-row-type="player" data-player-id="{{actorId}}">
+            <span class="xp-table-col-1" data-field="name">
+              <span class="inclusion-toggle active" data-player-id="{{actorId}}" tabindex="0">
+                <i class="fas fa-swords"></i>
+              </span>
+              <img class="player-portrait" src="{{actor.img}}" alt="{{actor.name}}" />
+              <span class="player-name">{{actor.name}}</span>
             </span>
-            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
+
+            <span class="xp-table-col-2" data-field="level">{{actor.system.details.level}}</span>
+
+            <span class="xp-table-col-3" data-field="xp">
+              <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
+              <span class="plus">+</span>
+              <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="-1000" max="10000" placeholder="0">
+              <span class="equals">=</span>
+              <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
+            </span>
           </div>
           {{/each}}
         </div>
-      </div>
-    </div>
-    <div class="xp-section">
-      <div class="xp-section-header"><i class="fas fa-users"></i> Player Adjustments</div>
-      <div class="xp-player-list">
-        {{#each xpData.players}}
-        <div class="xp-player-row">
-          <span class="player-inclusion-icon active" data-player-id="{{actorId}}" tabindex="0">
-            <i class="fas fa-swords"></i>
-          </span>
-          <img class="player-portrait" src="{{actor.img}}" alt="{{actor.name}}" />
-          <span class="player-name">{{actor.name}}</span>
-          <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
-          <span class="plus">+</span>
-          <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="-1000" max="10000" placeholder="0">
-          <span class="equals">=</span>
-          <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
-        </div>
-        {{/each}}
       </div>
     </div>
     {{/if}}
@@ -104,8 +116,9 @@
           {{#if (eq key "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
           {{#if (eq key "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
           {{#if (eq key "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
-          {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
-          {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+           {{#if (eq key "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+           {{#if (eq key "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+           {{#if (eq key "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
           <span class="legend-label">{{label}}:</span>
           <span class="legend-multiplier">{{formatMultiplier multiplier}} XP</span>
           <span class="legend-desc">{{desc}} </span>
