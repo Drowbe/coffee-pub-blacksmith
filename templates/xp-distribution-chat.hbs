@@ -35,11 +35,11 @@
                     <img class="player-portrait" src="{{img}}" alt="{{name}}" />
                     <div class="cpb-xp-player-details">
                         <span class="cpb-actor-name">{{name}}</span>
-                        <span class="total-xp">FINAL XP: {{finalXp}}</span>
+                        <span class="total-xp">{{#if included}}NEW XP: {{finalXp}}{{else}}EXCLUDED{{/if}}</span>
                     </div>
                 </div>
                 <div class="cpb-xp-player-awards">
-                    <span class="xp-gained">{{#if included}}+{{finalXp}} XP{{else}}EXCLUDED{{/if}}</span>
+                    <span class="xp-gained">{{#if included}}+{{finalXp}} XP{{else}}0 XP{{/if}}</span>
                 </div>
             </div>
             {{/each}}
