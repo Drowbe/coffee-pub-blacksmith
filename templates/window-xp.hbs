@@ -1,10 +1,38 @@
 {{!-- XP Distribution Window Template --}}
 <div class="xp-distribution foundry-style-window">
   <div class="xp-header-sticky">
-    <div class="xp-header">
-      <i class="fas fa-swords"></i>
-      <span>XP Overview</span>
+
+    {{!-- Header --}}
+    <div class="xp-distribution-header">
+        <div class="xp-distribution-header-content">
+            <div class="xp-distribution-header-icon">
+              <i class="fas fa-swords"></i>
+            </div>
+            <div class="xp-distribution-header-title">
+              <div class="xp-distribution-maintitle">Experience Distribution</div>
+              <div class="xp-distribution-subtitle">Select a token on the canvas</div>
+            </div>
+            <div class="xp-distribution-header-controls">
+                <!-- Experience Points Toggle -->
+                <div class="xp-distribution-toggle-container">
+                    <span class="xp-distribution-toggle-label">Experience Points</span>
+                    <div class="xp-distribution-toggle">
+                        <input type="checkbox" name="modeExperiencePoints" id="modeExperiencePoints" {{#if modeExperiencePoints}}checked{{/if}}>
+                        <label for="modeExperiencePoints" class="xp-distribution-toggle-slider"></label>
+                    </div>
+                </div>
+                <!-- Milestones Toggle -->
+                <div class="xp-distribution-toggle-container">
+                    <span class="xp-distribution-toggle-label">Milestones</span>
+                    <div class="xp-distribution-toggle">
+                        <input type="checkbox" name="modeMilestone" id="modeMilestone" {{#if modeMilestone}}checked{{/if}}>
+                        <label for="modeMilestone" class="xp-distribution-toggle-slider"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    {{!-- Summary --}}
     <div class="xp-summary-row">
       <div class="xp-summary-item"><span class="label">Total XP</span><span>{{xpData.totalXp}}</span></div>
       <div class="xp-summary-item"><span class="label">Distribution Size</span><span>{{xpData.partySize}}</span></div>
@@ -16,10 +44,12 @@
       </div>
     </div>
   </div>
+
+  {{!-- BODY - SCROLLABLE --}}
   <div class="xp-body-scroll">
     {{#if narrativeMode}}
     <div class="xp-section">
-      <div class="xp-section-header"><i class="fas fa-users"></i> Narrative/Goal-Based XP</div>
+      <div class="xp-section-header"><i class="fas fa-users"></i> Milestones</div>
       <div class="xp-player-list">
         {{#each xpData.players}}
         <div class="xp-player-row">
