@@ -26,20 +26,23 @@
         </div>
 
         {{!-- Player Results --}}
-        {{#if xpData.players.length}}
+        {{#if results.length}}
         <div class="cpb-xp-card-section-header"><i class="fas fa-users"></i> Experience Allocations</div>
         <div class="player-list">
-            {{#each xpData.players}}
+            {{#each results}}
             <div class="player-item">
                 <div class="cpb-xp-player-info">
                     <img class="player-portrait" src="{{img}}" alt="{{name}}" />
                     <div class="cpb-xp-player-details">
                         <span class="cpb-actor-name">{{name}}</span>
-                        <span class="total-xp">{{#if included}}NEW XP: {{finalXp}}{{else}}EXCLUDED{{/if}}</span>
+                        <span class="total-xp">{{#if (gt xpGained 0)}}NEW XP: {{totalXp}}{{else}}EXCLUDED{{/if}}</span>
                     </div>
                 </div>
                 <div class="cpb-xp-player-awards">
-                    <span class="xp-gained">{{#if included}}+{{finalXp}} XP{{else}}0 XP{{/if}}</span>
+                    <span class="xp-gained">{{#if (gt xpGained 0)}}+{{xpGained}} XP{{else}}0 XP{{/if}}</span>
+                    {{#if leveledUp}}
+                    <span class="level-up">LEVEL UP!</span>
+                    {{/if}}
                 </div>
             </div>
             {{/each}}
