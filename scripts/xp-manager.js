@@ -311,7 +311,7 @@ export class XpManager {
         const results = [];
         
         for (const player of xpData.players) {
-            const actor = player.actor;
+            const actor = game.actors.get(player.actorId);
             if (!actor) continue;
 
             // Use the pre-calculated final XP for this player
