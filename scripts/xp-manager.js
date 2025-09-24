@@ -22,7 +22,8 @@ export class XpManager {
         NEGOTIATED: 1.0,    // Full XP for diplomatic success
         ESCAPED: 0.5,        // Half XP
         IGNORED: 0.0,        // No XP
-        CAPTURED: 1.0        // Full XP for tactical success
+        CAPTURED: 1.0,       // Full XP for tactical success
+        REMOVED: 0.0         // No XP - monster excluded from distribution
     };
 
     // Party size multipliers (D&D 5e standard)
@@ -708,13 +709,8 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _updateXpDisplay() {
-        // Recalculate totals based on included monsters only
-        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster, i) => {
-            const row = this.element.find('.xp-monster-row').eq(i);
-            const inclusionIcon = row.find('.monster-inclusion-icon');
-            const isIncluded = inclusionIcon.hasClass('active');
-            return sum + (isIncluded ? monster.finalXp : 0);
-        }, 0);
+        // Recalculate totals based on monster finalXp values (which now reflect inclusion status)
+        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
         
         // Get included count and update xpPerPlayer based on INCLUDED players only
@@ -734,9 +730,6 @@ class XpDistributionWindow extends FormApplication {
             const row = html.find('.xp-monster-row').eq(i);
             const inclusionIcon = row.find('.monster-inclusion-icon');
             const isIncluded = inclusionIcon.hasClass('active');
-            
-            // Update the data to match the DOM state
-            monster.isIncluded = isIncluded;
             
             // Update the XP display based on inclusion status
             if (isIncluded) {
@@ -825,6 +818,9 @@ class XpDistributionWindow extends FormApplication {
             
             // Update all XP calculations and display
             this._updateXpDisplay();
+            
+            // Update player data with new calculated values
+            this._updateXpDataPlayers();
         }
     }
 
@@ -861,14 +857,34 @@ class XpDistributionWindow extends FormApplication {
             icon.removeClass('dimmed').addClass('active');
         }
         
-        // Update the isIncluded property in xpData
+        // Update the monster data based on inclusion status
         const monster = this.xpData.monsters.find(m => m.id === monsterId);
         if (monster) {
-            monster.isIncluded = icon.hasClass('active');
+            const isIncluded = icon.hasClass('active');
+            monster.isIncluded = isIncluded;
+            
+            if (isIncluded) {
+                // Restore original resolution type and recalculate finalXp
+                // Find the original combatant to get the proper resolution
+                const originalCombatant = this.xpData.combat.combatants.find(c => c.id === monsterId);
+                if (originalCombatant) {
+                    monster.resolutionType = XpManager.detectMonsterResolution(originalCombatant, this.xpData.combat);
+                    monster.multiplier = XpManager.RESOLUTION_XP_MULTIPLIERS[monster.resolutionType] || 0;
+                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+                }
+            } else {
+                // Set to REMOVED resolution type
+                monster.resolutionType = 'REMOVED';
+                monster.multiplier = 0;
+                monster.finalXp = 0;
+            }
         }
         
         // Recalculate totals and update display
         this._updateXpDisplay();
+        
+        // Update player data with new calculated values
+        this._updateXpDataPlayers();
     }
 
     _getIncludedPlayerCount() {
