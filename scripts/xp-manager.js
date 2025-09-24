@@ -679,17 +679,18 @@ class XpDistributionWindow extends FormApplication {
         // Recalculate totals
         this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-        this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
+        
+        // Get included count and update xpPerPlayer based on INCLUDED players only
+        const includedCount = this._getIncludedPlayerCount();
+        this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
 
-        // Update summary
+        // Update summary display
         const html = this.element;
         html.find('.xp-summary-item').eq(0).find('span').last().text(this.xpData.totalXp);
-        const includedCount = this._getIncludedPlayerCount();
         html.find('.xp-summary-item').eq(1).find('span').last().text(includedCount);
         html.find('.xp-summary-item').eq(2).find('span').last().text(this.xpData.partyMultiplier + 'x');
         html.find('.xp-summary-item').eq(3).find('span').last().text(this.xpData.adjustedTotalXp);
-        const newXpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.totalXp / includedCount) : 0;
-        html.find('.xp-summary-item').eq(4).find('span').last().text(newXpPerPlayer);
+        html.find('.xp-summary-item').eq(4).find('span').last().text(this.xpData.xpPerPlayer);
 
         // Update monster rows
         this.xpData.monsters.forEach((monster, i) => {
@@ -698,7 +699,6 @@ class XpDistributionWindow extends FormApplication {
         });
 
         // Update player rows
-        
         this.xpData.players.forEach((player, i) => {
             const row = html.find('.xp-player-row').eq(i);
             const inclusionIcon = row.find('.player-inclusion-icon');
@@ -710,8 +710,8 @@ class XpDistributionWindow extends FormApplication {
                 let adjustment = parseInt(adjInput.val(), 10);
                 if (isNaN(adjustment)) adjustment = 0;
                 // Calculate total for this player
-                const total = newXpPerPlayer + adjustment;
-                row.find('.player-base-xp').text(newXpPerPlayer);
+                const total = this.xpData.xpPerPlayer + adjustment;
+                row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
                 row.find('.calculated-total').text(total);
             } else {
                 // Show 0 for disabled players
@@ -777,9 +777,8 @@ class XpDistributionWindow extends FormApplication {
         // Update xpData to reflect included players
         const includedCount = this._getIncludedPlayerCount();
         this.xpData.partySize = includedCount;
-        this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
         
-        // Recalculate totals first
+        // Recalculate totals and update display
         this._updateXpDisplay();
         
         // Then update xpData.players with current inclusion status and calculated totals
