@@ -7,9 +7,9 @@ import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 export class XpManager {
-    // Standard D&D 5e CR to XP mapping
+    // Standard D&D 5e CR to XP mapping (using decimal keys for math operations)
     static CR_TO_XP = {
-        0: 10, "1/8": 25, "1/4": 50, "1/2": 100, 1: 200, 2: 450, 3: 700, 4: 1100,
+        0: 10, 0.125: 25, 0.25: 50, 0.5: 100, 1: 200, 2: 450, 3: 700, 4: 1100,
         5: 1800, 6: 2300, 7: 2900, 8: 3900, 9: 5000, 10: 5900, 11: 7200, 12: 8400,
         13: 10000, 14: 11500, 15: 13000, 16: 15000, 17: 18000, 18: 20000, 19: 22000, 20: 25000,
         21: 33000, 22: 41000, 23: 50000, 24: 62000, 25: 75000, 26: 90000, 27: 105000, 28: 120000,
@@ -211,11 +211,23 @@ export class XpManager {
     }
 
     /**
+     * Convert CR to decimal for consistent lookup
+     */
+    static convertCRToDecimal(cr) {
+        if (typeof cr === 'number') return cr;
+        if (cr === '1/8') return 0.125;
+        if (cr === '1/4') return 0.25;
+        if (cr === '1/2') return 0.5;
+        return parseFloat(cr) || 0;
+    }
+
+    /**
      * Get monster's base XP from CR
      */
     static getMonsterBaseXp(monster) {
         const cr = this.getMonsterCR(monster);
-        return this.CR_TO_XP[cr] || 0;
+        const decimalCR = this.convertCRToDecimal(cr);
+        return this.CR_TO_XP[decimalCR] || 0;
     }
 
     /**
