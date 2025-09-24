@@ -8,8 +8,8 @@
         <div class="cpb-xp-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
         <div class="xp-totals">
             <div class="xp-total-row">
-                <span class="xp-total-label">Party Size</span>
-                <span class="xp-total-value">{{xpData.partySize}} x {{formatMultiplier xpData.partyMultiplier}} Multiplier</span>
+                <span class="xp-total-label">Dsitribution</span>
+                <span class="xp-total-value">{{xpData.partySize}} Players x {{formatMultiplier xpData.partyMultiplier}} Multiplier</span>
             </div>
             <div class="xp-total-row">
                 <span class="xp-total-label">Encounter XP</span>
@@ -62,6 +62,7 @@
                         {{#if (eq resolutionType "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
                         {{#if (eq resolutionType "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
                         {{#if (eq resolutionType "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                        {{#if (eq resolutionType "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
                     </span>
                     <span class="cpb-xp-monster-name" title="{{name}}">{{name}}</span>
                 </div>
