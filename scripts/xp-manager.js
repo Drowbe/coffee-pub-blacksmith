@@ -162,7 +162,8 @@ export class XpManager {
                     resolutionType: resolutionType,
                     multiplier: multiplier,
                     finalXp: finalXp,
-                    actorId: monster.actorId
+                    actorId: monster.actorId,
+                    isIncluded: true
                 };
             });
 
@@ -643,6 +644,9 @@ class XpDistributionWindow extends FormApplication {
         // Add event listeners for player inclusion icons
         html.find('.player-inclusion-icon').on('click', this._onPlayerInclusionClick.bind(this));
         
+        // Add event listeners for monster inclusion icons
+        html.find('.monster-inclusion-icon').on('click', this._onMonsterInclusionClick.bind(this));
+        
         // Initialize xpData.players with current state
         this._updateXpDataPlayers();
     }
@@ -704,8 +708,13 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _updateXpDisplay() {
-        // Recalculate totals
-        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+        // Recalculate totals based on included monsters only
+        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster, i) => {
+            const row = this.element.find('.xp-monster-row').eq(i);
+            const inclusionIcon = row.find('.monster-inclusion-icon');
+            const isIncluded = inclusionIcon.hasClass('active');
+            return sum + (isIncluded ? monster.finalXp : 0);
+        }, 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
         
         // Get included count and update xpPerPlayer based on INCLUDED players only
@@ -723,7 +732,35 @@ class XpDistributionWindow extends FormApplication {
         // Update monster rows
         this.xpData.monsters.forEach((monster, i) => {
             const row = html.find('.xp-monster-row').eq(i);
-            row.find('.monster-xp-calc').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
+            const inclusionIcon = row.find('.monster-inclusion-icon');
+            const isIncluded = inclusionIcon.hasClass('active');
+            
+            // Update the data to match the DOM state
+            monster.isIncluded = isIncluded;
+            
+            // Update the XP display based on inclusion status
+            if (isIncluded) {
+                // Show the full calculation
+                row.find('.monster-xp-calc').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
+            } else {
+                // Show red "0" for excluded monsters
+                row.find('.monster-xp-calc').html('<span class="excluded-xp">0</span>');
+            }
+            
+            // Update resolution icons based on inclusion status
+            const resolutionIcons = row.find('.monster-resolution-icon');
+            resolutionIcons.each(function() {
+                const icon = $(this);
+                if (isIncluded) {
+                    // Restore normal functionality
+                    icon.removeClass('disabled');
+                    icon.attr('tabindex', '0');
+                } else {
+                    // Disable all resolution icons
+                    icon.addClass('disabled');
+                    icon.attr('tabindex', '-1');
+                }
+            });
         });
 
         // Update player rows
@@ -811,6 +848,27 @@ class XpDistributionWindow extends FormApplication {
         
         // Then update xpData.players with current inclusion status and calculated totals
         this._updateXpDataPlayers();
+    }
+
+    _onMonsterInclusionClick(event) {
+        const icon = $(event.currentTarget);
+        const monsterId = icon.data('monster-id');
+        
+        // Toggle the icon state
+        if (icon.hasClass('active')) {
+            icon.removeClass('active').addClass('dimmed');
+        } else {
+            icon.removeClass('dimmed').addClass('active');
+        }
+        
+        // Update the isIncluded property in xpData
+        const monster = this.xpData.monsters.find(m => m.id === monsterId);
+        if (monster) {
+            monster.isIncluded = icon.hasClass('active');
+        }
+        
+        // Recalculate totals and update display
+        this._updateXpDisplay();
     }
 
     _getIncludedPlayerCount() {

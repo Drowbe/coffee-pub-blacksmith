@@ -44,17 +44,22 @@
         <div class="xp-monster-list">
           {{#each xpData.monsters}}
           <div class="xp-monster-row">
-            <span class="monster-col-name monster-name">{{name}}</span>
+            <span class="monster-col-name monster-name">
+              <span class="monster-inclusion-icon active" data-monster-id="{{id}}" tabindex="0">
+                <i class="fas fa-swords"></i>
+              </span>
+              {{name}}
+            </span>
             <span class="monster-col-cr monster-cr">CR {{cr}}</span>
             <span class="monster-col-resolution">
               <div class="monster-resolution-icons" role="group" aria-label="Monster Resolution">
                 {{#each ../resolutionTypes}}
-                  <span class="monster-resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
+                  <span class="monster-resolution-icon {{#if ../isIncluded}}{{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}{{else}}disabled{{/if}}"
                         data-monster-id="{{../id}}"
                         data-resolution="{{this}}"
                         data-tooltip="{{prettifyResolution this}}"
                         aria-label="{{prettifyResolution this}}"
-                        tabindex="0">
+                        {{#if ../isIncluded}}tabindex="0"{{else}}tabindex="-1"{{/if}}>
                     {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
                     {{#if (eq this "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
                     {{#if (eq this "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
@@ -64,7 +69,7 @@
                 {{/each}}
               </div>
             </span>
-            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{formatMultiplier multiplier}} = <strong>{{finalXp}}</strong></span>
+            <span class="monster-col-xp monster-xp-calc">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
           </div>
           {{/each}}
         </div>

@@ -432,6 +432,7 @@ div#xp-distribution-window .window-content {
   color: rgba(255, 255, 255, 1.0);
 }
 
+.monster-inclusion-icon,
 .player-inclusion-icon {
   cursor: pointer;
   font-size: 1.0em;
@@ -443,10 +444,18 @@ div#xp-distribution-window .window-content {
   background: none;
   margin-right: 0.5em;
 }
+.monster-inclusion-icon.dimmed,
 .player-inclusion-icon.dimmed {
   opacity: 0.3;
   color: rgba(255, 255, 255, 1);
 }
+
+
+
+
+
+
+
 
 /* Hide calculation elements for disabled players */
 .xp-player-row:has(.player-inclusion-icon.dimmed) .player-base-xp,
