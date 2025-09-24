@@ -35,14 +35,14 @@
                     <img class="player-portrait" src="{{img}}" alt="{{name}}" />
                     <div class="cpb-xp-player-details">
                         <span class="cpb-actor-name">{{name}}</span>
-                        <span class="total-xp">{{#if (gt xpGained 0)}}NEW XP: {{totalXp}}{{else}}EXCLUDED{{/if}}</span>
-                    </div>
+                        <span class="total-xp">{{totalXp}} XP | {{#if leveledUp}} LEVEL UP! {{else}} {{nextLevelXp}} to lvl {{nextLevel}}{{/if}}</span>
+                    </div>  
                 </div>
                 <div class="cpb-xp-player-awards">
-                    <span class="xp-gained">{{#if (gt xpGained 0)}}+{{xpGained}} XP{{else}}0 XP{{/if}}</span>
                     {{#if leveledUp}}
-                    <span class="level-up">LEVEL UP!</span>
+                        <i class="fas fa-star level-up"></i>
                     {{/if}}
+                    <span class="xp-gained">{{#if (gt xpGained 0)}}+{{xpGained}} XP{{else}}0 XP{{/if}}</span>
                 </div>
             </div>
             {{/each}}

@@ -267,42 +267,6 @@ export class XpManager {
     /**
      * Apply XP to player characters
      */
-    static async applyXpToPlayers(xpData, playerAdjustments = {}) {
-        const results = [];
-        
-        for (const player of xpData.players) {
-            const actor = player.actor;
-            if (!actor) continue;
-
-            // Get base XP for this player
-            let playerXp = xpData.xpPerPlayer;
-            
-            // Apply any adjustments
-            if (playerAdjustments[actor.id]) {
-                playerXp += playerAdjustments[actor.id];
-            }
-
-            if (playerXp > 0) {
-                // Add XP to character
-                const currentXp = actor.system.details.xp.value || 0;
-                const newXp = currentXp + playerXp;
-                
-                await actor.update({
-                    'system.details.xp.value': newXp
-                });
-
-                results.push({
-                    name: actor.name,
-                    img: actor.img,
-                    xpGained: playerXp,
-                    totalXp: newXp,
-                    leveledUp: this.checkLevelUp(actor, currentXp, newXp)
-                });
-            }
-        }
-
-        return results;
-    }
 
     /**
      * Apply XP to players using pre-calculated data from xpData.players
@@ -319,28 +283,43 @@ export class XpManager {
 
             if (playerXp > 0) {
                 // Add XP to character
-                const currentXp = actor.system.details.xp.value || 0;
-                const newXp = currentXp + playerXp;
+                const previousXp = actor.system.details.xp.value || 0;
+                const newXp = previousXp + playerXp;
                 
                 await actor.update({
                     'system.details.xp.value': newXp
                 });
+
+                // Get XP needed for next level
+                const currentLevel = actor.system.details.level || 1;
+                const nextLevel = currentLevel + 1;
+                const nextLevelTotalXp = this.getXpForLevel(nextLevel);
+                const nextLevelXp = nextLevelTotalXp - newXp;
 
                 results.push({
                     name: actor.name,
                     img: actor.img,
                     xpGained: playerXp,
                     totalXp: newXp,
-                    leveledUp: this.checkLevelUp(actor, currentXp, newXp)
+                    nextLevel: nextLevel,
+                    nextLevelXp: nextLevelXp,
+                    leveledUp: this.checkLevelUp(actor, previousXp, newXp)
                 });
             } else {
                 // Still include in results but with 0 XP
-                const currentXp = actor.system.details.xp.value || 0;
+                const previousXp = actor.system.details.xp.value || 0;
+                const currentLevel = actor.system.details.level || 1;
+                const nextLevel = currentLevel + 1;
+                const nextLevelTotalXp = this.getXpForLevel(nextLevel);
+                const nextLevelXp = nextLevelTotalXp - previousXp;
+                
                 results.push({
                     name: actor.name,
                     img: actor.img,
                     xpGained: 0,
-                    totalXp: currentXp,
+                    totalXp: previousXp,
+                    nextLevel: nextLevel,
+                    nextLevelXp: nextLevelXp,
                     leveledUp: false
                 });
             }
@@ -352,10 +331,47 @@ export class XpManager {
     /**
      * Check if a character leveled up
      */
-    static checkLevelUp(actor, oldXp, newXp) {
-        // This is a simplified check - you might want to implement proper level-up logic
-        // based on your game system's XP requirements
-        return false; // Placeholder
+    static checkLevelUp(actor, previousXp, newXp) {
+        // Get current level and calculate what level the new XP would give
+        const currentLevel = actor.system.details.level || 1;
+        const newLevel = this.getLevelFromXp(newXp);
+        
+        // Level up if new level is higher than current level
+        return newLevel > currentLevel;
+    }
+
+    /**
+     * Get XP required for a specific level (D&D 5e standard)
+     */
+    static getXpForLevel(level) {
+        const xpTable = {
+            1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500, 6: 14000, 7: 23000, 8: 34000,
+            9: 48000, 10: 64000, 11: 85000, 12: 100000, 13: 120000, 14: 140000,
+            15: 165000, 16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
+        };
+        return xpTable[level] || 355000; // Cap at level 20
+    }
+
+    /**
+     * Get level from XP amount (D&D 5e standard)
+     */
+    static getLevelFromXp(xp) {
+        const xpTable = {
+            0: 1, 300: 2, 900: 3, 2700: 4, 6500: 5, 14000: 6, 23000: 7, 34000: 8,
+            48000: 9, 64000: 10, 85000: 11, 100000: 12, 120000: 13, 140000: 14,
+            165000: 15, 195000: 16, 225000: 17, 265000: 18, 305000: 19, 355000: 20
+        };
+        
+        // Find the highest level they qualify for
+        let level = 1;
+        for (const [requiredXp, levelNum] of Object.entries(xpTable)) {
+            if (xp >= parseInt(requiredXp)) {
+                level = levelNum;
+            } else {
+                break;
+            }
+        }
+        return level;
     }
 
     /**
