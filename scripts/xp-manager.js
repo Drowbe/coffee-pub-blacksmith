@@ -305,6 +305,51 @@ export class XpManager {
     }
 
     /**
+     * Apply XP to players using pre-calculated data from xpData.players
+     */
+    static async applyXpToPlayersFromData(xpData) {
+        const results = [];
+        
+        for (const player of xpData.players) {
+            const actor = player.actor;
+            if (!actor) continue;
+
+            // Use the pre-calculated final XP for this player
+            const playerXp = player.finalXp || 0;
+
+            if (playerXp > 0) {
+                // Add XP to character
+                const currentXp = actor.system.details.xp.value || 0;
+                const newXp = currentXp + playerXp;
+                
+                await actor.update({
+                    'system.details.xp.value': newXp
+                });
+
+                results.push({
+                    name: actor.name,
+                    img: actor.img,
+                    xpGained: playerXp,
+                    totalXp: newXp,
+                    leveledUp: this.checkLevelUp(actor, currentXp, newXp)
+                });
+            } else {
+                // Still include in results but with 0 XP
+                const currentXp = actor.system.details.xp.value || 0;
+                results.push({
+                    name: actor.name,
+                    img: actor.img,
+                    xpGained: 0,
+                    totalXp: currentXp,
+                    leveledUp: false
+                });
+            }
+        }
+
+        return results;
+    }
+
+    /**
      * Check if a character leveled up
      */
     static checkLevelUp(actor, oldXp, newXp) {
@@ -318,6 +363,8 @@ export class XpManager {
      */
     static async postXpResults(xpData, results) {
         try {
+            // Log the final xpData for debugging
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Final xpData:", xpData, false, false);
     
             
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
@@ -567,11 +614,17 @@ class XpDistributionWindow extends FormApplication {
         
         // Add event listeners for player inclusion icons
         html.find('.player-inclusion-icon').on('click', this._onPlayerInclusionClick.bind(this));
+        
+        // Initialize xpData.players with current state
+        this._updateXpDataPlayers();
     }
 
     _onPlayerAdjustmentChange(event) {
         // Update display when player adjustments change
         this._updateXpDisplay();
+        
+        // Then update xpData.players with new adjustment
+        this._updateXpDataPlayers();
     }
 
     async _onApplyXp(event) {
@@ -596,26 +649,15 @@ class XpDistributionWindow extends FormApplication {
                 return;
             }
 
-            // Get player adjustments directly from the input fields
-            const html = this.element;
-            const playerAdjustments = {};
-            for (const player of this.xpData.players) {
-                const adjustmentInput = html.find(`input[name="player-adjustment-${player.actorId}"]`);
-                const adjustment = adjustmentInput.val();
-                if (adjustment) {
-                    playerAdjustments[player.actorId] = parseInt(adjustment, 10) || 0;
-                }
-            }
-
-            // The monster resolutions are already updated in this.xpData by the click handlers.
-            // No need to re-read from the form. Recalculate totals using the latest data.
-            this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
-            this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ?
-                Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
-
-            // Apply XP to players
-            const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
+            // The monster resolutions and player data are already updated in this.xpData by the click handlers.
+            // No need to re-read from the form or recalculate - use the data we already have.
+            
+            // Ensure xpData.xpPerPlayer is correct for the chat message
+            const includedCount = this._getIncludedPlayerCount();
+            this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
+            
+            // Apply XP to players using the calculated data from xpData.players
+            const results = await XpManager.applyXpToPlayersFromData(this.xpData);
             await XpManager.postXpResults(this.xpData, results);
             this.close();
             ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
@@ -737,11 +779,44 @@ class XpDistributionWindow extends FormApplication {
         this.xpData.partySize = includedCount;
         this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
         
-        // Recalculate totals
+        // Recalculate totals first
         this._updateXpDisplay();
+        
+        // Then update xpData.players with current inclusion status and calculated totals
+        this._updateXpDataPlayers();
     }
 
     _getIncludedPlayerCount() {
         return this.element.find('.player-inclusion-icon.active').length;
+    }
+
+    _updateXpDataPlayers() {
+        // Update xpData.players with current inclusion status and calculated totals
+        this.xpData.players = this.xpData.players.map(player => {
+            // Skip if player is undefined
+            if (!player) {
+                return player;
+            }
+            
+            // Use actorId to find the row (from the logged data structure)
+            const row = this.element.find(`[data-player-id="${player.actorId}"]`).closest('.xp-player-row');
+            const inclusionIcon = row.find('.player-inclusion-icon');
+            const isIncluded = inclusionIcon.hasClass('active');
+            
+            // Get adjustment value from input
+            const adjInput = row.find('.player-adjustment');
+            let adjustment = parseInt(adjInput.val(), 10);
+            if (isNaN(adjustment)) adjustment = 0;
+            
+            // Calculate final XP for this player
+            const finalXp = isIncluded ? this.xpData.xpPerPlayer + adjustment : 0;
+            
+            return {
+                ...player,
+                included: isIncluded,
+                adjustment: adjustment,
+                finalXp: finalXp
+            };
+        });
     }
 } 
