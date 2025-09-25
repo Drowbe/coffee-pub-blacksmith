@@ -193,33 +193,33 @@ export class XpManager {
         const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
         // Calculate monster XP data
-        const resolutionMultipliers = this.getResolutionMultipliers();
-        const partySizeMultipliers = this.getPartySizeMultipliers();
+            const resolutionMultipliers = this.getResolutionMultipliers();
+            const partySizeMultipliers = this.getPartySizeMultipliers();
 
         const monsterXpData = monsters.map(monster => {
-            const baseXp = this.getMonsterBaseXp(monster);
-            const resolutionType = this.detectMonsterResolution(monster, combat);
-            const multiplier = resolutionMultipliers[resolutionType] || 0;
-            const finalXp = Math.floor(baseXp * multiplier);
+                const baseXp = this.getMonsterBaseXp(monster);
+                const resolutionType = this.detectMonsterResolution(monster, combat);
+                const multiplier = resolutionMultipliers[resolutionType] || 0;
+                const finalXp = Math.floor(baseXp * multiplier);
 
-            return {
-                id: monster.id,
-                name: monster.name,
-                cr: this.getMonsterCR(monster),
-                baseXp: baseXp,
-                resolutionType: resolutionType,
-                multiplier: multiplier,
-                finalXp: finalXp,
-                actorId: monster.actorId
-            };
-        });
+                return {
+                    id: monster.id,
+                    name: monster.name,
+                    cr: this.getMonsterCR(monster),
+                    baseXp: baseXp,
+                    resolutionType: resolutionType,
+                    multiplier: multiplier,
+                    finalXp: finalXp,
+                    actorId: monster.actorId
+                };
+            });
 
         const monsterXp = monsterXpData.reduce((sum, monster) => sum + monster.finalXp, 0);
-        const partySize = players.length;
+            const partySize = players.length;
         let partyMultiplier = 1;
         
-        if (partySizeHandling === 'multipliers') {
-            partyMultiplier = partySizeMultipliers[partySize] || 1;
+            if (partySizeHandling === 'multipliers') {
+                partyMultiplier = partySizeMultipliers[partySize] || 1;
         }
         
         const adjustedMonsterXp = Math.floor(monsterXp * partyMultiplier);
@@ -272,10 +272,10 @@ export class XpManager {
     static getCombatPlayers(combat) {
         if (combat) {
             // Get players from combat
-            return combat.combatants.filter(combatant => {
-                const actor = combatant.actor;
-                return actor && (actor.hasPlayerOwner || actor.type === 'character');
-            });
+        return combat.combatants.filter(combatant => {
+            const actor = combatant.actor;
+            return actor && (actor.hasPlayerOwner || actor.type === 'character');
+        });
         } else {
             // Get all player characters from the game (for milestone mode)
             return game.actors.filter(actor => {
@@ -351,6 +351,14 @@ export class XpManager {
             // Get current XP and level
             const currentXp = actor.system?.details?.xp?.value || 0;
             const level = actor.system?.details?.level || 1;
+            
+            // Debug logging
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Player data loaded", {
+                name: actor.name,
+                level: level,
+                currentXp: currentXp,
+                systemDetails: actor.system?.details
+            }, false, false);
             
             // Calculate next level XP
             const nextLevel = level + 1;
@@ -490,15 +498,15 @@ export class XpManager {
                 actorId: player.actorId 
             }, false, false);
 
-                        if (playerXp > 0) {
+            if (playerXp > 0) {
                             // Add XP to character - ensure we have valid numbers
                             const previousXp = Number(actor.system?.details?.xp?.value ?? 0);
                             const newXp = previousXp + playerXp;
                             
                             // Use a controlled update to avoid reactivity issues
                             try {
-                                await actor.update({
-                                    'system.details.xp.value': newXp
+                await actor.update({
+                    'system.details.xp.value': newXp
                                 }, { 
                                     render: false  // Don't re-render immediately
                                 });
@@ -842,6 +850,18 @@ class XpDistributionWindow extends FormApplication {
         // Total XP is always the sum of both buckets
         this.xpData.combinedXp = monsterBucket + milestoneBucket;
         this.xpData.xpPerPlayer = this.xpData.partySize > 0 ? Math.floor(this.xpData.combinedXp / this.xpData.partySize) : 0;
+        
+        // Debug logging
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Calculations updated", {
+            modeExperiencePoints: this.xpData.modeExperiencePoints,
+            modeMilestone: this.xpData.modeMilestone,
+            monsterBucket: monsterBucket,
+            milestoneBucket: milestoneBucket,
+            combinedXp: this.xpData.combinedXp,
+            xpPerPlayer: this.xpData.xpPerPlayer,
+            monsterCount: this.xpData.monsters.length,
+            monsterXp: this.xpData.monsters.map(m => ({ name: m.name, finalXp: m.finalXp }))
+        }, false, false);
     }
 
     async _updateObject(event, formData) {
@@ -1044,10 +1064,10 @@ class XpDistributionWindow extends FormApplication {
         // First update the core calculations
         this.updateXpCalculations();
         
-        // Recalculate totals based on monster finalXp values (which now reflect inclusion status)
+        // Calculate totals for display (updateXpCalculations now handles the main logic)
         this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * (this.xpData.partyMultiplier || 1));
-        
+
         // Get included count for display purposes
         const includedCount = this._getIncludedPlayerCount();
 
@@ -1080,10 +1100,10 @@ class XpDistributionWindow extends FormApplication {
             const isIncluded = inclusionIcon.hasClass('active');
             
             if (isIncluded) {
-                // Get adjustment value from input
-                const adjInput = row.find('.player-adjustment');
-                let adjustment = parseInt(adjInput.val(), 10);
-                if (isNaN(adjustment)) adjustment = 0;
+            // Get adjustment value from input
+            const adjInput = row.find('.player-adjustment');
+            let adjustment = parseInt(adjInput.val(), 10);
+            if (isNaN(adjustment)) adjustment = 0;
                 
                 // Get adjustment sign from active icon
                 const activeSign = row.find('.adjustment-sign.active').attr('data-sign') || '+';
@@ -1092,8 +1112,8 @@ class XpDistributionWindow extends FormApplication {
                 // Calculate total for this player (minimum 0)
                 const calculatedTotal = this.xpData.xpPerPlayer + signedAdjustment;
                 const total = Math.max(0, calculatedTotal);
-                row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
-                row.find('.calculated-total').text(total);
+            row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
+            row.find('.calculated-total').text(total);
             } else {
                 // Show 0 for disabled players
                 row.find('.player-base-xp').text('0');
