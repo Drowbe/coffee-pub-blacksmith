@@ -37,17 +37,13 @@
 
         {{!-- Milestone Information --}}
         {{#if xpData.modeMilestone}}
-        <div class="cpb-xp-card-section-header"><i class="fas fa-star"></i> Milestone</div>
+        <div class="cpb-xp-card-section-header"><i class="fas fa-star"></i> {{xpData.milestoneData.category}} Milestone</div>
         <div class="xp-card-content-wrapper">
             <div class="xp-total-row">
                 <span class="xp-card-label">{{xpData.milestoneData.title}}</span>
             </div>
             <div class="xp-total-row">
                 <span class="xp-card-content">{{xpData.milestoneData.description}}</span>
-            </div>
-            <div class="xp-total-row">
-                <span class="xp-card-label">Category</span>
-                <span class="xp-card-content">{{xpData.milestoneData.category}}</span>
             </div>
             <div class="xp-total-row">
                 <span class="xp-card-label">Milestone XP</span>

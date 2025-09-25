@@ -535,6 +535,13 @@ export class XpManager {
         try {
             // Log the final xpData for debugging
             postConsoleAndNotification(MODULE.NAME, "XP Distribution | Final xpData:", xpData, false, false);
+            
+            // Debug milestone data specifically
+            if (xpData.milestoneData) {
+                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data:", xpData.milestoneData, false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "XP Distribution | No milestone data found", "", false, false);
+            }
     
             
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp-distribution.hbs', {
@@ -667,6 +674,17 @@ class XpDistributionWindow extends FormApplication {
     constructor(xpData) {
         super(xpData);
         this.xpData = xpData;
+        
+        // Initialize milestone data if not present
+        if (!this.xpData.milestoneData) {
+            this.xpData.milestoneData = {
+                category: '',
+                title: '',
+                description: '',
+                xpAmount: '0'
+            };
+        }
+        
         // Initialize XP calculations on startup
         this.updateXpCalculations();
     }
@@ -845,13 +863,25 @@ class XpDistributionWindow extends FormApplication {
 
     _onMilestoneDataChange(event) {
         // Store milestone data for later use in chat/application
-        const formData = new FormData(this.element.find('form')[0]);
+        this._collectMilestoneData();
+    }
+
+    _collectMilestoneData() {
+        // Collect milestone data directly from input elements since there's no form wrapper
+        const category = this.element.find('#milestone-category').val() || '';
+        const title = this.element.find('#milestone-title').val() || '';
+        const description = this.element.find('#milestone-description').val() || '';
+        const xpAmount = this.element.find('#milestone-xp').val() || '0';
+        
         this.xpData.milestoneData = {
-            category: formData.get('milestone-category'),
-            title: formData.get('milestone-title'),
-            description: formData.get('milestone-description'),
-            xpAmount: formData.get('milestone-xp')
+            category: category,
+            title: title,
+            description: description,
+            xpAmount: xpAmount
         };
+        
+        // Debug log to see what we're collecting
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data collected", this.xpData.milestoneData, false, false);
     }
 
     async _onApplyXp(event) {
@@ -859,6 +889,9 @@ class XpDistributionWindow extends FormApplication {
         event.stopPropagation();
         try {
             postConsoleAndNotification(MODULE.NAME, "XP Distribution | Starting apply XP process", "", false, false);
+            
+            // Collect milestone data before processing
+            this._collectMilestoneData();
             
             // Ensure XP calculations are up to date
             this.updateXpCalculations();
