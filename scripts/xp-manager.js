@@ -125,11 +125,25 @@ export class XpManager {
      */
     static openXpDistributionWindow() {
         try {
-            // Create XP data for milestone mode (no combat required)
+            // Check if there's an active combat
+            const combat = game.combat;
+            const hasCombat = combat && combat.started;
+            
+            // Create XP data based on whether there's combat or not
             const players = this.loadPartyMembers();
+            let monsters = [];
+            
+            if (hasCombat) {
+                // If there's combat, use existing combat logic (no changes)
+                monsters = this.getCombatMonsters(combat);
+            } else {
+                // If no combat, get all monsters from canvas and set them to "Removed"
+                monsters = this.getCanvasMonsters();
+            }
+            
             const xpData = {
-                modeExperiencePoints: false, // Start with Experience Points off
-                modeMilestone: true,        // Start with Milestones on
+                modeExperiencePoints: true,  // Start with Experience Points on
+                modeMilestone: false,        // Start with Milestones off
                 milestoneXp: 0,
                 milestoneData: {
                     category: 'narrative',
@@ -137,19 +151,21 @@ export class XpManager {
                     description: '',
                     xpAmount: '0'
                 },
-                monsters: [], // Empty monsters array
+                monsters: monsters,
                 players: players,
                 partySize: players.length,
                 partyMultiplier: 1,   // Default party multiplier
-                totalXp: 0,           // Monster XP (0 when no combat)
-                adjustedTotalXp: 0,   // Adjusted monster XP (0 when no combat)
+                totalXp: 0,           // Will be calculated
+                adjustedTotalXp: 0,   // Will be calculated
                 combinedXp: 0,        // Will be calculated by updateXpCalculations
                 xpPerPlayer: 0        // Will be calculated by updateXpCalculations
             };
             
-            postConsoleAndNotification(MODULE.NAME, 'XP Distribution opened for milestones', { 
+            postConsoleAndNotification(MODULE.NAME, 'XP Distribution opened', { 
                 players: xpData.players.length,
-                modeMilestone: xpData.modeMilestone
+                monsters: xpData.monsters.length,
+                hasCombat: hasCombat,
+                modeExperiencePoints: xpData.modeExperiencePoints
             }, true, false);
             
             // Create and show the XP distribution window
@@ -263,6 +279,55 @@ export class XpManager {
                 return actor.type === 'character' && actor.hasPlayerOwner;
             });
         }
+    }
+
+    /**
+     * Get all monsters from the canvas (when no combat is active)
+     * All monsters are set to "Removed" status (0 XP) but have full data for resolution changes
+     */
+    static getCanvasMonsters() {
+        // Get all tokens on the current scene
+        const scene = game.scenes.active;
+        if (!scene) {
+            return [];
+        }
+
+        const tokens = scene.tokens.contents;
+        const monsters = [];
+
+        for (const token of tokens) {
+            const actor = token.actor;
+            if (actor && actor.type === 'npc' && !actor.hasPlayerOwner) {
+                // Get base XP for this monster (pass token, not actor)
+                const cr = actor.system.details.cr;
+                const baseXp = this.getMonsterBaseXp(token);
+                
+                // Debug logging
+                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster CR calculation", { 
+                    name: actor.name, 
+                    rawCR: cr, 
+                    baseXp: baseXp 
+                }, false, false);
+                
+                // Create monster data with "REMOVED" status but full calculation data
+                const monsterData = {
+                    id: actor.id, // Template expects 'id' field
+                    actorId: actor.id,
+                    name: actor.name,
+                    img: actor.img,
+                    cr: actor.system.details.cr || 0,
+                    baseXp: baseXp, // Full base XP for calculations
+                    resolutionType: 'REMOVED', // Set to "Removed" by default
+                    multiplier: 0.0, // REMOVED has 0.0 multiplier
+                    finalXp: 0, // Will be 0 because of REMOVED status
+                    isIncluded: true // Include in calculations (but 0 XP due to REMOVED)
+                };
+                
+                monsters.push(monsterData);
+            }
+        }
+
+        return monsters;
     }
 
     /**
