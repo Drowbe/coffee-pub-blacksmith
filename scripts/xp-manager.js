@@ -126,6 +126,7 @@ export class XpManager {
     static openXpDistributionWindow() {
         try {
             // Create XP data for milestone mode (no combat required)
+            const players = this.getCombatPlayers(null);
             const xpData = {
                 modeExperiencePoints: false, // Start with Experience Points off
                 modeMilestone: true,        // Start with Milestones on
@@ -137,16 +138,14 @@ export class XpManager {
                     xpAmount: '0'
                 },
                 monsters: [], // Empty monsters array
-                players: this.getCombatPlayers(null), // Get players even without combat
-                partySize: 0,
-                totalXp: 0,
-                adjustedTotalXp: 0,
-                combinedXp: 0,
-                xpPerPlayer: 0
+                players: players,
+                partySize: players.length,
+                partyMultiplier: 1,   // Default party multiplier
+                totalXp: 0,           // Monster XP (0 when no combat)
+                adjustedTotalXp: 0,   // Adjusted monster XP (0 when no combat)
+                combinedXp: 0,        // Will be calculated by updateXpCalculations
+                xpPerPlayer: 0        // Will be calculated by updateXpCalculations
             };
-
-            // Calculate party size
-            xpData.partySize = xpData.players.length;
             
             postConsoleAndNotification(MODULE.NAME, 'XP Distribution opened for milestones', { 
                 players: xpData.players.length,
@@ -156,6 +155,9 @@ export class XpManager {
             // Create and show the XP distribution window
             const xpWindow = new XpDistributionWindow(xpData);
             xpWindow.render(true);
+            
+            // Ensure calculations are performed after window is created
+            xpWindow.updateXpCalculations();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error opening XP Distribution window", error, false, false);
             ui.notifications.error("Failed to open XP Distribution window");
@@ -799,19 +801,21 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _updateXpDisplay() {
+        // First update the core calculations
+        this.updateXpCalculations();
+        
         // Recalculate totals based on monster finalXp values (which now reflect inclusion status)
         this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
-        this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
+        this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * (this.xpData.partyMultiplier || 1));
         
-        // Get included count and update xpPerPlayer based on INCLUDED players only
+        // Get included count for display purposes
         const includedCount = this._getIncludedPlayerCount();
-        this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
 
         // Update summary display
         const html = this.element;
         html.find('.xp-summary-item').eq(0).find('span').last().text(this.xpData.totalXp);
         html.find('.xp-summary-item').eq(1).find('span').last().text(includedCount);
-        html.find('.xp-summary-item').eq(2).find('span').last().text(this.xpData.partyMultiplier + 'x');
+        html.find('.xp-summary-item').eq(2).find('span').last().text((this.xpData.partyMultiplier || 1) + 'x');
         html.find('.xp-summary-item').eq(3).find('span').last().text(this.xpData.adjustedTotalXp);
         html.find('.xp-summary-item').eq(4).find('span').last().text(this.xpData.xpPerPlayer);
 
