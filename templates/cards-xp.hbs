@@ -93,7 +93,7 @@
                         <img class="player-portrait" src="{{img}}" alt="{{name}}" />
                         <div class="cpb-xp-player-details">
                             <span class="cpb-actor-name">{{name}}</span>
-                            <span class="total-xp">{{totalXp}} XP | {{#if leveledUp}} LEVEL UP! {{else}} {{nextLevelXp}} to lvl {{nextLevel}}{{/if}}</span>
+                            <span class="total-xp">{{totalXp}} XP | {{#if leveledUp}}<span class="level-up">LEVEL UP!</span>{{else if (lte nextLevelXp 0)}}<span class="level-up">LEVEL UP!</span>{{else}} {{nextLevelXp}} to lvl {{nextLevel}}{{/if}}</span>
                         </div>  
                     </div>
                     <div class="cpb-xp-player-awards">
