@@ -215,6 +215,20 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('create-combat', {
+            icon: "fas fa-swords",
+            name: "create-combat",
+            title: "Create Combat",
+            tooltip: "Create combat encounter with selected tokens or all tokens on canvas",
+            zone: "middle",
+            order: 6,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            onClick: () => {
+                this.createCombat();
+            }
+        });
+
         // Right zone tools
         this.registerMenubarTool('leader-section', {
             icon: "fa-solid fa-crown",
@@ -1012,6 +1026,76 @@ class MenuBar {
         }
     }
 
+    /**
+     * Test function to verify Create Combat button functionality
+     */
+    static testCreateCombatTool() {
+        try {
+            console.log('🧪 Testing Create Combat Tool...');
+            
+            // Check if create-combat tool is registered
+            if (!this.isMenubarToolRegistered('create-combat')) {
+                console.log('❌ Create Combat tool not registered');
+                return false;
+            }
+            
+            // Get the create-combat tool element
+            const createCombatElement = document.querySelector('[data-tool="create-combat"]');
+            if (!createCombatElement) {
+                console.log('❌ Create Combat tool element not found in DOM');
+                return false;
+            }
+            
+            // Check tool properties
+            const toolData = this.toolbarIcons.get('create-combat');
+            if (!toolData) {
+                console.log('❌ Create Combat tool data not found');
+                return false;
+            }
+            
+            // Verify tool properties
+            const expectedIcon = "fas fa-swords";
+            const expectedTitle = "Create Combat";
+            const expectedZone = "middle";
+            const expectedGmOnly = true;
+            
+            if (toolData.icon !== expectedIcon) {
+                console.log(`❌ Icon mismatch: expected "${expectedIcon}", got "${toolData.icon}"`);
+                return false;
+            }
+            
+            if (toolData.title !== expectedTitle) {
+                console.log(`❌ Title mismatch: expected "${expectedTitle}", got "${toolData.title}"`);
+                return false;
+            }
+            
+            if (toolData.zone !== expectedZone) {
+                console.log(`❌ Zone mismatch: expected "${expectedZone}", got "${toolData.zone}"`);
+                return false;
+            }
+            
+            if (toolData.gmOnly !== expectedGmOnly) {
+                console.log(`❌ GM-only flag mismatch: expected ${expectedGmOnly}, got ${toolData.gmOnly}`);
+                return false;
+            }
+            
+            console.log('✅ Create Combat tool element found:', createCombatElement);
+            console.log('✅ Create Combat tool is registered with correct properties');
+            console.log('✅ Icon:', toolData.icon);
+            console.log('✅ Title:', toolData.title);
+            console.log('✅ Zone:', toolData.zone);
+            console.log('✅ GM-only:', toolData.gmOnly);
+            console.log('💡 Try clicking the Create Combat tool in the middle zone to test functionality');
+            console.log('💡 Make sure you have tokens on the canvas for testing');
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Create Combat Tool Test Error:', error);
+            return false;
+        }
+    }
+
     static async renderMenubar() {
         try {
             // Check if movement type setting exists first
@@ -1196,6 +1280,81 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error importing XP Manager", error, false, false);
             ui.notifications.error("Failed to open XP Distribution window");
+        }
+    }
+
+    /**
+     * Create combat encounter with selected tokens or all tokens on canvas
+     */
+    static async createCombat() {
+        try {
+            // Check if user has permission to create combat
+            if (!game.user.isGM) {
+                ui.notifications.warn("Only GMs can create combat encounters.");
+                return;
+            }
+
+            // Get selected tokens first, then fall back to all tokens on canvas
+            let tokensToAdd = canvas.tokens.controlled;
+            if (tokensToAdd.length === 0) {
+                tokensToAdd = canvas.tokens.placeables;
+            }
+
+            // Filter out tokens without actors
+            tokensToAdd = tokensToAdd.filter(token => token.actor);
+
+            if (tokensToAdd.length === 0) {
+                ui.notifications.warn("No tokens with actors found on the canvas.");
+                return;
+            }
+
+            // Check if there's already an active combat encounter
+            let combat = game.combats.active;
+            
+            if (!combat) {
+                // Create a new combat encounter if none exists
+                combat = await Combat.create({
+                    scene: canvas.scene.id,
+                    name: "Combat Encounter",
+                    active: true
+                });
+                postConsoleAndNotification(MODULE.NAME, "Created new combat encounter", "", true, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Adding tokens to existing combat encounter", "", true, false);
+            }
+
+            // Add tokens to combat
+            let addedCount = 0;
+            for (const token of tokensToAdd) {
+                try {
+                    // Check if token is already in combat
+                    const existingCombatant = combat.combatants.find(c => c.tokenId === token.id);
+                    if (!existingCombatant) {
+                        await combat.createEmbeddedDocuments("Combatant", [{
+                            tokenId: token.id,
+                            actorId: token.actor.id,
+                            sceneId: canvas.scene.id
+                        }]);
+                        addedCount++;
+                        postConsoleAndNotification(MODULE.NAME, `Added ${token.name} to combat`, "", true, false);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, `${token.name} is already in combat`, "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Failed to add ${token.name} to combat:`, error, false, false);
+                }
+            }
+
+            // Show success notification
+            if (addedCount > 0) {
+                ui.notifications.info(`Combat created with ${addedCount} token(s).`);
+            } else {
+                ui.notifications.info("All selected tokens are already in combat.");
+            }
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error creating combat:", error, false, false);
+            ui.notifications.error("Failed to create combat encounter.");
         }
     }
 
