@@ -8,19 +8,27 @@
         <div class="cpb-xp-card-section-header"><i class="fas fa-list-ol"></i> XP Summary</div>
         <div class="xp-totals">
             <div class="xp-total-row">
-                <span class="xp-total-label">Dsitribution</span>
+                <span class="xp-total-label">Distribution</span>
                 <span class="xp-total-value">{{xpData.partySize}} Players x {{formatMultiplier xpData.partyMultiplier}} Multiplier</span>
             </div>
+            {{#if xpData.modeExperiencePoints}}
             <div class="xp-total-row">
-                <span class="xp-total-label">Encounter XP</span>
-                <span class="xp-total-value">{{xpData.totalXp}}</span>
-            </div>
-            <div class="xp-total-row">
-                <span class="xp-total-label">Adjusted XP</span>
+                <span class="xp-total-label">Monster XP</span>
                 <span class="xp-total-value">{{xpData.adjustedTotalXp}}</span>
             </div>
+            {{/if}}
+            {{#if xpData.modeMilestone}}
             <div class="xp-total-row">
-                <span class="xp-total-label">Base Player XP</span>
+                <span class="xp-total-label">Milestone XP</span>
+                <span class="xp-total-value">{{xpData.milestoneXp}}</span>
+            </div>
+            {{/if}}
+            <div class="xp-total-row">
+                <span class="xp-total-label">Total XP</span>
+                <span class="xp-total-value">{{xpData.combinedXp}}</span>
+            </div>
+            <div class="xp-total-row">
+                <span class="xp-total-label">Per Player</span>
                 <span class="xp-total-value">{{xpData.xpPerPlayer}}</span>
             </div>
         </div>
@@ -50,7 +58,7 @@
         {{/if}}
 
         {{!-- Monster Breakdown --}}
-        {{#if xpData.monsters.length}}
+        {{#if xpData.modeExperiencePoints}}
         <div class="cpb-xp-card-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
         <div class="monster-list">
             {{#each xpData.monsters}}
@@ -69,6 +77,23 @@
                 <span class="cpb-xp-monster-points">{{finalXp}} XP</span>
             </div>
             {{/each}}
+        </div>
+        {{/if}}
+
+        {{!-- Milestone Information --}}
+        {{#if xpData.modeMilestone}}
+        <div class="cpb-xp-card-section-header"><i class="fas fa-star"></i> Milestone</div>
+        <div class="milestone-info">
+            <div class="milestone-details">
+                <div class="milestone-title">{{xpData.milestoneData.title}}</div>
+                <div class="milestone-category">{{xpData.milestoneData.category}}</div>
+                {{#if xpData.milestoneData.description}}
+                <div class="milestone-description">{{xpData.milestoneData.description}}</div>
+                {{/if}}
+                <div class="milestone-rewards">
+                    <div class="milestone-xp">XP: {{xpData.milestoneXp}}</div>
+                </div>
+            </div>
         </div>
         {{/if}}
 

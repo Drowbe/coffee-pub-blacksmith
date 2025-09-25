@@ -39,68 +39,110 @@
       <div class="xp-summary-item"><span class="label">Multiplier</span><span>{{xpData.partyMultiplier}}x</span></div>
       <div class="xp-summary-item"><span class="label">Adjusted</span><span>{{xpData.adjustedTotalXp}}</span></div>
       <div class="xp-summary-item">
-        <span class="label">{{#if narrativeMode}}Total XP{{else}}Per Player{{/if}}</span>
-        <span class="calculated-total" id="xp-total-display">{{#if narrativeMode}}0{{else}}{{xpData.xpPerPlayer}}{{/if}}</span>
+        <span class="label">Per Player</span>
+        <span class="calculated-total" id="xp-total-display">{{xpData.xpPerPlayer}}</span>
       </div>
     </div>
   </div>
 
   {{!-- BODY - SCROLLABLE --}}
   <div class="xp-body-scroll">
-    {{#if narrativeMode}}
+    {{!-- Monster Resolutions Section - Only show when Experience Points is ON --}}
+    {{#if modeExperiencePoints}}
     <div class="xp-section">
-      <div class="xp-section-header"><i class="fas fa-users"></i> Milestones</div>
-      <div class="xp-player-list">
-        {{#each xpData.players}}
-        <div class="xp-player-row">
-          <img class="player-portrait" src="{{actor.img}}" alt="{{actor.name}}" />
-          <span class="player-name">{{actor.name}}</span>
-          <span class="plus">XP:</span>
-          <input type="number" class="player-narrative-xp" name="player-narrative-xp-{{actorId}}" value="0" min="0" max="100000" placeholder="0">
+      <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
+      <div class="xp-table-wrapper" data-table-type="monsters">
+        <div class="xp-table-header">
+          <span class="xp-table-col-1 xp-table-col-header">Name</span>
+          <span class="xp-table-col-2 xp-table-col-header">CR</span>
+          <span class="xp-table-col-3 xp-table-col-header">Resolution</span>
+          <span class="xp-table-col-4 xp-table-col-header">XP</span>
         </div>
-        {{/each}}
+        <div class="xp-table-body">
+          {{#each xpData.monsters}}
+          <div class="xp-table-row" data-row-type="monster" data-monster-id="{{id}}">
+            <span class="xp-table-col-1" data-field="name">{{name}}</span>
+            <span class="xp-table-col-2" data-field="cr">CR {{cr}}</span>
+            <span class="xp-table-col-3" data-field="resolution">
+              <div class="resolution-icons" role="group" aria-label="Monster Resolution">
+                {{#each ../resolutionTypes}}
+                <span class="resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
+                      data-monster-id="{{../id}}"
+                      data-resolution="{{this}}"
+                      data-tooltip="{{prettifyResolution this}}"
+                      aria-label="{{prettifyResolution this}}"
+                      tabindex="0">
+                  {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
+                  {{#if (eq this "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
+                  {{#if (eq this "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
+                  {{#if (eq this "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
+                  {{#if (eq this "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
+                  {{#if (eq this "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
+                </span>
+                {{/each}}
+              </div>
+            </span>
+            <span class="xp-table-col-4" data-field="xp">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
+          </div>
+          {{/each}}
+        </div>
       </div>
     </div>
-    {{else}}
-      <div class="xp-section">
-        <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
-        <div class="xp-table-wrapper" data-table-type="monsters">
-          <div class="xp-table-header">
-            <span class="xp-table-col-1 xp-table-col-header">Name</span>
-            <span class="xp-table-col-2 xp-table-col-header">CR</span>
-            <span class="xp-table-col-3 xp-table-col-header">Resolution</span>
-            <span class="xp-table-col-4 xp-table-col-header">XP</span>
-          </div>
-          <div class="xp-table-body">
-            {{#each xpData.monsters}}
-            <div class="xp-table-row" data-row-type="monster" data-monster-id="{{id}}">
-              <span class="xp-table-col-1" data-field="name">{{name}}</span>
-              <span class="xp-table-col-2" data-field="cr">CR {{cr}}</span>
-              <span class="xp-table-col-3" data-field="resolution">
-                <div class="resolution-icons" role="group" aria-label="Monster Resolution">
-                  {{#each ../resolutionTypes}}
-                  <span class="resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
-                        data-monster-id="{{../id}}"
-                        data-resolution="{{this}}"
-                        data-tooltip="{{prettifyResolution this}}"
-                        aria-label="{{prettifyResolution this}}"
-                        tabindex="0">
-                    {{#if (eq this "DEFEATED")}}<i class="fas fa-skull"></i>{{/if}}
-                    {{#if (eq this "NEGOTIATED")}}<i class="fas fa-people-arrows"></i>{{/if}}
-                    {{#if (eq this "ESCAPED")}}<i class="fas fa-running"></i>{{/if}}
-                    {{#if (eq this "IGNORED")}}<i class="fas fa-person-walking-arrow-loop-left"></i>{{/if}}
-                    {{#if (eq this "CAPTURED")}}<i class="fas fa-person-praying"></i>{{/if}}
-                    {{#if (eq this "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
-                  </span>
-                  {{/each}}
-                </div>
-              </span>
-              <span class="xp-table-col-4" data-field="xp">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
+    {{/if}}
+
+    {{!-- Milestones Section - Only show when Milestones is ON --}}
+    {{#if modeMilestone}}
+    <div class="xp-section">
+      <div class="xp-section-header"><i class="fas fa-star"></i> Milestones</div>
+      <div class="milestone-form">
+        <div class="milestone-field-group">
+          <label for="milestone-category">Category:</label>
+          <select id="milestone-category" name="milestone-category" class="milestone-select">
+            <option value="narrative">Narrative</option>
+            <option value="quest">Quest</option>
+            <option value="combat">Combat</option>
+            <option value="discovery">Discovery</option>
+            <option value="notable-moment">Notable Moment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        
+        <div class="milestone-field-group">
+          <label for="milestone-title">Title:</label>
+          <input type="text" id="milestone-title" name="milestone-title" class="milestone-input" placeholder="Enter milestone title">
+        </div>
+        
+        <div class="milestone-field-group">
+          <label for="milestone-description">Description:</label>
+          <textarea id="milestone-description" name="milestone-description" class="milestone-textarea" placeholder="Describe what happened..."></textarea>
+        </div>
+        
+        <div class="milestone-rewards">
+          <h4>Rewards:</h4>
+          <div class="milestone-field-group">
+            <label for="milestone-xp-type">XP Type:</label>
+            <div class="milestone-xp-type">
+              <label class="milestone-radio">
+                <input type="radio" name="milestone-xp-type" value="specific" checked>
+                <span>Specific XP Amount</span>
+              </label>
+              <label class="milestone-radio">
+                <input type="radio" name="milestone-xp-type" value="next-level">
+                <span>Next Level</span>
+              </label>
             </div>
-            {{/each}}
+          </div>
+          
+          <div class="milestone-field-group" id="milestone-xp-amount">
+            <label for="milestone-xp">XP Amount:</label>
+            <input type="number" id="milestone-xp" name="milestone-xp" class="milestone-input" min="0" max="100000" placeholder="0">
           </div>
         </div>
       </div>
+    </div>
+    {{/if}}
+
+    {{!-- Player Adjustments Section - Always show --}}
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-users"></i> Player Adjustments</div>
       
@@ -139,8 +181,9 @@
         </div>
       </div>
     </div>
-    {{/if}}
 
+    {{!-- Resolution Types Section - Only show when Experience Points is ON --}}
+    {{#if modeExperiencePoints}}
     <div class="xp-section">
       <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
       <div class="xp-legend-grid">
@@ -159,6 +202,7 @@
         {{/each}}
       </div>
     </div>
+    {{/if}}
   </div>
   <div class="xp-footer">
     <button type="button" class="xp-btn cancel-xp"><i class="fas fa-times"></i> Cancel Distribution</button>

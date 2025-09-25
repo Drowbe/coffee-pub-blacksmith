@@ -127,69 +127,90 @@ export class XpManager {
         const monsters = this.getCombatMonsters(combat);
         const players = this.getCombatPlayers(combat);
 
-        const xpCalculationMethod = game.settings.get(MODULE.ID, 'xpCalculationMethod');
         const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
-        let monsterXpData = [];
-        let totalXp = 0;
-        let adjustedTotalXp = 0;
-        let xpPerPlayer = 0;
+        // Calculate monster XP data
+        const resolutionMultipliers = this.getResolutionMultipliers();
+        const partySizeMultipliers = this.getPartySizeMultipliers();
+
+        const monsterXpData = monsters.map(monster => {
+            const baseXp = this.getMonsterBaseXp(monster);
+            const resolutionType = this.detectMonsterResolution(monster, combat);
+            const multiplier = resolutionMultipliers[resolutionType] || 0;
+            const finalXp = Math.floor(baseXp * multiplier);
+
+            return {
+                id: monster.id,
+                name: monster.name,
+                cr: this.getMonsterCR(monster),
+                baseXp: baseXp,
+                resolutionType: resolutionType,
+                multiplier: multiplier,
+                finalXp: finalXp,
+                actorId: monster.actorId
+            };
+        });
+
+        const monsterXp = monsterXpData.reduce((sum, monster) => sum + monster.finalXp, 0);
+        const partySize = players.length;
         let partyMultiplier = 1;
-
-        if (xpCalculationMethod === 'narrative') {
-            // Narrative/Goal-Based XP: no monster XP calculation
-            // XP will be entered manually per player in the UI
-            // All XP values start at 0
-            monsterXpData = [];
-            totalXp = 0;
-            adjustedTotalXp = 0;
-            xpPerPlayer = 0;
-        } else {
-            // Standard or custom: calculate as before
-            const resolutionMultipliers = this.getResolutionMultipliers();
-            const partySizeMultipliers = this.getPartySizeMultipliers();
-
-            monsterXpData = monsters.map(monster => {
-                const baseXp = this.getMonsterBaseXp(monster);
-                const resolutionType = this.detectMonsterResolution(monster, combat);
-                const multiplier = resolutionMultipliers[resolutionType] || 0;
-                const finalXp = Math.floor(baseXp * multiplier);
-
-                return {
-                    id: monster.id,
-                    name: monster.name,
-                    cr: this.getMonsterCR(monster),
-                    baseXp: baseXp,
-                    resolutionType: resolutionType,
-                    multiplier: multiplier,
-                    finalXp: finalXp,
-                    actorId: monster.actorId
-                };
-            });
-
-            totalXp = monsterXpData.reduce((sum, monster) => sum + monster.finalXp, 0);
-            const partySize = players.length;
-            if (partySizeHandling === 'multipliers') {
-                partyMultiplier = partySizeMultipliers[partySize] || 1;
-                adjustedTotalXp = Math.floor(totalXp * partyMultiplier);
-            } else {
-                adjustedTotalXp = totalXp;
-            }
-            xpPerPlayer = partySize > 0 ? Math.floor(adjustedTotalXp / partySize) : 0;
+        
+        if (partySizeHandling === 'multipliers') {
+            partyMultiplier = partySizeMultipliers[partySize] || 1;
         }
+        
+        const adjustedMonsterXp = Math.floor(monsterXp * partyMultiplier);
 
         return {
             combat: combat,
             monsters: monsterXpData,
             players: players,
-            totalXp: totalXp,
-            adjustedTotalXp: adjustedTotalXp,
-            xpPerPlayer: xpPerPlayer,
+            totalXp: monsterXp,
+            adjustedTotalXp: adjustedMonsterXp,
+            xpPerPlayer: 0, // Will be calculated based on active modes
             partySize: players.length,
             partyMultiplier: partyMultiplier,
-            narrativeMode: xpCalculationMethod === 'narrative'
+            modeExperiencePoints: true, // Default to Experience Points mode
+            modeMilestone: false, // Default to Milestone mode off
+            milestoneXp: 0, // Milestone XP will be set when milestone mode is active
+            combinedXp: adjustedMonsterXp // Combined XP from both modes
         };
     }
+
+    /**
+     * Calculate XP needed for a player to reach their next level
+     */
+    static getXpToNextLevel(actor) {
+        const currentLevel = actor.system.details.level || 1;
+        const currentXp = actor.system.details.xp || 0;
+        const nextLevel = currentLevel + 1;
+        const xpForNextLevel = this.getXpForLevel(nextLevel);
+        return Math.max(0, xpForNextLevel - currentXp);
+    }
+
+    /**
+     * Calculate milestone XP based on mode and settings
+     */
+    static calculateMilestoneXp(milestoneData, players) {
+        const xpType = milestoneData.xpType;
+        const xpAmount = parseInt(milestoneData.xpAmount) || 0;
+        
+        if (xpType === 'next-level') {
+            // Calculate XP needed for each player to reach next level
+            let totalXpNeeded = 0;
+            players.forEach(player => {
+                const actor = game.actors.get(player.actorId);
+                if (actor) {
+                    totalXpNeeded += this.getXpToNextLevel(actor);
+                }
+            });
+            return totalXpNeeded;
+        } else {
+            // Use specific XP amount
+            return xpAmount;
+        }
+    }
+
 
     /**
      * Get all monsters from the combat
@@ -526,6 +547,8 @@ class XpDistributionWindow extends FormApplication {
     constructor(xpData) {
         super(xpData);
         this.xpData = xpData;
+        // Initialize XP calculations on startup
+        this.updateXpCalculations();
     }
 
     static get defaultOptions() {
@@ -567,57 +590,29 @@ class XpDistributionWindow extends FormApplication {
             resolutionTypes: dropdownTypes,
             legendTypes,
             multipliers,
-            narrativeMode: this.xpData.narrativeMode
+            modeExperiencePoints: this.xpData.modeExperiencePoints || false,
+            modeMilestone: this.xpData.modeMilestone || false
         };
+    }
+
+    /**
+     * Update XP calculations based on active modes
+     */
+    updateXpCalculations() {
+        // Always calculate both buckets and add them together
+        let monsterBucket = this.xpData.modeExperiencePoints ? (this.xpData.adjustedTotalXp || 0) : 0;
+        let milestoneBucket = this.xpData.modeMilestone ? (this.xpData.milestoneXp || 0) : 0;
+        
+        // Total XP is always the sum of both buckets
+        this.xpData.combinedXp = monsterBucket + milestoneBucket;
+        this.xpData.xpPerPlayer = this.xpData.partySize > 0 ? Math.floor(this.xpData.combinedXp / this.xpData.partySize) : 0;
     }
 
     async _updateObject(event, formData) {
         try {
-            if (this.xpData.narrativeMode) {
-                // Narrative mode: award XP as entered per player
-                const playerAdjustments = {};
-                for (const player of this.xpData.players) {
-                    const xp = formData[`player-narrative-xp-${player.actorId}`];
-                    if (xp) {
-                        playerAdjustments[player.actorId] = parseInt(xp) || 0;
-                    }
-                }
-                // Apply XP to players
-                const results = await XpManager.applyXpToPlayers({ ...this.xpData, xpPerPlayer: 0 }, playerAdjustments);
-                await XpManager.postXpResults(this.xpData, results);
-                this.close();
-                ui.notifications.info(`XP distributed successfully! (Narrative Mode)`);
-                return;
-            }
-            // Handle form submission
-            const playerAdjustments = {};
-            // Get player adjustments
-            for (const player of this.xpData.players) {
-                const adjustment = formData[`player-adjustment-${player.actorId}`];
-                if (adjustment) {
-                    playerAdjustments[player.actorId] = parseInt(adjustment) || 0;
-                }
-            }
-            // Update monster resolution types
-            for (const monster of this.xpData.monsters) {
-                const newResolution = formData[`monster-resolution-${monster.id}`];
-                if (newResolution && newResolution !== monster.resolutionType) {
-                    const resolutionMultipliers = XpManager.getResolutionMultipliers();
-                    monster.resolutionType = newResolution;
-                    monster.multiplier = resolutionMultipliers[newResolution] || 0;
-                    monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
-                }
-            }
-            // Recalculate totals
-            this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
-            this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * this.xpData.partyMultiplier);
-            this.xpData.xpPerPlayer = this.xpData.players.length > 0 ? 
-                Math.floor(this.xpData.adjustedTotalXp / this.xpData.players.length) : 0;
-            // Apply XP to players
-            const results = await XpManager.applyXpToPlayers(this.xpData, playerAdjustments);
-            await XpManager.postXpResults(this.xpData, results);
-            this.close();
-            ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
+            // This method is no longer used since we handle everything through _onApplyXp
+            // Keep it for compatibility but redirect to the new method
+            await this._onApplyXp(event);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Error in _updateObject', error, false, false);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
@@ -626,16 +621,24 @@ class XpDistributionWindow extends FormApplication {
 
     activateListeners(html) {
         super.activateListeners(html);
-        // Set initial selected values for monster resolution dropdowns (remove old dropdown logic)
-        // Add event listeners for dynamic updates
+        
+        // Add event listeners for mode toggles
+        html.find('#modeExperiencePoints').on('change', this._onModeToggleChange.bind(this));
+        html.find('#modeMilestone').on('change', this._onModeToggleChange.bind(this));
+        
+        // Add event listeners for milestone form
+        html.find('#milestone-xp-type').on('change', this._onMilestoneXpTypeChange.bind(this));
+        html.find('#milestone-xp').on('input', this._onMilestoneXpChange.bind(this));
+        html.find('.milestone-input, .milestone-textarea, .milestone-select').on('input change', this._onMilestoneDataChange.bind(this));
+        
+        // Add event listeners for player adjustments
         html.find('.player-adjustment').on('input', this._onPlayerAdjustmentChange.bind(this));
         html.find('.adjustment-sign').on('click', this._onPlayerAdjustmentSignClick.bind(this));
+        
+        // Add event listeners for action buttons
         html.find('.apply-xp').click(this._onApplyXp.bind(this));
         html.find('.cancel-xp').click(this._onCancelXp.bind(this));
-        // Add event listeners for narrative XP input changes
-        if (this.xpData.narrativeMode) {
-            html.find('.player-narrative-xp').on('input', this._onNarrativeXpChange.bind(this));
-        }
+        
         // Add event listeners for monster resolution icons
         html.find('[data-table-type="monsters"] .resolution-icon').on('click', this._onMonsterResolutionIconClick.bind(this));
         html.find('[data-table-type="monsters"] .resolution-icon').on('keydown', (event) => {
@@ -646,8 +649,6 @@ class XpDistributionWindow extends FormApplication {
         
         // Add event listeners for player inclusion icons
         html.find('[data-table-type="players"] .inclusion-toggle').on('click', this._onPlayerInclusionClick.bind(this));
-        
-        // Add event listeners for monster inclusion icons
         
         // Initialize xpData.players with current state
         this._updateXpDataPlayers();
@@ -681,40 +682,97 @@ class XpDistributionWindow extends FormApplication {
         }
     }
 
+    _onModeToggleChange(event) {
+        const toggle = $(event.currentTarget);
+        const mode = toggle.attr('id').replace('mode', '').toLowerCase();
+        const isChecked = toggle.is(':checked');
+        
+        // Update the mode in xpData
+        this.xpData[`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`] = isChecked;
+        
+        // Simple show/hide logic - no re-rendering
+        if (mode === 'experiencepoints') {
+            if (isChecked) {
+                this.element.find('[data-table-type="monsters"]').closest('.xp-section').show();
+                this.element.find('.xp-section:has(.xp-legend-grid)').show();
+            } else {
+                this.element.find('[data-table-type="monsters"]').closest('.xp-section').hide();
+                this.element.find('.xp-section:has(.xp-legend-grid)').hide();
+            }
+        } else if (mode === 'milestone') {
+            if (isChecked) {
+                this.element.find('.xp-section:has(.milestone-form)').show();
+            } else {
+                this.element.find('.xp-section:has(.milestone-form)').hide();
+            }
+        }
+        
+        // Recalculate XP based on active modes
+        this.updateXpCalculations();
+        
+        // Update display
+        this._updateXpDisplay();
+    }
+
+    _onMilestoneXpTypeChange(event) {
+        const xpType = $(event.currentTarget).val();
+        const xpAmountField = this.element.find('#milestone-xp-amount');
+        
+        if (xpType === 'next-level') {
+            xpAmountField.hide();
+            // Calculate and set milestone XP for next level
+            this.xpData.milestoneXp = XpManager.calculateMilestoneXp({ xpType: 'next-level' }, this.xpData.players);
+        } else {
+            xpAmountField.show();
+            // Use the current XP amount value
+            this.xpData.milestoneXp = parseInt(this.element.find('#milestone-xp').val()) || 0;
+        }
+        
+        // Recalculate and update display
+        this.updateXpCalculations();
+        this._updateXpDisplay();
+    }
+
+    _onMilestoneXpChange(event) {
+        const xpAmount = parseInt($(event.currentTarget).val()) || 0;
+        this.xpData.milestoneXp = xpAmount;
+        
+        // Recalculate and update display
+        this.updateXpCalculations();
+        this._updateXpDisplay();
+    }
+
+    _onMilestoneDataChange(event) {
+        // Store milestone data for later use in chat/application
+        const formData = new FormData(this.element.find('form')[0]);
+        this.xpData.milestoneData = {
+            category: formData.get('milestone-category'),
+            title: formData.get('milestone-title'),
+            description: formData.get('milestone-description'),
+            xpType: formData.get('milestone-xp-type'),
+            xpAmount: formData.get('milestone-xp')
+        };
+    }
+
     async _onApplyXp(event) {
         event.preventDefault();
         event.stopPropagation();
         try {
-            if (this.xpData.narrativeMode) {
-                // Narrative mode: get XP from per-player fields
-                const formData = new FormData(this.element.find('form')[0]);
-                const playerAdjustments = {};
-                for (const player of this.xpData.players) {
-                    const xp = formData.get(`player-narrative-xp-${player.actorId}`);
-                    if (xp) {
-                        playerAdjustments[player.actorId] = parseInt(xp) || 0;
-                    }
-                }
-                // Apply XP to players
-                const results = await XpManager.applyXpToPlayers({ ...this.xpData, xpPerPlayer: 0 }, playerAdjustments);
-                await XpManager.postXpResults(this.xpData, results);
-                this.close();
-                ui.notifications.info(`XP distributed successfully! (Narrative Mode)`);
-                return;
-            }
-
-            // The monster resolutions and player data are already updated in this.xpData by the click handlers.
-            // No need to re-read from the form or recalculate - use the data we already have.
-            
-            // Ensure xpData.xpPerPlayer is correct for the chat message
-            const includedCount = this._getIncludedPlayerCount();
-            this.xpData.xpPerPlayer = includedCount > 0 ? Math.floor(this.xpData.adjustedTotalXp / includedCount) : 0;
+            // Ensure XP calculations are up to date
+            this.updateXpCalculations();
             
             // Apply XP to players using the calculated data from xpData.players
             const results = await XpManager.applyXpToPlayersFromData(this.xpData);
             await XpManager.postXpResults(this.xpData, results);
             this.close();
-            ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.adjustedTotalXp}`);
+            
+            // Create notification message based on active modes
+            let modeText = [];
+            if (this.xpData.modeExperiencePoints) modeText.push('Experience Points');
+            if (this.xpData.modeMilestone) modeText.push('Milestones');
+            const modeString = modeText.length > 0 ? ` (${modeText.join(' + ')})` : '';
+            
+            ui.notifications.info(`XP distributed successfully! Total XP: ${this.xpData.combinedXp}${modeString}`);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Error applying XP', error, false, true);
             ui.notifications.error(`Error distributing XP: ${error.message}`);
@@ -789,17 +847,6 @@ class XpDistributionWindow extends FormApplication {
         });
     }
 
-    _onNarrativeXpChange(event) {
-        // Calculate total XP from all narrative XP inputs
-        let totalXp = 0;
-        this.element.find('.player-narrative-xp').each(function() {
-            const value = parseInt($(this).val()) || 0;
-            totalXp += value;
-        });
-        
-        // Update the total XP display
-        this.element.find('#xp-total-display').text(totalXp);
-    }
 
     _onMonsterResolutionIconClick(event) {
         event.preventDefault();

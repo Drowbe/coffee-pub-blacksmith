@@ -206,6 +206,101 @@ gap: 2px; /* small space between label and slider */
   box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.3);
 }
 
+/* Milestone Form Styles */
+.milestone-form {
+  padding: 1em;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin: 0.5em 0;
+}
+
+.milestone-field-group {
+  margin-bottom: 1em;
+}
+
+.milestone-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+}
+
+.milestone-field-group label {
+  display: block;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 0.25em;
+  font-size: 0.9em;
+}
+
+.milestone-input,
+.milestone-textarea,
+.milestone-select {
+  width: 100%;
+  padding: 0.5em;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 0.9em;
+}
+
+.milestone-input:focus,
+.milestone-textarea:focus,
+.milestone-select:focus {
+  outline: none;
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.3);
+}
+
+.milestone-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.milestone-rewards {
+  margin-top: 1.5em;
+  padding-top: 1em;
+  border-top: 1px solid #444;
+}
+
+.milestone-rewards h4 {
+  color: #e0e0e0;
+  margin: 0 0 1em 0;
+  font-size: 1em;
+}
+
+.milestone-xp-type {
+  display: flex;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.milestone-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-size: 0.9em;
+}
+
+.milestone-radio input[type="radio"] {
+  margin: 0;
+}
+
+.milestone-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-size: 0.9em;
+}
+
+.milestone-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
 /* Common Elements */
 
 .xp-header {
