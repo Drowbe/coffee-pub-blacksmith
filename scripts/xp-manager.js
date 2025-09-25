@@ -188,7 +188,7 @@ export class XpManager {
      */
     static async calculateXpData(combat) {
         const monsters = this.getCombatMonsters(combat);
-        const players = this.getCombatPlayers(combat);
+        const players = this.loadPartyMembers();
 
         const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
@@ -271,11 +271,40 @@ export class XpManager {
      */
     static getCombatPlayers(combat) {
         if (combat) {
-            // Get players from combat
-        return combat.combatants.filter(combatant => {
-            const actor = combatant.actor;
-            return actor && (actor.hasPlayerOwner || actor.type === 'character');
-        });
+            // Get players from combat and process them the same way as loadPartyMembers
+            const combatants = combat.combatants.filter(combatant => {
+                const actor = combatant.actor;
+                return actor && (actor.hasPlayerOwner || actor.type === 'character');
+            });
+            
+            return combatants.map(combatant => {
+                const actor = combatant.actor;
+                // Get current XP and level
+                const currentXp = actor.system?.details?.xp?.value || 0;
+                const level = actor.system?.details?.level || 1;
+                
+                // Calculate next level XP
+                const nextLevel = level + 1;
+                const nextLevelXp = this.getXpForLevel(nextLevel);
+                const xpToNextLevel = nextLevelXp - currentXp;
+
+                return {
+                    // Don't store the full actor object - just store what we need for templates
+                    actorId: actor.id,
+                    name: actor.name,
+                    img: actor.img, // Store img for template access
+                    level: level,
+                    currentXp: currentXp,
+                    nextLevel: nextLevel,
+                    nextLevelXp: nextLevelXp,
+                    xpToNextLevel: xpToNextLevel,
+                    included: true, // Default to included
+                    adjustment: 0,
+                    adjustmentSign: '+',
+                    calculatedXp: 0, // Will be calculated by updateXpCalculations
+                    finalXp: 0 // Will be calculated by updateXpCalculations
+                };
+            });
         } else {
             // Get all player characters from the game (for milestone mode)
             return game.actors.filter(actor => {
@@ -942,8 +971,9 @@ class XpDistributionWindow extends FormApplication {
         const mode = toggle.attr('id').replace('mode', '').toLowerCase();
         const isChecked = toggle.is(':checked');
         
-        // Update the mode in xpData
-        this.xpData[`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`] = isChecked;
+        // Update the mode in xpData - handle camelCase conversion properly
+        const modeKey = mode === 'experiencepoints' ? 'modeExperiencePoints' : `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+        this.xpData[modeKey] = isChecked;
         
         // Simple show/hide logic - no re-rendering
         if (mode === 'experiencepoints') {
