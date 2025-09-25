@@ -93,35 +93,33 @@
       <div class="xp-section-header"><i class="fas fa-star"></i> Milestones</div>
       <div class="milestone-form">
         <div class="milestone-field-group">
-          <label for="milestone-category">Category</label>
-          <select id="milestone-category" name="milestone-category" class="milestone-select">
-            <option value="narrative">Narrative</option>
-            <option value="quest">Quest</option>
-            <option value="combat">Combat</option>
-            <option value="discovery">Discovery</option>
-            <option value="notable-moment">Notable Moment</option>
-            <option value="other">Other</option>
-          </select>
+          {{!-- Experience Points and Category side by side --}}
+          <div class="milestone-row">
+            <div class="milestone-field">
+              <label class="label" for="milestone-xp">Experience Points</label>
+              <input type="number" id="milestone-xp" name="milestone-xp" class="milestone-input" min="0" max="100000" placeholder="0">
+            </div>
+            <div class="milestone-field">
+              <label class="label" for="milestone-category">Category</label>
+              <select id="milestone-category" name="milestone-category" class="milestone-select">
+                <option value="narrative">Narrative</option>
+                <option value="quest">Quest</option>
+                <option value="combat">Combat</option>
+                <option value="discovery">Discovery</option>
+                <option value="notable-moment">Notable Moment</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
         </div>
-        
         <div class="milestone-field-group">
           <label for="milestone-title">Title</label>
           <input type="text" id="milestone-title" name="milestone-title" class="milestone-input" placeholder="Enter milestone title">
         </div>
-        
         <div class="milestone-field-group">
           <label for="milestone-description">Description</label>
           <textarea id="milestone-description" name="milestone-description" class="milestone-textarea" placeholder="Description"></textarea>
         </div>
-        
-        <div class="milestone-rewards">
-          <h4>Rewards</h4>
-          <div class="milestone-field-group">
-            <label for="milestone-xp">Experience Points</label>
-            <input type="number" id="milestone-xp" name="milestone-xp" class="milestone-input" min="0" max="100000" placeholder="0">
-          </div>
-        </div>
-      </div>
     </div>
 
     {{!-- Player Adjustments Section - Always show --}}

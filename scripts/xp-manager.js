@@ -142,8 +142,8 @@ export class XpManager {
             }
             
             const xpData = {
-                modeExperiencePoints: true,  // Start with Experience Points on
-                modeMilestone: false,        // Start with Milestones off
+                modeExperiencePoints: hasCombat,  // Experience Points on if combat, off if no combat
+                modeMilestone: !hasCombat,        // Milestones off if combat, on if no combat
                 milestoneXp: 0,
                 milestoneData: {
                     category: 'narrative',
@@ -609,7 +609,7 @@ export class XpManager {
             }
     
             
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp-distribution.hbs', {
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
                 xpData: xpData,
                 results: results
             });
@@ -672,7 +672,7 @@ export class XpManager {
                 resultsLength: results.length 
             }, true, false);
             
-            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp-distribution.hbs', {
+            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
                 xpData: xpData,
                 results: results
             });
