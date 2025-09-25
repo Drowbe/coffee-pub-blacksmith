@@ -5,6 +5,94 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.7] - XP Distribution System Complete Overhaul
+
+### Added
+- **Dual-Mode XP System:** Implemented independent Experience Points and Milestones modes
+  - Experience Points mode: Monster-based XP calculation with resolution types
+  - Milestones mode: Manual XP input with category, title, and description fields
+  - Both modes can be active simultaneously with combined XP totals
+  - Toggle controls for each mode with proper UI visibility management
+- **Menubar Integration:** Added XP Distribution tool to GM Tools section of menubar
+  - Accessible via "GM Tools" → "XP Distribution" button
+  - Works independently of combat tracker - no active combat required
+  - Integrates with existing menubar API and tool registration system
+  - Maintains consistent UI/UX with other menubar tools
+- **Non-Combat XP Distribution:** Added XP distribution window accessible from GM Tools menubar
+  - Works without active combat by loading all canvas monsters
+  - Defaults to "Removed" status for all monsters in non-combat mode
+  - Maintains full monster data for dynamic resolution changes
+  - Defaults to Milestones mode ON, Experience Points mode OFF when no combat active
+- **Enhanced Monster Resolution System:** Expanded resolution types with proper multipliers
+  - Defeated (1.00x), Escaped (0.60x), Captured (1.20x), Negotiated (1.50x), Ignored (0.20x), Removed (0.00x)
+  - Visual resolution icons with tooltips and multiplier display
+  - Real-time XP calculation updates as resolutions change
+- **Player Adjustment Controls:** Added intuitive plus/minus buttons for individual player XP adjustments
+  - Visual +/- buttons replace confusing input-only system
+  - Error trapping prevents negative XP (rounds to 0)
+  - Maintains existing player inclusion/exclusion functionality
+- **Sticky Footer Layout:** Implemented proper flexbox layout for XP distribution window
+  - Sticky header, scrollable middle content, sticky footer
+  - Action buttons always visible at bottom regardless of window size
+  - Responsive design that works at any window height
+
+### Fixed
+- **XP Calculation Discrepancies:** Resolved circular dependency bug in XP calculations
+  - Fixed stale data issues where monster resolution changes didn't update totals
+  - Unified player data loading between combat and non-combat modes
+  - Ensured consistent XP calculations across all entry points
+- **Character HP Corruption:** Fixed critical bug causing character death after XP distribution
+  - Removed problematic `diff: false` and `recursive: false` flags from actor updates
+  - Prevented infinite reactivity loops in FoundryVTT's actor update system
+  - Characters now maintain proper HP values after XP distribution and browser refresh
+- **Player Level Display:** Fixed missing player levels in combat mode
+  - Unified player data structure between combat and non-combat entry points
+  - Ensured consistent level information display across all modes
+- **Monster Base XP Calculation:** Fixed CR-to-XP conversion for fractional challenge ratings
+  - Converted CR table to use decimal keys (0.5, 1.5, etc.) instead of string keys
+  - Added proper CR conversion helper for accurate XP calculations
+  - Fixed "CR 0.5 monsters showing 0 XP" issue
+- **Chat Card Display Logic:** Enhanced XP distribution results chat card
+  - Filters out "REMOVED" monsters from display
+  - Conditionally shows Experience Points and Milestones sections based on enabled modes
+  - Fixed "LEVEL UP!" display for players with negative `nextLevelXp`
+  - Shows total XP and XP to next level instead of just XP gained
+- **Milestone Data Persistence:** Fixed milestone form data not appearing in chat card
+  - Properly collects category, title, and description from form inputs
+  - Uses direct jQuery `.val()` access instead of FormData (no form tag in template)
+  - Ensures milestone data is captured before XP distribution
+
+### Improved
+- **UI/UX Consistency:** Standardized styling and layout across XP distribution interface
+  - Consistent label styling with `class="label"` for all form elements
+  - Side-by-side layout for milestone Experience Points input and Category select
+  - Proper spacing and alignment for all form elements
+  - Unified CSS targeting with data attributes instead of class-based selectors
+- **Error Handling:** Enhanced robustness throughout XP distribution system
+  - Added comprehensive error trapping for negative XP values
+  - Improved actor update error handling with proper try-catch blocks
+  - Added validation for player data before processing
+  - Graceful handling of missing or invalid actor references
+- **Performance Optimization:** Streamlined XP calculation and update processes
+  - Removed unnecessary re-rendering on mode toggle changes
+  - Implemented efficient jQuery show/hide instead of full template re-rendering
+  - Optimized event handling to prevent duplicate calculations
+  - Reduced console logging overhead in production
+
+### Technical Improvements
+- **Code Architecture:** Refactored XP distribution system for maintainability
+  - Centralized XP calculation logic in `updateXpCalculations()` method
+  - Unified player data loading with `loadPartyMembers()` static method
+  - Separated concerns between data collection, calculation, and display
+  - Improved method organization and reduced code duplication
+- **Data Structure Consistency:** Standardized XP data object structure
+  - Consistent player data format across combat and non-combat modes
+  - Proper initialization of milestone data structure
+  - Unified monster data format with all required fields
+  - Eliminated data structure mismatches between different entry points
+
+
+
 ## [12.1.6] - Token Image Replacement System Enhancements
 
 ### Added
