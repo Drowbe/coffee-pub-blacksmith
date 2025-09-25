@@ -610,12 +610,22 @@ export class XpManager {
             // Log the final xpData for debugging
             postConsoleAndNotification(MODULE.NAME, "XP Distribution | Final xpData:", xpData, false, false);
             
-            // Debug milestone data specifically
-            if (xpData.milestoneData) {
-                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data:", xpData.milestoneData, false, false);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "XP Distribution | No milestone data found", "", false, false);
-            }
+        // Debug milestone data specifically
+        if (xpData.milestoneData) {
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data:", xpData.milestoneData, false, false);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | No milestone data found", "", false, false);
+        }
+        
+        // Debug monster data
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster data for chat:", {
+            monsterCount: xpData.monsters.length,
+            monsters: xpData.monsters.map(m => ({
+                name: m.name,
+                resolutionType: m.resolutionType,
+                finalXp: m.finalXp
+            }))
+        }, false, false);
     
             
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
@@ -817,8 +827,16 @@ class XpDistributionWindow extends FormApplication {
      * Update XP calculations based on active modes
      */
     updateXpCalculations() {
-        // Always calculate both buckets and add them together
-        let monsterBucket = this.xpData.modeExperiencePoints ? (this.xpData.adjustedTotalXp || 0) : 0;
+        // Calculate monster bucket from current monster data
+        let monsterBucket = 0;
+        if (this.xpData.modeExperiencePoints) {
+            // Calculate total XP from current monster finalXp values
+            const totalMonsterXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+            // Apply party multiplier
+            monsterBucket = Math.floor(totalMonsterXp * (this.xpData.partyMultiplier || 1));
+        }
+        
+        // Calculate milestone bucket
         let milestoneBucket = this.xpData.modeMilestone ? (this.xpData.milestoneXp || 0) : 0;
         
         // Total XP is always the sum of both buckets
@@ -1097,6 +1115,15 @@ class XpDistributionWindow extends FormApplication {
             monster.resolutionType = resolution;
             monster.multiplier = resolutionMultipliers[resolution] || 0;
             monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
+            
+            // Debug logging
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster resolution changed", {
+                monsterName: monster.name,
+                resolutionType: resolution,
+                baseXp: monster.baseXp,
+                multiplier: monster.multiplier,
+                finalXp: monster.finalXp
+            }, false, false);
             
             // Update the visual state of all icons for this monster
             const monsterRow = icon.closest('[data-row-type="monster"]');
