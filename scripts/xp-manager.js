@@ -161,15 +161,6 @@ export class XpManager {
                 xpPerPlayer: 0        // Will be calculated by updateXpCalculations
             };
             
-            postConsoleAndNotification(MODULE.NAME, 'XP Distribution opened', { 
-                players: xpData.players.length,
-                monsters: xpData.monsters.length,
-                hasCombat: hasCombat,
-                modeExperiencePoints: xpData.modeExperiencePoints,
-                playerData: xpData.players,
-                allActors: game.actors.size,
-                characterActors: game.actors.filter(a => a.type === 'character').length
-            }, true, false);
             
             // Create and show the XP distribution window
             const xpWindow = new XpDistributionWindow(xpData);
@@ -273,9 +264,9 @@ export class XpManager {
         if (combat) {
             // Get players from combat and process them the same way as loadPartyMembers
             const combatants = combat.combatants.filter(combatant => {
-                const actor = combatant.actor;
-                return actor && (actor.hasPlayerOwner || actor.type === 'character');
-            });
+            const actor = combatant.actor;
+            return actor && (actor.hasPlayerOwner || actor.type === 'character');
+        });
             
             return combatants.map(combatant => {
                 const actor = combatant.actor;
@@ -335,11 +326,6 @@ export class XpManager {
                 const baseXp = this.getMonsterBaseXp(token);
                 
                 // Debug logging
-                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster CR calculation", { 
-                    name: actor.name, 
-                    rawCR: cr, 
-                    baseXp: baseXp 
-                }, false, false);
                 
                 // Create monster data with "REMOVED" status but full calculation data
                 const monsterData = {
@@ -370,11 +356,6 @@ export class XpManager {
             return actor.type === 'character' && actor.hasPlayerOwner;
         });
 
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | loadPartyMembers", { 
-            totalActors: game.actors.size,
-            partyMembers: partyMembers.length,
-            partyMemberNames: partyMembers.map(a => a.name)
-        }, false, false);
 
         return partyMembers.map(actor => {
             // Get current XP and level
@@ -382,12 +363,6 @@ export class XpManager {
             const level = actor.system?.details?.level || 1;
             
             // Debug logging
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Player data loaded", {
-                name: actor.name,
-                level: level,
-                currentXp: currentXp,
-                systemDetails: actor.system?.details
-            }, false, false);
             
             // Calculate next level XP
             const nextLevel = level + 1;
@@ -490,14 +465,10 @@ export class XpManager {
      */
     static async applyXpToPlayersFromData(xpData) {
         try {
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | applyXpToPlayersFromData called", { 
-                playerCount: xpData.players.length 
-            }, false, false);
         
         // Validate player data before processing
         const validPlayers = xpData.players.filter(player => {
             if (!player || !player.actorId) {
-                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Invalid player data", { player }, false, false);
                 return false;
             }
             const actor = game.actors.get(player.actorId);
@@ -508,24 +479,15 @@ export class XpManager {
             return true;
         });
         
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Valid players", { 
-            validCount: validPlayers.length,
-            totalCount: xpData.players.length 
-        }, false, false);
         
         const results = [];
         
         for (const player of validPlayers) {
             const actor = game.actors.get(player.actorId);
-            
+
             // Use the pre-calculated final XP for this player, with safety check
             const playerXp = Math.max(0, parseInt(player.finalXp) || 0);
             
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Processing player", { 
-                name: player.name, 
-                finalXp: playerXp,
-                actorId: player.actorId 
-            }, false, false);
 
             if (playerXp > 0) {
                             // Add XP to character - ensure we have valid numbers
@@ -645,26 +607,8 @@ export class XpManager {
     static async postXpResults(xpData, results) {
         try {
             // Log the final xpData for debugging
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Final xpData:", xpData, false, false);
-            
-        // Debug milestone data specifically
-        if (xpData.milestoneData) {
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data:", xpData.milestoneData, false, false);
-        } else {
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | No milestone data found", "", false, false);
-        }
-        
-        // Debug monster data
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster data for chat:", {
-            monsterCount: xpData.monsters.length,
-            monsters: xpData.monsters.map(m => ({
-                name: m.name,
-                resolutionType: m.resolutionType,
-                finalXp: m.finalXp
-            }))
-        }, false, false);
     
-            
+
             const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
                 xpData: xpData,
                 results: results
@@ -810,10 +754,6 @@ class XpDistributionWindow extends FormApplication {
         this.updateXpCalculations();
         
         // Debug logging for player section
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Constructor", {
-            playersCount: this.xpData.players.length,
-            playerSectionExists: this.element ? this.element.find('[data-section="player-adjustments"]').length > 0 : 'element not ready'
-        }, false, false);
     }
 
     static get defaultOptions() {
@@ -881,16 +821,6 @@ class XpDistributionWindow extends FormApplication {
         this.xpData.xpPerPlayer = this.xpData.partySize > 0 ? Math.floor(this.xpData.combinedXp / this.xpData.partySize) : 0;
         
         // Debug logging
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Calculations updated", {
-            modeExperiencePoints: this.xpData.modeExperiencePoints,
-            modeMilestone: this.xpData.modeMilestone,
-            monsterBucket: monsterBucket,
-            milestoneBucket: milestoneBucket,
-            combinedXp: this.xpData.combinedXp,
-            xpPerPlayer: this.xpData.xpPerPlayer,
-            monsterCount: this.xpData.monsters.length,
-            monsterXp: this.xpData.monsters.map(m => ({ name: m.name, finalXp: m.finalXp }))
-        }, false, false);
     }
 
     async _updateObject(event, formData) {
@@ -996,12 +926,6 @@ class XpDistributionWindow extends FormApplication {
         this.element.find('[data-section="player-adjustments"]').removeClass('hidden');
         
         // Debug logging
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Toggle change", {
-            mode: mode,
-            isChecked: isChecked,
-            playerSectionVisible: !this.element.find('[data-section="player-adjustments"]').hasClass('hidden'),
-            playerSectionExists: this.element.find('[data-section="player-adjustments"]').length > 0
-        }, false, false);
         
         // Recalculate XP based on active modes
         this.updateXpCalculations();
@@ -1045,7 +969,6 @@ class XpDistributionWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         try {
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Starting apply XP process", "", false, false);
             
             // Collect milestone data before processing
             this._collectMilestoneData();
@@ -1056,15 +979,10 @@ class XpDistributionWindow extends FormApplication {
             // Update player data with current UI state before applying XP
             this._updateXpDataPlayers();
             
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | About to apply XP to players", { 
-                players: this.xpData.players.length,
-                combinedXp: this.xpData.combinedXp 
-            }, false, false);
             
             // Apply XP to players using the calculated data from xpData.players
             const results = await XpManager.applyXpToPlayersFromData(this.xpData);
             
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | XP applied, posting results", { results: results.length }, false, false);
             
             await XpManager.postXpResults(this.xpData, results);
             this.close();
@@ -1167,13 +1085,6 @@ class XpDistributionWindow extends FormApplication {
             monster.finalXp = Math.floor(monster.baseXp * monster.multiplier);
             
             // Debug logging
-            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Monster resolution changed", {
-                monsterName: monster.name,
-                resolutionType: resolution,
-                baseXp: monster.baseXp,
-                multiplier: monster.multiplier,
-                finalXp: monster.finalXp
-            }, false, false);
             
             // Update the visual state of all icons for this monster
             const monsterRow = icon.closest('[data-row-type="monster"]');
