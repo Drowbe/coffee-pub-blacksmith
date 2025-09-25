@@ -3687,7 +3687,5 @@ export const registerSettings = async () => {
 		}
 	});
 
-
-
 } // END OF "export const registerSettings"
 

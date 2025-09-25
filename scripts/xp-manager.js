@@ -126,7 +126,7 @@ export class XpManager {
     static openXpDistributionWindow() {
         try {
             // Create XP data for milestone mode (no combat required)
-            const players = this.getCombatPlayers(null);
+            const players = this.loadPartyMembers();
             const xpData = {
                 modeExperiencePoints: false, // Start with Experience Points off
                 modeMilestone: true,        // Start with Milestones on
@@ -266,6 +266,45 @@ export class XpManager {
     }
 
     /**
+     * Load party members with full character data (for non-combat XP distribution)
+     */
+    static loadPartyMembers() {
+        const partyMembers = game.actors.filter(actor => {
+            return actor.type === 'character' && actor.hasPlayerOwner;
+        });
+
+        return partyMembers.map(actor => {
+            // Get current XP and level
+            const currentXp = actor.system?.details?.xp?.value || 0;
+            const level = actor.system?.details?.level || 1;
+            
+            // Calculate next level XP
+            const nextLevel = level + 1;
+            const nextLevelXp = this.getXpForLevel(nextLevel);
+            const xpToNextLevel = nextLevelXp - currentXp;
+
+            return {
+                // Don't store the full actor object - just store what we need for templates
+                actorId: actor.id,
+                name: actor.name,
+                img: actor.img, // Store img for template access
+                level: level,
+                currentXp: currentXp,
+                nextLevel: nextLevel,
+                nextLevelXp: nextLevelXp,
+                xpToNextLevel: xpToNextLevel,
+                included: true, // Default to included
+                adjustment: 0,
+                adjustmentSign: '+',
+                signedAdjustment: 0,
+                calculatedXp: 0, // Will be calculated by updateXpCalculations
+                finalXp: 0, // Will be calculated by updateXpCalculations
+                leveledUp: false // Will be calculated when XP is applied
+            };
+        });
+    }
+
+    /**
      * Convert CR to decimal for consistent lookup
      */
     static convertCRToDecimal(cr) {
@@ -339,23 +378,69 @@ export class XpManager {
      * Apply XP to players using pre-calculated data from xpData.players
      */
     static async applyXpToPlayersFromData(xpData) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | applyXpToPlayersFromData called", { 
+                playerCount: xpData.players.length 
+            }, false, false);
+        
+        // Validate player data before processing
+        const validPlayers = xpData.players.filter(player => {
+            if (!player || !player.actorId) {
+                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Invalid player data", { player }, false, false);
+                return false;
+            }
+            const actor = game.actors.get(player.actorId);
+            if (!actor) {
+                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Actor not found", { actorId: player.actorId }, false, false);
+                return false;
+            }
+            return true;
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Valid players", { 
+            validCount: validPlayers.length,
+            totalCount: xpData.players.length 
+        }, false, false);
+        
         const results = [];
         
-        for (const player of xpData.players) {
+        for (const player of validPlayers) {
             const actor = game.actors.get(player.actorId);
-            if (!actor) continue;
-
-            // Use the pre-calculated final XP for this player
-            const playerXp = player.finalXp || 0;
+            
+            // Use the pre-calculated final XP for this player, with safety check
+            const playerXp = Math.max(0, parseInt(player.finalXp) || 0);
+            
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Processing player", { 
+                name: player.name, 
+                finalXp: playerXp,
+                actorId: player.actorId 
+            }, false, false);
 
             if (playerXp > 0) {
                 // Add XP to character
                 const previousXp = actor.system.details.xp.value || 0;
                 const newXp = previousXp + playerXp;
                 
-                await actor.update({
-                    'system.details.xp.value': newXp
-                });
+                // Use a more controlled update to avoid reactivity loops
+                try {
+                    await actor.update({
+                        'system.details.xp.value': newXp
+                    }, { 
+                        render: false,  // Don't re-render immediately
+                        diff: false,   // Don't calculate diffs
+                        recursive: false // Don't update recursively
+                    });
+                    
+                } catch (updateError) {
+                    postConsoleAndNotification(MODULE.NAME, "XP Distribution | Error updating actor", { 
+                        actorId: player.actorId, 
+                        error: updateError.message 
+                    }, false, false);
+                    continue;
+                }
+
+                // Small delay to prevent overwhelming the system
+                await new Promise(resolve => setTimeout(resolve, 10));
 
                 // Get XP needed for next level
                 const currentLevel = actor.system.details.level || 1;
@@ -393,6 +478,10 @@ export class XpManager {
         }
 
         return results;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Error in applyXpToPlayersFromData", error, false, true);
+            throw error;
+        }
     }
 
     /**
@@ -771,11 +860,24 @@ class XpDistributionWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         try {
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | Starting apply XP process", "", false, false);
+            
             // Ensure XP calculations are up to date
             this.updateXpCalculations();
             
+            // Update player data with current UI state before applying XP
+            this._updateXpDataPlayers();
+            
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | About to apply XP to players", { 
+                players: this.xpData.players.length,
+                combinedXp: this.xpData.combinedXp 
+            }, false, false);
+            
             // Apply XP to players using the calculated data from xpData.players
             const results = await XpManager.applyXpToPlayersFromData(this.xpData);
+            
+            postConsoleAndNotification(MODULE.NAME, "XP Distribution | XP applied, posting results", { results: results.length }, false, false);
+            
             await XpManager.postXpResults(this.xpData, results);
             this.close();
             
