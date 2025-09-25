@@ -971,8 +971,6 @@ class XpDistributionWindow extends FormApplication {
             xpAmount: xpAmount
         };
         
-        // Debug log to see what we're collecting
-        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Milestone data collected", this.xpData.milestoneData, false, false);
     }
 
     async _onApplyXp(event) {
