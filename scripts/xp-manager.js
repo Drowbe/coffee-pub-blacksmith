@@ -166,7 +166,9 @@ export class XpManager {
                 monsters: xpData.monsters.length,
                 hasCombat: hasCombat,
                 modeExperiencePoints: xpData.modeExperiencePoints,
-                playerData: xpData.players
+                playerData: xpData.players,
+                allActors: game.actors.size,
+                characterActors: game.actors.filter(a => a.type === 'character').length
             }, true, false);
             
             // Create and show the XP distribution window
@@ -759,6 +761,12 @@ class XpDistributionWindow extends FormApplication {
         
         // Initialize XP calculations on startup
         this.updateXpCalculations();
+        
+        // Debug logging for player section
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Constructor", {
+            playersCount: this.xpData.players.length,
+            playerSectionExists: this.element ? this.element.find('[data-section="player-adjustments"]').length > 0 : 'element not ready'
+        }, false, false);
     }
 
     static get defaultOptions() {
@@ -918,6 +926,14 @@ class XpDistributionWindow extends FormApplication {
         
         // Always ensure Player Adjustments section is visible
         this.element.find('[data-section="player-adjustments"]').removeClass('hidden');
+        
+        // Debug logging
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | Toggle change", {
+            mode: mode,
+            isChecked: isChecked,
+            playerSectionVisible: !this.element.find('[data-section="player-adjustments"]').hasClass('hidden'),
+            playerSectionExists: this.element.find('[data-section="player-adjustments"]').length > 0
+        }, false, false);
         
         // Recalculate XP based on active modes
         this.updateXpCalculations();
