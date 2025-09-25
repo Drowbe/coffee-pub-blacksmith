@@ -201,6 +201,20 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('xp-distribution', {
+            icon: "fas fa-star",
+            name: "xp-distribution",
+            title: "XP Distribution",
+            tooltip: "Open Experience Points Distribution Worksheet",
+            zone: "middle",
+            order: 5,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            onClick: () => {
+                this.openXpDistribution();
+            }
+        });
+
         // Right zone tools
         this.registerMenubarTool('leader-section', {
             icon: "fa-solid fa-crown",
@@ -1164,6 +1178,24 @@ class MenuBar {
             if (hideLeftUI) uiLeft.style.display = 'none';
             if (hideBottomUI) uiBottom.style.display = 'none';
             if (label) label.textContent = 'Show UI';
+        }
+    }
+
+    /**
+     * Open the XP Distribution window
+     */
+    static openXpDistribution() {
+        try {
+            // Import the XpManager dynamically to avoid circular dependencies
+            import('./xp-manager.js').then(({ XpManager }) => {
+                XpManager.openXpDistributionWindow();
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "Error opening XP Distribution window", error, false, false);
+                ui.notifications.error("Failed to open XP Distribution window");
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error importing XP Manager", error, false, false);
+            ui.notifications.error("Failed to open XP Distribution window");
         }
     }
 

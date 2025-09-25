@@ -121,6 +121,48 @@ export class XpManager {
     }
 
     /**
+     * Open the XP Distribution window (for menubar access)
+     */
+    static openXpDistributionWindow() {
+        try {
+            // Create XP data for milestone mode (no combat required)
+            const xpData = {
+                modeExperiencePoints: false, // Start with Experience Points off
+                modeMilestone: true,        // Start with Milestones on
+                milestoneXp: 0,
+                milestoneData: {
+                    category: 'narrative',
+                    title: '',
+                    description: '',
+                    xpAmount: '0'
+                },
+                monsters: [], // Empty monsters array
+                players: this.getCombatPlayers(null), // Get players even without combat
+                partySize: 0,
+                totalXp: 0,
+                adjustedTotalXp: 0,
+                combinedXp: 0,
+                xpPerPlayer: 0
+            };
+
+            // Calculate party size
+            xpData.partySize = xpData.players.length;
+            
+            postConsoleAndNotification(MODULE.NAME, 'XP Distribution opened for milestones', { 
+                players: xpData.players.length,
+                modeMilestone: xpData.modeMilestone
+            }, true, false);
+            
+            // Create and show the XP distribution window
+            const xpWindow = new XpDistributionWindow(xpData);
+            xpWindow.render(true);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error opening XP Distribution window", error, false, false);
+            ui.notifications.error("Failed to open XP Distribution window");
+        }
+    }
+
+    /**
      * Calculate XP data for the combat
      */
     static async calculateXpData(combat) {
@@ -191,25 +233,6 @@ export class XpManager {
     /**
      * Calculate milestone XP based on mode and settings
      */
-    static calculateMilestoneXp(milestoneData, players) {
-        const xpType = milestoneData.xpType;
-        const xpAmount = parseInt(milestoneData.xpAmount) || 0;
-        
-        if (xpType === 'next-level') {
-            // Calculate XP needed for each player to reach next level
-            let totalXpNeeded = 0;
-            players.forEach(player => {
-                const actor = game.actors.get(player.actorId);
-                if (actor) {
-                    totalXpNeeded += this.getXpToNextLevel(actor);
-                }
-            });
-            return totalXpNeeded;
-        } else {
-            // Use specific XP amount
-            return xpAmount;
-        }
-    }
 
 
     /**
@@ -226,10 +249,18 @@ export class XpManager {
      * Get all player characters from the combat
      */
     static getCombatPlayers(combat) {
-        return combat.combatants.filter(combatant => {
-            const actor = combatant.actor;
-            return actor && (actor.hasPlayerOwner || actor.type === 'character');
-        });
+        if (combat) {
+            // Get players from combat
+            return combat.combatants.filter(combatant => {
+                const actor = combatant.actor;
+                return actor && (actor.hasPlayerOwner || actor.type === 'character');
+            });
+        } else {
+            // Get all player characters from the game (for milestone mode)
+            return game.actors.filter(actor => {
+                return actor.type === 'character' && actor.hasPlayerOwner;
+            });
+        }
     }
 
     /**
@@ -627,7 +658,6 @@ class XpDistributionWindow extends FormApplication {
         html.find('#modeMilestone').on('change', this._onModeToggleChange.bind(this));
         
         // Add event listeners for milestone form
-        html.find('#milestone-xp-type').on('change', this._onMilestoneXpTypeChange.bind(this));
         html.find('#milestone-xp').on('input', this._onMilestoneXpChange.bind(this));
         html.find('.milestone-input, .milestone-textarea, .milestone-select').on('input change', this._onMilestoneDataChange.bind(this));
         
@@ -693,17 +723,17 @@ class XpDistributionWindow extends FormApplication {
         // Simple show/hide logic - no re-rendering
         if (mode === 'experiencepoints') {
             if (isChecked) {
-                this.element.find('[data-table-type="monsters"]').closest('.xp-section').show();
-                this.element.find('.xp-section:has(.xp-legend-grid)').show();
+                this.element.find('[data-section="experience-points"]').removeClass('hidden');
+                this.element.find('[data-section="resolution-types"]').removeClass('hidden');
             } else {
-                this.element.find('[data-table-type="monsters"]').closest('.xp-section').hide();
-                this.element.find('.xp-section:has(.xp-legend-grid)').hide();
+                this.element.find('[data-section="experience-points"]').addClass('hidden');
+                this.element.find('[data-section="resolution-types"]').addClass('hidden');
             }
         } else if (mode === 'milestone') {
             if (isChecked) {
-                this.element.find('.xp-section:has(.milestone-form)').show();
+                this.element.find('[data-section="milestones"]').removeClass('hidden');
             } else {
-                this.element.find('.xp-section:has(.milestone-form)').hide();
+                this.element.find('[data-section="milestones"]').addClass('hidden');
             }
         }
         
@@ -714,24 +744,6 @@ class XpDistributionWindow extends FormApplication {
         this._updateXpDisplay();
     }
 
-    _onMilestoneXpTypeChange(event) {
-        const xpType = $(event.currentTarget).val();
-        const xpAmountField = this.element.find('#milestone-xp-amount');
-        
-        if (xpType === 'next-level') {
-            xpAmountField.hide();
-            // Calculate and set milestone XP for next level
-            this.xpData.milestoneXp = XpManager.calculateMilestoneXp({ xpType: 'next-level' }, this.xpData.players);
-        } else {
-            xpAmountField.show();
-            // Use the current XP amount value
-            this.xpData.milestoneXp = parseInt(this.element.find('#milestone-xp').val()) || 0;
-        }
-        
-        // Recalculate and update display
-        this.updateXpCalculations();
-        this._updateXpDisplay();
-    }
 
     _onMilestoneXpChange(event) {
         const xpAmount = parseInt($(event.currentTarget).val()) || 0;
@@ -749,7 +761,6 @@ class XpDistributionWindow extends FormApplication {
             category: formData.get('milestone-category'),
             title: formData.get('milestone-title'),
             description: formData.get('milestone-description'),
-            xpType: formData.get('milestone-xp-type'),
             xpAmount: formData.get('milestone-xp')
         };
     }

@@ -235,25 +235,27 @@ gap: 2px; /* small space between label and slider */
 .milestone-input,
 .milestone-textarea,
 .milestone-select {
-  width: 100%;
-  padding: 0.5em;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  flex: 1;
+  padding-right: 24px;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 4px;
-  color: #e0e0e0;
-  font-size: 0.9em;
+  padding: 0.3em 0.5em;
+  font-size: 0.95em;
+  caret-color: rgba(255, 47, 47, 1.0);
 }
 
 .milestone-input:focus,
 .milestone-textarea:focus,
 .milestone-select:focus {
   outline: none;
-  border-color: #ff6b00;
-  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 100, 0, 0.8) !important;
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .milestone-textarea {
-  min-height: 80px;
+  min-height: 45px;
   resize: vertical;
 }
 
@@ -299,6 +301,11 @@ gap: 2px; /* small space between label and slider */
 
 .milestone-checkbox input[type="checkbox"] {
   margin: 0;
+}
+
+/* Hidden sections */
+.hidden {
+  display: none !important;
 }
 
 /* Common Elements */
@@ -356,8 +363,8 @@ gap: 2px; /* small space between label and slider */
 }
 
 .xp-section {
-  margin-bottom: 0.5em;
-  padding: 10px;
+  margin-bottom: 4px;
+  padding: 4px 8px 4px 8px;
 }
 .xp-section-header {
   font-size: 1em;
@@ -370,10 +377,7 @@ gap: 2px; /* small space between label and slider */
   margin-bottom: 0.5em;
   border-bottom: 1px solid #444;
   border-radius: 5px;
-  padding-top: 0.4em;
-  padding-bottom: 0.4em;
-  padding-left: 0.6em;
-  padding-right: 0.6em;
+  padding: 4px 8px 4px 8px;
   text-transform: uppercase;
 }
 
@@ -382,18 +386,18 @@ gap: 2px; /* small space between label and slider */
 .xp-legend-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
+  gap: 8px;
 }
 
 .xp-table-row {
   background: transparent;
   display: grid;
   grid-template-columns: 2.5fr 0.8fr 1.5fr 2fr;
-  min-height: 2.2em;
+  min-height: 2.0em;
   align-items: center;
   gap: 0.5em;
-  padding: 0.2em 0.6em;
-  font-size: 0.97em;
+  padding: 4px 8px 4px 8px;
+  font-size: 1.0em;
   border-bottom: 1px solid var(--color-border, #333);
 }
 
@@ -410,9 +414,9 @@ gap: 2px; /* small space between label and slider */
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  padding: 0.2em 0.6em;
-  font-size: 0.97em;
+  gap: 12px;
+  padding: 4px 8px 4px 8px;
+  font-size: 0.95em;
   border-bottom: 1px solid var(--color-border, #333);
 }
 .xp-table-row:last-child,
@@ -618,7 +622,7 @@ gap: 2px; /* small space between label and slider */
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 1em;
+  margin-bottom: 12px;
 }
 
 .xp-table-header {
@@ -628,8 +632,8 @@ gap: 2px; /* small space between label and slider */
   color: rgba(235, 233, 225, 1);
   background: var(--color-bg-header, #18181c);
   border-radius: 5px 5px 0 0;
-  padding: 0.3em 0.6em;
-  margin-bottom: 0.2em;
+  padding: 4px 8px 4px 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   font-size: 0.95em;
 }
@@ -662,7 +666,7 @@ gap: 2px; /* small space between label and slider */
 .xp-table-col-4 {
   min-width: 120px;
   color: rgba(235, 233, 225, 1);
-  font-size: 0.97em;
+  font-size: 0.95em;
 }
 
 .xp-table-col-header {

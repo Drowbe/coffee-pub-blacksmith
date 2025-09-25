@@ -10,7 +10,7 @@
             </div>
             <div class="xp-distribution-header-title">
               <div class="xp-distribution-maintitle">Experience Distribution</div>
-              <div class="xp-distribution-subtitle">Select a token on the canvas</div>
+              <div class="xp-distribution-subtitle">Allocate Experience Points and Rewards to Party Members</div>
             </div>
             <div class="xp-distribution-header-controls">
                 <!-- Experience Points Toggle -->
@@ -47,16 +47,15 @@
 
   {{!-- BODY - SCROLLABLE --}}
   <div class="xp-body-scroll">
-    {{!-- Monster Resolutions Section - Only show when Experience Points is ON --}}
-    {{#if modeExperiencePoints}}
-    <div class="xp-section">
+    {{!-- Monster Resolutions Section - Show/hide with CSS class --}}
+    <div class="xp-section {{#unless modeExperiencePoints}}hidden{{/unless}}" data-section="experience-points">
       <div class="xp-section-header"><i class="fas fa-dragon"></i> Monster Resolutions</div>
       <div class="xp-table-wrapper" data-table-type="monsters">
         <div class="xp-table-header">
-          <span class="xp-table-col-1 xp-table-col-header">Name</span>
+          <span class="xp-table-col-1 xp-table-col-header">Adversary Name</span>
           <span class="xp-table-col-2 xp-table-col-header">CR</span>
           <span class="xp-table-col-3 xp-table-col-header">Resolution</span>
-          <span class="xp-table-col-4 xp-table-col-header">XP</span>
+          <span class="xp-table-col-4 xp-table-col-header">Experience Points</span>
         </div>
         <div class="xp-table-body">
           {{#each xpData.monsters}}
@@ -88,15 +87,13 @@
         </div>
       </div>
     </div>
-    {{/if}}
 
-    {{!-- Milestones Section - Only show when Milestones is ON --}}
-    {{#if modeMilestone}}
-    <div class="xp-section">
+    {{!-- Milestones Section - Show/hide with CSS class --}}
+    <div class="xp-section {{#unless modeMilestone}}hidden{{/unless}}" data-section="milestones">
       <div class="xp-section-header"><i class="fas fa-star"></i> Milestones</div>
       <div class="milestone-form">
         <div class="milestone-field-group">
-          <label for="milestone-category">Category:</label>
+          <label for="milestone-category">Category</label>
           <select id="milestone-category" name="milestone-category" class="milestone-select">
             <option value="narrative">Narrative</option>
             <option value="quest">Quest</option>
@@ -108,39 +105,24 @@
         </div>
         
         <div class="milestone-field-group">
-          <label for="milestone-title">Title:</label>
+          <label for="milestone-title">Title</label>
           <input type="text" id="milestone-title" name="milestone-title" class="milestone-input" placeholder="Enter milestone title">
         </div>
         
         <div class="milestone-field-group">
-          <label for="milestone-description">Description:</label>
-          <textarea id="milestone-description" name="milestone-description" class="milestone-textarea" placeholder="Describe what happened..."></textarea>
+          <label for="milestone-description">Description</label>
+          <textarea id="milestone-description" name="milestone-description" class="milestone-textarea" placeholder="Description"></textarea>
         </div>
         
         <div class="milestone-rewards">
-          <h4>Rewards:</h4>
+          <h4>Rewards</h4>
           <div class="milestone-field-group">
-            <label for="milestone-xp-type">XP Type:</label>
-            <div class="milestone-xp-type">
-              <label class="milestone-radio">
-                <input type="radio" name="milestone-xp-type" value="specific" checked>
-                <span>Specific XP Amount</span>
-              </label>
-              <label class="milestone-radio">
-                <input type="radio" name="milestone-xp-type" value="next-level">
-                <span>Next Level</span>
-              </label>
-            </div>
-          </div>
-          
-          <div class="milestone-field-group" id="milestone-xp-amount">
-            <label for="milestone-xp">XP Amount:</label>
+            <label for="milestone-xp">Experience Points</label>
             <input type="number" id="milestone-xp" name="milestone-xp" class="milestone-input" min="0" max="100000" placeholder="0">
           </div>
         </div>
       </div>
     </div>
-    {{/if}}
 
     {{!-- Player Adjustments Section - Always show --}}
     <div class="xp-section">
@@ -148,9 +130,9 @@
       
       <div class="xp-table-wrapper" data-table-type="players">
         <div class="xp-table-header">
-          <span class="xp-table-col-1 xp-table-col-header">Name</span>
+          <span class="xp-table-col-1 xp-table-col-header">Party Member</span>
           <span class="xp-table-col-2 xp-table-col-header">Level</span>
-          <span class="xp-table-col-3 xp-table-col-header">XP</span>
+          <span class="xp-table-col-3 xp-table-col-header">Experience Points</span>
         </div>
       
         <div class="xp-table-body">
@@ -182,9 +164,8 @@
       </div>
     </div>
 
-    {{!-- Resolution Types Section - Only show when Experience Points is ON --}}
-    {{#if modeExperiencePoints}}
-    <div class="xp-section">
+    {{!-- Resolution Types Section - Show/hide with CSS class --}}
+    <div class="xp-section {{#unless modeExperiencePoints}}hidden{{/unless}}" data-section="resolution-types">
       <div class="xp-section-header"><i class="fas fa-info-circle"></i> Resolution Types</div>
       <div class="xp-legend-grid">
         {{#each legendTypes}}
@@ -202,7 +183,6 @@
         {{/each}}
       </div>
     </div>
-    {{/if}}
   </div>
   <div class="xp-footer">
     <button type="button" class="xp-btn cancel-xp"><i class="fas fa-times"></i> Cancel Distribution</button>

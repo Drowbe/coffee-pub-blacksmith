@@ -743,13 +743,6 @@
     opacity: 1;
 }
 
-
-
-
-
-
-
-
 /* ----- SEARCH TOOLS - RESULTS ----- */
 
 .tir-results-details-count {
@@ -1032,16 +1025,7 @@
       box-shadow: 0 0 8px rgba(156, 39, 176, 0.3) !important;
   }
   
-  /* Favorite Image Styling - Remove special border, use default styling */
-  .tir-favorite-image {
-      /* No special border or background - use default thumbnail styling */
-  }
-  .tir-favorite-image img {
-      /* No special border - use default image styling */
-  }
-  .tir-favorite-image:hover {
-      /* Use default hover effects */
-  }
+
   
   .tir-recommended-image {
       border-color: rgba(255, 193, 7, 0.9) !important;
