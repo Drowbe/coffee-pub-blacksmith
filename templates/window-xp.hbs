@@ -63,7 +63,7 @@
             <span class="xp-table-col-1" data-field="name">{{name}}</span>
             <span class="xp-table-col-2" data-field="cr">CR {{cr}}</span>
             <span class="xp-table-col-3" data-field="resolution">
-              <div class="resolution-icons" role="group" aria-label="Monster Resolution">
+              <span class="resolution-icons" role="group" aria-label="Monster Resolution">
                 {{#each ../resolutionTypes}}
                 <span class="resolution-icon {{#if (eq ../resolutionType this)}}active{{else}}dimmed{{/if}}"
                       data-monster-id="{{../id}}"
@@ -79,7 +79,7 @@
                   {{#if (eq this "REMOVED")}}<i class="fas fa-person-circle-xmark"></i>{{/if}}
                 </span>
                 {{/each}}
-              </div>
+              </span>
             </span>
             <span class="xp-table-col-4" data-field="xp">{{baseXp}} x {{formatMultiplier multiplier}} = {{finalXp}}</span>
           </div>
@@ -149,11 +149,11 @@
 
             <span class="xp-table-col-3" data-field="xp">
               <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
-              <div class="adjustment-controls">
+              <span class="adjustment-controls">
                 <i class="fas fa-square-plus adjustment-sign active" data-sign="+"></i>
                 <i class="fas fa-square-minus adjustment-sign" data-sign="-"></i>
                 <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="0" max="10000" placeholder="0">
-              </div>
+              </span>
               <span class="equals">=</span>
               <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
             </span>
