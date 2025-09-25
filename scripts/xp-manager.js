@@ -416,28 +416,26 @@ export class XpManager {
                 actorId: player.actorId 
             }, false, false);
 
-            if (playerXp > 0) {
-                // Add XP to character
-                const previousXp = actor.system.details.xp.value || 0;
-                const newXp = previousXp + playerXp;
-                
-                // Use a more controlled update to avoid reactivity loops
-                try {
-                    await actor.update({
-                        'system.details.xp.value': newXp
-                    }, { 
-                        render: false,  // Don't re-render immediately
-                        diff: false,   // Don't calculate diffs
-                        recursive: false // Don't update recursively
-                    });
-                    
-                } catch (updateError) {
-                    postConsoleAndNotification(MODULE.NAME, "XP Distribution | Error updating actor", { 
-                        actorId: player.actorId, 
-                        error: updateError.message 
-                    }, false, false);
-                    continue;
-                }
+                        if (playerXp > 0) {
+                            // Add XP to character - ensure we have valid numbers
+                            const previousXp = Number(actor.system?.details?.xp?.value ?? 0);
+                            const newXp = previousXp + playerXp;
+                            
+                            // Use a controlled update to avoid reactivity issues
+                            try {
+                                await actor.update({
+                                    'system.details.xp.value': newXp
+                                }, { 
+                                    render: false  // Don't re-render immediately
+                                });
+                                
+                            } catch (updateError) {
+                                postConsoleAndNotification(MODULE.NAME, "XP Distribution | Error updating actor", { 
+                                    actorId: player.actorId, 
+                                    error: updateError.message 
+                                }, false, false);
+                                continue;
+                            }
 
                 // Small delay to prevent overwhelming the system
                 await new Promise(resolve => setTimeout(resolve, 10));
@@ -539,7 +537,7 @@ export class XpManager {
             postConsoleAndNotification(MODULE.NAME, "XP Distribution | Final xpData:", xpData, false, false);
     
             
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
+            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp-distribution.hbs', {
                 xpData: xpData,
                 results: results
             });
@@ -602,7 +600,7 @@ export class XpManager {
                 resultsLength: results.length 
             }, true, false);
             
-            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/xp-distribution-chat.hbs', {
+            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp-distribution.hbs', {
                 xpData: xpData,
                 results: results
             });

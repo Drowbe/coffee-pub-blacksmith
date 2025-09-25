@@ -42,7 +42,7 @@
     margin-right: 6px;
 }
 
-.cpb-xp-card .xp-totals {
+.cpb-xp-card .xp-card-content-wrapper {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -62,18 +62,18 @@
     border-radius: 3px;
 }
 
-.cpb-xp-card .xp-total-row .xp-total-label {
+.cpb-xp-card .xp-total-row .xp-card-label {
     font-size: 1.0em;
     font-weight: 700;
     text-transform: uppercase;
 }
-.cpb-xp-card .xp-total-row .xp-total-value {
+.cpb-xp-card .xp-total-row .xp-card-content {
     font-size: 1.2em;
     font-weight: 900;
     color: rgba(20, 20, 20, 0.9);
 }
 
-.cpb-xp-card .xp-totals p {
+.cpb-xp-card .xp-card-content-wrapper p {
     margin: 4px 0;
     
 }
@@ -211,85 +211,5 @@
 .cpb-xp-card .monster-xp {
     min-width: 60px;
     text-align: right;
-}
-
-/* Milestone Information Styles */
-.milestone-info {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 1em;
-    margin: 0.5em 0;
-}
-
-.milestone-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-}
-
-.milestone-title {
-    font-size: 1.1em;
-    font-weight: 700;
-    color: #e0e0e0;
-    margin-bottom: 0.25em;
-}
-
-.milestone-category {
-    font-size: 0.9em;
-    color: #888;
-    text-transform: capitalize;
-    font-style: italic;
-}
-
-.milestone-description {
-    font-size: 0.95em;
-    color: #ccc;
-    line-height: 1.4;
-    margin: 0.5em 0;
-}
-
-.milestone-timing {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25em;
-    font-size: 0.85em;
-    color: #aaa;
-}
-
-.milestone-time {
-    display: block;
-}
-
-.milestone-quest {
-    font-size: 0.9em;
-    color: #4a9eff;
-    font-weight: 500;
-}
-
-.milestone-rewards {
-    margin-top: 0.75em;
-    padding-top: 0.75em;
-    border-top: 1px solid #444;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25em;
-}
-
-.milestone-xp {
-    font-size: 1em;
-    font-weight: 700;
-    color: #ff6b00;
-}
-
-.milestone-inspiration {
-    font-size: 0.9em;
-    color: #ffd700;
-    font-weight: 600;
-}
-
-.milestone-grants {
-    font-size: 0.9em;
-    color: #4a9eff;
-    font-style: italic;
 }
 
