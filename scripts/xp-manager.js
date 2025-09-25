@@ -165,7 +165,8 @@ export class XpManager {
                 players: xpData.players.length,
                 monsters: xpData.monsters.length,
                 hasCombat: hasCombat,
-                modeExperiencePoints: xpData.modeExperiencePoints
+                modeExperiencePoints: xpData.modeExperiencePoints,
+                playerData: xpData.players
             }, true, false);
             
             // Create and show the XP distribution window
@@ -337,6 +338,12 @@ export class XpManager {
         const partyMembers = game.actors.filter(actor => {
             return actor.type === 'character' && actor.hasPlayerOwner;
         });
+
+        postConsoleAndNotification(MODULE.NAME, "XP Distribution | loadPartyMembers", { 
+            totalActors: game.actors.size,
+            partyMembers: partyMembers.length,
+            partyMemberNames: partyMembers.map(a => a.name)
+        }, false, false);
 
         return partyMembers.map(actor => {
             // Get current XP and level
@@ -908,6 +915,9 @@ class XpDistributionWindow extends FormApplication {
                 this.element.find('[data-section="milestones"]').addClass('hidden');
             }
         }
+        
+        // Always ensure Player Adjustments section is visible
+        this.element.find('[data-section="player-adjustments"]').removeClass('hidden');
         
         // Recalculate XP based on active modes
         this.updateXpCalculations();
