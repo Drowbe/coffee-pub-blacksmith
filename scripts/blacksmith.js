@@ -679,7 +679,20 @@ Hooks.once('init', async function() {
         module.api.getActiveNotifications = MenuBar.getActiveNotifications.bind(MenuBar);
         module.api.clearAllNotifications = MenuBar.clearAllNotifications.bind(MenuBar);
         module.api.getNotificationIdsByModule = MenuBar.getNotificationIdsByModule.bind(MenuBar);
+        
+        // Secondary Bar API
+        module.api.registerSecondaryBarType = MenuBar.registerSecondaryBarType.bind(MenuBar);
+        module.api.openSecondaryBar = MenuBar.openSecondaryBar.bind(MenuBar);
+        module.api.closeSecondaryBar = MenuBar.closeSecondaryBar.bind(MenuBar);
+        module.api.toggleSecondaryBar = MenuBar.toggleSecondaryBar.bind(MenuBar);
+        module.api.updateSecondaryBar = MenuBar.updateSecondaryBar.bind(MenuBar);
+        
+        // Combat Bar API
+        module.api.openCombatBar = MenuBar.openCombatBar.bind(MenuBar);
+        module.api.closeCombatBar = MenuBar.closeCombatBar.bind(MenuBar);
+        module.api.updateCombatBar = MenuBar.updateCombatBar.bind(MenuBar);
         module.api.testNotificationSystem = MenuBar.testNotificationSystem.bind(MenuBar);
+        module.api.testSecondaryBarSystem = MenuBar.testSecondaryBarSystem.bind(MenuBar);
         
         postConsoleAndNotification(MODULE.NAME, "Menubar API: Exposed for external modules", "", true, false);
     }).catch(error => {
@@ -748,6 +761,16 @@ Hooks.once('init', async function() {
         getActiveNotifications: null,
         clearAllNotifications: null,
         getNotificationIdsByModule: null,
+        // ✅ NEW: Secondary Bar API for external modules
+        registerSecondaryBarType: null,
+        openSecondaryBar: null,
+        closeSecondaryBar: null,
+        toggleSecondaryBar: null,
+        updateSecondaryBar: null,
+        // ✅ NEW: Combat Bar API for external modules
+        openCombatBar: null,
+        closeCombatBar: null,
+        updateCombatBar: null,
         testNotificationSystem: null
     };
     

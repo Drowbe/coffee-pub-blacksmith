@@ -24,6 +24,20 @@ class MenuBar {
     static toolbarIcons = new Map();
     static previousRemainingMinutes = null;
     static activeContextMenu = null;
+    
+    // Secondary bar system
+    static secondaryBar = {
+        isOpen: false,
+        type: null,
+        height: 50,
+        persistence: 'manual', // 'manual' or 'auto'
+        autoCloseTimeout: null,
+        autoCloseDelay: 10000, // 10 seconds default
+        data: {},
+        userClosed: false // Track if user manually closed the combat bar
+    };
+    static secondaryBarTypes = new Map();
+    static renderTimeout = null;
 
     static initialize() {
         // Load the templates
@@ -37,6 +51,10 @@ class MenuBar {
         // Register Handlebars helpers
         Handlebars.registerHelper('or', function() {
             return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+        });
+        
+        Handlebars.registerHelper('eq', function(a, b) {
+            return a === b;
         });
 
         // Simple DOM insertion - no complex hooks needed
@@ -60,8 +78,14 @@ class MenuBar {
             // Register default tools using our API
             this.registerDefaultTools();
 
+            // Register secondary bar types
+            this.registerSecondaryBarTypes();
+
             // Render the menubar
             this.renderMenubar();
+            
+            // Check for active combat on load
+            this._checkActiveCombatOnLoad();
         });
 
         // Register for module features
@@ -69,6 +93,9 @@ class MenuBar {
         
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
+        
+        // Register combat hooks
+        this._registerCombatHooks();
     }
 
     static _registerModuleFeatures() {
@@ -117,6 +144,88 @@ class MenuBar {
         });
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Leader change hook registered", "", true, false);
+    }
+
+    static _registerCombatHooks() {
+        // Hook for combat updates (turn changes, etc.)
+        const combatUpdateHookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'MenuBar: Update combat bar on combat changes',
+            context: 'menubar-combat-update',
+            priority: 3,
+            callback: (combat, updateData) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (updateData.turn !== undefined || updateData.round !== undefined) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat update hook fired", {
+                        combatId: combat.id,
+                        updateData: updateData,
+                        currentTurn: combat.turn,
+                        currentRound: combat.round
+                    }, true, false);
+                    
+                    MenuBar.updateCombatBar();
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combat creation
+        const combatCreateHookId = HookManager.registerHook({
+            name: 'createCombat',
+            description: 'MenuBar: Open combat bar when combat is created',
+            context: 'menubar-combat-create',
+            priority: 3,
+            callback: (combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat created hook fired", {
+                    combatId: combat.id,
+                    combatants: combat.combatants.length
+                }, true, false);
+                
+                // Auto-open combat bar when combat is created
+                MenuBar.openCombatBar();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combat deletion
+        const combatDeleteHookId = HookManager.registerHook({
+            name: 'deleteCombat',
+            description: 'MenuBar: Close combat bar when combat is deleted',
+            context: 'menubar-combat-delete',
+            priority: 3,
+            callback: (combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat deleted hook fired", {
+                    combatId: combat.id
+                }, true, false);
+                
+                // Close combat bar when combat is deleted
+                MenuBar.closeCombatBar();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
+    }
+
+    /**
+     * Check for active combat when the client loads
+     * @private
+     */
+    static _checkActiveCombatOnLoad() {
+        try {
+            const combat = game.combats.active;
+            if (combat && combat.started) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar: Active combat found on load", "", true, false);
+                // Small delay to ensure everything is ready
+                setTimeout(() => {
+                    this.openCombatBar();
+                }, 500);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error checking active combat on load", { error }, false, false);
+        }
     }
 
     /**
@@ -229,6 +338,24 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('combat-tracker', {
+            icon: "fas fa-skull-crossbones",
+            name: "combat-tracker",
+            title: "Combat Tracker",
+            tooltip: "Toggle combat tracker secondary bar",
+            zone: "middle",
+            order: 7,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            visible: () => {
+                // Only show if there's an active combat
+                return game.combats.active !== null;
+            },
+            onClick: () => {
+                this.toggleSecondaryBar('combat');
+            }
+        });
+
         // Right zone tools
         this.registerMenubarTool('leader-section', {
             icon: "fa-solid fa-crown",
@@ -274,6 +401,20 @@ class MenuBar {
         });
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Default tools registered using API", "", true, false);
+    }
+
+    /**
+     * Register secondary bar types
+     */
+    static registerSecondaryBarTypes() {
+        // Register combat tracker secondary bar
+        this.registerSecondaryBarType('combat', {
+            height: 50,
+            persistence: 'manual',
+            autoCloseDelay: 10000
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
 
     // ================================================================== 
@@ -1096,8 +1237,450 @@ class MenuBar {
         }
     }
 
-    static async renderMenubar() {
+    // ================================================================== 
+    // ===== SECONDARY BAR SYSTEM ======================================
+    // ================================================================== 
+
+    /**
+     * Register a secondary bar type
+     * @param {string} typeId - Unique identifier for the bar type
+     * @param {Object} config - Configuration object
+     * @param {number} config.height - Height of the secondary bar
+     * @param {string} config.persistence - 'manual' or 'auto'
+     * @param {number} config.autoCloseDelay - Delay in ms for auto-close (default: 10000)
+     * @returns {boolean} Success status
+     */
+    static registerSecondaryBarType(typeId, config) {
         try {
+            if (!typeId || typeof typeId !== 'string') {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid typeId provided", { typeId }, false, false);
+                return false;
+            }
+
+            if (!config || typeof config !== 'object') {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid config provided", { config }, false, false);
+                return false;
+            }
+
+            const barType = {
+                typeId: typeId,
+                height: config.height || 50,
+                persistence: config.persistence || 'manual',
+                autoCloseDelay: config.autoCloseDelay || 10000
+            };
+
+            this.secondaryBarTypes.set(typeId, barType);
+
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Type registered successfully", { typeId }, true, false);
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error registering type", { typeId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Open a secondary bar
+     * @param {string} typeId - Type of secondary bar to open
+     * @param {Object} options - Options for the bar
+     * @param {Object} options.data - Data to pass to the bar template
+     * @param {string} options.persistence - Override persistence mode
+     * @param {number} options.height - Override height
+     * @returns {boolean} Success status
+     */
+    static openSecondaryBar(typeId, options = {}) {
+        try {
+            // For combat bars, check if user manually closed it
+            if (typeId === 'combat' && this.secondaryBar.userClosed) {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Combat bar was manually closed by user", "", true, false);
+                return false;
+            }
+
+            // If the same type is already open, just update it
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === typeId) {
+                if (options.data) {
+                    this.updateSecondaryBar(options.data);
+                }
+                return true;
+            }
+
+            // Close any existing secondary bar first
+            this.closeSecondaryBar();
+
+            const barType = this.secondaryBarTypes.get(typeId);
+            if (!barType) {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Type not registered", { typeId }, false, false);
+                return false;
+            }
+
+            // Set up the secondary bar
+            this.secondaryBar.isOpen = true;
+            this.secondaryBar.type = typeId;
+            this.secondaryBar.height = options.height || barType.height;
+            this.secondaryBar.persistence = options.persistence || barType.persistence;
+            this.secondaryBar.data = options.data || {};
+
+            // For combat bars, always refresh the data to show current state
+            if (typeId === 'combat') {
+                const combat = game.combat;
+                if (combat) {
+                    this.secondaryBar.data = this.getCombatData(combat);
+                }
+            }
+
+            // Set the CSS variables for secondary bar height and total height
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + ${this.secondaryBar.height}px)`);
+
+            // Set up auto-close if needed
+            if (this.secondaryBar.persistence === 'auto') {
+                this._setAutoCloseTimeout();
+            }
+
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Opened", { typeId, height: this.secondaryBar.height }, true, false);
+
+            // Re-render the menubar to show the secondary bar
+            this.renderMenubar(true);
+
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error opening bar", { typeId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Close the secondary bar
+     * @returns {boolean} Success status
+     */
+    static closeSecondaryBar(userInitiated = false) {
+        try {
+            if (!this.secondaryBar.isOpen) {
+                return true; // Already closed
+            }
+
+            // Track if user manually closed the combat bar
+            if (userInitiated && this.secondaryBar.type === 'combat') {
+                this.secondaryBar.userClosed = true;
+            }
+
+            // Clear auto-close timeout if it exists
+            if (this.secondaryBar.autoCloseTimeout) {
+                clearTimeout(this.secondaryBar.autoCloseTimeout);
+                this.secondaryBar.autoCloseTimeout = null;
+            }
+
+            // Reset secondary bar state
+            this.secondaryBar.isOpen = false;
+            this.secondaryBar.type = null;
+            this.secondaryBar.data = {};
+
+            // Reset the CSS variables for secondary bar height and total height
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
+
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Closed", "", true, false);
+
+            // Clean up any existing secondary bars in DOM
+            this._cleanupSecondaryBars();
+
+            // Re-render the menubar to hide the secondary bar
+            this.renderMenubar(true);
+
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error closing bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Clean up any existing secondary bars from DOM
+     * @private
+     */
+    static _cleanupSecondaryBars() {
+        try {
+            document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => {
+                el.remove();
+            });
+            // Reset CSS variables when cleaning up
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error cleaning up DOM", { error }, false, false);
+        }
+    }
+
+    /**
+     * Toggle the secondary bar
+     * @param {string} typeId - Type of secondary bar to toggle
+     * @param {Object} options - Options for the bar
+     * @returns {boolean} Success status
+     */
+    static toggleSecondaryBar(typeId, options = {}) {
+        try {
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === typeId) {
+                // Close if same type is open (user initiated)
+                return this.closeSecondaryBar(true);
+            } else {
+                // Open the specified type
+                return this.openSecondaryBar(typeId, options);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error toggling bar", { typeId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Update the secondary bar data without reopening
+     * @param {Object} data - New data for the bar
+     * @returns {boolean} Success status
+     */
+    static updateSecondaryBar(data) {
+        try {
+            if (!this.secondaryBar.isOpen) {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot update closed bar", "", false, false);
+                return false;
+            }
+
+            this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
+
+            // Re-render to update the bar content
+            this.renderMenubar(true);
+
+            return true;
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error updating bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Set up auto-close timeout for secondary bar
+     * @private
+     */
+    static _setAutoCloseTimeout() {
+        if (this.secondaryBar.autoCloseTimeout) {
+            clearTimeout(this.secondaryBar.autoCloseTimeout);
+        }
+
+        const barType = this.secondaryBarTypes.get(this.secondaryBar.type);
+        const delay = barType?.autoCloseDelay || this.secondaryBar.autoCloseDelay;
+
+        this.secondaryBar.autoCloseTimeout = setTimeout(() => {
+            this.closeSecondaryBar();
+        }, delay);
+    }
+
+    /**
+     * Reset auto-close timeout (called when user interacts with bar)
+     * @private
+     */
+    static _resetAutoCloseTimeout() {
+        if (this.secondaryBar.persistence === 'auto') {
+            this._setAutoCloseTimeout();
+        }
+    }
+
+    // ================================================================== 
+    // ===== COMBAT INTEGRATION ========================================
+    // ================================================================== 
+
+    /**
+     * Open combat tracker secondary bar
+     * @param {Object} combatData - Combat data for the bar
+     * @returns {boolean} Success status
+     */
+    static openCombatBar(combatData = null) {
+        try {
+            const combat = game.combats.active;
+            if (!combat) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat", "", false, false);
+                return false;
+            }
+
+            // Reset user closed flag when combat starts
+            this.secondaryBar.userClosed = false;
+
+            const data = combatData || this.getCombatData(combat);
+            
+            return this.openSecondaryBar('combat', {
+                data: data,
+                persistence: 'manual'
+            });
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error opening combat bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Close combat tracker secondary bar
+     * @returns {boolean} Success status
+     */
+    static closeCombatBar() {
+        try {
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
+                return this.closeSecondaryBar();
+            }
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error closing combat bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Update combat tracker secondary bar
+     * @param {Object} combatData - Updated combat data
+     * @returns {boolean} Success status
+     */
+    static updateCombatBar(combatData = null) {
+        try {
+            if (!this.secondaryBar.isOpen || this.secondaryBar.type !== 'combat') {
+                return false;
+            }
+
+            const combat = game.combats.active;
+            if (!combat) {
+                // Close combat bar if no active combat
+                return this.closeCombatBar();
+            }
+
+            const data = combatData || this.getCombatData(combat);
+            return this.updateSecondaryBar(data);
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error updating combat bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Get combat data for the secondary bar
+     * @param {Combat} combat - Combat instance
+     * @returns {Object} Combat data for template
+     */
+    static getCombatData(combat) {
+        try {
+            if (!combat) return {};
+
+            const combatants = combat.combatants.map(combatant => {
+                const token = combatant.token;
+                const actor = combatant.actor;
+                
+                return {
+                    id: combatant.id,
+                    name: actor?.name || token?.name || 'Unknown',
+                    portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
+                    initiative: combatant.initiative || 0,
+                    isCurrent: combatant.id === combat.current.combatantId,
+                    isDefeated: combatant.disabled || false
+                };
+            });
+
+            // Sort combatants by initiative (highest first)
+            combatants.sort((a, b) => b.initiative - a.initiative);
+
+            return {
+                currentRound: combat.round || 1,
+                currentTurn: combat.turn || 1,
+                totalTurns: combatants.length,
+                combatants: combatants,
+                isActive: combat.started
+            };
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error getting combat data", { error }, false, false);
+            return {};
+        }
+    }
+
+    /**
+     * Test function to verify secondary bar system
+     */
+    static testSecondaryBarSystem() {
+        try {
+            console.log('🧪 Testing Secondary Bar System...');
+            
+            // Test 1: Register a test secondary bar type
+            const success = this.registerSecondaryBarType('test-bar', {
+                height: 60,
+                persistence: 'manual',
+                autoCloseDelay: 5000
+            });
+            
+            if (!success) {
+                console.log('❌ Test 1 FAILED: Could not register test bar type');
+                return false;
+            }
+            
+            console.log('✅ Test 1 PASSED: Test bar type registered');
+            
+            // Test 2: Open the test secondary bar
+            const openSuccess = this.openSecondaryBar('test-bar', {
+                data: { testData: 'Hello World' }
+            });
+            
+            if (!openSuccess) {
+                console.log('❌ Test 2 FAILED: Could not open test bar');
+                return false;
+            }
+            
+            console.log('✅ Test 2 PASSED: Test bar opened');
+            
+            // Test 3: Update the bar data
+            const updateSuccess = this.updateSecondaryBar({ 
+                testData: 'Updated Data',
+                timestamp: Date.now()
+            });
+            
+            if (!updateSuccess) {
+                console.log('❌ Test 3 FAILED: Could not update bar data');
+                return false;
+            }
+            
+            console.log('✅ Test 3 PASSED: Bar data updated');
+            
+            // Test 4: Close the bar
+            setTimeout(() => {
+                const closeSuccess = this.closeSecondaryBar();
+                if (closeSuccess) {
+                    console.log('✅ Test 4 PASSED: Bar closed successfully');
+                    console.log('🎉 ALL SECONDARY BAR TESTS PASSED!');
+                } else {
+                    console.log('❌ Test 4 FAILED: Could not close bar');
+                }
+            }, 2000);
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Secondary Bar Test Error:', error);
+            return false;
+        }
+    }
+
+    static async renderMenubar(immediate = false) {
+        try {
+            // Debounce rapid render calls
+            if (!immediate && this.renderTimeout) {
+                clearTimeout(this.renderTimeout);
+                this.renderTimeout = null;
+            }
+            
+            if (!immediate) {
+                this.renderTimeout = setTimeout(() => {
+                    this.renderMenubar(true);
+                }, 50); // 50ms debounce
+                return;
+            }
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
             let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
@@ -1158,14 +1741,16 @@ class MenuBar {
                 timerProgress: this.getTimerProgress(),
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
-                notifications: Array.from(this.notifications.values())
+                notifications: Array.from(this.notifications.values()),
+                secondaryBar: this.secondaryBar
             };
 
             // Render the template
             const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
 
-            // Remove any existing menubar
+            // Remove any existing menubar and secondary bars
             document.querySelector('.blacksmith-menubar-container')?.remove();
+            document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => el.remove());
             
             // Find the interface element and insert before it
             const interfaceElement = document.querySelector('#interface');

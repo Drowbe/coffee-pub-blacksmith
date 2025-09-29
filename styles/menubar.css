@@ -5,10 +5,12 @@
 /* MENUBAR */
 
 :root {
-    --blacksmith-menubar-height: 26px;
-    --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-height) - 2px);
-    --blacksmith-menubar-interface-offset:  calc(var(--blacksmith-menubar-height) + 2px);
-    --blacksmith-menubar-divider-height:  calc(var(--blacksmith-menubar-height) - 12px);
+    --blacksmith-menubar-primary-height: 26px;
+    --blacksmith-menubar-secondary-height: 0px;
+    --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
+    --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-primary-height) - 2px);
+    --blacksmith-menubar-interface-offset: calc(var(--blacksmith-menubar-total-height) + 2px);
+    --blacksmith-menubar-divider-height: calc(var(--blacksmith-menubar-primary-height) - 12px);
     --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.1);
     --blacksmith-menubar-backgroundcolor-endzones: rgba(48, 24, 29, 0.8);
     --blacksmith-menubar-border-endzones: 3px solid rgba(0, 0, 0, 0.2);
@@ -25,6 +27,11 @@
     margin-top: var(--blacksmith-menubar-interface-offset);
 }
 
+/* Secondary bar height adjustment */
+.blacksmith-menubar-container.has-secondary {
+    --blacksmith-menubar-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
+}
+
 .blacksmith-menubar-container {
   position: fixed;
   top: 0;
@@ -33,8 +40,8 @@
   z-index: 100;
   background-color: transparent;
   width: calc(100% - 8px);
-  min-height: var(--blacksmith-menubar-height);
-  max-height: var(--blacksmith-menubar-height);
+  min-height: var(--blacksmith-menubar-primary-height);
+  max-height: var(--blacksmith-menubar-primary-height);
   display: flex;
   align-items: center;
   justify-content: flex-start;                /* was space-between */
@@ -419,5 +426,116 @@
     color: #c1c1c1;
     font-size: 0.9em;
     margin: 0;
+}
+
+/* ------------------------------------ */
+/* --- SECONDARY MENUBAR -------------- */
+/* ------------------------------------ */
+
+.blacksmith-menubar-secondary {
+    position: fixed;
+    top: var(--blacksmith-menubar-primary-height);
+    left: 4px;
+    right: 4px;
+    z-index: 99;
+    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+    border: 1px solid rgba(17,17,17,0.8);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 0 20px 4px var(--color-shadow-dark);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    overflow: hidden;
+    min-height: var(--blacksmith-menubar-secondary-height);
+    max-height: var(--blacksmith-menubar-secondary-height);
+}
+
+/* Combat Tracker Specific Styles */
+.blacksmith-menubar-secondary[data-bar-type="combat"] {
+    /* Combat-specific styling can be added here */
+    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+}
+
+.combat-tracker-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+}
+
+.combat-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 60px;
+    font-size: 0.8em;
+    color: var(--blacksmith-menubar-fontcolor);
+}
+
+.combat-round {
+    font-weight: bold;
+}
+
+.combat-turn {
+    opacity: 0.8;
+}
+
+.combat-portraits {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    overflow-x: auto;
+    padding: 4px 0;
+}
+
+.combat-portrait {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.combat-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.combat-portrait.current {
+    border-color: #ff6400;
+    box-shadow: 0 0 8px rgba(255, 100, 0, 0.6);
+    transform: scale(1.1);
+}
+
+.combat-portrait.defeated {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
+
+.combat-portrait:hover {
+    transform: scale(1.05);
+}
+
+.combat-portrait.current:hover {
+    transform: scale(1.15);
+}
+
+.combat-status {
+    display: flex;
+    align-items: center;
+    min-width: 80px;
+    font-size: 0.8em;
+    color: var(--blacksmith-menubar-fontcolor);
+    opacity: 0.8;
 }
 

@@ -1,4 +1,4 @@
-<div class="blacksmith-menubar-container">
+<div class="blacksmith-menubar-container {{#if secondaryBar.isOpen}}has-secondary{{/if}}">
     {{!-- LEFT ZONE --}}
     <div class="blacksmith-menubar-left">
         {{#each toolsByZone.left}}
@@ -82,4 +82,38 @@
             <span class="session-timer">{{timerText}}</span>
         </div>
     </div>
-</div> 
+</div>
+
+{{!-- SECONDARY BAR --}}
+{{#if secondaryBar.isOpen}}
+<div class="blacksmith-menubar-secondary" 
+     data-bar-type="{{secondaryBar.type}}"
+     style="height: {{secondaryBar.height}}px;">
+    {{#if (eq secondaryBar.type "combat")}}
+        {{!-- Combat Tracker Secondary Bar --}}
+        <div class="combat-tracker-bar">
+            {{!-- Combat Info --}}
+            <div class="combat-info">
+                <span class="combat-round">Round {{secondaryBar.data.currentRound}}</span>
+                <span class="combat-turn">{{secondaryBar.data.currentTurn}} / {{secondaryBar.data.totalTurns}}</span>
+            </div>
+            
+            {{!-- Combat Portraits --}}
+            <div class="combat-portraits">
+                {{#each secondaryBar.data.combatants}}
+                <div class="combat-portrait {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
+                     data-combatant-id="{{id}}"
+                     data-tooltip="{{name}} - Initiative: {{initiative}}">
+                    <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
+                </div>
+                {{/each}}
+            </div>
+            
+            {{!-- Combat Status --}}
+            <div class="combat-status">
+                <span class="combat-state">{{#if secondaryBar.data.isActive}}Active Combat{{else}}Combat Ended{{/if}}</span>
+            </div>
+        </div>
+    {{/if}}
+</div>
+{{/if}}
