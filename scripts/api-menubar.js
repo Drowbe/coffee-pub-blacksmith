@@ -188,6 +188,31 @@ class MenuBar {
             }
         });
 
+        // Hook for combatant creation (when combatants are added to combat)
+        const combatantCreateHookId = HookManager.registerHook({
+            name: 'createCombatant',
+            description: 'MenuBar: Open combat bar when combatants are added',
+            context: 'menubar-combatant-create',
+            priority: 3,
+            callback: (combatant, options, userId) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant added hook fired", {
+                    combatantId: combatant.id,
+                    combatId: combatant.combat.id,
+                    combatantsCount: combatant.combat.combatants.size
+                }, true, false);
+                
+                // Auto-open combat bar when first combatant is added
+                if (combatant.combat.combatants.size === 1) {
+                    MenuBar.openCombatBar();
+                } else if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
+                    // Update existing combat bar
+                    MenuBar.updateCombatBar();
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
         // Hook for combat deletion
         const combatDeleteHookId = HookManager.registerHook({
             name: 'deleteCombat',
@@ -216,8 +241,8 @@ class MenuBar {
     static _checkActiveCombatOnLoad() {
         try {
             const combat = game.combats.active;
-            if (combat && combat.started) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar: Active combat found on load", "", true, false);
+            if (combat && combat.combatants.size > 0) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
                 // Small delay to ensure everything is ready
                 setTimeout(() => {
                     this.openCombatBar();
@@ -348,8 +373,9 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: true,
             visible: () => {
-                // Only show if there's an active combat
-                return game.combats.active !== null;
+                // Show if there's an active combat OR if there are combatants in any combat
+                const activeCombat = game.combats.active;
+                return activeCombat !== null && activeCombat.combatants.size > 0;
             },
             onClick: () => {
                 this.toggleSecondaryBar('combat');
