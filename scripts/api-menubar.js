@@ -1697,6 +1697,8 @@ class MenuBar {
     static closeCombatBar() {
         try {
             if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
+                // Reset userClosed flag when combat ends (not user-initiated)
+                this.secondaryBar.userClosed = false;
                 return this.closeSecondaryBar();
             }
             return true;
