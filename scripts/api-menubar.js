@@ -24,7 +24,7 @@ class MenuBar {
     static toolbarIcons = new Map();
     static previousRemainingMinutes = null;
     static activeContextMenu = null;
-    
+
     // Secondary bar system
     static secondaryBar = {
         isOpen: false,
@@ -103,6 +103,9 @@ class MenuBar {
         
         // Register combat hooks
         this._registerCombatHooks();
+        
+        // Register combat bar event handlers
+        this._registerCombatBarEvents();
     }
 
     static async _registerPartials() {
@@ -301,6 +304,55 @@ class MenuBar {
         });
 
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
+    }
+
+    /**
+     * Register event handlers for combat bar interactions
+     * @private
+     */
+    static _registerCombatBarEvents() {
+        // Use event delegation to handle clicks on initiative dice
+        document.addEventListener('click', async (event) => {
+            // Check if this is an initiative roll button
+            if (event.target.closest('.combat-portrait-initiative-dice a[data-control="rollInitiative"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const button = event.target.closest('a');
+                const combatantId = button.dataset.combatantId;
+                
+                if (!combatantId) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: No combatant ID found for initiative roll", "", true, false);
+                    return;
+                }
+                
+                try {
+                    const combat = game.combat;
+                    if (!combat) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat found", "", true, false);
+                        return;
+                    }
+                    
+                    const combatant = combat.combatants.get(combatantId);
+                    if (!combatant) {
+                        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combatant ${combatantId} not found`, "", true, false);
+                        return;
+                    }
+                    
+                    // Roll initiative for this combatant
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
+                    await combatant.rollInitiative();
+                    
+                    // Update the combat bar to reflect the new initiative
+                    this.updateCombatBar();
+                    
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for combatant ${combatantId}`, error, true, false);
+                }
+            }
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
 
     /**
@@ -1737,24 +1789,25 @@ class MenuBar {
                     }
                 }
                 
-                const combatantData = {
-                    id: combatant.id,
-                    name: actor?.name || token?.name || 'Unknown',
-                    portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
-                    initiative: combatant.initiative || 0,
-                    isCurrent: combatant.id === combat.current.combatantId,
-                    isDefeated: combatant.disabled || false,
-                    currentHP: currentHP,
-                    maxHP: maxHP,
-                    healthPercentage: healthPercentage,
-                    healthCircumference: healthCircumference,
-                    healthDashOffset: healthDashOffset,
-                    healthClass: healthClass,
-                    svgSize: size,
-                    svgCenter: size / 2,
-                    svgRadius: radius,
-                    svgStrokeWidth: strokeWidth
-                };
+                   const combatantData = {
+                       id: combatant.id,
+                       name: actor?.name || token?.name || 'Unknown',
+                       portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
+                       initiative: combatant.initiative || 0,
+                       isCurrent: combatant.id === combat.current.combatantId,
+                       isDefeated: combatant.disabled || false,
+                       needsInitiative: combatant.initiative === null,
+                       currentHP: currentHP,
+                       maxHP: maxHP,
+                       healthPercentage: healthPercentage,
+                       healthCircumference: healthCircumference,
+                       healthDashOffset: healthDashOffset,
+                       healthClass: healthClass,
+                       svgSize: size,
+                       svgCenter: size / 2,
+                       svgRadius: radius,
+                       svgStrokeWidth: strokeWidth
+                   };
                 
                 postConsoleAndNotification(MODULE.NAME, `MENUBAR | Combatant Data: ${combatantData.name}`, {
                     name: combatantData.name,

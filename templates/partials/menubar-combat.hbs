@@ -9,28 +9,40 @@
     {{!-- Combat Portraits --}}
     <div class="combat-portraits">
         {{#each combatants}}
-        <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
-             data-combatant-id="{{id}}"
-             data-tooltip="{{name}} - Initiative: {{initiative}} - HP: {{currentHP}}/{{maxHP}}">
-            <div class="combat-portrait-healthring">
-                <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
-                    <circle
-                        cx="{{svgCenter}}"
-                        cy="{{svgCenter}}"
-                        r="{{svgRadius}}"
-                        fill="none"
-                        stroke-width="{{svgStrokeWidth}}"
-                        stroke-dasharray="{{healthCircumference}}"
-                        stroke-dashoffset="{{healthDashOffset}}"
-                        transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
-                        {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
-                    />
-                </svg>
-            </div>
-            <div class="combat-portrait-image">
-                <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
-            </div>
-        </div>
+               <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
+                    data-combatant-id="{{id}}"
+                    data-tooltip="{{name}} - Initiative: {{initiative}} - HP: {{currentHP}}/{{maxHP}}">
+                   <div class="combat-portrait-healthring">
+                       <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
+                           <circle
+                               cx="{{svgCenter}}"
+                               cy="{{svgCenter}}"
+                               r="{{svgRadius}}"
+                               fill="none"
+                               stroke-width="{{svgStrokeWidth}}"
+                               stroke-dasharray="{{healthCircumference}}"
+                               stroke-dashoffset="{{healthDashOffset}}"
+                               transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
+                               {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
+                           />
+                       </svg>
+                   </div>
+                   <div class="combat-portrait-image">
+                       <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
+                   </div>
+                   {{#if needsInitiative}}
+                   <div class="combat-portrait-initiative-dice">
+                       <a class="combatant-control roll" 
+                          aria-label="Roll Initiative" 
+                          role="button" 
+                          data-tooltip="COMBAT.InitiativeRoll" 
+                          data-control="rollInitiative"
+                          data-combatant-id="{{id}}">
+                           <i class="fas fa-dice-d20"></i>
+                       </a>
+                   </div>
+                   {{/if}}
+               </div>
         {{/each}}
     </div>
 

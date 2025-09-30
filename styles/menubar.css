@@ -22,7 +22,7 @@
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.9);
     /* SECONDARY BAR VARIABLES */
     --blacksmith-menubar-secondary-default-height: 0px;
-    --blacksmith-menubar-secondary-combat-height: 48px;
+    --blacksmith-menubar-secondary-combat-height: 60px;
  }
 
 /* Push main interface down to account for fixed menubar */
@@ -511,6 +511,7 @@
     --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
     --healthbar-size: calc(var(--portrait-container-height) - 6px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
+    --action-icon-size: calc(var(--healthbar-size) - 10px);
     /* Thickness of the SVG stroke */
     --ring-thickness: 2px;
     --gap: 0px;
@@ -569,6 +570,7 @@
     overflow: hidden;
     z-index: 1;
     border: none;
+    
   }
   
   .blacksmith-menubar-secondary .combat-portrait-image img {
@@ -579,7 +581,7 @@
     border-radius: 50%;
     -webkit-user-drag: none;
     user-select: none;
-    border: none;
+    border: 0px solid rgba(255, 255, 255, 0.2);
   }
   
   
@@ -587,7 +589,7 @@
      States
      ========================= */
   .blacksmith-menubar-secondary .combat-portrait-container:hover {
-    transform: scale(0.96);
+    transform: scale(1.0);
     border-color: rgba(223, 98, 20, 0.9);
     background: rgba(223, 98, 20, 0.2);
   }
@@ -603,7 +605,7 @@
   }
   
   .blacksmith-menubar-secondary .combat-portrait-container.defeated {
-    opacity: .5;
+    opacity: .7;
     filter: grayscale(100%);
   }
   
@@ -612,7 +614,7 @@
      ========================= */
   .blacksmith-menubar-secondary .combat-portrait-healthring {
     /* no debug border in production; uncomment if needed */
-    /* border: 1px solid #ffffff; */
+    /* border: 0px solid #ffffff; */
     pointer-events: none;
     z-index: 2;
   }
@@ -652,8 +654,44 @@
     50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
     100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
   }
-  .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
-    animation: blacksmith-pulse-dead 2s ease-in-out infinite;
-  }
-  
-  
+   .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
+     animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+   }
+   
+   /* =========================
+      Initiative Dice Overlay
+      ========================= */
+   .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
+     position: absolute;
+     top: 50%;
+     left: 50%;
+     transform: translate(-50%, -50%);
+     z-index: 3;
+     pointer-events: auto;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     width: var(--action-icon-size);
+     height: var(--action-icon-size);
+     background: rgba(0, 0, 0, 0.2);
+     border: 0px solid #ffd700;
+     border-radius: 50%;
+     color: rgba(255, 255, 255, 0.7);
+     text-decoration: none;
+     transition: all 0.2s ease;
+     font-size: 1.2em;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
+     background: rgba(255, 215, 0, 0.2);
+     border-color: #ffed4e;
+     color: rgba(223, 98, 20, 0.9);
+     transform: scale(1.0);
+   }
+   
+   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a:active {
+     transform: scale(0.95);
+   }
