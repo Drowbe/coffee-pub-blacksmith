@@ -93,10 +93,60 @@ class CombatTracker {
 						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat deleted, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
-						// Close the combat tracker when combat is deleted
-						if (ui.combat) {
-							ui.combat.close();
-						}
+
+
+						// No encounter / ended — close any tracker UI
+						(async () => {
+							await ui.combat?.close?.({force:true});
+							ui.combat?._popOut?.close?.({force:true});
+							ui.combat?._popout?.close?.({force:true});
+							for (const app of Object.values(ui.windows)) {
+							const el = app?.element?.[0] ?? app?.element;
+							if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
+								await app.close({force:true});
+							}
+							}
+						})();
+
+
+
+						// // Close the combat tracker when combat is deleted
+						// postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting to close combat tracker", { 
+						// 	hasCombatUI: !!ui.combat 
+						// }, true, false);
+
+						// // Try to find the combat tracker instance
+						// const tracker = ui.combat;
+						// if (tracker) {
+						// 	tracker.close();
+						// 	postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting Thomas tracker.close();", "", true, false);
+						// }
+
+						// postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting Thomas BRUTE FORCE app.close();", "", true, false);
+						// for (const app of Object.values(ui.windows)) {
+						// 	if (app instanceof CombatTracker) {
+						// 	  app.close();
+						// 	  postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting Thomas BRUTE FORCE LOOP app.close();", "", true, false);
+						// 	}
+						//   }
+						  
+
+
+
+						// // Close the main combat tracker
+						// if (ui.combat) {
+						// 	ui.combat.close();
+						// 	postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting ui.combat.close();", "", true, false);
+						// }
+						
+
+						// // Also close any popped-out combat tracker windows
+						// for (const app of Object.values(ui.windows)) {
+						// 	if (app.constructor.name === 'CombatTracker') {
+						// 		app.close();
+						// 		postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Attempting app.close();", "", true, false);
+						// 	}
+						// }
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -112,9 +162,17 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat ends
-						if (ui.combat) {
-							ui.combat.close();
-						}
+						(async () => {
+							await ui.combat?.close?.({force:true});
+							ui.combat?._popOut?.close?.({force:true});
+							ui.combat?._popout?.close?.({force:true});
+							for (const app of Object.values(ui.windows)) {
+								const el = app?.element?.[0] ?? app?.element;
+								if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
+									await app.close({force:true});
+								}
+							}
+						})();
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
