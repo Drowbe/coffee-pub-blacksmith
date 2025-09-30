@@ -485,14 +485,22 @@ class MenuBar {
         });
 
         this.registerMenubarTool('combat-tracker', {
-            icon: "fas fa-skull-crossbones",
+            icon: "fas fa-swords",
             name: "combat-tracker",
-            title: "Combat Tracker",
-            tooltip: "Toggle combat tracker secondary bar",
+            title: () => {
+                // Dynamic title based on combat bar state
+                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
+                return isCombatBarOpen ? "Hide Combat Bar" : "Show Combat Bar";
+            },
+            tooltip: () => {
+                // Dynamic tooltip based on combat bar state
+                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
+                return isCombatBarOpen ? "Hide combat tracker secondary bar" : "Show combat tracker secondary bar";
+            },
             zone: "middle",
             order: 7,
             moduleId: "blacksmith-core",
-            gmOnly: true,
+            gmOnly: false, // Available to all players
             visible: () => {
                 // Show if there's an active combat OR if there are combatants in any combat
                 const activeCombat = game.combats.active;
@@ -765,29 +773,25 @@ class MenuBar {
             if (isVisible) {
                 const zone = tool.zone || 'left';
                 
+                // Process title and tooltip if they are functions
+                const processedTool = {
+                    toolId,
+                    ...tool,
+                    title: typeof tool.title === 'function' ? tool.title() : tool.title,
+                    tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip
+                };
+                
                 if (zone === 'middle') {
                     // Group middle tools by visibility requirements
                     if (tool.gmOnly) {
-                        zones.middle.gm.push({
-                            toolId,
-                            ...tool
-                        });
+                        zones.middle.gm.push(processedTool);
                     } else if (tool.leaderOnly) {
-                        zones.middle.leader.push({
-                            toolId,
-                            ...tool
-                        });
+                        zones.middle.leader.push(processedTool);
                     } else {
-                        zones.middle.general.push({
-                            toolId,
-                            ...tool
-                        });
+                        zones.middle.general.push(processedTool);
                     }
                 } else {
-                    zones[zone].push({
-                        toolId,
-                        ...tool
-                    });
+                    zones[zone].push(processedTool);
                 }
             }
         });
@@ -1582,6 +1586,10 @@ class MenuBar {
                 // Close if same type is open (user initiated)
                 return this.closeSecondaryBar(true);
             } else {
+                // For combat bars, reset the userClosed flag since this is a deliberate user action
+                if (typeId === 'combat') {
+                    this.secondaryBar.userClosed = false;
+                }
                 // Open the specified type
                 return this.openSecondaryBar(typeId, options);
             }
