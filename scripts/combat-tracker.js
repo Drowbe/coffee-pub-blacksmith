@@ -105,6 +105,12 @@ class CombatTracker {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat ended, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
+						
+						// Close the combat tracker when combat ends
+						const combatApp = ui["combat"];
+						if (combatApp && combatApp.popOut) {
+							combatApp.popOut.close();
+						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -322,8 +328,8 @@ class CombatTracker {
 						if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
 
 						const combat = game.combat;
-						// Check if there are combatants in the combat
-						if (combat?.combatants.size > 0) {
+						// Only auto-open if there's an active combat with combatants
+						if (combat?.started && combat?.combatants.size > 0) {
 							// Check if this user owns any combatants in the combat
 							if (combat.combatants.find(c => c.isOwner)) {
 								const tabApp = ui["combat"];

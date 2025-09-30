@@ -504,7 +504,7 @@ class MenuBar {
             visible: () => {
                 // Show if there's an active combat OR if there are combatants in any combat
                 const activeCombat = game.combats.active;
-                return activeCombat !== null && activeCombat.combatants.size > 0;
+                return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
             },
             onClick: () => {
                 this.toggleSecondaryBar('combat');
