@@ -22,7 +22,7 @@
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.9);
     /* SECONDARY BAR VARIABLES */
     --blacksmith-menubar-secondary-default-height: 0px;
-    --blacksmith-menubar-secondary-combat-height: 80px;
+    --blacksmith-menubar-secondary-combat-height: 48px;
  }
 
 /* Push main interface down to account for fixed menubar */
@@ -497,6 +497,9 @@
 }
 
 
+
+
+
 /* COMBAT PORTRAITS */
 
 /* =========================
@@ -504,147 +507,153 @@
    ========================= */
    .blacksmith-menubar-secondary {
     /* Scale everything based on bar height */
-    --portrait-size: calc(var(--blacksmith-menubar-secondary-height) * 0.7);  /* 80% of bar height */
-    --healthbar-size: calc(var(--blacksmith-menubar-secondary-height) * 0.8);  /* 80% of bar height */
-    --ring-width: calc(var(--blacksmith-menubar-secondary-height) * 0.06);    /* 6% of bar height */
-    --gap: calc(var(--blacksmith-menubar-secondary-height) * 0.08);           /* 8% of bar height */
-    --font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.16);     /* 16% of bar height */
-}
+    --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 2px);
+    --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
+    --healthbar-size: calc(var(--portrait-container-height) - 6px);
+    --portrait-size: calc(var(--healthbar-size) - 10px);
+    /* Thickness of the SVG stroke */
+    --ring-thickness: 2px;
+    --gap: 0px;
+    --font-size: 1em;
+  }
   
   /* =========================
      Container
      ========================= */
-.blacksmith-menubar-secondary .combat-portraits {
+  .blacksmith-menubar-secondary .combat-portraits {
     display: flex;
     gap: var(--gap);
     flex: 1;
-    justify-content: center;     /* center the row in the bar */
+    justify-content: center;   /* center the row in the bar */
     align-items: center;
     overflow-x: auto;
-    padding: 4px 0;
+    padding: 0;
   }
   
-  /* Hide native scrollbar (optional) */
-.blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar { 
-    height: 6px; 
-}
-.blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar-thumb { 
-    background: rgba(255, 255, 255, 0.15); 
-    border-radius: 3px; 
-}
-  
   /* =========================
-     Portrait
+     Portrait Container
      ========================= */
-.blacksmith-menubar-secondary .combat-portrait {
+  .blacksmith-menubar-secondary .combat-portrait-container {
     position: relative;
-    width: var(--portrait-size);
-    height: var(--portrait-size);
+    width: var(--portrait-container-width);
+    height: var(--portrait-container-height);
     flex-shrink: 0;
     cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    border: 0px solid rgba(0, 0, 0, 0.9);   /* thin outer edge */
-    border-radius: 50%;            /* keep the tile circular */
-    background: rgba(0, 0, 0, 0.55); 
-  }
-  
-  /* Shared container for image + ring so they align perfectly */
-.blacksmith-menubar-secondary .portrait-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
+    border: 1px solid rgba(0, 0, 0, 0.0);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0px;
   }
   
   /* =========================
-     Image layer (centered & clipped)
+     Portrait Image
      ========================= */
-.blacksmith-menubar-secondary .image-container,
-.blacksmith-menubar-secondary .combat-portrait-ring-container,
-.blacksmith-menubar-secondary .image-container img,
-.blacksmith-menubar-secondary .combat-portrait-ring-container svg {
+  .blacksmith-menubar-secondary .combat-portrait-image,
+  .blacksmith-menubar-secondary .combat-portrait-healthring {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%,-50%);
-    width: 100%;
-    height: 100%;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
   }
-  
-.blacksmith-menubar-secondary .image-container {
-    overflow: hidden;
-    z-index: 1;
-    border: 0px solid rgba(0, 0, 0, 0.9);   /* thin outer edge */
-
-  }
-  
-.blacksmith-menubar-secondary .image-container img {
-    object-fit: cover;
-    display: block;
-    border-radius: 50%;   /* ensure the image is round */
-    -webkit-user-drag: none;
-    user-select: none;
-  }
-  
-  /* =========================
-     Health ring (SVG on top)
-     ========================= */
-.blacksmith-menubar-secondary .combat-portrait-ring-container {
-    pointer-events: none;
-    z-index: 2;
-    border: 0px solid rgba(0, 0, 0, 0.9);   /* thin outer edge */
-  }
-  
-.blacksmith-menubar-secondary .combat-portrait-ring-container svg {
+  .blacksmith-menubar-secondary .combat-portrait-healthring {
     width: var(--healthbar-size);
     height: var(--healthbar-size);
+  }
+  .blacksmith-menubar-secondary .combat-portrait-image {
+    width: var(--portrait-size);
+    height: var(--portrait-size);
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-image {
+    overflow: hidden;
+    z-index: 1;
+    border: none;
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
-    
-}
-  
-.blacksmith-menubar-secondary .combat-portrait-ring-container circle {
-    fill: none;
-    stroke-width: var(--ring-width);
-    stroke-linecap: round;
-    /* Optional subtle glow */
-    filter: drop-shadow(0 0 1px rgba(0,0,0,.6));
+    border-radius: 50%;
+    -webkit-user-drag: none;
+    user-select: none;
+    border: none;
   }
   
-  /* Health Ring Colors (match your tracker states) */
-.blacksmith-menubar-secondary .combat-portrait-ring-healthy circle { stroke: #44b428; }
-.blacksmith-menubar-secondary .combat-portrait-ring-injured circle { stroke: #c09e16; }
-.blacksmith-menubar-secondary .combat-portrait-ring-bloodied circle { stroke: #c06312; }
-.blacksmith-menubar-secondary .combat-portrait-ring-critical circle { stroke: #a11c1b; }
-  
-  /* Dead pulsing */
-@keyframes blacksmith-pulse-dead {
-    0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
-    50%  { stroke: #d81010; filter: drop-shadow(0 0 3px #d81010); }
-    100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
-  }
-.blacksmith-menubar-secondary .combat-portrait-ring-dead circle { animation: blacksmith-pulse-dead 2s ease-in-out infinite; }
   
   /* =========================
      States
      ========================= */
-.blacksmith-menubar-secondary .combat-portrait:hover { 
-    transform: scale(1.00); 
-}
+  .blacksmith-menubar-secondary .combat-portrait-container:hover {
+    transform: scale(0.96);
+    border-color: rgba(223, 98, 20, 0.9);
+    background: rgba(223, 98, 20, 0.2);
+  }
   
-.blacksmith-menubar-secondary .combat-portrait.current {
-    border-color: #ff6400;
-    box-shadow: 0 0 8px rgba(255,100,0,.6);
+  .blacksmith-menubar-secondary .combat-portrait-container.current {
+    border-color: rgba(223, 98, 20, 1.0);
+    background: rgba(0, 0, 0, 0.6);
     transform: scale(1.00);
   }
-.blacksmith-menubar-secondary .combat-portrait.current:hover {
-     transform: scale(1.00); 
-}
   
-.blacksmith-menubar-secondary .combat-portrait.defeated {
+  .blacksmith-menubar-secondary .combat-portrait-container.current:hover {
+    transform: scale(1.00);
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-container.defeated {
     opacity: .5;
     filter: grayscale(100%);
   }
   
- 
+  /* =========================
+     Health Ring
+     ========================= */
+  .blacksmith-menubar-secondary .combat-portrait-healthring {
+    /* no debug border in production; uncomment if needed */
+    /* border: 1px solid #ffffff; */
+    pointer-events: none;
+    z-index: 2;
+  }
   
-
+  .blacksmith-menubar-secondary .combat-portrait-healthring svg {
+    /* Match the wrapper size exactly */
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-healthring circle {
+    fill: none;
+    stroke-linecap: round;
+    stroke-width: var(--ring-thickness);
+    filter: drop-shadow(0 0 1px rgba(0,0,0,.6));
+    shape-rendering: geometricPrecision;
+  }
+  
+  /* Health Ring Colors (match your tracker states) */
+  .blacksmith-menubar-secondary .combat-portrait-ring-healthy   circle { 
+      stroke: #44b428; 
+  }
+  .blacksmith-menubar-secondary .combat-portrait-ring-injured   circle { 
+      stroke: #c09e16; 
+  }
+  .blacksmith-menubar-secondary .combat-portrait-ring-bloodied  circle { 
+      stroke: #c06312; 
+  }
+  .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
+      stroke: #a11c1b; 
+  }
+  
+  /* Dead pulsing */
+  @keyframes blacksmith-pulse-dead {
+    0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+    50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
+    100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+  }
+  .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
+    animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+  }
+  
+  

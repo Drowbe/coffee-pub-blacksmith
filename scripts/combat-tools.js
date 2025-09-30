@@ -314,6 +314,8 @@ const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
 // ================================================================== 
 
 class CombatTools {
+    static _restorationAttempted = false;
+
     /**
      * Apply resizable settings to the combat tracker
      * @param {jQuery} html - The combat tracker HTML
@@ -322,74 +324,66 @@ class CombatTools {
         const combatPopout = document.querySelector('#combat-popout');
         if (!combatPopout) return;
 
-        // Check if resizable is enabled
         const isResizable = game.settings.get(MODULE.ID, 'combatTrackerResizable');
         const rememberSize = game.settings.get(MODULE.ID, 'combatTrackerRememberSize');
 
         if (isResizable) {
-            // Add resizable class to body to enable CSS
             document.body.classList.add('combat-tracker-resizable');
 
-            // Restore saved size and position if enabled
-            if (rememberSize) {
-                // Wait for the window to be fully rendered before restoring
-                setTimeout(() => {
-                    this.restoreCombatTrackerSize(combatPopout);
-                }, 200);
-                
-                // Also try again after a longer delay in case the first attempt fails
-                setTimeout(() => {
-                    this.restoreCombatTrackerSize(combatPopout);
-                }, 1000);
+            // Add resize handle if it doesn't exist
+            if (!combatPopout.querySelector('.window-resizable-handle')) {
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'window-resizable-handle';
+                resizeHandle.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
+                combatPopout.appendChild(resizeHandle);
             }
 
-            // Set up resize observer to save size and position
-            if (rememberSize) {
-                // Use a flag to prevent multiple observers
-                if (!combatPopout._resizeObserverSet) {
-                    let saveTimer;
-                    const debouncedSave = () => {
-                        clearTimeout(saveTimer);
-                        saveTimer = setTimeout(() => {
-                            this.saveCombatTrackerSize(combatPopout);
-                        }, 500); // Debounce saves to prevent excessive saving
-                    };
-                    
-                    const resizeObserver = new ResizeObserver((entries) => {
-                        for (let entry of entries) {
-                            if (entry.target === combatPopout) {
-                                debouncedSave();
-                            }
-                        }
-                    });
-                    resizeObserver.observe(combatPopout);
-                    combatPopout._resizeObserverSet = true;
-                    
-                    // Also listen for position changes (when dragged)
-                    let positionTimer;
-                    const updatePosition = () => {
-                        clearTimeout(positionTimer);
-                        positionTimer = setTimeout(() => {
-                            debouncedSave();
-                        }, 200); // Debounce position updates
-                    };
-                    
-                    // Listen for drag events on the window header
-                    const windowHeader = combatPopout.querySelector('.window-header');
-                    if (windowHeader) {
-                        windowHeader.addEventListener('mousedown', () => {
-                            document.addEventListener('mousemove', updatePosition);
-                            document.addEventListener('mouseup', () => {
-                                document.removeEventListener('mousemove', updatePosition);
-                                updatePosition(); // Final save
-                            }, { once: true });
-                        });
-                    }
-                }
+            // Restore saved size and position only once per session
+            if (rememberSize && !this._restorationAttempted) {
+                this._restorationAttempted = true;
+                setTimeout(() => {
+                    this.restoreCombatTrackerSize(combatPopout);
+                    this.setupSizeTracking(combatPopout);
+                }, 300);
+            } else if (rememberSize && !combatPopout._sizeTrackingSetup) {
+                this.setupSizeTracking(combatPopout);
             }
         } else {
-            // Remove resizable class
             document.body.classList.remove('combat-tracker-resizable');
+            // Remove resize handle if it exists
+            const existingHandle = combatPopout.querySelector('.window-resizable-handle');
+            if (existingHandle) {
+                existingHandle.remove();
+            }
+        }
+    }
+
+    /**
+     * Set up size and position tracking
+     * @param {HTMLElement} combatPopout - The combat tracker popout element
+     */
+    static setupSizeTracking(combatPopout) {
+        if (combatPopout._sizeTrackingSetup) return;
+        combatPopout._sizeTrackingSetup = true;
+
+        let saveTimer;
+        const debouncedSave = () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                this.saveCombatTrackerSize(combatPopout);
+            }, 1000);
+        };
+
+        // Track resize changes
+        const resizeObserver = new ResizeObserver(() => debouncedSave());
+        resizeObserver.observe(combatPopout);
+
+        // Track position changes (drag)
+        const windowHeader = combatPopout.querySelector('.window-header');
+        if (windowHeader) {
+            windowHeader.addEventListener('mousedown', () => {
+                document.addEventListener('mouseup', debouncedSave, { once: true });
+            });
         }
     }
 
@@ -419,45 +413,28 @@ class CombatTools {
      */
     static restoreCombatTrackerSize(combatPopout) {
         try {
-            // Check if the popout is actually visible and has dimensions
             if (!combatPopout || combatPopout.offsetWidth === 0 || combatPopout.offsetHeight === 0) {
-                return; // Skip if window isn't ready
+                return;
             }
             
             const savedSize = game.settings.get(MODULE.ID, 'combatTrackerSize');
-            if (savedSize && savedSize.width && savedSize.height && savedSize.width > 0 && savedSize.height > 0) {
-                // Set size
-                combatPopout.style.width = `${savedSize.width}px`;
-                combatPopout.style.height = `${savedSize.height}px`;
-                
-                // Try to restore position using FoundryVTT's window system
-                const combatApp = game.combat?.app;
-                if (combatApp) {
-                    // Use FoundryVTT's positioning system
-                    if (combatApp.position) {
-                        combatApp.position.x = savedSize.left;
-                        combatApp.position.y = savedSize.top;
-                    }
-                    // Also try setting the position directly on the element
-                    combatPopout.style.left = `${savedSize.left}px`;
-                    combatPopout.style.top = `${savedSize.top}px`;
-                    combatPopout.style.position = 'fixed';
-                    combatPopout.style.zIndex = '1000';
-                    
-                    // Force a render to apply the position
-                    if (combatApp.render) {
-                        combatApp.render();
-                    }
-                } else {
-                    // Fallback to direct style setting
-                    if (savedSize.left >= 0 && savedSize.top >= 0) {
-                        combatPopout.style.left = `${savedSize.left}px`;
-                        combatPopout.style.top = `${savedSize.top}px`;
-                        combatPopout.style.position = 'fixed';
-                        combatPopout.style.zIndex = '1000';
-                    }
-                }
-                
+            if (!savedSize || !savedSize.width || !savedSize.height || savedSize.width <= 0 || savedSize.height <= 0) {
+                return;
+            }
+
+            // Validate position is within screen bounds
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const validLeft = Math.max(0, Math.min(savedSize.left, screenWidth - savedSize.width));
+            const validTop = Math.max(0, Math.min(savedSize.top, screenHeight - savedSize.height));
+
+            // Use FoundryVTT's positioning system only
+            const combatApp = game.combat?.app;
+            if (combatApp && combatApp.position) {
+                combatApp.position.x = validLeft;
+                combatApp.position.y = validTop;
+                combatApp.position.width = savedSize.width;
+                combatApp.position.height = savedSize.height;
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error restoring combat tracker size", error, false, false);
