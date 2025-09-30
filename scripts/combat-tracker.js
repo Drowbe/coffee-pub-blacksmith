@@ -72,8 +72,8 @@ class CombatTracker {
 						
 						// Auto-open combat tracker when combat is created
 						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-							// Check if this user owns any combatants in the combat
-							if (combat.combatants.find(c => c.isOwner)) {
+							// Open for GM or if this user owns any combatants in the combat
+							if (game.user.isGM || combat.combatants.find(c => c.isOwner)) {
 								const tabApp = ui["combat"];
 								tabApp.renderPopout(tabApp);
 							}
@@ -94,9 +94,8 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat is deleted
-						const combatApp = ui["combat"];
-						if (combatApp && combatApp.popOut) {
-							combatApp.popOut.close();
+						if (ui.combat) {
+							ui.combat.close();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -113,9 +112,8 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat ends
-						const combatApp = ui["combat"];
-						if (combatApp && combatApp.popOut) {
-							combatApp.popOut.close();
+						if (ui.combat) {
+							ui.combat.close();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -336,8 +334,8 @@ class CombatTracker {
 						const combat = game.combat;
 						// Only auto-open if there's an active combat with combatants
 						if (combat?.started && combat?.combatants.size > 0) {
-							// Check if this user owns any combatants in the combat
-							if (combat.combatants.find(c => c.isOwner)) {
+							// Open for GM or if this user owns any combatants in the combat
+							if (game.user.isGM || combat.combatants.find(c => c.isOwner)) {
 								const tabApp = ui["combat"];
 								tabApp.renderPopout(tabApp);
 							}
