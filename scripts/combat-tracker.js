@@ -93,11 +93,20 @@ class CombatTracker {
 						// Close the combat tracker when combat is deleted
 						const combatApp = ui["combat"];
 						if (combatApp) {
+							// Close the popup window if it exists
 							if (combatApp.popOut) {
 								combatApp.popOut.close();
-							} else if (combatApp.element && combatApp.element.length > 0) {
+							}
+							// Also try to close the main combat tracker
+							if (combatApp.element && combatApp.element.length > 0) {
 								combatApp.close();
 							}
+						}
+						
+						// Force close any remaining combat popup elements
+						const combatPopup = document.getElementById("combat-popout");
+						if (combatPopup) {
+							combatPopup.remove();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -116,11 +125,20 @@ class CombatTracker {
 						// Close the combat tracker when combat ends
 						const combatApp = ui["combat"];
 						if (combatApp) {
+							// Close the popup window if it exists
 							if (combatApp.popOut) {
 								combatApp.popOut.close();
-							} else if (combatApp.element && combatApp.element.length > 0) {
+							}
+							// Also try to close the main combat tracker
+							if (combatApp.element && combatApp.element.length > 0) {
 								combatApp.close();
 							}
+						}
+						
+						// Force close any remaining combat popup elements
+						const combatPopup = document.getElementById("combat-popout");
+						if (combatPopup) {
+							combatPopup.remove();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
