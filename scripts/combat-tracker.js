@@ -72,8 +72,11 @@ class CombatTracker {
 						
 						// Auto-open combat tracker when combat is created
 						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-							const tabApp = ui["combat"];
-							tabApp.renderPopout(tabApp);
+							// Check if this user owns any combatants in the combat
+							if (combat.combatants.find(c => c.isOwner)) {
+								const tabApp = ui["combat"];
+								tabApp.renderPopout(tabApp);
+							}
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -92,21 +95,8 @@ class CombatTracker {
 						
 						// Close the combat tracker when combat is deleted
 						const combatApp = ui["combat"];
-						if (combatApp) {
-							// Close the popup window if it exists
-							if (combatApp.popOut) {
-								combatApp.popOut.close();
-							}
-							// Also try to close the main combat tracker
-							if (combatApp.element && combatApp.element.length > 0) {
-								combatApp.close();
-							}
-						}
-						
-						// Force close any remaining combat popup elements
-						const combatPopup = document.getElementById("combat-popout");
-						if (combatPopup) {
-							combatPopup.remove();
+						if (combatApp && combatApp.popOut) {
+							combatApp.popOut.close();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -124,21 +114,8 @@ class CombatTracker {
 						
 						// Close the combat tracker when combat ends
 						const combatApp = ui["combat"];
-						if (combatApp) {
-							// Close the popup window if it exists
-							if (combatApp.popOut) {
-								combatApp.popOut.close();
-							}
-							// Also try to close the main combat tracker
-							if (combatApp.element && combatApp.element.length > 0) {
-								combatApp.close();
-							}
-						}
-						
-						// Force close any remaining combat popup elements
-						const combatPopup = document.getElementById("combat-popout");
-						if (combatPopup) {
-							combatPopup.remove();
+						if (combatApp && combatApp.popOut) {
+							combatApp.popOut.close();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -359,8 +336,11 @@ class CombatTracker {
 						const combat = game.combat;
 						// Only auto-open if there's an active combat with combatants
 						if (combat?.started && combat?.combatants.size > 0) {
-							const tabApp = ui["combat"];
-							tabApp.renderPopout(tabApp);
+							// Check if this user owns any combatants in the combat
+							if (combat.combatants.find(c => c.isOwner)) {
+								const tabApp = ui["combat"];
+								tabApp.renderPopout(tabApp);
+							}
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
