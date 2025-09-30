@@ -1699,7 +1699,8 @@ class MenuBar {
                 const secondaryHeight = parseInt(secondaryHeightStr) || 50;
                 const size = Math.floor(secondaryHeight * 0.8); // Match CSS: --portrait-size: calc(var(--blacksmith-menubar-secondary-height) * 0.8)
                 const strokeWidth = Math.max(2, Math.floor(size * 0.05)); // Stroke is ~5% of portrait size
-                const radius = (size - strokeWidth) / 2;
+                // Radius needs to account for half the stroke width to keep it within bounds
+                const radius = (size / 2) - (strokeWidth / 2);
                 
                 if (actor) {
                     // Try to get HP from actor

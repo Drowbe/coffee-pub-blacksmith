@@ -588,8 +588,8 @@
   }
   
 .blacksmith-menubar-secondary .combat-portrait-ring-container svg {
-    width: 40px;
-    height: 40px;
+    width: var(--portrait-size);
+    height: var(--portrait-size);
     display: block;
 }
   
