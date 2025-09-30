@@ -11,11 +11,31 @@
         {{#each combatants}}
         <div class="combat-portrait {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
              data-combatant-id="{{id}}"
-             data-tooltip="{{name}} - Initiative: {{initiative}}">
-            <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
+             data-tooltip="{{name}} - Initiative: {{initiative}} - HP: {{currentHP}}/{{maxHP}}">
+            <div class="portrait-container">
+                <div class="image-container">
+                    <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
+                </div>
+                <div class="combat-portrait-ring-container">
+                    <svg class="{{healthClass}}">
+                        <circle
+                            cx="20"
+                            cy="20"
+                            r="18"
+                            fill="none"
+                            stroke-width="3"
+                            stroke-dasharray="{{healthCircumference}}"
+                            stroke-dashoffset="{{healthDashOffset}}"
+                            transform="rotate(-90, 20, 20)"
+                            {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
+                        />
+                    </svg>
+                </div>
+            </div>
         </div>
         {{/each}}
     </div>
+
     
     {{!-- Combat Status --}}
     <div class="combat-status">

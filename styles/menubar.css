@@ -457,7 +457,7 @@
     background-color: var(--blacksmith-menubar-backgroundcolor-middle);
 }
 
-.combat-tracker-bar {
+.blacksmith-menubar-secondary .combat-tracker-bar {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -465,7 +465,7 @@
     height: 100%;
 }
 
-.combat-info {
+.blacksmith-menubar-secondary .combat-info {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -475,62 +475,16 @@
     color: var(--blacksmith-menubar-fontcolor);
 }
 
-.combat-round {
+.blacksmith-menubar-secondary .combat-round {
     font-weight: bold;
 }
 
-.combat-turn {
+.blacksmith-menubar-secondary .combat-turn {
     opacity: 0.8;
 }
 
-.combat-portraits {
-    display: flex;
-    gap: 4px;
-    flex: 1;
-    justify-content: center;
-    align-items: center;
-    overflow-x: auto;
-    padding: 4px 0;
-}
 
-.combat-portrait {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid transparent;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
-}
-
-.combat-portrait img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.combat-portrait.current {
-    border-color: #ff6400;
-    box-shadow: 0 0 8px rgba(255, 100, 0, 0.6);
-    transform: scale(1.1);
-}
-
-.combat-portrait.defeated {
-    opacity: 0.5;
-    filter: grayscale(100%);
-}
-
-.combat-portrait:hover {
-    transform: scale(1.05);
-}
-
-.combat-portrait.current:hover {
-    transform: scale(1.15);
-}
-
-.combat-status {
+.blacksmith-menubar-secondary .combat-status {
     display: flex;
     align-items: center;
     min-width: 80px;
@@ -538,4 +492,145 @@
     color: var(--blacksmith-menubar-fontcolor);
     opacity: 0.8;
 }
+
+
+
+/* COMBAT PORTRAITS */
+
+/* =========================
+   Tunables
+   ========================= */
+.blacksmith-menubar-secondary {
+    --portrait-size: 40px;       /* overall size for each portrait */
+    --ring-width: 3px;           /* health ring thickness */
+    --gap: 4px;                  /* spacing between portraits */
+  }
+  
+  /* =========================
+     Container
+     ========================= */
+.blacksmith-menubar-secondary .combat-portraits {
+    display: flex;
+    gap: var(--gap);
+    flex: 1;
+    justify-content: center;     /* center the row in the bar */
+    align-items: center;
+    overflow-x: auto;
+    padding: 4px 0;
+  }
+  
+  /* Hide native scrollbar (optional) */
+.blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar { height: 6px; }
+.blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+  
+  /* =========================
+     Portrait
+     ========================= */
+.blacksmith-menubar-secondary .combat-portrait {
+    position: relative;
+    width: var(--portrait-size);
+    height: var(--portrait-size);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    border: 1px solid #ffffff33;   /* thin outer edge */
+    border-radius: 50%;            /* keep the tile circular */
+    background: transparent;
+  }
+  
+  /* Shared container for image + ring so they align perfectly */
+.blacksmith-menubar-secondary .portrait-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* =========================
+     Image layer (centered & clipped)
+     ========================= */
+.blacksmith-menubar-secondary .image-container,
+.blacksmith-menubar-secondary .combat-portrait-ring-container,
+.blacksmith-menubar-secondary .image-container img,
+.blacksmith-menubar-secondary .combat-portrait-ring-container svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+  
+.blacksmith-menubar-secondary .image-container {
+    overflow: hidden;
+    z-index: 1;
+  }
+  
+.blacksmith-menubar-secondary .image-container img {
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;   /* ensure the image is round */
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  
+  /* =========================
+     Health ring (SVG on top)
+     ========================= */
+.blacksmith-menubar-secondary .combat-portrait-ring-container {
+    pointer-events: none;
+    z-index: 2;
+  }
+  
+.blacksmith-menubar-secondary .combat-portrait-ring-container svg {
+    width: 40px;
+    height: 40px;
+    display: block;
+}
+  
+.blacksmith-menubar-secondary .combat-portrait-ring-container circle {
+    fill: none;
+    stroke-width: var(--ring-width);
+    stroke-linecap: round;
+    /* Optional subtle glow */
+    filter: drop-shadow(0 0 1px rgba(0,0,0,.6));
+  }
+  
+  /* Health Ring Colors (match your tracker states) */
+.blacksmith-menubar-secondary .combat-portrait-ring-healthy circle { stroke: #44b428; }
+.blacksmith-menubar-secondary .combat-portrait-ring-injured circle { stroke: #c09e16; }
+.blacksmith-menubar-secondary .combat-portrait-ring-bloodied circle { stroke: #c06312; }
+.blacksmith-menubar-secondary .combat-portrait-ring-critical circle { stroke: #a11c1b; }
+  
+  /* Dead pulsing */
+@keyframes blacksmith-pulse-dead {
+    0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+    50%  { stroke: #d81010; filter: drop-shadow(0 0 3px #d81010); }
+    100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+  }
+.blacksmith-menubar-secondary .combat-portrait-ring-dead circle { animation: blacksmith-pulse-dead 2s ease-in-out infinite; }
+  
+  /* =========================
+     States
+     ========================= */
+.blacksmith-menubar-secondary .combat-portrait:hover { transform: scale(1.05); }
+  
+.blacksmith-menubar-secondary .combat-portrait.current {
+    border-color: #ff6400;
+    box-shadow: 0 0 8px rgba(255,100,0,.6);
+    transform: scale(1.1);
+  }
+.blacksmith-menubar-secondary .combat-portrait.current:hover { transform: scale(1.15); }
+  
+.blacksmith-menubar-secondary .combat-portrait.defeated {
+    opacity: .5;
+    filter: grayscale(100%);
+  }
+  
+  /* =========================
+     Optional: size variants
+     ========================= */
+.blacksmith-menubar-secondary .combat-portrait.sm { --portrait-size: 32px; }
+.blacksmith-menubar-secondary .combat-portrait.lg { --portrait-size: 56px; }
+  
 

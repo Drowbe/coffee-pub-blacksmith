@@ -39,7 +39,7 @@ class MenuBar {
     static secondaryBarTypes = new Map();
     static renderTimeout = null;
 
-    static initialize() {
+    static async initialize() {
         // Load the templates
         loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
@@ -47,6 +47,9 @@ class MenuBar {
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
+        
+        // Register Handlebars partials
+        await this._registerPartials();
 
         // Register Handlebars helpers
         Handlebars.registerHelper('or', function() {
@@ -55,6 +58,10 @@ class MenuBar {
         
         Handlebars.registerHelper('eq', function(a, b) {
             return a === b;
+        });
+        
+        Handlebars.registerHelper('gt', function(a, b) {
+            return a > b;
         });
 
         // Simple DOM insertion - no complex hooks needed
@@ -96,6 +103,18 @@ class MenuBar {
         
         // Register combat hooks
         this._registerCombatHooks();
+    }
+
+    static async _registerPartials() {
+        try {
+            // Load and register the combat bar partial
+            const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs').then(response => response.text());
+            Handlebars.registerPartial('menubar-combat', combatBarTemplate);
+            
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Partials registered successfully", "", false, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering partials", error.message, true, false);
+        }
     }
 
     static _registerModuleFeatures() {
@@ -155,12 +174,18 @@ class MenuBar {
             priority: 3,
             callback: (combat, updateData) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                if (updateData.turn !== undefined || updateData.round !== undefined) {
+                // Update on turn/round changes OR when combatants are updated
+                const shouldUpdate = updateData.turn !== undefined || 
+                                   updateData.round !== undefined ||
+                                   updateData.combatants !== undefined;
+                
+                if (shouldUpdate) {
                     postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat update hook fired", {
                         combatId: combat.id,
                         updateData: updateData,
                         currentTurn: combat.turn,
-                        currentRound: combat.round
+                        currentRound: combat.round,
+                        combatantsCount: combat.combatants.size
                     }, true, false);
                     
                     MenuBar.updateCombatBar();
@@ -207,6 +232,50 @@ class MenuBar {
                     MenuBar.openCombatBar();
                 } else if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
                     // Update existing combat bar
+                    MenuBar.updateCombatBar();
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combatant updates (initiative rolls, status changes, etc.)
+        const combatantUpdateHookId = HookManager.registerHook({
+            name: 'updateCombatant',
+            description: 'MenuBar: Update combat bar when combatants are updated',
+            context: 'menubar-combatant-update',
+            priority: 3,
+            callback: (combatant, updateData, options, userId) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant update hook fired", {
+                    combatantId: combatant.id,
+                    combatId: combatant.combat.id,
+                    updateData: updateData
+                }, true, false);
+                
+                // Update combat bar when combatant data changes
+                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
+                    MenuBar.updateCombatBar();
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combatant deletion
+        const combatantDeleteHookId = HookManager.registerHook({
+            name: 'deleteCombatant',
+            description: 'MenuBar: Update combat bar when combatants are removed',
+            context: 'menubar-combatant-delete',
+            priority: 3,
+            callback: (combatant, options, userId) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant removed hook fired", {
+                    combatantId: combatant.id,
+                    combatId: combatant.combat.id,
+                    remainingCombatants: combatant.combat.combatants.size
+                }, true, false);
+                
+                // Update combat bar when combatant is removed
+                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
                     MenuBar.updateCombatBar();
                 }
                 // --- END - HOOKMANAGER CALLBACK ---
@@ -1601,14 +1670,74 @@ class MenuBar {
                 const token = combatant.token;
                 const actor = combatant.actor;
                 
-                return {
+                // Get combat-portrait data
+                let currentHP = 0;
+                let maxHP = 0;
+                let healthPercentage = 100;
+                let healthCircumference = 0;
+                let healthDashOffset = 0;
+                let healthClass = 'combat-portrait-ring-healthy';
+                
+                if (actor) {
+                    // Try to get HP from actor
+                    if (actor.system?.attributes?.hp) {
+                        currentHP = actor.system.attributes.hp.value || 0;
+                        maxHP = actor.system.attributes.hp.max || 1;
+                    } else if (actor.system?.hitPoints) {
+                        currentHP = actor.system.hitPoints.value || 0;
+                        maxHP = actor.system.hitPoints.max || 1;
+                    }
+                    
+                    if (maxHP > 0) {
+                        healthPercentage = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
+                    }
+                    
+                    // Calculate SVG values for combat-portrait ring (matching combat tracker)
+                    const size = 40;
+                    const strokeWidth = 3;
+                    const radius = 18; // (40 - 3) / 2
+                    healthCircumference = 2 * Math.PI * radius;
+                    healthDashOffset = currentHP <= 0 ? 0 : healthCircumference - (healthPercentage / 100) * healthCircumference;
+                    
+                    // Get combat-portrait color class
+                    if (currentHP <= 0) {
+                        healthClass = 'combat-portrait-ring-dead';
+                    } else if (healthPercentage >= 75) {
+                        healthClass = 'combat-portrait-ring-healthy';
+                    } else if (healthPercentage >= 50) {
+                        healthClass = 'combat-portrait-ring-injured';
+                    } else if (healthPercentage >= 25) {
+                        healthClass = 'combat-portrait-ring-bloodied';
+                    } else {
+                        healthClass = 'combat-portrait-ring-critical';
+                    }
+                }
+                
+                const combatantData = {
                     id: combatant.id,
                     name: actor?.name || token?.name || 'Unknown',
                     portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
                     initiative: combatant.initiative || 0,
                     isCurrent: combatant.id === combat.current.combatantId,
-                    isDefeated: combatant.disabled || false
+                    isDefeated: combatant.disabled || false,
+                    currentHP: currentHP,
+                    maxHP: maxHP,
+                    healthPercentage: healthPercentage,
+                    healthCircumference: healthCircumference,
+                    healthDashOffset: healthDashOffset,
+                    healthClass: healthClass
                 };
+                
+                // Debug logging for combat-portrait data (temporarily disabled)
+                // postConsoleAndNotification(MODULE.NAME, "Combat Bar: combat-portrait data", {
+                //     name: combatantData.name,
+                //     currentHP: currentHP,
+                //     maxHP: maxHP,
+                //     healthPercentage: healthPercentage,
+                //     actorSystem: actor?.system ? 'exists' : 'missing'
+                // }, true, false);
+                
+                return combatantData;
             });
 
             // Sort combatants by initiative (highest first)

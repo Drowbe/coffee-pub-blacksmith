@@ -618,7 +618,7 @@ Hooks.once('init', async function() {
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
     
     // Initialize other systems
-    MenuBar.initialize();
+    await MenuBar.initialize();
     // COMBAT TIMER
     CombatTimer.initialize();
     // PLANNING TIMER
