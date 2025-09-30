@@ -499,12 +499,21 @@ class MenuBar {
     }
 
     /**
+     * Get the appropriate height variable for a secondary bar type
+     */
+    static getSecondaryBarHeight(typeId) {
+        const heightVar = `--blacksmith-menubar-secondary-${typeId}-height`;
+        const height = parseInt(getComputedStyle(document.documentElement).getPropertyValue(heightVar));
+        return height || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-default-height')) || 50;
+    }
+
+    /**
      * Register secondary bar types
      */
     static registerSecondaryBarTypes() {
         // Register combat tracker secondary bar
         this.registerSecondaryBarType('combat', {
-            height: 50,
+            height: this.getSecondaryBarHeight('combat'),
             persistence: 'manual',
             autoCloseDelay: 10000
         });
@@ -1412,7 +1421,7 @@ class MenuBar {
             // Set up the secondary bar
             this.secondaryBar.isOpen = true;
             this.secondaryBar.type = typeId;
-            this.secondaryBar.height = options.height || barType.height;
+            this.secondaryBar.height = options.height || this.getSecondaryBarHeight(typeId);
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
 
@@ -1426,7 +1435,7 @@ class MenuBar {
 
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
-            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + ${this.secondaryBar.height}px)`);
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height))`);
 
             // Set up auto-close if needed
             if (this.secondaryBar.persistence === 'auto') {
@@ -1692,12 +1701,15 @@ class MenuBar {
                         healthPercentage = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
                     }
                     
-                    // Calculate SVG values for combat-portrait ring (matching combat tracker)
+                    // Calculate SVG values for health ring (matching combat tracker exactly)
                     const size = 40;
-                    const strokeWidth = 3;
-                    const radius = 18; // (40 - 3) / 2
-                    healthCircumference = 2 * Math.PI * radius;
-                    healthDashOffset = currentHP <= 0 ? 0 : healthCircumference - (healthPercentage / 100) * healthCircumference;
+                    const strokeWidth = 2;
+                    const radius = 19;
+                    const circumference = 2 * Math.PI * radius;
+                    const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercentage / 100) * circumference;
+                    
+                    healthCircumference = circumference;
+                    healthDashOffset = dashOffset;
                     
                     // Get combat-portrait color class
                     if (currentHP <= 0) {
@@ -1725,7 +1737,11 @@ class MenuBar {
                     healthPercentage: healthPercentage,
                     healthCircumference: healthCircumference,
                     healthDashOffset: healthDashOffset,
-                    healthClass: healthClass
+                    healthClass: healthClass,
+                    svgSize: 40,
+                    svgCenter: 20,
+                    svgRadius: 19,
+                    svgStrokeWidth: 2
                 };
                 
                 // Debug logging for combat-portrait data (temporarily disabled)

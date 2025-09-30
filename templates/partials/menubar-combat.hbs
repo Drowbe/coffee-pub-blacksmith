@@ -17,16 +17,16 @@
                     <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
                 </div>
                 <div class="combat-portrait-ring-container">
-                    <svg class="{{healthClass}}">
+                    <svg width="{{svgSize}}" height="{{svgSize}}" class="{{healthClass}}">
                         <circle
-                            cx="20"
-                            cy="20"
-                            r="18"
+                            cx="{{svgCenter}}"
+                            cy="{{svgCenter}}"
+                            r="{{svgRadius}}"
                             fill="none"
-                            stroke-width="3"
+                            stroke-width="{{svgStrokeWidth}}"
                             stroke-dasharray="{{healthCircumference}}"
                             stroke-dashoffset="{{healthDashOffset}}"
-                            transform="rotate(-90, 20, 20)"
+                            transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
                             {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
                         />
                     </svg>

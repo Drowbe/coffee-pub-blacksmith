@@ -20,6 +20,9 @@
     --blacksmith-menubar-fontsize: .9em;
     --blacksmith-menubar-iconsize: .85em;
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.9);
+    /* SECONDARY BAR VARIABLES */
+    --blacksmith-menubar-secondary-default-height: 0px;
+    --blacksmith-menubar-secondary-combat-height: 150px;
  }
 
 /* Push main interface down to account for fixed menubar */
@@ -439,6 +442,7 @@
     right: 4px;
     z-index: 99;
     background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+    height: var(--blacksmith-menubar-secondary-height);
     border: 1px solid rgba(17,17,17,0.8);
     border-top: none;
     border-radius: 0 0 6px 6px;
@@ -447,9 +451,8 @@
     align-items: center;
     padding: 0 8px;
     overflow: hidden;
-    min-height: var(--blacksmith-menubar-secondary-height);
-    max-height: var(--blacksmith-menubar-secondary-height);
 }
+
 
 /* Combat Tracker Specific Styles */
 .blacksmith-menubar-secondary[data-bar-type="combat"] {
@@ -471,7 +474,7 @@
     align-items: center;
     gap: 2px;
     min-width: 60px;
-    font-size: 0.8em;
+    font-size: var(--font-size);
     color: var(--blacksmith-menubar-fontcolor);
 }
 
@@ -488,7 +491,7 @@
     display: flex;
     align-items: center;
     min-width: 80px;
-    font-size: 0.8em;
+    font-size: var(--font-size);
     color: var(--blacksmith-menubar-fontcolor);
     opacity: 0.8;
 }
@@ -501,10 +504,12 @@
    Tunables
    ========================= */
 .blacksmith-menubar-secondary {
-    --portrait-size: 40px;       /* overall size for each portrait */
-    --ring-width: 3px;           /* health ring thickness */
-    --gap: 4px;                  /* spacing between portraits */
-  }
+    /* Scale everything based on bar height */
+    --portrait-size: calc(var(--blacksmith-menubar-secondary-height) * 0.8);  /* 80% of bar height */
+    --ring-width: calc(var(--blacksmith-menubar-secondary-height) * 0.06);    /* 6% of bar height */
+    --gap: calc(var(--blacksmith-menubar-secondary-height) * 0.08);           /* 8% of bar height */
+    --font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.16);     /* 16% of bar height */
+}
   
   /* =========================
      Container
