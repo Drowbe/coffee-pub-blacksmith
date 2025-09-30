@@ -1602,16 +1602,22 @@ class MenuBar {
      */
     static openCombatBar(combatData = null) {
         try {
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | openCombatBar called", "", true, false);
+            
             const combat = game.combats.active;
             if (!combat) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: No active combat", "", true, false);
                 return false;
             }
+
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Active combat found", { combatId: combat.id, combatantsCount: combat.combatants.size }, true, false);
 
             // Reset user closed flag when combat starts
             this.secondaryBar.userClosed = false;
 
             const data = combatData || this.getCombatData(combat);
+            
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | About to open secondary bar", { dataKeys: Object.keys(data) }, true, false);
             
             return this.openSecondaryBar('combat', {
                 data: data,
@@ -1619,7 +1625,7 @@ class MenuBar {
             });
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error opening combat bar", { error }, false, false);
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Error opening combat bar", { error }, false, false);
             return false;
         }
     }
@@ -1687,6 +1693,14 @@ class MenuBar {
                 let healthDashOffset = 0;
                 let healthClass = 'combat-portrait-ring-healthy';
                 
+                // Calculate SVG values for health ring (derived from CSS variable)
+                // Portrait size is 80% of secondary bar height (defined in CSS)
+                const secondaryHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-combat-height');
+                const secondaryHeight = parseInt(secondaryHeightStr) || 50;
+                const size = Math.floor(secondaryHeight * 0.8); // Match CSS: --portrait-size: calc(var(--blacksmith-menubar-secondary-height) * 0.8)
+                const strokeWidth = Math.max(2, Math.floor(size * 0.05)); // Stroke is ~5% of portrait size
+                const radius = (size - strokeWidth) / 2;
+                
                 if (actor) {
                     // Try to get HP from actor
                     if (actor.system?.attributes?.hp) {
@@ -1701,10 +1715,7 @@ class MenuBar {
                         healthPercentage = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
                     }
                     
-                    // Calculate SVG values for health ring (matching combat tracker exactly)
-                    const size = 40;
-                    const strokeWidth = 2;
-                    const radius = 19;
+                    // Calculate health ring dash values
                     const circumference = 2 * Math.PI * radius;
                     const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercentage / 100) * circumference;
                     
@@ -1738,20 +1749,21 @@ class MenuBar {
                     healthCircumference: healthCircumference,
                     healthDashOffset: healthDashOffset,
                     healthClass: healthClass,
-                    svgSize: 40,
-                    svgCenter: 20,
-                    svgRadius: 19,
-                    svgStrokeWidth: 2
+                    svgSize: size,
+                    svgCenter: size / 2,
+                    svgRadius: radius,
+                    svgStrokeWidth: strokeWidth
                 };
                 
-                // Debug logging for combat-portrait data (temporarily disabled)
-                // postConsoleAndNotification(MODULE.NAME, "Combat Bar: combat-portrait data", {
-                //     name: combatantData.name,
-                //     currentHP: currentHP,
-                //     maxHP: maxHP,
-                //     healthPercentage: healthPercentage,
-                //     actorSystem: actor?.system ? 'exists' : 'missing'
-                // }, true, false);
+                postConsoleAndNotification(MODULE.NAME, `MENUBAR | Combatant Data: ${combatantData.name}`, {
+                    name: combatantData.name,
+                    svgSize: combatantData.svgSize,
+                    svgCenter: combatantData.svgCenter,
+                    svgRadius: combatantData.svgRadius,
+                    healthCircumference: combatantData.healthCircumference,
+                    healthDashOffset: combatantData.healthDashOffset,
+                    healthClass: combatantData.healthClass
+                }, true, false);
                 
                 return combatantData;
             });
@@ -1759,16 +1771,30 @@ class MenuBar {
             // Sort combatants by initiative (highest first)
             combatants.sort((a, b) => b.initiative - a.initiative);
 
-            return {
+            const combatData = {
                 currentRound: combat.round || 1,
                 currentTurn: combat.turn || 1,
                 totalTurns: combatants.length,
                 combatants: combatants,
                 isActive: combat.started
             };
+            
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Combat data generated", {
+                currentRound: combatData.currentRound,
+                currentTurn: combatData.currentTurn,
+                totalTurns: combatData.totalTurns,
+                combatantsCount: combatants.length,
+                isActive: combatData.isActive,
+                firstCombatant: combatants[0]?.name
+            }, true, false);
+            
+            return combatData;
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error getting combat data", { error }, false, false);
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Error getting combat data", { 
+                error: error.message,
+                stack: error.stack
+            }, true, false);
             return {};
         }
     }
