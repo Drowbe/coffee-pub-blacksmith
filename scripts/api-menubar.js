@@ -313,6 +313,39 @@ class MenuBar {
     static _registerCombatBarEvents() {
         // Use event delegation to handle clicks on combat bar controls
         document.addEventListener('click', async (event) => {
+            // Check if this is a round control button
+            if (event.target.closest('.combatbar-button[data-control="previousRound"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.previousRound();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous round", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to previous round", error, true, false);
+                }
+                return;
+            }
+            
+            if (event.target.closest('.combatbar-button[data-control="nextRound"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextRound();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next round", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to next round", error, true, false);
+                }
+                return;
+            }
+            
             // Check if this is a turn control button
             if (event.target.closest('.combatbar-button[data-control="previousTurn"]')) {
                 event.preventDefault();
