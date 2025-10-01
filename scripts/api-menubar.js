@@ -319,26 +319,47 @@ class MenuBar {
                 return;
             }
 
+            // Check permissions: only allow rolling initiative for owned combatants or if user is GM
+            if (!combatant.isOwner && !game.user.isGM) {
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: User lacks permission to roll initiative for ${combatant.name}`, "", false, false);
+                ui.notifications.warn(`You don't have permission to roll initiative for ${combatant.name}`);
+                return;
+            }
+
             postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
 
-            // Debug: Check what methods are available on the actor
-            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Actor debug info`, {
+            // Debug: Check what methods are available on the combatant and actor
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combatant debug info`, {
                 actorType: combatant.actor.type,
-                hasRollInitiative: typeof combatant.actor.rollInitiative === 'function',
+                hasRollInitiative: typeof combatant.rollInitiative === 'function',
                 actorConstructor: combatant.actor.constructor.name,
-                actorSystem: combatant.actor.system?.constructor?.name
+                actorSystem: combatant.actor.system?.constructor?.name,
+                isOwner: combatant.isOwner,
+                isGM: game.user.isGM,
+                currentUserId: game.user.id,
+                rollMode: game.settings.get('core', 'rollMode'),
+                hasDialogOption: combatant.rollInitiative.toString().includes('dialog')
             }, true, false);
 
-            // Try different approaches based on D&D5E version
-            if (combatant.actor.type === 'character' || combatant.actor.type === 'npc') {
-                // For D&D5E characters and NPCs, use the actor's rollInitiative method
+            // Try different approaches based on what's available
+            if (combatant.actor.type === 'character' && combatant.isOwner) {
+                // For player-owned characters, try the actor's rollInitiative method with dialog
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Using actor rollInitiative with dialog for ${combatant.name}`, "", true, false);
                 await combatant.actor.rollInitiative({ dialog: true });
             } else {
-                // Fallback to core combat method
-                await game.combat.rollInitiative([combatant.id]);
+                // For NPCs or GM-controlled characters, use combatant rollInitiative
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Using combatant rollInitiative for ${combatant.name}`, "", true, false);
+                await combatant.rollInitiative({ dialog: true });
             }
 
         } catch (error) {
+            // Handle permission errors specifically
+            if (error.message && error.message.includes('lacks permission')) {
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Permission denied for ${combatant.name}`, error.message, false, false);
+                ui.notifications.error(`Permission denied: ${error.message}`);
+                return;
+            }
+            
             postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for ${combatant.name}`, error, true, false);
             throw error; // Re-throw so calling code can handle it
         }
