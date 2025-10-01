@@ -10,19 +10,11 @@
     <div class="combat-portraits-group">
 
 
-        {{!-- Action Button --}}
-        <div class="combatbar-button-control-container action-button">
-            <a class="combatbar-button" 
-               aria-label="Previous Round" 
-               role="button" 
-               data-tooltip="Previous Round" 
-               data-control="previousRound">
-                Some Action Here
-            </a>
-        </div>
 
 
-        {{!-- Previous Round Button --}}
+
+        {{!-- Previous Round Button (GM Only) --}}
+        {{#if isGM}}
         <div class="combatbar-button-control-container previous-turn">
             <a class="combatbar-button" 
                aria-label="Previous Round" 
@@ -32,9 +24,10 @@
                 <i class="fas fa-chevrons-left"></i>
             </a>
         </div>
+        {{/if}}
 
-
-        {{!-- Previous Turn Button --}}
+        {{!-- Previous Turn Button (GM Only) --}}
+        {{#if isGM}}
         <div class="combatbar-button-control-container previous-turn">
             <a class="combatbar-button" 
                aria-label="Previous Turn" 
@@ -44,6 +37,7 @@
                 <i class="fas fa-chevron-left"></i>
             </a>
         </div>
+        {{/if}}
         
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
@@ -91,7 +85,8 @@
         {{/each}}
         </div>
         
-        {{!-- Next Turn Button --}}
+        {{!-- Next Turn Button (GM Only) --}}
+        {{#if isGM}}
         <div class="combatbar-button-control-container next-turn">
             <a class="combatbar-button" 
                aria-label="Next Turn" 
@@ -101,9 +96,10 @@
                 <i class="fas fa-chevron-right"></i>
             </a>
         </div>
+        {{/if}}
 
-
-        {{!-- Next Round Button --}}
+        {{!-- Next Round Button (GM Only) --}}
+        {{#if isGM}}
         <div class="combatbar-button-control-container next-round">
             <a class="combatbar-button" 
                 aria-label="Next Round" 
@@ -113,6 +109,22 @@
                 <i class="fas fa-chevrons-right"></i>
             </a>
         </div>
+        {{/if}}
+
+
+        {{!-- Action Button --}}
+        {{#if actionButton}}
+            <div class="combatbar-button-control-container action-button">
+                <a class="combatbar-button" 
+                aria-label="{{actionButton.label}}" 
+                role="button" 
+                data-tooltip="{{actionButton.tooltip}}" 
+                data-control="{{actionButton.control}}">
+                    <i class="fas {{actionButton.icon}}"></i>
+                    <span class="combatbar-button-label">{{actionButton.text}}</span>
+                </a>
+            </div>
+        {{/if}}
 
 
     </div>

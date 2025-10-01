@@ -474,7 +474,7 @@
     align-items: center;
     gap: 2px;
     min-width: 60px;
-    font-size: var(--font-size);
+    font-size: var(--combatbar-text-font-size);
     color: var(--blacksmith-menubar-fontcolor);
 }
 
@@ -491,7 +491,7 @@
     display: flex;
     align-items: center;
     min-width: 80px;
-    font-size: var(--font-size);
+    font-size: var(--combatbar-text-font-size);
     color: var(--blacksmith-menubar-fontcolor);
     opacity: 0.8;
 }
@@ -514,14 +514,15 @@
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
     
-    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) - 12px);
-    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) - 16px);  
-    
+    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * .6);
+    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) *.6);  
     
     /* Thickness of the SVG stroke */
     --ring-thickness: 2px;
     --gap: 0px;
-    --font-size: 1em;
+    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
+    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
+    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
   }
   
   /* =========================
@@ -672,7 +673,53 @@
 
 
 
+ 
+/* =========================
+Turn Control Buttons
+========================= */
+.blacksmith-menubar-secondary .combatbar-button-control-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 calc(var(--blacksmith-menubar-secondary-height) * 0.08);
+}
 
+.blacksmith-menubar-secondary .combatbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: var(--combatbar-button-ends-width);
+    height: var(--combatbar-button-ends-height);
+    background: rgba(38, 19, 23, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0px 12px 0px 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    font-size: var(--combatbar-button-font-size);
+    cursor: pointer;
+}
+.blacksmith-menubar-secondary .combatbar-button i {
+    padding: 2px 0px 0px 0px;
+}
+.blacksmith-menubar-secondary .combatbar-button .combatbar-button-label {
+    padding: 0px 0px 0px 8px;
+}
+
+
+.blacksmith-menubar-secondary .combatbar-button:hover {
+    background: rgba(38, 19, 23, 0.8);
+    border-color: rgba(223, 98, 20, 0.8);
+    color: rgba(223, 98, 20, 1.0);
+    transform: scale(1.05);
+}
+
+.blacksmith-menubar-secondary .combatbar-button:active {
+    transform: scale(0.95);
+}
 
 
 

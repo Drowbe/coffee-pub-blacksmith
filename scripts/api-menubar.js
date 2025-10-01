@@ -379,6 +379,87 @@ class MenuBar {
                 return;
             }
             
+            // Check if this is an action button
+            if (event.target.closest('.combatbar-button[data-control="beginCombat"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.startCombat();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat started", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error starting combat", error, true, false);
+                }
+                return;
+            }
+            
+            if (event.target.closest('.combatbar-button[data-control="endCombat"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.endCombat();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat ended", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error ending combat", error, true, false);
+                }
+                return;
+            }
+            
+            if (event.target.closest('.combatbar-button[data-control="endTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Turn ended", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error ending turn", error, true, false);
+                }
+                return;
+            }
+            
+            if (event.target.closest('.combatbar-button[data-control="rollInitiative"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (!combat) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat found", "", true, false);
+                        return;
+                    }
+                    
+                    // Roll initiative for all combatants that need it and are owned by this player
+                    const ownedCombatants = combat.combatants.filter(c => c.isOwner && c.initiative === null);
+                    
+                    if (ownedCombatants.length === 0) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No owned combatants need initiative", "", true, false);
+                        return;
+                    }
+                    
+                    // Roll initiative for each owned combatant
+                    for (const combatant of ownedCombatants) {
+                        await combatant.rollInitiative();
+                    }
+                    
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${ownedCombatants.length} combatant(s)`, "", true, false);
+                    
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error rolling initiative", error, true, false);
+                }
+                return;
+            }
+            
             // Check if this is an initiative roll button
             if (event.target.closest('.combat-portrait-initiative-dice a[data-control="rollInitiative"]')) {
                 event.preventDefault();
@@ -1902,12 +1983,60 @@ class MenuBar {
             // Sort combatants by initiative (highest first)
             combatants.sort((a, b) => b.initiative - a.initiative);
 
+            // Determine action button based on user role and combat state
+            let actionButton = null;
+            
+            if (game.user.isGM) {
+                // GM actions
+                if (!combat.started) {
+                    actionButton = {
+                        control: 'beginCombat',
+                        label: 'Begin Combat',
+                        tooltip: 'Begin Combat',
+                        icon: 'fa-play',
+                        text: 'Begin Combat'
+                    };
+                } else {
+                    actionButton = {
+                        control: 'endCombat',
+                        label: 'End Combat',
+                        tooltip: 'End Combat',
+                        icon: 'fa-stop',
+                        text: 'End Combat'
+                    };
+                }
+            } else {
+                // Player actions
+                const currentCombatant = combat.combatants.get(combat.current.combatantId);
+                const isPlayerTurn = currentCombatant && currentCombatant.isOwner;
+                
+                if (combat.started && isPlayerTurn) {
+                    actionButton = {
+                        control: 'endTurn',
+                        label: 'End Turn',
+                        tooltip: 'End Turn',
+                        icon: 'fa-forward',
+                        text: 'End Turn'
+                    };
+                } else if (!combat.started || combatants.some(c => c.needsInitiative && c.canRollInitiative)) {
+                    actionButton = {
+                        control: 'rollInitiative',
+                        label: 'Roll Initiative',
+                        tooltip: 'Roll Initiative',
+                        icon: 'fa-dice-d20',
+                        text: 'Roll Initiative'
+                    };
+                }
+            }
+
             const combatData = {
                 currentRound: combat.round || 1,
                 currentTurn: combat.turn || 1,
                 totalTurns: combatants.length,
                 combatants: combatants,
-                isActive: combat.started
+                isActive: combat.started,
+                actionButton: actionButton,
+                isGM: game.user.isGM
             };
             
             postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Combat data generated", {
