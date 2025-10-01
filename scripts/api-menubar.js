@@ -307,6 +307,44 @@ class MenuBar {
     }
 
     /**
+     * Roll initiative for a specific combatant with dialog support
+     * @param {Object} combatant - The combatant to roll initiative for
+     * @param {Event} event - The click event (optional)
+     * @private
+     */
+    static async _rollInitiativeForCombatant(combatant, event = null) {
+        try {
+            if (!combatant?.actor) {
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combatant ${combatant.name} has no actor`, "", true, false);
+                return;
+            }
+
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
+
+            // Debug: Check what methods are available on the actor
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Actor debug info`, {
+                actorType: combatant.actor.type,
+                hasRollInitiative: typeof combatant.actor.rollInitiative === 'function',
+                actorConstructor: combatant.actor.constructor.name,
+                actorSystem: combatant.actor.system?.constructor?.name
+            }, true, false);
+
+            // Try different approaches based on D&D5E version
+            if (combatant.actor.type === 'character' || combatant.actor.type === 'npc') {
+                // For D&D5E characters and NPCs, use the actor's rollInitiative method
+                await combatant.actor.rollInitiative({ dialog: true });
+            } else {
+                // Fallback to core combat method
+                await game.combat.rollInitiative([combatant.id]);
+            }
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for ${combatant.name}`, error, true, false);
+            throw error; // Re-throw so calling code can handle it
+        }
+    }
+
+    /**
      * Register event handlers for combat bar interactions
      * @private
      */
@@ -439,7 +477,7 @@ class MenuBar {
                         return;
                     }
                     
-                    // Roll initiative for all combatants that need it and are owned by this player
+                    // Get all owned combatants that need initiative
                     const ownedCombatants = combat.combatants.filter(c => c.isOwner && c.initiative === null);
                     
                     if (ownedCombatants.length === 0) {
@@ -449,7 +487,7 @@ class MenuBar {
                     
                     // Roll initiative for each owned combatant
                     for (const combatant of ownedCombatants) {
-                        await combatant.rollInitiative();
+                        await this._rollInitiativeForCombatant(combatant, event);
                     }
                     
                     postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${ownedCombatants.length} combatant(s)`, "", true, false);
@@ -459,6 +497,7 @@ class MenuBar {
                 }
                 return;
             }
+              
             
             // Check if this is an initiative roll button
             if (event.target.closest('.combat-portrait-initiative-dice a[data-control="rollInitiative"]')) {
@@ -486,9 +525,8 @@ class MenuBar {
                         return;
                     }
                     
-                    // Roll initiative for this combatant
-                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
-                    await combatant.rollInitiative();
+                    // Use the same initiative rolling function
+                    await this._rollInitiativeForCombatant(combatant, event);
                     
                     // Update the combat bar to reflect the new initiative
                     this.updateCombatBar();
@@ -1994,7 +2032,8 @@ class MenuBar {
                         label: 'Begin Combat',
                         tooltip: 'Begin Combat',
                         icon: 'fa-play',
-                        text: 'Begin Combat'
+                        text: 'Begin Combat',
+                        type: 'begin'
                     };
                 } else {
                     actionButton = {
@@ -2002,7 +2041,8 @@ class MenuBar {
                         label: 'End Combat',
                         tooltip: 'End Combat',
                         icon: 'fa-stop',
-                        text: 'End Combat'
+                        text: 'End Combat',
+                        type: 'end'
                     };
                 }
             } else {
@@ -2016,7 +2056,8 @@ class MenuBar {
                         label: 'End Turn',
                         tooltip: 'End Turn',
                         icon: 'fa-forward',
-                        text: 'End Turn'
+                        text: 'End Turn',
+                        type: 'end'
                     };
                 } else if (!combat.started || combatants.some(c => c.needsInitiative && c.canRollInitiative)) {
                     actionButton = {
@@ -2024,7 +2065,8 @@ class MenuBar {
                         label: 'Roll Initiative',
                         tooltip: 'Roll Initiative',
                         icon: 'fa-dice-d20',
-                        text: 'Roll Initiative'
+                        text: 'Roll Initiative',
+                        type: 'roll'
                     };
                 }
             }

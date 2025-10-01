@@ -435,6 +435,13 @@
 /* --- SECONDARY MENUBAR -------------- */
 /* ------------------------------------ */
 
+
+.blacksmith-menubar-secondary {
+    /* Scale everything based on bar height */
+    --menubar-secondary-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
+    --menubar-secondary-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.10);
+  }
+
 .blacksmith-menubar-secondary {
     position: fixed;
     top: var(--blacksmith-menubar-primary-height);
@@ -451,8 +458,16 @@
     align-items: center;
     padding: 0 8px;
     overflow: hidden;
+    font-size: var(--menubar-secondary-text-font-size);
 }
 
+
+
+
+
+/* ---------------------------------------------------- */
+/* --- SECONDARY MENUBAR: COMBAT TRACKER -------------- */
+/* ---------------------------------------------------- */
 
 /* Combat Tracker Specific Styles */
 .blacksmith-menubar-secondary[data-bar-type="combat"] {
@@ -497,14 +512,10 @@
 }
 
 
-
-
- 
-
 /* COMBAT PORTRAITS */
 
  /* =========================
-   Tunables
+   Combat Tracker Tunables
    ========================= */
    .blacksmith-menubar-secondary {
     /* Scale everything based on bar height */
@@ -613,8 +624,6 @@
     background: rgba(0, 0, 0, 0.6);
   }
   
-
-  
   .blacksmith-menubar-secondary .combat-portrait-container.defeated {
     opacity: .7;
     filter: grayscale(100%);
@@ -667,15 +676,11 @@
   }
    .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
      animation: blacksmith-pulse-dead 2s ease-in-out infinite;
-   }
-
-
-
-
+}
 
  
 /* =========================
-Turn Control Buttons
+Control Buttons
 ========================= */
 .blacksmith-menubar-secondary .combatbar-button-control-container {
     display: flex;
@@ -709,6 +714,18 @@ Turn Control Buttons
     padding: 0px 0px 0px 8px;
 }
 
+.blacksmith-menubar-secondary .action-button .action-type-begin {
+    background: rgba(27, 63, 31, 0.9);
+    border: 1px solid rgba(68, 180, 40, 0.6);
+}
+.blacksmith-menubar-secondary .action-button .action-type-end{
+    background: rgba(143, 7, 9, 0.9);
+    border: 1px solid rgba(181, 8, 11, 0.6);
+}
+.blacksmith-menubar-secondary .action-button .action-type-roll{
+    background: rgba(43, 69, 110, 0.9);
+    border: 1px solid rgba(89, 161, 246, 0.6);
+}
 
 .blacksmith-menubar-secondary .combatbar-button:hover {
     background: rgba(38, 19, 23, 0.8);
@@ -720,14 +737,6 @@ Turn Control Buttons
 .blacksmith-menubar-secondary .combatbar-button:active {
     transform: scale(0.95);
 }
-
-
-
-
-
-
-
-
 
  
  /* =========================

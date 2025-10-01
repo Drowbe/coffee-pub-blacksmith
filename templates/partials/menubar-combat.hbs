@@ -115,7 +115,7 @@
         {{!-- Action Button --}}
         {{#if actionButton}}
             <div class="combatbar-button-control-container action-button">
-                <a class="combatbar-button" 
+                <a class="combatbar-button  action-type-{{actionButton.type}}" 
                 aria-label="{{actionButton.label}}" 
                 role="button" 
                 data-tooltip="{{actionButton.tooltip}}" 
@@ -131,6 +131,6 @@
 
     {{!-- Combat Status --}}
     <div class="combat-status">
-        <span class="combat-state">{{#if isActive}}Active Combat{{else}}Combat Ended{{/if}}</span>
+        <span class="combat-state">{{#if isActive}}Active Combat{{else}}Combat Pending{{/if}}</span>
     </div>
 </div>
