@@ -6,8 +6,35 @@
         <span class="combat-turn">{{currentTurn}} / {{totalTurns}}</span>
     </div>
     
-    {{!-- Combat Portraits --}}
-    <div class="combat-portraits">
+    {{!-- Combat Controls and Portraits Group --}}
+    <div class="combat-portraits-group">
+
+
+        {{!-- Previous Round Button --}}
+        <div class="combatbar-button-control-container previous-turn">
+            <a class="combatbar-button" 
+               aria-label="Previous Round" 
+               role="button" 
+               data-tooltip="Previous Round" 
+               data-control="previousRound">
+                <i class="fas fa-chevrons-left"></i>
+            </a>
+        </div>
+
+
+        {{!-- Previous Turn Button --}}
+        <div class="combatbar-button-control-container previous-turn">
+            <a class="combatbar-button" 
+               aria-label="Previous Turn" 
+               role="button" 
+               data-tooltip="Previous Turn" 
+               data-control="previousTurn">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </div>
+        
+        {{!-- Combat Portraits --}}
+        <div class="combat-portraits">
         {{#each combatants}}
                <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
                     data-combatant-id="{{id}}"
@@ -50,9 +77,34 @@
                    {{/if}}
                </div>
         {{/each}}
+        </div>
+        
+        {{!-- Next Turn Button --}}
+        <div class="combatbar-button-control-container next-turn">
+            <a class="combatbar-button" 
+               aria-label="Next Turn" 
+               role="button" 
+               data-tooltip="Next Turn" 
+               data-control="nextTurn">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+
+
+        {{!-- Next Round Button --}}
+        <div class="combatbar-button-control-container next-round">
+            <a class="combatbar-button" 
+                aria-label="Next Round" 
+                role="button" 
+                data-tooltip="Next Round" 
+                data-control="nextRound">
+                <i class="fas fa-chevrons-right"></i>
+            </a>
+        </div>
+
+
     </div>
 
-    
     {{!-- Combat Status --}}
     <div class="combat-status">
         <span class="combat-state">{{#if isActive}}Active Combat{{else}}Combat Ended{{/if}}</span>

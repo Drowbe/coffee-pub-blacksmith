@@ -503,7 +503,7 @@
 
 /* COMBAT PORTRAITS */
 
-/* =========================
+ /* =========================
    Tunables
    ========================= */
    .blacksmith-menubar-secondary {
@@ -513,6 +513,11 @@
     --healthbar-size: calc(var(--portrait-container-height) - 6px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
+    
+    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) - 12px);
+    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) - 16px);  
+    
+    
     /* Thickness of the SVG stroke */
     --ring-thickness: 2px;
     --gap: 0px;
@@ -522,15 +527,22 @@
   /* =========================
      Container
      ========================= */
-  .blacksmith-menubar-secondary .combat-portraits {
+   .blacksmith-menubar-secondary .combat-portraits-group {
     display: flex;
     gap: var(--gap);
     flex: 1;
+    justify-content: center;
+    align-items: center;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits {
+    display: flex;
+    gap: var(--gap);
     justify-content: center;   /* center the row in the bar */
     align-items: center;
     overflow-x: auto;
     padding: 0;
-  }
+   }
   
   /* =========================
      Portrait Container
@@ -656,9 +668,62 @@
      animation: blacksmith-pulse-dead 2s ease-in-out infinite;
    }
 
+
+
+
 /* =========================
-    Initiative Dice Overlay
-    ========================= */
+     Turn Control Buttons
+     ========================= */
+     .blacksmith-menubar-secondary .combatbar-button-control-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 calc(var(--blacksmith-menubar-secondary-height) * 0.08);
+      }
+      
+      .blacksmith-menubar-secondary .combatbar-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--combatbar-button-ends-width);
+        height: var(--combatbar-button-ends-height);
+        background: rgba(38, 19, 23, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10%;
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-size: 1.2em;
+        cursor: pointer;
+      }
+      
+      .blacksmith-menubar-secondary .combatbar-button:hover {
+        background: rgba(38, 19, 23, 0.8);
+        border-color: rgba(223, 98, 20, 0.8);
+        color: rgba(223, 98, 20, 1.0);
+        transform: scale(1.1);
+      }
+      
+      .blacksmith-menubar-secondary .combatbar-button:active {
+        transform: scale(0.95);
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ /* =========================
+     Initiative Dice Overlay
+     ========================= */
     
     
     .blacksmith-menubar-secondary .combat-portrait-initiative-dice {

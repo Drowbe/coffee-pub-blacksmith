@@ -311,8 +311,41 @@ class MenuBar {
      * @private
      */
     static _registerCombatBarEvents() {
-        // Use event delegation to handle clicks on initiative dice
+        // Use event delegation to handle clicks on combat bar controls
         document.addEventListener('click', async (event) => {
+            // Check if this is a turn control button
+            if (event.target.closest('.combatbar-button[data-control="previousTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.previousTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous turn", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to previous-turn turn", error, true, false);
+                }
+                return;
+            }
+            
+            if (event.target.closest('.combatbar-button[data-control="nextTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next turn", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to next turn", error, true, false);
+                }
+                return;
+            }
+            
             // Check if this is an initiative roll button
             if (event.target.closest('.combat-portrait-initiative-dice a[data-control="rollInitiative"]')) {
                 event.preventDefault();
@@ -2554,7 +2587,7 @@ class MenuBar {
                 this.hasHandledWarning = false;
             }
 
-            // Store the current remaining minutes for next comparison
+            // Store the current remaining minutes for next-turn-turn comparison
             this.previousRemainingMinutes = remainingMinutes;
 
         } catch (error) {
