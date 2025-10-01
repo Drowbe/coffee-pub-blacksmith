@@ -49,10 +49,9 @@ Hooks.once('ready', () => {
         }
 
         // Make combatants draggable for GM only
-        if (!game.user.isGM) return;
-
-        const directoryList = html.find('.directory-list');
-        const combatants = html.find('.combatant');
+        if (game.user.isGM) {
+            const directoryList = html.find('.directory-list');
+            const combatants = html.find('.combatant');
 
         // First, clear any existing drop targets
         html.find('.drop-target').remove();
@@ -147,8 +146,9 @@ Hooks.once('ready', () => {
                 }]);
             });
         });
+        } // End GM-only drag and drop section
 
-        // Process each combatant
+        // Process each combatant (for all users)
         html.find('.combatant').each((i, element) => {
             const combatant = $(element);
             const combatantId = combatant.data('combatantId');
