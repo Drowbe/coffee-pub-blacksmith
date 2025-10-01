@@ -581,7 +581,7 @@
     border-radius: 50%;
     -webkit-user-drag: none;
     user-select: none;
-    border: 0px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
   }
   
   
@@ -597,12 +597,9 @@
   .blacksmith-menubar-secondary .combat-portrait-container.current {
     border-color: rgba(223, 98, 20, 1.0);
     background: rgba(0, 0, 0, 0.6);
-    transform: scale(1.00);
   }
   
-  .blacksmith-menubar-secondary .combat-portrait-container.current:hover {
-    transform: scale(1.00);
-  }
+
   
   .blacksmith-menubar-secondary .combat-portrait-container.defeated {
     opacity: .7;
@@ -657,41 +654,52 @@
    .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
      animation: blacksmith-pulse-dead 2s ease-in-out infinite;
    }
+
+/* =========================
+    Initiative Dice Overlay
+    ========================= */
+    
+    
+    .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    font-size: 1.4em;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice .waiting-initiative,
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.01s ease;
+    text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+    
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.2);
+    color: rgba(223, 98, 20, 0.9);
+    text-shadow: none;
+    cursor: pointer;
+}
+    
+    
+/* Waiting for initiative (non-clickable) */
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice.waiting {
+    pointer-events: none;
+}
+    
+    
    
-   /* =========================
-      Initiative Dice Overlay
-      ========================= */
-   .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
-     position: absolute;
-     top: 50%;
-     left: 50%;
-     transform: translate(-50%, -50%);
-     z-index: 3;
-     pointer-events: auto;
-   }
-   
-   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     width: var(--action-icon-size);
-     height: var(--action-icon-size);
-     background: rgba(0, 0, 0, 0.2);
-     border: 0px solid #ffd700;
-     border-radius: 50%;
-     color: rgba(255, 255, 255, 0.7);
-     text-decoration: none;
-     transition: all 0.2s ease;
-     font-size: 1.2em;
-   }
-   
-   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
-     background: rgba(255, 215, 0, 0.2);
-     border-color: #ffed4e;
-     color: rgba(223, 98, 20, 0.9);
-     transform: scale(1.0);
-   }
-   
-   .blacksmith-menubar-secondary .combat-portrait-initiative-dice a:active {
-     transform: scale(0.95);
-   }

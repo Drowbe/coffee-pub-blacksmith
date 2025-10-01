@@ -1807,6 +1807,7 @@ class MenuBar {
                        isCurrent: combatant.id === combat.current.combatantId,
                        isDefeated: combatant.disabled || false,
                        needsInitiative: combatant.initiative === null,
+                       canRollInitiative: combatant.initiative === null && combatant.isOwner,
                        currentHP: currentHP,
                        maxHP: maxHP,
                        healthPercentage: healthPercentage,

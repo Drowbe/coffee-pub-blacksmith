@@ -31,7 +31,8 @@
                        <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
                    </div>
                    {{#if needsInitiative}}
-                   <div class="combat-portrait-initiative-dice">
+                   <div class="combat-portrait-initiative-dice {{#unless canRollInitiative}}waiting{{/unless}}">
+                       {{#if canRollInitiative}}
                        <a class="combatant-control roll" 
                           aria-label="Roll Initiative" 
                           role="button" 
@@ -40,6 +41,11 @@
                           data-combatant-id="{{id}}">
                            <i class="fas fa-dice-d20"></i>
                        </a>
+                       {{else}}
+                       <span class="waiting-initiative" data-tooltip="Waiting for initiative">
+                           <i class="fas fa-hourglass-half"></i>
+                       </span>
+                       {{/if}}
                    </div>
                    {{/if}}
                </div>
