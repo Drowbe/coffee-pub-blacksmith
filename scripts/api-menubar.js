@@ -353,7 +353,7 @@ class MenuBar {
                 hasDialogOption: combatant.rollInitiative.toString().includes('dialog')
             }, true, false);
 
-            // Try to trigger the same event that the combat tracker uses
+            // Manual roll mode: try to trigger the same event that the combat tracker uses
             postConsoleAndNotification(MODULE.NAME, `Combat Bar: Simulating combat tracker click for ${combatant.name}`, "", true, false);
             
             // Check if the combat tracker is available and trigger its event
@@ -535,6 +535,9 @@ class MenuBar {
                         return;
                     }
                     
+                    // Check if auto-roll is enabled
+                    const autoRollEnabled = game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer');
+                    
                     // Get owned PCs that need initiative (characters only, in order)
                     const ownedPCsNeedingInitiative = combat.combatants.filter(c => 
                         c?.actor &&
@@ -548,11 +551,20 @@ class MenuBar {
                         return;
                     }
                     
-                    // Roll initiative for just the FIRST character that needs it
-                    const nextCombatant = ownedPCsNeedingInitiative[0];
-                    await this._rollInitiativeForCombatant(nextCombatant, event);
-                    
-                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${nextCombatant.name}`, "", true, false);
+                    if (autoRollEnabled) {
+                        // Use the existing core Blacksmith auto-roll functionality
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Using core auto-roll functionality", "", true, false);
+                        
+                        // Import and call the existing core method
+                        const CombatTracker = await import('./combat-tracker.js');
+                        await CombatTracker.CombatTracker._rollInitiativeForPlayerCharacters(combat);
+                    } else {
+                        // Manual roll for just the FIRST character that needs it
+                        const nextCombatant = ownedPCsNeedingInitiative[0];
+                        await this._rollInitiativeForCombatant(nextCombatant, event);
+                        
+                        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${nextCombatant.name}`, "", true, false);
+                    }
                     
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error rolling initiative", error, true, false);
