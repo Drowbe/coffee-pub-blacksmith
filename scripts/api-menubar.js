@@ -535,20 +535,24 @@ class MenuBar {
                         return;
                     }
                     
-                    // Get all owned combatants that need initiative
-                    const ownedCombatants = combat.combatants.filter(c => c.isOwner && c.initiative === null);
+                    // Get owned PCs that need initiative (characters only, in order)
+                    const ownedPCsNeedingInitiative = combat.combatants.filter(c => 
+                        c?.actor &&
+                        c.actor.type === "character" && 
+                        c.isOwner && 
+                        c.initiative === null
+                    );
                     
-                    if (ownedCombatants.length === 0) {
-                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No owned combatants need initiative", "", true, false);
+                    if (ownedPCsNeedingInitiative.length === 0) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No owned characters need initiative", "", true, false);
                         return;
                     }
                     
-                    // Roll initiative for each owned combatant
-                    for (const combatant of ownedCombatants) {
-                        await this._rollInitiativeForCombatant(combatant, event);
-                    }
+                    // Roll initiative for just the FIRST character that needs it
+                    const nextCombatant = ownedPCsNeedingInitiative[0];
+                    await this._rollInitiativeForCombatant(nextCombatant, event);
                     
-                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${ownedCombatants.length} combatant(s)`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${nextCombatant.name}`, "", true, false);
                     
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error rolling initiative", error, true, false);
@@ -2132,8 +2136,9 @@ class MenuBar {
                         const alreadyRolled = ownedPCs.filter(c => c.initiative !== null).length;
                         const currentRoll = alreadyRolled + 1; // Next initiative to roll
                         
-                        const buttonText = currentRoll === totalOwnedPCs ? 'Roll Initiative' : `Roll Initiative ${currentRoll} of ${totalOwnedPCs}`;
-                        const tooltipText = currentRoll === totalOwnedPCs ? 'Roll Initiative for your last character' : `Roll Initiative for character ${currentRoll} of ${totalOwnedPCs}`;
+                        // Always show count if player owns multiple characters, even for the last one
+                        const buttonText = totalOwnedPCs === 1 ? 'Roll Initiative' : `Roll Initiative ${currentRoll} of ${totalOwnedPCs}`;
+                        const tooltipText = totalOwnedPCs === 1 ? 'Roll Initiative' : `Roll Initiative for character ${currentRoll} of ${totalOwnedPCs}`;
                         
                         actionButton = {
                             control: 'rollInitiative',
