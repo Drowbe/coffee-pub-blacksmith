@@ -329,6 +329,7 @@ class MenuBar {
             postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
 
             // Debug: Check what methods are available on the combatant and actor
+            const currentRollMode = game.settings.get('core', 'rollMode');
             postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combatant debug info`, {
                 actorType: combatant.actor.type,
                 hasRollInitiative: typeof combatant.rollInitiative === 'function',
@@ -337,19 +338,45 @@ class MenuBar {
                 isOwner: combatant.isOwner,
                 isGM: game.user.isGM,
                 currentUserId: game.user.id,
-                rollMode: game.settings.get('core', 'rollMode'),
+                rollMode: currentRollMode,
+                rollModeName: CONFIG.Dice.rollModes[currentRollMode]?.label || 'Unknown',
                 hasDialogOption: combatant.rollInitiative.toString().includes('dialog')
             }, true, false);
 
-            // Try different approaches based on what's available
-            if (combatant.actor.type === 'character' && combatant.isOwner) {
-                // For player-owned characters, try the actor's rollInitiative method with dialog
-                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Using actor rollInitiative with dialog for ${combatant.name}`, "", true, false);
-                await combatant.actor.rollInitiative({ dialog: true });
+            // Try to trigger the same event that the combat tracker uses
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Simulating combat tracker click for ${combatant.name}`, "", true, false);
+            
+            // Check if the combat tracker is available and trigger its event
+            if (ui.combat) {
+                try {
+                    // Try to trigger the combat tracker's rollInitiative event
+                    const combatTrackerElement = ui.combat.element.find(`[data-combatant-id="${combatant.id}"] .combatant-control[data-control="rollInitiative"]`);
+                    if (combatTrackerElement.length > 0) {
+                        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Found combat tracker element, triggering click`, "", true, false);
+                        combatTrackerElement.trigger('click');
+                        return;
+                    }
+                } catch (trackerError) {
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combat tracker click failed`, trackerError.message, true, false);
+                }
+            }
+            
+            // Fallback: Try to use the D&D5e system's roll dialog directly
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Using D&D5e roll dialog fallback for ${combatant.name}`, "", true, false);
+            
+            // Try to find and use the D&D5e system's roll dialog
+            if (game.dnd5e && combatant.actor.rollInitiative) {
+                // Check if the actor has the rollInitiative method that supports dialog
+                const rollMethod = combatant.actor.rollInitiative.toString();
+                if (rollMethod.includes('dialog') || rollMethod.includes('Dialog')) {
+                    await combatant.actor.rollInitiative();
+                } else {
+                    // Try with different parameters
+                    await combatant.actor.rollInitiative({});
+                }
             } else {
-                // For NPCs or GM-controlled characters, use combatant rollInitiative
-                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Using combatant rollInitiative for ${combatant.name}`, "", true, false);
-                await combatant.rollInitiative({ dialog: true });
+                // Last resort: use combatant rollInitiative
+                await combatant.rollInitiative();
             }
 
         } catch (error) {
