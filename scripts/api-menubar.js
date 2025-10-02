@@ -249,15 +249,25 @@ class MenuBar {
             priority: 3,
             callback: (combatant, updateData, options, userId) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Check if initiative was updated
+                const initiativeUpdated = updateData.initiative !== undefined;
+                
                 postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant update hook fired", {
                     combatantId: combatant.id,
                     combatId: combatant.combat.id,
-                    updateData: updateData
+                    updateData: updateData,
+                    initiativeUpdated: initiativeUpdated
                 }, true, false);
                 
-                // Update combat bar when combatant data changes
+                // Update combat bar when combatant data changes (especially initiative)
                 if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
                     MenuBar.updateCombatBar();
+                    
+                    // If initiative was updated, also update the menubar to refresh button states
+                    if (initiativeUpdated) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar | Initiative updated, refreshing menubar", "", true, false);
+                        MenuBar.renderMenubar();
+                    }
                 }
                 // --- END - HOOKMANAGER CALLBACK ---
             }
@@ -2107,15 +2117,34 @@ class MenuBar {
                         text: 'End Turn',
                         type: 'end'
                     };
-                } else if (!combat.started || combatants.some(c => c.needsInitiative && c.canRollInitiative)) {
-                    actionButton = {
-                        control: 'rollInitiative',
-                        label: 'Roll Initiative',
-                        tooltip: 'Roll Initiative',
-                        icon: 'fa-dice-d20',
-                        text: 'Roll Initiative',
-                        type: 'roll'
-                    };
+                } else {
+                    // Check how many owned combatants need initiative
+                    const ownedCombatantsNeedingInitiative = combatants.filter(c => c.needsInitiative && c.canRollInitiative);
+                    const ownedPCs = combat.combatants.filter(c =>
+                        c?.actor &&
+                        c.actor.type === "character" && // strictly PCs
+                        c.isOwner                       // owned in *this* combat by the current user
+                      );
+                    
+                    if (ownedCombatantsNeedingInitiative.length > 0) {
+                        // Show button with count
+                        const countRemaining = ownedCombatantsNeedingInitiative.length;
+                        const countOwnedPCs = ownedPCs.length;
+                        const buttonText = countRemaining === 1 ? 'Roll Initiative' : `Roll Initiative ${countRemaining} of ${countOwnedPCs}`;
+                        const tooltipText = countRemaining === 1 ? 'Roll Initiative' : `Roll Initiative for ${countRemaining} characters`;
+                        
+                        actionButton = {
+                            control: 'rollInitiative',
+                            label: buttonText,
+                            tooltip: tooltipText,
+                            icon: 'fa-dice-d20',
+                            text: buttonText,
+                            type: 'roll',
+                            countRemaining: countRemaining,
+                            countOwnedPCs: countOwnedPCs
+                        };
+                    }
+                    // If no owned combatants need initiative, don't show any action button
                 }
             }
 
