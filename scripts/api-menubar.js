@@ -2127,11 +2127,13 @@ class MenuBar {
                       );
                     
                     if (ownedCombatantsNeedingInitiative.length > 0) {
-                        // Show button with count
-                        const countRemaining = ownedCombatantsNeedingInitiative.length;
-                        const countOwnedPCs = ownedPCs.length;
-                        const buttonText = countRemaining === 1 ? 'Roll Initiative' : `Roll Initiative ${countRemaining} of ${countOwnedPCs}`;
-                        const tooltipText = countRemaining === 1 ? 'Roll Initiative' : `Roll Initiative for ${countRemaining} characters`;
+                        // Calculate which initiative roll this is (1 of X, 2 of X, etc.)
+                        const totalOwnedPCs = ownedPCs.length;
+                        const alreadyRolled = ownedPCs.filter(c => c.initiative !== null).length;
+                        const currentRoll = alreadyRolled + 1; // Next initiative to roll
+                        
+                        const buttonText = currentRoll === totalOwnedPCs ? 'Roll Initiative' : `Roll Initiative ${currentRoll} of ${totalOwnedPCs}`;
+                        const tooltipText = currentRoll === totalOwnedPCs ? 'Roll Initiative for your last character' : `Roll Initiative for character ${currentRoll} of ${totalOwnedPCs}`;
                         
                         actionButton = {
                             control: 'rollInitiative',
@@ -2140,8 +2142,9 @@ class MenuBar {
                             icon: 'fa-dice-d20',
                             text: buttonText,
                             type: 'roll',
-                            countRemaining: countRemaining,
-                            countOwnedPCs: countOwnedPCs
+                            currentRoll: currentRoll,
+                            totalOwnedPCs: totalOwnedPCs,
+                            countRemaining: ownedCombatantsNeedingInitiative.length
                         };
                     }
                     // If no owned combatants need initiative, don't show any action button
