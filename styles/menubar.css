@@ -514,14 +514,16 @@
 
 /* COMBAT PORTRAITS */
 
+
+
  /* =========================
    Combat Tracker Tunables
    ========================= */
    .blacksmith-menubar-secondary {
     /* Scale everything based on bar height */
-    --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 2px);
+    --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 4px);
     --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
-    --healthbar-size: calc(var(--portrait-container-height) - 6px);
+    --healthbar-size: calc(var(--portrait-container-height) - 8px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
     --action-icon-font-size: calc(var(--healthbar-size) * 0.4);
@@ -530,8 +532,8 @@
     --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) *.6);  
     
     /* Thickness of the SVG stroke */
-    --ring-thickness: 2px;
-    --gap: 0px;
+    --ring-thickness: 3px;
+    --gap: 1px;
     --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
     --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
     --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
@@ -560,17 +562,17 @@
   /* =========================
      Portrait Container
      ========================= */
-  .blacksmith-menubar-secondary .combat-portrait-container {
-    position: relative;
-    width: var(--portrait-container-width);
-    height: var(--portrait-container-height);
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
-    border: 1px solid rgba(0, 0, 0, 0.0);
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 0px;
-  }
+     .blacksmith-menubar-secondary .combat-portrait-container {
+        position: relative;
+        width: var(--portrait-container-width);
+        height: var(--portrait-container-height);
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
+        border: 2px solid rgba(0, 0, 0, 0.0);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 3px;
+      }
   
   /* =========================
      Portrait Image
@@ -611,24 +613,24 @@
   }
   
   
-  /* =========================
-     States
-     ========================= */
-  .blacksmith-menubar-secondary .combat-portrait-container:hover {
+/* =========================
+    States
+    ========================= */
+    .blacksmith-menubar-secondary .combat-portrait-container:hover {
     transform: scale(1.0);
     border-color: rgba(223, 98, 20, 0.9);
     background: rgba(223, 98, 20, 0.2);
-  }
-  
-  .blacksmith-menubar-secondary .combat-portrait-container.current {
-    border-color: rgba(223, 98, 20, 1.0);
-    background: rgba(0, 0, 0, 0.6);
-  }
-  
-  .blacksmith-menubar-secondary .combat-portrait-container.defeated {
-    opacity: .7;
-    filter: grayscale(100%);
-  }
+    }
+    
+    .blacksmith-menubar-secondary .combat-portrait-container.current {
+    border-color: rgba(14, 134, 14, 0.6);
+    background: rgba(27, 63, 31, 0.8);
+    }
+    
+    .blacksmith-menubar-secondary .combat-portrait-container.defeated {
+    opacity: .9;
+    background: rgba(53, 28, 32, 0.7);
+    }
   
   /* =========================
      Health Ring
@@ -785,4 +787,33 @@ Control Buttons
         pointer-events: none;
     }
     
-      
+
+ /* =========================
+     Dead Overlay
+     ========================= */
+        
+     .blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+        width: var(--action-icon-size);
+        height: var(--action-icon-size);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3;
+        pointer-events: auto;
+        font-size: var(--action-icon-font-size);
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+        
+    .blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.01s ease;
+        text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+        
+    }

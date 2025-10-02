@@ -63,7 +63,17 @@
                    <div class="combat-portrait-image">
                        <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
                    </div>
+                   
+                   {{!-- Dead overlay - always show for defeated characters --}}
+                   {{#if isDefeated}}
+                   <div class="combat-portrait-dead-overlay" data-tooltip="Defeated">
+                       <i class="fas fa-skull"></i>
+                   </div>
+                   {{/if}}
+                   
+                   {{!-- Initiative dice - only show for living characters that need initiative --}}
                    {{#if needsInitiative}}
+                   {{#unless isDefeated}}
                    <div class="combat-portrait-initiative-dice {{#unless canRollInitiative}}waiting{{/unless}}">
                        {{#if canRollInitiative}}
                        <a class="combatant-control roll" 
@@ -80,6 +90,7 @@
                        </span>
                        {{/if}}
                    </div>
+                   {{/unless}}
                    {{/if}}
                </div>
         {{/each}}

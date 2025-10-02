@@ -2785,15 +2785,7 @@ export const registerSettings = async () => {
 		default: true
 	});
 
-	// -- Remember Combat Tracker Size and Position --
-	game.settings.register(MODULE.ID, 'combatTrackerRememberSize', {
-		name: 'Remember size and position',
-		hint: 'When enabled, the combat tracker will remember its size and position between sessions',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
+
 
 	// -- Combat Tracker Size Data (Internal) --
 	game.settings.register(MODULE.ID, 'combatTrackerSize', {

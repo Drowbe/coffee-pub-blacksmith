@@ -2058,15 +2058,28 @@ class MenuBar {
                     }
                 }
                 
+                   // Determine if combatant is actually dead based on D&D5e rules
+                   let isActuallyDead = false;
+                   if (actor) {
+                       if (actor.type === "character") {
+                           // For PCs: Only dead if marked as defeated (failed 3 death saves)
+                           isActuallyDead = combatant.isDefeated || false;
+                       } else {
+                           // For NPCs/Monsters: Dead if HP <= 0
+                           const currentHP = actor.system?.attributes?.hp?.value || 0;
+                           isActuallyDead = currentHP <= 0;
+                       }
+                   }
+
                    const combatantData = {
                        id: combatant.id,
                        name: actor?.name || token?.name || 'Unknown',
                        portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
                        initiative: combatant.initiative || 0,
                        isCurrent: combatant.id === combat.current.combatantId,
-                       isDefeated: combatant.disabled || false,
+                       isDefeated: isActuallyDead,
                        needsInitiative: combatant.initiative === null,
-                       canRollInitiative: combatant.initiative === null && combatant.isOwner,
+                       canRollInitiative: combatant.initiative === null && combatant.isOwner && !isActuallyDead,
                        currentHP: currentHP,
                        maxHP: maxHP,
                        healthPercentage: healthPercentage,

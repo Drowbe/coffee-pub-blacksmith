@@ -307,10 +307,24 @@ class CombatTracker {
 							// 3. The current user owns the actor
 							// 4. The combatant has null initiative
 							// 5. Auto-roll is enabled for this user
+							// Check if combatant is actually dead based on D&D5e rules
+							let isActuallyDead = false;
+							if (combatant.actor) {
+								if (combatant.actor.type === "character") {
+									// For PCs: Only dead if marked as defeated (failed 3 death saves)
+									isActuallyDead = combatant.isDefeated || false;
+								} else {
+									// For NPCs/Monsters: Dead if HP <= 0
+									const currentHP = combatant.actor.system?.attributes?.hp?.value || 0;
+									isActuallyDead = currentHP <= 0;
+								}
+							}
+
 							if (combatant.actor && 
 								combatant.actor.hasPlayerOwner && 
 								combatant.actor.isOwner && 
 								combatant.initiative === null &&
+								!isActuallyDead &&
 								game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
 								
 								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", true, false);
@@ -614,10 +628,24 @@ class CombatTracker {
                 // 2. The actor is player-owned
                 // 3. The current user owns the actor
                 // 4. The combatant has null initiative
+                // Check if combatant is actually dead based on D&D5e rules
+                let isActuallyDead = false;
+                if (combatant.actor) {
+                    if (combatant.actor.type === "character") {
+                        // For PCs: Only dead if marked as defeated (failed 3 death saves)
+                        isActuallyDead = combatant.isDefeated || false;
+                    } else {
+                        // For NPCs/Monsters: Dead if HP <= 0
+                        const currentHP = combatant.actor.system?.attributes?.hp?.value || 0;
+                        isActuallyDead = currentHP <= 0;
+                    }
+                }
+
                 if (combatant.actor && 
                     combatant.actor.hasPlayerOwner && 
                     combatant.actor.isOwner && 
-                    combatant.initiative === null) {
+                    combatant.initiative === null &&
+                    !isActuallyDead) {
                     
                     // Roll initiative for this specific combatant
                     postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Rolling initiative for ${combatant.name}`, "", true, false);
