@@ -270,6 +270,8 @@ Hooks.once('ready', () => {
 });
 
 // Hook into combat tracker window opening to apply resizable settings
+// Note: This is handled by the main HookManager hook above, but we keep this
+// as a direct hook for immediate application of resizable settings
 Hooks.on('renderCombatTracker', (app, html, data) => {
     // Apply resizable settings when combat tracker is rendered
     CombatTools.applyResizableSettings(html);

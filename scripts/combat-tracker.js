@@ -59,7 +59,7 @@ class CombatTracker {
 					}
 				});
                 
-                // Reset first combatant flag when a new combat is created
+                // Reset first combatant flag when a new combat is created and handle auto-open
                 const createCombatHookId = HookManager.registerHook({
 					name: 'createCombat',
 					description: 'Combat Tracker: Handle new combat creation and auto-open',
@@ -70,13 +70,16 @@ class CombatTracker {
 						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: New combat created, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
-						// Auto-open combat tracker when combat is created
+						// Auto-open combat tracker for all users when setting is enabled
 						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-							// Open for GM or if this user owns any combatants in the combat
-							if (game.user.isGM || combat.combatants.find(c => c.isOwner)) {
+							// Small delay to ensure combat is fully initialized
+							setTimeout(() => {
 								const tabApp = ui["combat"];
-								tabApp.renderPopout(tabApp);
-							}
+								if (tabApp) {
+									tabApp.renderPopout(tabApp);
+									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
+								}
+							}, 100);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -339,25 +342,28 @@ class CombatTracker {
 					}
 				});
                 
-                // Handle auto-open for both new combats and client reloads
-                const renderCombatTrackerAutoOpenHookId = HookManager.registerHook({
-					name: 'renderCombatTracker',
-					description: 'Combat Tracker: Handle auto-open for combat tracker',
-					context: 'combat-tracker-auto-open',
+
+                // Handle auto-open on client load if combat is already active
+                const clientLoadAutoOpenHookId = HookManager.registerHook({
+					name: 'ready',
+					description: 'Combat Tracker: Auto-open combat tracker on client load if combat is active',
+					context: 'combat-tracker-client-load',
 					priority: 3,
 					callback: () => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						// Only proceed if the setting is enabled
 						if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
 
+						// Check if there's an active combat with combatants
 						const combat = game.combat;
-						// Only auto-open if there's an active combat with combatants
 						if (combat?.started && combat?.combatants.size > 0) {
-							// Open for GM or if this user owns any combatants in the combat
-							if (game.user.isGM || combat.combatants.find(c => c.isOwner)) {
+							// Small delay to ensure UI is fully initialized
+							setTimeout(() => {
 								const tabApp = ui["combat"];
-								tabApp.renderPopout(tabApp);
-							}
+								if (tabApp) {
+									tabApp.renderPopout(tabApp);
+								}
+							}, 500);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
