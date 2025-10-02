@@ -26,6 +26,57 @@ class CombatTracker {
      * Sets up hooks for combat events
      */
     static initialize() {
+        // Handle auto-open on client load if combat is already active (outside ready hook)
+        Hooks.once('ready', () => {
+            if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: OPENING COMBAT TRACKER", "", true, false);
+
+                const combat = game.combat;
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Debug - Combat check", {
+                    combat: !!combat,
+                    started: combat?.started,
+                    combatantsSize: combat?.combatants?.size
+                }, true, false);
+
+                if (combat && combat.combatants.size > 0) {
+                    // Small delay to ensure UI is fully initialized
+                    setTimeout(() => {
+                        const tabApp = ui["combat"];
+                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Debug - TabApp check", {
+                            tabApp: !!tabApp,
+                            hasRenderPopout: !!tabApp?.renderPopout,
+                            hasRender: !!tabApp?.render
+                        }, true, false);
+
+                        if (tabApp) {
+                            // Try different methods to open the combat tracker
+                            try {
+                                if (tabApp.renderPopout) {
+                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying renderPopout", "", true, false);
+                                    tabApp.renderPopout(tabApp);
+                                } else if (tabApp.render) {
+                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying render", "", true, false);
+                                    tabApp.render();
+                                } else {
+                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No render methods found", "", true, false);
+                                }
+                            } catch (error) {
+                                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Error opening", error, false, false);
+                            }
+                        }
+                    }, 500);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Conditions not met", {
+                        combat: !!combat,
+                        started: combat?.started,
+                        combatantsSize: combat?.combatants?.size
+                    }, true, false);
+                }
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NOT OPENING COMBAT TRACKER", "", true, false);
+            }
+        });
+
         Hooks.once('ready', () => {
             try {
                 postConsoleAndNotification(MODULE.NAME, "Initializing Combat Tracker", "", false, false);
@@ -72,12 +123,29 @@ class CombatTracker {
 						
 						// Auto-open combat tracker for all users when setting is enabled
 						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+							postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Auto-opening", "", true, false);
 							// Small delay to ensure combat is fully initialized
 							setTimeout(() => {
 								const tabApp = ui["combat"];
+								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - TabApp check", {
+									tabApp: !!tabApp,
+									hasRenderPopout: !!tabApp?.renderPopout,
+									hasRender: !!tabApp?.render
+								}, true, false);
+
 								if (tabApp) {
-									tabApp.renderPopout(tabApp);
-									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
+									try {
+										if (tabApp.renderPopout) {
+											postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Trying renderPopout", "", true, false);
+											tabApp.renderPopout(tabApp);
+										} else if (tabApp.render) {
+											postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Trying render", "", true, false);
+											tabApp.render();
+										}
+										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
+									} catch (error) {
+										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Error opening", error, false, false);
+									}
 								}
 							}, 100);
 						}
@@ -343,32 +411,7 @@ class CombatTracker {
 				});
                 
 
-                // Handle auto-open on client load if combat is already active
-                const clientLoadAutoOpenHookId = HookManager.registerHook({
-					name: 'ready',
-					description: 'Combat Tracker: Auto-open combat tracker on client load if combat is active',
-					context: 'combat-tracker-client-load',
-					priority: 3,
-					callback: () => {
-						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						// Only proceed if the setting is enabled
-						if (!game.settings.get(MODULE.ID, 'combatTrackerOpen')) return;
-
-						// Check if there's an active combat with combatants
-						const combat = game.combat;
-						if (combat?.started && combat?.combatants.size > 0) {
-							// Small delay to ensure UI is fully initialized
-							setTimeout(() => {
-								const tabApp = ui["combat"];
-								if (tabApp) {
-									tabApp.renderPopout(tabApp);
-								}
-							}, 500);
-						}
-						// --- END - HOOKMANAGER CALLBACK ---
-					}
-				});
-                
+                                
                 // Add Roll Remaining button to combat tracker
                 const renderCombatTrackerButtonHookId = HookManager.registerHook({
 					name: 'renderCombatTracker',
