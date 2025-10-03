@@ -227,8 +227,11 @@ class MenuBar {
                     combatants: combat.combatants.length
                 }, true, false);
                 
-                // Auto-open combat bar when combat is created
-                MenuBar.openCombatBar();
+                // Auto-open combat bar when combat is created (if setting enabled)
+                const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                if (shouldShowCombatBar) {
+                    MenuBar.openCombatBar();
+                }
                 // --- END - HOOKMANAGER CALLBACK ---
             }
         });
@@ -247,9 +250,12 @@ class MenuBar {
                     combatantsCount: combatant.combat.combatants.size
                 }, true, false);
                 
-                // Auto-open combat bar when first combatant is added
+                // Auto-open combat bar when first combatant is added (if setting enabled)
                 if (combatant.combat.combatants.size === 1) {
-                    MenuBar.openCombatBar();
+                    const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                    if (shouldShowCombatBar) {
+                        MenuBar.openCombatBar();
+                    }
                 } else if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
                     // Update existing combat bar
                     MenuBar.updateCombatBar();
@@ -687,7 +693,11 @@ class MenuBar {
                 postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
                 // Small delay to ensure everything is ready
                 setTimeout(() => {
-                    this.openCombatBar();
+                    // Check if auto-show is enabled
+                    const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                    if (shouldShowCombatBar) {
+                        this.openCombatBar();
+                    }
                 }, 500);
             }
         } catch (error) {
