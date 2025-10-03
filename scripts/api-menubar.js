@@ -2572,26 +2572,30 @@ class MenuBar {
     static toggleInterface() {
         const uiLeft = document.getElementById('ui-left');
         const uiBottom = document.getElementById('ui-bottom');
+        const uiTop = document.getElementById('ui-top');
         const label = document.querySelector('.interface-label');
 
-        // Check if either UI element that can be hidden is currently hidden
+        // Check if any UI element that can be hidden is currently hidden
         const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
         const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
-        const isEitherHidden = isLeftHidden || isBottomHidden;
+        const isTopHidden = uiTop && uiTop.style.display === 'none';
+        const isAnyHidden = isLeftHidden || isBottomHidden || isTopHidden;
 
         // Get the settings
         const hideLeftUI = game.settings.get(MODULE.ID, 'canvasToolsHideLeftUI');
         const hideBottomUI = game.settings.get(MODULE.ID, 'canvasToolsHideBottomUI');
 
-        if (isEitherHidden) {
+        if (isAnyHidden) {
             ui.notifications.info("Showing the Interface...");
             if (hideLeftUI && isLeftHidden) uiLeft.style.display = 'inherit';
             if (hideBottomUI && isBottomHidden) uiBottom.style.display = 'inherit';
+            if (isTopHidden) uiTop.style.display = 'inherit';
             if (label) label.textContent = 'Hide UI';
         } else {
             ui.notifications.info("Hiding the Interface...");
             if (hideLeftUI) uiLeft.style.display = 'none';
             if (hideBottomUI) uiBottom.style.display = 'none';
+            if (uiTop) uiTop.style.display = 'none';
             if (label) label.textContent = 'Show UI';
         }
     }
