@@ -133,12 +133,29 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         const settingChangeHookId = HookManager.registerHook({
             name: 'settingChange',
-            description: 'MenuBar: Refresh menubar when party leader changes',
-            context: 'menubar-leader-change',
+            description: 'MenuBar: Refresh menubar when party leader or combat size changes',
+            context: 'menubar-settings-change',
             priority: 3,
             callback: (module, key, value) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                if (module === MODULE.ID && key === 'partyLeader') {
+                if (module === MODULE.ID && key === 'menubarCombatSize') {
+                    postConsoleAndNotification(MODULE.NAME, "Menubar Combat Size | Setting change hook fired", {
+                        module: module,
+                        key: key,
+                        value: value,
+                        currentUserId: game.user.id,
+                        isGM: game.user.isGM
+                    }, true, false);
+                    
+                    // Update the CSS variable for combat menubar height
+                    document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${value}px`);
+                    
+                    // Refresh the menubar to apply the new height
+                    if (game.combat) {
+                        MenuBar.updateCombatBar();
+                    }
+                }
+                else if (module === MODULE.ID && key === 'partyLeader') {
                     postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Setting change hook fired", {
                         module: module,
                         key: key,
@@ -1967,6 +1984,10 @@ class MenuBar {
     static openCombatBar(combatData = null) {
         try {
             postConsoleAndNotification(MODULE.NAME, "MENUBAR | openCombatBar called", "", true, false);
+            
+            // Set initial combat menubar height from setting
+            const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
             
             const combat = game.combats.active;
             if (!combat) {

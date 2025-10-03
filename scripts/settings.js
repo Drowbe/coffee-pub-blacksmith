@@ -2787,6 +2787,9 @@ export const registerSettings = async () => {
 
 
 
+
+
+
 	// -- Combat Tracker Size Data (Internal) --
 	game.settings.register(MODULE.ID, 'combatTrackerSize', {
 		name: 'Combat Tracker Size Data',
@@ -2818,6 +2821,32 @@ export const registerSettings = async () => {
 	});
 
 
+
+	// -- Show Combat Menubar Bar --
+	game.settings.register(MODULE.ID, 'menubarCombatShow', {
+		name: 'Automatically Show Combat Menu Bar',
+		hint: 'When enabled, the combat bar will automatically show when a combat starts.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Default Party Level --
+	game.settings.register(MODULE.ID, 'menubarCombatSize', {
+		name:'Combat Menubar Size',
+		hint: 'The verticle size of the combat menubar.',
+		scope: "client",
+		config: true,
+		requiresReload: true,	
+		type: Number,
+		default: 60,
+		range: {
+			min: 30,
+			max: 120,
+			step: 2,		
+		},
+	});
 
 
 
