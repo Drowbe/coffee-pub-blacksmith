@@ -13,8 +13,10 @@
 
 
 
-        {{!-- Previous Round Button (GM Only) --}}
+        {{!-- Previous Round Button (GM Only, After Combat Started, Not Round 1) --}}
         {{#if isGM}}
+        {{#if isActive}}
+        {{#if (gt currentRound 1)}}
         <div class="combatbar-button-control-container previous-turn">
             <a class="combatbar-button" 
                aria-label="Previous Round" 
@@ -25,9 +27,13 @@
             </a>
         </div>
         {{/if}}
+        {{/if}}
+        {{/if}}
 
-        {{!-- Previous Turn Button (GM Only) --}}
+        {{!-- Previous Turn Button (GM Only, After Combat Started, Not Turn 1) --}}
         {{#if isGM}}
+        {{#if isActive}}
+        {{#if (gt currentTurn 1)}}
         <div class="combatbar-button-control-container previous-turn">
             <a class="combatbar-button" 
                aria-label="Previous Turn" 
@@ -37,6 +43,8 @@
                 <i class="fas fa-chevron-left"></i>
             </a>
         </div>
+        {{/if}}
+        {{/if}}
         {{/if}}
         
         {{!-- Combat Portraits --}}
@@ -96,8 +104,9 @@
         {{/each}}
         </div>
         
-        {{!-- Next Turn Button (GM Only) --}}
+        {{!-- Next Turn Button (GM Only, After Combat Started) --}}
         {{#if isGM}}
+        {{#if isActive}}
         <div class="combatbar-button-control-container next-turn">
             <a class="combatbar-button" 
                aria-label="Next Turn" 
@@ -108,9 +117,11 @@
             </a>
         </div>
         {{/if}}
+        {{/if}}
 
-        {{!-- Next Round Button (GM Only) --}}
+        {{!-- Next Round Button (GM Only, After Combat Started) --}}
         {{#if isGM}}
+        {{#if isActive}}
         <div class="combatbar-button-control-container next-round">
             <a class="combatbar-button" 
                 aria-label="Next Round" 
@@ -120,6 +131,7 @@
                 <i class="fas fa-chevrons-right"></i>
             </a>
         </div>
+        {{/if}}
         {{/if}}
 
 
