@@ -777,7 +777,11 @@ class MenuBar {
         this.registerMenubarTool('interface', {
             icon: "fa-solid fa-sidebar",
             name: "interface",
-            title: "Hide UI",
+            title: () => {
+                // Dynamic title based on current UI state
+                const isHidden = this.isInterfaceHidden();
+                return isHidden ? "Show UI" : "Hide UI";
+            },
             tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
             zone: "middle",
             order: 4,
@@ -2432,7 +2436,8 @@ class MenuBar {
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
                 notifications: Array.from(this.notifications.values()),
-                secondaryBar: this.secondaryBar
+                secondaryBar: this.secondaryBar,
+                isInterfaceHidden: this.isInterfaceHidden()
             };
 
             // Render the template
@@ -2564,6 +2569,22 @@ class MenuBar {
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
         // by the dynamic click system above via their data-tool attributes
+    }
+
+    /**
+     * Check the current state of UI elements to determine if interface is hidden
+     * @returns {boolean} True if any UI elements are hidden
+     */
+    static isInterfaceHidden() {
+        const uiLeft = document.getElementById('ui-left');
+        const uiBottom = document.getElementById('ui-bottom');
+        const uiTop = document.getElementById('ui-top');
+
+        const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
+        const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
+        const isTopHidden = uiTop && uiTop.style.display === 'none';
+
+        return isLeftHidden || isBottomHidden || isTopHidden;
     }
 
     /**
