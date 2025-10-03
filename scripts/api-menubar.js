@@ -409,6 +409,26 @@ class MenuBar {
     static _registerCombatBarEvents() {
         // Use event delegation to handle clicks on combat bar controls
         document.addEventListener('click', async (event) => {
+            // Check if this is a combat portrait click (pan to combatant)
+            // But exclude initiative dice and other interactive elements
+            const combatPortrait = event.target.closest('[data-combatant-id]');
+            if (combatPortrait) {
+                // Don't pan if clicking on initiative dice, dead overlay, or other interactive elements
+                const isInitiativeDice = event.target.closest('.combat-portrait-initiative-dice');
+                const isDeadOverlay = event.target.closest('.combat-portrait-dead-overlay');
+                const isInteractiveElement = event.target.closest('a, button, .combatant-control');
+                
+                if (!isInitiativeDice && !isDeadOverlay && !isInteractiveElement) {
+                    const combatantId = combatPortrait.getAttribute('data-combatant-id');
+                    if (combatantId) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.panToCombatant(combatantId);
+                        return;
+                    }
+                }
+            }
+
             // Check if this is a round control button
             if (event.target.closest('.combatbar-button[data-control="previousRound"]')) {
                 event.preventDefault();
@@ -2375,6 +2395,35 @@ class MenuBar {
         }
     }
 
+    /**
+     * Pan to a specific combatant's token
+     * @param {string} combatantId - The combatant ID to pan to
+     */
+    static panToCombatant(combatantId) {
+        try {
+            const combat = game.combat;
+            if (!combat) return;
+
+            const combatant = combat.combatants.get(combatantId);
+            if (!combatant) return;
+
+            const token = combatant.token;
+            if (!token) return;
+
+            // Pan to the token
+            canvas.animatePan({ x: token.x, y: token.y });
+            
+            // Optionally highlight the token briefly
+            if (token.visible) {
+                token.highlight();
+                setTimeout(() => token.unhighlight(), 2000);
+            }
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error panning to combatant", error, false, false);
+        }
+    }
+
     static addClickHandlers() {
         // Use event delegation for dynamic tool clicks
         const menubarContainer = document.querySelector('.blacksmith-menubar-container');
@@ -2382,6 +2431,7 @@ class MenuBar {
 
         // Add a single event listener to the container for event delegation
         menubarContainer.addEventListener('click', (event) => {
+
             // Check if this is a notification close button click
             const closeButton = event.target.closest('.notification-close');
             if (closeButton) {
