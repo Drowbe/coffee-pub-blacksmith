@@ -2,48 +2,46 @@
 <div class="combat-tracker-bar">
     {{!-- Combat Info --}}
     <div class="combat-info">
-        <span class="combat-round">Round {{currentRound}}</span>
-        <span class="combat-turn">{{currentTurn}} / {{totalTurns}}</span>
+        <span class="combat-round">Combat Round {{currentRound}}</span>
+        <span class="combat-turn">Turn {{currentTurn}} of {{totalTurns}}: {{currentCombatant}}</span>
     </div>
     
     {{!-- Combat Controls and Portraits Group --}}
     <div class="combat-portraits-group">
 
-
-
-
-
-        {{!-- Previous Round Button (GM Only, After Combat Started, Not Round 1) --}}
         {{#if isGM}}
         {{#if isActive}}
-        {{#if (gt currentRound 1)}}
-        <div class="combatbar-button-control-container previous-turn">
-            <a class="combatbar-button" 
-               aria-label="Previous Round" 
-               role="button" 
-               data-tooltip="Previous Round" 
-               data-control="previousRound">
-                <i class="fas fa-chevrons-left"></i>
-            </a>
-        </div>
-        {{/if}}
-        {{/if}}
-        {{/if}}
+            <div class="combatbar-button-control-container">
+            {{!-- Previous Round Button (GM Only, After Combat Started, Not Round 1) --}}
+            {{#if (gt currentRound 1)}}
+                <a class="combatbar-button" 
+                aria-label="Previous Round" 
+                role="button" 
+                data-tooltip="Previous Round" 
+                data-control="previousRound">
+                    <i class="fas fa-chevrons-left"></i>
+                </a>
+            {{else}}
+                    <span class="combatbar-button-disabled" data-tooltip="No Previous Round">
+                        <i class="fas fa-chevrons-left"></i>
+                    </span>
+            {{/if}}
+            {{!-- Previous Turn Button (GM Only, After Combat Started, Not Turn 1) --}}
+            {{#if (gt currentTurn 1)}}
+                <a class="combatbar-button" 
+                aria-label="Previous Turn" 
+                role="button" 
+                data-tooltip="Previous Turn" 
+                data-control="previousTurn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {{else}}
+                <span class="combatbar-button-disabled" data-tooltip="No Previous Turn">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+            {{/if}}
 
-        {{!-- Previous Turn Button (GM Only, After Combat Started, Not Turn 1) --}}
-        {{#if isGM}}
-        {{#if isActive}}
-        {{#if (gt currentTurn 1)}}
-        <div class="combatbar-button-control-container previous-turn">
-            <a class="combatbar-button" 
-               aria-label="Previous Turn" 
-               role="button" 
-               data-tooltip="Previous Turn" 
-               data-control="previousTurn">
-                <i class="fas fa-chevron-left"></i>
-            </a>
-        </div>
-        {{/if}}
+            </div>
         {{/if}}
         {{/if}}
         
@@ -104,10 +102,11 @@
         {{/each}}
         </div>
         
-        {{!-- Next Turn Button (GM Only, After Combat Started) --}}
+        
         {{#if isGM}}
         {{#if isActive}}
         <div class="combatbar-button-control-container next-turn">
+            {{!-- Next Turn Button (GM Only, After Combat Started) --}}
             <a class="combatbar-button" 
                aria-label="Next Turn" 
                role="button" 
@@ -115,26 +114,18 @@
                data-control="nextTurn">
                 <i class="fas fa-chevron-right"></i>
             </a>
-        </div>
-        {{/if}}
-        {{/if}}
-
-        {{!-- Next Round Button (GM Only, After Combat Started) --}}
-        {{#if isGM}}
-        {{#if isActive}}
-        <div class="combatbar-button-control-container next-round">
+            {{!-- Next Round Button (GM Only, After Combat Started) --}}
             <a class="combatbar-button" 
-                aria-label="Next Round" 
-                role="button" 
-                data-tooltip="Next Round" 
-                data-control="nextRound">
+               aria-label="Next Round" 
+               role="button" 
+               data-tooltip="Next Round" 
+               data-control="nextRound">
                 <i class="fas fa-chevrons-right"></i>
             </a>
         </div>
         {{/if}}
         {{/if}}
-
-
+        
         {{!-- Action Button --}}
         {{#if actionButton}}
             <div class="combatbar-button-control-container action-button">
@@ -148,7 +139,6 @@
                 </a>
             </div>
         {{/if}}
-
 
     </div>
 

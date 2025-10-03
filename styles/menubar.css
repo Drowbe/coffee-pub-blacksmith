@@ -431,16 +431,16 @@
     margin: 0;
 }
 
-/* ------------------------------------ */
-/* --- SECONDARY MENUBAR -------------- */
-/* ------------------------------------ */
+/* ------------------------------------------------------ */
+/* --- SECONDARY MENUBAR - WRAPSS ALL BARS -------------- */
+/* ------------------------------------------------------ */
 
 
 .blacksmith-menubar-secondary {
-    /* Scale everything based on bar height */
     --menubar-secondary-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
     --menubar-secondary-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.10);
-  }
+    --blacksmith-menubar-secondary-backgroundcolor: rgba(50, 26, 31, 0.6);
+}
 
 .blacksmith-menubar-secondary {
     position: fixed;
@@ -448,78 +448,29 @@
     left: 4px;
     right: 4px;
     z-index: 99;
-    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
+    background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
     height: var(--blacksmith-menubar-secondary-height);
-    border: 1px solid rgba(17,17,17,0.8);
+    border: 1px solid rgba(17, 17, 17, 0.8);
     border-top: none;
     border-radius: 0 0 6px 6px;
     box-shadow: 0 0 20px 4px var(--color-shadow-dark);
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    padding: 0;
     overflow: hidden;
     font-size: var(--menubar-secondary-text-font-size);
 }
-
-
-
 
 
 /* ---------------------------------------------------- */
 /* --- SECONDARY MENUBAR: COMBAT TRACKER -------------- */
 /* ---------------------------------------------------- */
 
-/* Combat Tracker Specific Styles */
-.blacksmith-menubar-secondary[data-bar-type="combat"] {
-    /* Combat-specific styling can be added here */
-    background-color: var(--blacksmith-menubar-backgroundcolor-middle);
-}
-
-.blacksmith-menubar-secondary .combat-tracker-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    height: 100%;
-}
-
-.blacksmith-menubar-secondary .combat-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 60px;
-    font-size: var(--combatbar-text-font-size);
-    color: var(--blacksmith-menubar-fontcolor);
-}
-
-.blacksmith-menubar-secondary .combat-round {
-    font-weight: bold;
-}
-
-.blacksmith-menubar-secondary .combat-turn {
-    opacity: 0.8;
-}
-
-
-.blacksmith-menubar-secondary .combat-status {
-    display: flex;
-    align-items: center;
-    min-width: 80px;
-    font-size: var(--combatbar-text-font-size);
-    color: var(--blacksmith-menubar-fontcolor);
-    opacity: 0.8;
-}
-
-
-/* COMBAT PORTRAITS */
-
-
-
- /* =========================
-   Combat Tracker Tunables
-   ========================= */
-   .blacksmith-menubar-secondary {
+    
+/* =========================
+Combat Tracker Tunables
+========================= */
+.blacksmith-menubar-secondary {
     /* Scale everything based on bar height */
     --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 4px);
     --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
@@ -528,8 +479,10 @@
     --action-icon-size: calc(var(--healthbar-size) - 10px);
     --action-icon-font-size: calc(var(--healthbar-size) * 0.4);
     
-    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * .6);
-    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) *.6);  
+    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);  
+    
+    --combatbar-endcaps-minwidth: 10%;
     
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
@@ -537,8 +490,66 @@
     --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
     --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
     --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
-  }
-  
+}
+
+
+/* Combat Tracker Specific Styles */
+.blacksmith-menubar-secondary[data-bar-type="combat"] {
+    background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
+}
+
+.blacksmith-menubar-secondary .combat-tracker-bar {
+    display: flex;
+    align-items: center;
+    gap: 0px;
+    width: 100%;
+    height: 100%;
+
+}
+
+.blacksmith-menubar-secondary .combat-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* centers items vertically */
+  align-items: flex-start;
+  gap: 2px;
+  min-width: var(--combatbar-endcaps-minwidth);
+  height: 100%;
+  font-size: var(--combatbar-text-font-size);
+  color: var(--blacksmith-menubar-fontcolor);
+  padding: 0px 8px;
+  background-color: rgba(73, 82, 50, 0.9);
+  border-right: 4px solid rgba(17, 17, 17, 0.3);
+}
+
+.blacksmith-menubar-secondary .combat-round {
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: calc(var(--combatbar-text-font-size) * 1.1);
+}
+
+.blacksmith-menubar-secondary .combat-turn {
+    opacity: 0.8;
+    font-size: calc(var(--combatbar-text-font-size) * 0.9);
+}
+
+.blacksmith-menubar-secondary .combat-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* centers items vertically */
+  align-items: flex-end;   /* keep them left-aligned horizontally */
+  gap: 2px;
+  min-width: var(--combatbar-endcaps-minwidth);
+  height: 100%;
+  font-size: var(--combatbar-text-font-size);
+  color: var(--blacksmith-menubar-fontcolor);
+  padding: 0px 8px;
+  background-color: rgba(73, 82, 50, 0.9);
+  border-left: 4px solid rgba(17, 17, 17, 0.3);
+}
+
+/* COMBAT PORTRAITS */
+
   /* =========================
      Container
      ========================= */
@@ -588,17 +599,16 @@
   .blacksmith-menubar-secondary .combat-portrait-healthring {
     width: var(--healthbar-size);
     height: var(--healthbar-size);
-  }
-  .blacksmith-menubar-secondary .combat-portrait-image {
-    width: var(--portrait-size);
-    height: var(--portrait-size);
+    
   }
   
   .blacksmith-menubar-secondary .combat-portrait-image {
     overflow: hidden;
     z-index: 1;
     border: none;
-    
+    width: var(--portrait-size);
+    height: var(--portrait-size);
+    background: rgba(0, 0, 0, 0.75);
   }
   
   .blacksmith-menubar-secondary .combat-portrait-image img {
@@ -610,22 +620,23 @@
     -webkit-user-drag: none;
     user-select: none;
     border: 1px solid rgba(0, 0, 0, 0.2);
+    
   }
   
   
 /* =========================
     States
     ========================= */
-    .blacksmith-menubar-secondary .combat-portrait-container:hover {
+.blacksmith-menubar-secondary .combat-portrait-container:hover {
     transform: scale(1.0);
     border-color: rgba(223, 98, 20, 0.9);
     background: rgba(223, 98, 20, 0.2);
-    }
+}
     
-    .blacksmith-menubar-secondary .combat-portrait-container.current {
-    border-color: rgba(14, 134, 14, 0.6);
-    background: rgba(27, 63, 31, 0.8);
-    }
+.blacksmith-menubar-secondary .combat-portrait-container.current {
+    border-color: rgba(223, 98, 24, 0.1);
+    background: rgba(153, 106, 38, 0.7);
+}
     
     .blacksmith-menubar-secondary .combat-portrait-container.defeated {
     opacity: .9;
@@ -686,12 +697,22 @@
 Control Buttons
 ========================= */
 .blacksmith-menubar-secondary .combatbar-button-control-container {
+
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 calc(var(--blacksmith-menubar-secondary-height) * 0.08);
+    flex-direction: row;
+    justify-content: center; /* centers items vertically */
+    align-items: flex-start;
+    gap: 2px;
+
+    height: 100%;
+    font-size: var(--combatbar-text-font-size);
+    color: var(--blacksmith-menubar-fontcolor);
+    padding: 0 calc(var(--blacksmith-menubar-secondary-height) * 0.09);
+    border-right: 0px solid rgba(17, 17, 17, 0.3);
+
 }
 
+.blacksmith-menubar-secondary .combatbar-button-disabled,
 .blacksmith-menubar-secondary .combatbar-button {
     display: flex;
     align-items: center;
@@ -699,17 +720,27 @@ Control Buttons
     width: auto;
     min-width: var(--combatbar-button-ends-width);
     height: var(--combatbar-button-ends-height);
-    background: rgba(38, 19, 23, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0px 12px 0px 12px;
-    color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    padding: 0px 8px 0px 8px;
     text-decoration: none;
     text-transform: uppercase;
     transition: all 0.2s ease;
     font-size: var(--combatbar-button-font-size);
+}
+.blacksmith-menubar-secondary .combatbar-button {
+    background: rgba(19, 19, 19, 0.6);
+    border: 1px solid rgba(19, 19, 19, 0.9);
+    color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
 }
+.blacksmith-menubar-secondary .combatbar-button-disabled {
+    background: rgba(19, 19, 19, 0.6);
+    border: 1px solid rgba(19, 19, 19, 0.9);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: arrow;
+    opacity: 60%;
+}
+.blacksmith-menubar-secondary .combatbar-button-disabled i,
 .blacksmith-menubar-secondary .combatbar-button i {
     padding: 2px 0px 0px 0px;
 }

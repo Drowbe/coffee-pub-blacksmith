@@ -630,6 +630,31 @@ class MenuBar {
                 }
             }
         });
+
+        // Add double-click handler for GM to set current combatant
+        document.addEventListener('dblclick', async (event) => {
+            // Only allow GMs to set current combatant
+            if (!game.user.isGM) return;
+
+            // Check if this is a combat portrait double-click
+            const combatPortrait = event.target.closest('[data-combatant-id]');
+            if (combatPortrait) {
+                // Don't set current if double-clicking on initiative dice, dead overlay, or other interactive elements
+                const isInitiativeDice = event.target.closest('.combat-portrait-initiative-dice');
+                const isDeadOverlay = event.target.closest('.combat-portrait-dead-overlay');
+                const isInteractiveElement = event.target.closest('a, button, .combatant-control');
+                
+                if (!isInitiativeDice && !isDeadOverlay && !isInteractiveElement) {
+                    const combatantId = combatPortrait.getAttribute('data-combatant-id');
+                    if (combatantId) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.setCurrentCombatant(combatantId);
+                        return;
+                    }
+                }
+            }
+        });
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
@@ -2201,6 +2226,10 @@ class MenuBar {
                 }
             }
 
+            // Get current combatant name
+            const currentCombatant = combat.combatants.get(combat.current.combatantId);
+            const currentCombatantName = currentCombatant ? currentCombatant.name : '';
+
             const combatData = {
                 currentRound: combat.round || 1,
                 currentTurn: combat.turn || 1,
@@ -2208,7 +2237,8 @@ class MenuBar {
                 combatants: combatants,
                 isActive: combat.started,
                 actionButton: actionButton,
-                isGM: game.user.isGM
+                isGM: game.user.isGM,
+                currentCombatant: currentCombatantName
             };
             
             postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Combat data generated", {
@@ -2421,6 +2451,32 @@ class MenuBar {
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error panning to combatant", error, false, false);
+        }
+    }
+
+    /**
+     * Set a combatant as the current turn (GM only)
+     * @param {string} combatantId - The combatant ID to set as current
+     */
+    static async setCurrentCombatant(combatantId) {
+        try {
+            const combat = game.combat;
+            if (!combat) return;
+
+            const combatant = combat.combatants.get(combatantId);
+            if (!combatant) return;
+
+            // Find the turn index for this combatant
+            const turnIndex = combat.turns.findIndex(turn => turn.id === combatantId);
+            if (turnIndex === -1) return;
+
+            // Set the current turn
+            await combat.update({ turn: turnIndex });
+            
+            postConsoleAndNotification(MODULE.NAME, `Set current combatant to ${combatant.name}`, "", true, false);
+
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error setting current combatant", error, false, false);
         }
     }
 
