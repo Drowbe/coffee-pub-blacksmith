@@ -867,23 +867,16 @@ class MenuBar {
         this.registerMenubarTool('combat-window', {
             icon: "fas fa-swords",
             name: "combat-window",
-            title: () => {
-                // Dynamic title based on combat tracker window state
-                const isCombatTrackerOpen = CombatTracker.isCombatTrackerOpen();
-                return isCombatTrackerOpen ? "Hide Combat Tracker" : "Show Combat Tracker";
-            },
-            tooltip: () => {
-                // Dynamic tooltip based on combat tracker window state
-                const isCombatTrackerOpen = CombatTracker.isCombatTrackerOpen();
-                return isCombatTrackerOpen ? "Hide the FoundryVTT Combat Tracker window" : "Show the FoundryVTT Combat Tracker window";
-            },
+            title: "Toggle Combat Tracker",
+            tooltip: "Toggle the FoundryVTT Combat Tracker window visibility",
             zone: "middle",
-            order: 6,
+            order: 8,
             moduleId: "blacksmith-core",
             gmOnly: false, // Available to all players
             visible: () => {
-                // Always visible - combat tracker can be opened even without active combat
-                return true;
+                // Show if there's an active combat with combatants
+                const activeCombat = game.combats.active;
+                return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
             },
             onClick: () => {
                 this.toggleCombatTracker();
@@ -2664,7 +2657,6 @@ class MenuBar {
     static toggleCombatTracker() {
         try {
             const wasOpen = CombatTracker.isCombatTrackerOpen();
-            postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - Initial State", { wasOpen }, true, false);
             
             if (wasOpen) {
                 CombatTracker.closeCombatTracker();
@@ -2673,15 +2665,6 @@ class MenuBar {
                 CombatTracker.openCombatTracker();
                 ui.notifications.info("Combat Tracker shown");
             }
-            
-            // Wait a moment for the sidebar tab switch to complete, then check state
-            setTimeout(() => {
-                const isNowOpen = CombatTracker.isCombatTrackerOpen();
-                postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - After Operation (Delayed)", { wasOpen, isNowOpen }, true, false);
-                
-                // Re-render menubar to update button state
-                MenuBar.renderMenubar(true);
-            }, 250);
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error toggling combat tracker", error, false, false);

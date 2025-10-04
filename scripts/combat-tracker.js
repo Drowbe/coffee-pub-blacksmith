@@ -670,31 +670,6 @@ class CombatTracker {
             
             const isOpen = combatTabActive || popoutRendered || altPopoutRendered || windowRendered;
             
-            // Additional debugging for the final result
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Debug", {
-                combatTabActive,
-                popoutRendered,
-                altPopoutRendered,
-                windowRendered,
-                finalIsOpen: isOpen,
-                calculation: `${combatTabActive} || ${popoutRendered} || ${altPopoutRendered} || ${windowRendered} = ${isOpen}`
-            }, true, false);
-            
-            // Debug logging
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Check", {
-                exists: !!tracker,
-                rendered: tracker.rendered,
-                isVisible,
-                combatTabActive,
-                popoutRendered,
-                altPopoutRendered,
-                windowRendered,
-                isOpen,
-                elementExists: !!tracker.element,
-                elementVisible: tracker.element?.is(':visible'),
-                activeTab: ui.sidebar?.activeTab
-            }, true, false);
-            
             return isOpen;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error checking combat tracker state", error, false, false);
