@@ -640,25 +640,14 @@ class CombatTracker {
             
             // Check if combat tracker exists and is rendered
             if (!tracker || !tracker.rendered) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Check", {
-                    exists: !!tracker,
-                    rendered: tracker?.rendered,
-                    isOpen: false
-                }, true, false);
                 return false;
             }
             
-            // Check if the combat tracker element is visible
-            const isVisible = tracker.element && tracker.element.is(':visible');
-            
-            // Also check if the combat tab is active in the sidebar
-            const combatTabActive = ui.sidebar && ui.sidebar.activeTab === 'combat';
-            
-            // Also check for popout windows
+            // Check for popout windows
             const popoutRendered = tracker._popOut?.rendered || false;
             const altPopoutRendered = tracker._popout?.rendered || false;
             
-            // Also check for any combat tracker windows in ui.windows
+            // Check for any combat tracker windows in ui.windows
             let windowRendered = false;
             for (const app of Object.values(ui.windows)) {
                 const el = app?.element?.[0] ?? app?.element;
@@ -668,7 +657,7 @@ class CombatTracker {
                 }
             }
             
-            const isOpen = combatTabActive || popoutRendered || altPopoutRendered || windowRendered;
+            const isOpen = popoutRendered || altPopoutRendered || windowRendered;
             
             return isOpen;
         } catch (error) {
@@ -684,13 +673,7 @@ class CombatTracker {
         try {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Opening", "", true, false);
             
-            // Show the combat tracker by switching to the combat tab in the sidebar
-            if (ui.sidebar) {
-                ui.sidebar.activateTab('combat');
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Switched sidebar tab to show combat tracker", "", true, false);
-            }
-            
-            // Also try the original methods for popout windows
+            // Try to open combat tracker without switching sidebar tabs
             const tabApp = ui["combat"];
             if (tabApp) {
                 try {
@@ -717,14 +700,7 @@ class CombatTracker {
         try {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closing", "", true, false);
             
-            // Hide the combat tracker by switching to a different sidebar tab
-            if (ui.sidebar && ui.combat?.rendered) {
-                // Switch to the actors tab to hide the combat tracker
-                ui.sidebar.activateTab('actors');
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Switched sidebar tab to hide combat tracker", "", true, false);
-            }
-            
-            // Also close any popout windows
+            // Close any popout windows without switching sidebar tabs
             if (ui.combat?._popOut?.rendered) {
                 await ui.combat._popOut.close({force: true});
                 postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed popout window", "", true, false);
