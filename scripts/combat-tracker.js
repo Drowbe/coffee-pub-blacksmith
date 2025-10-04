@@ -651,6 +651,9 @@ class CombatTracker {
             // Check if the combat tracker element is visible
             const isVisible = tracker.element && tracker.element.is(':visible');
             
+            // Also check if the combat tab is active in the sidebar
+            const combatTabActive = ui.sidebar && ui.sidebar.activeTab === 'combat';
+            
             // Also check for popout windows
             const popoutRendered = tracker._popOut?.rendered || false;
             const altPopoutRendered = tracker._popout?.rendered || false;
@@ -665,19 +668,31 @@ class CombatTracker {
                 }
             }
             
-            const isOpen = isVisible || popoutRendered || altPopoutRendered || windowRendered;
+            const isOpen = combatTabActive || popoutRendered || altPopoutRendered || windowRendered;
+            
+            // Additional debugging for the final result
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Debug", {
+                combatTabActive,
+                popoutRendered,
+                altPopoutRendered,
+                windowRendered,
+                finalIsOpen: isOpen,
+                calculation: `${combatTabActive} || ${popoutRendered} || ${altPopoutRendered} || ${windowRendered} = ${isOpen}`
+            }, true, false);
             
             // Debug logging
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Check", {
                 exists: !!tracker,
                 rendered: tracker.rendered,
                 isVisible,
+                combatTabActive,
                 popoutRendered,
                 altPopoutRendered,
                 windowRendered,
                 isOpen,
                 elementExists: !!tracker.element,
-                elementVisible: tracker.element?.is(':visible')
+                elementVisible: tracker.element?.is(':visible'),
+                activeTab: ui.sidebar?.activeTab
             }, true, false);
             
             return isOpen;

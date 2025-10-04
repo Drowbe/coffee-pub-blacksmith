@@ -2674,12 +2674,14 @@ class MenuBar {
                 ui.notifications.info("Combat Tracker shown");
             }
             
-            // Check state after operation
-            const isNowOpen = CombatTracker.isCombatTrackerOpen();
-            postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - After Operation", { wasOpen, isNowOpen }, true, false);
-            
-            // Re-render menubar to update button state
-            MenuBar.renderMenubar(true);
+            // Wait a moment for the sidebar tab switch to complete, then check state
+            setTimeout(() => {
+                const isNowOpen = CombatTracker.isCombatTrackerOpen();
+                postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - After Operation (Delayed)", { wasOpen, isNowOpen }, true, false);
+                
+                // Re-render menubar to update button state
+                MenuBar.renderMenubar(true);
+            }, 250);
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error toggling combat tracker", error, false, false);
