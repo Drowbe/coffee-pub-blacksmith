@@ -41,29 +41,7 @@ class CombatTracker {
                 if (combat && combat.combatants.size > 0) {
                     // Small delay to ensure UI is fully initialized
                     setTimeout(() => {
-                        const tabApp = ui["combat"];
-                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Debug - TabApp check", {
-                            tabApp: !!tabApp,
-                            hasRenderPopout: !!tabApp?.renderPopout,
-                            hasRender: !!tabApp?.render
-                        }, true, false);
-
-                        if (tabApp) {
-                            // Try different methods to open the combat tracker
-                            try {
-                                if (tabApp.renderPopout) {
-                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying renderPopout", "", true, false);
-                                    tabApp.renderPopout(tabApp);
-                                } else if (tabApp.render) {
-                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying render", "", true, false);
-                                    tabApp.render();
-                                } else {
-                                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No render methods found", "", true, false);
-                                }
-                            } catch (error) {
-                                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Error opening", error, false, false);
-                            }
-                        }
+                        CombatTracker.openCombatTracker();
                     }, 500);
                 } else {
                     postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Conditions not met", {
@@ -126,27 +104,8 @@ class CombatTracker {
 							postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Auto-opening", "", true, false);
 							// Small delay to ensure combat is fully initialized
 							setTimeout(() => {
-								const tabApp = ui["combat"];
-								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - TabApp check", {
-									tabApp: !!tabApp,
-									hasRenderPopout: !!tabApp?.renderPopout,
-									hasRender: !!tabApp?.render
-								}, true, false);
-
-								if (tabApp) {
-									try {
-										if (tabApp.renderPopout) {
-											postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Trying renderPopout", "", true, false);
-											tabApp.renderPopout(tabApp);
-										} else if (tabApp.render) {
-											postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Trying render", "", true, false);
-											tabApp.render();
-										}
-										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
-									} catch (error) {
-										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Error opening", error, false, false);
-									}
-								}
+								CombatTracker.openCombatTracker();
+								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
 							}, 100);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -165,18 +124,7 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// No encounter / ended — close any tracker UI
-						// Small delay to allow any pending DOM events to complete before closing
-						setTimeout(async () => {
-							await ui.combat?.close?.({force:true});
-							ui.combat?._popOut?.close?.({force:true});
-							ui.combat?._popout?.close?.({force:true});
-							for (const app of Object.values(ui.windows)) {
-								const el = app?.element?.[0] ?? app?.element;
-								if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
-									await app.close({force:true});
-								}
-							}
-						}, 100);
+						CombatTracker.closeCombatTracker();
 
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -193,18 +141,7 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat ends
-						// Small delay to allow any pending DOM events to complete before closing
-						setTimeout(async () => {
-							await ui.combat?.close?.({force:true});
-							ui.combat?._popOut?.close?.({force:true});
-							ui.combat?._popout?.close?.({force:true});
-							for (const app of Object.values(ui.windows)) {
-								const el = app?.element?.[0] ?? app?.element;
-								if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
-									await app.close({force:true});
-								}
-							}
-						}, 100);
+						CombatTracker.closeCombatTracker();
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -690,6 +627,137 @@ class CombatTracker {
         for (const combatant of remainingCombatants) {
             await combatant.rollInitiative();
             postConsoleAndNotification(MODULE.NAME, `Rolled initiative for ${combatant.name}`, "", true, false);
+        }
+    }
+
+    /**
+     * Check if the FoundryVTT Combat Tracker window is open
+     * @returns {boolean} True if combat tracker is open
+     */
+    static isCombatTrackerOpen() {
+        try {
+            const tracker = ui.combat;
+            
+            // Check if combat tracker exists and is rendered
+            if (!tracker || !tracker.rendered) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Check", {
+                    exists: !!tracker,
+                    rendered: tracker?.rendered,
+                    isOpen: false
+                }, true, false);
+                return false;
+            }
+            
+            // Check if the combat tracker element is visible
+            const isVisible = tracker.element && tracker.element.is(':visible');
+            
+            // Also check for popout windows
+            const popoutRendered = tracker._popOut?.rendered || false;
+            const altPopoutRendered = tracker._popout?.rendered || false;
+            
+            // Also check for any combat tracker windows in ui.windows
+            let windowRendered = false;
+            for (const app of Object.values(ui.windows)) {
+                const el = app?.element?.[0] ?? app?.element;
+                if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
+                    windowRendered = true;
+                    break;
+                }
+            }
+            
+            const isOpen = isVisible || popoutRendered || altPopoutRendered || windowRendered;
+            
+            // Debug logging
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker State Check", {
+                exists: !!tracker,
+                rendered: tracker.rendered,
+                isVisible,
+                popoutRendered,
+                altPopoutRendered,
+                windowRendered,
+                isOpen,
+                elementExists: !!tracker.element,
+                elementVisible: tracker.element?.is(':visible')
+            }, true, false);
+            
+            return isOpen;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error checking combat tracker state", error, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Open the FoundryVTT Combat Tracker window
+     */
+    static openCombatTracker() {
+        try {
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Opening", "", true, false);
+            
+            // Show the combat tracker by switching to the combat tab in the sidebar
+            if (ui.sidebar) {
+                ui.sidebar.activateTab('combat');
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Switched sidebar tab to show combat tracker", "", true, false);
+            }
+            
+            // Also try the original methods for popout windows
+            const tabApp = ui["combat"];
+            if (tabApp) {
+                try {
+                    if (tabApp.renderPopout) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying renderPopout", "", true, false);
+                        tabApp.renderPopout(tabApp);
+                    } else if (tabApp.render) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying render", "", true, false);
+                        tabApp.render();
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Error with popout methods", error, false, false);
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error opening combat tracker", error, false, false);
+        }
+    }
+
+    /**
+     * Close the FoundryVTT Combat Tracker window
+     */
+    static async closeCombatTracker() {
+        try {
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closing", "", true, false);
+            
+            // Hide the combat tracker by switching to a different sidebar tab
+            if (ui.sidebar && ui.combat?.rendered) {
+                // Switch to the actors tab to hide the combat tracker
+                ui.sidebar.activateTab('actors');
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Switched sidebar tab to hide combat tracker", "", true, false);
+            }
+            
+            // Also close any popout windows
+            if (ui.combat?._popOut?.rendered) {
+                await ui.combat._popOut.close({force: true});
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed popout window", "", true, false);
+            }
+            
+            // Close any alternative popout windows (different spelling)
+            if (ui.combat?._popout?.rendered) {
+                await ui.combat._popout.close({force: true});
+                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed alternative popout window", "", true, false);
+            }
+            
+            // Close any other combat tracker windows that might exist
+            for (const app of Object.values(ui.windows)) {
+                const el = app?.element?.[0] ?? app?.element;
+                if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
+                    await app.close({force: true});
+                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed custom window", "", true, false);
+                }
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed successfully", "", true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error closing combat tracker", error, false, false);
         }
     }
 }

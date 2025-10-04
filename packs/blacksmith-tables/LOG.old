@@ -1,7 +1,3 @@
-2025/09/30-17:12:37.198 af2c Recovering log #2177
-2025/09/30-17:12:37.238 af2c Delete type=0 #2177
-2025/09/30-17:12:37.238 af2c Delete type=3 #2176
-2025/10/01-15:00:50.622 121c8 Level-0 table #2181: started
-2025/10/01-15:00:50.623 121c8 Level-0 table #2181: 0 bytes OK
-2025/10/01-15:00:50.624 121c8 Delete type=0 #2179
-2025/10/01-15:00:50.626 121c8 Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)
+2025/10/01-15:01:21.992 af2c Recovering log #2180
+2025/10/01-15:01:21.998 af2c Delete type=0 #2180
+2025/10/01-15:01:21.998 af2c Delete type=3 #2178

@@ -8,6 +8,7 @@ import { SocketManager } from './manager-sockets.js';
 import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
+import { CombatTracker } from './combat-tracker.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacement } from './token-image-replacement.js';
@@ -332,6 +333,50 @@ class MenuBar {
                 
                 // Close combat bar when combat is deleted
                 MenuBar.closeCombatBar();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combat tracker window rendering to update menubar button state
+        const combatTrackerRenderHookId = HookManager.registerHook({
+            name: 'renderApplication',
+            description: 'MenuBar: Update combat tracker button when combat tracker window opens',
+            context: 'menubar-combat-tracker-render',
+            priority: 3,
+            callback: (app, html, data) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Check if this is the combat tracker application
+                if (app && app.appId === 'combat') {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Window render detected", {
+                        appId: app.appId,
+                        rendered: app.rendered
+                    }, true, false);
+                    
+                    // Re-render menubar to update combat tracker button state
+                    MenuBar.renderMenubar(true);
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // Hook for combat tracker window closing to update menubar button state
+        const combatTrackerCloseHookId = HookManager.registerHook({
+            name: 'closeApplication',
+            description: 'MenuBar: Update combat tracker button when combat tracker window closes',
+            context: 'menubar-combat-tracker-close',
+            priority: 3,
+            callback: (app, options) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Check if this is the combat tracker application
+                if (app && app.appId === 'combat') {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Window close detected", {
+                        appId: app.appId,
+                        rendered: app.rendered
+                    }, true, false);
+                    
+                    // Re-render menubar to update combat tracker button state
+                    MenuBar.renderMenubar(true);
+                }
                 // --- END - HOOKMANAGER CALLBACK ---
             }
         });
@@ -816,6 +861,32 @@ class MenuBar {
             gmOnly: true,
             onClick: () => {
                 this.createCombat();
+            }
+        });
+
+        this.registerMenubarTool('combat-window', {
+            icon: "fas fa-swords",
+            name: "combat-window",
+            title: () => {
+                // Dynamic title based on combat tracker window state
+                const isCombatTrackerOpen = CombatTracker.isCombatTrackerOpen();
+                return isCombatTrackerOpen ? "Hide Combat Tracker" : "Show Combat Tracker";
+            },
+            tooltip: () => {
+                // Dynamic tooltip based on combat tracker window state
+                const isCombatTrackerOpen = CombatTracker.isCombatTrackerOpen();
+                return isCombatTrackerOpen ? "Hide the FoundryVTT Combat Tracker window" : "Show the FoundryVTT Combat Tracker window";
+            },
+            zone: "middle",
+            order: 6,
+            moduleId: "blacksmith-core",
+            gmOnly: false, // Available to all players
+            visible: () => {
+                // Always visible - combat tracker can be opened even without active combat
+                return true;
+            },
+            onClick: () => {
+                this.toggleCombatTracker();
             }
         });
 
@@ -2585,6 +2656,34 @@ class MenuBar {
         const isTopHidden = uiTop && uiTop.style.display === 'none';
 
         return isLeftHidden || isBottomHidden || isTopHidden;
+    }
+
+    /**
+     * Toggle the FoundryVTT Combat Tracker window
+     */
+    static toggleCombatTracker() {
+        try {
+            const wasOpen = CombatTracker.isCombatTrackerOpen();
+            postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - Initial State", { wasOpen }, true, false);
+            
+            if (wasOpen) {
+                CombatTracker.closeCombatTracker();
+                ui.notifications.info("Combat Tracker hidden");
+            } else {
+                CombatTracker.openCombatTracker();
+                ui.notifications.info("Combat Tracker shown");
+            }
+            
+            // Check state after operation
+            const isNowOpen = CombatTracker.isCombatTrackerOpen();
+            postConsoleAndNotification(MODULE.NAME, "Toggle Combat Tracker - After Operation", { wasOpen, isNowOpen }, true, false);
+            
+            // Re-render menubar to update button state
+            MenuBar.renderMenubar(true);
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error toggling combat tracker", error, false, false);
+        }
     }
 
     /**
