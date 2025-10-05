@@ -17,9 +17,6 @@ export class RoundTimer {
         // Wait for ready to ensure settings are registered
         Hooks.once('ready', () => {
                     // Register hooks
-        // NOTE: renderCombatTracker hook has been consolidated into combat-tools.js via HookManager
-        // This eliminates hook conflicts and improves performance
-        
         // Migrate updateCombat hook to HookManager for centralized control
         const hookId = HookManager.registerHook({
             name: 'updateCombat',
@@ -31,6 +28,18 @@ export class RoundTimer {
         
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-round", true, false);
+        
+        // Register renderCombatTracker hook for Round Timer
+        const renderHookId = HookManager.registerHook({
+            name: 'renderCombatTracker',
+            description: 'Round Timer: Add round duration display to combat tracker',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onRenderCombatTracker.bind(this),
+            context: 'timer-round'
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "timer-round", true, false);
             
             // Clean up old interval if it exists
             if (this.updateInterval) {

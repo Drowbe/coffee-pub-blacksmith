@@ -27,16 +27,25 @@ class CombatTimer {
     static initialize() {
         Hooks.once('ready', () => {
             try {
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Starting initialization", "", true, false);
+                
                 if (!game.settings.get(MODULE.ID, 'combatTimerEnabled')) {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Timer is disabled", "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Combat Timer is disabled", "", true, false);
                     return;
                 }
 
-                postConsoleAndNotification(MODULE.NAME, "Initializing Combat Timer", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Combat Timer is enabled, proceeding with initialization", "", true, false);
                 
                 // Initialize state
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
                 this.state.remaining = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? 60;
+                
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: State initialized", {
+                    stateIsPaused: this.state.isPaused,
+                    stateRemaining: this.state.remaining,
+                    stateDuration: this.state.duration,
+                    stateIsActive: this.state.isActive
+                }, true, false);
                 
                 // Add debounce for round changes
                 this._lastRoundChange = 0;
@@ -69,7 +78,11 @@ class CombatTimer {
                 });
                 
                 // Log hook registration
-                postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "timer-combat", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Hook registered", {
+                    hookId: renderCombatTrackerHookId,
+                    hookName: 'renderCombatTracker',
+                    context: 'timer-combat'
+                }, true, false);
 
                 // Handle planning timer expiration
                 const planningTimerExpiredHookId = HookManager.registerHook({
@@ -225,13 +238,44 @@ class CombatTimer {
 
     static async _onRenderCombatTracker(app, html, data) {
         try {
-            if (!game.combat?.started || game.combat.round === 0) return;
+            // Combat Timer Investigation: Start of render method
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: _onRenderCombatTracker called", {
+                combatExists: !!game.combat,
+                combatStarted: game.combat?.started,
+                combatRound: game.combat?.round,
+                combatTurn: game.combat?.turn,
+                userIsGM: game.user.isGM
+            }, true, false);
+
+            if (!game.combat?.started || game.combat.round === 0) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Early return - combat not started or round 0", {
+                    combatStarted: game.combat?.started,
+                    combatRound: game.combat?.round
+                }, true, false);
+                return;
+            }
 
             const isEnabled = game.settings.get(MODULE.ID, 'combatTimerEnabled');
             const isGMOnly = game.settings.get(MODULE.ID, 'combatTimerGMOnly');
 
-            if (isGMOnly && !game.user.isGM) return;
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Settings check", {
+                isEnabled: isEnabled,
+                isGMOnly: isGMOnly,
+                userIsGM: game.user.isGM
+            }, true, false);
+
+            if (isGMOnly && !game.user.isGM) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Early return - GM only and user not GM", "", true, false);
+                return;
+            }
             
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: About to render template", {
+                stateIsPaused: this.state.isPaused,
+                stateRemaining: this.state.remaining,
+                stateDuration: this.state.duration,
+                defaultsTimeLimit: this.DEFAULTS.timeLimit
+            }, true, false);
+
             const timerHtml = await renderTemplate(
                 'modules/coffee-pub-blacksmith/templates/timer-combat.hbs',
                 {
@@ -242,26 +286,41 @@ class CombatTimer {
                 }
             );
             
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Template rendered", {
+                timerHtmlLength: timerHtml?.length || 0,
+                timerHtmlPreview: timerHtml?.substring(0, 100) || 'null'
+            }, true, false);
+            
             // Modified selector to exclude groups and look for active individual combatant
             const activeCombatant = html.find('.combatant.active:not(.combatant-group)');
+            const activeGroupMember = html.find('.group-children .combatant.active');
+            const combatTracker = html.find('#combat-tracker');
+            
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: DOM elements found", {
+                activeCombatantCount: activeCombatant.length,
+                activeGroupMemberCount: activeGroupMember.length,
+                combatTrackerCount: combatTracker.length,
+                htmlLength: html.length
+            }, true, false);
+
             if (activeCombatant.length) {
                 activeCombatant.after(timerHtml);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Timer added after active combatant", "", true, false);
+            } else if (activeGroupMember.length) {
+                activeGroupMember.after(timerHtml);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Timer added after active group member", "", true, false);
             } else {
-                // Try to find active combatant within a group
-                const activeGroupMember = html.find('.group-children .combatant.active');
-                if (activeGroupMember.length) {
-                    activeGroupMember.after(timerHtml);
-                } else {
-                    // Fallback: append to combat tracker
-                    html.find('#combat-tracker').append(timerHtml);
-                }
+                combatTracker.append(timerHtml);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Timer appended to combat tracker", "", true, false);
             }
             
             if (isEnabled) {
                 this.bindTimerEvents(html);
+                postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Timer events bound", "", true, false);
             }
 
             this.updateUI();
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: UI updated", "", true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error rendering combat tracker", error, false, false);
         }
@@ -410,10 +469,23 @@ class CombatTimer {
     }
 
     static async _onUpdateCombat(combat, changed, options, userId) {
-        if (!game.user.isGM) return;
+        postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: _onUpdateCombat called", {
+            userIsGM: game.user.isGM,
+            combatStarted: combat?.started,
+            combatRound: combat?.round,
+            combatTurn: combat?.turn,
+            changedKeys: Object.keys(changed || {}),
+            endingPlanningTimer: this._endingPlanningTimer
+        }, true, false);
+        
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Early return - user not GM", "", true, false);
+            return;
+        }
         
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Timer Investigation: Early return - ending planning timer", "", true, false);
             return;
         }
 
