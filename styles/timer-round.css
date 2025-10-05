@@ -16,7 +16,7 @@
   .round-timer-right {
 	  display: flex;
 	  align-items: center;
-	  gap: 8px;
+	  gap: 4px;
 	  padding: 0; 
 	  color: rgba(255, 255, 255, 0.7);
 	  text-transform: capitalize;

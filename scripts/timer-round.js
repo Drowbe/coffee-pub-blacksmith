@@ -101,12 +101,27 @@ export class RoundTimer {
                     roundElements.forEach(element => {
                         element.textContent = formattedRoundTime;
                     });
-                    
+
+                    // update the combat bar round time
+                    const combatbarRoundElements = document.querySelectorAll('.combat-info .combat-time-round');
+                    combatbarRoundElements.forEach(element => {
+                        element.textContent = formattedRoundTime;
+                    });
+
                     // Update all instances of the total combat time
                     const totalElements = document.querySelectorAll('.round-timer-container .combat-time-total');
                     totalElements.forEach(element => {
                         element.textContent = formattedTotalTime;
                     });
+
+                    // update the combat bar total time
+                    const combatbarTotalElements = document.querySelectorAll('.combat-status .combat-time-total');
+                    combatbarTotalElements.forEach(element => {
+                        element.textContent = formattedTotalTime;
+                    });
+
+
+
                 }
             }, 1000); // Update every second
         });

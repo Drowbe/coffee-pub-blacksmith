@@ -548,6 +548,18 @@ Combat Tracker Tunables
   border-left: 4px solid rgba(17, 17, 17, 0.3);
 }
 
+.blacksmith-menubar-secondary .combat-status .combat-stat-primary {
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: calc(var(--combatbar-text-font-size) * 1.1);
+}
+
+.blacksmith-menubar-secondary .combat-status .combat-state-secondary {
+    opacity: 0.8;
+    font-size: calc(var(--combatbar-text-font-size) * 0.9);
+}
+
+
 /* COMBAT PORTRAITS */
 
   /* =========================

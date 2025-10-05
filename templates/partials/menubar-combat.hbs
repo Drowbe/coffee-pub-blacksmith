@@ -2,9 +2,9 @@
 <div class="combat-tracker-bar">
     {{!-- Combat Info --}}
     <div class="combat-info">
-        <span class="combat-round">Combat Round {{currentRound}}</span>
+        <span class="combat-round"><i class="fa-solid fa-dagger"></i> Combat Round {{currentRound}}  |  <span class="combat-time-round">{{totalCombatDuration}}</span></span>
         <span class="combat-turn">Turn {{currentTurn}} of {{totalTurns}}: {{currentCombatant}}</span>
-        <span class="combat-time-round"><i class="fa-solid fa-dagger"></i>{{totalCombatDuration}}</span>
+        
     </div>
     
     {{!-- Combat Controls and Portraits Group --}}
@@ -145,7 +145,7 @@
 
     {{!-- Combat Status --}}
     <div class="combat-status">
-        <span class="combat-state">{{#if isActive}}Active Combat{{else}}Combat Pending{{/if}}</span>
-        <span class="combat-time-total"><i class="fa-solid fa-swords"></i>{{totalCombatDuration}}</span>
+        <span class="combat-stat-primary"><i class="fa-solid fa-swords"></i> Encounter <span class="combat-time-total">Pending</span></span>
+        <span class="combat-state-secondary">{{#if isActive}}Active Combat{{else}}Combat Pending{{/if}}</span>
     </div>
 </div>
