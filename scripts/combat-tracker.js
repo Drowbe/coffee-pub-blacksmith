@@ -118,13 +118,16 @@ class CombatTracker {
 					description: 'Combat Tracker: Handle combat deletion and cleanup',
 					context: 'combat-tracker-combat-deletion',
 					priority: 3,
-					callback: () => {
+					callback: async () => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat deleted, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
 						// No encounter / ended — close any tracker UI
-						CombatTracker.closeCombatTracker();
+						// Add a small delay to ensure combat deletion is fully processed
+						setTimeout(async () => {
+							await CombatTracker.closeCombatTracker();
+						}, 200);
 
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -700,6 +703,9 @@ class CombatTracker {
         try {
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closing", "", true, false);
             
+            // Add a small delay to ensure any pending hover events are processed
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             // Close any popout windows without switching sidebar tabs
             if (ui.combat?._popOut?.rendered) {
                 await ui.combat._popOut.close({force: true});
@@ -719,6 +725,11 @@ class CombatTracker {
                     await app.close({force: true});
                     postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed custom window", "", true, false);
                 }
+            }
+            
+            // Force a re-render to ensure UI is properly cleaned up
+            if (ui.combat) {
+                ui.combat.render();
             }
             
             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed successfully", "", true, false);
