@@ -1525,8 +1525,25 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
-	// *** TOKEN IMAGE REPLACEMENT ***
 
+	// -- Scale Size --
+	game.settings.register(MODULE.ID,'setTokenScale', {
+		name: 'Set Token Scale',
+		hint: 'Set the default scale size for dropped tokens.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0.2,
+		max: 3,
+		step: 0.1,
+		},
+		default: 1,
+	});
+
+
+	// *** TOKEN IMAGE REPLACEMENT ***
 
 	// ---------- Token Image Replacement ----------
 	game.settings.register(MODULE.ID, "headingH3TokenImageReplacement", {
