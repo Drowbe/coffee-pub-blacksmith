@@ -1560,6 +1560,16 @@ export const registerSettings = async () => {
 		default: "contain",
 	});
 
+	// -- Pre-Combat Movement Mode Storage --
+	game.settings.register(MODULE.ID, 'preCombatMovementMode', {
+		name: 'Pre-Combat Movement Mode',
+		hint: 'Stores the movement mode that was active before combat started (for client refresh restoration)',
+		type: String,
+		config: false, // Hidden setting - not shown in UI
+		scope: 'world',
+		default: null,
+	});
+
 
 	// *** TOKEN IMAGE REPLACEMENT ***
 

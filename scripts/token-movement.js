@@ -1156,8 +1156,9 @@ const createCombatHookId = HookManager.registerHook({
     try {
         if (!game.user.isGM) return;
         
-        // Store current movement mode
+        // Store current movement mode both in memory and persistently
         preCombatMovementMode = game.settings.get(MODULE.ID, 'movementType');
+        await game.settings.set(MODULE.ID, 'preCombatMovementMode', preCombatMovementMode);
         
         // Get the previous mode's name
         const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
@@ -1222,16 +1223,19 @@ const deleteCombatHookId = HookManager.registerHook({
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     try {
         if (!game.user.isGM) return;
-        if (!preCombatMovementMode) return;
+        
+        // Get the stored pre-combat movement mode from persistent storage
+        const storedPreCombatMode = game.settings.get(MODULE.ID, 'preCombatMovementMode');
+        if (!storedPreCombatMode) return;
         
 
         
         // Get the movement type info
-        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
+        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === storedPreCombatMode);
         if (!movementType) return;
         
         // Restore previous movement mode
-        await game.settings.set(MODULE.ID, 'movementType', preCombatMovementMode);
+        await game.settings.set(MODULE.ID, 'movementType', storedPreCombatMode);
         
         // For combat end
         const endCombatTemplateData = {
@@ -1261,13 +1265,14 @@ const deleteCombatHookId = HookManager.registerHook({
         if (socket) {
             await socket.executeForOthers("movementChange", {
                 type: "movementChange",  // Add type property
-                movementId: preCombatMovementMode,
+                movementId: storedPreCombatMode,
                 name: movementType.name
             });
         }
         
-        // Clear the stored mode
+        // Clear the stored mode from both memory and persistent storage
         preCombatMovementMode = null;
+        await game.settings.set(MODULE.ID, 'preCombatMovementMode', null);
         } catch (err) {
             // Error in combat end handling
         }
@@ -1278,4 +1283,56 @@ const deleteCombatHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | deleteCombat", "token-movement-combat-end", true, false);
+
+// Add client refresh detection hook
+const readyHookId = HookManager.registerHook({
+    name: 'ready',
+    description: 'Token Movement: Detect client refresh during combat and restore movement mode',
+    context: 'token-movement-client-refresh',
+    priority: 3,
+    callback: async () => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+        try {
+            if (!game.user.isGM) return;
+            
+            // Check if combat is active and movement mode is combat
+            const currentMovement = game.settings.get(MODULE.ID, 'movementType');
+            const storedPreCombatMode = game.settings.get(MODULE.ID, 'preCombatMovementMode');
+            
+            if (game.combat?.started && currentMovement === 'combat-movement' && storedPreCombatMode && storedPreCombatMode !== 'combat-movement') {
+                postConsoleAndNotification(MODULE.NAME, "Token Movement: Client refreshed during combat, restoring original movement mode", {
+                    currentMovement: currentMovement,
+                    storedPreCombatMode: storedPreCombatMode
+                }, true, false);
+                
+                // Restore the original movement mode
+                await game.settings.set(MODULE.ID, 'movementType', storedPreCombatMode);
+                
+                // Update the in-memory variable
+                preCombatMovementMode = storedPreCombatMode;
+                
+                // Get the movement type info for UI update
+                const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === storedPreCombatMode);
+                if (movementType) {
+                    // Update UI
+                    const movementIcon = document.querySelector('.movement-icon');
+                    const movementLabel = document.querySelector('.movement-label');
+                    
+                    if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+                    if (movementLabel) movementLabel.textContent = movementType.name;
+                    
+                    // Show notification
+                    ui.notifications.info(`Movement mode restored to ${movementType.name} after client refresh`);
+                }
+            }
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, "Error in client refresh detection", err, false, false);
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | ready", "token-movement-client-refresh", true, false);
 
