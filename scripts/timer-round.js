@@ -90,12 +90,22 @@ export class RoundTimer {
             // Start update interval
             this.updateInterval = setInterval(() => {
                 if (game.combat?.started && this.isActive) {
-                    const duration = this._getCurrentRoundDuration();
-                    const formattedTime = formatTime(duration || 0, "verbose");
-                    // Update all instances of the timer (both sidebar and popout)
-                    const elements = document.querySelectorAll('.round-timer .round-duration-time');
-                    elements.forEach(element => {
-                        element.textContent = formattedTime;
+                    const roundDuration = this._getCurrentRoundDuration();
+                    const formattedRoundTime = formatTime(roundDuration || 0, "hh:mm:ss");
+                    
+                    const totalCombatTime = this._getTotalCombatDuration();
+                    const formattedTotalTime = formatTime(totalCombatTime || 0, "hh:mm:ss");
+                    
+                    // Update all instances of the round timer (both sidebar and popout)
+                    const roundElements = document.querySelectorAll('.round-timer-container .combat-time-round');
+                    roundElements.forEach(element => {
+                        element.textContent = formattedRoundTime;
+                    });
+                    
+                    // Update all instances of the total combat time
+                    const totalElements = document.querySelectorAll('.round-timer-container .combat-time-total');
+                    totalElements.forEach(element => {
+                        element.textContent = formattedTotalTime;
                     });
                 }
             }, 1000); // Update every second
@@ -105,18 +115,19 @@ export class RoundTimer {
     static async _onRenderCombatTracker(app, html, data) {
         if (!game.combat?.started) return;
 
-        const duration = this._getCurrentRoundDuration();
-        const formattedTime = formatTime(duration || 0, "verbose");
+        const roundDuration = this._getCurrentRoundDuration();
+        const formattedRoundTime = formatTime(roundDuration || 0, "hh:mm:ss");
+        
+        // Calculate total combat time
+        const totalCombatTime = this._getTotalCombatDuration();
+        const formattedTotalTime = formatTime(totalCombatTime || 0, "hh:mm:ss");
         
         const timerHtml = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-round.hbs',
             {
-                roundDurationActual: formattedTime,
-                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer'),
-                partyStats: {
-                    ...CombatStats.currentStats?.partyStats || {},
-                    averageTurnTime: formatTime(CombatStats.currentStats?.partyStats?.averageTurnTime || 0, "verbose")
-                }
+                roundDurationActual: formattedRoundTime,
+                totalCombatDuration: formattedTotalTime,
+                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer')
             }
         );
         
@@ -134,12 +145,28 @@ export class RoundTimer {
     static _onUpdateCombat(combat, changed, options, userId) {
         // If round changes, we need to reset our timer
         if (changed.round && changed.round !== combat.previous.round && game.user.isGM) {
+            // Get current stats before resetting
+            const currentStats = game.combat.getFlag(MODULE.ID, 'stats') || {};
+            
+            // Calculate the duration of the previous round
+            const previousRoundDuration = this._getCurrentRoundDuration();
+            
+            // Get or initialize total combat duration
+            const totalCombatDuration = game.combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;
+            
+            // Add the previous round's duration to the total
+            const newTotalCombatDuration = totalCombatDuration + previousRoundDuration;
+            
             // Reset the timer stats for the new round
             const stats = {
                 roundStartTimestamp: Date.now(),
                 accumulatedTime: 0
             };
             game.combat.setFlag(MODULE.ID, 'stats', stats);
+            
+            // Save the updated total combat duration
+            game.combat.setFlag(MODULE.ID, 'totalCombatDuration', newTotalCombatDuration);
+            
             // Force a full re-render when the round changes
             ui.combat.render();
         }
@@ -159,5 +186,17 @@ export class RoundTimer {
         // Calculate total duration: accumulated time + current active session time
         const currentSessionTime = this.isActive ? (Date.now() - stats.roundStartTimestamp) : 0;
         return (stats.accumulatedTime || 0) + currentSessionTime;
+    }
+
+    static _getTotalCombatDuration() {
+        if (!game.combat?.started) return 0;
+        
+        // Get the accumulated total from all previous rounds
+        const totalCombatDuration = game.combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;
+        
+        // Add the current round duration
+        const currentRoundDuration = this._getCurrentRoundDuration();
+        
+        return totalCombatDuration + currentRoundDuration;
     }
 } 

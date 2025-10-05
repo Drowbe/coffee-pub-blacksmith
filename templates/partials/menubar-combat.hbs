@@ -4,6 +4,7 @@
     <div class="combat-info">
         <span class="combat-round">Combat Round {{currentRound}}</span>
         <span class="combat-turn">Turn {{currentTurn}} of {{totalTurns}}: {{currentCombatant}}</span>
+        <span class="combat-time-round"><i class="fa-solid fa-dagger"></i>{{totalCombatDuration}}</span>
     </div>
     
     {{!-- Combat Controls and Portraits Group --}}
@@ -145,5 +146,6 @@
     {{!-- Combat Status --}}
     <div class="combat-status">
         <span class="combat-state">{{#if isActive}}Active Combat{{else}}Combat Pending{{/if}}</span>
+        <span class="combat-time-total"><i class="fa-solid fa-swords"></i>{{totalCombatDuration}}</span>
     </div>
 </div>

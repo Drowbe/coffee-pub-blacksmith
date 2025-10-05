@@ -115,6 +115,11 @@ export function formatTime(ms, format = "colon") {
         const rounds = Math.floor(totalSeconds / 6);
         return `${rounds} ROUNDS`;
     }
+    else if (baseFormat === "hh:mm:ss") {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
     else {
         // Default to colon format
         timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;

@@ -1,13 +1,12 @@
 {{#if showRoundTimer}}
-<div class="round-timer">
-    <div class="round-timer-text">
-        <span class="round-duration-label"><i class="fa-solid fa-hourglass-clock"></i></span>
-        <span class="round-duration-time">{{roundDurationActual}}</span>
-        {{#if partyStats.averageTurnTime}}
-            <span class="separator">•</span>
-            <span class="round-avg-label"><i class="fa-solid fa-user-clock"></i></span>
-            <span class="round-avg-time">{{partyStats.averageTurnTime}} Avg</span>
-        {{/if}}
+<div class="round-timer-container">
+    <div class="round-timer-left" data-tooltip="Total Combat Duration">
+        <i class="fa-solid fa-swords"></i>
+        <span class="round-time combat-time-total">{{totalCombatDuration}}</span>
+    </div>
+    <div class="round-timer-right" data-tooltip="Round Duration">
+        <i class="fa-solid fa-dagger"></i>
+        <span class="round-time combat-time-round">{{roundDurationActual}}</span>
     </div>
 </div> 
 {{/if}} 

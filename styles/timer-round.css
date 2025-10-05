@@ -2,38 +2,42 @@
 /* --- ROUND TIMER ---------- */
 /* ------------------------------------ */
 
-.round-timer {
-    text-align: center;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0px;
-    margin: 0px;
-    border: 0px;
-}
-.round-timer-text {  
-    font-size: inhertied;
-
-}
-.round-avg-label,
-.round-duration-label {
-    color: rgb(221, 221, 221, 0.6);
-	text-transform: capitalize;
-	font-size: 12px;
-	font-weight: 400;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
-	margin-right: 3px;
-}
-.round-avg-time,
-.round-duration-time {
-    color: rgb(221, 221, 221, 0.9);
-    font-weight: 400;
-	font-size: 14px;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
-} 
-.separator {
-	font-weight: 900;
-	font-size: 16px;
-	color: rgb(221, 221, 221, 0.2);
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
-	margin-left: 6px;
-	margin-right: 6px;
-}
+.round-timer-container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	padding: 0px 0px 0px 0px;   
+	background: rgba(51, 27, 31, 0.4);
+	border-top: 1px solid rgba(0, 0, 0, 0.9);
+  }
+  
+  .round-timer-left,
+  .round-timer-right {
+	  display: flex;
+	  align-items: center;
+	  gap: 8px;
+	  padding: 0; 
+	  color: rgba(255, 255, 255, 0.7);
+	  text-transform: capitalize;
+	  font-size: .85em;
+	  font-weight: 400;
+	  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+  }
+  .round-timer-left {
+	padding: 0px 6px 0px 6px; 
+  }
+  .round-timer-right {
+	padding: 0px 6px 0px 6px; 
+  }
+  
+  /* Optional styling for icons and text */
+  .round-timer-left i,
+  .round-timer-right i {
+	  padding: 2px 0px 0px 0px; 
+	  font-size: .75em;
+  }
+  
+  
+  
+  
