@@ -3536,14 +3536,26 @@ export class TokenImageReplacement {
         // Add double-middle-click handler for tokens using HookManager
         this._addMiddleClickHandler();
         
-        // Set up cleanup when module is disabled
-        Hooks.on('ready', () => {
-            // Register cleanup hook for when module is disabled
-            Hooks.on('unloadModule', (moduleId) => {
-                if (moduleId === MODULE.ID) {
-                    this._removeMiddleClickHandler();
-                }
-            });
+        // Set up cleanup when module is disabled using HookManager
+        const readyHookId = HookManager.registerHook({
+            name: 'ready',
+            description: 'TokenImageReplacement: Setup cleanup hooks',
+            context: 'token-image-replacement-cleanup',
+            priority: 3, // Normal priority - cleanup setup
+            callback: () => {
+                // Register cleanup hook for when module is disabled
+                const unloadHookId = HookManager.registerHook({
+                    name: 'unloadModule',
+                    description: 'TokenImageReplacement: Cleanup on module unload',
+                    context: 'token-image-replacement-unload',
+                    priority: 3, // Normal priority - cleanup
+                    callback: (moduleId) => {
+                        if (moduleId === MODULE.ID) {
+                            this._removeMiddleClickHandler();
+                        }
+                    }
+                });
+            }
         });
         
         // No Handlebars helpers needed - all calculations done in JavaScript
