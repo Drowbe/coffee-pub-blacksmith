@@ -1546,7 +1546,7 @@ export const registerSettings = async () => {
 	// -- Fit Mode --
 	game.settings.register(MODULE.ID, 'setTokenImageFitMode', {
 		name: 'Image Fit Mode',
-		hint: 'DSet the image fit mode for dropped tokens. (default is Contain)',
+		hint: 'Set the image fit mode for dropped tokens. (default is Contain)',
 		type: String,
 		choices: {
 			"fill": "Fill",

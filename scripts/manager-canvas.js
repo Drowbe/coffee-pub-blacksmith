@@ -111,6 +111,7 @@ export class CanvasTools {
     // - unlockTokenRotation: Unlocks token rotation for all new tokens
     // - disableTokenRing: Disables token ring display for all new tokens  
     // - setTokenScale: Sets the scale size for all new tokens
+    // - setTokenImageFitMode: Sets the image fit mode for all new tokens
     static _onPreCreateToken(tokenData, options, userId) {
         // Apply token behavior overrides based on settings
         let changesMade = [];
@@ -146,6 +147,21 @@ export class CanvasTools {
             changesMade.push(`set scale to ${tokenScale}`);
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Skipped scale application (value: ${tokenScale})`, "", true, false);
+        }
+        
+        // Apply token image fit mode setting
+        const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
+        if (tokenFitMode && tokenFitMode !== 'contain') {
+            // Use FoundryVTT v12+ texture fit mode
+            if (tokenData.texture) {
+                tokenData.texture.fit = tokenFitMode;
+                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: Applied texture fit mode ${tokenFitMode} to token (v12+ style)`, "", true, false);
+            } else {
+                // Fallback for older versions
+                tokenData.fit = tokenFitMode;
+                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: Applied legacy fit mode ${tokenFitMode} to token (v11 style)`, "", true, false);
+            }
+            changesMade.push(`set fit mode to ${tokenFitMode}`);
         }
         
         // Log changes if any were made
@@ -190,6 +206,19 @@ export class CanvasTools {
                 changes.scale = tokenScale;
             }
             changesMade.push(`maintained scale at ${tokenScale}`);
+        }
+        
+        // Apply token image fit mode setting on updates
+        const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
+        if (tokenFitMode && tokenFitMode !== 'contain') {
+            // Use FoundryVTT v12+ texture fit mode
+            if (tokenDocument.texture) {
+                changes["texture.fit"] = tokenFitMode;
+            } else {
+                // Fallback for older versions
+                changes.fit = tokenFitMode;
+            }
+            changesMade.push(`maintained fit mode at ${tokenFitMode}`);
         }
         
         // Log changes if any were made
@@ -239,6 +268,21 @@ export class CanvasTools {
                 postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Will update legacy scale to ${tokenScale} (v11 style)`, "", true, false);
             }
             changesMade.push(`set scale to ${tokenScale}`);
+        }
+        
+        // Apply token image fit mode setting
+        const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
+        if (tokenFitMode && tokenFitMode !== 'contain') {
+            // Use FoundryVTT v12+ texture fit mode
+            if (tokenDocument.texture) {
+                updates["texture.fit"] = tokenFitMode;
+                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: _onTokenAddedToScene - Will update texture fit mode to ${tokenFitMode} (v12+ style)`, "", true, false);
+            } else {
+                // Fallback for older versions
+                updates.fit = tokenFitMode;
+                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: _onTokenAddedToScene - Will update legacy fit mode to ${tokenFitMode} (v11 style)`, "", true, false);
+            }
+            changesMade.push(`set fit mode to ${tokenFitMode}`);
         }
         
         // Apply updates if any changes were made
