@@ -107,6 +107,10 @@ export class CanvasTools {
     }
 
     // *** TOKEN BEHAVIOR OVERRIDES ***
+    // These methods apply token behavior overrides based on settings:
+    // - unlockTokenRotation: Unlocks token rotation for all new tokens
+    // - disableTokenRing: Disables token ring display for all new tokens  
+    // - setTokenScale: Sets the scale size for all new tokens
     static _onPreCreateToken(tokenData, options, userId) {
         // Apply token behavior overrides based on settings
         let changesMade = [];
@@ -122,6 +126,26 @@ export class CanvasTools {
             }
             tokenData.ring.enabled = false;
             changesMade.push('disabled ring');
+        }
+        
+        // Apply token scale setting
+        const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
+        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Setting value = ${tokenScale}, Type = ${typeof tokenScale}`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Original tokenData.scale = ${tokenData.scale}`, "", true, false);
+        if (tokenScale !== null && tokenScale !== undefined) {
+            // Use FoundryVTT v12+ texture scaling
+            if (tokenData.texture) {
+                tokenData.texture.scaleX = tokenScale;
+                tokenData.texture.scaleY = tokenScale;
+                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Applied texture scale ${tokenScale} to token (v12+ style)`, "", true, false);
+            } else {
+                // Fallback for older versions
+                tokenData.scale = tokenScale;
+                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Applied legacy scale ${tokenScale} to token (v11 style)`, "", true, false);
+            }
+            changesMade.push(`set scale to ${tokenScale}`);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Skipped scale application (value: ${tokenScale})`, "", true, false);
         }
         
         // Log changes if any were made
@@ -154,6 +178,20 @@ export class CanvasTools {
             changesMade.push('maintained disabled ring');
         }
         
+        // Apply token scale setting on updates
+        const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
+        if (tokenScale !== null && tokenScale !== undefined) {
+            // Use FoundryVTT v12+ texture scaling
+            if (tokenDocument.texture) {
+                changes["texture.scaleX"] = tokenScale;
+                changes["texture.scaleY"] = tokenScale;
+            } else {
+                // Fallback for older versions
+                changes.scale = tokenScale;
+            }
+            changesMade.push(`maintained scale at ${tokenScale}`);
+        }
+        
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenDocument.name || 'Unknown Token';
@@ -184,6 +222,23 @@ export class CanvasTools {
             }
             updates.ring.enabled = false;
             changesMade.push('disabled ring');
+        }
+        
+        // Apply token scale setting
+        const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
+        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Current token scale = ${tokenDocument.scale}, Setting scale = ${tokenScale}`, "", true, false);
+        if (tokenScale !== null && tokenScale !== undefined) {
+            // Use FoundryVTT v12+ texture scaling
+            if (tokenDocument.texture) {
+                updates["texture.scaleX"] = tokenScale;
+                updates["texture.scaleY"] = tokenScale;
+                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Will update texture scale to ${tokenScale} (v12+ style)`, "", true, false);
+            } else {
+                // Fallback for older versions
+                updates.scale = tokenScale;
+                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Will update legacy scale to ${tokenScale} (v11 style)`, "", true, false);
+            }
+            changesMade.push(`set scale to ${tokenScale}`);
         }
         
         // Apply updates if any changes were made
