@@ -1879,26 +1879,64 @@ export async function handleSkillRollUpdate(data) {
 
 // Helper to replace placeholders in the item prompt with settings values
 async function getItemPromptWithDefaults(itemPrompt) {
-  let value = '';
-  try {
-    value = game.settings.get(MODULE.ID, 'defaultCampaignName');
-  } catch (e) {}
-  if (value) {
-    return itemPrompt.split('[ADD-ITEM-SOURCE-HERE]').join(value);
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+  ];
+
+  let result = itemPrompt;
+  for (const setting of settings) {
+    let value = '';
+    try {
+      value = game.settings.get(MODULE.ID, setting.key);
+    } catch (e) {}
+    if (value) {
+      result = result.split(setting.placeholder).join(value);
+    }
   }
-  return itemPrompt;
+  return result;
 }
 
 // Helper to replace placeholders in the table prompt with settings values
 async function getTablePromptWithDefaults(tablePrompt) {
-  let value = '';
-  try {
-    value = game.settings.get(MODULE.ID, 'defaultCampaignName');
-  } catch (e) {}
-  if (value) {
-    return tablePrompt.split('[ADD-ITEM-SOURCE-HERE]').join(value);
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+  ];
+
+  let result = tablePrompt;
+  for (const setting of settings) {
+    let value = '';
+    try {
+      value = game.settings.get(MODULE.ID, setting.key);
+    } catch (e) {}
+    if (value) {
+      result = result.split(setting.placeholder).join(value);
+    }
   }
-  return tablePrompt;
+  return result;
+}
+
+// Helper to get comma-delimited list of world actors
+function getWorldActorsList() {
+  try {
+    const actors = game.actors.contents.filter(actor => !actor.isToken);
+    return actors.map(actor => actor.name).join(', ');
+  } catch (e) {
+    return 'No actors found';
+  }
+}
+
+// Helper to get comma-delimited list of world items
+function getWorldItemsList() {
+  try {
+    const items = game.items.contents;
+    return items.map(item => item.name).join(', ');
+  } catch (e) {
+    return 'No items found';
+  }
 }
 
 // Cache for icon paths with expiration
@@ -2171,6 +2209,41 @@ async function parseFlatItemToFoundry(flat) {
         }
       }
     };
+  } else if (type === "consumable") {
+    data = {
+      type: "consumable",
+      name: flat.itemName,
+      img: img,
+      system: {
+        description: {
+          value: flat.itemDescription || "",
+          unidentified: flat.itemDescriptionUnidentified || "",
+          chat: flat.itemDescriptionChat || ""
+        },
+        rarity: flat.itemRarity,
+        weight: flat.itemWeight,
+        price: flat.itemPrice,
+        consumableType: { value: flat.itemConsumableType || "potion" },
+        properties: { magical: flat.itemIsMagical },
+        source: { custom: flat.itemSource },
+        quantity: flat.itemQuantity,
+        identified: flat.itemIdentified,
+        uses: {
+          value: flat.itemLimitedUses || 1,
+          max: flat.itemLimitedUses || 1
+        },
+        consume: {
+          type: flat.itemDestroyOnEmpty ? "destroy" : "none",
+          target: null,
+          amount: null
+        }
+      },
+      flags: {
+        "coffee-pub": {
+          source: flat.itemSource
+        }
+      }
+    };
   }
   // Future: Add more item type mappings here
   return data;
@@ -2207,11 +2280,12 @@ async function parseTableToFoundry(flat) {
       };
 
       // Add type-specific fields
-      if (result.resultType && result.resultType.toLowerCase() === "document" && result.resultDocumentType) {
-        tableResult.documentType = result.resultDocumentType;
+      if (tableResult.type === "document" && result.resultDocumentType) {
+        // Use documentCollection field and capitalize for FoundryVTT compatibility
+        tableResult.documentCollection = result.resultDocumentType.charAt(0).toUpperCase() + result.resultDocumentType.slice(1);
       }
       
-      if (result.resultType && result.resultType.toLowerCase() === "compendium" && result.resultCompendium) {
+      if (tableResult.type === "compendium" && result.resultCompendium) {
         tableResult.collection = result.resultCompendium;
       }
 
@@ -2236,16 +2310,16 @@ const renderItemDirectoryHookId = HookManager.registerHook({
         return;
     }
     
-    // Fetch the loot item prompt templates at runtime
+    // Fetch the item prompt templates at runtime
     const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
-    const lootImagePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot-image.txt')).text();
+    const consumablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-consumables.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="item-template-type" style="flex: 0 0 auto;">
-          <option value="loot">Loot Item</option>
-          <option value="loot-image">Loot Item and Image</option>
+          <option value="loot">Loot</option>
+          <option value="consumable">Consumables</option>
         </select>
         <button id="copy-item-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
@@ -2297,8 +2371,8 @@ const renderItemDirectoryHookId = HookManager.registerHook({
             if (type === "loot") {
               const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
               copyToClipboard(promptWithDefaults);
-            } else if (type === "loot-image") {
-              const promptWithDefaults = await getItemPromptWithDefaults(lootImagePrompt);
+            } else if (type === "consumable") {
+              const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
               copyToClipboard(promptWithDefaults);
             }
           });
@@ -2327,14 +2401,20 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
         return;
     }
     
-    // Fetch the table prompt template at runtime
+    // Fetch the table prompt templates at runtime
     const tablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-text.txt')).text();
+    const tableDocumentCustomPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-custom.txt')).text();
+    const tableDocumentActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-actor.txt')).text();
+    const tableDocumentItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-items.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="table-template-type" style="flex: 0 0 auto;">
           <option value="text">Simple Text Rollable Table</option>
+          <option value="document-custom">Document: Custom</option>
+          <option value="document-actor">Document: Actor</option>
+          <option value="document-item">Document: Item</option>
         </select>
         <button id="copy-table-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
@@ -2383,10 +2463,25 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
           // Attach event listeners for template copy
           htmlDialog.find("#copy-table-template-btn").click(async () => {
             const type = htmlDialog.find("#table-template-type").val();
+            let promptWithDefaults = '';
+            
             if (type === "text") {
-              const promptWithDefaults = await getTablePromptWithDefaults(tablePrompt);
-              copyToClipboard(promptWithDefaults);
+              promptWithDefaults = await getTablePromptWithDefaults(tablePrompt);
+            } else if (type === "document-custom") {
+              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentCustomPrompt);
+            } else if (type === "document-actor") {
+              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentActorPrompt);
+              // Replace [ADD-ACTORS-HERE] with actual actor list
+              const actorsList = getWorldActorsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-ACTORS-HERE]').join(actorsList);
+            } else if (type === "document-item") {
+              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentItemPrompt);
+              // Replace [ADD-ITEMS-HERE] with actual item list
+              const itemsList = getWorldItemsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-ITEMS-HERE]').join(itemsList);
             }
+            
+            copyToClipboard(promptWithDefaults);
           });
         }
       }).render(true);

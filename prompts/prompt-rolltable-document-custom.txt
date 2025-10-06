@@ -8,9 +8,9 @@ You will generate well-structured JSON for a FoundryVTT rollable table using the
 - Avoid trailing commas or duplicate keys
 - Use "None" or " " for any empty field unless otherwise instructed
 
-===================
+================================
 JSON FIELD RULES & EXPECTATIONS
-===================
+================================
 
 Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
@@ -63,7 +63,9 @@ To generate a rollable table, use the template and guidance above. Create flavor
 - For text tables, be interesting and appropriate. These do not get matched to anything in the world.
 - For Document and Compendium tables, these do get matched to items in the compendium or world, so try to be appropriate to avoid broken relationships.
 - Relate the results to the campaign where appropriate.
-- You can draw from these sources where appropriate: "[ADD-ITEM-SOURCE-HERE]".
+- The source of the table: "[ADD-ITEM-SOURCE-HERE]".
+- The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - You can always draw from core DND5E SRD rules, items, actors, images, etc.
 - Ask clarifying questions if something is ambiguous.
 
