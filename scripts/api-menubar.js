@@ -2021,7 +2021,6 @@ class MenuBar {
      */
     static openCombatBar(combatData = null) {
         try {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | openCombatBar called", "", true, false);
             
             // Set initial combat menubar height from setting
             const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
@@ -2029,18 +2028,15 @@ class MenuBar {
             
             const combat = game.combats.active;
             if (!combat) {
-                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: No active combat", "", true, false);
                 return false;
             }
 
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Active combat found", { combatId: combat.id, combatantsCount: combat.combatants.size }, true, false);
 
             // Reset user closed flag when combat starts
             this.secondaryBar.userClosed = false;
 
             const data = combatData || this.getCombatData(combat);
             
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | About to open secondary bar", { dataKeys: Object.keys(data) }, true, false);
             
             return this.openSecondaryBar('combat', {
                 data: data,
@@ -2048,7 +2044,6 @@ class MenuBar {
             });
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Error opening combat bar", { error }, false, false);
             return false;
         }
     }
@@ -2196,15 +2191,6 @@ class MenuBar {
                        svgStrokeWidth: strokeWidth
                    };
                 
-                postConsoleAndNotification(MODULE.NAME, `MENUBAR | Combatant Data: ${combatantData.name}`, {
-                    name: combatantData.name,
-                    svgSize: combatantData.svgSize,
-                    svgCenter: combatantData.svgCenter,
-                    svgRadius: combatantData.svgRadius,
-                    healthCircumference: combatantData.healthCircumference,
-                    healthDashOffset: combatantData.healthDashOffset,
-                    healthClass: combatantData.healthClass
-                }, true, false);
                 
                 return combatantData;
             });
@@ -2300,22 +2286,10 @@ class MenuBar {
                 currentCombatant: currentCombatantName
             };
             
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Combat data generated", {
-                currentRound: combatData.currentRound,
-                currentTurn: combatData.currentTurn,
-                totalTurns: combatData.totalTurns,
-                combatantsCount: combatants.length,
-                isActive: combatData.isActive,
-                firstCombatant: combatants[0]?.name
-            }, true, false);
             
             return combatData;
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Combat Bar: Error getting combat data", { 
-                error: error.message,
-                stack: error.stack
-            }, true, false);
             return {};
         }
     }
