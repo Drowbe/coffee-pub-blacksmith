@@ -29,14 +29,8 @@ class CombatTracker {
         // Handle auto-open on client load if combat is already active (outside ready hook)
         Hooks.once('ready', () => {
             if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: OPENING COMBAT TRACKER", "", true, false);
 
                 const combat = game.combat;
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Debug - Combat check", {
-                    combat: !!combat,
-                    started: combat?.started,
-                    combatantsSize: combat?.combatants?.size
-                }, true, false);
 
                 if (combat && combat.combatants.size > 0) {
                     // Small delay to ensure UI is fully initialized
@@ -44,20 +38,13 @@ class CombatTracker {
                         CombatTracker.openCombatTracker();
                     }, 500);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Conditions not met", {
-                        combat: !!combat,
-                        started: combat?.started,
-                        combatantsSize: combat?.combatants?.size
-                    }, true, false);
                 }
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NOT OPENING COMBAT TRACKER", "", true, false);
             }
         });
 
         Hooks.once('ready', () => {
             try {
-                postConsoleAndNotification(MODULE.NAME, "Initializing Combat Tracker", "", false, false);
                 
                 // Reset last processed round
                 this._lastProcessedRound = 0;
@@ -73,10 +60,6 @@ class CombatTracker {
 						// Only process if initiative was changed and we're the GM
 						if (!game.user.isGM || !('initiative' in data)) return;
 						
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatant initiative updated", {
-							combatantName: combatant.name,
-							initiative: data.initiative
-						}, true, false);
 						
 						// Reset the flag when any initiative is set to null
 						if (data.initiative === null) {
@@ -96,16 +79,13 @@ class CombatTracker {
 					priority: 3,
 					callback: async (combat) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: New combat created, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
 						// Auto-open combat tracker for all users when setting is enabled
 						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
-							postConsoleAndNotification(MODULE.NAME, "Combat Tracker: createCombat - Auto-opening", "", true, false);
 							// Small delay to ensure combat is fully initialized
 							setTimeout(() => {
 								CombatTracker.openCombatTracker();
-								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-opened combat tracker for user", "", true, false);
 							}, 100);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -120,7 +100,6 @@ class CombatTracker {
 					priority: 3,
 					callback: async () => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat deleted, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
 						// No encounter / ended — close any tracker UI
@@ -140,7 +119,6 @@ class CombatTracker {
 					priority: 3,
 					callback: () => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat ended, resetting first combatant flag", "", true, false);
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat ends
@@ -157,7 +135,6 @@ class CombatTracker {
 					priority: 3,
 					callback: (combat) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combat started, checking if all initiatives are already rolled", "", true, false);
 						// Wait a small delay to ensure all combatants are fully initialized
 						setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -173,7 +150,6 @@ class CombatTracker {
                     callback: (combat, changed) => {
                         // If the round changes, reset the flag and check initiatives
                         if ('round' in changed && combat.round > 0) {
-                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Round changed to " + combat.round + ", checking initiatives", "", true, false);
                             // Wait a small delay to ensure all combat state is updated
                             setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
                             
@@ -267,7 +243,6 @@ class CombatTracker {
 								!isActuallyDead &&
 								game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
 								
-								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Auto-rolling initiative for new player combatant ${combatant.name}`, "", true, false);
 								await combatant.rollInitiative();
 							}
 							return;
@@ -291,7 +266,6 @@ class CombatTracker {
 							// Don't roll if initiative is already set
 							if (combatant.initiative === null) {
 								await combatant.rollInitiative();
-								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-rolled initiative for " + combatant.name + " (combat not started yet)", "", true, false);
 							}
 							return;
 						}
@@ -300,17 +274,12 @@ class CombatTracker {
 						// Skip processing if the setting is 'none' or combat isn't started
 						if (initiativeMode === 'none' || !combat?.started) return;
 						
-						postConsoleAndNotification(MODULE.NAME, "Combat Tracker: NPC/Monster added to combat", {
-							name: combatant.name,
-							mode: initiativeMode
-						}, true, false);
 						
 						// Process based on setting
 						switch (initiativeMode) {
 							case 'auto':
 								// Roll initiative automatically
 								await combatant.rollInitiative();
-								postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Rolled initiative for " + combatant.name, "", true, false);
 								break;
 							
 							case 'next': 
@@ -332,11 +301,9 @@ class CombatTracker {
 									}
 									
 									await combatant.update({initiative: newInit});
-									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act next with initiative " + newInit, "", true, false);
 								} else {
 									// If there's no active combat or turn, just roll
 									await combatant.rollInitiative();
-									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No active turn, rolled initiative for " + combatant.name, "", true, false);
 								}
 								break;
 							
@@ -347,16 +314,13 @@ class CombatTracker {
 									if (validTurns.length > 0) {
 										const lowestInit = Math.min(...validTurns.map(t => t.initiative));
 										await combatant.update({initiative: lowestInit - 1});
-										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Set " + combatant.name + " to act last with initiative " + (lowestInit - 1), "", true, false);
 									} else {
 										// If no other combatants, just roll
 										await combatant.rollInitiative();
-										postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants with initiative, rolled for " + combatant.name, "", true, false);
 									}
 								} else {
 									// If there's no other combatants, just roll
 									await combatant.rollInitiative();
-									postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No other combatants, rolled initiative for " + combatant.name, "", true, false);
 								}
 								break;
 						}
@@ -419,7 +383,6 @@ class CombatTracker {
         // Check if we should clear initiative when round changes
         // ONLY clear initiative when changing to round 2 or higher
         if (game.settings.get(MODULE.ID, 'combatTrackerClearInitiative') && combat.round > 1) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Clearing initiative for all combatants (round > 1)", "", true, false);
             
             // Create an array of updates to apply to all combatants
             // Use the turns array instead of combatants since combatants might not be an array
@@ -434,11 +397,9 @@ class CombatTracker {
             // Apply the updates
             if (updates.length > 0) {
                 await combat.updateEmbeddedDocuments("Combatant", updates);
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Initiative cleared for " + updates.length + " combatants", "", true, false);
                 
                 // After clearing initiative, auto-roll for non-player combatants if enabled
                 if (game.settings.get(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer')) {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-rolling initiative for non-player combatants after clearing", "", true, false);
                     await this._rollInitiativeForNonPlayers(combat);
                 }
             }
@@ -455,7 +416,6 @@ class CombatTracker {
         
         // Don't proceed if the setting is not enabled
         if (!game.settings.get(MODULE.ID, 'combatTrackerSetFirstTurn')) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Setting not enabled, skipping check", "", true, false);
             return;
         }
         
@@ -464,31 +424,25 @@ class CombatTracker {
         
         // Skip empty combats
         if (combatants.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No combatants found, skipping", "", true, false);
             return;
         }
         
         // Get combatants that need initiative (not defeated and without initiative)
         const combatantsNeedingInitiative = combatants.filter(c => c.initiative === null && !c.isDefeated);
         
-        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Combatants needing initiative:", 
-            combatantsNeedingInitiative.map(c => c.name), true, false);
         
         // If no combatants need initiative, all have been rolled
         if (combatantsNeedingInitiative.length === 0) {
             // Only proceed if combat has actually started
             if (!combat.started || combat.round === 0) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: All initiatives rolled but combat hasn't started yet", "", true, false);
                 return;
             }
 
             // Don't check if we've already set the first combatant for this round
             if (this._hasSetFirstCombatant) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: First combatant already set for this round, skipping check", "", true, false);
                 return;
             }
 
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: All combatants have initiative and combat has started, setting first turn...", "", true, false);
             
             try {
                 // Wait a moment for the combat tracker to finish sorting
@@ -496,7 +450,6 @@ class CombatTracker {
                 
                 // Set turn to 0 after the sort
                 await combat.update({turn: 0}, {diff: false});
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: First combatant set to: " + combat.turns[0]?.name, "", true, false);
                 
                 // Only set the flag after successfully setting the turn
                 this._hasSetFirstCombatant = true;
@@ -523,17 +476,14 @@ class CombatTracker {
         );
         
         if (!nonPlayerCombatants || nonPlayerCombatants.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No non-player combatants found that need initiative", "", true, false);
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Rolling initiative for " + nonPlayerCombatants.length + " non-player combatants", "", true, false);
         
         // Roll initiative for each non-player combatant
         const ids = nonPlayerCombatants.map(c => c.id);
         await combat.rollInitiative(ids);
         
-        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Finished rolling initiative for non-player combatants", "", true, false);
     }
     
     /**
@@ -551,11 +501,9 @@ class CombatTracker {
         
         // Check if the setting is enabled for this user
         if (!game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Auto-roll for players is disabled", "", true, false);
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Checking for player characters that need initiative", "", true, false);
         
         // Flag to track if we found any combatants needing initiative
         let foundCombatants = false;
@@ -588,7 +536,6 @@ class CombatTracker {
                     !isActuallyDead) {
                     
                     // Roll initiative for this specific combatant
-                    postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Rolling initiative for ${combatant.name}`, "", true, false);
                     
                     // Use the combatant's own rollInitiative method (this is permission-safe)
                     await combatant.rollInitiative();
@@ -603,9 +550,7 @@ class CombatTracker {
         
         // Provide feedback based on results
         if (!foundCombatants) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: No player-owned combatants found needing initiative", "", true, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Finished rolling initiative for player-owned combatants", "", true, false);
         }
     }
 
@@ -674,17 +619,14 @@ class CombatTracker {
      */
     static openCombatTracker() {
         try {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Opening", "", true, false);
             
             // Try to open combat tracker without switching sidebar tabs
             const tabApp = ui["combat"];
             if (tabApp) {
                 try {
                     if (tabApp.renderPopout) {
-                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying renderPopout", "", true, false);
                         tabApp.renderPopout(tabApp);
                     } else if (tabApp.render) {
-                        postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Trying render", "", true, false);
                         tabApp.render();
                     }
                 } catch (error) {
@@ -701,7 +643,6 @@ class CombatTracker {
      */
     static async closeCombatTracker() {
         try {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closing", "", true, false);
             
             // Add a small delay to ensure any pending hover events are processed
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -709,13 +650,11 @@ class CombatTracker {
             // Close any popout windows without switching sidebar tabs
             if (ui.combat?._popOut?.rendered) {
                 await ui.combat._popOut.close({force: true});
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed popout window", "", true, false);
             }
             
             // Close any alternative popout windows (different spelling)
             if (ui.combat?._popout?.rendered) {
                 await ui.combat._popout.close({force: true});
-                postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed alternative popout window", "", true, false);
             }
             
             // Close any other combat tracker windows that might exist
@@ -723,7 +662,6 @@ class CombatTracker {
                 const el = app?.element?.[0] ?? app?.element;
                 if (el?.querySelector?.('[data-tab="combat"], .tab.combat, .combat-tracker, [aria-label="Combat Tracker"]')) {
                     await app.close({force: true});
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed custom window", "", true, false);
                 }
             }
             
@@ -732,7 +670,6 @@ class CombatTracker {
                 ui.combat.render();
             }
             
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Closed successfully", "", true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error closing combat tracker", error, false, false);
         }

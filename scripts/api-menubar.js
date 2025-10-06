@@ -157,13 +157,6 @@ class MenuBar {
                     }
                 }
                 else if (module === MODULE.ID && key === 'partyLeader') {
-                    postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Setting change hook fired", {
-                        module: module,
-                        key: key,
-                        value: value,
-                        currentUserId: game.user.id,
-                        isGM: game.user.isGM
-                    }, true, false);
                     
                     // Update the current leader display
                     if (value && value.userId) {
@@ -201,13 +194,6 @@ class MenuBar {
                                    updateData.combatants !== undefined;
                 
                 if (shouldUpdate) {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat update hook fired", {
-                        combatId: combat.id,
-                        updateData: updateData,
-                        currentTurn: combat.turn,
-                        currentRound: combat.round,
-                        combatantsCount: combat.combatants.size
-                    }, true, false);
                     
                     MenuBar.updateCombatBar();
                 }
@@ -223,10 +209,6 @@ class MenuBar {
             priority: 3,
             callback: (combat) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat created hook fired", {
-                    combatId: combat.id,
-                    combatants: combat.combatants.length
-                }, true, false);
                 
                 // Auto-open combat bar when combat is created (if setting enabled)
                 const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
@@ -245,11 +227,6 @@ class MenuBar {
             priority: 3,
             callback: (combatant, options, userId) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant added hook fired", {
-                    combatantId: combatant.id,
-                    combatId: combatant.combat.id,
-                    combatantsCount: combatant.combat.combatants.size
-                }, true, false);
                 
                 // Auto-open combat bar when first combatant is added (if setting enabled)
                 if (combatant.combat.combatants.size === 1) {
@@ -276,12 +253,6 @@ class MenuBar {
                 // Check if initiative was updated
                 const initiativeUpdated = updateData.initiative !== undefined;
                 
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant update hook fired", {
-                    combatantId: combatant.id,
-                    combatId: combatant.combat.id,
-                    updateData: updateData,
-                    initiativeUpdated: initiativeUpdated
-                }, true, false);
                 
                 // Update combat bar when combatant data changes (especially initiative)
                 if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
@@ -289,7 +260,6 @@ class MenuBar {
                     
                     // If initiative was updated, also update the menubar to refresh button states
                     if (initiativeUpdated) {
-                        postConsoleAndNotification(MODULE.NAME, "Combat Bar | Initiative updated, refreshing menubar", "", true, false);
                         MenuBar.renderMenubar();
                     }
                 }
@@ -305,11 +275,6 @@ class MenuBar {
             priority: 3,
             callback: (combatant, options, userId) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combatant removed hook fired", {
-                    combatantId: combatant.id,
-                    combatId: combatant.combat.id,
-                    remainingCombatants: combatant.combat.combatants.size
-                }, true, false);
                 
                 // Update combat bar when combatant is removed
                 if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
@@ -327,9 +292,6 @@ class MenuBar {
             priority: 3,
             callback: (combat) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar | Combat deleted hook fired", {
-                    combatId: combat.id
-                }, true, false);
                 
                 // Close combat bar when combat is deleted
                 MenuBar.closeCombatBar();
@@ -393,13 +355,11 @@ class MenuBar {
     static async _rollInitiativeForCombatant(combatant, event = null) {
         try {
             if (!combatant?.actor) {
-                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Combatant ${combatant.name} has no actor`, "", true, false);
                 return;
             }
 
             // Check permissions: only allow rolling initiative for owned combatants or if user is GM
             if (!combatant.isOwner && !game.user.isGM) {
-                postConsoleAndNotification(MODULE.NAME, `Combat Bar: User lacks permission to roll initiative for ${combatant.name}`, "", false, false);
                 ui.notifications.warn(`You don't have permission to roll initiative for ${combatant.name}`);
                 return;
             }
