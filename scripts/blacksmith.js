@@ -1889,6 +1889,18 @@ async function getItemPromptWithDefaults(itemPrompt) {
   return itemPrompt;
 }
 
+// Helper to replace placeholders in the table prompt with settings values
+async function getTablePromptWithDefaults(tablePrompt) {
+  let value = '';
+  try {
+    value = game.settings.get(MODULE.ID, 'defaultCampaignName');
+  } catch (e) {}
+  if (value) {
+    return tablePrompt.split('[ADD-ITEM-SOURCE-HERE]').join(value);
+  }
+  return tablePrompt;
+}
+
 // Cache for icon paths with expiration
 let iconPathsCache = null;
 
@@ -2164,6 +2176,53 @@ async function parseFlatItemToFoundry(flat) {
   return data;
 }
 
+// Helper to convert flat table data to Foundry RollTable format
+async function parseTableToFoundry(flat) {
+  const data = {
+    name: flat.tableName || "Imported Table",
+    description: flat.tableDescription || "",
+    img: flat.tableImagePath || "",
+    formula: "1d100",
+    replacement: flat.drawWithReplacement !== false, // Default to true
+    displayRoll: flat.displayRollFormula === true, // Default to false
+    results: []
+  };
+
+  // Process results
+  if (flat.results && Array.isArray(flat.results)) {
+    let currentRange = 1;
+    
+    for (const result of flat.results) {
+      const weight = result.resultWeight || 1;
+      const rangeLower = result.resultRangeLower || currentRange;
+      const rangeUpper = result.resultRangeUpper || (currentRange + weight - 1);
+      
+      const tableResult = {
+        type: (result.resultType || "text").toLowerCase(),
+        text: result.resultText || "",
+        img: result.resultImagePath || "",
+        weight: weight,
+        range: [rangeLower, rangeUpper],
+        drawn: false
+      };
+
+      // Add type-specific fields
+      if (result.resultType && result.resultType.toLowerCase() === "document" && result.resultDocumentType) {
+        tableResult.documentType = result.resultDocumentType;
+      }
+      
+      if (result.resultType && result.resultType.toLowerCase() === "compendium" && result.resultCompendium) {
+        tableResult.collection = result.resultCompendium;
+      }
+
+      data.results.push(tableResult);
+      currentRange = rangeUpper + 1;
+    }
+  }
+
+  return data;
+}
+
 // Register renderItemDirectory hook for item import functionality
 const renderItemDirectoryHookId = HookManager.registerHook({
     name: 'renderItemDirectory',
@@ -2177,14 +2236,16 @@ const renderItemDirectoryHookId = HookManager.registerHook({
         return;
     }
     
-    // Fetch the loot item prompt template at runtime
+    // Fetch the loot item prompt templates at runtime
     const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
+    const lootImagePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot-image.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="item-template-type" style="flex: 0 0 auto;">
           <option value="loot">Loot Item</option>
+          <option value="loot-image">Loot Item and Image</option>
         </select>
         <button id="copy-item-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
@@ -2233,9 +2294,11 @@ const renderItemDirectoryHookId = HookManager.registerHook({
           // Attach event listeners for template copy
           htmlDialog.find("#copy-item-template-btn").click(async () => {
             const type = htmlDialog.find("#item-template-type").val();
-            // Only loot for now, but extensible
             if (type === "loot") {
               const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
+              copyToClipboard(promptWithDefaults);
+            } else if (type === "loot-image") {
+              const promptWithDefaults = await getItemPromptWithDefaults(lootImagePrompt);
               copyToClipboard(promptWithDefaults);
             }
           });
@@ -2250,6 +2313,92 @@ const renderItemDirectoryHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderItemDirectory", "blacksmith-item-directory", true, false);
+
+// Register renderRollTableDirectory hook for table import functionality
+const renderRollTableDirectoryHookId = HookManager.registerHook({
+    name: 'renderRollTableDirectory',
+    description: 'Blacksmith: Add JSON import functionality to rolltable directory',
+    context: 'blacksmith-rolltable-directory',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (app, html, data) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+    // Only GMs can import tables
+    if (!game.user.isGM) {
+        return;
+    }
+    
+    // Fetch the table prompt template at runtime
+    const tablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-text.txt')).text();
+
+    // Build dialog content with dropdown and button
+    const dialogContent = `
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <select id="table-template-type" style="flex: 0 0 auto;">
+          <option value="text">Simple Text Rollable Table</option>
+        </select>
+        <button id="copy-table-template-btn" type="button">Copy Template to Clipboard</button>
+      </div>
+      <textarea id="table-json-input" style="width:100%;height:400px;"></textarea>
+    `;
+
+    const button = $(`<button><i class="fa-solid fa-dice-d20"></i> Import JSON to Tables</button>`);
+    button.click(() => {
+      new Dialog({
+        title: "Paste JSON for Tables",
+        content: dialogContent,
+        width: 800,
+        height: 800,
+        buttons: {
+            cancel: {
+                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
+                label: "Cancel",
+            },
+            ok: {
+                icon: "<i class='fa-solid fa-dice-d20'></i>",
+                label: "Import JSON",
+                callback: async (html) => {
+                    const jsonData = html.find("#table-json-input").val();
+                    let tablesToImport = [];
+                    try {
+                        let parsed = JSON.parse(jsonData);
+                        if (Array.isArray(parsed)) {
+                            tablesToImport = await Promise.all(parsed.map(parseTableToFoundry));
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            tablesToImport = [await parseTableToFoundry(parsed)];
+                        } else {
+                            throw new Error("JSON must be an array or object");
+                        }
+                        // Validate and create tables
+                        const created = await RollTable.createDocuments(tablesToImport, {keepId: false});
+                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} table(s) successfully.`, "", false, true);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, "Failed to import tables", e, false, true);
+                        ui.notifications.error("Failed to import tables: " + e.message);
+                    }
+                }
+            }
+        },
+        default: "ok",
+        render: (htmlDialog) => {
+          // Attach event listeners for template copy
+          htmlDialog.find("#copy-table-template-btn").click(async () => {
+            const type = htmlDialog.find("#table-template-type").val();
+            if (type === "text") {
+              const promptWithDefaults = await getTablePromptWithDefaults(tablePrompt);
+              copyToClipboard(promptWithDefaults);
+            }
+          });
+        }
+      }).render(true);
+    });
+        $(html).find(".header-actions.action-buttons").prepend(button);
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderRollTableDirectory", "blacksmith-rolltable-directory", true, false);
 
 // Removed obsolete handleCacheManagementSettings function - cache management is now handled by the simplified system
 
