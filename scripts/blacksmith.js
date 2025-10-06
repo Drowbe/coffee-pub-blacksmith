@@ -2226,7 +2226,7 @@ async function parseFlatItemToFoundry(flat) {
         consumableType: { value: flat.consumableType || flat.itemConsumableType || "potion" },
         type: { value: flat.consumableType || flat.itemConsumableType || "potion" },
         properties: { 
-          magical: flat.consumptionMagical !== undefined ? flat.consumptionMagical : flat.itemIsMagical 
+          mgc: flat.consumptionMagical !== undefined ? flat.consumptionMagical : flat.itemIsMagical 
         },
         source: { custom: flat.itemSource },
         quantity: flat.itemQuantity,
@@ -2234,7 +2234,8 @@ async function parseFlatItemToFoundry(flat) {
         uses: {
           value: flat.limitedUsesSpent || 0,
           max: flat.limitedUsesMax || flat.itemLimitedUses || 1,
-          per: flat.recoveryPeriod || "none"
+          per: flat.recoveryPeriod || "none",
+          autoDestroy: flat.destroyOnEmpty !== undefined ? flat.destroyOnEmpty : flat.itemDestroyOnEmpty
         },
         consume: {
           type: flat.destroyOnEmpty !== undefined ? (flat.destroyOnEmpty ? "destroy" : "none") : (flat.itemDestroyOnEmpty ? "destroy" : "none"),
