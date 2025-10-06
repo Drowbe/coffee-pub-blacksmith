@@ -2223,19 +2223,27 @@ async function parseFlatItemToFoundry(flat) {
         rarity: flat.itemRarity,
         weight: flat.itemWeight,
         price: flat.itemPrice,
-        consumableType: { value: flat.itemConsumableType || "potion" },
-        properties: { magical: flat.itemIsMagical },
+        consumableType: { value: flat.consumableType || flat.itemConsumableType || "potion" },
+        type: { value: flat.consumableType || flat.itemConsumableType || "potion" },
+        properties: { 
+          magical: flat.consumptionMagical !== undefined ? flat.consumptionMagical : flat.itemIsMagical 
+        },
         source: { custom: flat.itemSource },
         quantity: flat.itemQuantity,
         identified: flat.itemIdentified,
         uses: {
-          value: flat.itemLimitedUses || 1,
-          max: flat.itemLimitedUses || 1
+          value: flat.limitedUsesSpent || 0,
+          max: flat.limitedUsesMax || flat.itemLimitedUses || 1,
+          per: flat.recoveryPeriod || "none"
         },
         consume: {
-          type: flat.itemDestroyOnEmpty ? "destroy" : "none",
+          type: flat.destroyOnEmpty !== undefined ? (flat.destroyOnEmpty ? "destroy" : "none") : (flat.itemDestroyOnEmpty ? "destroy" : "none"),
           target: null,
           amount: null
+        },
+        recharge: {
+          value: flat.recoveryPeriod || "none",
+          formula: flat.recoveryAmount || "recover all uses"
         }
       },
       flags: {
@@ -2244,6 +2252,11 @@ async function parseFlatItemToFoundry(flat) {
         }
       }
     };
+    
+    // Add attunement if magical
+    if (flat.consumptionMagical && flat.magicalAttunementRequired) {
+      data.system.attunement = flat.magicalAttunementRequired;
+    }
   }
   // Future: Add more item type mappings here
   return data;

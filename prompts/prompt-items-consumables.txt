@@ -44,6 +44,15 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - DESTROYONEMPTY: (boolean) Whether the item is destroyed when all uses are expended. The value should be true or false (not a string).
 - ITEMIMAGETERMS: (Array) This is an array of synonyms for the item image that might help auto-match the image with FoundryVTT's in-built images. These strings are separated by commas. e.g. for a potion you'd include the main term and related terms: "potion", "vial", "elixir", "phial"
 
+- CONSUMABLETYPE: (string) thi sis mandatory and must be set to one of the following: ammunition, food, poison, potion, rod, scroll, trinket, wand
+- CONSUMPTIONMAGICAL: (boolean) determines if the item is magical.
+- MAGICALATTUNEMENTREQUIRED: (string) If magical, set to one of the following: attunement not required,  attunement required,  attunement optional
+- LIMITEDUSESSPENT: (number) How many times the item has been used. Defaults to 0 unless the item was already used.
+- LIMITEDUSESMAX: (number) Determines how many times something can be used. Defaults to 1.
+- DESTROYONEMPTY: (boolean) Determines if the items is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed afte use where as a trinket might be able to be reused.
+- RECOVERYPERIOD: (string) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Tum, Recharge
+- RECOVERYAMOUNT: (string) Determines if the item recovers or loses its uses. Set to one of the following: recover all uses, lose all uses
+
 -------------------
 JSON TEMPLATE
 -------------------
@@ -65,7 +74,15 @@ JSON TEMPLATE
   "itemIsMagical": ITEMISMAGICAL,
   "itemLimitedUses": LIMITEDUSES,
   "itemDestroyOnEmpty": DESTROYONEMPTY,
-  "itemImageTerms": [ITEMIMAGETERMS]
+  "itemImageTerms": [ITEMIMAGETERMS],
+  "consumableType": "CONSUMABLETYPE",
+  "consumptionMagical": CONSUMPTIONMAGICAL,
+  "magicalAttunementRequired": "MAGICALATTUNEMENTREQUIRED",
+  "limitedUsesSpent": LIMITEDUSESSPENT,
+  "limitedUsesMax": LIMITEDUSESMAX,
+  "destroyOnEmpty": DESTROYONEMPTY,
+  "recoveryPeriod": "RECOVERYPERIOD",
+  "recoveryAmount": "RECOVERYAMOUNT"
 }
 
 -------------------
