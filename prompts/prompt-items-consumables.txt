@@ -50,8 +50,15 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - LIMITEDUSESSPENT: (number) How many times the item has been used. Defaults to 0 unless the item was already used.
 - LIMITEDUSESMAX: (number) Determines how many times something can be used. Defaults to 1.
 - DESTROYONEMPTY: (boolean) Determines if the items is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed afte use where as a trinket might be able to be reused.
-- RECOVERYPERIOD: (string) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Tum, Recharge
-- RECOVERYAMOUNT: (string) Determines if the item recovers or loses its uses. Set to one of the following: recover all uses, lose all uses
+- RECOVERYPERIOD: (string) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Turn, Recharge
+
+- ACTIVITIES: (array) An array of activity objects. Each activity object should have:
+  - activityType: (string) One of the following: Attack, Cast, Check, Damage, Enchant, Forward, Heal, Save, Summon, Transform, Use
+  - activityName: (string) Display name for the activity (e.g., "Heal", "Attack", "Cast Spell")
+  - activityIcon: (string) Icon path for the activity (optional, can be left empty for default)
+  - activityFlavorText: (string) Text displayed in chat when the activity happens
+
+
 
 -------------------
 JSON TEMPLATE
@@ -82,7 +89,7 @@ JSON TEMPLATE
   "limitedUsesMax": LIMITEDUSESMAX,
   "destroyOnEmpty": DESTROYONEMPTY,
   "recoveryPeriod": "RECOVERYPERIOD",
-  "recoveryAmount": "RECOVERYAMOUNT"
+  "activities": [ACTIVITIES]
 }
 
 -------------------

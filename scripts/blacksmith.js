@@ -2232,9 +2232,12 @@ async function parseFlatItemToFoundry(flat) {
         quantity: flat.itemQuantity,
         identified: flat.itemIdentified,
         uses: {
-          value: flat.limitedUsesSpent || 0,
+          spent: flat.limitedUsesSpent || 0,
           max: flat.limitedUsesMax || flat.itemLimitedUses || 1,
-          per: flat.recoveryPeriod || "none",
+          recovery: flat.recoveryPeriod && flat.recoveryPeriod.toLowerCase() !== "none" ? [{ 
+            period: flat.recoveryPeriod.toLowerCase().replace(' ', '').replace('rest', ''), 
+            formula: String(flat.limitedUsesMax || flat.itemLimitedUses || 1)
+          }] : [],
           autoDestroy: flat.destroyOnEmpty !== undefined ? flat.destroyOnEmpty : flat.itemDestroyOnEmpty
         },
         consume: {
@@ -2257,6 +2260,44 @@ async function parseFlatItemToFoundry(flat) {
     // Add attunement if magical
     if (flat.consumptionMagical && flat.magicalAttunementRequired) {
       data.system.attunement = flat.magicalAttunementRequired;
+    }
+    
+    // Add activities if present
+    if (flat.activities && Array.isArray(flat.activities)) {
+      data.system.activities = {};
+      flat.activities.forEach((activity, index) => {
+        // Generate a unique 16-character alphanumeric activity ID
+        const activityId = foundry.utils.randomID(16);
+        data.system.activities[activityId] = {
+          _id: activityId,
+          type: (activity.activityType || "util").toLowerCase(),
+          name: activity.activityName || activity.activityType || "Use",
+          img: activity.activityIcon || "",
+          activation: {
+            type: "action",
+            value: 1,
+            condition: ""
+          },
+          consumption: {
+            targets: [],
+            scaling: { allowed: false, max: "" }
+          },
+          description: {
+            chatFlavor: activity.activityFlavorText || ""
+          },
+          duration: {
+            value: "",
+            units: ""
+          },
+          range: {},
+          target: {},
+          uses: {
+            spent: 0,
+            max: "",
+            recovery: []
+          }
+        };
+      });
     }
   }
   // Future: Add more item type mappings here
