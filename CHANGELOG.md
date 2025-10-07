@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.9] - Menu Bar System and Enhanced Consumable Item Import System
+
+### Added
+- **Menu Bar System:** Introduced a comprehensive menu bar for quick access to module features:
+  - Current combatant display with portrait, name, HP, and conditions
+  - Party leader display with initiative and status
+  - Quick access buttons for frequently used tools
+  - Configurable visibility and position settings
+  - Real-time updates during combat
+- **Simplified Item Import Options:** Streamlined item import dropdown to two clean options: "Loot" and "Consumables"
+- **Enhanced Consumable Item Support:** Added comprehensive consumable item import with advanced properties:
+  - Consumable type configuration (ammunition, food, poison, potion, rod, scroll, trinket, wand)
+  - Magical property detection and attunement requirements
+  - Usage tracking with spent/max uses and auto-destroy behavior
+  - Recovery system with configurable periods (Long Rest, Short Rest, Day, etc.)
+- **Activity System Integration:** Implemented full activity support for consumable items:
+  - Multiple activities per item (Heal, Attack, Cast, Check, Damage, etc.)
+  - Activity-specific effect configuration with dice formulas
+  - Chat flavor text for activity descriptions
+  - Proper FoundryVTT activity data structure with unique IDs
+- **RollTable Import Utility:** Added comprehensive rolltable import system with multiple result types:
+  - Text results with descriptions and weights
+  - Document results linking to world actors/items with automatic matching
+  - Compendium results with collection references
+  - Support for "Draw with Replacement" and "Display Roll Formula" settings
+- **Dynamic Prompt Generation:** Enhanced prompt templates with placeholder replacement:
+  - Campaign name and rulebooks integration across all prompts
+  - Dynamic actor lists for "Document: Actor" rolltables
+  - Dynamic item lists for "Document: Item" rolltables
+  - Automatic placeholder substitution during template copying
+
+### Fixed
+- **Consumable Property Mapping:** Fixed magical property detection using correct FoundryVTT field names (`properties.mgc`)
+- **Activity Effect Configuration:** Resolved healing effect field mapping to use proper HTML field names:
+  - `healing.number` for dice count
+  - `healing.denomination` for die type (converted from "d8" to "8")
+  - `healing.bonus` for bonus values
+  - `healing.types` for effect type selection
+- **Recovery System Validation:** Fixed recovery formula validation errors by using numeric values instead of text descriptions
+- **RollTable Document Type Assignment:** Corrected document type assignment for rolltable results using proper field names (`documentCollection`)
+- **Activity ID Generation:** Fixed activity ID format to meet FoundryVTT's 16-character alphanumeric requirements
+
+### Changed
+- **Unified Prompt Structure:** Consolidated item prompts to include both JSON and image generation instructions in single files
+- **Enhanced Field Support:** Expanded consumable item fields to support all FoundryVTT consumable properties:
+  - `consumableType`, `consumptionMagical`, `magicalAttunementRequired`
+  - `limitedUsesSpent`, `limitedUsesMax`, `destroyOnEmpty`
+  - `recoveryPeriod`, `recoveryAmount` (auto-calculated)
+- **Improved Error Handling:** Enhanced validation and error handling throughout the import system
+- **Scalable Activity Architecture:** Designed activity system to support multiple activity types with proper effect configuration
+
+### Technical Details
+- Updated `parseFlatItemToFoundry()` function with comprehensive consumable item support
+- Implemented `parseTableToFoundry()` function for rolltable data conversion
+- Added helper functions for world actor/item list generation
+- Enhanced placeholder replacement system with `getTablePromptWithDefaults()`
+- Fixed FoundryVTT data structure compliance for all imported item types
+
+
+
 ## [12.1.8] - Beginning of migration to version 13
 
 ### New
