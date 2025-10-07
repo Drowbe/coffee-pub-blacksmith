@@ -2266,10 +2266,9 @@ async function parseFlatItemToFoundry(flat) {
     if (flat.activities && Array.isArray(flat.activities)) {
       data.system.activities = {};
       flat.activities.forEach((activity, index) => {
-        // Generate a unique 16-character alphanumeric activity ID
-        const activityId = foundry.utils.randomID(16);
+        // Let FoundryVTT generate the ID automatically
+        const activityId = `activity${index}`;
         data.system.activities[activityId] = {
-          _id: activityId,
           type: (activity.activityType || "util").toLowerCase(),
           name: activity.activityName || activity.activityType || "Use",
           img: activity.activityIcon || "",
