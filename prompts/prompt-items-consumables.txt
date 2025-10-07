@@ -57,6 +57,11 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
   - activityName: (string) Display name for the activity (e.g., "Heal", "Attack", "Cast Spell")
   - activityIcon: (string) Icon path for the activity (optional, can be left empty for default)
   - activityFlavorText: (string) Text displayed in chat when the activity happens
+  - activityFormula: (string) Dice formula for the effect (e.g., "3d8", "2d4+2", "1d6")
+  - activityEffectType: (string) Type of effect - for Heal: "healing" or "temphp", for Attack: "damage", etc.
+  - activityEffectValue: (number) Base value for the effect (e.g., 3 for "3d8")
+  - activityEffectDie: (string) Die type for the effect (e.g., "d8", "d6", "d4")
+  - activityEffectBonus: (number) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
 
 
 

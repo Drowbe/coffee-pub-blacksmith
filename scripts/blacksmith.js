@@ -2294,7 +2294,22 @@ async function parseFlatItemToFoundry(flat) {
             spent: 0,
             max: "",
             recovery: []
-          }
+          },
+          // Add effect configuration based on activity type
+          ...(activity.activityType && activity.activityType.toLowerCase() === "heal" ? {
+            healing: {
+              number: activity.activityEffectValue || 0,
+              denomination: activity.activityEffectDie ? activity.activityEffectDie.replace('d', '') : "",
+              bonus: activity.activityEffectBonus || 0,
+              types: activity.activityEffectType || "healing"
+            }
+          } : {}),
+          ...(activity.activityType && activity.activityType.toLowerCase() === "attack" ? {
+            damage: {
+              formula: activity.activityFormula || "",
+              parts: [[activity.activityFormula || "", activity.activityEffectType || "damage"]]
+            }
+          } : {})
         };
       });
     }
