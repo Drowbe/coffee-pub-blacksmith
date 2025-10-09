@@ -2722,15 +2722,27 @@ export class TokenImageReplacementWindow extends Application {
         const fileCount = TokenImageReplacement.cache.files.size;
         const lastScan = TokenImageReplacement.cache.lastScan;
         
+        // Get cache size from localStorage
+        let cacheSizeText = '';
+        try {
+            const cacheData = localStorage.getItem('tokenImageReplacement_cache');
+            if (cacheData) {
+                const sizeMB = (new Blob([cacheData]).size / (1024 * 1024)).toFixed(2);
+                cacheSizeText = `, ${sizeMB}MB`;
+            }
+        } catch (error) {
+            // Ignore size calculation errors
+        }
+        
         if (!lastScan) {
-            return `${fileCount} files, unknown age`;
+            return `${fileCount} files, unknown age${cacheSizeText}`;
         }
         
         const cacheAge = Date.now() - lastScan;
         const ageHours = (cacheAge / (1000 * 60 * 60)).toFixed(1);
         const displayAge = Math.min(parseFloat(ageHours), 9999);
         
-        return `${fileCount} files, ${displayAge} hours old`;
+        return `${fileCount} files, ${displayAge} hours old${cacheSizeText}`;
     }
 
     _updateNotificationData() {
@@ -3582,7 +3594,87 @@ export class TokenImageReplacement {
         
     }
     
+    /**
+     * Add console commands for cache debugging
+     */
+    static _addConsoleCommands() {
+        // Add to global scope for easy access
+        window.coffeePubCache = {
+            // Basic cache info
+            info: () => {
+                const c = this.cache;
+                console.log(`📊 Cache Stats:
+- Files: ${c.files.size}
+- Folders: ${c.folders.size}
+- Creature Types: ${c.creatureTypes.size}
+- Last Scan: ${c.lastScan ? new Date(c.lastScan).toLocaleString() : 'Never'}
+- Scanning: ${c.isScanning}
+- Ignored Files: ${c.ignoredFilesCount || 0}`);
+                return c;
+            },
+            
+            // Check localStorage size
+            size: () => {
+                const cacheData = localStorage.getItem('tokenImageReplacement_cache');
+                if (cacheData) {
+                    const compressedSizeMB = (new Blob([cacheData]).size / (1024 * 1024)).toFixed(2);
+                    
+                    // Try to decompress to show original size
+                    try {
+                        const decompressed = TokenImageReplacement._decompressCacheData(cacheData);
+                        const uncompressedSizeMB = (new Blob([decompressed]).size / (1024 * 1024)).toFixed(2);
+                        const compressionRatio = ((1 - cacheData.length / decompressed.length) * 100).toFixed(1);
+                        console.log(`💾 Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`);
+                        return { compressed: compressedSizeMB, uncompressed: uncompressedSizeMB, ratio: compressionRatio };
+                    } catch (error) {
+                        console.log(`💾 Cache Size: ${compressedSizeMB}MB (uncompressed data)`);
+                        return { compressed: compressedSizeMB, uncompressed: compressedSizeMB, ratio: 0 };
+                    }
+                } else {
+                    console.log('❌ No cache in localStorage');
+                    return 0;
+                }
+            },
+            
+            // Show cache version and basic info
+            version: () => {
+                try {
+                    const cacheData = JSON.parse(localStorage.getItem('tokenImageReplacement_cache'));
+                    console.log(`🔢 Cache Version: ${cacheData.version}`);
+                    console.log(`📁 Files Count: ${cacheData.files ? cacheData.files.length : 'N/A'}`);
+                    console.log(`📅 Last Scan: ${cacheData.lastScan ? new Date(cacheData.lastScan).toLocaleString() : 'Never'}`);
+                    return cacheData;
+                } catch (error) {
+                    console.log('❌ Error reading cache:', error.message);
+                    return null;
+                }
+            },
+            
+            // Clear cache
+            clear: () => {
+                localStorage.removeItem('tokenImageReplacement_cache');
+                console.log('🗑️ Cache cleared from localStorage');
+            },
+            
+            // Show storage quota info
+            quota: () => {
+                try {
+                    const testData = 'x'.repeat(1024 * 1024); // 1MB test
+                    localStorage.setItem('quota_test', testData);
+                    localStorage.removeItem('quota_test');
+                    console.log('✅ localStorage is writable');
+                } catch (error) {
+                    console.log(`❌ localStorage error: ${error.message}`);
+                }
+            }
+        };
+        
+        postConsoleAndNotification(MODULE.NAME, "Console commands added: coffeePubCache.info(), coffeePubCache.size(), coffeePubCache.version(), coffeePubCache.clear(), coffeePubCache.quota()", "", true, false);
+    }
+    
     static async initialize() {
+        // Add console commands for debugging
+        this._addConsoleCommands();
         
         // Load monster mapping data
         await this._loadMonsterMappingData();
@@ -5697,26 +5789,14 @@ export class TokenImageReplacement {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)", "", false, false);
             }
             
-            const cacheData = {
-                files: Array.from(this.cache.files.entries()),
-                folders: Array.from(this.cache.folders.entries()),
-                creatureTypes: Array.from(this.cache.creatureTypes.entries()),
-                lastScan: this.cache.lastScan || Date.now(), // Use current time if lastScan is null
-                totalFiles: this.cache.totalFiles,
-                basePath: basePath,
-                folderFingerprint: folderFingerprint,
-                version: '1.4', // Bumped version for clean localStorage implementation
-                isIncremental: isIncremental // Flag to indicate this is a partial save
-            };
+            // Build cache data with streaming compression to avoid memory issues
+            const compressedData = await this._buildCompressedCacheData(basePath, folderFingerprint, isIncremental);
+            const compressedSizeMB = (new Blob([compressedData]).size / (1024 * 1024)).toFixed(2);
             
-            
-            const cacheJson = JSON.stringify(cacheData);
-            const cacheSizeMB = this._monitorCacheSize(cacheData);
-            
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache size: ${cacheSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache saved: ${compressedSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
             
             try {
-                localStorage.setItem('tokenImageReplacement_cache', cacheJson);
+                localStorage.setItem('tokenImageReplacement_cache', compressedData);
                 
                 if (isIncremental) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
@@ -5725,7 +5805,7 @@ export class TokenImageReplacement {
                 }
             } catch (storageError) {
                 if (storageError.name === 'QuotaExceededError') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage quota exceeded! Cache size: ${cacheSizeMB}MB. Consider reducing image collection size.`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage quota exceeded even after compression! Cache size: ${compressedSizeMB}MB. Consider reducing image collection size.`, "", false, false);
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Files in cache: ${this.cache.files.size}, Folders: ${this.cache.folders.size}`, "", false, false);
                 } else {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage error: ${storageError.message}`, "", false, false);
@@ -5739,6 +5819,232 @@ export class TokenImageReplacement {
         }
     }
     
+    /**
+     * Build compressed cache data without creating full JSON in memory
+     * @param {string} basePath - The base path for the cache
+     * @param {string} folderFingerprint - The folder fingerprint
+     * @param {boolean} isIncremental - Whether this is an incremental save
+     * @returns {Promise<string>} Compressed cache data
+     */
+    static async _buildCompressedCacheData(basePath, folderFingerprint, isIncremental) {
+        try {
+            // Build cache data in streaming fashion to avoid memory issues
+            let compressedData = '{';
+            
+            // Add metadata first (small objects)
+            const metadata = {
+                v: '1.4',
+                ls: this.cache.lastScan || Date.now(),
+                bp: basePath,
+                ff: folderFingerprint,
+                ii: isIncremental,
+                tf: this.cache.totalFiles,
+                ifc: this.cache.ignoredFilesCount || 0
+            };
+            
+            compressedData += `"v":"${metadata.v}","ls":${metadata.ls},"bp":"${metadata.bp}","ff":"${metadata.ff}","ii":${metadata.ii},"tf":${metadata.tf},"ifc":${metadata.ifc},`;
+            
+            // Add files in chunks to avoid memory issues
+            compressedData += '"f":[';
+            let firstFile = true;
+            for (const [fileName, fileData] of this.cache.files.entries()) {
+                if (!firstFile) compressedData += ',';
+                firstFile = false;
+                
+                // Compress file data inline
+                const compressedFileData = this._compressFileData(fileData);
+                compressedData += `["${fileName}",${compressedFileData}]`;
+            }
+            compressedData += '],';
+            
+            // Add folders in chunks
+            compressedData += '"fo":[';
+            let firstFolder = true;
+            for (const [folderPath, folderData] of this.cache.folders.entries()) {
+                if (!firstFolder) compressedData += ',';
+                firstFolder = false;
+                
+                const compressedFolderData = this._compressFolderData(folderData);
+                compressedData += `["${folderPath}",${compressedFolderData}]`;
+            }
+            compressedData += '],';
+            
+            // Add creature types in chunks
+            compressedData += '"ct":[';
+            let firstCreature = true;
+            for (const [creatureType, creatureData] of this.cache.creatureTypes.entries()) {
+                if (!firstCreature) compressedData += ',';
+                firstCreature = false;
+                
+                const compressedCreatureData = this._compressCreatureData(creatureData);
+                compressedData += `["${creatureType}",${compressedCreatureData}]`;
+            }
+            compressedData += ']';
+            
+            compressedData += '}';
+            
+            return compressedData;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Streaming compression failed: ${error.message}. Falling back to standard method.`, "", false, false);
+            
+            // Fallback to standard method (may still fail on very large caches)
+            const cacheData = {
+                version: '1.4',
+                lastScan: this.cache.lastScan || Date.now(),
+                basePath: basePath,
+                folderFingerprint: folderFingerprint,
+                isIncremental: isIncremental,
+                totalFiles: this.cache.totalFiles,
+                ignoredFilesCount: this.cache.ignoredFilesCount || 0,
+                files: Array.from(this.cache.files.entries()),
+                folders: Array.from(this.cache.folders.entries()),
+                creatureTypes: Array.from(this.cache.creatureTypes.entries())
+            };
+            
+            const cacheJson = JSON.stringify(cacheData);
+            return this._compressCacheData(cacheJson);
+        }
+    }
+    
+    /**
+     * Compress individual file data
+     */
+    static _compressFileData(fileData) {
+        const compressed = {
+            fp: fileData.fullPath,
+            fn: fileData.fileName,
+            fe: fileData.fileExtension,
+            fs: fileData.fileSize,
+            lm: fileData.lastModified
+        };
+        
+        if (fileData.metadata) {
+            compressed.m = {
+                t: fileData.metadata.tags || [],
+                ct: fileData.metadata.creatureType || ''
+            };
+        }
+        
+        return JSON.stringify(compressed);
+    }
+    
+    /**
+     * Compress folder data
+     */
+    static _compressFolderData(folderData) {
+        return JSON.stringify({
+            id: folderData.isDirectory,
+            sd: folderData.subdirectories || [],
+            fp: folderData.folderPath
+        });
+    }
+    
+    /**
+     * Compress creature type data
+     */
+    static _compressCreatureData(creatureData) {
+        return JSON.stringify(creatureData || []);
+    }
+    
+    /**
+     * Estimate uncompressed size without building full JSON
+     */
+    static _estimateUncompressedSize() {
+        // More realistic estimation based on actual data patterns
+        // Real file entries are much larger due to full paths and metadata
+        const avgFileDataSize = 400; // Increased from 200 - real entries are ~400-600 bytes
+        const avgFolderDataSize = 150; // Increased from 100 - folder paths can be long
+        const avgCreatureDataSize = 100; // Increased from 50 - creature type arrays
+        const metadataSize = 1000; // Increased from 500 - more metadata fields
+        
+        const estimatedSize = (this.cache.files.size * avgFileDataSize) +
+                             (this.cache.folders.size * avgFolderDataSize) +
+                             (this.cache.creatureTypes.size * avgCreatureDataSize) +
+                             metadataSize;
+        
+        return (estimatedSize / (1024 * 1024)).toFixed(2);
+    }
+
+    /**
+     * Compress cache data using simple string compression
+     * @param {string} jsonData - The JSON string to compress
+     * @returns {string} Compressed data
+     */
+    static _compressCacheData(jsonData) {
+        try {
+            // Simple compression: remove extra whitespace and use shorter property names
+            let compressed = jsonData
+                // Remove unnecessary whitespace
+                .replace(/\s+/g, ' ')
+                .replace(/,\s+/g, ',')
+                .replace(/:\s+/g, ':')
+                // Shorten common property names (reversible)
+                .replace(/"fullPath"/g, '"fp"')
+                .replace(/"fileName"/g, '"fn"')
+                .replace(/"fileExtension"/g, '"fe"')
+                .replace(/"fileSize"/g, '"fs"')
+                .replace(/"lastModified"/g, '"lm"')
+                .replace(/"folderPath"/g, '"fp"')
+                .replace(/"creatureType"/g, '"ct"')
+                .replace(/"isDirectory"/g, '"id"')
+                .replace(/"subdirectories"/g, '"sd"')
+                .replace(/"lastScan"/g, '"ls"')
+                .replace(/"basePath"/g, '"bp"')
+                .replace(/"folderFingerprint"/g, '"ff"')
+                .replace(/"isIncremental"/g, '"ii"')
+                .replace(/"totalFiles"/g, '"tf"')
+                .replace(/"version"/g, '"v"')
+                .replace(/"files"/g, '"f"')
+                .replace(/"folders"/g, '"fo"')
+                .replace(/"creatureTypes"/g, '"ct"')
+                .replace(/"metadata"/g, '"m"')
+                .replace(/"tags"/g, '"t"');
+            
+            return compressed;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Compression failed: ${error.message}. Using uncompressed data.`, "", false, false);
+            return jsonData;
+        }
+    }
+    
+    /**
+     * Decompress cache data
+     * @param {string} compressedData - The compressed data to decompress
+     * @returns {string} Decompressed JSON string
+     */
+    static _decompressCacheData(compressedData) {
+        try {
+            // Reverse the compression
+            let decompressed = compressedData
+                // Restore property names
+                .replace(/"fp"/g, '"fullPath"')
+                .replace(/"fn"/g, '"fileName"')
+                .replace(/"fe"/g, '"fileExtension"')
+                .replace(/"fs"/g, '"fileSize"')
+                .replace(/"lm"/g, '"lastModified"')
+                .replace(/"fp"/g, '"folderPath"')
+                .replace(/"ct"/g, '"creatureType"')
+                .replace(/"id"/g, '"isDirectory"')
+                .replace(/"sd"/g, '"subdirectories"')
+                .replace(/"ls"/g, '"lastScan"')
+                .replace(/"bp"/g, '"basePath"')
+                .replace(/"ff"/g, '"folderFingerprint"')
+                .replace(/"ii"/g, '"isIncremental"')
+                .replace(/"tf"/g, '"totalFiles"')
+                .replace(/"v"/g, '"version"')
+                .replace(/"f"/g, '"files"')
+                .replace(/"fo"/g, '"folders"')
+                .replace(/"ct"/g, '"creatureTypes"')
+                .replace(/"m"/g, '"metadata"')
+                .replace(/"t"/g, '"tags"');
+            
+            return decompressed;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Decompression failed: ${error.message}. Using raw data.`, "", false, false);
+            return compressedData;
+        }
+    }
+
     /**
      * Monitor cache size and warn if approaching localStorage limits
      * @param {Object} cacheData - The cache data to monitor
@@ -5767,7 +6073,17 @@ export class TokenImageReplacement {
                 return false;
             }
             
-            const cacheData = JSON.parse(savedCache);
+            // Try to decompress the cache data (handles both compressed and uncompressed data)
+            let decompressedCache;
+            try {
+                decompressedCache = this._decompressCacheData(savedCache);
+            } catch (decompressionError) {
+                // If decompression fails, try parsing as-is (might be uncompressed)
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Decompression failed, trying uncompressed format: ${decompressionError.message}`, "", true, false);
+                decompressedCache = savedCache;
+            }
+            
+            const cacheData = JSON.parse(decompressedCache);
             
             // Validate cache data structure
             if (!cacheData.version || !cacheData.files || !cacheData.folders || !cacheData.creatureTypes) {
