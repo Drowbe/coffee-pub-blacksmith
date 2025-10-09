@@ -2625,6 +2625,17 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 
+	// ---------- ACTOR COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3ActorCompendiums", {
+		name: 'Actor Compendiums',
+		hint: 'These settings control how you to link actors in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
 	// -- Search World Actors First --
 	game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
 		name: 'Search World Actors First',
@@ -2658,6 +2669,16 @@ export const registerSettings = async () => {
 			});
 		}
 
+	// ---------- ITEM COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3ItemCompendiums", {
+		name: 'Item Compendiums',
+		hint: 'These settings control how you to link items in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// ------------------------------------- 
 
 	// -- Search World Items First --
 	game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
@@ -2692,6 +2713,16 @@ export const registerSettings = async () => {
 		});
 	}
 
+	// ---------- FEATURE COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3FeatureCompendiums", {
+		name: 'Feature Compendiums',
+		hint: 'These settings control how you to link features in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// ------------------------------------- 
 
 	// -- Search World Features First --
 	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
@@ -2727,6 +2758,49 @@ export const registerSettings = async () => {
 	}
 
 
+	// ---------- SPELL COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3SpellCompendiums", {
+		name: 'Spell Compendiums',
+		hint: 'These settings control how you to link spells in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// ------------------------------------- 
+	
+	// -- Search World Spells First --
+	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
+		name: 'Search World Features First',
+		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Search World Spells Last --
+	game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
+		name: 'Search World Features Last',
+		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Spell Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= 8; i++) {
+		game.settings.register(MODULE.ID, `spellCompendium${i}` , {
+			name: `Spell Lookup ${i}`,
+			hint: `The #${i} compendium to use for spell linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
 
 
 
