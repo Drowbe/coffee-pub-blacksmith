@@ -2679,18 +2679,57 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-			// -- Item Lookup Compendiums (up to 8) --
-		for (let i = 1; i <= 8; i++) {
-			game.settings.register(MODULE.ID, `itemCompendium${i}` , {
-				name: `Item Lookup ${i}`,
-				hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
-				scope: "world",
-				config: true,
-				requiresReload: false,
-				default: "none",
-				choices: BLACKSMITH.arrCompendiumChoices
-			});
-		}
+		// -- Item Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= 8; i++) {
+		game.settings.register(MODULE.ID, `itemCompendium${i}` , {
+			name: `Item Lookup ${i}`,
+			hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
+
+
+	// -- Search World Features First --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
+		name: 'Search World Features First',
+		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Search World Features Last --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
+		name: 'Search World Features Last',
+		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Features Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= 8; i++) {
+		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
+			name: `Feature Lookup ${i}`,
+			hint: `The #${i} compendium to use for feature linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
+
+
+
+
+
 
 	// *** ROUND ANNOUNCMENTS ***
 
