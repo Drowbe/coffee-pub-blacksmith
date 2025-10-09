@@ -49,6 +49,7 @@ jobs:
             prompts/ \
             resources/ \
             api/ \
+            utilities/ \
             -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*"
 
       # Create release

@@ -40,6 +40,5 @@ npm-debug.log*
 # Build directories
 dist/
 build/ 
-_temp/
 _BACKUPS/
 
