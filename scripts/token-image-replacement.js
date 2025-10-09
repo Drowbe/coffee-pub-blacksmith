@@ -39,6 +39,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Tag filtering system
         this.selectedTags = new Set(); // Track which tags are currently selected as filters
+        this.tagSortMode = getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'); // Current tag sort mode
     }
 
     /**
@@ -423,7 +424,8 @@ export class TokenImageReplacementWindow extends Application {
             currentFileName: TokenImageReplacement.cache.currentFileName,
             cacheStatus: this._getCacheStatus(),
             updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true),
-            fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false)
+            fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
+            tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count')
         };
     }
 
@@ -475,6 +477,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Filter toggle button
         html.find('.tir-filter-toggle-btn').on('click', this._onFilterToggle.bind(this));
+        
+        // Initialize filter toggle button state
+        this._initializeFilterToggleButton();
         
         // Threshold slider
         html.find('.tir-rangeslider-input').on('input', this._onThresholdSliderChange.bind(this));
@@ -1411,22 +1416,9 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Update aggregated tags
-            const aggregatedTags = this._getAggregatedTags();
-            const tagHtml = aggregatedTags.map(tag => {
-                const isSelected = this.selectedTags.has(tag);
-                const selectedClass = isSelected ? ' selected' : '';
-                return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
-            }).join('');
-            $element.find('#tir-search-tools-tag-container').html(tagHtml);
+            this._updateTagContainer();
             
             // Note: Do not call this.render() here as it overwrites the DOM updates
-            
-            // Show/hide tags row based on whether there are tags
-            if (aggregatedTags.length > 0) {
-                $element.find('#tir-search-tools-tag-container').show();
-            } else {
-                $element.find('#tir-search-tools-tag-container').hide();
-            }
         }
     }
 
@@ -2624,14 +2616,30 @@ export class TokenImageReplacementWindow extends Application {
             const $button = $(event.currentTarget);
             const $tagContainer = $element.find('#tir-search-tools-tag-container');
             
-            // Toggle the active state
-            $button.toggleClass('active');
-            
-            // Toggle tag container visibility
-            if ($button.hasClass('active')) {
+            // Cycle through the 3 states: count -> alpha -> hidden -> count
+            if (this.tagSortMode === 'count') {
+                this.tagSortMode = 'alpha';
+                $button.attr('title', 'Tag Sort: Alpha');
+                $button.find('i').removeClass('fa-filter').addClass('fa-filter-list');
                 $tagContainer.show();
-            } else {
+            } else if (this.tagSortMode === 'alpha') {
+                this.tagSortMode = 'hidden';
+                $button.attr('title', 'Tag Sort: Hidden');
+                $button.find('i').removeClass('fa-filter-list').addClass('fa-filter-circle-xmark');
                 $tagContainer.hide();
+            } else { // hidden
+                this.tagSortMode = 'count';
+                $button.attr('title', 'Tag Sort: Count');
+                $button.find('i').removeClass('fa-filter-circle-xmark').addClass('fa-filter');
+                $tagContainer.show();
+            }
+            
+            // Save the setting
+            game.settings.set(MODULE.ID, 'tokenImageReplacementTagSortMode', this.tagSortMode);
+            
+            // Update the tag container with new sorting
+            if (this.tagSortMode !== 'hidden') {
+                this._updateTagContainer();
             }
         }
     }
@@ -2829,7 +2837,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Return ALL tags for category (no limit)
             return Array.from(tagCounts.entries())
-                .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                .sort((a, b) => this._sortTagsByMode(a, b)) // Sort by current mode
                 .map(([tag]) => tag); // Return just the tag names
         } else {
             // Search/Selected mode: Show tags from currently displayed results
@@ -2849,17 +2857,87 @@ export class TokenImageReplacementWindow extends Application {
                 }
             });
             
-            // Sort by frequency and return all tags
+            // Sort by current mode and return all tags
             return Array.from(tagCounts.entries())
                 .sort((a, b) => {
-                    // Selected tags should appear first, then by frequency
+                    // Selected tags should appear first, then by current sort mode
                     const aIsSelected = this.selectedTags.has(a[0]);
                     const bIsSelected = this.selectedTags.has(b[0]);
                     if (aIsSelected && !bIsSelected) return -1;
                     if (!aIsSelected && bIsSelected) return 1;
-                    return b[1] - a[1]; // Sort by count descending
+                    return this._sortTagsByMode(a, b);
                 })
                 .map(([tag]) => tag); // Return just the tag names
+        }
+    }
+
+    /**
+     * Sort tags based on current sort mode
+     * @param {Array} a - First tag entry [tag, count]
+     * @param {Array} b - Second tag entry [tag, count]
+     * @returns {number} Sort comparison result
+     */
+    _sortTagsByMode(a, b) {
+        switch (this.tagSortMode) {
+            case 'alpha':
+                return a[0].localeCompare(b[0]); // Alphabetical
+            case 'count':
+            default:
+                return b[1] - a[1]; // Count descending
+        }
+    }
+
+    /**
+     * Initialize the filter toggle button state based on current setting
+     */
+    _initializeFilterToggleButton() {
+        const $element = this.element;
+        if (!$element) return;
+
+        const $button = $element.find('.tir-filter-toggle-btn');
+        const $tagContainer = $element.find('#tir-search-tools-tag-container');
+        
+        // Set the correct icon, title, and visibility based on current mode
+        switch (this.tagSortMode) {
+            case 'count':
+                $button.attr('title', 'Tag Sort: Count');
+                $button.find('i').removeClass('fa-filter-list fa-filter-circle-xmark').addClass('fa-filter');
+                $tagContainer.show();
+                break;
+            case 'alpha':
+                $button.attr('title', 'Tag Sort: Alpha');
+                $button.find('i').removeClass('fa-filter fa-filter-circle-xmark').addClass('fa-filter-list');
+                $tagContainer.show();
+                break;
+            case 'hidden':
+                $button.attr('title', 'Tag Sort: Hidden');
+                $button.find('i').removeClass('fa-filter fa-filter-list').addClass('fa-filter-circle-xmark');
+                $tagContainer.hide();
+                break;
+        }
+    }
+
+    /**
+     * Update the tag container with current tags and sorting
+     */
+    _updateTagContainer() {
+        const $element = this.element;
+        if (!$element) return;
+
+        const aggregatedTags = this._getAggregatedTags();
+        const tagHtml = aggregatedTags.map(tag => {
+            const isSelected = this.selectedTags.has(tag);
+            const selectedClass = isSelected ? ' selected' : '';
+            return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
+        }).join('');
+        
+        $element.find('#tir-search-tools-tag-container').html(tagHtml);
+        
+        // Show/hide tags row based on whether there are tags and current mode
+        if (aggregatedTags.length > 0 && this.tagSortMode !== 'hidden') {
+            $element.find('#tir-search-tools-tag-container').show();
+        } else {
+            $element.find('#tir-search-tools-tag-container').hide();
         }
     }
 
@@ -3763,7 +3841,7 @@ export class TokenImageReplacement {
                 this.cache.justCompleted = true;
                 this.cache.completionData = {
                     totalFiles: originalFileCount,
-                    totalFolders: this.cache.folders.size,
+                    totalFolders: this.cache.totalFoldersScanned || this.cache.folders.size,
                     timeString: "less than a second" // Incremental updates are very fast
                 };
                 
@@ -4052,7 +4130,9 @@ export class TokenImageReplacement {
             this._logCacheStatistics();
             
             // Save cache to persistent storage (final save)
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Performing final cache save...", "", false, false);
             await this._saveCacheToStorage(false); // false = final save
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Final cache save completed!", "", false, false);
             
             // Note: Window refresh will happen when UI is next accessed
             
@@ -4097,7 +4177,7 @@ export class TokenImageReplacement {
             this.cache.justCompleted = true;
             this.cache.completionData = {
                 totalFiles: this.cache.totalFiles,
-                totalFolders: this.cache.folders.size,
+                totalFolders: this.cache.totalFoldersScanned || this.cache.folders.size,
                 timeString: timeString
             };
             
@@ -4254,6 +4334,7 @@ export class TokenImageReplacement {
                 // Set total steps for overall progress (non-ignored subdirectories only)
                 this.cache.totalSteps = nonIgnoredDirs.length;
                 this.cache.overallProgress = 0;
+                this.cache.totalFoldersScanned = nonIgnoredDirs.length; // Track actual folder count
                 
                 let processedCount = 0;
                 for (let i = 0; i < response.dirs.length; i++) {
@@ -4294,12 +4375,29 @@ export class TokenImageReplacement {
                     // Process files into cache immediately so they're available for incremental saves
                     if (subDirFiles.length > 0) {
                         await this._processFiles(subDirFiles, basePath, false); // Don't clear cache, just add files
+                        
+                        // Save more frequently for large subdirectories (every 500 files)
+                        if (this.cache.files.size % 500 === 0 && this.cache.files.size > 0) {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Frequent save checkpoint - ${this.cache.files.size} files processed`, "", false, false);
+                            try {
+                                await this._saveCacheToStorage(true); // Incremental save
+                            } catch (saveError) {
+                                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Checkpoint save failed: ${saveError.message}`, "", true, false);
+                                // Continue with scan
+                            }
+                        }
                     }
                     
                     // Save cache incrementally after each main folder to prevent data loss
                     if (subDirFiles.length > 0) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
-                        await this._saveCacheToStorage(true); // true = incremental save
+                        try {
+                            await this._saveCacheToStorage(true); // true = incremental save
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Successfully saved progress after ${subDirName}`, "", false, false);
+                        } catch (saveError) {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", true, false);
+                            // Continue with scan even if save fails
+                        }
                     }
                     
                     // Log progress with percentage and file count
@@ -5351,11 +5449,23 @@ export class TokenImageReplacement {
             // Only generate fingerprint for final saves, not incremental ones (performance)
             let folderFingerprint = null;
             if (!isIncremental) {
-                folderFingerprint = await this._generateFolderFingerprint(basePath);
-                
-                // CRITICAL FIX: Validate fingerprint for final saves
-                if (!folderFingerprint || folderFingerprint === 'error' || folderFingerprint === 'no-path') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", true, false);
+                try {
+                    // Add timeout to prevent hanging on large directories
+                    const fingerprintPromise = this._generateFolderFingerprint(basePath);
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Fingerprint generation timeout after 30 seconds')), 30000)
+                    );
+                    
+                    folderFingerprint = await Promise.race([fingerprintPromise, timeoutPromise]);
+                    
+                    // CRITICAL FIX: Validate fingerprint for final saves
+                    if (!folderFingerprint || folderFingerprint === 'error' || folderFingerprint === 'no-path') {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", true, false);
+                    }
+                } catch (fingerprintError) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generation failed: ${fingerprintError.message}. Using timestamp-based fingerprint.`, "", true, false);
+                    // Use timestamp as fallback fingerprint
+                    folderFingerprint = `timestamp_${Date.now()}`;
                 }
             } else {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)", "", false, false);
@@ -5369,14 +5479,13 @@ export class TokenImageReplacement {
                 totalFiles: this.cache.totalFiles,
                 basePath: basePath,
                 folderFingerprint: folderFingerprint,
-                version: '1.1', // Bumped version for new cache structure
+                version: '1.4', // Bumped version for clean localStorage implementation
                 isIncremental: isIncremental // Flag to indicate this is a partial save
             };
             
             
             const cacheJson = JSON.stringify(cacheData);
-            const cacheSize = new Blob([cacheJson]).size;
-            const cacheSizeMB = (cacheSize / (1024 * 1024)).toFixed(2);
+            const cacheSizeMB = this._monitorCacheSize(cacheData);
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache size: ${cacheSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
             
@@ -5405,6 +5514,24 @@ export class TokenImageReplacement {
     }
     
     /**
+     * Monitor cache size and warn if approaching localStorage limits
+     * @param {Object} cacheData - The cache data to monitor
+     * @returns {string} Cache size in MB
+     */
+    static _monitorCacheSize(cacheData) {
+        const cacheJson = JSON.stringify(cacheData);
+        const cacheSizeMB = (new Blob([cacheJson]).size / (1024 * 1024)).toFixed(2);
+        
+        if (cacheSizeMB > 8) {
+            // Warn at 8MB (approaching 10MB limit)
+            postConsoleAndNotification(MODULE.NAME, 
+                `WARNING: Cache size ${cacheSizeMB}MB approaching localStorage limit. Consider reducing image collection.`, 
+                "", true, false);
+        }
+        return cacheSizeMB;
+    }
+    
+    /**
      * Load cache from localStorage
      */
     static async _loadCacheFromStorage() {
@@ -5423,8 +5550,8 @@ export class TokenImageReplacement {
             }
             
             // Check version compatibility
-            if (cacheData.version !== '1.1') {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version mismatch (${cacheData.version} vs 1.1), will rescan`, "", false, false);
+            if (!cacheData.version.startsWith('1.')) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${cacheData.version}), will rescan`, "", false, false);
                 return false;
             }
             
@@ -5535,6 +5662,7 @@ export class TokenImageReplacement {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error clearing cache: ${error.message}`, "", true, false);
         }
     }
+    
     
     /**
      * Generate a fingerprint of the folder structure to detect changes

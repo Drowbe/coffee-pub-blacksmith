@@ -1677,6 +1677,22 @@ export const registerSettings = async () => {
 		scope: 'world',
 		default: 'spirit',
 	});
+	
+	// Tag Sort Mode
+	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
+		name: 'Tag Sort Mode',
+		hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'count': 'Count (by frequency)',
+			'alpha': 'Alpha (alphabetical)',
+			'hidden': 'Hidden (hide tags)'
+		},
+		default: 'count',
+		requiresReload: false
+	});
 	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
 		name: 'Token Image Replacement: Category Style',

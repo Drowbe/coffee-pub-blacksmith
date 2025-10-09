@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [12.1.10] - Menu Bar System and Enhanced Consumable Item Import System
+
+## [12.1.11] - Cache Refactor
+
+
+
+## [12.1.10] - Character Import System and Enhanced Cache Size Monitoring
 
 ### Added
 - **Character Import System:** Added comprehensive character import system with advanced properties:
@@ -13,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Currency configuration with type and amount
   - Feature configuration with name and description
   - Spell configuration with name and description
+
+### Added
+- **Enhanced Cache Size Monitoring:** Added automatic size monitoring with warnings when cache approaches localStorage limits (8MB threshold)
+  - Automatic fallback logic: File → localStorage quick cache → old localStorage format → rebuild
+  - Cache directory auto-creation and management
+  - Seamless migration from old localStorage-only format to hybrid system
 
 ### Fixed
 - **CRITICAL: Token Image Cache System:** Fixed multiple critical bugs causing cache data loss and scan failures:
@@ -22,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced fingerprint validation detects and handles `null`, `'error'`, and `'no-path'` states gracefully
   - Added comprehensive error logging with stack traces, cache diagnostics, and storage quota details
   - Cache now persists reliably even when scan errors occur, preventing loss of incremental progress
+  - Enhanced localStorage cache with size monitoring and quota exceeded protection
+  - Cache survives browser cache clearing and module updates
 
 ## [12.1.9] - Menu Bar System and Enhanced Consumable Item Import System
 
