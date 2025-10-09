@@ -2379,19 +2379,7 @@ async function parseActorJSONToFoundry(actorData) {
   // Ensure folder is null (root folder)
   data.folder = null;
   
-  // Ensure system.details has the personality fields (ideals, bonds, flaws)
-  if (data.system && data.system.details) {
-    // These fields should already be present from the JSON, but ensure they exist
-    if (!data.system.details.ideals) {
-      data.system.details.ideals = "";
-    }
-    if (!data.system.details.bonds) {
-      data.system.details.bonds = "";
-    }
-    if (!data.system.details.flaws) {
-      data.system.details.flaws = "";
-    }
-  }
+  // Just preserve the data as-is - no modifications needed
   
   // Ensure token has proper texture settings
   if (data.token) {

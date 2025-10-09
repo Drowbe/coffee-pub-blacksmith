@@ -52,9 +52,9 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `SIZEVALUE`: Creature size ("tiny", "sm", "med", "lg", "huge", "grg")
 - `BIOGRAPHYVALUE`: Character background and description
 - `BIOGRAPHYPUBLIC`: Public-facing description
-- `IDEALSVALUE`: Character's core beliefs and motivations
-- `BONDSVALUE`: Personal connections and relationships
-- `FLAWSVALUE`: Character weaknesses and vulnerabilities
+- `IDEALVALUE`: Character's core beliefs and motivations
+- `BONDVALUE`: Personal connections and relationships
+- `FLAWVALUE`: Character weaknesses and vulnerabilities
 - `WIDTHVALUE`: Token width in grid squares (1 for medium, 2 for large, etc.)
 - `HEIGHTVALUE`: Token height in grid squares (1 for medium, 2 for large, etc.)
 - `ACTORLINKVALUE`: true for linked tokens, false for generic tokens
@@ -87,9 +87,9 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `source`: Source book or "NPCSOURCE"
 - `biography.value`: Character background and description
 - `biography.public`: Public-facing description
-- `ideals`: Character's core beliefs and motivations
-- `bonds`: Personal connections and relationships
-- `flaws`: Character weaknesses and vulnerabilities
+- `ideal`: Character's core beliefs and motivations
+- `bond`: Personal connections and relationships
+- `flaw`: Character weaknesses and vulnerabilities
 
 **Traits (system.traits):**
 - `size`: "tiny", "sm", "med", "lg", "huge", "grg"
@@ -147,9 +147,9 @@ JSON TEMPLATE
       "xp": { "value": XPVALUE },
       "source": "NPCSOURCE",
       "biography": { "value": "BIOGRAPHYVALUE", "public": "BIOGRAPHYPUBLIC" },
-      "ideals": "IDEALSVALUE",
-      "bonds": "BONDSVALUE",
-      "flaws": "FLAWSVALUE"
+      "ideal": "IDEALVALUE",
+      "bond": "BONDVALUE",
+      "flaw": "FLAWVALUE"
     },
     "traits": {
       "size": "SIZEVALUE",
