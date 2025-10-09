@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.12] - Cache Compression
+
+### Added
+- **Streaming Cache Compression:** Implemented memory-efficient cache compression system to solve localStorage quota issues
+  - Builds compressed cache data without creating full JSON objects in memory
+  - Reduces cache size by 40-60% through property name shortening and whitespace removal
+  - Handles large token collections (10,000+ files) without quota exceeded errors
+  - Backward compatible with existing cache format
+
+- **Enhanced Console Commands:** Added comprehensive cache debugging tools
+  - `coffeePubCache.info()` - Display cache statistics (files, folders, creature types, scan status)
+  - `coffeePubCache.size()` - Show compressed vs uncompressed cache size with compression ratio
+  - `coffeePubCache.version()` - Display cache version and basic information
+  - `coffeePubCache.clear()` - Clear cache from localStorage
+  - `coffeePubCache.quota()` - Test localStorage quota availability
+
+- **Cache Size Display:** Added cache storage size to UI status display
+  - Shows actual localStorage footprint alongside file count and age
+  - Updates dynamically when cache changes
+  - Format: "1969 files, 0.8 hours old, 0.53MB"
+
+### Fixed
+- **localStorage Quota Exceeded:** Resolved critical issue where large token collections (8.64MB+) failed to save
+  - Streaming compression prevents memory issues during cache building
+  - No longer hits browser localStorage limits (typically 5-10MB)
+  - Cache now saves successfully for collections with 10,000+ files
+
+- **Cache Save Reliability:** Improved cache persistence during long scans
+  - Streaming compression reduces save failures
+  - Better error handling for storage quota issues
+  - Fallback mechanisms if compression fails
+
+### Changed
+- **Cache Storage Format:** Optimized internal cache structure for better compression
+  - Shortened property names (e.g., "fullPath" → "fp", "fileName" → "fn")
+  - Removed unnecessary whitespace from JSON structure
+  - Maintains full backward compatibility with existing caches
+
+- **Save Progress Messages:** Updated cache save notifications to show actual compressed size
+  - Clear indication of storage footprint: "Cache saved: 0.53MB (1969 files)"
+  - Removed misleading compression ratio estimates
+  - More accurate reporting of actual storage usage
+
 
 ## [12.1.11] - Token Image Replacement Enhancements
 
