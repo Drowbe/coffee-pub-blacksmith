@@ -1924,7 +1924,10 @@ async function getActorPromptWithDefaults(actorPrompt) {
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
     { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+    { placeholder: '[ADD-NPC-SOURCE-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' }
   ];
 
   let result = actorPrompt;
