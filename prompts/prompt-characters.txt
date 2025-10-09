@@ -65,6 +65,10 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones (e.g., "ste": { "value": 4, "bonus": 0, "ability": "dex" })
 - `TEXTURESRCVALUE`: Token texture image path (defaults to "icons/svg/mystery-man.svg" if not specified)
 
+- ITEMSARRAY: Array of plain text item names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Shortsword", "Leather Armor", "Thieves' Tools"]
+- SPELLSARRAY: Array of plain text spell names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Mage Hand", "Minor Illusion", "Fire Bolt"]
+- FEATURESARRAY: Array of plain text feature names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Sneak Attack", "Thieves' Cant", "Cunning Action"]
+
 **Abilities (system.abilities):**
 - `str`, `dex`, `con`, `int`, `wis`, `cha`: Ability scores (8-20 typical)
 - `proficient`: 0 = not proficient, 1 = proficient
@@ -204,7 +208,9 @@ JSON TEMPLATE
     "lockRotation": false
   },
   "prototypeToken": {},
-  "items": [],
+    "items": ITEMSARRAY,
+    "spells": SPELLSARRAY,
+    "features": FEATURESARRAY,
   "ownership": { "default": 0 },
   "folder": null
 }
@@ -249,7 +255,7 @@ Additional settings and details:
 - Assume the party includes the following characters: [ADD-PARTY-MAKEUP-HERE].
 - Ask clarifying questions if something is ambiguous.
 - Always use type: "npc" for monsters/NPCs
-- Keep items array empty: "items": []
+- Use exact official names as they appear in the rulebooks to ensure proper compendium matching
 - Set folder to null: "folder": null
 - Include prototypeToken: {} for v13 compatibility
 - Use appropriate CR and XP values

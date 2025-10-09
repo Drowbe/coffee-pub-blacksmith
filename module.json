@@ -69,6 +69,7 @@
     "scripts/api-core.js",
     "scripts/api-openai.js",
     "scripts/settings.js",
+    "scripts/manager-compendiums.js",
     "scripts/blacksmith.js",
     "api/blacksmith-api.js"
   ],

@@ -4,6 +4,8 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
+// -- Import compendium manager --
+import { compendiumManager } from './manager-compendiums.js';
 // -- Import the shared GLOBAL variables --
 // COFFEEPUB is now provided by AssetLookup for backward compatibility
 // -- Load the shared GLOBAL functions --
@@ -2361,40 +2363,38 @@ async function parseActorJSONToFoundry(actorData) {
     data.type = "npc";
   }
   
-  // Remove embedded items array if present (we don't import embedded items)
-  if (data.items) {
-    delete data.items;
-  }
+  // Process items, spells, and features using compendium manager
+  const processedData = await compendiumManager.processCharacterData(data);
   
   // Ensure prototypeToken is present (v13 compatibility)
-  if (!data.prototypeToken) {
-    data.prototypeToken = {};
+  if (!processedData.prototypeToken) {
+    processedData.prototypeToken = {};
   }
   
   // Set default ownership (GM only)
-  if (!data.ownership) {
-    data.ownership = { default: 0 };
+  if (!processedData.ownership) {
+    processedData.ownership = { default: 0 };
   }
   
   // Ensure folder is null (root folder)
-  data.folder = null;
+  processedData.folder = null;
   
   // Just preserve the data as-is - no modifications needed
   
   // Ensure token has proper texture settings
-  if (data.token) {
-    if (!data.token.texture) {
-      data.token.texture = {
+  if (processedData.token) {
+    if (!processedData.token.texture) {
+      processedData.token.texture = {
         "src": "icons/svg/mystery-man.svg",
         "scaleX": 1,
         "scaleY": 1
       };
-    } else if (!data.token.texture.src) {
-      data.token.texture.src = "icons/svg/mystery-man.svg";
+    } else if (!processedData.token.texture.src) {
+      processedData.token.texture.src = "icons/svg/mystery-man.svg";
     }
   }
   
-  return data;
+  return processedData;
 }
 
 // Helper to convert flat table data to Foundry RollTable format
@@ -2697,8 +2697,17 @@ const renderActorDirectoryHookId = HookManager.registerHook({
                         } else {
                             throw new Error("JSON must be an array or object");
                         }
-                        // Validate and create actors
+                        
+                        // Create actors first (without items)
                         const created = await Actor.createDocuments(actorsToImport, {keepId: false});
+                        
+                        // Add items to each created actor
+                        for (let i = 0; i < created.length; i++) {
+                            const actor = created[i];
+                            const originalData = actorsToImport[i];
+                            await compendiumManager.addItemsToActor(actor, originalData);
+                        }
+                        
                         postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} actor(s) successfully.`, "", false, true);
                     } catch (e) {
                         postConsoleAndNotification(MODULE.NAME, "Failed to import actors", e, false, true);
