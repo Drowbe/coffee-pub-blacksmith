@@ -380,11 +380,13 @@ export class CompendiumManager {
         processedData._originalItems = characterData.items || [];
         processedData._originalSpells = characterData.spells || [];
         processedData._originalFeatures = characterData.features || [];
+        processedData._originalCurrency = characterData.currency || [];
         
         // Remove items array for initial actor creation
         delete processedData.items;
         delete processedData.spells;
         delete processedData.features;
+        delete processedData.currency;
         
         return processedData;
     }
@@ -405,7 +407,8 @@ export class CompendiumManager {
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Original data check', {
             items: characterData._originalItems?.length || 0,
             spells: characterData._originalSpells?.length || 0,
-            features: characterData._originalFeatures?.length || 0
+            features: characterData._originalFeatures?.length || 0,
+            currency: characterData._originalCurrency?.length || 0
         }, true, false);
         
         const allItems = [];
@@ -432,6 +435,14 @@ export class CompendiumManager {
             const features = await this.fetchItemDocuments(characterData._originalFeatures, 'feature');
             allItems.push(...features);
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Features fetched', features.length, true, false);
+        }
+        
+        // Process currency
+        if (characterData._originalCurrency && Array.isArray(characterData._originalCurrency)) {
+            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing currency', characterData._originalCurrency, true, false);
+            const currencyItems = await this.processCurrency(characterData._originalCurrency);
+            allItems.push(...currencyItems);
+            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Currency processed', currencyItems.length, true, false);
         }
         
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Total items to add', allItems.length, false, false);
@@ -527,6 +538,50 @@ export class CompendiumManager {
         
         postConsoleAndNotification(MODULE.NAME, `Compendium Manager | fetchItemDocuments returning`, items.length, true, false);
         return items;
+    }
+    
+    /**
+     * Process currency data into item objects
+     * @param {Array} currencyData - Array of currency objects
+     * @returns {Promise<Array>} Array of currency item data objects
+     */
+    async processCurrency(currencyData) {
+        if (!Array.isArray(currencyData) || currencyData.length === 0) {
+            return [];
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | processCurrency called`, {count: currencyData.length}, true, false);
+        
+        const currencyItems = [];
+        
+        for (const currency of currencyData) {
+            if (currency && typeof currency === 'object' && currency.type && currency.value) {
+                // Create a currency item object
+                const currencyItem = {
+                    name: `${currency.value} ${currency.type.toUpperCase()}`,
+                    type: 'loot',
+                    system: {
+                        description: { value: `Currency: ${currency.value} ${currency.type.toUpperCase()}` },
+                        quantity: currency.value,
+                        weight: 0,
+                        price: { value: currency.value, denomination: currency.type },
+                        rarity: 'common'
+                    },
+                    flags: {
+                        'coffee-pub-blacksmith': {
+                            currencyType: currency.type,
+                            currencyValue: currency.value
+                        }
+                    }
+                };
+                
+                currencyItems.push(currencyItem);
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Created currency item`, `${currency.value} ${currency.type}`, true, false);
+            }
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | processCurrency returning`, currencyItems.length, true, false);
+        return currencyItems;
     }
 }
 

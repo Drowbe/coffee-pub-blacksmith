@@ -29,13 +29,13 @@ JSON FIELD RULES & EXPECTATIONS
 
 Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
-**Core Fields:**
-- `name`: The NPC/monster name
-- `type`: Must be "npc" (not "character")
-- `img`: Portrait image path (use "icons/svg/mystery-man.svg" for default)
-
 **Placeholder Variables:**
-- `NPCNAME`: The name of the NPC/monster
+- `NPCNAME`: The name of the NPC/monster. This is the informal name of the character. We typically use an informal name when the actor is specific to the narrative. For example, a Lich they must fight that is part of the plot as opposed to one of many  goblins. (e.g. "Bob" or "Mary") If the token is not specific to the plot we typically set the NPCNAME and the TOKENNAME to the same value.
+- `TOKENNAME`: The generic name for the token. This is typically the kind of npc. (e.g., "Goblin", "Cultist") This is never an informal name like "Bob".
+- `NPCTYPE`: Must be "npc" (not "character")
+- `NPCPORTRAIT`: Portrait image path (use "icons/svg/mystery-man.svg" for default)
+- `NPCTOKEN`: Token texture image path (defaults to "icons/svg/mystery-man.svg" if not specified)
+
 - `STRVALUE`, `DEXVALUE`, `CONVALUE`, `INTVALUE`, `WISVALUE`, `CHAVALUE`: Ability scores (8-20 typical)
 - `ACVALUE`: Armor Class value
 - `HPVALUE`: Hit points
@@ -50,24 +50,30 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `CRVALUE`: Challenge Rating (e.g., 0.25, 1, 5)
 - `XPVALUE`: Experience points awarded
 - `SIZEVALUE`: Creature size ("tiny", "sm", "med", "lg", "huge", "grg")
-- `BIOGRAPHYVALUE`: Character background and description
-- `BIOGRAPHYPUBLIC`: Public-facing description
+
+- `BIOGRAPHYVALUE`: Character background and description. Must be an HTML string with the following five sections in this exact order. Keep each section tight and gameable; 2–4 sentences each, except Tactics and At-a-glance which can be bullet lists. Allowed HTML tags inside biography.value: <h3>, <p>, <ul>, <li>, <strong>, <em>, <hr>. Escape all double quotes (") as \" inside JSON.
+    1. Description – a quick visual and behavioral snapshot.
+    2. Habitat – where it lives/patrols/hunts; typical companions, terrain, and environment cues.
+    3. Origin / History – why this thing exists; who made it, what oath or purpose binds it.
+    4. Tactics (how to run it) – prioritized combat behaviors: openers, positioning, target selection, synergies, triggers, retreats.
+    5. At-a-glance – ultra-fast bullets for the GM: CR band, notable defenses/weaknesses, senses, languages, likely checks with DC bands, and quick social/lethal cues.
+- `BIOGRAPHYPUBLIC`: Public-facing description. Should be one or two spoiler-free sentences players could reasonably learn with a casual check or rumor.
 - `IDEALVALUE`: Character's core beliefs and motivations
 - `BONDVALUE`: Personal connections and relationships
 - `FLAWVALUE`: Character weaknesses and vulnerabilities
+
 - `WIDTHVALUE`: Token width in grid squares (1 for medium, 2 for large, etc.)
 - `HEIGHTVALUE`: Token height in grid squares (1 for medium, 2 for large, etc.)
 - `ACTORLINKVALUE`: true for linked tokens, false for generic tokens
 - `DISPLAYNAMEVALUE`: When token name shows (0=Never, 10=Hovered by Owner, 20=Hovered by Anyone, 30=Always for Owner, 40=Always for Everyone)
 - `DISPOSITIONVALUE`: Token attitude (-1=Hostile, 0=Neutral, 1=Friendly)
-- `TOKENNAMEVALUE`: The generic name for the token (e.g., "Goblin", "Cultist")
 - `LANGUAGESVALUE`: Array of languages the NPC knows (e.g., ["common", "draconic"])
 - `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones (e.g., "ste": { "value": 4, "bonus": 0, "ability": "dex" })
-- `TEXTURESRCVALUE`: Token texture image path (defaults to "icons/svg/mystery-man.svg" if not specified)
 
 - ITEMSARRAY: Array of plain text item names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Shortsword", "Leather Armor", "Thieves' Tools"]
 - SPELLSARRAY: Array of plain text spell names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Mage Hand", "Minor Illusion", "Fire Bolt"]
 - FEATURESARRAY: Array of plain text feature names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Sneak Attack", "Thieves' Cant", "Cunning Action"]
+- CURRENCYARRAY: Array of currency objects with type and amount, e.g., [{"type": "gp", "value": 150}, {"type": "sp", "value": 25}, {"type": "cp", "value": 100}]
 
 **Abilities (system.abilities):**
 - `str`, `dex`, `con`, `int`, `wis`, `cha`: Ability scores (8-20 typical)
@@ -125,8 +131,8 @@ JSON TEMPLATE
 ```json
 {
   "name": "NPCNAME",
-  "type": "npc",
-  "img": "icons/svg/mystery-man.svg",
+  "type": "NPCTYPE",
+  "img": "NPCPORTRAIT",
   "system": {
     "abilities": {
       "str": { "value": STRVALUE, "proficient": 0 },
@@ -171,10 +177,10 @@ JSON TEMPLATE
     }
   },
   "token": {
-    "name": "TOKENNAMEVALUE",
+    "name": "TOKENNAME",
     "displayName": DISPLAYNAMEVALUE,
     "actorLink": ACTORLINKVALUE,
-    "img": "icons/svg/mystery-man.svg",
+    "img": "NPCPORTRAIT",
     "width": WIDTHVALUE,
     "height": HEIGHTVALUE,
     "scale": 1,
@@ -201,7 +207,7 @@ JSON TEMPLATE
     "flags": {},
     "randomImg": false,
     "tint": "#ffffff",
-    "texture": { "src": "TEXTURESRCVALUE", "scaleX": 1, "scaleY": 1 },
+    "texture": { "src": "NPCTOKEN", "scaleX": 1, "scaleY": 1 },
     "occlusion": { "mode": 0, "radius": 0 },
     "lightAnimation": { "type": null, "speed": 5, "intensity": 5 },
     "elevation": 0,
@@ -211,6 +217,7 @@ JSON TEMPLATE
     "items": ITEMSARRAY,
     "spells": SPELLSARRAY,
     "features": FEATURESARRAY,
+    "currency": CURRENCYARRAY,
   "ownership": { "default": 0 },
   "folder": null
 }
