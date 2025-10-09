@@ -437,12 +437,11 @@ export class CompendiumManager {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Features fetched', features.length, true, false);
         }
         
-        // Process currency
+        // Process currency (set directly on actor, not as items)
         if (characterData._originalCurrency && Array.isArray(characterData._originalCurrency)) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing currency', characterData._originalCurrency, true, false);
-            const currencyItems = await this.processCurrency(characterData._originalCurrency);
-            allItems.push(...currencyItems);
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Currency processed', currencyItems.length, true, false);
+            await this.setActorCurrency(actor, characterData._originalCurrency);
+            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Currency set on actor', "", true, false);
         }
         
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Total items to add', allItems.length, false, false);
@@ -541,47 +540,48 @@ export class CompendiumManager {
     }
     
     /**
-     * Process currency data into item objects
+     * Set currency directly on the actor
+     * @param {Actor} actor - The actor to set currency on
      * @param {Array} currencyData - Array of currency objects
-     * @returns {Promise<Array>} Array of currency item data objects
+     * @returns {Promise<void>}
      */
-    async processCurrency(currencyData) {
+    async setActorCurrency(actor, currencyData) {
         if (!Array.isArray(currencyData) || currencyData.length === 0) {
-            return [];
+            return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | processCurrency called`, {count: currencyData.length}, true, false);
+        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | setActorCurrency called`, {count: currencyData.length}, true, false);
         
-        const currencyItems = [];
+        const currencyUpdate = {};
         
         for (const currency of currencyData) {
             if (currency && typeof currency === 'object' && currency.type && currency.value) {
-                // Create a currency item object
-                const currencyItem = {
-                    name: `${currency.value} ${currency.type.toUpperCase()}`,
-                    type: 'loot',
-                    system: {
-                        description: { value: `Currency: ${currency.value} ${currency.type.toUpperCase()}` },
-                        quantity: currency.value,
-                        weight: 0,
-                        price: { value: currency.value, denomination: currency.type },
-                        rarity: 'common'
-                    },
-                    flags: {
-                        'coffee-pub-blacksmith': {
-                            currencyType: currency.type,
-                            currencyValue: currency.value
-                        }
-                    }
-                };
+                // Map currency types to FoundryVTT currency fields
+                const currencyType = currency.type.toLowerCase();
+                if (['gp', 'gold', 'gold piece', 'gold pieces'].includes(currencyType)) {
+                    currencyUpdate['system.currency.gp'] = currency.value;
+                } else if (['sp', 'silver', 'silver piece', 'silver pieces'].includes(currencyType)) {
+                    currencyUpdate['system.currency.sp'] = currency.value;
+                } else if (['cp', 'copper', 'copper piece', 'copper pieces'].includes(currencyType)) {
+                    currencyUpdate['system.currency.cp'] = currency.value;
+                } else if (['ep', 'electrum', 'electrum piece', 'electrum pieces'].includes(currencyType)) {
+                    currencyUpdate['system.currency.ep'] = currency.value;
+                } else if (['pp', 'platinum', 'platinum piece', 'platinum pieces'].includes(currencyType)) {
+                    currencyUpdate['system.currency.pp'] = currency.value;
+                }
                 
-                currencyItems.push(currencyItem);
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Created currency item`, `${currency.value} ${currency.type}`, true, false);
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Setting currency`, `${currency.value} ${currency.type}`, true, false);
             }
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | processCurrency returning`, currencyItems.length, true, false);
-        return currencyItems;
+        if (Object.keys(currencyUpdate).length > 0) {
+            try {
+                await actor.update(currencyUpdate);
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Currency updated on ${actor.name}`, currencyUpdate, true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error updating currency on ${actor.name}`, error, false, false);
+            }
+        }
     }
 }
 
