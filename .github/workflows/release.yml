@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (without v prefix)'
+        required: true
+        default: '12.1.10'
 
 permissions:
   contents: write
@@ -15,10 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Get version from tag
+      # Get version from tag or manual input
       - name: Get Version
         id: get-version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
       
       # Create zip file
       - name: Create Zip File
