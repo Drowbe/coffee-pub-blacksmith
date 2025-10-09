@@ -1828,7 +1828,40 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	
+	// DEAD TOKEN REPLACEMENT
+
+	// Enable Dead Token Replacement
+	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
+		name: 'Enable Dead Token Replacement',
+		hint: 'Automatically replace token images with "dead" versions when creatures reach 0 HP. Restores previous image when revived.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false
+	});
+
+	// Dead Token Image Path
+	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
+		name: 'Dead Token Image Path',
+		hint: 'Full path to a single dead token image that will be applied to ALL dead tokens (e.g., assets/images/tokens/dead_token.png)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'assets/images/tokens/death/pog-round-npc.webp',
+		requiresReload: false
+	});
+
+	// Dead Token Creature Type Filter
+	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
+		name: 'Dead Token Creature Types',
+		hint: 'Comma-separated creature types to apply dead tokens to (leave empty for all). Example: humanoid,beast,dragon',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: false
+	});
 
 	// TOKEN DATA WEIGHTING
 
