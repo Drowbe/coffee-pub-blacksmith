@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.10] - Menu Bar System and Enhanced Consumable Item Import System
+
+### Added
+- **Character Import System:** Added comprehensive character import system with advanced properties:
+  - Character type configuration (npc, player, monster)
+  - Currency configuration with type and amount
+  - Feature configuration with name and description
+  - Spell configuration with name and description
+
+### Fixed
+- **CRITICAL: Token Image Cache System:** Fixed multiple critical bugs causing cache data loss and scan failures:
+  - Error handling now saves partial cache with proper fingerprint even when scans fail
+  - Incremental updates properly handle null/invalid fingerprints instead of infinite rescan loops
+  - Finally block ensures cache status updates and UI renders correctly after errors
+  - Enhanced fingerprint validation detects and handles `null`, `'error'`, and `'no-path'` states gracefully
+  - Added comprehensive error logging with stack traces, cache diagnostics, and storage quota details
+  - Cache now persists reliably even when scan errors occur, preventing loss of incremental progress
+
 ## [12.1.9] - Menu Bar System and Enhanced Consumable Item Import System
 
 ### Added
