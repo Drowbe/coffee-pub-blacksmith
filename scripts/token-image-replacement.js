@@ -3862,8 +3862,8 @@ export class TokenImageReplacement {
                     }
                 }, 3000);
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
             }
             
         } catch (error) {
@@ -4134,9 +4134,9 @@ export class TokenImageReplacement {
             this._logCacheStatistics();
             
             // Save cache to persistent storage (final save)
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Performing final cache save...", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Performing final cache save...", "", false, false);
             await this._saveCacheToStorage(false); // false = final save
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Final cache save completed!", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Final cache save completed!", "", false, false);
             
             // Note: Window refresh will happen when UI is next accessed
             
@@ -4211,11 +4211,11 @@ export class TokenImageReplacement {
                 this.cache.lastScan = Date.now();
                 this.cache.totalFiles = this.cache.files.size;
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving partial cache (${this.cache.files.size} files) despite error...`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving partial cache (${this.cache.files.size} files) despite error...`, "", false, false);
                 await this._saveCacheToStorage(false); // false = final save with fingerprint
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Partial cache saved successfully", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Partial cache saved successfully", "", false, false);
             } catch (saveError) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to save partial cache: ${saveError.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to save partial cache: ${saveError.message}`, "", false, false);
             }
             
             // Show error notification in the window
@@ -4383,11 +4383,11 @@ export class TokenImageReplacement {
                         
                         // Save more frequently for large subdirectories (every 500 files)
                         if (this.cache.files.size % 500 === 0 && this.cache.files.size > 0) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Frequent save checkpoint - ${this.cache.files.size} files processed`, "", true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Frequent save checkpoint - ${this.cache.files.size} files processed`, "", false, false);
                             try {
                                 await this._saveCacheToStorage(true); // Incremental save
                             } catch (saveError) {
-                                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Checkpoint save failed: ${saveError.message}`, "", true, false);
+                                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Checkpoint save failed: ${saveError.message}`, "", false, false);
                                 // Continue with scan
                             }
                         }
@@ -4395,19 +4395,19 @@ export class TokenImageReplacement {
                     
                     // Save cache incrementally after each main folder to prevent data loss
                     if (subDirFiles.length > 0) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
                         try {
                             await this._saveCacheToStorage(true); // true = incremental save
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Successfully saved progress after ${subDirName}`, "", true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Successfully saved progress after ${subDirName}`, "", false, false);
                         } catch (saveError) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", false, false);
                             // Continue with scan even if save fails
                         }
                     }
                     
                     // Log progress with percentage and file count
                     const progressPercent = Math.round((processedCount / nonIgnoredDirs.length) * 100);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
                 }
             }
             
@@ -5520,15 +5520,15 @@ export class TokenImageReplacement {
                     
                     // CRITICAL FIX: Validate fingerprint for final saves
                     if (!folderFingerprint || folderFingerprint === 'error' || folderFingerprint === 'no-path') {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", false, false);
                     }
                 } catch (fingerprintError) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generation failed: ${fingerprintError.message}. Using timestamp-based fingerprint.`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generation failed: ${fingerprintError.message}. Using timestamp-based fingerprint.`, "", false, false);
                     // Use timestamp as fallback fingerprint
                     folderFingerprint = `timestamp_${Date.now()}`;
                 }
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)", "", false, false);
             }
             
             const cacheData = {
@@ -5547,23 +5547,23 @@ export class TokenImageReplacement {
             const cacheJson = JSON.stringify(cacheData);
             const cacheSizeMB = this._monitorCacheSize(cacheData);
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache size: ${cacheSizeMB}MB (${this.cache.files.size} files)`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache size: ${cacheSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
             
             try {
                 localStorage.setItem('tokenImageReplacement_cache', cacheJson);
                 
                 if (isIncremental) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
                 }
             } catch (storageError) {
                 if (storageError.name === 'QuotaExceededError') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage quota exceeded! Cache size: ${cacheSizeMB}MB. Consider reducing image collection size.`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Files in cache: ${this.cache.files.size}, Folders: ${this.cache.folders.size}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage quota exceeded! Cache size: ${cacheSizeMB}MB. Consider reducing image collection size.`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Files in cache: ${this.cache.files.size}, Folders: ${this.cache.folders.size}`, "", false, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage error: ${storageError.message}`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error name: ${storageError.name}, Stack: ${storageError.stack}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage error: ${storageError.message}`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error name: ${storageError.name}, Stack: ${storageError.stack}`, "", false, false);
                 }
                 throw storageError;
             }
@@ -5605,13 +5605,13 @@ export class TokenImageReplacement {
             
             // Validate cache data structure
             if (!cacheData.version || !cacheData.files || !cacheData.folders || !cacheData.creatureTypes) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Invalid cache data in storage, will rescan", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Invalid cache data in storage, will rescan", "", false, false);
                 return false;
             }
             
             // Check version compatibility
             if (!cacheData.version.startsWith('1.')) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${cacheData.version}), will rescan`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${cacheData.version}), will rescan`, "", false, false);
                 return false;
             }
             
@@ -5629,7 +5629,7 @@ export class TokenImageReplacement {
                 const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
                 
                 if (cacheAge > maxAge) {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", false, false);
                     return false;
                 }
             }
@@ -5641,7 +5641,7 @@ export class TokenImageReplacement {
                 
                 // CRITICAL FIX: Validate saved fingerprint
                 if (savedFingerprint === 'error' || savedFingerprint === 'no-path') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}), will update cache`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}), will update cache`, "", false, false);
                     // Don't force rescan, just need to update fingerprint via incremental update
                 } else {
                     const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
@@ -5651,7 +5651,7 @@ export class TokenImageReplacement {
                     }
                 }
             } else if (!cacheData.folderFingerprint && !cacheData.isIncremental) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", false, false);
             }
             
             // Check if we need to update the cache
@@ -5659,12 +5659,12 @@ export class TokenImageReplacement {
             const needsUpdate = await this._checkForIncrementalUpdates(currentBasePath);
             
             if (needsUpdate && autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, performing automatic incremental update", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, performing automatic incremental update", "", false, false);
                 ui.notifications.info("Token Image Replacement changes detected: Performing incremental update.");
                 await this._doIncrementalUpdate(currentBasePath);
                 return true; // Cache was updated, proceed with loaded cache
             } else if (needsUpdate && !autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", false, true);
                 ui.notifications.info("Token Image Replacement changes detected. You should scan for images to get the latest images.");
                 // Still load existing cache, just notify user
             }
@@ -5679,13 +5679,13 @@ export class TokenImageReplacement {
             this.cache.lastScan = cacheData.lastScan;
             this.cache.totalFiles = cacheData.totalFiles;
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false);
             
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
             
             // Log final cache status after loading from storage
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache loading completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache loading completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
             
             return true;
             
@@ -5715,7 +5715,7 @@ export class TokenImageReplacement {
     static _clearCacheFromStorage() {
         try {
             localStorage.removeItem('tokenImageReplacement_cache');
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache cleared from persistent storage", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache cleared from persistent storage", "", false, false);
             
             // Update the cache status setting to reflect cleared state
             this._updateCacheStatusSetting();
@@ -5731,7 +5731,7 @@ export class TokenImageReplacement {
     static async _generateFolderFingerprint(basePath) {
         try {
             if (!basePath) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cannot generate fingerprint - no basePath provided", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cannot generate fingerprint - no basePath provided", "", false, false);
                 return 'no-path';
             }
             
@@ -5762,11 +5762,11 @@ export class TokenImageReplacement {
             await collectPaths.call(this, basePath);
             
             if (allPaths.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - No paths found for fingerprint at ${basePath}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - No paths found for fingerprint at ${basePath}`, "", false, false);
             }
             
             if (errorCount > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generated with ${errorCount} directory access errors`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generated with ${errorCount} directory access errors`, "", false, false);
             }
             
             // Sort paths for consistent fingerprint
@@ -5782,7 +5782,7 @@ export class TokenImageReplacement {
             }
             
             const fingerprint = hash.toString();
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generated: ${fingerprint} (${allPaths.length} paths)`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generated: ${fingerprint} (${allPaths.length} paths)`, "", false, false);
             
             return fingerprint;
             
@@ -5797,7 +5797,7 @@ export class TokenImageReplacement {
      * Force cache refresh (ignores stored cache)
      */
     static async forceRefreshCache() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
         this._clearCacheFromStorage();
         const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
         if (basePath) {
@@ -5854,7 +5854,7 @@ export class TokenImageReplacement {
             if (game.settings && game.settings.set) {
                 const status = this.getCacheStorageStatus();
                 game.settings.set('coffee-pub-blacksmith', 'tokenImageReplacementDisplayCacheStatus', status.message);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status updated: ${status.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status updated: ${status.message}`, "", false, false);
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status setting: ${error.message}`, "", false, false);
@@ -5886,10 +5886,10 @@ export class TokenImageReplacement {
                     // Only start scan if auto-update is enabled
                     const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
                     if (autoUpdate) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, performing incremental update...", "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, performing incremental update...", "", false, false);
                         await this._doIncrementalUpdate(basePath);
                     } else {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, manual update needed", "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, manual update needed", "", false, true);
                     }
                 } else {
                     postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is up to date", "", true, false);
