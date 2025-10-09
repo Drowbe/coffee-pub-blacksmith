@@ -487,9 +487,9 @@ Combat Tracker Tunables
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
     --gap: 1px;
-    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
-    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
-    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
+    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.2);
+    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.2);
+    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.18);
 }
 
 
@@ -530,7 +530,7 @@ Combat Tracker Tunables
 
 .blacksmith-menubar-secondary .combat-turn {
     opacity: 0.8;
-    font-size: calc(var(--combatbar-text-font-size) * 0.9);
+    font-size: var(--combatbar-subtext-font-size);
 }
 
 .blacksmith-menubar-secondary .combat-status {
@@ -551,12 +551,12 @@ Combat Tracker Tunables
 .blacksmith-menubar-secondary .combat-status .combat-stat-primary {
     font-weight: 900;
     text-transform: uppercase;
-    font-size: calc(var(--combatbar-text-font-size) * 1.1);
+    font-size: var(--combatbar-text-font-size);
 }
 
 .blacksmith-menubar-secondary .combat-status .combat-state-secondary {
     opacity: 0.8;
-    font-size: calc(var(--combatbar-text-font-size) * 0.9);
+    font-size: var(--combatbar-subtext-font-size);
 }
 
 

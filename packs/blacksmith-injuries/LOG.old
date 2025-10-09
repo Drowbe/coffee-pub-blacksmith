@@ -1,5 +1,1 @@
-2025/10/08-08:41:37.174 1b9f0 Log #2141: 0 ops saved to Table #2142 OK
-2025/10/08-08:41:37.177 1b9f0 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/002141.log: OK
-2025/10/08-08:41:37.179 1b9f0 Table #2093: 115 entries OK
-2025/10/08-08:41:37.186 1b9f0 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/MANIFEST-002101: OK
-2025/10/08-08:41:37.192 1b9f0 **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries; recovered 1 files; 106781 bytes. Some data may have been lost. ****
+2025/10/08-08:41:37.204 1b9f0 Delete type=3 #1
