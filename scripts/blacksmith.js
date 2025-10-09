@@ -1919,6 +1919,27 @@ async function getTablePromptWithDefaults(tablePrompt) {
   return result;
 }
 
+// Helper to replace placeholders in the actor prompt with settings values
+async function getActorPromptWithDefaults(actorPrompt) {
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+  ];
+
+  let result = actorPrompt;
+  for (const setting of settings) {
+    let value = '';
+    try {
+      value = game.settings.get(MODULE.ID, setting.key);
+    } catch (e) {}
+    if (value) {
+      result = result.split(setting.placeholder).join(value);
+    }
+  }
+  return result;
+}
+
 // Helper to get comma-delimited list of world actors
 function getWorldActorsList() {
   try {
@@ -2318,6 +2339,46 @@ async function parseFlatItemToFoundry(flat) {
   return data;
 }
 
+/**
+ * Parse actor JSON (NPC/Monster) into FoundryVTT D&D5E actor data.
+ * @param {object} actorData - The actor JSON data.
+ * @returns {object} - The FoundryVTT actor data object.
+ */
+async function parseActorJSONToFoundry(actorData) {
+  // Validate required fields
+  if (!actorData.name) {
+    throw new Error("Actor name is required");
+  }
+  
+  // Ensure type is npc (we don't support character imports yet)
+  const data = { ...actorData };
+  if (data.type && data.type !== "npc") {
+    data.type = "npc";
+  } else if (!data.type) {
+    data.type = "npc";
+  }
+  
+  // Remove embedded items array if present (we don't import embedded items)
+  if (data.items) {
+    delete data.items;
+  }
+  
+  // Ensure prototypeToken is present (v13 compatibility)
+  if (!data.prototypeToken) {
+    data.prototypeToken = {};
+  }
+  
+  // Set default ownership (GM only)
+  if (!data.ownership) {
+    data.ownership = { default: 0 };
+  }
+  
+  // Ensure folder is null (root folder)
+  data.folder = null;
+  
+  return data;
+}
+
 // Helper to convert flat table data to Foundry RollTable format
 async function parseTableToFoundry(flat) {
   const data = {
@@ -2563,6 +2624,92 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderRollTableDirectory", "blacksmith-rolltable-directory", true, false);
+
+// Register renderActorDirectory hook for actor import functionality
+const renderActorDirectoryHookId = HookManager.registerHook({
+    name: 'renderActorDirectory',
+    description: 'Blacksmith: Add JSON import functionality to actor directory',
+    context: 'blacksmith-actor-directory',
+    priority: 3, // Normal priority - UI enhancement
+    callback: async (app, html, data) => {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+    // Only GMs can import actors
+    if (!game.user.isGM) {
+        return;
+    }
+    
+    // Fetch the character prompt template at runtime
+    const characterPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-characters.txt')).text();
+
+    // Build dialog content with dropdown and button
+    const dialogContent = `
+      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <select id="actor-template-type" style="flex: 0 0 auto;">
+          <option value="npc">NPC/Monster</option>
+        </select>
+        <button id="copy-actor-template-btn" type="button">Copy Template to Clipboard</button>
+      </div>
+      <textarea id="actor-json-input" style="width:100%;height:400px;"></textarea>
+    `;
+
+    const button = $(`<button><i class="fa-solid fa-user-plus"></i> Import JSON to Actors</button>`);
+    button.click(() => {
+      new Dialog({
+        title: "Paste JSON for Actors/NPCs",
+        content: dialogContent,
+        width: 800,
+        height: 800,
+        buttons: {
+            cancel: {
+                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
+                label: "Cancel",
+            },
+            ok: {
+                icon: "<i class='fa-solid fa-user-plus'></i>",
+                label: "Import JSON",
+                callback: async (html) => {
+                    const jsonData = html.find("#actor-json-input").val();
+                    let actorsToImport = [];
+                    try {
+                        let parsed = JSON.parse(jsonData);
+                        if (Array.isArray(parsed)) {
+                            actorsToImport = await Promise.all(parsed.map(parseActorJSONToFoundry));
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            actorsToImport = [await parseActorJSONToFoundry(parsed)];
+                        } else {
+                            throw new Error("JSON must be an array or object");
+                        }
+                        // Validate and create actors
+                        const created = await Actor.createDocuments(actorsToImport, {keepId: false});
+                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} actor(s) successfully.`, "", false, true);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, "Failed to import actors", e, false, true);
+                        ui.notifications.error("Failed to import actors: " + e.message);
+                    }
+                }
+            }
+        },
+        default: "ok",
+        render: (htmlDialog) => {
+          // Attach event listeners for template copy
+          htmlDialog.find("#copy-actor-template-btn").click(async () => {
+            const type = htmlDialog.find("#actor-template-type").val();
+            if (type === "npc") {
+              const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
+              copyToClipboard(promptWithDefaults);
+            }
+          });
+        }
+      }).render(true);
+    });
+        $(html).find(".header-actions.action-buttons").prepend(button);
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
+});
+
+// Log hook registration
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderActorDirectory", "blacksmith-actor-directory", true, false);
 
 // Removed obsolete handleCacheManagementSettings function - cache management is now handled by the simplified system
 
