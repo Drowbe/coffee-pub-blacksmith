@@ -31,7 +31,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 
 **Placeholder Variables:**
 - `NPCNAME`: The name of the NPC/monster. This is the informal name of the character. We typically use an informal name when the actor is specific to the narrative. For example, a Lich they must fight that is part of the plot as opposed to one of many  goblins. (e.g. "Bob" or "Mary") If the token is not specific to the plot we typically set the NPCNAME and the TOKENNAME to the same value.
-- `TOKENNAME`: The generic name for the token. This is typically the kind of npc. (e.g., "Goblin", "Cultist") This is never an informal name like "Bob".
+- `TOKENNAME`: The generic name for the token. This is typically the kind of npc. (e.g., "Goblin", "Cultist") This is never an informal name like "Bob". Unless there is a compelling reason to create a new creature type, this should be one of the official creatures found in the official sourcebooks: [ADD-RULEBOOKS-HERE].
 - `NPCTYPE`: Must be "npc" (not "character")
 - `NPCPORTRAIT`: Portrait image path (use "icons/svg/mystery-man.svg" for default)
 - `NPCTOKEN`: Token texture image path (defaults to "icons/svg/mystery-man.svg" if not specified)
