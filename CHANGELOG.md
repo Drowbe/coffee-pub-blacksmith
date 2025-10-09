@@ -6,7 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [12.1.11] - Cache Refactor
+## [12.1.11] - Token Image Replacement Enhancements
+
+### Added
+- **3-State Tag Filter Toggle:** Enhanced tag sorting with three modes:
+  - Count mode: Sort tags by frequency (default)
+  - Alpha mode: Sort tags alphabetically
+  - Hidden mode: Completely hide tag container
+  - Visual feedback with distinct icons for each mode (fa-filter, fa-filter-list, fa-filter-circle-xmark)
+  - Persistent mode selection across sessions
+
+- **Ignored Words Filter:** Added powerful file exclusion system with wildcard support:
+  - Completely excludes matching files from cache scanning
+  - Supports multiple wildcard patterns: exact match, starts with (*word), ends with (word*), contains (*word*)
+  - File extension filtering (e.g., *.png, *.jpg)
+  - Tracks and reports ignored file count in scan completion messages
+  - Significantly reduces cache size for large token collections
+
+### Fixed
+- **Automatic Cache Updates:** Fixed automatic update system to use incremental scans instead of full scans when changes are detected
+  - Automatic updates now properly call `_doIncrementalUpdate()` instead of `_scanFolderStructure()`
+  - Much faster update performance when "Automatically Update Image Cache" is enabled
+  - Preserves existing cache data during automatic updates
+
+- **Folder Count Display:** Fixed completion message to show accurate number of scanned folders
+  - Added `totalFoldersScanned` property to track actual non-ignored directory count
+  - Completion messages now display correct folder count instead of only folders containing files
+
+### Changed
+- **Debug Logging Cleanup:** Converted internal progress and processing messages to debug-only mode
+  - Reduced console noise during normal operation
+  - Critical errors and user-facing messages remain visible
+  - Improved debugging experience with properly flagged messages
 
 
 
