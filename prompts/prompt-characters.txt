@@ -60,6 +60,10 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `ACTORLINKVALUE`: true for linked tokens, false for generic tokens
 - `DISPLAYNAMEVALUE`: When token name shows (0=Never, 10=Hovered by Owner, 20=Hovered by Anyone, 30=Always for Owner, 40=Always for Everyone)
 - `DISPOSITIONVALUE`: Token attitude (-1=Hostile, 0=Neutral, 1=Friendly)
+- `TOKENNAMEVALUE`: The generic name for the token (e.g., "Goblin", "Cultist")
+- `LANGUAGESVALUE`: Array of languages the NPC knows (e.g., ["common", "draconic"])
+- `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones (e.g., "ste": { "value": 4, "bonus": 0, "ability": "dex" })
+- `TEXTURESRCVALUE`: Token texture image path (defaults to "icons/svg/mystery-man.svg" if not specified)
 
 **Abilities (system.abilities):**
 - `str`, `dex`, `con`, `int`, `wis`, `cha`: Ability scores (8-20 typical)
@@ -100,6 +104,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - Common skills: "ath", "acr", "slt", "ste", "arc", "his", "inv", "nat", "rel", "ani", "ins", "med", "per", "sur", "dec", "int", "prf", "per"
 
 **Token Settings:**
+- `name`: The generic name displayed on the token (e.g., "Goblin", "Cultist")
 - `displayName`: Controls when token name is shown (0=Never, 10=Hovered by Owner, 20=Hovered by Anyone, 30=Always for Owner, 40=Always for Everyone)
 - `disposition`: Token attitude (-1=Hostile, 0=Neutral, 1=Friendly)
 - `vision`: true/false for token vision
@@ -152,16 +157,17 @@ JSON TEMPLATE
       "dr": { "value": [], "custom": "" },
       "dv": { "value": [], "custom": "" },
       "ci": { "value": [], "custom": "" },
-      "languages": { "value": [], "custom": "" }
+      "languages": { "value": LANGUAGESVALUE, "custom": "" }
     },
     "skills": {
       "ins": { "value": 0, "bonus": 0, "ability": "wis" },
       "inv": { "value": 0, "bonus": 0, "ability": "int" },
-      "per": { "value": 0, "bonus": 0, "ability": "wis" }
+      "per": { "value": 0, "bonus": 0, "ability": "wis" },
+      ADDITIONALSKILLSVALUE
     }
   },
   "token": {
-    "name": "NPCNAME",
+    "name": "TOKENNAMEVALUE",
     "displayName": DISPLAYNAMEVALUE,
     "actorLink": ACTORLINKVALUE,
     "img": "icons/svg/mystery-man.svg",
@@ -191,7 +197,7 @@ JSON TEMPLATE
     "flags": {},
     "randomImg": false,
     "tint": "#ffffff",
-    "texture": { "src": "icons/svg/mystery-man.svg", "scaleX": 1, "scaleY": 1 },
+    "texture": { "src": "TEXTURESRCVALUE", "scaleX": 1, "scaleY": 1 },
     "occlusion": { "mode": 0, "radius": 0 },
     "lightAnimation": { "type": null, "speed": 5, "intensity": 5 },
     "elevation": 0,
