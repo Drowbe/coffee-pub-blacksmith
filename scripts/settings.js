@@ -1863,6 +1863,17 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
+	// Token Image Replacement Cache (server-side storage for Molten hosting)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
+		name: 'Token Image Replacement Cache',
+		hint: 'Internal cache storage for token image replacement system (server-side)',
+		scope: 'world',
+		config: false, // Hidden from users - internal use only
+		type: String,
+		default: '',
+		requiresReload: false
+	});
+
 	// TOKEN DATA WEIGHTING
 
 	// Represented Actor Weight

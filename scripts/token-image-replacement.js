@@ -3613,9 +3613,9 @@ export class TokenImageReplacement {
                 return c;
             },
             
-            // Check localStorage size
+            // Check server-side cache size
             size: () => {
-                const cacheData = localStorage.getItem('tokenImageReplacement_cache');
+                const cacheData = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
                 if (cacheData) {
                     const compressedSizeMB = (new Blob([cacheData]).size / (1024 * 1024)).toFixed(2);
                     
@@ -3624,14 +3624,14 @@ export class TokenImageReplacement {
                         const decompressed = TokenImageReplacement._decompressCacheData(cacheData);
                         const uncompressedSizeMB = (new Blob([decompressed]).size / (1024 * 1024)).toFixed(2);
                         const compressionRatio = ((1 - cacheData.length / decompressed.length) * 100).toFixed(1);
-                        console.log(`💾 Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`);
+                        console.log(`💾 Server Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`);
                         return { compressed: compressedSizeMB, uncompressed: uncompressedSizeMB, ratio: compressionRatio };
                     } catch (error) {
-                        console.log(`💾 Cache Size: ${compressedSizeMB}MB (uncompressed data)`);
+                        console.log(`💾 Server Cache Size: ${compressedSizeMB}MB (uncompressed data)`);
                         return { compressed: compressedSizeMB, uncompressed: compressedSizeMB, ratio: 0 };
                     }
                 } else {
-                    console.log('❌ No cache in localStorage');
+                    console.log('❌ No cache in server settings');
                     return 0;
                 }
             },
@@ -3639,7 +3639,7 @@ export class TokenImageReplacement {
             // Show cache version and basic info
             version: () => {
                 try {
-                    const cacheData = JSON.parse(localStorage.getItem('tokenImageReplacement_cache'));
+                    const cacheData = JSON.parse(game.settings.get(MODULE.ID, 'tokenImageReplacementCache'));
                     console.log(`🔢 Cache Version: ${cacheData.version}`);
                     console.log(`📁 Files Count: ${cacheData.files ? cacheData.files.length : 'N/A'}`);
                     console.log(`📅 Last Scan: ${cacheData.lastScan ? new Date(cacheData.lastScan).toLocaleString() : 'Never'}`);
@@ -3651,9 +3651,10 @@ export class TokenImageReplacement {
             },
             
             // Clear cache
-            clear: () => {
+            clear: async () => {
                 localStorage.removeItem('tokenImageReplacement_cache');
-                console.log('🗑️ Cache cleared from localStorage');
+                await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', '');
+                console.log('🗑️ Cache cleared from localStorage and server settings');
             },
             
             // Show storage quota info
@@ -4017,8 +4018,9 @@ export class TokenImageReplacement {
         this.cache.totalFiles = 0;
         this.cache.isPaused = false;
         
-        // Clear persistent storage
+        // Clear persistent storage (both localStorage and game.settings)
         this._clearCacheFromStorage();
+        await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', '');
         
         // Update status
         this._updateCacheStatusSetting();
@@ -4346,11 +4348,11 @@ export class TokenImageReplacement {
             
             // Update cache status setting for display
             this._updateCacheStatusSetting();
-            
-            // Force window refresh to show updated notification and button state
-            const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
-            if (windows.length > 0) {
-                windows[0].render();
+                
+                // Force window refresh to show updated notification and button state
+                const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+                if (windows.length > 0) {
+                    windows[0].render();
             }
         }
     }
@@ -4501,7 +4503,7 @@ export class TokenImageReplacement {
                     if (subDirFiles.length > 0) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
                         try {
-                            await this._saveCacheToStorage(true); // true = incremental save
+                        await this._saveCacheToStorage(true); // true = incremental save
                             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Successfully saved progress after ${subDirName}`, "", false, false);
                         } catch (saveError) {
                             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", false, false);
@@ -4803,7 +4805,7 @@ export class TokenImageReplacement {
         
         return false;
     }
-
+    
     /**
      * Categorize a file by its folder structure
      */
@@ -5796,7 +5798,9 @@ export class TokenImageReplacement {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache saved: ${compressedSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
             
             try {
-                localStorage.setItem('tokenImageReplacement_cache', compressedData);
+                // Store cache in game.settings (server-side) instead of localStorage (browser-side)
+                // This persists across browser refreshes and different players on Molten hosting
+                await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', compressedData);
                 
                 if (isIncremental) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
@@ -6068,8 +6072,11 @@ export class TokenImageReplacement {
      */
     static async _loadCacheFromStorage() {
         try {
-            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+            // Load cache from game.settings (server-side) instead of localStorage (browser-side)
+            const savedCache = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Loading cache - exists: ${!!savedCache}, size: ${savedCache?.length || 0}`, "", true, false);
             if (!savedCache) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache data found in server settings", "", true, false);
                 return false;
             }
             
@@ -6085,29 +6092,41 @@ export class TokenImageReplacement {
             
             const cacheData = JSON.parse(decompressedCache);
             
-            // Validate cache data structure
-            if (!cacheData.version || !cacheData.files || !cacheData.folders || !cacheData.creatureTypes) {
+            // Validate cache data structure (handle both old and new compressed formats)
+            const hasVersion = cacheData.version || cacheData.v;
+            const hasFiles = cacheData.files || cacheData.f;
+            const hasFolders = cacheData.folders || cacheData.fo;
+            const hasCreatureTypes = cacheData.creatureTypes || cacheData.ct;
+            
+            // Debug logging to see what we actually have
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache validation - Version: ${hasVersion}, Files: ${hasFiles?.length || 'missing'}, Folders: ${hasFolders?.length || 'missing'}, CreatureTypes: ${hasCreatureTypes?.length || 'missing'}`, "", true, false);
+            
+            if (!hasVersion || !hasFiles || !hasFolders || !hasCreatureTypes) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Invalid cache data in storage, will rescan", "", false, false);
                 return false;
             }
             
             // Check version compatibility
-            if (!cacheData.version.startsWith('1.')) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${cacheData.version}), will rescan`, "", false, false);
+            const version = cacheData.version || cacheData.v;
+            if (!version || !version.startsWith('1.')) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${version}), will rescan`, "", false, false);
                 return false;
             }
             
             // Check if base path changed
             const currentBasePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-            if (cacheData.basePath !== currentBasePath) {
+            const cacheBasePath = cacheData.basePath || cacheData.bp;
+            if (cacheBasePath !== currentBasePath) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Base path changed, will rescan", "", true, false);
                 return false;
             }
             
             // Check if cache is still valid (less than 30 days old)
             // Only check age if lastScan exists and is not from an incremental save
-            if (cacheData.lastScan && !cacheData.isIncremental) {
-                const cacheAge = Date.now() - cacheData.lastScan;
+            const lastScan = cacheData.lastScan || cacheData.ls;
+            const isIncremental = cacheData.isIncremental || cacheData.ii;
+            if (lastScan && !isIncremental) {
+                const cacheAge = Date.now() - lastScan;
                 const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
                 
                 if (cacheAge > maxAge) {
@@ -6126,11 +6145,11 @@ export class TokenImageReplacement {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}), will update cache`, "", false, false);
                     // Don't force rescan, just need to update fingerprint via incremental update
                 } else {
-                    const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
+                const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
                     if (savedFingerprint !== currentFingerprint) {
                         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", true, false);
-                        return false;
-                    }
+                    return false;
+                }
                 }
             } else if (!cacheData.folderFingerprint && !cacheData.isIncremental) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", false, false);
@@ -6151,15 +6170,18 @@ export class TokenImageReplacement {
                 // Still load existing cache, just notify user
             }
             
-            // Restore cache
+            // Restore cache (handle both old and new compressed formats)
             this.cache.files = new Map();
-            for (const [fileName, fileInfo] of cacheData.files) {
+            const filesData = cacheData.files || cacheData.f;
+            for (const [fileName, fileInfo] of filesData) {
                 this.cache.files.set(fileName, fileInfo);
             }
-            this.cache.folders = new Map(cacheData.folders);
-            this.cache.creatureTypes = new Map(cacheData.creatureTypes);
-            this.cache.lastScan = cacheData.lastScan;
-            this.cache.totalFiles = cacheData.totalFiles;
+            
+            this.cache.folders = new Map(cacheData.folders || cacheData.fo);
+            this.cache.creatureTypes = new Map(cacheData.creatureTypes || cacheData.ct);
+            this.cache.lastScan = cacheData.lastScan || cacheData.ls;
+            this.cache.totalFiles = cacheData.totalFiles || cacheData.tf;
+            this.cache.ignoredFilesCount = cacheData.ignoredFilesCount || cacheData.ifc || 0;
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false);
             
