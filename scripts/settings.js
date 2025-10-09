@@ -1693,6 +1693,17 @@ export const registerSettings = async () => {
 		default: 'count',
 		requiresReload: false
 	});
+	
+	// Ignored Words (File Exclusion)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
+		name: 'Ignored Words (File Exclusion)',
+		hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true
+	});
 	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
 		name: 'Token Image Replacement: Category Style',

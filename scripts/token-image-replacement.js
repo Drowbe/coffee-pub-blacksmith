@@ -742,7 +742,11 @@ export class TokenImageReplacementWindow extends Application {
             // Check if we have completion data to show
             if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
                 const data = TokenImageReplacement.cache.completionData;
-                ui.notifications.info(`Token Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`);
+                let message = `Token Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`;
+                if (data.ignoredFiles > 0) {
+                    message += ` (${data.ignoredFiles} files ignored by filter)`;
+                }
+                ui.notifications.info(message);
             } else {
                 ui.notifications.info("Image scan completed");
             }
@@ -2745,7 +2749,11 @@ export class TokenImageReplacementWindow extends Application {
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
         } else if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
             this.notificationIcon = 'fas fa-check-circle';
-            this.notificationText = `Scan Complete! Found ${TokenImageReplacement.cache.completionData.totalFiles} files across ${TokenImageReplacement.cache.completionData.totalFolders} folders in ${TokenImageReplacement.cache.completionData.timeString}`;
+            let notificationText = `Scan Complete! Found ${TokenImageReplacement.cache.completionData.totalFiles} files across ${TokenImageReplacement.cache.completionData.totalFolders} folders in ${TokenImageReplacement.cache.completionData.timeString}`;
+            if (TokenImageReplacement.cache.completionData.ignoredFiles > 0) {
+                notificationText += ` (${TokenImageReplacement.cache.completionData.ignoredFiles} files ignored)`;
+            }
+            this.notificationText = notificationText;
         } else if (TokenImageReplacement.cache.files.size === 0) {
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
@@ -2963,7 +2971,8 @@ export class TokenImageReplacement {
         currentStepProgress: 0,    // current item in current step
         currentStepTotal: 0,       // total items in current step
         currentPath: '',           // remaining folder path (e.g., "Creatures | Humanoid")
-        currentFileName: ''        // current file being processed
+        currentFileName: '',       // current file being processed
+        ignoredFilesCount: 0       // count of files ignored by ignored words filter
     };
     
     // Supported image formats
@@ -4065,6 +4074,7 @@ export class TokenImageReplacement {
         this.cache.isPaused = false;
         this.cache.justCompleted = false;
         this.cache.completionData = null; // Reset pause state when starting
+        this.cache.ignoredFilesCount = 0; // Reset ignored files counter
         const startTime = Date.now();
         
         // Set up timeout protection (3 hours max)
@@ -4178,7 +4188,8 @@ export class TokenImageReplacement {
             this.cache.completionData = {
                 totalFiles: this.cache.totalFiles,
                 totalFolders: this.cache.totalFoldersScanned || this.cache.folders.size,
-                timeString: timeString
+                timeString: timeString,
+                ignoredFiles: this.cache.ignoredFilesCount
             };
             
             // Completion notification will be sent by the button handler
@@ -4612,6 +4623,13 @@ export class TokenImageReplacement {
             const fileName = file.name || file;
             const filePath = file.path || file;
             
+            // Check if file should be ignored based on ignored words patterns
+            if (this._shouldIgnoreFile(fileName)) {
+                skippedFiles++;
+                this.cache.ignoredFilesCount++;
+                continue;
+            }
+            
             // Validate the full path before storing
             const fullPath = `${basePath}/${filePath}`;
             if (this._isInvalidFilePath(fullPath)) {
@@ -4640,6 +4658,54 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", false, false);
     }
     
+    /**
+     * Check if a filename matches any ignored word patterns
+     * Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains)
+     * @param {string} fileName - The filename to check
+     * @returns {boolean} True if the file should be ignored
+     */
+    static _shouldIgnoreFile(fileName) {
+        const ignoredWords = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredWords', '');
+        if (!ignoredWords || ignoredWords.trim() === '') {
+            return false;
+        }
+        
+        const patterns = ignoredWords.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        const fileNameLower = fileName.toLowerCase();
+        
+        for (const pattern of patterns) {
+            const patternLower = pattern.toLowerCase();
+            
+            // Handle different wildcard patterns
+            if (patternLower.startsWith('*') && patternLower.endsWith('*')) {
+                // *spirit* - contains
+                const searchTerm = patternLower.slice(1, -1);
+                if (fileNameLower.includes(searchTerm)) {
+                    return true;
+                }
+            } else if (patternLower.startsWith('*')) {
+                // *spirit - ends with
+                const searchTerm = patternLower.slice(1);
+                if (fileNameLower.endsWith(searchTerm)) {
+                    return true;
+                }
+            } else if (patternLower.endsWith('*')) {
+                // spirit* - starts with
+                const searchTerm = patternLower.slice(0, -1);
+                if (fileNameLower.startsWith(searchTerm)) {
+                    return true;
+                }
+            } else {
+                // spirit - exact match (as a word or part of filename)
+                if (fileNameLower.includes(patternLower)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
     /**
      * Categorize a file by its folder structure
      */
@@ -5599,9 +5665,10 @@ export class TokenImageReplacement {
             const needsUpdate = await this._checkForIncrementalUpdates(currentBasePath);
             
             if (needsUpdate && autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, updating cache automatically", "", false, false);
-                ui.notifications.info("Token Image Replacement changes detected: Updating token images.");
-                return false; // Will trigger update scan
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, performing automatic incremental update", "", false, false);
+                ui.notifications.info("Token Image Replacement changes detected: Performing incremental update.");
+                await this._doIncrementalUpdate(currentBasePath);
+                return true; // Cache was updated, proceed with loaded cache
             } else if (needsUpdate && !autoUpdate) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", false, false);
                 ui.notifications.info("Token Image Replacement changes detected. You should scan for images to get the latest images.");
@@ -5825,8 +5892,8 @@ export class TokenImageReplacement {
                     // Only start scan if auto-update is enabled
                     const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
                     if (autoUpdate) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, starting incremental update...", "", false, false);
-                        await this._scanFolderStructure(basePath);
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, performing incremental update...", "", false, false);
+                        await this._doIncrementalUpdate(basePath);
                     } else {
                         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, manual update needed", "", false, false);
                     }
