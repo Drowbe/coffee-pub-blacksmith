@@ -125,6 +125,7 @@ export class TokenImageReplacementWindow extends Application {
         if (searchMode === 'browse' || !searchTerms) {
             return filesToSearch.map(file => ({
                 ...file,
+                name: file.name || file.fullPath?.split('/').pop() || 'Unknown File',
                 searchScore: 0.5, // Neutral score for browsing
                 isCurrent: false,
                 metadata: file.metadata || null
@@ -141,6 +142,7 @@ export class TokenImageReplacementWindow extends Application {
             if (relevanceScore >= threshold) {
                 results.push({
                     ...fileInfo,
+                    name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
                     searchScore: relevanceScore,
                     isCurrent: false,
                     metadata: fileInfo.metadata || null
@@ -359,7 +361,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 if (foundMatch) {
                     batchResults.push({
-                        name: fileInfo.name,
+                        name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
                         path: fileInfo.path,
                         fullPath: fileInfo.fullPath,
                         searchScore: score,
@@ -530,7 +532,7 @@ export class TokenImageReplacementWindow extends Application {
             const originalImage = TokenImageReplacement._getOriginalImage(this.selectedToken.document);
             if (originalImage) {
                 const originalImageCard = {
-                    name: originalImage.name,
+                    name: originalImage.name || originalImage.path?.split('/').pop() || 'Original Image',
                     fullPath: originalImage.path,
                     searchScore: 0, // Will be calculated normally
                     isOriginal: true,
@@ -543,7 +545,7 @@ export class TokenImageReplacementWindow extends Application {
             const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             if (currentImageSrc) {
                 const currentImage = {
-                    name: currentImageSrc.split('/').pop() || 'Unknown',
+                    name: currentImageSrc.split('/').pop() || 'Current Image',
                     fullPath: currentImageSrc,
                     searchScore: 0, // Will be calculated normally
                     isCurrent: true,
@@ -1191,7 +1193,7 @@ export class TokenImageReplacementWindow extends Application {
             const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             if (currentImageSrc) {
                 const currentImage = {
-                    name: currentImageSrc.split('/').pop() || 'Unknown',
+                    name: currentImageSrc.split('/').pop() || 'Current Image',
                     fullPath: currentImageSrc,
                     searchScore: 0, // Will be calculated normally
                     isCurrent: true,
@@ -1411,14 +1413,14 @@ export class TokenImageReplacementWindow extends Application {
                 
                 if (foundMatch) {
                     batchResults.push({
-                        name: fileInfo.name,
+                        name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
                         path: fileInfo.path,
                         fullPath: fileInfo.fullPath,
-                    searchScore: score,
-                    isCurrent: false,
+                        searchScore: score,
+                        isCurrent: false,
                         metadata: fileInfo.metadata || null
-                });
-            }
+                    });
+                }
         }
         
             // Add batch results to allMatches
@@ -2455,8 +2457,9 @@ export class TokenImageReplacementWindow extends Application {
     _generateTooltipText(match, isRecommended) {
         const parts = [];
         
-        // Basic info
-        parts.push(`<strong>${match.name}</strong>`);
+        // Basic info - ensure name is always valid
+        const displayName = match.name || match.fullPath?.split('/').pop() || 'Unknown File';
+        parts.push(`<strong>${displayName}</strong>`);
         parts.push(`Path: ${match.fullPath}`);
         
         // Score info
@@ -2852,17 +2855,25 @@ export class TokenImageReplacementWindow extends Application {
         // Generate categories from existing folder structure
         const topLevelFolders = new Map();
         
-        // Extract top-level folders from the folder cache
-        for (const folderPath of TokenImageReplacement.cache.folders.keys()) {
-            const pathParts = folderPath.split('/');
-            const topLevel = pathParts[0];
+        // Count files directly from the file cache using the same path parsing logic as filtering
+        for (const fileInfo of TokenImageReplacement.cache.files.values()) {
+            const path = fileInfo.path || fileInfo.fullPath || '';
+            const pathParts = path.split('/');
+            
+            // Handle both relative and full path formats (same logic as _getFilteredFiles)
+            let topLevel;
+            if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
+                // Full path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
+                topLevel = pathParts[4];
+            } else {
+                // Relative path format: Adventurers/...
+                topLevel = pathParts[0];
+            }
             
             // Skip ignored folders
             if (topLevel && !TokenImageReplacement._isFolderIgnored(topLevel)) {
-                const files = TokenImageReplacement.cache.folders.get(folderPath);
                 const currentCount = topLevelFolders.get(topLevel) || 0;
-                const fileCount = Array.isArray(files) ? files.length : 0;
-                topLevelFolders.set(topLevel, currentCount + fileCount);
+                topLevelFolders.set(topLevel, currentCount + 1);
             }
         }
         
