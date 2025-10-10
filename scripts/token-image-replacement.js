@@ -207,9 +207,21 @@ export class TokenImageReplacementWindow extends Application {
                 default:
                     // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
                     // check if file is in that top-level folder
-                    // Path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
+                    // Path format can be either:
+                    // - Relative: "Adventurers/!Core_Adventurers/..."
+                    // - Full: "assets/images/tokens/FA_Tokens_Webp/Adventurers/..."
                     const pathParts = path.split('/');
-                    const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                    
+                    // Try both formats
+                    let categoryFolder;
+                    if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
+                        // Full path format
+                        categoryFolder = pathParts[4];
+                    } else {
+                        // Relative path format - first part is the category
+                        categoryFolder = pathParts[0];
+                    }
+                    
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
             }
         });
@@ -910,12 +922,46 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async close(options = {}) {
+        // Cancel any ongoing search
+        this.isSearching = false;
+        
+        // Clear search timeout
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
+        
         // Remove token selection hook
         if (this._tokenHookRegistered && this._tokenHookId) {
             HookManager.removeCallback(this._tokenHookId);
             this._tokenHookRegistered = false;
             this._tokenHookId = null;
         }
+        
+        // MEMORY CLEANUP: Clear all arrays and references
+        this.matches = [];
+        this.allMatches = [];
+        this.selectedToken = null;
+        this._cachedSearchTerms = null;
+        this.selectedTags.clear();
+        
+        // MEMORY CLEANUP: Remove all image elements from DOM to free memory
+        const $element = this.element;
+        if ($element) {
+            // Remove all img tags to release decoded image data
+            $element.find('img').each(function() {
+                this.src = ''; // Clear src to free memory
+                $(this).remove();
+            });
+            
+            // Remove all event listeners
+            $element.find('.tir-thumbnail-item').off();
+            $element.find('.tir-search-input').off();
+            $element.find('.tir-clear-search').off();
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Window closed, memory cleaned up', '', true, false);
+        
         return super.close(options);
     }
 
@@ -1378,14 +1424,30 @@ export class TokenImageReplacementWindow extends Application {
             // Add batch results to allMatches
             if (batchResults.length > 0) {
                 const filteredBatchResults = this._applyCategoryFilter(batchResults);
-                this.allMatches.push(...filteredBatchResults);
                 
-                // Sort results based on current sort order
-                this.allMatches = this._sortResults(this.allMatches);
+                // MEMORY FIX: Check for duplicates before adding to prevent memory leak
+                const existingPaths = new Set(this.allMatches.map(m => m.fullPath));
+                const newResults = filteredBatchResults.filter(r => !existingPaths.has(r.fullPath));
                 
-                // Update display with new results
-                this._applyPagination();
-                this._updateResults();
+                // MEMORY FIX: Limit total results to prevent unbounded growth
+                const MAX_RESULTS = 2000; // Reasonable limit for performance
+                if (this.allMatches.length < MAX_RESULTS) {
+                    const remainingSpace = MAX_RESULTS - this.allMatches.length;
+                    const resultsToAdd = newResults.slice(0, remainingSpace);
+                    
+                    this.allMatches.push(...resultsToAdd);
+                    
+                    // Sort results based on current sort order
+                    this.allMatches = this._sortResults(this.allMatches);
+                    
+                    // Update display with new results
+                    this._applyPagination();
+                    this._updateResults();
+                } else {
+                    // Stop searching if we've hit the limit
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Result limit reached (${MAX_RESULTS}), stopping search`, '', true, false);
+                    break;
+                }
             }
             
             processedCount += batch.length;
@@ -2852,7 +2914,17 @@ export class TokenImageReplacementWindow extends Application {
                 categoryFiles = allFiles.filter(file => {
                     const path = file.path || file.fullPath || '';
                     const pathParts = path.split('/');
-                    const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                    
+                    // Handle both relative and full path formats
+                    let categoryFolder;
+                    if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
+                        // Full path format
+                        categoryFolder = pathParts[4];
+                    } else {
+                        // Relative path format - first part is the category
+                        categoryFolder = pathParts[0];
+                    }
+                    
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
                 });
             }
@@ -3581,13 +3653,12 @@ export class TokenImageReplacement {
             }
         ];
         
-        // Create temp window for scoring
-        const tempWindow = new TokenImageReplacementWindow();
+        // MEMORY FIX: Use static methods for scoring instead of creating window instance
         
         for (const fileInfo of testFiles) {
             
             // Test token name matching
-            const tokenNameMatch = tempWindow._calculateTokenNameMatch(
+            const tokenNameMatch = TokenImageReplacement._calculateTokenNameMatchStatic(
                 mockTokenDocument.name, 
                 fileInfo.name.toLowerCase(), 
                 fileInfo.path.toLowerCase(), 
@@ -3596,7 +3667,7 @@ export class TokenImageReplacement {
             
             // Test token data matching
             if (tokenData.representedActor) {
-                const actorMatch = tempWindow._calculateTokenDataMatch(
+                const actorMatch = TokenImageReplacement._calculateTokenDataMatchStatic(
                     tokenData.representedActor, 
                     fileInfo.name.toLowerCase(), 
                     fileInfo.path.toLowerCase(), 
@@ -3606,7 +3677,7 @@ export class TokenImageReplacement {
             
             // Test full scoring
             const searchTerms = ["Test", "Test (Creature)", "Creature", "test", "creature"];
-            const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, mockTokenDocument, 'token');
+            const score = TokenImageReplacement._calculateRelevanceScoreStatic(fileInfo, searchTerms, mockTokenDocument, 'token');
         }
         
     }
@@ -5155,7 +5226,17 @@ export class TokenImageReplacement {
                         // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
                         // check if file is in that top-level folder
                         const pathParts = path.split('/');
-                        const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                        
+                        // Handle both relative and full path formats
+                        let categoryFolder;
+                        if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
+                            // Full path format
+                            categoryFolder = pathParts[4];
+                        } else {
+                            // Relative path format - first part is the category
+                            categoryFolder = pathParts[0];
+                        }
+                        
                         shouldInclude = categoryFolder ? categoryFolder.toLowerCase() === currentFilter : false;
                         break;
                 }
@@ -5173,8 +5254,8 @@ export class TokenImageReplacement {
         let bestScore = 0;
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         
-        // Create a temporary window instance to use the unified scoring method
-        const tempWindow = new TokenImageReplacementWindow();
+        // MEMORY FIX: Use static scoring method instead of creating window instance
+        // This prevents massive memory leak from creating full window instances
         
         // Debug: Track scoring for files
         const scoredFiles = [];
@@ -5182,7 +5263,7 @@ export class TokenImageReplacement {
         
         // Search through the optimized scope using unified scoring
         for (const [fileName, fileInfo] of searchScope.entries()) {
-            const score = tempWindow._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, 'token');
+            const score = TokenImageReplacement._calculateRelevanceScoreStatic(fileInfo, searchTerms, tokenDocument, 'token');
             totalScored++;
             
             
@@ -6431,6 +6512,31 @@ export class TokenImageReplacement {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
         }
+    }
+
+    /**
+     * MEMORY FIX: Static scoring methods to avoid creating window instances
+     * These are wrappers that create a minimal temporary instance just for scoring
+     * This prevents the massive memory leak from creating and retaining full window instances
+     */
+    static _calculateRelevanceScoreStatic(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search') {
+        // Create a minimal temporary instance just for the scoring calculation
+        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
+        const score = tempInstance._calculateRelevanceScore.call(tempInstance, fileInfo, searchTerms, tokenDocument, searchMode);
+        // tempInstance will be garbage collected immediately after this function returns
+        return score;
+    }
+
+    static _calculateTokenDataMatchStatic(tokenValue, fileNameLower, filePathLower, fileInfo) {
+        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
+        const score = tempInstance._calculateTokenDataMatch.call(tempInstance, tokenValue, fileNameLower, filePathLower, fileInfo);
+        return score;
+    }
+
+    static _calculateTokenNameMatchStatic(tokenName, fileNameLower, filePathLower, fileInfo) {
+        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
+        const score = tempInstance._calculateTokenNameMatch.call(tempInstance, tokenName, fileNameLower, filePathLower, fileInfo);
+        return score;
     }
 
 

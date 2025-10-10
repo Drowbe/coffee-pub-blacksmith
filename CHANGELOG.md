@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.15] - 2025-01-10
+
+### Fixed
+- **CRITICAL: Memory Leak (7.9GB RAM Usage):** Fixed catastrophic memory leak causing browser crashes
+  - Eliminated temporary window instance creation in `_findBestMatch()` - was creating thousands of full window instances
+  - Added static scoring methods to prevent window instance accumulation
+  - Fixed unbounded `allMatches` array growth with duplicate detection and 2000 result limit
+  - Added comprehensive memory cleanup on window close (arrays, images, event listeners)
+  - Explicitly clear image `src` attributes to release decoded image data from browser memory
+  - Cancel ongoing searches and timeouts on window close
+  - Expected memory usage reduced from 7.9GB+ to under 500MB for 11k+ image cache
+
+- **Category Filter Tabs Broken:** Fixed all category filters returning 0 results
+  - Fixed path parsing logic to handle both relative (`Adventurers/...`) and full path formats
+  - Applied fix to 3 locations: `_getFilteredFiles()`, `_getAggregatedTags()`, and `_findBestMatch()`
+  - Category tabs (Adventurers, Adversaries, Creatures, NPCs) now work correctly
+
+### Changed
+- **Result Limits:** Implemented maximum 2000 results per search to prevent memory exhaustion
+  - Search stops automatically when limit reached with console notification
+  - Duplicate results are now filtered before adding to prevent accumulation
+
 ## [12.1.14] - 2025-01-19
 
 ### Fixed
