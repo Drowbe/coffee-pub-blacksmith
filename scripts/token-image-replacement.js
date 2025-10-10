@@ -163,6 +163,12 @@ export class TokenImageReplacementWindow extends Application {
         const allFiles = Array.from(TokenImageReplacement.cache.files.values());
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtering ${allFiles.length} files with filter: ${this.currentFilter}`, "", true, false);
         
+        // Debug: Show sample paths
+        if (allFiles.length > 0) {
+            const samplePaths = allFiles.slice(0, 3).map(f => f.path || f.fullPath || 'NO_PATH').join(', ');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample paths: ${samplePaths}`, "", true, false);
+        }
+        
         // Apply category filter to get the subset of files to search
         if (this.currentFilter === 'all') {
             return allFiles;
@@ -172,14 +178,16 @@ export class TokenImageReplacementWindow extends Application {
         let processedTerms = null;
         if (this.currentFilter === 'selected' && this.selectedToken) {
             const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Search terms: ${searchTerms.join(', ')}`, "", true, false);
             processedTerms = searchTerms
                 .filter(term => term && term.length >= 2)
                 .map(term => term.toLowerCase());
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Processed terms: ${processedTerms.join(', ')}`, "", true, false);
         }
         
         const filteredFiles = allFiles.filter(file => {
-            const path = file.path || '';
-            const fileName = file.name || '';
+            const path = file.path || file.fullPath || '';
+            const fileName = file.name || file.fileName || '';
             
             // Check if the file matches the current category filter
             switch (this.currentFilter) {
@@ -199,9 +207,10 @@ export class TokenImageReplacementWindow extends Application {
                 default:
                     // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
                     // check if file is in that top-level folder
+                    // Path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
                     const pathParts = path.split('/');
-                    const topLevel = pathParts[0];
-                    return topLevel && topLevel.toLowerCase() === this.currentFilter;
+                    const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                    return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
             }
         });
         
@@ -215,7 +224,9 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         return results.filter(result => {
-            const path = result.path || '';
+            const path = result.path || result.fullPath || '';
+            
+            // Debug removed to prevent console spam
             const fileName = result.name || '';
             
             // Check if the result matches the current category filter
@@ -314,7 +325,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Search by creature type
                     for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                        if (files.includes(fileName) && creatureType.toLowerCase().includes(searchTerm)) {
+                        if (Array.isArray(files) && files.includes(fileName) && creatureType.toLowerCase().includes(searchTerm)) {
                             score += 90; // Creature type match
                             foundMatch = true;
                             break;
@@ -323,7 +334,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Search by folder categorization
                     for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                        if (files.includes(fileName)) {
+                        if (Array.isArray(files) && files.includes(fileName)) {
                             const folderName = folderPath.split('/').pop().toLowerCase();
                             if (folderName.includes(searchTerm)) {
                                 score += 50; // Folder name match
@@ -1262,7 +1273,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Search by creature type with multi-word support
                 for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-                    if (files.includes(fileName)) {
+                    if (Array.isArray(files) && files.includes(fileName)) {
                         const creatureTypeLower = creatureType.toLowerCase();
                         for (const word of searchWords) {
                             if (creatureTypeLower.includes(word)) {
@@ -1277,7 +1288,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Search by folder categorization with multi-word support
                 for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
-                    if (files.includes(fileName)) {
+                    if (Array.isArray(files) && files.includes(fileName)) {
                         const folderName = folderPath.split('/').pop().toLowerCase();
                         for (const word of searchWords) {
                             if (folderName.includes(word)) {
@@ -1665,6 +1676,11 @@ export class TokenImageReplacementWindow extends Application {
      * @returns {Object|null} - The file info from cache or null if not found
      */
     _getFileInfoFromCache(fileName) {
+        // Guard against undefined/null fileName
+        if (!fileName) {
+            return null;
+        }
+        
         // First try exact match (case-insensitive)
         const exactKey = fileName.toLowerCase();
         let fileInfo = TokenImageReplacement.cache.files.get(exactKey);
@@ -1718,7 +1734,7 @@ export class TokenImageReplacementWindow extends Application {
         // Add creature type tags
         const fileName = file.name || '';
         for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
-            if (files.includes(fileName)) {
+            if (Array.isArray(files) && files.includes(fileName)) {
                 const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
                 if (!tags.includes(cleanType)) {
                     tags.push(cleanType);
@@ -2783,7 +2799,8 @@ export class TokenImageReplacementWindow extends Application {
             if (topLevel && !TokenImageReplacement._isFolderIgnored(topLevel)) {
                 const files = TokenImageReplacement.cache.folders.get(folderPath);
                 const currentCount = topLevelFolders.get(topLevel) || 0;
-                topLevelFolders.set(topLevel, currentCount + files.length);
+                const fileCount = Array.isArray(files) ? files.length : 0;
+                topLevelFolders.set(topLevel, currentCount + fileCount);
             }
         }
         
@@ -2833,10 +2850,10 @@ export class TokenImageReplacementWindow extends Application {
             } else {
                 // For other categories, filter by folder
                 categoryFiles = allFiles.filter(file => {
-                    const path = file.path || '';
+                    const path = file.path || file.fullPath || '';
                     const pathParts = path.split('/');
-                    const topLevel = pathParts[0];
-                    return topLevel && topLevel.toLowerCase() === this.currentFilter;
+                    const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                    return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
                 });
             }
             
@@ -3780,6 +3797,7 @@ export class TokenImageReplacement {
         
         // Clean up folders cache
         for (const [folderPath, files] of this.cache.folders.entries()) {
+            if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
                 const fileInfo = this.cache.files.get(fileName.toLowerCase());
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
@@ -3793,6 +3811,7 @@ export class TokenImageReplacement {
         
         // Clean up creature types cache
         for (const [creatureType, files] of this.cache.creatureTypes.entries()) {
+            if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
                 const fileInfo = this.cache.files.get(fileName.toLowerCase());
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
@@ -5136,8 +5155,8 @@ export class TokenImageReplacement {
                         // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
                         // check if file is in that top-level folder
                         const pathParts = path.split('/');
-                        const topLevel = pathParts[0];
-                        shouldInclude = topLevel && topLevel.toLowerCase() === currentFilter;
+                        const categoryFolder = pathParts[4]; // Should be "Adventurers", "Creatures", etc.
+                        shouldInclude = categoryFolder ? categoryFolder.toLowerCase() === currentFilter : false;
                         break;
                 }
                 

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.14] - 2025-01-19
+
+### Fixed
+- **Cache Validation Bug:** Resolved critical issue where server-side cache was saved successfully but failed validation on load
+  - Cache data contained `creatureType` (singular) but validation looked for `creatureTypes` (plural)
+  - Added support for both `creatureType`, `creatureTypes`, and compressed `ct` property names
+  - Cache validation now handles all property name variations correctly
+  - Fixed cache loading after refresh on Molten hosting environments
+
+- **Emergency Cache Recovery:** Fixed cache loading that was incorrectly rejecting valid 3.11MB cache data
+  - 11,568 files, 100 folders, and 12 creature types now load successfully
+  - Eliminates need to rescan after browser refresh
+  - Ensures 29+ minute scan sessions are preserved across sessions
+
+### Changed
+- **Cache Property Validation:** Enhanced cache validation to handle multiple property name formats
+  - Supports `creatureType` (singular), `creatureTypes` (plural), and `ct` (compressed)
+  - Maintains backward compatibility with all existing cache formats
+  - More robust validation prevents false cache invalidation
+
 ## [12.1.13] - 2025-01-19
 
 ### Added
