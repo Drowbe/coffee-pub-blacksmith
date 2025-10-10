@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.13] - 2025-01-19
+
+### Added
+- **Server-Side Cache Storage:** Implemented game.settings-based cache storage for hosted environments
+  - Cache now saves to server-side game.settings instead of browser localStorage
+  - Persists across browser refreshes and different client connections
+  - Compatible with Molten Hosting and other remote FoundryVTT servers
+  - Shared cache across all GMs and players in the world
+  - Maintains all existing compression and streaming benefits
+
+- **Enhanced Cache Persistence:** Added robust server-side cache management
+  - Incremental saves during scan process to preserve progress
+  - Final save with complete fingerprint for validation
+  - Automatic fallback and validation for cache integrity
+  - Console commands updated to show server-side cache status
+
+### Fixed
+- **Molten Hosting Cache Loss:** Resolved critical issue where cache was lost on browser refresh
+  - localStorage was browser-specific and not persisting on remote servers
+  - Cache now stored in world database via game.settings
+  - Survives server restarts and browser session changes
+  - Works seamlessly across different devices and browsers
+
+- **Cross-Client Cache Sharing:** Fixed issue where cache was isolated per browser session
+  - All players and GMs now share the same cached token data
+  - No need to rescan when switching devices or browsers
+  - Consistent token replacement experience for all users
+
+### Changed
+- **Cache Storage Location:** Migrated from localStorage to game.settings
+  - Primary storage now in server database (persistent across sessions)
+  - Maintains backward compatibility with existing cache format
+  - All console commands updated to reflect server-side storage
+  - Cache size and compression benefits retained
+
+- **Cache Loading Logic:** Updated to prioritize server-side cache over localStorage
+  - Loads from game.settings first, falls back to localStorage if needed
+  - Validates cache integrity and version compatibility
+  - Clear messaging about cache source (server vs. browser)
+
 ## [12.1.12] - Cache Compression
 
 ### Added
