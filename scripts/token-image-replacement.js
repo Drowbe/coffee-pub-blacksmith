@@ -2722,10 +2722,10 @@ export class TokenImageReplacementWindow extends Application {
         const fileCount = TokenImageReplacement.cache.files.size;
         const lastScan = TokenImageReplacement.cache.lastScan;
         
-        // Get cache size from localStorage
+        // Get cache size from server settings (not localStorage)
         let cacheSizeText = '';
         try {
-            const cacheData = localStorage.getItem('tokenImageReplacement_cache');
+            const cacheData = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
             if (cacheData) {
                 const sizeMB = (new Blob([cacheData]).size / (1024 * 1024)).toFixed(2);
                 cacheSizeText = `, ${sizeMB}MB`;
@@ -6096,14 +6096,24 @@ export class TokenImageReplacement {
             const hasVersion = cacheData.version || cacheData.v;
             const hasFiles = cacheData.files || cacheData.f;
             const hasFolders = cacheData.folders || cacheData.fo;
-            const hasCreatureTypes = cacheData.creatureTypes || cacheData.ct;
+            const hasCreatureTypes = cacheData.creatureTypes || cacheData.ct || cacheData.creatureType;
             
             // Debug logging to see what we actually have
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache validation - Version: ${hasVersion}, Files: ${hasFiles?.length || 'missing'}, Folders: ${hasFolders?.length || 'missing'}, CreatureTypes: ${hasCreatureTypes?.length || 'missing'}`, "", true, false);
             
-            if (!hasVersion || !hasFiles || !hasFolders || !hasCreatureTypes) {
+            // Debug: Log the actual cache data structure
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache data keys: ${Object.keys(cacheData).join(', ')}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CreatureTypes check - creatureTypes: ${!!cacheData.creatureTypes}, ct: ${!!cacheData.ct}, ct length: ${cacheData.ct?.length || 'undefined'}`, "", true, false);
+            
+            // TEMPORARY FIX: Allow cache with missing creatureTypes (can be empty array)
+            if (!hasVersion || !hasFiles || !hasFolders) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Invalid cache data in storage, will rescan", "", false, false);
                 return false;
+            }
+            
+            // CreatureTypes can be missing/empty - that's OK
+            if (!hasCreatureTypes) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: CreatureTypes missing, but cache is valid - proceeding", "", true, false);
             }
             
             // Check version compatibility
@@ -6178,7 +6188,7 @@ export class TokenImageReplacement {
             }
             
             this.cache.folders = new Map(cacheData.folders || cacheData.fo);
-            this.cache.creatureTypes = new Map(cacheData.creatureTypes || cacheData.ct);
+                    this.cache.creatureTypes = new Map(cacheData.creatureTypes || cacheData.ct || cacheData.creatureType);
             this.cache.lastScan = cacheData.lastScan || cacheData.ls;
             this.cache.totalFiles = cacheData.totalFiles || cacheData.tf;
             this.cache.ignoredFilesCount = cacheData.ignoredFilesCount || cacheData.ifc || 0;
