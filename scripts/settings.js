@@ -1876,27 +1876,40 @@ export const registerSettings = async () => {
 
 	// TOKEN DATA WEIGHTING
 
-	// Represented Actor Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
-		name: 'Represented Actor Weight',
-		hint: 'How important the represented actor name is for matching (e.g., "Goblin", "Bullywug") - Most critical data point',
+	// Actor Name Weight (NEW - most important for clean creature names)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
+		name: 'Actor Name Weight',
+		hint: 'Weigting of the actor name when calulating matches. Weight the fiels with the most clean creature name the highest priority (e.g., "Frost Giant", "Goblin")',
 		type: Number,
 		config: true,
 		scope: 'world',
 		range: { min: 0, max: 100, step: 5 },
-		default: 80
+		default: 90
 	});
 
+	
 	// Token Name Weight
 	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
 		name: 'Token Name Weight',
-		hint: 'How important the token name is for matching (e.g., "Bob (Goblin)", "Goblin 1", "Bob") - Use this when token names contain creature info',
+		hint: 'Weigting of the actor name when calulating matches. This field often contains the display name of the token (e.g., "Bob (Goblin)", "Goblin 1", "Bob")',
 		type: Number,
 		config: true,
 		scope: 'world',
 		range: { min: 0, max: 100, step: 5 },
-		default: 20
+		default: 70
 	});
+
+	// Represented Actor Weight
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
+		name: 'Represented Actor Weight',
+		hint: 'Weigting of the represented actor when calulating matches. This field usually represents the name of a linked token.',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 50
+	});
+
 
 	// Creature Type Weight
 	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
@@ -1943,10 +1956,6 @@ export const registerSettings = async () => {
 		range: { min: 0, max: 100, step: 5 },
 		default: 3
 	});
-
-
-
-
 
 
 	// Monster Mapping Data
