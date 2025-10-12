@@ -1822,6 +1822,149 @@ export class TokenImageReplacementWindow extends Application {
         return tags;
     }
 
+    // ================================================================== 
+    // ===== WORD COMBINATION UTILITIES =================================
+    // ================================================================== 
+    
+    /**
+     * Normalize text for matching - lowercase and standardize separators
+     * @param {string} text - Text to normalize
+     * @returns {string} Normalized text
+     */
+    static _normalizeText(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text.toLowerCase().trim();
+    }
+    
+    /**
+     * Extract words from text, splitting on common separators
+     * @param {string} text - Text to extract words from
+     * @returns {Array<string>} Array of words
+     */
+    static _extractWords(text) {
+        if (!text || typeof text !== 'string') return [];
+        return text.split(/[\s\-_()]+/).filter(word => word.length > 0);
+    }
+    
+    /**
+     * Generate all useful combinations of words for matching
+     * Examples:
+     *   ["frost", "giant"] -> ["frost_giant", "frost-giant", "frostgiant", "frost giant"]
+     * @param {Array<string>} words - Array of words to combine
+     * @returns {Array<string>} Array of combinations
+     */
+    static _generateCombinations(words) {
+        if (!Array.isArray(words) || words.length === 0) return [];
+        if (words.length === 1) return [words[0]]; // Single word, no combinations needed
+        
+        const combinations = [];
+        
+        // Multi-word combinations
+        combinations.push(words.join('_'));      // frost_giant
+        combinations.push(words.join('-'));      // frost-giant
+        combinations.push(words.join(''));       // frostgiant
+        combinations.push(words.join(' '));      // frost giant
+        
+        return combinations;
+    }
+    
+    /**
+     * Check if any combination of source words matches in target text
+     * Returns the best match score found
+     * @param {Array<string>} sourceWords - Words to match
+     * @param {string} targetText - Text to search in
+     * @param {boolean} debug - Enable debug logging
+     * @returns {Object} { matched: boolean, score: number, matchType: string }
+     */
+    static _matchCombinations(sourceWords, targetText, debug = false) {
+        if (!Array.isArray(sourceWords) || sourceWords.length === 0 || !targetText) {
+            return { matched: false, score: 0, matchType: 'none' };
+        }
+        
+        const targetLower = this._normalizeText(targetText);
+        
+        // Single word matching
+        if (sourceWords.length === 1) {
+            const word = sourceWords[0];
+            if (targetLower === word) return { matched: true, score: 1.0, matchType: 'exact' };
+            if (targetLower.startsWith(word)) return { matched: true, score: 0.9, matchType: 'starts' };
+            if (targetLower.endsWith(word)) return { matched: true, score: 0.85, matchType: 'ends' };
+            if (targetLower.includes(word)) return { matched: true, score: 0.8, matchType: 'contains' };
+            return { matched: false, score: 0, matchType: 'none' };
+        }
+        
+        // Multi-word combination matching
+        const combinations = this._generateCombinations(sourceWords);
+        let bestMatch = { matched: false, score: 0, matchType: 'none' };
+        
+        if (debug) {
+            console.log(`  Matching [${sourceWords.join(', ')}] against "${targetText}"`);
+            console.log(`  Generated combinations: ${combinations.join(', ')}`);
+        }
+        
+        for (const combo of combinations) {
+            if (targetLower === combo) {
+                if (debug) console.log(`  ✓ EXACT COMBO MATCH: "${combo}" === "${targetLower}"`);
+                return { matched: true, score: 1.0, matchType: 'exact-combo' };
+            }
+            if (targetLower.includes(combo)) {
+                // Exact combination found in target - this is what we want for "Frost Giant" matching "frost-giant"
+                if (combo.includes('_') || combo.includes('-')) {
+                    // Underscore or dash separated combination is a strong match
+                    if (debug) console.log(`  ✓ SEPARATED COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.95)`);
+                    bestMatch = { matched: true, score: 0.95, matchType: 'combo-separated' };
+                } else if (combo.includes(' ')) {
+                    // Space separated
+                    if (debug) console.log(`  ✓ SPACED COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.92)`);
+                    bestMatch = { matched: true, score: 0.92, matchType: 'combo-spaced' };
+                } else {
+                    // Concatenated
+                    if (debug) console.log(`  ✓ CONCAT COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.88)`);
+                    bestMatch = { matched: true, score: 0.88, matchType: 'combo-concat' };
+                }
+                break; // Found a combination match, no need to check others
+            }
+        }
+        
+        // If no combination matched, try individual word matching as fallback
+        if (!bestMatch.matched) {
+            const targetWords = this._extractWords(targetLower);
+            let wordMatchCount = 0;
+            let partialMatchCount = 0;
+            
+            for (const sourceWord of sourceWords) {
+                for (const targetWord of targetWords) {
+                    if (targetWord === sourceWord) {
+                        wordMatchCount++;
+                        break;
+                    } else if (targetWord.includes(sourceWord) || sourceWord.includes(targetWord)) {
+                        partialMatchCount++;
+                    }
+                }
+            }
+            
+            if (wordMatchCount === sourceWords.length) {
+                // All words found individually
+                if (debug) console.log(`  ✓ ALL WORDS MATCH: ${wordMatchCount}/${sourceWords.length} (score: 0.75)`);
+                bestMatch = { matched: true, score: 0.75, matchType: 'all-words' };
+            } else if (wordMatchCount > 0) {
+                // Some words found
+                const ratio = wordMatchCount / sourceWords.length;
+                if (debug) console.log(`  ✓ SOME WORDS MATCH: ${wordMatchCount}/${sourceWords.length} (score: ${0.5 + (ratio * 0.2)})`);
+                bestMatch = { matched: true, score: 0.5 + (ratio * 0.2), matchType: 'some-words' };
+            } else if (partialMatchCount > 0) {
+                // Partial word matches
+                const ratio = partialMatchCount / sourceWords.length;
+                if (debug) console.log(`  ✓ PARTIAL WORDS MATCH: ${partialMatchCount}/${sourceWords.length} (score: ${0.3 + (ratio * 0.15)})`);
+                bestMatch = { matched: true, score: 0.3 + (ratio * 0.15), matchType: 'partial-words' };
+            } else {
+                if (debug) console.log(`  ✗ NO MATCH`);
+            }
+        }
+        
+        return bestMatch;
+    }
+
     /**
      * WEIGHTED RELEVANCE SCORING ALGORITHM
      * This method provides consistent scoring across all matching scenarios with configurable weights:
@@ -2189,6 +2332,7 @@ export class TokenImageReplacementWindow extends Application {
 
     /**
      * Calculate match score for a specific token data point
+     * Uses word combination utilities for improved multi-word matching
      * @param {string} tokenValue - The token data value to match
      * @param {string} fileNameLower - Lowercase filename
      * @param {string} filePathLower - Lowercase file path
@@ -2198,59 +2342,28 @@ export class TokenImageReplacementWindow extends Application {
     _calculateTokenDataMatch(tokenValue, fileNameLower, filePathLower, fileInfo) {
         if (!tokenValue) return 0;
         
-        const valueLower = tokenValue.toLowerCase();
+        const valueLower = this.constructor._normalizeText(tokenValue);
+        const valueWords = this.constructor._extractWords(valueLower);
         let maxScore = 0;
         
-        // Filename matching
-        if (fileNameLower === valueLower) {
-            maxScore = Math.max(maxScore, 1.0);
-        } else if (fileNameLower.startsWith(valueLower)) {
-            maxScore = Math.max(maxScore, 0.9);
-        } else if (fileNameLower.endsWith(valueLower)) {
-            maxScore = Math.max(maxScore, 0.8);
-        } else if (fileNameLower.includes(valueLower)) {
-            maxScore = Math.max(maxScore, 0.85); // Increased from 0.7 for better filename matching
-        } else {
-            // Word combination matching - handle multi-word token data like "Frost Giant"
-            const tokenWords = valueLower.split(/[\s\-_()]+/).filter(word => word.length > 0);
-            const fileNameWords = fileNameLower.split(/[\s\-_()]+/).filter(word => word.length > 0);
-            
-            if (tokenWords.length > 1) {
-                // Multi-word token data - try combination matching
-                const tokenCombination = tokenWords.join('_'); // "frost giant" -> "frost_giant"
-                const tokenCombinationDash = tokenWords.join('-'); // "frost giant" -> "frost-giant"
-                
-                // Check for combination matches in filename
-                if (fileNameLower.includes(tokenCombination) || fileNameLower.includes(tokenCombinationDash)) {
-                    maxScore = Math.max(maxScore, 0.9); // High score for combination match
-                }
-            }
-            
-            // Individual word matching (fallback)
-            for (const tokenWord of tokenWords) {
-                for (const fileNameWord of fileNameWords) {
-                    if (fileNameWord.includes(tokenWord) || tokenWord.includes(fileNameWord)) {
-                        maxScore = Math.max(maxScore, 0.75); // Individual word match
-                    }
-                }
-            }
+        // Primary filename matching using word combination utilities
+        const filenameMatch = this.constructor._matchCombinations(valueWords, fileNameLower);
+        if (filenameMatch.matched) {
+            maxScore = Math.max(maxScore, filenameMatch.score);
         }
         
-        // Metadata matching
+        // Metadata tag matching
         if (fileInfo.metadata && fileInfo.metadata.tags) {
             for (const tag of fileInfo.metadata.tags) {
-                const tagLower = tag.toLowerCase();
-                if (tagLower === valueLower) {
-                    maxScore = Math.max(maxScore, 0.95);
-                } else if (tagLower.startsWith(valueLower)) {
-                    maxScore = Math.max(maxScore, 0.85);
-                } else if (tagLower.includes(valueLower)) {
-                    maxScore = Math.max(maxScore, 0.75);
+                const tagMatch = this.constructor._matchCombinations(valueWords, tag);
+                if (tagMatch.matched) {
+                    // Tags are high-value matches, boost score slightly
+                    maxScore = Math.max(maxScore, tagMatch.score * 1.0);
                 }
             }
         }
         
-        // Specific metadata fields
+        // Specific metadata fields matching
         if (fileInfo.metadata) {
             const metadataFields = [
                 'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
@@ -2260,25 +2373,19 @@ export class TokenImageReplacementWindow extends Application {
             for (const field of metadataFields) {
                 const value = fileInfo.metadata[field];
                 if (value && typeof value === 'string') {
-                    const fieldValueLower = value.toLowerCase();
-                    if (fieldValueLower === valueLower) {
-                        maxScore = Math.max(maxScore, 0.9);
-                    } else if (fieldValueLower.startsWith(valueLower)) {
-                        maxScore = Math.max(maxScore, 0.8);
-                    } else if (fieldValueLower.includes(valueLower)) {
-                        maxScore = Math.max(maxScore, 0.7);
+                    const metadataMatch = this.constructor._matchCombinations(valueWords, value);
+                    if (metadataMatch.matched) {
+                        maxScore = Math.max(maxScore, metadataMatch.score * 0.95);
                     }
                 }
             }
         }
         
-        // Folder path matching
-        if (filePathLower.includes(valueLower)) {
-            if (filePathLower.includes(`/${valueLower}/`)) {
-                maxScore = Math.max(maxScore, 0.6);
-            } else {
-                maxScore = Math.max(maxScore, 0.4);
-            }
+        // Folder path matching (lower priority)
+        const pathMatch = this.constructor._matchCombinations(valueWords, filePathLower);
+        if (pathMatch.matched) {
+            // Path matches are less valuable, reduce score
+            maxScore = Math.max(maxScore, pathMatch.score * 0.6);
         }
         
         return maxScore;
@@ -2286,6 +2393,7 @@ export class TokenImageReplacementWindow extends Application {
 
     /**
      * Calculate match score for token name (flexible matching for any naming convention)
+     * Uses word combination utilities for improved multi-word matching
      * @param {string} tokenName - The token name (e.g., "Bob (Creature)", "Creature 1", "Bob")
      * @param {string} fileNameLower - Lowercase filename
      * @param {string} filePathLower - Lowercase file path
@@ -2295,41 +2403,34 @@ export class TokenImageReplacementWindow extends Application {
     _calculateTokenNameMatch(tokenName, fileNameLower, filePathLower, fileInfo) {
         if (!tokenName) return 0;
         
-        const tokenNameLower = tokenName.toLowerCase();
+        const tokenNameLower = this.constructor._normalizeText(tokenName);
         let maxScore = 0;
-        
-        // Debug: Log token name matching attempt
         
         // Extract potential creature names from token name
         const potentialCreatureNames = [];
         
-        // 1. Check for parentheses: "Bob (Creature)" -> "Creature"
+        // 1. Check for parentheses: "Bob (Creature)" -> "Creature" or "Bob (Frost Giant)" -> "Frost Giant"
         const parenMatch = tokenNameLower.match(/\(([^)]+)\)/);
         if (parenMatch) {
             const parenContent = parenMatch[1].trim();
-            potentialCreatureNames.push(parenContent); // Add the whole parenthetical content
+            potentialCreatureNames.push(parenContent); // Keep full multi-word names
         }
         
-        // 2. Check for numbers: "Creature 1" -> "Creature"
-        const numberMatch = tokenNameLower.match(/^([a-z]+)\s+\d+$/);
+        // 2. Check for numbers: "Creature 1" -> "Creature" or "Frost Giant 2" -> "Frost Giant"
+        const numberMatch = tokenNameLower.match(/^(.+?)\s+\d+$/);
         if (numberMatch) {
-            potentialCreatureNames.push(numberMatch[1]);
+            potentialCreatureNames.push(numberMatch[1].trim());
         }
         
-        // 3. Check for "the": "Bob the Creature" -> "Creature"
-        const theMatch = tokenNameLower.match(/\bthe\s+([a-z]+)$/);
+        // 3. Check for "the": "Bob the Creature" -> "Creature" or "Bob the Frost Giant" -> "Frost Giant"
+        const theMatch = tokenNameLower.match(/\bthe\s+(.+)$/);
         if (theMatch) {
-            potentialCreatureNames.push(theMatch[1]);
+            potentialCreatureNames.push(theMatch[1].trim());
         }
         
-        // 4. If no patterns match, try splitting by spaces and taking the last word
+        // 4. If no patterns match, use the full token name
         if (potentialCreatureNames.length === 0) {
-            const words = tokenNameLower.split(/\s+/);
-            if (words.length > 1) {
-                potentialCreatureNames.push(words[words.length - 1]);
-            } else {
-                potentialCreatureNames.push(tokenNameLower);
-            }
+            potentialCreatureNames.push(tokenNameLower);
         }
         
         // Remove duplicates and filter out common words
@@ -2338,60 +2439,26 @@ export class TokenImageReplacementWindow extends Application {
             !['the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for'].includes(name)
         );
         
-        // Debug: Log extracted creature names
-        
-        // Test each potential creature name against the file
+        // Test each potential creature name against the file using word combination utilities
         for (const creatureName of uniqueNames) {
-            // Filename matching
-            if (fileNameLower === creatureName) {
-                maxScore = Math.max(maxScore, 1.0);
-            } else if (fileNameLower.startsWith(creatureName)) {
-                maxScore = Math.max(maxScore, 0.9);
-            } else if (fileNameLower.endsWith(creatureName)) {
-                maxScore = Math.max(maxScore, 0.8);
-            } else if (fileNameLower.includes(creatureName)) {
-                maxScore = Math.max(maxScore, 0.7);
-            } else {
-                // Word combination matching - handle multi-word creature names like "Frost Giant"
-                const creatureWords = creatureName.split(/[\s\-_()]+/).filter(word => word.length > 0);
-                const fileNameWords = fileNameLower.split(/[\s\-_()]+/).filter(word => word.length > 0);
-                
-                if (creatureWords.length > 1) {
-                    // Multi-word creature name - try combination matching
-                    const creatureCombination = creatureWords.join('_'); // "frost giant" -> "frost_giant"
-                    const creatureCombinationDash = creatureWords.join('-'); // "frost giant" -> "frost-giant"
-                    
-                    // Check for combination matches in filename
-                    if (fileNameLower.includes(creatureCombination) || fileNameLower.includes(creatureCombinationDash)) {
-                        maxScore = Math.max(maxScore, 0.8); // High score for combination match
-                    }
-                }
-                
-                // Individual word matching (fallback)
-                for (const creatureWord of creatureWords) {
-                    for (const fileNameWord of fileNameWords) {
-                        if (fileNameWord.includes(creatureWord) || creatureWord.includes(fileNameWord)) {
-                            maxScore = Math.max(maxScore, 0.6); // Individual word match
-                        }
-                    }
-                }
+            const creatureWords = this.constructor._extractWords(creatureName);
+            
+            // Filename matching using word combinations
+            const filenameMatch = this.constructor._matchCombinations(creatureWords, fileNameLower);
+            if (filenameMatch.matched) {
+                maxScore = Math.max(maxScore, filenameMatch.score);
             }
             
-            // Metadata matching
+            // Metadata tag matching
             if (fileInfo.metadata && fileInfo.metadata.tags) {
                 for (const tag of fileInfo.metadata.tags) {
-                    const tagLower = tag.toLowerCase();
-                    if (tagLower === creatureName) {
-                        maxScore = Math.max(maxScore, 0.95);
-                    } else if (tagLower.startsWith(creatureName)) {
-                        maxScore = Math.max(maxScore, 0.85);
-                    } else if (tagLower.includes(creatureName)) {
-                        maxScore = Math.max(maxScore, 0.75);
+                    const tagMatch = this.constructor._matchCombinations(creatureWords, tag);
+                    if (tagMatch.matched) {
+                        maxScore = Math.max(maxScore, tagMatch.score * 1.0);
                     }
                 }
             }
         }
-        
         
         return maxScore;
     }
@@ -3826,10 +3893,54 @@ export class TokenImageReplacement {
                 } catch (error) {
                     console.log(`❌ localStorage error: ${error.message}`);
                 }
+            },
+            
+            // Test word combination matching
+            testMatch: (tokenName, filename) => {
+                console.log(`\n🧪 Testing word combination matching:`);
+                console.log(`Token Name: "${tokenName}"`);
+                console.log(`Filename: "${filename}"`);
+                console.log(`\n--- Processing ---`);
+                
+                const words = TokenImageReplacementWindow._extractWords(tokenName);
+                console.log(`Extracted words: [${words.join(', ')}]`);
+                
+                const combinations = TokenImageReplacementWindow._generateCombinations(words);
+                console.log(`Generated combinations: [${combinations.join(', ')}]`);
+                
+                const result = TokenImageReplacementWindow._matchCombinations(words, filename, true);
+                console.log(`\n--- Result ---`);
+                console.log(`Matched: ${result.matched}`);
+                console.log(`Score: ${result.score}`);
+                console.log(`Match Type: ${result.matchType}`);
+                
+                return result;
+            },
+            
+            // Test full scoring for goblin files
+            testGoblinScoring: () => {
+                console.log(`\n🧪 Testing Goblin scoring with new word matching:`);
+                
+                const testCases = [
+                    { token: "Goblin", file: "goblin_archer_a1_bow_01.webp" },
+                    { token: "Goblin", file: "goblin_barbarian_a1_axe_01.webp" },
+                    { token: "Goblin", file: "goblin-02.webp" },
+                    { token: "Goblin", file: "cloud-giant.webp" }
+                ];
+                
+                for (const test of testCases) {
+                    console.log(`\n--- Testing: "${test.token}" vs "${test.file}" ---`);
+                    const result = TokenImageReplacementWindow._matchCombinations(
+                        TokenImageReplacementWindow._extractWords(test.token), 
+                        test.file, 
+                        false
+                    );
+                    console.log(`Result: ${result.matched ? '✓' : '✗'} Score: ${(result.score * 100).toFixed(1)}% Type: ${result.matchType}`);
+                }
             }
         };
         
-        postConsoleAndNotification(MODULE.NAME, "Console commands added: coffeePubCache.info(), coffeePubCache.size(), coffeePubCache.version(), coffeePubCache.clear(), coffeePubCache.quota()", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Console commands added: coffeePubCache.info(), coffeePubCache.size(), coffeePubCache.version(), coffeePubCache.clear(), coffeePubCache.quota(), coffeePubCache.testMatch(tokenName, filename), coffeePubCache.testGoblinScoring()", "", true, false);
     }
     
     static async initialize() {
@@ -5254,6 +5365,12 @@ export class TokenImageReplacement {
      * @param {string} currentFilter - Current filter to apply (optional)
      */
     static _findBestMatch(searchTerms, tokenDocument, currentFilter = 'all') {
+        // Generate search terms if not provided (for token drop scenarios)
+        if (!searchTerms && tokenDocument) {
+            searchTerms = this._getSearchTerms(tokenDocument);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DROP - Generated search terms: [${searchTerms.join(', ')}]`, "", true, false);
+        }
+        
         // First, try to optimize search scope using creature type
         let creatureType = tokenDocument.actor?.system?.details?.type;
         // Handle both string and object formats
@@ -5358,10 +5475,26 @@ export class TokenImageReplacement {
         const scoredFiles = [];
         let totalScored = 0;
         
+        // Debug: Log search terms for drop system
+        if (searchTerms && searchTerms.length > 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DROP - Search terms: [${searchTerms.join(', ')}]`, "", true, false);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DROP - No search terms provided`, "", true, false);
+        }
+        
         // Search through the optimized scope using unified scoring
+        let goblinFilesProcessed = 0;
         for (const [fileName, fileInfo] of searchScope.entries()) {
             const score = TokenImageReplacement._calculateRelevanceScoreStatic(fileInfo, searchTerms, tokenDocument, 'token');
             totalScored++;
+            
+            // Debug: Show scoring for goblin files in drop system
+            if (fileName.toLowerCase().includes('goblin')) {
+                goblinFilesProcessed++;
+                if (goblinFilesProcessed <= 5) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DROP - File "${fileName}" scored ${(score * 100).toFixed(1)}%`, "", true, false);
+                }
+            }
             
             
             if (score > bestScore && score >= threshold) {
@@ -5379,6 +5512,18 @@ export class TokenImageReplacement {
         
         // Debug: Log search scope details
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search scope contains ${searchScope.size} files`, "", true, false);
+        
+        // Debug: Check if goblin files are in search scope
+        let goblinFilesInScope = 0;
+        for (const [fileName, fileInfo] of searchScope.entries()) {
+            if (fileName.toLowerCase().includes('goblin')) {
+                goblinFilesInScope++;
+                if (goblinFilesInScope <= 3) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search scope contains goblin file: "${fileName}"`, "", true, false);
+                }
+            }
+        }
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${goblinFilesInScope} goblin files in search scope`, "", true, false);
         if (searchScope.size === 0) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Search scope is empty!`, "", true, false);
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: This means either cache is empty or creature type optimization failed`, "", true, false);
@@ -5386,6 +5531,7 @@ export class TokenImageReplacement {
         
         // Debug logging
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scored ${totalScored} files`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Processed ${goblinFilesProcessed} goblin files`, "", true, false);
         
         if (bestMatch) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Best match found: ${bestMatch.name} (score: ${bestScore.toFixed(3)})`, "", true, false);
@@ -6617,22 +6763,21 @@ export class TokenImageReplacement {
      * This prevents the massive memory leak from creating and retaining full window instances
      */
     static _calculateRelevanceScoreStatic(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search') {
-        // Create a minimal temporary instance just for the scoring calculation
-        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
-        const score = tempInstance._calculateRelevanceScore.call(tempInstance, fileInfo, searchTerms, tokenDocument, searchMode);
-        // tempInstance will be garbage collected immediately after this function returns
+        // Call the instance method directly by creating a proper instance
+        const tempInstance = new TokenImageReplacementWindow();
+        const score = tempInstance._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode);
         return score;
     }
 
     static _calculateTokenDataMatchStatic(tokenValue, fileNameLower, filePathLower, fileInfo) {
-        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
-        const score = tempInstance._calculateTokenDataMatch.call(tempInstance, tokenValue, fileNameLower, filePathLower, fileInfo);
+        const tempInstance = new TokenImageReplacementWindow();
+        const score = tempInstance._calculateTokenDataMatch(tokenValue, fileNameLower, filePathLower, fileInfo);
         return score;
     }
 
     static _calculateTokenNameMatchStatic(tokenName, fileNameLower, filePathLower, fileInfo) {
-        const tempInstance = Object.create(TokenImageReplacementWindow.prototype);
-        const score = tempInstance._calculateTokenNameMatch.call(tempInstance, tokenName, fileNameLower, filePathLower, fileInfo);
+        const tempInstance = new TokenImageReplacementWindow();
+        const score = tempInstance._calculateTokenNameMatch(tokenName, fileNameLower, filePathLower, fileInfo);
         return score;
     }
 
