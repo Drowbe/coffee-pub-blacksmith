@@ -5393,7 +5393,7 @@ export class TokenImageReplacement {
         
         return filteredTerms;
     }
-
+    
     /**
      * Add double-middle-click handler for tokens using HookManager
      */
