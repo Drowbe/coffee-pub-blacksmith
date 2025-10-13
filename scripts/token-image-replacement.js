@@ -1838,42 +1838,31 @@ export class TokenImageReplacementWindow extends Application {
         
         const targetLower = this._normalizeText(targetText);
         
-        if (debug) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Matching [${sourceWords.join(', ')}] against "${targetText}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Normalized target: "${targetLower}"`, "", true, false);
-        }
         
         // Single word matching
         if (sourceWords.length === 1) {
             const word = sourceWords[0];
             if (targetLower === word) {
-                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ EXACT SINGLE WORD: "${word}" === "${targetLower}"`, "", true, false);
                 return { matched: true, score: 1.0, matchType: 'exact' };
             }
             if (targetLower.startsWith(word)) {
-                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ STARTS WITH: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.9, matchType: 'starts' };
             }
             if (targetLower.endsWith(word)) {
-                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ ENDS WITH: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.85, matchType: 'ends' };
             }
             if (targetLower.includes(word)) {
-                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ CONTAINS: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.8, matchType: 'contains' };
             }
-            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ NO SINGLE WORD MATCH: "${word}" not found in "${targetLower}"`, "", true, false);
             return { matched: false, score: 0, matchType: 'none' };
         }
         
         // PRIORITY 1: Exact phrase matching (most important)
         const phrase = sourceWords.join(' ');
         if (targetLower === phrase) {
-            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ EXACT PHRASE MATCH: "${phrase}" === "${targetLower}"`, "", true, false);
             return { matched: true, score: 1.0, matchType: 'exact-phrase' };
         }
         if (targetLower.includes(phrase)) {
-            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ PHRASE CONTAINS: "${phrase}" in "${targetLower}"`, "", true, false);
             return { matched: true, score: 0.95, matchType: 'phrase-contains' };
         }
         
@@ -1885,7 +1874,6 @@ export class TokenImageReplacementWindow extends Application {
         for (let i = 0; i <= targetWords.length - sourceWords.length; i++) {
             const targetPhrase = targetWords.slice(i, i + sourceWords.length).join(' ');
             if (targetPhrase === sourcePhrase) {
-                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ CONSECUTIVE WORDS: "${sourcePhrase}" found at position ${i}`, "", true, false);
                 return { matched: true, score: 0.9, matchType: 'consecutive-words' };
             }
         }
@@ -1910,19 +1898,14 @@ export class TokenImageReplacementWindow extends Application {
                 }
             }
             
-            if (debug && !foundExact && !foundPartial) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ WORD NOT FOUND: "${sourceWord}" not in target words`, "", true, false);
-            }
         }
         
         // Only return individual word matches if we found at least some words
         if (exactWordMatches > 0 || partialWordMatches > 0) {
             const score = (exactWordMatches + partialWordMatches * 0.3) / sourceWords.length;
-            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ⚠ INDIVIDUAL WORDS: ${exactWordMatches} exact, ${partialWordMatches} partial (score: ${score.toFixed(2)})`, "", true, false);
             return { matched: true, score: Math.max(score, 0.1), matchType: 'individual-words' };
         }
         
-        if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ NO MATCH FOUND`, "", true, false);
         return { matched: false, score: 0, matchType: 'none' };
     }
 
@@ -2245,7 +2228,6 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debug: Log final scoring for files containing "giant"
         if (fileNameLower.includes('giant')) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
         // Skip files with empty names
@@ -2259,16 +2241,6 @@ export class TokenImageReplacementWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: FROST GIANT FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
-        // Debug: Log ALL files scoring above 10% to see what's actually matching
-        if (finalScore > 0.1) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" scored ${(finalScore * 100).toFixed(1)}% - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`, "", true, false);
-        }
-        
-        // Debug: Log scoring for any files that score above threshold during token dropping
-        if (searchMode === 'token' && clampedScore > 0.15) { // Log files scoring above 15%
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - finalScore: ${finalScore.toFixed(3)}, clampedScore: ${clampedScore.toFixed(3)}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`, "", true, false);
-        }
         
         
         // Apply deprioritized words penalty
@@ -2618,6 +2590,33 @@ export class TokenImageReplacementWindow extends Application {
                 bestScore = score;
                 bestMatch = match;
             }
+        }
+        
+        // Log recommended token breakdown if we found a match
+        if (bestMatch) {
+            const tokenData = TokenImageReplacement._extractTokenData(this.selectedToken.document);
+            const weights = {
+                actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
+                tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
+                representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
+                creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
+                creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
+                equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
+                size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+            };
+            
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== RECOMMENDED TOKEN BREAKDOWN =====`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: RECOMMENDED: "${bestMatch.name}" scored ${(bestScore * 100).toFixed(1)}%`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: TOKEN DATA:`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - ACTOR NAME: "${this.selectedToken.document?.actor?.name || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - TOKEN NAME: "${this.selectedToken.document?.name || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `  - WEIGHTS: {actorName: ${weights.actorName}, tokenName: ${weights.tokenName}, representedActor: ${weights.representedActor}, creatureType: ${weights.creatureType}, creatureSubtype: ${weights.creatureSubtype}, equipment: ${weights.equipment}, size: ${weights.size}}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ======================================`, "", true, false);
         }
         
         return bestMatch;
@@ -5084,7 +5083,6 @@ export class TokenImageReplacement {
      * Find a matching image for a token
      */
     static findMatchingImage(tokenDocument) {
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - findMatchingImage called for token "${tokenDocument?.name}"`, "", true, false);
         
         // Check if feature is enabled
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
@@ -5130,13 +5128,10 @@ export class TokenImageReplacement {
         
         // Get all files (no filtering for DROP - let scoring determine best match)
         const filesToSearch = tempWindow._getFilteredFiles();
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DROP - Found ${filesToSearch.length} files to search`, "", true, false);
         
         // Use unified matching with token mode (same parameters as WINDOW)
         // For token-based matching, searchTerms should be null (same as WINDOW system)
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - About to call _applyUnifiedMatching with ${filesToSearch.length} files`, "", true, false);
         const matches = tempWindow._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token');
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - _applyUnifiedMatching returned ${matches.length} matches`, "", true, false);
         
         // Restore original token name
         tokenDocument.name = originalTokenName;
@@ -6829,7 +6824,6 @@ export class TokenImageReplacement {
         
         // Debug: Log final scoring for files containing "giant"
         if (fileNameLower.includes('giant')) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
         // Skip files with empty names
@@ -7025,15 +7019,6 @@ export class TokenImageReplacement {
                     };
                     
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: MATCH FOUND - "${fileInfo.name || fileInfo.fullPath?.split('/').pop()}" scored ${(relevanceScore * 100).toFixed(1)}%`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: TOKEN DATA BREAKDOWN:`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`, "", true, false);
-                    postConsoleAndNotification(MODULE.NAME, `  - WEIGHTS: {actorName: ${weights.actorName}, tokenName: ${weights.tokenName}, representedActor: ${weights.representedActor}, creatureType: ${weights.creatureType}, creatureSubtype: ${weights.creatureSubtype}, equipment: ${weights.equipment}, size: ${weights.size}}`, "", true, false);
                 }
                 
                 results.push({
@@ -7050,7 +7035,6 @@ export class TokenImageReplacement {
         // Sort by relevance score (highest first)
         results.sort((a, b) => b.searchScore - a.searchScore);
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scoring complete - found ${results.length} results above ${(threshold * 100).toFixed(1)}% threshold`, "", true, false);
         
         return results;
     }
