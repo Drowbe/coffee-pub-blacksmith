@@ -108,73 +108,6 @@ export class TokenImageReplacementWindow extends Application {
         html.find('.tir-search-spinner').addClass('hidden');
     }
 
-    /**
-     * UNIFIED MATCHING METHOD
-     * Determines whether to use relevance mode or browse mode based on context
-     * 
-     * @param {Array} filesToSearch - Files to search through
-     * @param {Array|string} searchTerms - Search terms (array for token, string for search)
-     * @param {Object} tokenDocument - Token document for context weighting
-     * @param {string} searchMode - 'token', 'search', or 'browse'
-     * @returns {Array} Scored and filtered results
-     */
-    _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse') {
-        const results = [];
-        
-        // BROWSE MODE: No relevance scoring, just return all files
-        if (searchMode === 'browse' || !searchTerms) {
-            return filesToSearch.map(file => ({
-                ...file,
-                name: file.name || file.fullPath?.split('/').pop() || 'Unknown File',
-                searchScore: 0.5, // Neutral score for browsing
-                score: 0.5, // Also set score for consistency
-                isCurrent: false,
-                metadata: file.metadata || null
-            }));
-        }
-        
-        // RELEVANCE MODE: Use sophisticated scoring
-        const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
-        
-        console.log(`Token Image Replacement: DEBUG - Starting file loop with ${filesToSearch.length} files`);
-        
-        // Debug: Show first 10 file names to see what we're processing
-        console.log(`Token Image Replacement: DEBUG - First 10 files:`, filesToSearch.slice(0, 10).map(f => f.name || f.fullPath?.split('/').pop()));
-        
-        for (let i = 0; i < filesToSearch.length; i++) {
-            const fileInfo = filesToSearch[i];
-            
-            // Debug: Log threshold for first file to avoid spam
-            if (i === 0) {
-                console.log(`Token Image Replacement: Using threshold: ${threshold} (${(threshold * 100).toFixed(1)}%)`);
-            }
-            
-            // Debug: Log when we encounter goblin files
-            const fileName = (fileInfo.name || '').toLowerCase();
-            if (fileName.includes('goblin')) { // Log ALL goblin files
-                console.log(`Token Image Replacement: Processing goblin file "${fileInfo.name}" at index ${i}`);
-            }
-            
-            const relevanceScore = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode);
-            
-            // Only include results above threshold
-            if (relevanceScore >= threshold) {
-                results.push({
-                    ...fileInfo,
-                    name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
-                    searchScore: relevanceScore,
-                    score: relevanceScore, // Also set score for consistency
-                    isCurrent: false,
-                    metadata: fileInfo.metadata || null
-                });
-            }
-        }
-        
-        // Sort by relevance score (highest first)
-        results.sort((a, b) => b.searchScore - a.searchScore);
-        
-        return results;
-    }
 
 
     /**
@@ -2715,17 +2648,18 @@ export class TokenImageReplacementWindow extends Application {
             return null;
         }
         
-        const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+        // Use the same parameters as the window system for token-based matching
+        // searchTerms = null for token-based matching (same as window system)
+        const searchTerms = null;
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
-        
         
         let bestMatch = null;
         let bestScore = 0;
         
-        // Find the best match from current results (excluding current image)
+        // Find the best match from current results (excluding current image and original image)
         for (const match of this.allMatches) {
-            if (match.isCurrent) {
-                continue; // Skip current image
+            if (match.isCurrent || match.isOriginal) {
+                continue; // Skip current image and original image
             }
             
             // Get file info from cache with robust lookup
@@ -2743,7 +2677,6 @@ export class TokenImageReplacementWindow extends Application {
             
             // Calculate score using unified algorithm
             const score = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
-            
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
@@ -6698,9 +6631,9 @@ export class TokenImageReplacement {
      * @returns {number} Relevance score (0.0 to 1.0)
      */
     static _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search') {
-        const fileName = fileInfo.name || '';
+        const fileName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || '';
         const fileNameLower = fileName.toLowerCase();
-        const filePath = fileInfo.path || '';
+        const filePath = fileInfo.path || fileInfo.fullPath || '';
         const filePathLower = filePath.toLowerCase();
         
         // Debug: Log ALL barbarian file calls
@@ -7223,7 +7156,7 @@ export class TokenImageReplacement {
         const results = [];
         
         // BROWSE MODE: No relevance scoring, just return all files
-        if (searchMode === 'browse' || !searchTerms) {
+        if (searchMode === 'browse') {
             return filesToSearch.map(file => ({
                 ...file,
                 name: file.name || file.fullPath?.split('/').pop() || 'Unknown File',
@@ -7251,12 +7184,28 @@ export class TokenImageReplacement {
             }
             
             // Debug: Log when we encounter goblin files
-            const fileName = (fileInfo.name || '').toLowerCase();
+            const fileName = (fileInfo.name || fileInfo.fullPath?.split('/').pop() || '').toLowerCase();
             if (fileName.includes('goblin')) { // Log ALL goblin files
-                console.log(`Token Image Replacement: Processing goblin file "${fileInfo.name}" at index ${i}`);
+                console.log(`Token Image Replacement: Processing goblin file "${fileName}" at index ${i}`);
+            }
+            
+            // Debug: Log every file being processed to see what's happening
+            if (i < 20) { // Log first 20 files to avoid spam
+                console.log(`Token Image Replacement: Processing file ${i}:`, {
+                    name: fileInfo.name,
+                    fullPath: fileInfo.fullPath,
+                    fileName: fileInfo.fileName,
+                    keys: Object.keys(fileInfo)
+                });
             }
             
             const relevanceScore = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode);
+            
+            // Debug: Log scores for first 20 files
+            if (i < 20) {
+                const displayName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown';
+                console.log(`Token Image Replacement: File "${displayName}" scored ${(relevanceScore * 100).toFixed(1)}% (threshold: ${(threshold * 100).toFixed(1)}%)`);
+            }
             
             // Only include results above threshold
             if (relevanceScore >= threshold) {
@@ -7273,6 +7222,8 @@ export class TokenImageReplacement {
         
         // Sort by relevance score (highest first)
         results.sort((a, b) => b.searchScore - a.searchScore);
+        
+        console.log(`Token Image Replacement: Scoring complete - found ${results.length} results above ${(threshold * 100).toFixed(1)}% threshold`);
         
         return results;
     }
