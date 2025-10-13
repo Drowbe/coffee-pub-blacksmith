@@ -1544,6 +1544,10 @@ export class TokenImageReplacementWindow extends Application {
                             <div class="tir-thumbnail-recommended-badge" data-quick-apply="true">
                                 <i class="fas fa-star"></i>
                             </div>
+                            <div class="tir-thumbnail-overlay">
+                                <i class="fas fa-check"></i>
+                                <span class="tir-overlay-text">Apply to Token</span>
+                            </div>
                         ` : `
                             <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
