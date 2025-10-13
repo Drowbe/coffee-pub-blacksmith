@@ -116,12 +116,10 @@ export class TokenImageReplacementWindow extends Application {
     _getFilteredFiles() {
         // Get all files from cache
         const allFiles = Array.from(TokenImageReplacement.cache.files.values());
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtering ${allFiles.length} files with filter: ${this.currentFilter}`, "", true, false);
         
         // Debug: Show sample paths
         if (allFiles.length > 0) {
             const samplePaths = allFiles.slice(0, 3).map(f => f.path || f.fullPath || 'NO_PATH').join(', ');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample paths: ${samplePaths}`, "", true, false);
         }
         
         // Apply category filter to get the subset of files to search
@@ -516,7 +514,7 @@ export class TokenImageReplacementWindow extends Application {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
         } else if (TokenImageReplacement.cache.files.size === 0) {
-            console.log(`Token Image Replacement: Cache check - files.size: ${TokenImageReplacement.cache.files.size}, cache exists: ${!!TokenImageReplacement.cache}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache check - files.size: ${TokenImageReplacement.cache.files.size}, cache exists: ${!!TokenImageReplacement.cache}`, "", true, false);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
         } else {
@@ -1047,7 +1045,7 @@ export class TokenImageReplacementWindow extends Application {
         try {
             // Ensure cache is initialized
             if (!TokenImageReplacement.cache || TokenImageReplacement.cache.files.size === 0) {
-                console.log(`Token Image Replacement: Cache not initialized, initializing...`);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized, initializing...`, "", true, false);
                 await TokenImageReplacement._initializeCache();
             }
             
@@ -1841,41 +1839,41 @@ export class TokenImageReplacementWindow extends Application {
         const targetLower = this._normalizeText(targetText);
         
         if (debug) {
-            console.log(`  Matching [${sourceWords.join(', ')}] against "${targetText}"`);
-            console.log(`  Normalized target: "${targetLower}"`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Matching [${sourceWords.join(', ')}] against "${targetText}"`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Normalized target: "${targetLower}"`, "", true, false);
         }
         
         // Single word matching
         if (sourceWords.length === 1) {
             const word = sourceWords[0];
             if (targetLower === word) {
-                if (debug) console.log(`  ✓ EXACT SINGLE WORD: "${word}" === "${targetLower}"`);
+                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ EXACT SINGLE WORD: "${word}" === "${targetLower}"`, "", true, false);
                 return { matched: true, score: 1.0, matchType: 'exact' };
             }
             if (targetLower.startsWith(word)) {
-                if (debug) console.log(`  ✓ STARTS WITH: "${word}" in "${targetLower}"`);
+                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ STARTS WITH: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.9, matchType: 'starts' };
             }
             if (targetLower.endsWith(word)) {
-                if (debug) console.log(`  ✓ ENDS WITH: "${word}" in "${targetLower}"`);
+                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ ENDS WITH: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.85, matchType: 'ends' };
             }
             if (targetLower.includes(word)) {
-                if (debug) console.log(`  ✓ CONTAINS: "${word}" in "${targetLower}"`);
+                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ CONTAINS: "${word}" in "${targetLower}"`, "", true, false);
                 return { matched: true, score: 0.8, matchType: 'contains' };
             }
-            if (debug) console.log(`  ✗ NO SINGLE WORD MATCH: "${word}" not found in "${targetLower}"`);
+            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ NO SINGLE WORD MATCH: "${word}" not found in "${targetLower}"`, "", true, false);
             return { matched: false, score: 0, matchType: 'none' };
         }
         
         // PRIORITY 1: Exact phrase matching (most important)
         const phrase = sourceWords.join(' ');
         if (targetLower === phrase) {
-            if (debug) console.log(`  ✓ EXACT PHRASE MATCH: "${phrase}" === "${targetLower}"`);
+            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ EXACT PHRASE MATCH: "${phrase}" === "${targetLower}"`, "", true, false);
             return { matched: true, score: 1.0, matchType: 'exact-phrase' };
         }
         if (targetLower.includes(phrase)) {
-            if (debug) console.log(`  ✓ PHRASE CONTAINS: "${phrase}" in "${targetLower}"`);
+            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ PHRASE CONTAINS: "${phrase}" in "${targetLower}"`, "", true, false);
             return { matched: true, score: 0.95, matchType: 'phrase-contains' };
         }
         
@@ -1887,7 +1885,7 @@ export class TokenImageReplacementWindow extends Application {
         for (let i = 0; i <= targetWords.length - sourceWords.length; i++) {
             const targetPhrase = targetWords.slice(i, i + sourceWords.length).join(' ');
             if (targetPhrase === sourcePhrase) {
-                if (debug) console.log(`  ✓ CONSECUTIVE WORDS: "${sourcePhrase}" found at position ${i}`);
+                if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✓ CONSECUTIVE WORDS: "${sourcePhrase}" found at position ${i}`, "", true, false);
                 return { matched: true, score: 0.9, matchType: 'consecutive-words' };
             }
         }
@@ -1913,18 +1911,18 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             if (debug && !foundExact && !foundPartial) {
-                console.log(`  ✗ WORD NOT FOUND: "${sourceWord}" not in target words`);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ WORD NOT FOUND: "${sourceWord}" not in target words`, "", true, false);
             }
         }
         
         // Only return individual word matches if we found at least some words
         if (exactWordMatches > 0 || partialWordMatches > 0) {
             const score = (exactWordMatches + partialWordMatches * 0.3) / sourceWords.length;
-            if (debug) console.log(`  ⚠ INDIVIDUAL WORDS: ${exactWordMatches} exact, ${partialWordMatches} partial (score: ${score.toFixed(2)})`);
+            if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ⚠ INDIVIDUAL WORDS: ${exactWordMatches} exact, ${partialWordMatches} partial (score: ${score.toFixed(2)})`, "", true, false);
             return { matched: true, score: Math.max(score, 0.1), matchType: 'individual-words' };
         }
         
-        if (debug) console.log(`  ✗ NO MATCH FOUND`);
+        if (debug) postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✗ NO MATCH FOUND`, "", true, false);
         return { matched: false, score: 0, matchType: 'none' };
     }
 
@@ -1962,16 +1960,6 @@ export class TokenImageReplacementWindow extends Application {
         if (tokenDocument && searchMode === 'token') {
             tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
             
-            // Debug: Log token data breakdown for ANY token (not goblin-specific)
-            console.log(`Token Image Replacement: TOKEN DATA BREAKDOWN:`);
-            console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
-            console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
-            console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
-            console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
-            console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
-            console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
-            console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
-            console.log(`  - WEIGHTS:`, weights);
         }
         
         // Calculate maximum possible score using weighted system
@@ -2257,7 +2245,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debug: Log final scoring for files containing "giant"
         if (fileNameLower.includes('giant')) {
-            console.log(`Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
         // Skip files with empty names
@@ -2268,18 +2256,18 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debug: Log scoring for frost giant files (for token dropping)
         if (fileNameLower.includes('frost') && fileNameLower.includes('giant')) {
-            console.log(`Token Image Replacement: FROST GIANT FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: FROST GIANT FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
         // Debug: Log ALL files scoring above 10% to see what's actually matching
         if (finalScore > 0.1) {
-            console.log(`Token Image Replacement: File "${fileName}" scored ${(finalScore * 100).toFixed(1)}% - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" scored ${(finalScore * 100).toFixed(1)}% - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`, "", true, false);
         }
         
         // Debug: Log scoring for any files that score above threshold during token dropping
         if (searchMode === 'token' && clampedScore > 0.15) { // Log files scoring above 15%
-            console.log(`Token Image Replacement: File "${fileName}" - finalScore: ${finalScore.toFixed(3)}, clampedScore: ${clampedScore.toFixed(3)}`);
-            console.log(`Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - finalScore: ${finalScore.toFixed(3)}, clampedScore: ${clampedScore.toFixed(3)}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`, "", true, false);
         }
         
         
@@ -3801,13 +3789,13 @@ export class TokenImageReplacement {
             // Basic cache info
             info: () => {
                 const c = this.cache;
-                console.log(`📊 Cache Stats:
+                postConsoleAndNotification(MODULE.NAME, `📊 Cache Stats:
 - Files: ${c.files.size}
 - Folders: ${c.folders.size}
 - Creature Types: ${c.creatureTypes.size}
 - Last Scan: ${c.lastScan ? new Date(c.lastScan).toLocaleString() : 'Never'}
 - Scanning: ${c.isScanning}
-- Ignored Files: ${c.ignoredFilesCount || 0}`);
+- Ignored Files: ${c.ignoredFilesCount || 0}`, "", true, false);
                 return c;
             },
             
@@ -3822,14 +3810,14 @@ export class TokenImageReplacement {
                         const decompressed = TokenImageReplacement._decompressCacheData(cacheData);
                         const uncompressedSizeMB = (new Blob([decompressed]).size / (1024 * 1024)).toFixed(2);
                         const compressionRatio = ((1 - cacheData.length / decompressed.length) * 100).toFixed(1);
-                        console.log(`💾 Server Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`);
+                        postConsoleAndNotification(MODULE.NAME, `💾 Server Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`, "", true, false);
                         return { compressed: compressedSizeMB, uncompressed: uncompressedSizeMB, ratio: compressionRatio };
                     } catch (error) {
-                        console.log(`💾 Server Cache Size: ${compressedSizeMB}MB (uncompressed data)`);
+                        postConsoleAndNotification(MODULE.NAME, `💾 Server Cache Size: ${compressedSizeMB}MB (uncompressed data)`, "", true, false);
                         return { compressed: compressedSizeMB, uncompressed: compressedSizeMB, ratio: 0 };
                     }
                 } else {
-                    console.log('❌ No cache in server settings');
+                    postConsoleAndNotification(MODULE.NAME, '❌ No cache in server settings', '', true, false);
                     return 0;
                 }
             },
@@ -3838,12 +3826,12 @@ export class TokenImageReplacement {
             version: () => {
                 try {
                     const cacheData = JSON.parse(game.settings.get(MODULE.ID, 'tokenImageReplacementCache'));
-                    console.log(`🔢 Cache Version: ${cacheData.version}`);
-                    console.log(`📁 Files Count: ${cacheData.files ? cacheData.files.length : 'N/A'}`);
-                    console.log(`📅 Last Scan: ${cacheData.lastScan ? new Date(cacheData.lastScan).toLocaleString() : 'Never'}`);
+                    postConsoleAndNotification(MODULE.NAME, `🔢 Cache Version: ${cacheData.version}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `📁 Files Count: ${cacheData.files ? cacheData.files.length : 'N/A'}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `📅 Last Scan: ${cacheData.lastScan ? new Date(cacheData.lastScan).toLocaleString() : 'Never'}`, "", true, false);
                     return cacheData;
                 } catch (error) {
-                    console.log('❌ Error reading cache:', error.message);
+                    postConsoleAndNotification(MODULE.NAME, `❌ Error reading cache: ${error.message}`, '', true, false);
                     return null;
                 }
             },
@@ -3852,7 +3840,7 @@ export class TokenImageReplacement {
             clear: async () => {
                 localStorage.removeItem('tokenImageReplacement_cache');
                 await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', '');
-                console.log('🗑️ Cache cleared from localStorage and server settings');
+                postConsoleAndNotification(MODULE.NAME, '🗑️ Cache cleared from localStorage and server settings', '', true, false);
             },
             
             // Show storage quota info
@@ -3861,30 +3849,30 @@ export class TokenImageReplacement {
                     const testData = 'x'.repeat(1024 * 1024); // 1MB test
                     localStorage.setItem('quota_test', testData);
                     localStorage.removeItem('quota_test');
-                    console.log('✅ localStorage is writable');
+                    postConsoleAndNotification(MODULE.NAME, '✅ localStorage is writable', '', true, false);
                 } catch (error) {
-                    console.log(`❌ localStorage error: ${error.message}`);
+                    postConsoleAndNotification(MODULE.NAME, `❌ localStorage error: ${error.message}`, "", true, false);
                 }
             },
             
             // Test word combination matching
             testMatch: (tokenName, filename) => {
-                console.log(`\n🧪 Testing word combination matching:`);
-                console.log(`Token Name: "${tokenName}"`);
-                console.log(`Filename: "${filename}"`);
-                console.log(`\n--- Processing ---`);
+                postConsoleAndNotification(MODULE.NAME, `\n🧪 Testing word combination matching:`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Name: "${tokenName}"`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Filename: "${filename}"`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `\n--- Processing ---`, "", true, false);
                 
                 const words = TokenImageReplacementWindow._extractWords(tokenName);
-                console.log(`Extracted words: [${words.join(', ')}]`);
+                postConsoleAndNotification(MODULE.NAME, `Extracted words: [${words.join(', ')}]`, "", true, false);
                 
                 const combinations = TokenImageReplacementWindow._generateCombinations(words);
-                console.log(`Generated combinations: [${combinations.join(', ')}]`);
+                postConsoleAndNotification(MODULE.NAME, `Generated combinations: [${combinations.join(', ')}]`, "", true, false);
                 
                 const result = TokenImageReplacementWindow._matchCombinations(words, filename, true);
-                console.log(`\n--- Result ---`);
-                console.log(`Matched: ${result.matched}`);
-                console.log(`Score: ${result.score}`);
-                console.log(`Match Type: ${result.matchType}`);
+                postConsoleAndNotification(MODULE.NAME, `\n--- Result ---`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Matched: ${result.matched}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Score: ${result.score}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Match Type: ${result.matchType}`, "", true, false);
                 
                 return result;
             },
@@ -5096,7 +5084,7 @@ export class TokenImageReplacement {
      * Find a matching image for a token
      */
     static findMatchingImage(tokenDocument) {
-        console.log(`Token Image Replacement: DEBUG - findMatchingImage called for token "${tokenDocument?.name}"`);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - findMatchingImage called for token "${tokenDocument?.name}"`, "", true, false);
         
         // Check if feature is enabled
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
@@ -5146,9 +5134,9 @@ export class TokenImageReplacement {
         
         // Use unified matching with token mode (same parameters as WINDOW)
         // For token-based matching, searchTerms should be null (same as WINDOW system)
-        console.log(`Token Image Replacement: DEBUG - About to call _applyUnifiedMatching with ${filesToSearch.length} files`);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - About to call _applyUnifiedMatching with ${filesToSearch.length} files`, "", true, false);
         const matches = tempWindow._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token');
-        console.log(`Token Image Replacement: DEBUG - _applyUnifiedMatching returned ${matches.length} matches`);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - _applyUnifiedMatching returned ${matches.length} matches`, "", true, false);
         
         // Restore original token name
         tokenDocument.name = originalTokenName;
@@ -6589,16 +6577,6 @@ export class TokenImageReplacement {
         if (tokenDocument && searchMode === 'token') {
             tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
              
-            // Debug: Log token data breakdown for ANY token (not goblin-specific)
-            console.log(`Token Image Replacement: TOKEN DATA BREAKDOWN:`);
-            console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
-            console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
-            console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
-            console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
-            console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
-            console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
-            console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
-            console.log(`  - WEIGHTS:`, weights);
         }
         
         // Calculate maximum possible score using weighted system
@@ -6851,7 +6829,7 @@ export class TokenImageReplacement {
         
         // Debug: Log final scoring for files containing "giant"
         if (fileNameLower.includes('giant')) {
-            console.log(`Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`, "", true, false);
         }
         
         // Skip files with empty names
@@ -7033,6 +7011,31 @@ export class TokenImageReplacement {
                         
             // Only include results above threshold
             if (relevanceScore >= threshold) {
+                // Log token data breakdown ONLY for files that actually MATCH
+                if (tokenDocument && searchMode === 'token') {
+                    const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+                    const weights = {
+                        actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
+                        tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
+                        representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
+                        creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
+                        creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
+                        equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
+                        size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+                    };
+                    
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: MATCH FOUND - "${fileInfo.name || fileInfo.fullPath?.split('/').pop()}" scored ${(relevanceScore * 100).toFixed(1)}%`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: TOKEN DATA BREAKDOWN:`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `  - WEIGHTS: {actorName: ${weights.actorName}, tokenName: ${weights.tokenName}, representedActor: ${weights.representedActor}, creatureType: ${weights.creatureType}, creatureSubtype: ${weights.creatureSubtype}, equipment: ${weights.equipment}, size: ${weights.size}}`, "", true, false);
+                }
+                
                 results.push({
                     ...fileInfo,
                     name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
@@ -7047,7 +7050,7 @@ export class TokenImageReplacement {
         // Sort by relevance score (highest first)
         results.sort((a, b) => b.searchScore - a.searchScore);
         
-        console.log(`Token Image Replacement: Scoring complete - found ${results.length} results above ${(threshold * 100).toFixed(1)}% threshold`);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scoring complete - found ${results.length} results above ${(threshold * 100).toFixed(1)}% threshold`, "", true, false);
         
         return results;
     }
