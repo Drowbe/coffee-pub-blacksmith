@@ -6,6 +6,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
+import { ImageMatching } from './manager-image-matching.js';
 
 /**
  * Token Image Replacement Cache Management System
@@ -727,13 +728,13 @@ export class TokenImageReplacement {
                 postConsoleAndNotification(MODULE.NAME, `Filename: "${filename}"`, "", true, false);
                 postConsoleAndNotification(MODULE.NAME, `\n--- Processing ---`, "", true, false);
                 
-                const words = TokenImageReplacementWindow._extractWords(tokenName);
+                const words = ImageMatching._extractWords(tokenName);
                 postConsoleAndNotification(MODULE.NAME, `Extracted words: [${words.join(', ')}]`, "", true, false);
                 
-                const combinations = TokenImageReplacementWindow._generateCombinations(words);
+                const combinations = ImageMatching._generateCombinations(words);
                 postConsoleAndNotification(MODULE.NAME, `Generated combinations: [${combinations.join(', ')}]`, "", true, false);
                 
-                const result = TokenImageReplacementWindow._matchCombinations(words, filename, true);
+                const result = ImageMatching._matchCombinations(words, filename, true);
                 postConsoleAndNotification(MODULE.NAME, `\n--- Result ---`, "", true, false);
                 postConsoleAndNotification(MODULE.NAME, `Matched: ${result.matched}`, "", true, false);
                 postConsoleAndNotification(MODULE.NAME, `Score: ${result.score}`, "", true, false);
