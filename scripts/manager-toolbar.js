@@ -283,7 +283,7 @@ async function registerDefaultTools() {
         onFoundry: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false),
                 onClick: async () => {
             try {
-                const { TokenImageReplacement } = await import('./token-image-replacement.js');
+                const { TokenImageReplacement } = await import('./manager-image-cache.js');
                 TokenImageReplacement.openWindow();
             } catch (error) {
                 ui.notifications.error('Failed to open Token Image Replacement window');

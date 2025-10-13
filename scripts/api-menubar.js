@@ -11,7 +11,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
-import { TokenImageReplacement } from './token-image-replacement.js';
+import { TokenImageReplacement } from './manager-image-cache.js';
 
 class MenuBar {
     static ID = 'menubar';
