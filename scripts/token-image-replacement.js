@@ -140,17 +140,37 @@ export class TokenImageReplacementWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Processed terms: ${processedTerms.join(', ')}`, "", true, false);
         }
         
-        const filteredFiles = allFiles.filter(file => {
+        const filteredFiles = allFiles.filter((file, index) => {
+            // Debug: Log first few files to see their structure
+            if (index < 3) {
+                console.log(`Token Image Replacement: FILTER LOOP DEBUG - Index: ${index}, Raw file object:`, file);
+            }
+            
             const path = file.path || file.fullPath || '';
-            const fileName = file.name || file.fileName || '';
+            const fileName = file.name || file.fileName || file.fullPath?.split('/').pop() || '';
+            
+            // Debug: Log fileName extraction
+            if (index < 3) {
+                console.log(`Token Image Replacement: FILTER LOOP DEBUG - Index: ${index}, fileName extracted: "${fileName}"`);
+            }
             
             // Check if the file matches the current category filter
             switch (this.currentFilter) {
                 case 'favorites':
                     // Only show files that have the FAVORITE tag
-                    const fileInfo = TokenImageReplacement.cache.files.get(fileName.toLowerCase());
+                    const fileInfo = this._getFileInfoFromCache(fileName);
                     const hasFavorite = fileInfo?.metadata?.tags?.includes('FAVORITE') || false;
-                    // Debug logging removed - too verbose
+                    
+                    // Debug: Log first few files to see what's happening
+                    if (allFiles.indexOf(file) < 5) {
+                        console.log(`Token Image Replacement: FAVORITES DEBUG - File: "${fileName}"`, {
+                            fileInfo: fileInfo ? 'found' : 'NOT_FOUND',
+                            metadata: fileInfo?.metadata ? 'exists' : 'NO_METADATA',
+                            tags: fileInfo?.metadata?.tags || 'NO_TAGS',
+                            hasFavorite: hasFavorite
+                        });
+                    }
+                    
                     return hasFavorite;
                 case 'selected':
                     // Only show files that match the selected token's characteristics
@@ -652,10 +672,12 @@ export class TokenImageReplacementWindow extends Application {
                 // Remove favorite
                 fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
                 ui.notifications.info(`Removed ${imageName} from favorites`);
+                console.log(`Token Image Replacement: FAVORITE REMOVED - "${imageName}", tags now:`, fileInfo.metadata.tags);
             } else {
                 // Add favorite
                 fileInfo.metadata.tags.push('FAVORITE');
                 ui.notifications.info(`Added ${imageName} to favorites`);
+                console.log(`Token Image Replacement: FAVORITE ADDED - "${imageName}", tags now:`, fileInfo.metadata.tags);
             }
 
             // Save the updated cache
