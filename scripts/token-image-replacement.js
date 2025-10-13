@@ -1945,23 +1945,9 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * WEIGHTED RELEVANCE SCORING ALGORITHM
-     * This method provides consistent scoring across all matching scenarios with configurable weights:
-     * - Token drop (automatic replacement)
-     * - Selected tab (manual selection)
-     * - Search mode (any tab + search terms)
-     * 
-     * @param {Object} fileInfo - The file information object
-     * @param {Array|string} searchTerms - Search terms (array for token matching, string for search)
-     * @param {Object} tokenDocument - The token document (for context weighting)
-     * @param {string} searchMode - 'token' for token matching, 'search' for search terms
-     * @returns {number} Relevance score (0.0 to 1.0)
+     * Initialize threshold slider with current setting value
      */
-    _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search') {
-        const fileName = fileInfo.name || '';
-        const fileNameLower = fileName.toLowerCase();
-        const filePath = fileInfo.path || '';
-        const filePathLower = filePath.toLowerCase();
+    _initializeThresholdSlider() {
         
         // Debug: Log ALL barbarian file calls
         if (fileNameLower.includes('barbarian')) {
