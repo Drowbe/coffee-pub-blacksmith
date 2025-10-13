@@ -141,18 +141,9 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         const filteredFiles = allFiles.filter((file, index) => {
-            // Debug: Log first few files to see their structure
-            if (index < 3) {
-                console.log(`Token Image Replacement: FILTER LOOP DEBUG - Index: ${index}, Raw file object:`, file);
-            }
-            
+        
             const path = file.path || file.fullPath || '';
             const fileName = file.name || file.fileName || file.fullPath?.split('/').pop() || '';
-            
-            // Debug: Log fileName extraction
-            if (index < 3) {
-                console.log(`Token Image Replacement: FILTER LOOP DEBUG - Index: ${index}, fileName extracted: "${fileName}"`);
-            }
             
             // Check if the file matches the current category filter
             switch (this.currentFilter) {
@@ -160,17 +151,6 @@ export class TokenImageReplacementWindow extends Application {
                     // Only show files that have the FAVORITE tag
                     const fileInfo = this._getFileInfoFromCache(fileName);
                     const hasFavorite = fileInfo?.metadata?.tags?.includes('FAVORITE') || false;
-                    
-                    // Debug: Log first few files to see what's happening
-                    if (allFiles.indexOf(file) < 5) {
-                        console.log(`Token Image Replacement: FAVORITES DEBUG - File: "${fileName}"`, {
-                            fileInfo: fileInfo ? 'found' : 'NOT_FOUND',
-                            metadata: fileInfo?.metadata ? 'exists' : 'NO_METADATA',
-                            tags: fileInfo?.metadata?.tags || 'NO_TAGS',
-                            hasFavorite: hasFavorite
-                        });
-                    }
-                    
                     return hasFavorite;
                 case 'selected':
                     // Only show files that match the selected token's characteristics
@@ -672,12 +652,10 @@ export class TokenImageReplacementWindow extends Application {
                 // Remove favorite
                 fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
                 ui.notifications.info(`Removed ${imageName} from favorites`);
-                console.log(`Token Image Replacement: FAVORITE REMOVED - "${imageName}", tags now:`, fileInfo.metadata.tags);
             } else {
                 // Add favorite
                 fileInfo.metadata.tags.push('FAVORITE');
                 ui.notifications.info(`Added ${imageName} to favorites`);
-                console.log(`Token Image Replacement: FAVORITE ADDED - "${imageName}", tags now:`, fileInfo.metadata.tags);
             }
 
             // Save the updated cache
@@ -1812,7 +1790,8 @@ export class TokenImageReplacementWindow extends Application {
      */
     static _normalizeText(text) {
         if (!text || typeof text !== 'string') return '';
-        return text.toLowerCase().trim();
+        // Replace all special characters with spaces, then normalize
+        return text.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
     }
     
     /**
@@ -1822,13 +1801,15 @@ export class TokenImageReplacementWindow extends Application {
      */
     static _extractWords(text) {
         if (!text || typeof text !== 'string') return [];
-        return text.split(/[\s\-_()]+/).filter(word => word.length > 0);
+        // Since we normalize special characters to spaces, we only need to split on spaces
+        return text.split(/\s+/).filter(word => word.length > 0);
     }
     
     /**
-     * Generate all useful combinations of words for matching
+     * Generate word combinations for matching - simplified approach
+     * Since we normalize all special characters to spaces, we only need space-separated combinations
      * Examples:
-     *   ["frost", "giant"] -> ["frost_giant", "frost-giant", "frostgiant", "frost giant"]
+     *   ["frost", "giant"] -> ["frost giant"]
      * @param {Array<string>} words - Array of words to combine
      * @returns {Array<string>} Array of combinations
      */
@@ -1838,10 +1819,7 @@ export class TokenImageReplacementWindow extends Application {
         
         const combinations = [];
         
-        // Multi-word combinations
-        combinations.push(words.join('_'));      // frost_giant
-        combinations.push(words.join('-'));      // frost-giant
-        combinations.push(words.join(''));       // frostgiant
+        // Only generate space-separated combinations since we normalize special characters
         combinations.push(words.join(' '));      // frost giant
         
         return combinations;
@@ -1862,99 +1840,99 @@ export class TokenImageReplacementWindow extends Application {
         
         const targetLower = this._normalizeText(targetText);
         
+        if (debug) {
+            console.log(`  Matching [${sourceWords.join(', ')}] against "${targetText}"`);
+            console.log(`  Normalized target: "${targetLower}"`);
+        }
+        
         // Single word matching
         if (sourceWords.length === 1) {
             const word = sourceWords[0];
-            if (targetLower === word) return { matched: true, score: 1.0, matchType: 'exact' };
-            if (targetLower.startsWith(word)) return { matched: true, score: 0.9, matchType: 'starts' };
-            if (targetLower.endsWith(word)) return { matched: true, score: 0.85, matchType: 'ends' };
-            if (targetLower.includes(word)) return { matched: true, score: 0.8, matchType: 'contains' };
+            if (targetLower === word) {
+                if (debug) console.log(`  ✓ EXACT SINGLE WORD: "${word}" === "${targetLower}"`);
+                return { matched: true, score: 1.0, matchType: 'exact' };
+            }
+            if (targetLower.startsWith(word)) {
+                if (debug) console.log(`  ✓ STARTS WITH: "${word}" in "${targetLower}"`);
+                return { matched: true, score: 0.9, matchType: 'starts' };
+            }
+            if (targetLower.endsWith(word)) {
+                if (debug) console.log(`  ✓ ENDS WITH: "${word}" in "${targetLower}"`);
+                return { matched: true, score: 0.85, matchType: 'ends' };
+            }
+            if (targetLower.includes(word)) {
+                if (debug) console.log(`  ✓ CONTAINS: "${word}" in "${targetLower}"`);
+                return { matched: true, score: 0.8, matchType: 'contains' };
+            }
+            if (debug) console.log(`  ✗ NO SINGLE WORD MATCH: "${word}" not found in "${targetLower}"`);
             return { matched: false, score: 0, matchType: 'none' };
         }
         
-        // Multi-word combination matching
-        const combinations = this._generateCombinations(sourceWords);
-        let bestMatch = { matched: false, score: 0, matchType: 'none' };
-        
-        if (debug) {
-            console.log(`  Matching [${sourceWords.join(', ')}] against "${targetText}"`);
-            console.log(`  Generated combinations: ${combinations.join(', ')}`);
+        // PRIORITY 1: Exact phrase matching (most important)
+        const phrase = sourceWords.join(' ');
+        if (targetLower === phrase) {
+            if (debug) console.log(`  ✓ EXACT PHRASE MATCH: "${phrase}" === "${targetLower}"`);
+            return { matched: true, score: 1.0, matchType: 'exact-phrase' };
+        }
+        if (targetLower.includes(phrase)) {
+            if (debug) console.log(`  ✓ PHRASE CONTAINS: "${phrase}" in "${targetLower}"`);
+            return { matched: true, score: 0.95, matchType: 'phrase-contains' };
         }
         
-        for (const combo of combinations) {
-            if (targetLower === combo) {
-                if (debug) console.log(`  ✓ EXACT COMBO MATCH: "${combo}" === "${targetLower}"`);
-                return { matched: true, score: 1.0, matchType: 'exact-combo' };
-            }
-            if (targetLower.includes(combo)) {
-                // Exact combination found in target - this is what we want for "Frost Giant" matching "frost-giant"
-                if (combo.includes('_') || combo.includes('-')) {
-                    // Underscore or dash separated combination is a strong match
-                    if (debug) console.log(`  ✓ SEPARATED COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.95)`);
-                    bestMatch = { matched: true, score: 0.95, matchType: 'combo-separated' };
-                } else if (combo.includes(' ')) {
-                    // Space separated
-                    if (debug) console.log(`  ✓ SPACED COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.92)`);
-                    bestMatch = { matched: true, score: 0.92, matchType: 'combo-spaced' };
-                } else {
-                    // Concatenated
-                    if (debug) console.log(`  ✓ CONCAT COMBO MATCH: "${combo}" in "${targetLower}" (score: 0.88)`);
-                    bestMatch = { matched: true, score: 0.88, matchType: 'combo-concat' };
-                }
-                break; // Found a combination match, no need to check others
+        // PRIORITY 2: Check if target contains the phrase as separate words in sequence
+        const targetWords = this._extractWords(targetLower);
+        const sourcePhrase = sourceWords.join(' ');
+        
+        // Look for the phrase as consecutive words in the target
+        for (let i = 0; i <= targetWords.length - sourceWords.length; i++) {
+            const targetPhrase = targetWords.slice(i, i + sourceWords.length).join(' ');
+            if (targetPhrase === sourcePhrase) {
+                if (debug) console.log(`  ✓ CONSECUTIVE WORDS: "${sourcePhrase}" found at position ${i}`);
+                return { matched: true, score: 0.9, matchType: 'consecutive-words' };
             }
         }
         
-        // If no combination matched, try individual word matching as fallback
-        if (!bestMatch.matched) {
-            const targetWords = this._extractWords(targetLower);
-            let wordMatchCount = 0;
-            let partialMatchCount = 0;
+        // PRIORITY 3: Individual word matching (only as last resort)
+        let exactWordMatches = 0;
+        let partialWordMatches = 0;
+        
+        for (const sourceWord of sourceWords) {
+            let foundExact = false;
+            let foundPartial = false;
             
-            for (const sourceWord of sourceWords) {
-                for (const targetWord of targetWords) {
-                    if (targetWord === sourceWord) {
-                        wordMatchCount++;
-                        break;
-                    } else if (targetWord.includes(sourceWord) || sourceWord.includes(targetWord)) {
-                        partialMatchCount++;
-                    }
+            for (const targetWord of targetWords) {
+                if (targetWord === sourceWord) {
+                    exactWordMatches++;
+                    foundExact = true;
+                    break;
+                } else if (targetWord.includes(sourceWord) || sourceWord.includes(targetWord)) {
+                    partialWordMatches++;
+                    foundPartial = true;
+                    break;
                 }
             }
             
-            if (wordMatchCount === sourceWords.length) {
-                // All words found individually
-                if (debug) console.log(`  ✓ ALL WORDS MATCH: ${wordMatchCount}/${sourceWords.length} (score: 0.75)`);
-                bestMatch = { matched: true, score: 0.75, matchType: 'all-words' };
-            } else if (wordMatchCount > 0) {
-                // Some words found
-                const ratio = wordMatchCount / sourceWords.length;
-                if (debug) console.log(`  ✓ SOME WORDS MATCH: ${wordMatchCount}/${sourceWords.length} (score: ${0.5 + (ratio * 0.2)})`);
-                bestMatch = { matched: true, score: 0.5 + (ratio * 0.2), matchType: 'some-words' };
-            } else if (partialMatchCount > 0) {
-                // Partial word matches
-                const ratio = partialMatchCount / sourceWords.length;
-                if (debug) console.log(`  ✓ PARTIAL WORDS MATCH: ${partialMatchCount}/${sourceWords.length} (score: ${0.3 + (ratio * 0.15)})`);
-                bestMatch = { matched: true, score: 0.3 + (ratio * 0.15), matchType: 'partial-words' };
-            } else {
-                if (debug) console.log(`  ✗ NO MATCH`);
+            if (debug && !foundExact && !foundPartial) {
+                console.log(`  ✗ WORD NOT FOUND: "${sourceWord}" not in target words`);
             }
         }
         
-        return bestMatch;
+        // Only return individual word matches if we found at least some words
+        if (exactWordMatches > 0 || partialWordMatches > 0) {
+            const score = (exactWordMatches + partialWordMatches * 0.3) / sourceWords.length;
+            if (debug) console.log(`  ⚠ INDIVIDUAL WORDS: ${exactWordMatches} exact, ${partialWordMatches} partial (score: ${score.toFixed(2)})`);
+            return { matched: true, score: Math.max(score, 0.1), matchType: 'individual-words' };
+        }
+        
+        if (debug) console.log(`  ✗ NO MATCH FOUND`);
+        return { matched: false, score: 0, matchType: 'none' };
     }
 
     /**
      * Initialize threshold slider with current setting value
      */
     _initializeThresholdSlider() {
-        
-        // Debug: Log ALL barbarian file calls
-        if (fileNameLower.includes('barbarian')) {
-            console.log(`Token Image Replacement: BARBARIAN FILE CALLED - "${fileName}" for token "${tokenDocument?.name || 'NO_TOKEN'}" in mode "${searchMode}"`);
-            console.log(`Token Image Replacement: BARBARIAN DEBUG - searchTerms:`, searchTerms);
-        }
-        
+               
         // Get weighted settings - no hardcoded defaults, values must come from settings
         const weights = {
             actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
@@ -1984,23 +1962,16 @@ export class TokenImageReplacementWindow extends Application {
         if (tokenDocument && searchMode === 'token') {
             tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
             
-            // Debug: Log token data for barbarian files
-            if (fileNameLower.includes('barbarian')) {
-                console.log(`Token Image Replacement: BARBARIAN DEBUG - tokenData:`, tokenData);
-            }
-            
-            // Debug: Log all token data fields for goblin files
-            if (fileNameLower.includes('goblin')) {
-                console.log(`Token Image Replacement: GOBLIN DEBUG - TOKEN DATA BREAKDOWN:`);
-                console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
-                console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
-                console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
-                console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
-                console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
-                console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
-                console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
-                console.log(`  - WEIGHTS:`, weights);
-            }
+            // Debug: Log token data breakdown for ANY token (not goblin-specific)
+            console.log(`Token Image Replacement: TOKEN DATA BREAKDOWN:`);
+            console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
+            console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
+            console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
+            console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
+            console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
+            console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
+            console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
+            console.log(`  - WEIGHTS:`, weights);
         }
         
         // Calculate maximum possible score using weighted system
@@ -2016,18 +1987,6 @@ export class TokenImageReplacementWindow extends Application {
             if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
             if (tokenData.size) maxPossibleScore += weights.size;
             
-            // Debug: Log maxPossibleScore calculation for goblin files
-            if (fileNameLower.includes('goblin')) {
-                console.log(`Token Image Replacement: GOBLIN DEBUG - MAX POSSIBLE SCORE CALCULATION:`);
-                console.log(`  - Actor Name (${weights.actorName.toFixed(3)}): ${tokenDocument?.actor?.name ? 'YES' : 'NO'}`);
-                console.log(`  - Token Name (${weights.tokenName.toFixed(3)}): ${tokenDocument?.name ? 'YES' : 'NO'}`);
-                console.log(`  - Represented Actor (${weights.representedActor.toFixed(3)}): ${tokenData?.representedActor ? 'YES' : 'NO'}`);
-                console.log(`  - Creature Type (${weights.creatureType.toFixed(3)}): ${tokenData?.creatureType ? 'YES' : 'NO'}`);
-                console.log(`  - Creature Subtype (${weights.creatureSubtype.toFixed(3)}): ${tokenData?.creatureSubtype ? 'YES' : 'NO'}`);
-                console.log(`  - Equipment (${weights.equipment.toFixed(3)}): ${tokenData?.equipment?.length > 0 ? 'YES' : 'NO'}`);
-                console.log(`  - Size (${weights.size.toFixed(3)}): ${tokenData?.size ? 'YES' : 'NO'}`);
-                console.log(`  - TOTAL MAX POSSIBLE SCORE: ${maxPossibleScore.toFixed(3)}`);
-            }
         }
         
         // Ensure maxPossibleScore is never zero
@@ -2047,9 +2006,6 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - actorNameMatch: ${actorNameMatch.toFixed(3)}, weight: ${weights.actorName.toFixed(3)}, contribution: ${(actorNameMatch * weights.actorName).toFixed(3)}`);
-                    }
                 }
             }
             
@@ -2061,9 +2017,6 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - tokenNameMatch: ${tokenNameMatch.toFixed(3)}, weight: ${weights.tokenName.toFixed(3)}, contribution: ${(tokenNameMatch * weights.tokenName).toFixed(3)}`);
-                    }
                 }
                 
             }
@@ -2076,9 +2029,6 @@ export class TokenImageReplacementWindow extends Application {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - actorMatch: ${actorMatch.toFixed(3)}, weight: ${weights.representedActor.toFixed(3)}, contribution: ${(actorMatch * weights.representedActor).toFixed(3)}`);
-                    }
                 }
                 
             }
@@ -2103,14 +2053,6 @@ export class TokenImageReplacementWindow extends Application {
                     totalScore += typeMatch * weights.creatureType;
                     foundMatch = true;
                     
-                    // Debug: Log creature type matching for barbarian files with goblin tokens
-                    if (fileNameLower.includes('barbarian') && tokenDocument?.name?.toLowerCase().includes('goblin')) {
-                        console.log(`Token Image Replacement: BARBARIAN DEBUG - Creature Type Match:`);
-                        console.log(`  - tokenData.creatureType: "${tokenData.creatureType}"`);
-                        console.log(`  - typeMatch: ${typeMatch.toFixed(3)}`);
-                        console.log(`  - weight: ${weights.creatureType.toFixed(3)}`);
-                        console.log(`  - contribution: ${(typeMatch * weights.creatureType).toFixed(3)}`);
-                    }
                 }
             }
             
@@ -2323,9 +2265,10 @@ export class TokenImageReplacementWindow extends Application {
             return 0; // Return 0 score for files with empty names
         }
         
-        // Debug: Log scoring for goblin files (for token dropping)
-        if (fileNameLower.includes('goblin')) {
-            console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
+        
+        // Debug: Log scoring for frost giant files (for token dropping)
+        if (fileNameLower.includes('frost') && fileNameLower.includes('giant')) {
+            console.log(`Token Image Replacement: FROST GIANT FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
         }
         
         // Debug: Log ALL files scoring above 10% to see what's actually matching
@@ -2339,13 +2282,6 @@ export class TokenImageReplacementWindow extends Application {
             console.log(`Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`);
         }
         
-        // Debug: Log specific barbarian file scoring for goblin tokens
-        if (searchMode === 'token' && fileNameLower.includes('barbarian') && tokenDocument?.name?.toLowerCase().includes('goblin')) {
-            console.log(`Token Image Replacement: BARBARIAN DEBUG - File "${fileName}" for Goblin token:`);
-            console.log(`  - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
-            console.log(`  - tokenData:`, tokenData);
-            console.log(`  - weights:`, weights);
-        }
         
         // Apply deprioritized words penalty
         const deprioritizedWords = game.settings.get(MODULE.ID, 'tokenImageReplacementDeprioritizedWords') || '';
@@ -3953,30 +3889,9 @@ export class TokenImageReplacement {
                 return result;
             },
             
-            // Test full scoring for goblin files
-            testGoblinScoring: () => {
-                console.log(`\n🧪 Testing Goblin scoring with new word matching:`);
-                
-                const testCases = [
-                    { token: "Goblin", file: "goblin_archer_a1_bow_01.webp" },
-                    { token: "Goblin", file: "goblin_barbarian_a1_axe_01.webp" },
-                    { token: "Goblin", file: "goblin-02.webp" },
-                    { token: "Goblin", file: "cloud-giant.webp" }
-                ];
-                
-                for (const test of testCases) {
-                    console.log(`\n--- Testing: "${test.token}" vs "${test.file}" ---`);
-                    const result = TokenImageReplacementWindow._matchCombinations(
-                        TokenImageReplacementWindow._extractWords(test.token), 
-                        test.file, 
-                        false
-                    );
-                    console.log(`Result: ${result.matched ? '✓' : '✗'} Score: ${(result.score * 100).toFixed(1)}% Type: ${result.matchType}`);
-                }
-            }
         };
         
-        postConsoleAndNotification(MODULE.NAME, "Console commands added: coffeePubCache.info(), coffeePubCache.size(), coffeePubCache.version(), coffeePubCache.clear(), coffeePubCache.quota(), coffeePubCache.testMatch(tokenName, filename), coffeePubCache.testGoblinScoring()", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Console commands added: coffeePubCache.info(), coffeePubCache.size(), coffeePubCache.version(), coffeePubCache.clear(), coffeePubCache.quota(), coffeePubCache.testMatch(tokenName, filename)", "", true, false);
     }
     
     static async initialize() {
@@ -5218,9 +5133,6 @@ export class TokenImageReplacement {
         const sampleFiles = Array.from(this.cache.files.keys()).slice(0, 10);
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample cached files: ${sampleFiles.join(', ')}`, "", true, false);
         
-        // Debug: Search for goblin files in cache
-        const goblinFiles = Array.from(this.cache.files.keys()).filter(name => name.toLowerCase().includes('goblin'));
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${goblinFiles.length} goblin files in cache: ${goblinFiles.slice(0, 5).join(', ')}`, "", true, false);
         
         // Use unified matching system (same as WINDOW)
         // For DROP, always search ALL files (no UI filtering)
@@ -6648,12 +6560,6 @@ export class TokenImageReplacement {
         const filePath = fileInfo.path || fileInfo.fullPath || '';
         const filePathLower = filePath.toLowerCase();
         
-        // Debug: Log ALL barbarian file calls
-        if (fileNameLower.includes('barbarian')) {
-            console.log(`Token Image Replacement: BARBARIAN FILE CALLED - "${fileName}" for token "${tokenDocument?.name || 'NO_TOKEN'}" in mode "${searchMode}"`);
-            console.log(`Token Image Replacement: BARBARIAN DEBUG - searchTerms:`, searchTerms);
-        }
-        
         // Get weighted settings - no hardcoded defaults, values must come from settings
         const weights = {
             actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
@@ -6682,24 +6588,17 @@ export class TokenImageReplacement {
         let tokenData = {};
         if (tokenDocument && searchMode === 'token') {
             tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
-            
-            // Debug: Log token data for barbarian files
-            if (fileNameLower.includes('barbarian')) {
-                console.log(`Token Image Replacement: BARBARIAN DEBUG - tokenData:`, tokenData);
-            }
-            
-            // Debug: Log all token data fields for goblin files
-            if (fileNameLower.includes('goblin')) {
-                console.log(`Token Image Replacement: GOBLIN DEBUG - TOKEN DATA BREAKDOWN:`);
-                console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
-                console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
-                console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
-                console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
-                console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
-                console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
-                console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
-                console.log(`  - WEIGHTS:`, weights);
-            }
+             
+            // Debug: Log token data breakdown for ANY token (not goblin-specific)
+            console.log(`Token Image Replacement: TOKEN DATA BREAKDOWN:`);
+            console.log(`  - ACTOR NAME: "${tokenDocument?.actor?.name || 'NOT_FOUND'}"`);
+            console.log(`  - TOKEN NAME: "${tokenDocument?.name || 'NOT_FOUND'}"`);
+            console.log(`  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`);
+            console.log(`  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`);
+            console.log(`  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`);
+            console.log(`  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`);
+            console.log(`  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`);
+            console.log(`  - WEIGHTS:`, weights);
         }
         
         // Calculate maximum possible score using weighted system
@@ -6715,18 +6614,6 @@ export class TokenImageReplacement {
             if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
             if (tokenData.size) maxPossibleScore += weights.size;
             
-            // Debug: Log maxPossibleScore calculation for goblin files
-            if (fileNameLower.includes('goblin')) {
-                console.log(`Token Image Replacement: GOBLIN DEBUG - MAX POSSIBLE SCORE CALCULATION:`);
-                console.log(`  - Actor Name (${weights.actorName.toFixed(3)}): ${tokenDocument?.actor?.name ? 'YES' : 'NO'}`);
-                console.log(`  - Token Name (${weights.tokenName.toFixed(3)}): ${tokenDocument?.name ? 'YES' : 'NO'}`);
-                console.log(`  - Represented Actor (${weights.representedActor.toFixed(3)}): ${tokenData?.representedActor ? 'YES' : 'NO'}`);
-                console.log(`  - Creature Type (${weights.creatureType.toFixed(3)}): ${tokenData?.creatureType ? 'YES' : 'NO'}`);
-                console.log(`  - Creature Subtype (${weights.creatureSubtype.toFixed(3)}): ${tokenData?.creatureSubtype ? 'YES' : 'NO'}`);
-                console.log(`  - Equipment (${weights.equipment.toFixed(3)}): ${tokenData?.equipment?.length > 0 ? 'YES' : 'NO'}`);
-                console.log(`  - Size (${weights.size.toFixed(3)}): ${tokenData?.size ? 'YES' : 'NO'}`);
-                console.log(`  - TOTAL MAX POSSIBLE SCORE: ${maxPossibleScore.toFixed(3)}`);
-            }
         }
         
         // Ensure maxPossibleScore is never zero
@@ -6746,9 +6633,6 @@ export class TokenImageReplacement {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - actorNameMatch: ${actorNameMatch.toFixed(3)}, weight: ${weights.actorName.toFixed(3)}, contribution: ${(actorNameMatch * weights.actorName).toFixed(3)}`);
-                    }
                 }
             }
             
@@ -6760,9 +6644,6 @@ export class TokenImageReplacement {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - tokenNameMatch: ${tokenNameMatch.toFixed(3)}, weight: ${weights.tokenName.toFixed(3)}, contribution: ${(tokenNameMatch * weights.tokenName).toFixed(3)}`);
-                    }
                 }
                 
             }
@@ -6775,9 +6656,6 @@ export class TokenImageReplacement {
                     foundMatch = true;
                     
                     // Debug: Log scoring for goblin files
-                    if (fileNameLower.includes('goblin')) {
-                        console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - actorMatch: ${actorMatch.toFixed(3)}, weight: ${weights.representedActor.toFixed(3)}, contribution: ${(actorMatch * weights.representedActor).toFixed(3)}`);
-                    }
                 }
                 
             }
@@ -6802,14 +6680,6 @@ export class TokenImageReplacement {
                     totalScore += typeMatch * weights.creatureType;
                     foundMatch = true;
                     
-                    // Debug: Log creature type matching for barbarian files with goblin tokens
-                    if (fileNameLower.includes('barbarian') && tokenDocument?.name?.toLowerCase().includes('goblin')) {
-                        console.log(`Token Image Replacement: BARBARIAN DEBUG - Creature Type Match:`);
-                        console.log(`  - tokenData.creatureType: "${tokenData.creatureType}"`);
-                        console.log(`  - typeMatch: ${typeMatch.toFixed(3)}`);
-                        console.log(`  - weight: ${weights.creatureType.toFixed(3)}`);
-                        console.log(`  - contribution: ${(typeMatch * weights.creatureType).toFixed(3)}`);
-                    }
                 }
             }
             
@@ -6974,8 +6844,7 @@ export class TokenImageReplacement {
         }
         
         // Note: Multi-word bonus and basic creature priority bonus removed for simpler percentage-based scoring
-        
-        
+
         // Normalize score to 0.0-1.0 range
         const finalScore = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
         let clampedScore = Math.min(Math.max(finalScore, 0), 1);
@@ -6988,30 +6857,6 @@ export class TokenImageReplacement {
         // Skip files with empty names
         if (!fileName || fileName.trim() === '') {
             return 0; // Return 0 score for files with empty names
-        }
-        
-        // Debug: Log scoring for goblin files (for token dropping)
-        if (fileNameLower.includes('goblin')) {
-            console.log(`Token Image Replacement: GOBLIN FILE - "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
-        }
-        
-        // Debug: Log ALL files scoring above 10% to see what's actually matching
-        if (finalScore > 0.1) {
-            console.log(`Token Image Replacement: File "${fileName}" scored ${(finalScore * 100).toFixed(1)}% - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`);
-        }
-        
-        // Debug: Log scoring for any files that score above threshold during token dropping
-        if (searchMode === 'token' && clampedScore > 0.15) { // Log files scoring above 15%
-            console.log(`Token Image Replacement: File "${fileName}" - finalScore: ${finalScore.toFixed(3)}, clampedScore: ${clampedScore.toFixed(3)}`);
-            console.log(`Token Image Replacement: File "${fileName}" - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}`);
-        }
-        
-        // Debug: Log specific barbarian file scoring for goblin tokens
-        if (searchMode === 'token' && fileNameLower.includes('barbarian') && tokenDocument?.name?.toLowerCase().includes('goblin')) {
-            console.log(`Token Image Replacement: BARBARIAN DEBUG - File "${fileName}" for Goblin token:`);
-            console.log(`  - totalScore: ${totalScore.toFixed(3)}, maxPossibleScore: ${maxPossibleScore.toFixed(3)}, finalScore: ${finalScore.toFixed(3)}`);
-            console.log(`  - tokenData:`, tokenData);
-            console.log(`  - weights:`, weights);
         }
         
         // Apply deprioritized words penalty
@@ -7181,44 +7026,11 @@ export class TokenImageReplacement {
         
         // RELEVANCE MODE: Use sophisticated scoring
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
-        
-        console.log(`Token Image Replacement: DEBUG - Starting file loop with ${filesToSearch.length} files`);
-        
-        // Debug: Show first 10 file names to see what we're processing
-        console.log(`Token Image Replacement: DEBUG - First 10 files:`, filesToSearch.slice(0, 10).map(f => f.name || f.fullPath?.split('/').pop()));
-        
+                
         for (let i = 0; i < filesToSearch.length; i++) {
-            const fileInfo = filesToSearch[i];
-            
-            // Debug: Log threshold for first file to avoid spam
-            if (i === 0) {
-                console.log(`Token Image Replacement: Using threshold: ${threshold} (${(threshold * 100).toFixed(1)}%)`);
-            }
-            
-            // Debug: Log when we encounter goblin files
-            const fileName = (fileInfo.name || fileInfo.fullPath?.split('/').pop() || '').toLowerCase();
-            if (fileName.includes('goblin')) { // Log ALL goblin files
-                console.log(`Token Image Replacement: Processing goblin file "${fileName}" at index ${i}`);
-            }
-            
-            // Debug: Log every file being processed to see what's happening
-            if (i < 20) { // Log first 20 files to avoid spam
-                console.log(`Token Image Replacement: Processing file ${i}:`, {
-                    name: fileInfo.name,
-                    fullPath: fileInfo.fullPath,
-                    fileName: fileInfo.fileName,
-                    keys: Object.keys(fileInfo)
-                });
-            }
-            
+            const fileInfo = filesToSearch[i]; 
             const relevanceScore = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode);
-            
-            // Debug: Log scores for first 20 files
-            if (i < 20) {
-                const displayName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown';
-                console.log(`Token Image Replacement: File "${displayName}" scored ${(relevanceScore * 100).toFixed(1)}% (threshold: ${(threshold * 100).toFixed(1)}%)`);
-            }
-            
+                        
             // Only include results above threshold
             if (relevanceScore >= threshold) {
                 results.push({
