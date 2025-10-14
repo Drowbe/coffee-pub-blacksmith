@@ -31,6 +31,10 @@ export class TokenImageReplacementWindow extends Application {
         this.notificationIcon = null;
         this.notificationText = null;
         
+        // Debouncing for token selection changes
+        this._tokenSelectionDebounceTimer = null;
+        this._lastProcessedTokenId = null;
+        
         // Window state management - let Foundry handle it automatically
         this.windowState = {
             width: 700,
@@ -545,6 +549,11 @@ export class TokenImageReplacementWindow extends Application {
                     searchMode = 'token';
                     searchTerms = null; // Use token-based matching instead of search terms
                     tokenDocument = this.selectedToken.document;
+                } else if (this.currentFilter === 'selected' && !this.selectedToken) {
+                    // SELECTED TAB but no token selected: Show no results
+                    this.allMatches = [];
+                    this._updateResults();
+                    return;
                 } else if (this.searchTerm && this.searchTerm.length >= 3) {
                     // SEARCH MODE: Use search term matching
                     searchMode = 'search';
@@ -896,12 +905,19 @@ export class TokenImageReplacementWindow extends Application {
             this._tokenHookId = null;
         }
         
+        // Clear debounce timer
+        if (this._tokenSelectionDebounceTimer) {
+            clearTimeout(this._tokenSelectionDebounceTimer);
+            this._tokenSelectionDebounceTimer = null;
+        }
+        
         // MEMORY CLEANUP: Clear all arrays and references
         this.matches = [];
         this.allMatches = [];
         this.selectedToken = null;
         this._cachedSearchTerms = null;
         this.selectedTags.clear();
+        this._lastProcessedTokenId = null;
         
         // MEMORY CLEANUP: Remove all image elements from DOM to free memory
         const $element = this.element;
@@ -929,9 +945,15 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
+        // Clear any existing debounce timer
+        if (this._tokenSelectionDebounceTimer) {
+            clearTimeout(this._tokenSelectionDebounceTimer);
+        }
         
-        // Handle token switching when window is already open
-        await this._handleTokenSwitch();
+        // Debounce token selection changes to prevent multiple rapid-fire executions
+        this._tokenSelectionDebounceTimer = setTimeout(async () => {
+            await this._handleTokenSwitch();
+        }, 100); // 100ms debounce
     }
 
     /**
@@ -940,17 +962,24 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _handleTokenSwitch() {
         try {
-            // Store current state before switching
-            const currentSearchTerms = this._cachedSearchTerms;
-            
             // Get the newly selected token
             const selectedTokens = canvas?.tokens?.controlled || [];
+            const newTokenId = selectedTokens.length > 0 ? selectedTokens[0].id : null;
+            
+            // Prevent processing the same token multiple times
+            if (newTokenId === this._lastProcessedTokenId) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping duplicate token selection for ${newTokenId}`, "", true, false);
+                return;
+            }
+            
+            this._lastProcessedTokenId = newTokenId;
             
             if (selectedTokens.length > 0) {
                 this.selectedToken = selectedTokens[0];
                 
                 // When a token is selected, switch to "selected" tab and update results
                 this.currentFilter = 'selected';
+                this._cachedSearchTerms = null; // Clear cache for new token
                 this._showSearchSpinner();
                 await this._findMatches();
                 this._hideSearchSpinner();
