@@ -3172,5 +3172,220 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
+    /**
+     * Find a matching image for a token
+     */
+    static async findMatchingImage(tokenDocument) {
+        
+        // Check if feature is enabled
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
+            return null;
+        }
+        
+        // Check if we should skip this token type
+        if (!TokenImageReplacement._shouldUpdateToken(tokenDocument)) {
+            return null;
+        }
+        
+        // If cache is empty, return null - real-time search will be handled by caller
+        if (TokenImageReplacement.cache.files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache empty, skipping automatic matching", "", true, false);
+            return null;
+        }
+        
+        // Debug: Log cache status
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status - files: ${TokenImageReplacement.cache.files.size}, folders: ${TokenImageReplacement.cache.folders.size}, creatureTypes: ${TokenImageReplacement.cache.creatureTypes.size}`, "", true, false);
+        
+        // Debug: Log token details
+        const creatureType = tokenDocument.actor?.system?.details?.type?.value;
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token details - name: "${tokenDocument.name}", creatureType: "${creatureType}"`, "", true, false);
+        
+        // Debug: Log timing - are we matching before or after nameplate change?
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: MATCHING TIMING - Current token name: "${tokenDocument.name}", Actor name: "${tokenDocument.actor?.name}"`, "", true, false);
+        
+        // For token dropping, use actor name instead of token name (before nameplate change)
+        const originalTokenName = tokenDocument.name;
+        tokenDocument.name = tokenDocument.actor?.name || tokenDocument.name;
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using actor name for matching: "${tokenDocument.name}"`, "", true, false);
+        
+        // Debug: Log some sample filenames to see what's in cache
+        const sampleFiles = Array.from(TokenImageReplacement.cache.files.keys()).slice(0, 10);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample cached files: ${sampleFiles.join(', ')}`, "", true, false);
+        
+        
+        // Use unified matching system (same as WINDOW)
+        // For DROP, always search ALL files (no UI filtering)
+        // Create temporary window instance to access unified matching methods
+        const tempWindow = new TokenImageReplacementWindow();
+        tempWindow.currentFilter = 'all'; // Always use 'all' for DROP to search complete file set
+        
+        // Get all files (no filtering for DROP - let scoring determine best match)
+        const filesToSearch = tempWindow._getFilteredFiles();
+        
+        // Use unified matching with token mode (same parameters as WINDOW)
+        // For token-based matching, searchTerms should be null (same as WINDOW system)
+        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+        
+        // Restore original token name
+        tokenDocument.name = originalTokenName;
+        
+        // Return the best match (highest score)
+        const match = matches.length > 0 ? matches[0] : null;
+        
+        if (match) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found match for ${tokenDocument.name}: ${match.name} (score: ${(match.searchScore * 100).toFixed(1)}%)`, "", true, false);
+            return match;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found above threshold for ${tokenDocument.name}`, "", true, false);
+        return null;
+    }
+
+    /**
+     * Hook for when tokens are created
+     */
+    static async _onTokenCreated(tokenDocument, options, userId) {
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Hook fired for token: ${tokenDocument.name}`, "", true, false);
+        
+        // Only GMs can update tokens - skip for non-GM users
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - user is not GM", "", true, false);
+            return;
+        }
+        
+        // Store the original image before any updates
+        await TokenImageReplacement._storeOriginalImage(tokenDocument);
+        
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", true, false);
+            return;
+        }
+        
+        // Check if Update Dropped Tokens is enabled
+        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true)) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - Update Dropped Tokens disabled", "", true, false);
+            return;
+        }
+        
+        // Check if cache is ready
+        if (TokenImageReplacement.cache.files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - cache not ready", "", true, false);
+            return;
+        }
+        
+        // Extract token data
+        const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+        
+        // Log formatted breakdown (simplified for new scoring system)
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== TOKEN DATA BREAKDOWN =====`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Criteria | Data from Token`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: representedActor | "${tokenData.representedActor || 'none'}"`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: tokenName | "${tokenDocument.name || 'none'}"`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | "${tokenData.creatureType || 'none'}"`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | "${tokenData.creatureSubtype || 'none'}"`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | [${tokenData.equipment?.join(', ') || 'none'}]`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | "${tokenData.size || 'none'}"`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: =================================`, "", true, false);
+        
+        // Wait a moment for the token to be fully created on the canvas
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Find matching image
+        const matchingImage = await this.findMatchingImage(tokenDocument);
+        
+        if (matchingImage) {
+            // Validate the image path before applying
+            if (TokenImageReplacement._isInvalidFilePath(matchingImage.fullPath)) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cannot apply invalid image path to ${tokenDocument.name}: ${matchingImage.fullPath}`, "", true, false);
+                
+                // Clean up the invalid path from cache to prevent future issues
+                TokenImageReplacement.cache.files.delete(matchingImage.name.toLowerCase());
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed invalid path from cache: ${matchingImage.name}`, "", true, false);
+                
+                // Try to find an alternative match using unified matching system
+                // Get current filter from any open window
+                let currentFilter = 'all';
+                const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+                if (openWindow) {
+                    currentFilter = openWindow.currentFilter;
+                }
+                
+                // Create temporary window instance to access unified matching methods
+                const tempWindow = new TokenImageReplacementWindow();
+                tempWindow.currentFilter = currentFilter;
+                
+                // Get filtered files and find alternative match
+                const filesToSearch = tempWindow._getFilteredFiles();
+                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+                const alternativeMatch = matches.length > 0 ? matches[0] : null;
+                if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
+                    try {
+                        await tokenDocument.update({
+                            'texture.src': alternativeMatch.fullPath
+                        });
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied alternative image ${alternativeMatch.name} to ${tokenDocument.name}`, "", true, false);
+                    } catch (altError) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying alternative image: ${altError.message}`, "", true, false);
+                    }
+                }
+                return;
+            }
+            
+            // Apply the image replacement
+            try {
+                await tokenDocument.update({
+                    'texture.src': matchingImage.fullPath
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", false, false);
+                
+                // Check if the error is due to an invalid asset path
+                if (error.message.includes('Invalid Asset') || error.message.includes('loadTexture')) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid asset detected, removing from cache: ${matchingImage.fullPath}`, "", false, false);
+                    TokenImageReplacement.cache.files.delete(matchingImage.name.toLowerCase());
+                    
+                    // Try to find an alternative match using unified matching system
+                    // Get current filter from any open window
+                    let currentFilter = 'all';
+                    const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+                    if (openWindow) {
+                        currentFilter = openWindow.currentFilter;
+                    }
+                    
+                    // Create temporary window instance to access unified matching methods
+                    const tempWindow = new TokenImageReplacementWindow();
+                    tempWindow.currentFilter = currentFilter;
+                    
+                    // Get filtered files and find alternative match
+                    const filesToSearch = tempWindow._getFilteredFiles();
+                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+                    const alternativeMatch = matches.length > 0 ? matches[0] : null;
+                    if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
+                        try {
+                            await tokenDocument.update({
+                                'texture.src': alternativeMatch.fullPath
+                            });
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied alternative image ${alternativeMatch.name} to ${tokenDocument.name}`, "", false, false);
+                        } catch (altError) {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying alternative image: ${altError.message}`, "", false, false);
+                        }
+                    }
+                }
+                
+                // Notify the GM about the failure
+                if (game.user.isGM) {
+                    ui.notifications.warn(`Token Image Replacement failed for ${tokenDocument.name}. Check console for details.`);
+                }
+            }
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search Summary - Token Data: representedActor="${tokenData.representedActor}", creatureType="${tokenData.creatureType}", creatureSubtype="${tokenData.creatureSubtype}", equipment=[${tokenData.equipment?.join(', ') || 'none'}]`, "", true, false);
+        }
+    }
+
 }
 
