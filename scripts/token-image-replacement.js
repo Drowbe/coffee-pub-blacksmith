@@ -1655,26 +1655,8 @@ export class TokenImageReplacementWindow extends Application {
             `;
         }
         
-        // If we have matches but only original/current in search mode, add "No Results" message
-        let html = '';
-        if (isSearchMode && hasOnlyOriginalCurrent) {
-            html += `
-                <!-- Show "No Results" message for search -->
-                <div class="tir-thumbnail-item tir-no-matches">
-                    <!-- Image -->
-                    <div class="tir-no-matches-icon">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <!-- Description -->
-                    <div class="tir-no-matches-text">
-                        <p>No Results</p>
-                        <p><span class="tir-thumbnail-tag">NO RESULTS</span></p>
-                    </div>
-                </div>
-            `;
-        }
         // ***** BUILD: MATCHING RESULT *****
-        html += this.matches.map(match => {
+        let html = this.matches.map(match => {
             const tags = this._getTagsForMatch(match);
             const isRecommended = this.recommendedToken && match.fullPath === this.recommendedToken.fullPath;
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
@@ -1732,6 +1714,24 @@ export class TokenImageReplacementWindow extends Application {
                 </div>
             `;
         }).join('');
+        
+        // If we have matches but only original/current in search mode, add "No Results" message after them
+        if (isSearchMode && hasOnlyOriginalCurrent) {
+            html += `
+                <!-- Show "No Results" message for search -->
+                <div class="tir-thumbnail-item tir-no-matches">
+                    <!-- Image -->
+                    <div class="tir-no-matches-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <!-- Description -->
+                    <div class="tir-no-matches-text">
+                        <p>No Results</p>
+                        <p><span class="tir-thumbnail-tag">NO RESULTS</span></p>
+                    </div>
+                </div>
+            `;
+        }
         
         return html;
     }
