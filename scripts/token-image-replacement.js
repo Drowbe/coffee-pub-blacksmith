@@ -553,7 +553,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Otherwise: BROWSE MODE (no search terms)
                 
                 // Apply unified matching
-                const matchedResults = TokenImageReplacement._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode);
+                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache);
                 
                 // Filter out any results that are the current image to avoid duplicates
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
@@ -569,7 +569,7 @@ export class TokenImageReplacementWindow extends Application {
                             path: currentImage.fullPath,
                             metadata: currentImage.metadata
                         };
-                        currentImage.searchScore = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+                        currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
                         
                         // Note: Current image (selected token) is always shown regardless of threshold
                         // The threshold only affects other matching images, not the selected token itself
@@ -581,7 +581,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Calculate recommended token for Selected tab
                 if (this.currentFilter === 'selected' && this.selectedToken && this.allMatches.length > 1) {
-                    this.recommendedToken = this._calculateRecommendedToken();
+                    this.recommendedToken = await this._calculateRecommendedToken();
                 }
             }
         }
@@ -1171,7 +1171,7 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Step 3: Apply unified matching with search terms
-        const searchResults = TokenImageReplacement._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search');
+        const searchResults = ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache);
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
@@ -1187,7 +1187,7 @@ export class TokenImageReplacementWindow extends Application {
                     path: currentImage.fullPath,
                     metadata: currentImage.metadata
                 };
-                currentImage.searchScore = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+                currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
                 
                 // Note: Current image (selected token) is always shown regardless of threshold
                 // The threshold only affects other matching images, not the selected token itself
@@ -1658,13 +1658,13 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Apply the tag filters and refresh results
-        await this._applyTagFilters();
+        this._applyTagFilters();
     }
 
     /**
      * Apply tag filters to current results
      */
-    async _applyTagFilters() {
+    _applyTagFilters() {
         // Get the base filtered files (by category)
         const baseFiles = this._getFilteredFiles();
         
@@ -1681,9 +1681,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Apply search term if any
         if (this.searchTerm && this.searchTerm.length >= 3) {
-            this.allMatches = TokenImageReplacement._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search');
+            this.allMatches = ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache);
         } else {
-            this.allMatches = TokenImageReplacement._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse');
+            this.allMatches = ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache);
         }
         
         // Apply pagination and update results
@@ -2434,7 +2434,7 @@ export class TokenImageReplacementWindow extends Application {
         $thresholdValue.text(`${percentage}%`);
         
         // Update the setting
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementThreshold', threshold);
+        game.settings.set(MODULE.ID, 'tokenImageReplacementThreshold', threshold);
         
         // Refresh results with new threshold
         await this._findMatches();
@@ -2457,7 +2457,7 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _onFuzzySearchToggle(event) {
         const isEnabled = event.target.checked;
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementFuzzySearch', isEnabled);
+        game.settings.set(MODULE.ID, 'tokenImageReplacementFuzzySearch', isEnabled);
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fuzzy Search ${isEnabled ? 'enabled' : 'disabled'}`, 
             isEnabled ? 'Searching for individual words independently' : 'Searching for exact string matches', 
@@ -2553,7 +2553,7 @@ export class TokenImageReplacementWindow extends Application {
      * Calculate the recommended token for automatic replacement
      * Uses the same unified matching logic as the window system
      */
-    _calculateRecommendedToken() {
+    async _calculateRecommendedToken() {
         if (!this.selectedToken || this.allMatches.length === 0) {
             return null;
         }
@@ -2576,7 +2576,7 @@ export class TokenImageReplacementWindow extends Application {
             const fileInfo = this._getFileInfoFromCache(match.name);
             if (!fileInfo) {
                 // Try using the match object directly as fallback
-                const score = TokenImageReplacement._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token');
+                const score = await ImageMatching._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
                 
                 if (score > bestScore && score >= threshold) {
                     bestScore = score;
@@ -2586,7 +2586,7 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Calculate score using unified algorithm
-            const score = TokenImageReplacement._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token');
+            const score = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
