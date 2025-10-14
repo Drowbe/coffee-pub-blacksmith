@@ -698,7 +698,7 @@ export class TokenImageReplacement {
             description: 'Token Image Replacement: Handle token creation for image replacement',
             context: 'token-image-replacement-creation',
             priority: 3, // Normal priority - token processing
-            callback: TokenImageReplacementWindow._onTokenCreated.bind(TokenImageReplacementWindow)
+            callback: TokenImageReplacementWindow._onTokenCreated
         });
 
         // Log hook registration
@@ -710,7 +710,7 @@ export class TokenImageReplacement {
             description: 'Token Image Replacement: Global token selection detection',
             context: 'token-image-replacement-global',
             priority: 3, // Normal priority - UI enhancement
-            callback: TokenImageReplacementWindow._onGlobalTokenSelectionChange.bind(TokenImageReplacementWindow)
+            callback: TokenImageReplacementWindow._onGlobalTokenSelectionChange
         });
 
         // Log hook registration
@@ -722,7 +722,7 @@ export class TokenImageReplacement {
             description: 'Token Image Replacement: Monitor actor HP changes for dead token replacement',
             context: 'token-image-replacement-dead-tokens',
             priority: 3, // Normal priority - token processing
-            callback: this._onActorUpdateForDeadToken.bind(this)
+            callback: TokenImageReplacementWindow._onActorUpdateForDeadToken
         });
 
         // Log hook registration
@@ -2080,108 +2080,9 @@ export class TokenImageReplacement {
     // _getPreviousImage moved to TokenImageReplacementWindow
     // _restorePreviousTokenImage moved to TokenImageReplacementWindow
 
-    /**
-     * Get the dead token image path (single image for all dead tokens)
-     */
-    static _getDeadTokenImagePath() {
-        const deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', 'assets/images/tokens/dead_token.png');
-        
-        // Check if the file exists in our cache
-        const fileName = deadTokenPath.split('/').pop();
-        const cachedFile = this.cache.files.get(fileName.toLowerCase());
-        
-        if (cachedFile) {
-            return cachedFile.fullPath;
-        }
-        
-        // If not in cache, return the path as-is (might be a custom path)
-        return deadTokenPath;
-    }
-
-    /**
-     * Apply dead token image to a token
-     */
-    static async _applyDeadTokenImage(tokenDocument, actor) {
-        // Check if feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false)) {
-            return;
-        }
-        
-        // Check if dead token is already applied
-        if (tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied')) {
-            return;
-        }
-        
-        // Check creature type filter
-        const creatureType = actor?.system?.details?.type?.value?.toLowerCase() || '';
-        const allowedTypes = getSettingSafely(MODULE.ID, 'deadTokenCreatureTypeFilter', '');
-        
-        if (allowedTypes && allowedTypes.trim() !== '') {
-            const types = allowedTypes.split(',').map(t => t.trim().toLowerCase());
-            if (!types.includes(creatureType)) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping dead token for ${tokenDocument.name} - creature type ${creatureType} not in filter`, "", true, false);
-                return;
-            }
-        }
-        
-        // Store current image as "previous" before applying dead token
-        await this._storePreviousImage(tokenDocument);
-        
-        // Get the dead token image path
-        const deadTokenPath = this._getDeadTokenImagePath();
-        
-        if (deadTokenPath) {
-            try {
-                await tokenDocument.update({ 'texture.src': deadTokenPath });
-                await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied dead token to ${tokenDocument.name}`, "", true, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying dead token: ${error.message}`, "", true, false);
-            }
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Dead token image path not configured for ${tokenDocument.name}`, "", true, false);
-        }
-    }
-
-    /**
-     * Hook for actor updates - monitor HP changes for dead token replacement
-     */
-    static async _onActorUpdateForDeadToken(actor, changes, options, userId) {
-        // Check if feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false)) {
-            return;
-        }
-        
-        // Only GMs can update tokens
-        if (!game.user.isGM) {
-            return;
-        }
-        
-        // Check if HP changed
-        if (!changes.system?.attributes?.hp) {
-            return;
-        }
-        
-        // Get current HP
-        const currentHP = actor.system.attributes.hp.value;
-        
-        // Find all tokens for this actor on current scene
-        if (!canvas.scene) {
-            return;
-        }
-        
-        const tokens = canvas.tokens.placeables.filter(t => t.actor?.id === actor.id);
-        
-        for (const token of tokens) {
-            if (currentHP <= 0) {
-                // Token died - apply dead image
-                await this._applyDeadTokenImage(token.document, actor);
-            } else if (token.document.getFlag(MODULE.ID, 'isDeadTokenApplied')) {
-                // Token was revived - restore previous image
-                await this._restorePreviousTokenImage(token.document);
-            }
-        }
-    }
+    // _getDeadTokenImagePath moved to TokenImageReplacementWindow
+    // _applyDeadTokenImage moved to TokenImageReplacementWindow
+    // _onActorUpdateForDeadToken moved to TokenImageReplacementWindow
 
     // _onTokenCreated moved to TokenImageReplacementWindow
     
@@ -2692,14 +2593,8 @@ export class TokenImageReplacement {
             
             // Debug: Log creature types data structure
             const creatureTypesData = cacheData.creatureTypes || cacheData.ct || cacheData.creatureType;
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CreatureTypes data type: ${typeof creatureTypesData}, isArray: ${Array.isArray(creatureTypesData)}, length: ${creatureTypesData?.length}`, "", true, false);
-            
-            if (creatureTypesData && Array.isArray(creatureTypesData)) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CreatureTypes sample: ${JSON.stringify(creatureTypesData.slice(0, 2))}`, "", true, false);
-            }
-            
+           
             this.cache.creatureTypes = new Map(creatureTypesData);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CreatureTypes Map created with ${this.cache.creatureTypes.size} entries`, "", true, false);
             
             this.cache.lastScan = cacheData.lastScan || cacheData.ls;
             this.cache.totalFiles = cacheData.totalFiles || cacheData.tf;
@@ -2712,13 +2607,7 @@ export class TokenImageReplacement {
             
             // Log final cache status after loading from storage
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache loading completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
-            
-            // Debug: Log sample creature types
-            if (this.cache.creatureTypes.size > 0) {
-                const sampleCreatureTypes = Array.from(this.cache.creatureTypes.keys()).slice(0, 3);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample creature types: ${sampleCreatureTypes.join(', ')}`, "", true, false);
-            }
-            
+   
             return true;
             
         } catch (error) {
