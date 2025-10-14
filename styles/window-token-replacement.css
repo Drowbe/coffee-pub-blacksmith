@@ -618,14 +618,11 @@
     border-right: 1px solid rgba(145, 133, 107, 0.6);
     border-radius: 4px 4px 0 0;
 }
-
 .tir-filter-category.row-style-tabs.active {
     background: rgba(83, 26, 24, 0.6);
     border-bottom: 1px solid rgba(83, 26, 24, 0.6);
     margin-bottom: -1px;
 }
-
-
 .tir-filter-category:hover {
     background: rgba(255, 47, 47, 0.4);
     border-color: rgba(255, 47, 47, 1.0);
@@ -638,10 +635,10 @@
     color: rgba(255, 255, 255, 1);
 }
 .tir-filter-category.category-selected {
-    background: rgba(29, 57, 28, 0.8);
+    background: rgba(105, 93, 78, 0.8);
 }
 .tir-filter-category.active.category-selected {
-    background: rgba(86, 171, 83, 0.8);
+    background: rgba(29, 57, 28, 0.8);
 }
 
 /* ----- Search Containner ----- */
