@@ -120,6 +120,12 @@ export class TokenImageReplacementWindow extends Application {
      * Apply category filter to search results
      */
     _getFilteredFiles() {
+        // Safety check for cache
+        if (!TokenImageReplacement.cache || !TokenImageReplacement.cache.files) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not available in _getFilteredFiles`, "", true, false);
+            return [];
+        }
+        
         // Get all files from cache
         const allFiles = Array.from(TokenImageReplacement.cache.files.values());
         
@@ -477,11 +483,12 @@ export class TokenImageReplacementWindow extends Application {
 
 
     async _findMatches() {
-        // Reset results
-        this.matches = [];
-        this.allMatches = [];
-        this.currentPage = 0;
-        this.recommendedToken = null; // Reset recommended token
+        try {
+            // Reset results
+            this.matches = [];
+            this.allMatches = [];
+            this.currentPage = 0;
+            this.recommendedToken = null; // Reset recommended token
 
         // If we have a selected token, add original and current images as the first matches
         if (this.selectedToken) {
@@ -513,6 +520,14 @@ export class TokenImageReplacementWindow extends Application {
         }
 
         // Check cache status
+        if (!TokenImageReplacement.cache) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized in _findMatches`, "", true, false);
+            this.notificationIcon = 'fas fa-exclamation-triangle';
+            this.notificationText = 'Cache not initialized. Please wait for cache to load.';
+            this._updateResults();
+            return;
+        }
+        
         if (TokenImageReplacement.cache.isPaused) {
             this.notificationIcon = 'fas fa-pause';
             this.notificationText = 'Cache scanning paused. Use "Refresh Cache" to resume.';
@@ -563,12 +578,14 @@ export class TokenImageReplacementWindow extends Application {
                     searchTerms = this.searchTerm;
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE`, "", true, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (50% scores)`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
                 // Otherwise: BROWSE MODE (no search terms)
                 
                 // Apply unified matching
-                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+                // Apply threshold only on SELECTED tab
+                const applyThreshold = this.currentFilter === 'selected';
+                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
                 
                 // Filter out any results that are the current image to avoid duplicates
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
@@ -604,11 +621,19 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Apply pagination to show only first batch
-        this._applyPagination();
-        
-        // Update results to show proper tags
-        this._updateResults();
+            // Apply pagination to show only first batch
+            this._applyPagination();
+            
+            // Update results to show proper tags
+            this._updateResults();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error in _findMatches: ${error.message}`, "", true, false);
+            console.error('Token Image Replacement: Error in _findMatches:', error);
+            // Show error state in UI
+            this.notificationIcon = 'fas fa-exclamation-triangle';
+            this.notificationText = `Error loading matches: ${error.message}`;
+            this._updateResults();
+        }
     }
 
     async _onSelectImage(event) {
@@ -866,6 +891,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async render(force = false, options = {}) {
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (render) - Starting render, force: ${force}`, "", true, false);
         const result = await super.render(force, options);
         
         // Register token selection hook only once when first rendered
@@ -1083,6 +1109,8 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _checkForSelectedToken() {
         try {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_checkForSelectedToken) - Starting token check`, "", true, false);
+            
             // Ensure cache is initialized
             if (!TokenImageReplacement.cache || TokenImageReplacement.cache.files.size === 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized, initializing...`, "", true, false);
@@ -1111,6 +1139,8 @@ export class TokenImageReplacementWindow extends Application {
                 this._hideSearchSpinner();
             }
         } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during token check: ${error.message}`, "", true, false);
+            console.error('Token Image Replacement: Error during token check:', error);
         }
     }
 
@@ -1209,7 +1239,8 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Step 3: Apply unified matching with search terms
-        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+        // Search mode never applies threshold
+        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
@@ -1517,6 +1548,7 @@ export class TokenImageReplacementWindow extends Application {
                     const tags = this._getTagsForMatch(match);
                     const tooltipText = this._generateTooltipText(match, false);
                     const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
+                    const isBrowseMode = match.isBrowseMode || false;
                     return `
                         <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${match.metadata?.tags?.includes('FAVORITE') ? 'tir-favorite-image' : ''}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
                             <div class="tir-thumbnail-image">
@@ -1539,10 +1571,17 @@ export class TokenImageReplacementWindow extends Application {
                             </div>
                             <div class="tir-thumbnail-name">${match.name}</div>
                             <div class="tir-thumbnail-score">
-                                <div class="tir-score-text">${scorePercentage}% Match</div>
-                                <div class="tir-score-bar">
-                                    <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
-                                </div>
+                                ${isBrowseMode ? `
+                                    <div class="tir-score-text">Browse</div>
+                                    <div class="tir-score-bar">
+                                        <div class="tir-score-fill" style="width: 0%"></div>
+                                    </div>
+                                ` : `
+                                    <div class="tir-score-text">${scorePercentage}% Match</div>
+                                    <div class="tir-score-bar">
+                                        <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
+                                    </div>
+                                `}
                             </div>
                             <div class="tir-thumbnail-tagset">
                                 ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
@@ -1580,6 +1619,7 @@ export class TokenImageReplacementWindow extends Application {
             
             const tooltipText = this._generateTooltipText(match, isRecommended);
             const scorePercentage = match.searchScore ? Math.round(match.searchScore * 100) : 0;
+            const isBrowseMode = match.isBrowseMode || false;
             
             return `
                 <div class="tir-thumbnail-item ${match.isCurrent ? 'tir-current-image' : ''} ${match.isOriginal ? 'tir-original-image' : ''} ${match.metadata?.tags?.includes('FAVORITE') ? 'tir-favorite-image' : ''} ${recommendedClass}" data-image-path="${match.fullPath}" data-tooltip="${tooltipText}" data-image-name="${match.name}">
@@ -1611,10 +1651,17 @@ export class TokenImageReplacementWindow extends Application {
                     </div>
                     <div class="tir-thumbnail-name">${match.name}</div>
                     <div class="tir-thumbnail-score">
-                        <div class="tir-score-text">${scorePercentage}% Match</div>
-                        <div class="tir-score-bar">
-                            <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
-                        </div>
+                        ${isBrowseMode ? `
+                            <div class="tir-score-text">Browse</div>
+                            <div class="tir-score-bar">
+                                <div class="tir-score-fill" style="width: 0%"></div>
+                            </div>
+                        ` : `
+                            <div class="tir-score-text">${scorePercentage}% Match</div>
+                            <div class="tir-score-bar">
+                                <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
+                            </div>
+                        `}
                     </div>
                     <div class="tir-thumbnail-tagset">
                         ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
@@ -1735,9 +1782,11 @@ export class TokenImageReplacementWindow extends Application {
         
         // Apply search term if any
         if (this.searchTerm && this.searchTerm.length >= 3) {
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+            // Search mode never applies threshold
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
         } else {
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+            // Browse mode never applies threshold
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
         }
         
         // Deduplicate results to prevent same file appearing multiple times
@@ -2583,8 +2632,10 @@ export class TokenImageReplacementWindow extends Application {
         parts.push(`Path: ${match.fullPath}`);
         
         // Score info
-        if (match.searchScore !== undefined) {
+        if (match.searchScore !== undefined && match.searchScore !== null) {
             parts.push(`Score: ${match.searchScore.toFixed(3)}`);
+        } else if (match.isBrowseMode) {
+            parts.push(`Score: Browse Mode`);
         }
         
         
@@ -3269,7 +3320,8 @@ export class TokenImageReplacementWindow extends Application {
         
         // Use unified matching with token mode (same parameters as WINDOW)
         // For token-based matching, searchTerms should be null (same as WINDOW system)
-        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+        // Token drop should apply threshold (it's like SELECTED tab behavior)
+        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, true);
         
         // Restore original token name
         tokenDocument.name = originalTokenName;
@@ -3570,7 +3622,9 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Get filtered files and find alternative match
                 const filesToSearch = tempWindow._getFilteredFiles();
-                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+                // Apply threshold based on current filter (like main window)
+                const applyThreshold = currentFilter === 'selected';
+                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
                 const alternativeMatch = matches.length > 0 ? matches[0] : null;
                 if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
@@ -3615,7 +3669,9 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Get filtered files and find alternative match
                     const filesToSearch = tempWindow._getFilteredFiles();
-                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
+                    // Apply threshold based on current filter (like main window)
+                    const applyThreshold = currentFilter === 'selected';
+                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
                     const alternativeMatch = matches.length > 0 ? matches[0] : null;
                     if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);

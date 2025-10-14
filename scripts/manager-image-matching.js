@@ -593,7 +593,7 @@ export class ImageMatching {
      * @param {string} searchMode - 'token', 'search', or 'browse'
      * @returns {Array} Array of matching files with scores
      */
-    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null) {
+    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null, applyThreshold = true) {
         const results = [];
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - Mode: ${searchMode}, Files: ${filesToSearch.length}`, "", true, false);
@@ -603,15 +603,16 @@ export class ImageMatching {
             return filesToSearch.map(file => ({
                 ...file,
                 name: file.name || file.fullPath?.split('/').pop() || 'Unknown File',
-                searchScore: 0.5, // Neutral score for browsing
-                score: 0.5, // Also set score for consistency
+                searchScore: null, // No score in browse mode
+                score: null, // No score in browse mode
                 isCurrent: false,
-                metadata: file.metadata || null
+                metadata: file.metadata || null,
+                isBrowseMode: true // Flag to indicate this is browse mode
             }));
         }
         
         // RELEVANCE MODE: Use sophisticated scoring
-        const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        const threshold = applyThreshold ? (game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3) : 0;
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - Threshold: ${(threshold * 100).toFixed(1)}%, Files to search: ${filesToSearch.length}`, "", true, false);
                 
         for (let i = 0; i < filesToSearch.length; i++) {
