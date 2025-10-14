@@ -596,6 +596,8 @@ export class ImageMatching {
     static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null) {
         const results = [];
         
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - Mode: ${searchMode}, Files: ${filesToSearch.length}`, "", true, false);
+        
         // BROWSE MODE: No relevance scoring, just return all files
         if (searchMode === 'browse') {
             return filesToSearch.map(file => ({

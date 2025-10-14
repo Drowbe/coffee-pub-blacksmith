@@ -544,11 +544,14 @@ export class TokenImageReplacementWindow extends Application {
                 let searchTerms = null;
                 let tokenDocument = null;
                 
-                if (this.currentFilter === 'selected' && this.selectedToken) {
-                    // SELECTED TAB: Use token-based matching
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Filter: ${this.currentFilter}, Has Token: ${!!this.selectedToken}, Search Term: "${this.searchTerm}"`, "", true, false);
+                
+                if (this.selectedToken) {
+                    // If a token is selected, always use token-based matching regardless of filter
                     searchMode = 'token';
                     searchTerms = null; // Use token-based matching instead of search terms
                     tokenDocument = this.selectedToken.document;
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using TOKEN MODE (token selected)`, "", true, false);
                 } else if (this.currentFilter === 'selected' && !this.selectedToken) {
                     // SELECTED TAB but no token selected: Show no results
                     this.allMatches = [];
@@ -558,6 +561,9 @@ export class TokenImageReplacementWindow extends Application {
                     // SEARCH MODE: Use search term matching
                     searchMode = 'search';
                     searchTerms = this.searchTerm;
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE`, "", true, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (50% scores)`, "", true, false);
                 }
                 // Otherwise: BROWSE MODE (no search terms)
                 
