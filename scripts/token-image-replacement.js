@@ -1244,7 +1244,20 @@ export class TokenImageReplacementWindow extends Application {
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
-        this.allMatches.push(...filteredResults);
+        
+        // In exact search mode (fuzzy search OFF), filter out 0% matches
+        const fuzzySearch = getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false);
+        if (!fuzzySearch) {
+            // Exact search mode: only show files that actually match the search term
+            const exactMatches = filteredResults.filter(result => 
+                result.searchScore !== null && result.searchScore > 0
+            );
+            this.allMatches.push(...exactMatches);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Exact search found ${exactMatches.length} matches out of ${filteredResults.length} files`, "", true, false);
+        } else {
+            // Fuzzy search mode: show all results (including 0% matches)
+            this.allMatches.push(...filteredResults);
+        }
         
         // Deduplicate results to prevent same file appearing multiple times
         this.allMatches = this._deduplicateResults(this.allMatches);
@@ -1595,6 +1608,23 @@ export class TokenImageReplacementWindow extends Application {
         }
         // ***** BUILD: NO MATCHING RESULTS *****
         if (this.matches.length === 0) {
+            // Check if we're in search mode with no results
+            const isSearchMode = this.searchTerm && this.searchTerm.length >= 3;
+            const fuzzySearch = getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false);
+            
+            let message = "No alternative images found for this token";
+            let tag = "NO MATCHES";
+            
+            if (isSearchMode) {
+                if (!fuzzySearch) {
+                    message = `No files found containing "${this.searchTerm}"`;
+                    tag = "NO EXACT MATCHES";
+                } else {
+                    message = `No files found matching "${this.searchTerm}"`;
+                    tag = "NO FUZZY MATCHES";
+                }
+            }
+            
             return `
                 <!-- Show "No Matches" message -->
                 <div class="tir-thumbnail-item tir-no-matches">
@@ -1604,8 +1634,8 @@ export class TokenImageReplacementWindow extends Application {
                     </div>
                     <!-- Description -->
                     <div class="tir-no-matches-text">
-                        <p>No alternative images found for this token</p>
-                        <p><span class="tir-thumbnail-tag">NO MATCHES</span></p>
+                        <p>${message}</p>
+                        <p><span class="tir-thumbnail-tag">${tag}</span></p>
                     </div>
                 </div>
             `;
