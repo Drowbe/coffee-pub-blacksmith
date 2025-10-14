@@ -325,6 +325,13 @@ export class ImageMatching {
             if (tokenData.size) maxPossibleScore += weights.size;
         }
         
+        // Search mode categories - fixed weights for search terms
+        if (searchMode === 'search') {
+            maxPossibleScore += 1.0; // Search terms (filename)
+            maxPossibleScore += 0.7; // Path matches
+            maxPossibleScore += 0.8; // Tag matches (if any)
+        }
+        
         // Ensure maxPossibleScore is never zero
         if (maxPossibleScore === 0) {
             maxPossibleScore = 1.0;
@@ -447,108 +454,31 @@ export class ImageMatching {
             
         }
         
-        // 2. SEARCH TERMS SCORING (only apply in search mode)
+        // 2. SEARCH TERMS SCORING (only apply in search mode) - UNIFIED SYSTEM
         if (searchMode === 'search') { // Only apply search terms scoring in search mode
-            // Check if fuzzy search is enabled (only for manual search mode)
-            const fuzzySearch = (searchMode === 'search') ? getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false) : false;
-            
-            let searchTermsScore = 0;
-            let searchTermsFound = 0;
-            
-            for (const word of searchWords) {
-                let wordScore = 0;
-                let wordFound = false;
-                
-                if (fuzzySearch) {
-                    // FUZZY SEARCH: Individual word matching
-                    // Filename matching
-                    if (fileNameLower === word) {
-                        wordScore = 1.0;
-                        wordFound = true;
-                    } else if (fileNameLower.replace(/\.[^.]*$/, '') === word) {
-                        wordScore = 0.95;
-                        wordFound = true;
-                    } else if (fileNameLower.startsWith(word)) {
-                        wordScore = 0.85;
-                        wordFound = true;
-                    } else if (fileNameLower.endsWith(word)) {
-                        wordScore = 0.75;
-                        wordFound = true;
-                    } else if (fileNameLower.includes(word)) {
-                        wordScore = 0.85; // Increased from 0.65 for better filename matching
-                        wordFound = true;
-                    } else {
-                        // Partial word match
-                        const fileNameWords = fileNameLower.split(/[\s\-_()]+/);
-                        for (const fileNameWord of fileNameWords) {
-                            if (fileNameWord.includes(word) || word.includes(fileNameWord)) {
-                                wordScore = Math.max(wordScore, 0.45);
-                                wordFound = true;
-                            }
-                        }
-                    }
-                } else {
-                    // EXACT SEARCH: String matching with separator normalization
-                    const normalizedWord = word.toLowerCase().replace(/[\-_()]+/g, ' ').trim();
-                    const normalizedFileName = fileNameLower.replace(/[\-_()]+/g, ' ').trim();
-                    
-                    // Exact match
-                    if (normalizedFileName === normalizedWord) {
-                        wordScore = 1.0;
-                        wordFound = true;
-                    } else if (normalizedFileName.startsWith(normalizedWord)) {
-                        wordScore = 0.9;
-                        wordFound = true;
-                    } else if (normalizedFileName.endsWith(normalizedWord)) {
-                        wordScore = 0.8;
-                        wordFound = true;
-                    } else if (normalizedFileName.includes(normalizedWord)) {
-                        wordScore = 0.7;
-                        wordFound = true;
-                    }
-                    // No partial word matching for exact search
-                }
-                
-                // Metadata matching
-                if (fileInfo.metadata && fileInfo.metadata.tags) {
-                    for (const tag of fileInfo.metadata.tags) {
-                        const tagLower = tag.toLowerCase();
-                        
-                        if (fuzzySearch) {
-                            // FUZZY SEARCH: Individual word matching in tags
-                            if (tagLower === word) {
-                                wordScore = Math.max(wordScore, 0.9);
-                                wordFound = true;
-                            } else if (tagLower.startsWith(word)) {
-                                wordScore = Math.max(wordScore, 0.8);
-                                wordFound = true;
-                            } else if (tagLower.includes(word)) {
-                                wordScore = Math.max(wordScore, 0.7);
-                                wordFound = true;
-                            }
-                        } else {
-                            // EXACT SEARCH: String matching in tags
-                            const normalizedTag = tagLower.replace(/[\-_()]+/g, ' ').trim();
-                            const normalizedWord = word.toLowerCase().replace(/[\-_()]+/g, ' ').trim();
-                            
-                            if (normalizedTag.includes(normalizedWord)) {
-                                wordScore = Math.max(wordScore, 0.8);
-                                wordFound = true;
-                            }
-                        }
-                    }
-                }
-                
-                if (wordFound) {
-                    searchTermsScore = Math.max(searchTermsScore, wordScore); // Take best word score
-                    searchTermsFound++;
-                    foundMatch = true;
-                }
+            // Use the same _matchCombinations logic as token mode for consistency
+            const searchTermsMatch = this._matchCombinations(searchWords, fileNameLower);
+            if (searchTermsMatch.matched) {
+                totalScore += searchTermsMatch.score * 1.0; // Fixed weight for search terms
+                foundMatch = true;
             }
             
-            // Add search terms score as a single category (max 1.0)
-            if (searchTermsFound > 0) {
-                totalScore += searchTermsScore * 1.0; // Fixed weight for search terms
+            // Also check file path for additional context (same as token mode)
+            const pathMatch = this._matchCombinations(searchWords, filePathLower);
+            if (pathMatch.matched) {
+                totalScore += pathMatch.score * 0.7; // Lower weight for path matches
+                foundMatch = true;
+            }
+            
+            // Check metadata tags (same as token mode)
+            if (fileInfo.metadata && fileInfo.metadata.tags) {
+                for (const tag of fileInfo.metadata.tags) {
+                    const tagMatch = this._matchCombinations(searchWords, tag);
+                    if (tagMatch.matched) {
+                        totalScore += tagMatch.score * 0.8; // Medium weight for tag matches
+                        foundMatch = true;
+                    }
+                }
             }
         }
         
