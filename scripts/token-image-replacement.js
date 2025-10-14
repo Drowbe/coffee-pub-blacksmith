@@ -482,7 +482,7 @@ export class TokenImageReplacementWindow extends Application {
         // If we have a selected token, add original and current images as the first matches
         if (this.selectedToken) {
             // Add original image as the very first card
-            const originalImage = TokenImageReplacement._getOriginalImage(this.selectedToken.document);
+            const originalImage = TokenImageReplacementWindow._getOriginalImage(this.selectedToken.document);
             if (originalImage) {
                 const originalImageCard = {
                     name: originalImage.name || originalImage.path?.split('/').pop() || 'Original Image',
@@ -685,9 +685,9 @@ export class TokenImageReplacementWindow extends Application {
     async _applyImageToToken(imagePath, imageName) {
         try {
             // Store the original image before applying the new one (only if it doesn't already exist)
-            const existingOriginal = TokenImageReplacement._getOriginalImage(this.selectedToken.document);
+            const existingOriginal = TokenImageReplacementWindow._getOriginalImage(this.selectedToken.document);
             if (!existingOriginal) {
-                await TokenImageReplacement._storeOriginalImage(this.selectedToken.document);
+                await TokenImageReplacementWindow._storeOriginalImage(this.selectedToken.document);
             }
             
             // Update the token
@@ -3242,6 +3242,105 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
+     * Handle global token selection changes
+     */
+    static async _onGlobalTokenSelectionChange(token, controlled) {
+        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+        
+        // Find any open Token Image Replacement windows and update them
+        const openWindows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+        
+        for (const window of openWindows) {
+            if (window._onTokenSelectionChange) {
+                await window._onTokenSelectionChange(token, controlled);
+            }
+        }
+        
+        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+    }
+
+    /**
+     * Store the original image for a token before any updates
+     */
+    static async _storeOriginalImage(tokenDocument) {
+        if (!tokenDocument || !tokenDocument.texture) {
+            return;
+        }
+        
+        const originalImage = {
+            path: tokenDocument.texture.src,
+            name: tokenDocument.texture.src.split('/').pop(),
+            timestamp: Date.now()
+        };
+        
+        // Store in token flags for persistence
+        await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
+    }
+
+    /**
+     * Get the original image for a token
+     */
+    static _getOriginalImage(tokenDocument) {
+        if (!tokenDocument) {
+            return null;
+        }
+        
+        // Get from token flags for persistence
+        return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
+    }
+
+    /**
+     * Store the previous image for a token before applying dead token
+     * This allows restoration to the replaced image (not original) when revived
+     */
+    static async _storePreviousImage(tokenDocument) {
+        if (!tokenDocument || !tokenDocument.texture) {
+            return;
+        }
+        
+        const previousImage = {
+            path: tokenDocument.texture.src,
+            name: tokenDocument.texture.src.split('/').pop(),
+            timestamp: Date.now()
+        };
+        
+        // Store in token flags for persistence
+        await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
+    }
+
+    /**
+     * Get the previous image for a token (image before dead token was applied)
+     */
+    static _getPreviousImage(tokenDocument) {
+        if (!tokenDocument) {
+            return null;
+        }
+        
+        // Get from token flags for persistence
+        return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
+    }
+
+    /**
+     * Restore the previous token image (used when token is revived)
+     */
+    static async _restorePreviousTokenImage(tokenDocument) {
+        if (!tokenDocument) {
+            return;
+        }
+        
+        const previousImage = this._getPreviousImage(tokenDocument);
+        if (previousImage) {
+            try {
+                await tokenDocument.update({ 'texture.src': previousImage.path });
+                await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
+            }
+        }
+    }
+
+    /**
      * Hook for when tokens are created
      */
     static async _onTokenCreated(tokenDocument, options, userId) {
@@ -3254,7 +3353,7 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Store the original image before any updates
-        await TokenImageReplacement._storeOriginalImage(tokenDocument);
+        await TokenImageReplacementWindow._storeOriginalImage(tokenDocument);
         
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", true, false);

@@ -710,7 +710,7 @@ export class TokenImageReplacement {
             description: 'Token Image Replacement: Global token selection detection',
             context: 'token-image-replacement-global',
             priority: 3, // Normal priority - UI enhancement
-            callback: this._onGlobalTokenSelectionChange.bind(this)
+            callback: TokenImageReplacementWindow._onGlobalTokenSelectionChange.bind(TokenImageReplacementWindow)
         });
 
         // Log hook registration
@@ -2073,101 +2073,12 @@ export class TokenImageReplacement {
     /**
      * Handle global token selection changes
      */
-    static async _onGlobalTokenSelectionChange(token, controlled) {
-        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-        
-        // Find any open Token Image Replacement windows and update them
-        const openWindows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
-        
-        for (const window of openWindows) {
-            if (window._onTokenSelectionChange) {
-                await window._onTokenSelectionChange(token, controlled);
-            }
-        }
-        
-        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
-    }
-
-    /**
-     * Store the original image for a token before any updates
-     */
-    static async _storeOriginalImage(tokenDocument) {
-        if (!tokenDocument || !tokenDocument.texture) {
-            return;
-        }
-        
-        const originalImage = {
-            path: tokenDocument.texture.src,
-            name: tokenDocument.texture.src.split('/').pop(),
-            timestamp: Date.now()
-        };
-        
-        // Store in token flags for persistence
-        await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
-    }
-
-    /**
-     * Get the original image for a token
-     */
-    static _getOriginalImage(tokenDocument) {
-        if (!tokenDocument) {
-            return null;
-        }
-        
-        // Get from token flags for persistence
-        return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
-    }
-
-    /**
-     * Store the previous image for a token before applying dead token
-     * This allows restoration to the replaced image (not original) when revived
-     */
-    static async _storePreviousImage(tokenDocument) {
-        if (!tokenDocument || !tokenDocument.texture) {
-            return;
-        }
-        
-        const previousImage = {
-            path: tokenDocument.texture.src,
-            name: tokenDocument.texture.src.split('/').pop(),
-            timestamp: Date.now()
-        };
-        
-        // Store in token flags for persistence
-        await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
-    }
-
-    /**
-     * Get the previous image for a token (image before dead token was applied)
-     */
-    static _getPreviousImage(tokenDocument) {
-        if (!tokenDocument) {
-            return null;
-        }
-        
-        // Get from token flags for persistence
-        return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
-    }
-
-    /**
-     * Restore the previous token image (used when token is revived)
-     */
-    static async _restorePreviousTokenImage(tokenDocument) {
-        if (!tokenDocument) {
-            return;
-        }
-        
-        const previousImage = this._getPreviousImage(tokenDocument);
-        if (previousImage) {
-            try {
-                await tokenDocument.update({ 'texture.src': previousImage.path });
-                await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
-            }
-        }
-    }
+    // _onGlobalTokenSelectionChange moved to TokenImageReplacementWindow
+    // _storeOriginalImage moved to TokenImageReplacementWindow
+    // _getOriginalImage moved to TokenImageReplacementWindow
+    // _storePreviousImage moved to TokenImageReplacementWindow
+    // _getPreviousImage moved to TokenImageReplacementWindow
+    // _restorePreviousTokenImage moved to TokenImageReplacementWindow
 
     /**
      * Get the dead token image path (single image for all dead tokens)
