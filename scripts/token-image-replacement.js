@@ -580,6 +580,8 @@ export class TokenImageReplacementWindow extends Application {
                 } else {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Tag filtered files: ${tagFilteredFiles.length}`, "", true, false);
                 // Otherwise: BROWSE MODE (no search terms)
                 
                 // Apply unified matching
@@ -593,6 +595,8 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Deduplicate results to prevent same file appearing multiple times
                 this.allMatches = this._deduplicateResults(this.allMatches);
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Final allMatches: ${this.allMatches.length}`, "", true, false);
                 
                 // Calculate score for current image if it exists
                 if (this.selectedToken && this.allMatches.length > 0) {
@@ -1555,8 +1559,24 @@ export class TokenImageReplacementWindow extends Application {
                 </div>
             `;
             
-            // Also show the results for browsing
-            if (this.matches.length > 0) {
+            // Check if we're in search mode with no results
+            const isSearchMode = this.searchTerm && this.searchTerm.length >= 3;
+            
+            if (isSearchMode && this.matches.length === 0) {
+                // Show "No Results" message for search with no token selected
+                html += `
+                    <div class="tir-thumbnail-item tir-no-matches">
+                        <div class="tir-no-matches-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="tir-no-matches-text">
+                            <p>No Results</p>
+                            <p><span class="tir-thumbnail-tag">NO RESULTS</span></p>
+                        </div>
+                    </div>
+                `;
+            } else if (this.matches.length > 0) {
+                // Show the results for browsing
                 html += this.matches.map(match => {
                     const tags = this._getTagsForMatch(match);
                     const tooltipText = this._generateTooltipText(match, false);
@@ -1616,13 +1636,8 @@ export class TokenImageReplacementWindow extends Application {
             let tag = "NO MATCHES";
             
             if (isSearchMode) {
-                if (!fuzzySearch) {
-                    message = `No files found containing "${this.searchTerm}"`;
-                    tag = "NO EXACT MATCHES";
-                } else {
-                    message = `No files found matching "${this.searchTerm}"`;
-                    tag = "NO FUZZY MATCHES";
-                }
+                message = "No Results";
+                tag = "NO RESULTS";
             }
             
             return `
