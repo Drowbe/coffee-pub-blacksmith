@@ -561,8 +561,13 @@ export class TokenImageReplacementWindow extends Application {
                 
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Filter: ${this.currentFilter}, Has Token: ${!!this.selectedToken}, Search Term: "${this.searchTerm}"`, "", true, false);
                 
-                if (this.selectedToken) {
-                    // If a token is selected, always use token-based matching regardless of filter
+                if (this.searchTerm && this.searchTerm.length >= 3) {
+                    // SEARCH MODE: Use search term matching (highest priority)
+                    searchMode = 'search';
+                    searchTerms = this.searchTerm;
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE (search term takes priority)`, "", true, false);
+                } else if (this.selectedToken) {
+                    // If a token is selected and no search term, use token-based matching
                     searchMode = 'token';
                     searchTerms = null; // Use token-based matching instead of search terms
                     tokenDocument = this.selectedToken.document;
@@ -572,11 +577,6 @@ export class TokenImageReplacementWindow extends Application {
                     this.allMatches = [];
                     this._updateResults();
                     return;
-                } else if (this.searchTerm && this.searchTerm.length >= 3) {
-                    // SEARCH MODE: Use search term matching
-                    searchMode = 'search';
-                    searchTerms = this.searchTerm;
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE`, "", true, false);
                 } else {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
