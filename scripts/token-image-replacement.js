@@ -559,6 +559,9 @@ export class TokenImageReplacementWindow extends Application {
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
                 this.allMatches.push(...filteredResults);
                 
+                // Deduplicate results to prevent same file appearing multiple times
+                this.allMatches = this._deduplicateResults(this.allMatches);
+                
                 // Calculate score for current image if it exists
                 if (this.selectedToken && this.allMatches.length > 0) {
                     const currentImage = this.allMatches.find(match => match.isCurrent);
@@ -1177,6 +1180,9 @@ export class TokenImageReplacementWindow extends Application {
         const filteredResults = searchResults.filter(result => !result.isCurrent);
         this.allMatches.push(...filteredResults);
         
+        // Deduplicate results to prevent same file appearing multiple times
+        this.allMatches = this._deduplicateResults(this.allMatches);
+        
         // Step 4: Calculate score for current image if it exists
         if (this.selectedToken && this.allMatches.length > 0) {
             const currentImage = this.allMatches.find(match => match.isCurrent);
@@ -1391,6 +1397,9 @@ export class TokenImageReplacementWindow extends Application {
                     const resultsToAdd = newResults.slice(0, remainingSpace);
                     
                     this.allMatches.push(...resultsToAdd);
+                    
+                    // Deduplicate results to prevent same file appearing multiple times
+                    this.allMatches = this._deduplicateResults(this.allMatches);
                     
                     // Sort results based on current sort order
                     this.allMatches = this._sortResults(this.allMatches);
@@ -1685,6 +1694,9 @@ export class TokenImageReplacementWindow extends Application {
         } else {
             this.allMatches = ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache);
         }
+        
+        // Deduplicate results to prevent same file appearing multiple times
+        this.allMatches = this._deduplicateResults(this.allMatches);
         
         // Apply pagination and update results
         this._applyPagination();
@@ -2855,6 +2867,21 @@ export class TokenImageReplacementWindow extends Application {
     }
 
 
+
+    /**
+     * Deduplicate results to prevent same file appearing multiple times
+     */
+    _deduplicateResults(results) {
+        const seen = new Set();
+        return results.filter(result => {
+            const key = result.fullPath || result.name;
+            if (seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
+    }
 
     /**
      * Sort results based on current sort order
