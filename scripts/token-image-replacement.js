@@ -1375,7 +1375,7 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 // Search file extension with multi-word support
-                const extension = fileInfo.name.split('.').pop().toLowerCase();
+                const extension = fileName ? fileName.split('.').pop().toLowerCase() : '';
                 for (const word of searchWords) {
                     if (extension.includes(word)) {
                         score += 30; // Extension match
