@@ -491,7 +491,8 @@ export class TokenImageReplacementWindow extends Application {
             this.recommendedToken = null; // Reset recommended token
 
         // If we have a selected token, add original and current images as the first matches
-        if (this.selectedToken) {
+        // But only if we're not in search mode OR we're on the SELECTED tab (SELECTED tab always shows original/current)
+        if (this.selectedToken && (!(this.searchTerm && this.searchTerm.length >= 3) || this.currentFilter === 'selected')) {
             // Add original image as the very first card
             const originalImage = TokenImageReplacementWindow._getOriginalImage(this.selectedToken.document);
             if (originalImage) {
@@ -1623,9 +1624,11 @@ export class TokenImageReplacementWindow extends Application {
             return html;
         }
         // ***** BUILD: NO MATCHING RESULTS *****
+        const isSearchMode = this.searchTerm && this.searchTerm.length >= 3;
+        const hasOnlyOriginalCurrent = this.matches.length > 0 && this.matches.every(match => match.isOriginal || match.isCurrent);
+        
         if (this.matches.length === 0) {
             // Check if we're in search mode with no results
-            const isSearchMode = this.searchTerm && this.searchTerm.length >= 3;
             const fuzzySearch = getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false);
             
             let message = "No alternative images found for this token";
@@ -1651,8 +1654,27 @@ export class TokenImageReplacementWindow extends Application {
                 </div>
             `;
         }
+        
+        // If we have matches but only original/current in search mode, add "No Results" message
+        let html = '';
+        if (isSearchMode && hasOnlyOriginalCurrent) {
+            html += `
+                <!-- Show "No Results" message for search -->
+                <div class="tir-thumbnail-item tir-no-matches">
+                    <!-- Image -->
+                    <div class="tir-no-matches-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <!-- Description -->
+                    <div class="tir-no-matches-text">
+                        <p>No Results</p>
+                        <p><span class="tir-thumbnail-tag">NO RESULTS</span></p>
+                    </div>
+                </div>
+            `;
+        }
         // ***** BUILD: MATCHING RESULT *****
-        return this.matches.map(match => {
+        html += this.matches.map(match => {
             const tags = this._getTagsForMatch(match);
             const isRecommended = this.recommendedToken && match.fullPath === this.recommendedToken.fullPath;
             const recommendedClass = isRecommended ? 'tir-recommended-image' : '';
@@ -1710,6 +1732,8 @@ export class TokenImageReplacementWindow extends Application {
                 </div>
             `;
         }).join('');
+        
+        return html;
     }
 
     _getTagsForMatch(match) {
