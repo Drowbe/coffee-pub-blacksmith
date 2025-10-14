@@ -581,7 +581,6 @@ export class TokenImageReplacementWindow extends Application {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Tag filtered files: ${tagFilteredFiles.length}`, "", true, false);
                 // Otherwise: BROWSE MODE (no search terms)
                 
                 // Apply unified matching
@@ -596,7 +595,6 @@ export class TokenImageReplacementWindow extends Application {
                 // Deduplicate results to prevent same file appearing multiple times
                 this.allMatches = this._deduplicateResults(this.allMatches);
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Final allMatches: ${this.allMatches.length}`, "", true, false);
                 
                 // Calculate score for current image if it exists
                 if (this.selectedToken && this.allMatches.length > 0) {
@@ -895,7 +893,6 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async render(force = false, options = {}) {
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (render) - Starting render, force: ${force}`, "", true, false);
         const result = await super.render(force, options);
         
         // Register token selection hook only once when first rendered
@@ -1113,7 +1110,6 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _checkForSelectedToken() {
         try {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_checkForSelectedToken) - Starting token check`, "", true, false);
             
             // Ensure cache is initialized
             if (!TokenImageReplacement.cache || TokenImageReplacement.cache.files.size === 0) {
