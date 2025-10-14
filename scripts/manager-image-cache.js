@@ -567,9 +567,9 @@ export class TokenImageReplacement {
         for (const fileInfo of testFiles) {
             const searchTerms = ["Rinian (Bullywug Warrior)", "Bullywug", "Warrior"];
                 const score = await ImageMatching._calculateRelevanceScore(
-                    fileInfo, 
-                    searchTerms, 
-                    mockTokenDocument, 
+                fileInfo, 
+                searchTerms, 
+                mockTokenDocument, 
                     'token',
                     this.cache
                 );
@@ -2124,7 +2124,7 @@ export class TokenImageReplacement {
             await this._scanFolderStructure(basePath);
         }
     }
-
+    
     
     /**
      * Check overall integration status
@@ -2560,8 +2560,8 @@ export class TokenImageReplacement {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_loadCacheFromStorage) - Fingerprint comparison: cached="${savedFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
                     if (savedFingerprint !== currentFingerprint) {
                         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_loadCacheFromStorage) - Folder structure changed, will rescan", "", true, false);
-                        return false;
-                    }
+                    return false;
+                }
                 }
             } else if (!cacheData.folderFingerprint && !cacheData.isIncremental) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", false, false);
@@ -2607,7 +2607,7 @@ export class TokenImageReplacement {
             
             // Log final cache status after loading from storage
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache loading completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
-   
+            
             return true;
             
         } catch (error) {

@@ -1174,7 +1174,7 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Step 3: Apply unified matching with search terms
-        const searchResults = ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache);
+        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache);
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
@@ -1503,7 +1503,12 @@ export class TokenImageReplacementWindow extends Application {
                                 ` : ''}
                             </div>
                             <div class="tir-thumbnail-name">${match.name}</div>
-                            <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
+                            <div class="tir-thumbnail-score">
+                                <div class="tir-score-text">${scorePercentage}% Match</div>
+                                <div class="tir-score-bar">
+                                    <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
+                                </div>
+                            </div>
                             <div class="tir-thumbnail-tagset">
                                 ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
                             </div>
@@ -1570,7 +1575,12 @@ export class TokenImageReplacementWindow extends Application {
                         ` : ''}
                     </div>
                     <div class="tir-thumbnail-name">${match.name}</div>
-                    <div class="tir-thumbnail-score">${scorePercentage}% Match</div>
+                    <div class="tir-thumbnail-score">
+                        <div class="tir-score-text">${scorePercentage}% Match</div>
+                        <div class="tir-score-bar">
+                            <div class="tir-score-fill" style="width: ${scorePercentage}%"></div>
+                        </div>
+                    </div>
                     <div class="tir-thumbnail-tagset">
                         ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
                     </div>
@@ -1667,13 +1677,13 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Apply the tag filters and refresh results
-        this._applyTagFilters();
+        await this._applyTagFilters();
     }
 
     /**
      * Apply tag filters to current results
      */
-    _applyTagFilters() {
+    async _applyTagFilters() {
         // Get the base filtered files (by category)
         const baseFiles = this._getFilteredFiles();
         
@@ -1690,9 +1700,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Apply search term if any
         if (this.searchTerm && this.searchTerm.length >= 3) {
-            this.allMatches = ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache);
         } else {
-            this.allMatches = ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache);
         }
         
         // Deduplicate results to prevent same file appearing multiple times

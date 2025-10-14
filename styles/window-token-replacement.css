@@ -880,15 +880,15 @@
     :root {
 
         /* --- Tunables (one place to size) --- */
-        --tile: 160px;          /* fixed tile WIDTH and image size (square) */
-        --card-gap: 5px;          /* fixed tile WIDTH and image size (square) */
-        --pad: 6px;            /* inner padding on the card */
+        --tile: 180px;          /* fixed tile WIDTH and image size (square) */
+        --card-gap: 6px;          /* fixed tile WIDTH and image size (square) */
+        --pad: 4px;            /* inner padding on the card */
         --card-gap: 8px;           /* space between image and name */
 
         /* --- Name block sizing (controls UNIFORM card HEIGHT) --- */
-        --name-fs: 1em;       /* caption font size */
+        --name-fs: .8em;       /* caption font size */
         --name-lh: 1.25;      /* line height multiplier */
-        --name-lines: 2;      /* << set to 1, 2, 3… to change clamp */
+        --name-lines: 3;      /* << set to 1, 2, 3… to change clamp */
 
         /* --- Colors --- */
         --card-bg: rgba(55, 55, 55, 0.9);
@@ -900,11 +900,11 @@
         --overlay: rgba(76, 175, 80, 0.8);
 
         /* --- tags --- */
-        --tag-fs: 0.75em;
-        --tag-gap: 4px;
+        --tag-fs: 0.6em;
+        --tag-gap: 2px;
         --tag-pad-y: 2px;
-        --tag-pad-x: 6px;
-        --tag-rows: 1;   /* << cap to 1 / 2 / 3 rows */
+        --tag-pad-x: 3px;
+        --tag-rows: 2;   /* << cap to 1 / 2 / 3 rows */
 
 
         /* --- Tag Colors --- */
@@ -1000,6 +1000,7 @@
       background: rgba(76, 175, 80, 0.1);
       cursor: default !important;
       opacity: 0.8;
+      height: 100%;
   }
   .tir-current-image img {
       border-color: rgba(76, 175, 80, 0.4) !important;
@@ -1016,6 +1017,7 @@
       background: rgba(156, 39, 176, 0.1);
       cursor: default !important;
       opacity: 0.8;
+      height: 100%;
   }
   .tir-original-image img {
       border-color: rgba(156, 39, 176, 0.4) !important;
@@ -1159,24 +1161,16 @@
   
   /* Tag container: wraps, caps to N rows, hides overflow cleanly */
   .tir-thumbnail-tagset {
-    border-top: 1px dotted var(--img-border);
+    border-top: 0px dotted var(--img-border);
     width: 100%;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;                 /* or flex-start */
     gap: var(--tag-gap);
-    padding: 10px 2px;
+    padding: 4px 2px;
     max-height: var(--tag-block-h);          /* cap rows */
     overflow: hidden;                         /* hide extras to keep tile height fixed */
   }
-  
-  /* Optional: soft bottom fade to hint overflow (Chrome-only) */
-    /* 
-  .tir-thumbnail-tagset {
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
-  }
-   */
   
   /* Tag pill */
   .tir-thumbnail-tag {
@@ -1219,49 +1213,78 @@
   
   
   
-  /* =========================
-     Name (variable line clamp)
-     ========================= */
-  .tir-thumbnail-name {
-    width: 100%;
-    color: #ddd;
-    text-align: center;
-  
-    font-size: var(--name-fs);
-    line-height: var(--name-lh);
-  
-    /* uniform block height: #lines * line-height * font-size */
-    min-height: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
-    max-height: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
-  
-    /* line clamp */
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: var(--name-lines);
-    line-clamp: var(--name-lines);
-  
-    white-space: normal;          /* allow wrapping */
-    overflow-wrap: anywhere;      /* break long filenames */
-    word-break: break-word;       /* fallback */
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  /* =========================
-     Score (match confidence)
-     ========================= */
-  .tir-thumbnail-score {
-    width: 100%;
-    color: rgba(172, 159, 129, 0.8);
-    text-align: center;
-    font-size: 0.8em;
-    font-weight: 500;
-    margin: 2px 0;
-    padding: 2px 4px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-    border: 1px solid rgba(172, 159, 129, 0.2);
-  }
+    /* =========================
+    Name (variable line clamp)
+    ========================= */
+    .tir-thumbnail-name {
+        width: 100%;
+        color: rgba(172, 67, 0, 0.9);
+        text-align: center;
+        
+        font-size: var(--name-fs);
+        font-weight: 100;
+        line-height: var(--name-lh);
+        
+        /* uniform block height: #lines * line-height * font-size */
+        min-height: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
+        max-height: calc(var(--name-fs) * var(--name-lh) * var(--name-lines));
+        
+        /* line clamp */
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: var(--name-lines);
+        line-clamp: var(--name-lines);
+        
+        white-space: normal;          /* allow wrapping */
+        overflow-wrap: anywhere;      /* break long filenames */
+        word-break: break-word;       /* fallback */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 6px 0px 2px 0px;
+    }
+    
+/* =========================
+        Score (match confidence)
+        ========================= */
+        .tir-thumbnail-score {
+            width: 100%;
+            color: rgba(172, 159, 129, 0.8);
+            text-align: center;
+            font-size: 0.8em;
+            font-weight: 200;
+            margin: 2px 0px 6px 0px;
+            padding: 0px 0px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            border: 1px solid rgba(172, 159, 129, 0.2);
+            position: relative;
+            overflow: hidden;
+            }
+        
+            .tir-score-text {
+                position: relative;
+                z-index: 2;
+                padding: 2px 0px 0px 0px;
+                text-transform: uppercase;
+            }
+        
+            .tir-score-bar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(35, 35, 35, 0.3);
+                z-index: 1;
+                margin: 0px 0px;
+                padding: 1px 1px;
+            }
+        
+            .tir-score-fill {
+                height: 100%;
+                background: rgba(26, 62, 30, 0.8);   
+                transition: width 0.3s ease;
+            }
   
   /* =========================
      Reduced motion
@@ -1277,19 +1300,25 @@
 /* Container */
 .tir-no-token,
 .tir-no-matches {
-    padding: 40px 20px;
+    padding: 6px 6px;
     text-align: center;
     color: rgba(255, 255, 255, 0.9);
+    height: 100%;
 }
 
 /* Icon */
 .tir-no-token-icon,
 .tir-no-matches-icon {
-    font-size: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4em;
     color: rgba(255, 255, 255, 0.9);
     margin-bottom: 15px;
     width: 100%;
     height: 100%;
+    min-height: 144px;
+    min-width: 144px;
 }
 
 /* Text */
@@ -1300,7 +1329,7 @@
 }
 .tir-no-token-text p:first-child,
 .tir-no-matches-text p:first-child {
-    font-size: 1.1em;
+    font-size: 0.9em;
     color: rgba(255, 255, 255, 0.9);
 }
 
