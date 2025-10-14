@@ -275,7 +275,7 @@ export class ImageMatching {
      * @param {string} searchMode - 'token', 'search', or 'browse'
      * @returns {number} Relevance score (0.0 to 1.0)
      */
-    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null) {
+    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null, extractTokenDataFunction = null) {
         const fileName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || '';
         const fileNameLower = fileName.toLowerCase();
         const filePath = fileInfo.path || fileInfo.fullPath || '';
@@ -307,10 +307,8 @@ export class ImageMatching {
         
         // Extract token data for weighted scoring
         let tokenData = {};
-        if (tokenDocument && searchMode === 'token') {
-            // Access TokenImageReplacement through cache parameter
-            const { TokenImageReplacement } = await import('./manager-image-cache.js');
-            tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+        if (tokenDocument && searchMode === 'token' && extractTokenDataFunction) {
+            tokenData = extractTokenDataFunction(tokenDocument);
         }
         
         // Calculate maximum possible score using weighted system
@@ -595,7 +593,7 @@ export class ImageMatching {
      * @param {string} searchMode - 'token', 'search', or 'browse'
      * @returns {Array} Array of matching files with scores
      */
-    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null) {
+    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null) {
         const results = [];
         
         // BROWSE MODE: No relevance scoring, just return all files
@@ -616,7 +614,7 @@ export class ImageMatching {
                 
         for (let i = 0; i < filesToSearch.length; i++) {
             const fileInfo = filesToSearch[i]; 
-            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache);
+            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction);
             
             // Debug: Log first few scores to see what's happening (only for debugging)
             if (i < 3) {
@@ -626,10 +624,8 @@ export class ImageMatching {
             // Only include results above threshold
             if (relevanceScore >= threshold) {
                 // Log token data breakdown ONLY for files that actually MATCH
-                if (tokenDocument && searchMode === 'token') {
-                    // Access TokenImageReplacement through cache parameter
-                    const { TokenImageReplacement } = await import('./manager-image-cache.js');
-                    const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+                if (tokenDocument && searchMode === 'token' && extractTokenDataFunction) {
+                    const tokenData = extractTokenDataFunction(tokenDocument);
                     const weights = {
                         actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
                         tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,

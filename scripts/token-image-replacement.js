@@ -553,7 +553,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Otherwise: BROWSE MODE (no search terms)
                 
                 // Apply unified matching
-                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache);
+                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
                 
                 // Filter out any results that are the current image to avoid duplicates
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
@@ -1174,7 +1174,7 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Step 3: Apply unified matching with search terms
-        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache);
+        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
@@ -1700,9 +1700,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Apply search term if any
         if (this.searchTerm && this.searchTerm.length >= 3) {
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
         } else {
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
         }
         
         // Deduplicate results to prevent same file appearing multiple times
@@ -3234,7 +3234,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Use unified matching with token mode (same parameters as WINDOW)
         // For token-based matching, searchTerms should be null (same as WINDOW system)
-        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
         
         // Restore original token name
         tokenDocument.name = originalTokenName;
@@ -3535,7 +3535,7 @@ export class TokenImageReplacementWindow extends Application {
                 
                 // Get filtered files and find alternative match
                 const filesToSearch = tempWindow._getFilteredFiles();
-                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
                 const alternativeMatch = matches.length > 0 ? matches[0] : null;
                 if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
@@ -3580,7 +3580,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Get filtered files and find alternative match
                     const filesToSearch = tempWindow._getFilteredFiles();
-                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache);
+                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData);
                     const alternativeMatch = matches.length > 0 ? matches[0] : null;
                     if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
