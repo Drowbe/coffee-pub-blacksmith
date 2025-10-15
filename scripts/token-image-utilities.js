@@ -31,31 +31,66 @@ export class TokenImageUtilities {
      */
     static _getTurnIndicatorSettings() {
         // Get color as hex string and convert to PIXI color integer
-        const colorHex = getSettingSafely(MODULE.ID, 'turnIndicatorColor', '#00ff00');
+        const colorHex = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBorderColor', '#00ff00');
         const color = parseInt(colorHex.replace('#', '0x'));
         
+        // Get inner fill color
+        const innerColorHex = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', '#ff8100');
+        const innerColor = parseInt(innerColorHex.replace('#', '0x'));
+        
         return {
-            style: getSettingSafely(MODULE.ID, 'turnIndicatorStyle', 'solid'),
-            animation: getSettingSafely(MODULE.ID, 'turnIndicatorAnimation', 'pulse'),
+            style: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentStyle', 'solid'),
+            animation: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimation', 'pulse'),
             color: color,
             thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
             offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
-            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorPulseSpeed', 0.05),
-            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMin', 0.3),
-            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMax', 0.8)
+            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', 0.05),
+            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
+            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
+            innerColor: innerColor,
+            innerOpacity: getSettingSafely(MODULE.ID, 'turnIndicatorInnerOpacity', 0.3)
+        };
+    }
+    
+    /**
+     * Get the targeted turn indicator settings from module config
+     */
+    static _getTargetedIndicatorSettings() {
+        // Get color as hex string and convert to PIXI color integer
+        const colorHex = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedBorderColor', '#a51214');
+        const color = parseInt(colorHex.replace('#', '0x'));
+        
+        // Get inner fill color
+        const innerColorHex = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedBackgroundColor', '#a51214');
+        const innerColor = parseInt(innerColorHex.replace('#', '0x'));
+        
+        return {
+            style: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedStyle', 'solid'),
+            animation: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimation', 'pulse'),
+            color: color,
+            thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
+            offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
+            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', 0.05),
+            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
+            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
+            innerColor: innerColor,
+            innerOpacity: getSettingSafely(MODULE.ID, 'turnIndicatorInnerOpacity', 0.3)
         };
     }
     
     /**
      * Draw the turn indicator based on the selected style
      */
-    static _drawTurnIndicatorStyle(graphics, settings, ringRadius) {
+    static _drawTurnIndicatorCurrentStyle(graphics, settings, ringRadius) {
         switch (settings.style) {
             case 'dashed':
                 TokenImageUtilities._drawDashedCircle(graphics, settings, ringRadius);
                 break;
             case 'spikes':
                 TokenImageUtilities._drawSpikedCircle(graphics, settings, ringRadius);
+                break;
+            case 'spikesIn':
+                TokenImageUtilities._drawInwardSpikedCircle(graphics, settings, ringRadius);
                 break;
             case 'solid':
             default:
@@ -65,64 +100,165 @@ export class TokenImageUtilities {
     }
     
     /**
-     * Draw a solid circle
+     * Draw the targeted turn indicator based on the selected style
+     */
+    static _drawTurnIndicatorTargetedStyle(graphics, settings, ringRadius) {
+        switch (settings.style) {
+            case 'dashed':
+                TokenImageUtilities._drawDashedCircle(graphics, settings, ringRadius);
+                break;
+            case 'spikes':
+                TokenImageUtilities._drawSpikedCircle(graphics, settings, ringRadius);
+                break;
+            case 'spikesIn':
+                TokenImageUtilities._drawInwardSpikedCircle(graphics, settings, ringRadius);
+                break;
+            case 'solid':
+            default:
+                TokenImageUtilities._drawSolidCircle(graphics, settings, ringRadius);
+                break;
+        }
+    }
+    
+    /**
+     * Draw a solid circle with inner fill
      */
     static _drawSolidCircle(graphics, settings, ringRadius) {
+        // Draw inner fill first (behind the ring)
+        graphics.beginFill(settings.innerColor, settings.innerOpacity);
+        graphics.drawCircle(0, 0, ringRadius);
+        graphics.endFill();
+        
+        // Draw the ring on top
         graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
         graphics.drawCircle(0, 0, ringRadius);
     }
     
     /**
-     * Draw a dashed circle
+     * Draw a dashed circle with inner fill
      */
     static _drawDashedCircle(graphics, settings, ringRadius) {
-        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        // Draw inner fill first (behind the ring)
+        graphics.beginFill(settings.innerColor, settings.innerOpacity);
+        graphics.drawCircle(0, 0, ringRadius);
+        graphics.endFill();
         
-        const dashCount = 24; // Number of dashes
+        // Draw the dashed ring on top with rounded ends
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax, 0.5, true); // rounded caps
+        
+        const dashCount = 8; // Number of dashes
         const dashAngle = (Math.PI * 2) / dashCount;
-        const dashLength = dashAngle * 0.6; // 60% dash, 40% gap
+        const dashLength = dashAngle * 0.8; // 60% dash, 40% gap
         
         for (let i = 0; i < dashCount; i++) {
             const startAngle = i * dashAngle;
             const endAngle = startAngle + dashLength;
+            
+            // Move to start of each dash (important!)
+            const startX = Math.cos(startAngle) * ringRadius;
+            const startY = Math.sin(startAngle) * ringRadius;
+            graphics.moveTo(startX, startY);
+            
+            // Draw the arc
             graphics.arc(0, 0, ringRadius, startAngle, endAngle);
         }
     }
     
     /**
-     * Draw a circle with spikes
+     * Draw a circle with spikes as a proper ring (donut shape) with inner fill
      */
     static _drawSpikedCircle(graphics, settings, ringRadius) {
-        // Draw the base circle
+        const spikeCount = 8;
+        const spikeLength = settings.thickness * 2.0; // Scale spike length with ring thickness
+        const spikeWidth = settings.thickness * 1.6;
+        
+        // Draw inner fill first (behind everything)
+        graphics.beginFill(settings.innerColor, settings.innerOpacity);
+        graphics.drawCircle(0, 0, ringRadius);
+        graphics.endFill();
+        
+        // Draw the base ring
         graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
         graphics.drawCircle(0, 0, ringRadius);
         
-        // Draw 8 spikes at cardinal and ordinal directions
-        const spikeCount = 8;
-        const spikeLength = settings.offset * 0.8;
-        const spikeWidth = settings.thickness * 2;
+        // Draw triangular spikes extending from the ring
+        graphics.lineStyle(0); // No stroke for filled spikes
+        graphics.beginFill(settings.color, settings.pulseMax);
         
         for (let i = 0; i < spikeCount; i++) {
             const angle = (i * Math.PI * 2) / spikeCount;
+            
+            // Calculate spike positions
             const baseX = Math.cos(angle) * ringRadius;
             const baseY = Math.sin(angle) * ringRadius;
             const tipX = Math.cos(angle) * (ringRadius + spikeLength);
             const tipY = Math.sin(angle) * (ringRadius + spikeLength);
             
-            // Draw spike as a triangle
-            const perpAngle = angle + Math.PI / 2;
-            const leftX = baseX + Math.cos(perpAngle) * spikeWidth / 2;
-            const leftY = baseY + Math.sin(perpAngle) * spikeWidth / 2;
-            const rightX = baseX - Math.cos(perpAngle) * spikeWidth / 2;
-            const rightY = baseY - Math.sin(perpAngle) * spikeWidth / 2;
+            // Calculate spike width points (perpendicular to spike direction)
+            const spikeAngle = angle + Math.PI / 2; // Perpendicular
+            const halfWidth = spikeWidth / 2;
+            const leftX = baseX + Math.cos(spikeAngle) * halfWidth;
+            const leftY = baseY + Math.sin(spikeAngle) * halfWidth;
+            const rightX = baseX - Math.cos(spikeAngle) * halfWidth;
+            const rightY = baseY - Math.sin(spikeAngle) * halfWidth;
             
-            graphics.beginFill(settings.color, settings.pulseMax);
+            // Draw triangular spike
             graphics.moveTo(leftX, leftY);
             graphics.lineTo(tipX, tipY);
             graphics.lineTo(rightX, rightY);
-            graphics.closePath();
-            graphics.endFill();
+            graphics.lineTo(leftX, leftY);
         }
+        
+        graphics.endFill();
+    }
+    
+    /**
+     * Draw a circle with inward-pointing spikes
+     */
+    static _drawInwardSpikedCircle(graphics, settings, ringRadius) {
+        const spikeCount = 8;
+        const spikeLength = settings.thickness * 1.2; // Scale spike length with ring thickness
+        const spikeWidth = settings.thickness * 1.6;
+        const innerRadius = ringRadius - settings.thickness;
+        
+        // Draw inner fill first (behind everything)
+        graphics.beginFill(settings.innerColor, settings.innerOpacity);
+        graphics.drawCircle(0, 0, ringRadius);
+        graphics.endFill();
+        
+        // Draw the base ring
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        graphics.drawCircle(0, 0, ringRadius);
+        
+        // Draw triangular spikes pointing inward
+        graphics.lineStyle(0); // No stroke for filled spikes
+        graphics.beginFill(settings.color, settings.pulseMax);
+        
+        for (let i = 0; i < spikeCount; i++) {
+            const angle = (i * Math.PI * 2) / spikeCount;
+            
+            // Calculate spike positions (pointing inward)
+            const baseX = Math.cos(angle) * ringRadius;
+            const baseY = Math.sin(angle) * ringRadius;
+            const tipX = Math.cos(angle) * (innerRadius - spikeLength);
+            const tipY = Math.sin(angle) * (innerRadius - spikeLength);
+            
+            // Calculate spike width points (perpendicular to spike direction)
+            const spikeAngle = angle + Math.PI / 2; // Perpendicular
+            const halfWidth = spikeWidth / 2;
+            const leftX = baseX + Math.cos(spikeAngle) * halfWidth;
+            const leftY = baseY + Math.sin(spikeAngle) * halfWidth;
+            const rightX = baseX - Math.cos(spikeAngle) * halfWidth;
+            const rightY = baseY - Math.sin(spikeAngle) * halfWidth;
+            
+            // Draw triangular spike pointing inward
+            graphics.moveTo(leftX, leftY);
+            graphics.lineTo(tipX, tipY);
+            graphics.lineTo(rightX, rightY);
+            graphics.lineTo(leftX, leftY);
+        }
+        
+        graphics.endFill();
     }
     
     /**
@@ -325,7 +461,7 @@ export class TokenImageUtilities {
      */
     static initializeTurnIndicator() {
         // Check if turn indicator is enabled
-        if (!getSettingSafely(MODULE.ID, 'turnIndicatorEnabled', true)) {
+        if (!getSettingSafely(MODULE.ID, 'turnIndicatorCurrentEnabled', true)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator disabled in settings", "", true, false);
             return;
         }
@@ -481,7 +617,7 @@ export class TokenImageUtilities {
         const graphics = new PIXI.Graphics();
         
         // Draw the ring using the selected style
-        TokenImageUtilities._drawTurnIndicatorStyle(graphics, settings, ringRadius);
+        TokenImageUtilities._drawTurnIndicatorCurrentStyle(graphics, settings, ringRadius);
         
         // Position at token center
         const tokenCenterX = token.x + tokenWidth / 2;
@@ -494,7 +630,7 @@ export class TokenImageUtilities {
         TokenImageUtilities._currentTurnTokenId = token.id;
         
         // Create animation based on selected style
-        TokenImageUtilities._createTurnIndicatorAnimation(settings);
+        TokenImageUtilities._createTurnIndicatorCurrentAnimation(settings);
 
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Turn indicator (${settings.style}, ${settings.animation}) added for ${token.name}`, "", true, false);
     }
@@ -502,7 +638,7 @@ export class TokenImageUtilities {
     /**
      * Create animation for the turn indicator based on settings
      */
-    static _createTurnIndicatorAnimation(settings) {
+    static _createTurnIndicatorCurrentAnimation(settings) {
         switch (settings.animation) {
             case 'pulse':
                 TokenImageUtilities._createPulseAnimation(settings);
@@ -514,6 +650,23 @@ export class TokenImageUtilities {
             default:
                 // No animation
                 break;
+        }
+    }
+    
+    /**
+     * Create animation for the targeted turn indicator based on settings
+     */
+    static _createTurnIndicatorTargetedAnimation(settings) {
+        switch (settings.animation) {
+            case 'pulse':
+                TokenImageUtilities._createPulseAnimation(settings);
+                break;
+            case 'rotate':
+                TokenImageUtilities._createRotateAnimation(settings);
+                break;
+            case 'fixed':
+            default:
+                break; // No animation
         }
     }
     

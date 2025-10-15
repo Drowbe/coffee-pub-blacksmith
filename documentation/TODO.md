@@ -155,11 +155,29 @@
 - **Status**: ✅ COMPLETED
 - **Date Completed**: January 15, 2025
 - **Features**:
-  - Green pulsing ring around current turn token
+  - Customizable ring styles (Solid, Dashed, Spikes)
+  - Multiple animations (Pulse, Rotate, Fixed)
+  - Full color and size control
   - PIXI Graphics rendering (not DOM SVG)
   - Moves with token during movement
+  - Fade in/out on movement
   - Automatic cleanup on turn change
-- **Notes**: Successfully implemented with PIXI rendering system
+- **Notes**: Successfully implemented with PIXI rendering system and full theming support
+
+### 5. 🎯 Targeted Indicators (Future Enhancement)
+- **Issue**: Need visual indicators showing which tokens are being targeted
+- **Location**: `scripts/token-image-utilities.js` (to be added)
+- **Impact**: Improved clarity during combat for targeting and attacks
+- **Status**: 🟢 TODO
+- **Date Requested**: January 15, 2025
+- **Proposed Features**:
+  - Visual line or arrow from attacker to target(s)
+  - Different styles for different target types (hostile, friendly, etc.)
+  - Highlight targeted tokens with color/ring
+  - Option to show targeting reticle on target
+  - Clear targeting indicators when attack completes
+  - Support for multiple targets (AoE, multi-attack)
+- **Notes**: Should complement turn indicator system, different visual style to avoid confusion
 
 ## MEDIUM SEVERITY ISSUES
 

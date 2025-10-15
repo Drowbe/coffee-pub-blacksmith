@@ -1828,42 +1828,9 @@ export const registerSettings = async () => {
 		default: false,
 	});
 
-	// DEAD TOKEN REPLACEMENT
+	
 
-	// Enable Dead Token Replacement
-	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
-		name: 'Enable Dead Token Replacement',
-		hint: 'Automatically replace token images with "dead" versions when creatures reach 0 HP. Restores previous image when revived.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false,
-		requiresReload: false
-	});
-
-	// Dead Token Image Path
-	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
-		name: 'Dead Token Image Path',
-		hint: 'Full path to a single dead token image that will be applied to ALL dead tokens (e.g., assets/images/tokens/dead_token.png)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'assets/images/tokens/death/pog-round-npc.webp',
-		requiresReload: false
-	});
-
-	// Dead Token Creature Type Filter
-	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
-		name: 'Dead Token Creature Types',
-		hint: 'Comma-separated creature types to apply dead tokens to (leave empty for all). Example: humanoid,beast,dragon',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: false
-	});
-
-	// Token Image Replacement Cache (server-side storage for Molten hosting)
+	// Token Image Replacement Cache (server-side storage)
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
 		name: 'Token Image Replacement Cache',
 		hint: 'Internal cache storage for token image replacement system (server-side)',
@@ -2006,6 +1973,13 @@ export const registerSettings = async () => {
 		default: 10,
 	});
 
+
+
+
+
+
+
+
 	// *** TREASURE LOOT ***
 
 	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
@@ -2113,6 +2087,332 @@ export const registerSettings = async () => {
 		scope: 'world',
 		default: false,
 	});
+
+
+
+
+
+
+
+
+
+	// DEAD TOKEN REPLACEMENT
+
+	// Enable Dead Token Replacement
+	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
+		name: 'Enable Dead Token Replacement',
+		hint: 'Automatically replace token images with "dead" versions when creatures reach 0 HP. Restores previous image when revived.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false
+	});
+
+	// Dead Token Image Path
+	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
+		name: 'Dead Token Image Path',
+		hint: 'Full path to a single dead token image that will be applied to ALL dead tokens (e.g., assets/images/tokens/dead_token.png)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'assets/images/tokens/death/pog-round-npc.webp',
+		requiresReload: false
+	});
+
+	// Dead Token Creature Type Filter
+	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
+		name: 'Dead Token Creature Types',
+		hint: 'Comma-separated creature types to apply dead tokens to (leave empty for all). Example: humanoid,beast,dragon',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: false
+	});
+
+
+
+
+
+
+
+
+	// Current Turn Indicator Settings
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentEnabled', {
+		name: 'Enable Turn Indicator',
+		hint: 'Display a ring around the token whose turn it is in combat.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentStyle', {
+		name: 'Turn Indicator Style',
+		hint: 'The visual style of the turn indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			solid: "Solid Circle",
+			dashed: "Dashed Circle",
+			spikes: "Circle with Spikes",
+			spikesIn: "Circle with Inward Spikes"
+		},
+		default: 'solid',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimation', {
+		name: 'Turn Indicator Animation',
+		hint: 'The animation style for the turn indicator.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			pulse: "Pulse (Opacity)",
+			rotate: "Rotate",
+			fixed: "Fixed (No Animation)"
+		},
+		default: 'pulse',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', {
+		name: 'Turn Indicator Animation Speed',
+		hint: 'How fast the current turn indicator pulses (lower = slower, higher = faster).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.05,
+		range: {
+			min: 0.01,
+			max: 0.10,
+			step: 0.01
+		},
+		requiresReload: false
+	});
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentBorderColor', {
+		name: 'Turn Indicator border Color',
+		hint: 'The color of the turn indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '#03c602',
+		requiresReload: false
+	});
+
+
+	game.settings.register(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', {
+		name: 'Turn Indicator Inner Fill Color',
+		hint: 'Color for the inner fill of the turn indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '#03c602',
+		requiresReload: false
+	});
+
+
+
+
+
+
+
+
+	
+	// Current Turn Indicator Settings
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedEnabled', {
+		name: 'Enable Targeted Indicator',
+		hint: 'Display a ring around the Targeted tokens in combat.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedStyle', {
+		name: 'Targeted Indicator Style',
+		hint: 'The visual style of the Targeted indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			solid: "Solid Circle",
+			dashed: "Dashed Circle",
+			spikes: "Circle with Spikes",
+			spikesIn: "Circle with Inward Spikes"
+		},
+		default: 'solid',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedAnimation', {
+		name: 'Targeted Indicator Animation',
+		hint: 'The animation style for the Targeted indicator.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			pulse: "Pulse (Opacity)",
+			rotate: "Rotate",
+			fixed: "Fixed (No Animation)"
+		},
+		default: 'pulse',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', {
+		name: 'Targeted Indicator Animation Speed',
+		hint: 'How fast the Targeted indicator pulses (lower = slower, higher = faster).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.05,
+		range: {
+			min: 0.01,
+			max: 0.10,
+			step: 0.01
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedBorderColor', {
+		name: 'Targeted Indicator Border Color',
+		hint: 'The color of the Targeted indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '#a51214',
+		requiresReload: false
+	});
+
+
+	game.settings.register(MODULE.ID, 'turnIndicatorTargetedBackgroundColor', {
+		name: 'Targeted Indicator Inner Fill Color',
+		hint: 'Color for the inner fill of the Targeted indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '#a51214',
+		requiresReload: false
+	});
+
+
+
+
+
+
+	
+
+
+
+
+	game.settings.register(MODULE.ID, 'turnIndicatorThickness', {
+		name: 'Turn Indicator Thickness',
+		hint: 'The thickness of the turn indicator ring in pixels.',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 10,
+		range: {
+			min: 5,
+			max: 30,
+			step: 1
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorOffset', {
+		name: 'Turn Indicator Distance',
+		hint: 'How far the ring extends beyond the token edge in pixels.',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 8,
+		range: {
+			min: 0,
+			max: 50,
+			step: 1
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorOpacityMin', {
+		name: 'Turn Indicator Min Opacity',
+		hint: 'Minimum opacity when animating (0 = invisible, 1 = fully visible).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.3,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorOpacityMax', {
+		name: 'Turn Indicator Max Opacity',
+		hint: 'Maximum opacity for indicator ring (0 = invisible, 1 = fully visible).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.8,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		requiresReload: false
+	});
+
+
+	game.settings.register(MODULE.ID, 'turnIndicatorInnerOpacity', {
+		name: 'Turn Indicator Inner Fill Opacity',
+		hint: 'Opacity for the inner fill of the turn indicator ring (0 = invisible, 1 = fully visible).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.3,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		requiresReload: false
+	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// *** OPEN AI SETTINGS ***
 
@@ -3459,131 +3759,6 @@ export const registerSettings = async () => {
 		}
 	});
 
-	// Turn Indicator Settings
-	game.settings.register(MODULE.ID, 'turnIndicatorEnabled', {
-		name: 'Enable Turn Indicator',
-		hint: 'Display a ring around the token whose turn it is in combat.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true,
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorStyle', {
-		name: 'Turn Indicator Style',
-		hint: 'The visual style of the turn indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			solid: "Solid Circle",
-			dashed: "Dashed Circle",
-			spikes: "Circle with Spikes"
-		},
-		default: 'solid',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorAnimation', {
-		name: 'Turn Indicator Animation',
-		hint: 'The animation style for the turn indicator.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			pulse: "Pulse (Opacity)",
-			rotate: "Rotate",
-			fixed: "Fixed (No Animation)"
-		},
-		default: 'pulse',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorColor', {
-		name: 'Turn Indicator Color',
-		hint: 'The color of the turn indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '#00ff00',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorThickness', {
-		name: 'Turn Indicator Thickness',
-		hint: 'The thickness of the turn indicator ring in pixels.',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 3,
-		range: {
-			min: 1,
-			max: 10,
-			step: 1
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorOffset', {
-		name: 'Turn Indicator Distance',
-		hint: 'How far the ring extends beyond the token edge in pixels.',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 8,
-		range: {
-			min: 0,
-			max: 20,
-			step: 1
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorPulseSpeed', {
-		name: 'Turn Indicator Pulse Speed',
-		hint: 'How fast the ring pulses (lower = slower, higher = faster).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.05,
-		range: {
-			min: 0.01,
-			max: 0.15,
-			step: 0.01
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorPulseMin', {
-		name: 'Turn Indicator Min Opacity',
-		hint: 'Minimum opacity when pulsing (0 = invisible, 1 = fully visible).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.3,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorPulseMax', {
-		name: 'Turn Indicator Max Opacity',
-		hint: 'Maximum opacity when pulsing (0 = invisible, 1 = fully visible).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.8,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
-		},
-		requiresReload: false
-	});
 
 	// Combat Timer Settings
 	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
