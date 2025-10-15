@@ -17,6 +17,9 @@ export class TokenImageUtilities {
     static _turnIndicator = null;
     static _currentTurnTokenId = null;
     static _pulseAnimation = null;
+    static _isMoving = false;
+    static _fadeAnimation = null;
+    static _movementTimeout = null;
     
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
@@ -310,8 +313,16 @@ export class TokenImageUtilities {
         if (changes.x !== undefined || changes.y !== undefined) {
             const token = canvas.tokens.get(tokenDocument.id);
             if (token) {
+                // Start fade out if not already moving
+                if (!TokenImageUtilities._isMoving) {
+                    TokenImageUtilities._startMovementFade();
+                }
+                
                 // Pass the changes so we can use the NEW position values
                 TokenImageUtilities._updateTurnIndicatorPosition(token, changes);
+                
+                // Fade back in after movement completes
+                TokenImageUtilities._scheduleMovementComplete();
             }
         }
     }
@@ -402,11 +413,24 @@ export class TokenImageUtilities {
                 TokenImageUtilities._pulseAnimation = null;
             }
             
+            // Remove fade animation ticker
+            if (TokenImageUtilities._fadeAnimation) {
+                canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
+                TokenImageUtilities._fadeAnimation = null;
+            }
+            
+            // Clear movement timeout
+            if (TokenImageUtilities._movementTimeout) {
+                clearTimeout(TokenImageUtilities._movementTimeout);
+                TokenImageUtilities._movementTimeout = null;
+            }
+            
             // Remove graphics from canvas
             canvas.interface.removeChild(TokenImageUtilities._turnIndicator);
             TokenImageUtilities._turnIndicator.destroy();
             TokenImageUtilities._turnIndicator = null;
             TokenImageUtilities._currentTurnTokenId = null;
+            TokenImageUtilities._isMoving = false;
         }
     }
 
@@ -431,5 +455,98 @@ export class TokenImageUtilities {
         // Update PIXI graphics position
         TokenImageUtilities._turnIndicator.x = tokenCenterX;
         TokenImageUtilities._turnIndicator.y = tokenCenterY;
+    }
+
+    /**
+     * Start fade out animation when movement begins
+     */
+    static _startMovementFade() {
+        if (!TokenImageUtilities._turnIndicator) return;
+        
+        TokenImageUtilities._isMoving = true;
+        
+        // Remove existing fade animation if any
+        if (TokenImageUtilities._fadeAnimation) {
+            canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
+        }
+        
+        // Create fade out animation
+        const startAlpha = TokenImageUtilities._turnIndicator.alpha;
+        const targetAlpha = 0.1;
+        const duration = 150; // ms
+        let elapsed = 0;
+        
+        TokenImageUtilities._fadeAnimation = (delta) => {
+            if (!TokenImageUtilities._turnIndicator) return;
+            
+            elapsed += delta * 16.67; // Approximate ms per frame (60fps)
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease out
+            const eased = 1 - Math.pow(1 - progress, 2);
+            TokenImageUtilities._turnIndicator.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
+            
+            // Stop animation when complete
+            if (progress >= 1) {
+                canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
+                TokenImageUtilities._fadeAnimation = null;
+            }
+        };
+        
+        canvas.app.ticker.add(TokenImageUtilities._fadeAnimation);
+    }
+
+    /**
+     * Schedule fade in animation after movement completes
+     */
+    static _scheduleMovementComplete() {
+        // Clear existing timeout
+        if (TokenImageUtilities._movementTimeout) {
+            clearTimeout(TokenImageUtilities._movementTimeout);
+        }
+        
+        // Wait for movement to complete (debounce - 1 second delay)
+        TokenImageUtilities._movementTimeout = setTimeout(() => {
+            TokenImageUtilities._completeMovementFade();
+        }, 1000);
+    }
+
+    /**
+     * Fade back in after movement completes
+     */
+    static _completeMovementFade() {
+        if (!TokenImageUtilities._turnIndicator) return;
+        
+        TokenImageUtilities._isMoving = false;
+        
+        // Remove existing fade animation if any
+        if (TokenImageUtilities._fadeAnimation) {
+            canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
+        }
+        
+        // Create fade in animation
+        const startAlpha = TokenImageUtilities._turnIndicator.alpha;
+        const targetAlpha = 0.8; // Back to normal pulsing alpha
+        const duration = 200; // ms
+        let elapsed = 0;
+        
+        TokenImageUtilities._fadeAnimation = (delta) => {
+            if (!TokenImageUtilities._turnIndicator) return;
+            
+            elapsed += delta * 16.67; // Approximate ms per frame
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease in
+            const eased = Math.pow(progress, 2);
+            TokenImageUtilities._turnIndicator.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
+            
+            // Stop animation when complete
+            if (progress >= 1) {
+                canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
+                TokenImageUtilities._fadeAnimation = null;
+            }
+        };
+        
+        canvas.app.ticker.add(TokenImageUtilities._fadeAnimation);
     }
 }
