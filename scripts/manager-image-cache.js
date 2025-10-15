@@ -6,6 +6,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
+import { TokenImageUtilities } from './token-image-utilities.js';
 import { ImageMatching } from './manager-image-matching.js';
 
 /**
@@ -722,7 +723,7 @@ export class ImageCacheManager {
             description: 'Token Image Replacement: Monitor actor HP changes for dead token replacement',
             context: 'token-image-replacement-dead-tokens',
             priority: 3, // Normal priority - token processing
-            callback: TokenImageReplacementWindow._onActorUpdateForDeadToken
+            callback: TokenImageUtilities.onActorUpdateForDeadToken
         });
 
         // Log hook registration
