@@ -2,6 +2,23 @@
 
 ## CRITICAL ISSUES (High Severity)
 
+### 🚨 PLANNING TIMER UNDEFINED ERROR (Found: January 15, 2025)
+- **Issue**: `timer-planning.js:127` throws "Cannot read properties of undefined (reading 'isActive')"
+- **Location**: `scripts/timer-planning.js` line 127 in `timerCleanup` function
+- **Impact**: Breaks planning timer cleanup, potentially causing cascading errors
+- **Status**: 🚨 CRITICAL - ERROR IN PRODUCTION
+- **Error Stack**:
+  ```
+  timer-planning.js:127 Uncaught (in promise) TypeError: undefined. Cannot read properties of undefined (reading 'isActive')
+  [Detected 2 packages: coffee-pub-blacksmith(12.1.15), socketlib(v1.1.3)]
+      at Object.timerCleanup (timer-planning.js:127:28)
+      at SocketlibSocket._handleRequest (socketlib.js:254:9)
+      at SocketlibSocket._onSocketReceived (socketlib.js:212:9)
+  ```
+- **Root Cause**: TBD - likely accessing undefined object in cleanup
+- **Plan**: Add safety checks for undefined objects before accessing properties
+- **Notes**: Related to socketlib communication, may be a race condition
+
 ### 1. 🚨 HOOKMANAGER RETURN VALUE HANDLING (BLOCKING)
 - **Issue**: HookManager ignores return values from hook callbacks, breaking movement restrictions
 - **Location**: `scripts/manager-hooks.js` lines 58-67 in hookRunner function
@@ -94,6 +111,55 @@
 - **Status**: ✅ COMPLETED
 - **Plan**: Cache file listings or implement lazy loading
 - **Notes**: Consider caching with invalidation on file system changes
+
+## TOKEN IMAGE REPLACEMENT ISSUES
+
+### 1. 🏷️ Complete Tag Optimizations (High Priority)
+- **Issue**: Tag system was broken in live production, needs fixes
+- **Location**: `scripts/token-image-replacement.js` - `_getTagsForMatch()`, `_getTagsForFile()`, `_getAggregatedTags()`
+- **Impact**: Tags not showing correctly when filter buttons clicked, especially with token selected
+- **Status**: 🟡 IN PROGRESS
+- **Date Found**: January 15, 2025
+- **Plan**: 
+  - Fix broken live tag code
+  - Nail down "selected" tag experience
+  - Ensure tags show for creature types, folder paths, and metadata
+- **Notes**: Currently working better than before but needs refinement
+
+### 2. ⚡ Optimize and Speed Up Narrowing Code (Medium Priority)
+- **Issue**: Noticeable lag when searching/filtering images
+- **Location**: `scripts/token-image-replacement.js`, `scripts/manager-image-matching.js`
+- **Impact**: Performance degradation during image search and matching
+- **Status**: 🟢 TODO
+- **Date Found**: January 15, 2025
+- **Plan**:
+  - Implement better debouncing for search input
+  - Add caching for filtered results
+  - Consider lazy loading of results
+  - Optimize background processing for heavy operations
+- **Notes**: Related to comprehensive search and filtering logic
+
+### 3. 🎯 Dead Token Functionality (Completed)
+- **Issue**: Dead token image replacement needed refactoring
+- **Location**: Moved from `scripts/token-image-replacement.js` to `scripts/token-image-utilities.js`
+- **Impact**: Better code organization and separation of concerns
+- **Status**: ✅ COMPLETED
+- **Date Completed**: January 15, 2025
+- **Plan**: ✅ Created dedicated `token-image-utilities.js` for token enhancements
+- **Notes**: Prepared for future token enhancement features
+
+### 4. 🎮 Turn Indicator System (Completed)
+- **Issue**: Added visual indicator for current turn in combat
+- **Location**: `scripts/token-image-utilities.js`
+- **Impact**: Better visual feedback during combat
+- **Status**: ✅ COMPLETED
+- **Date Completed**: January 15, 2025
+- **Features**:
+  - Green pulsing ring around current turn token
+  - PIXI Graphics rendering (not DOM SVG)
+  - Moves with token during movement
+  - Automatic cleanup on turn change
+- **Notes**: Successfully implemented with PIXI rendering system
 
 ## MEDIUM SEVERITY ISSUES
 
@@ -293,10 +359,24 @@
 
 ---
 
-**Last Updated**: December 19, 2024
-**Next Review**: December 26, 2024
+**Last Updated**: January 15, 2025
+**Next Review**: January 22, 2025
 
 ## RECENT MAJOR ACCOMPLISHMENTS
+
+### Token Image Utilities & Turn Indicator (January 2025)
+- ✅ **Created dedicated token utilities module** - Separated dead token and turn indicator functionality
+- ✅ **Implemented turn indicator system** - Green pulsing ring shows current combat turn
+- ✅ **PIXI Graphics rendering** - Proper canvas integration without breaking renderer
+- ✅ **Position tracking** - Turn indicator follows token movement in real-time
+- ✅ **Code organization** - Moved dead token logic to `token-image-utilities.js`
+- ✅ **Prepared for expansion** - Ready to add more token enhancement features
+
+### Key Benefits Achieved
+- **Better UX**: Visual feedback for whose turn it is in combat
+- **Code Quality**: Cleaner separation of concerns between UI and utilities
+- **Performance**: Efficient PIXI rendering with smooth animations
+- **Maintainability**: Dedicated file for token enhancements makes future work easier
 
 ### OpenAI API Refactoring (December 2024)
 - ✅ **Separated OpenAI functionality** into dedicated `api-openai.js` module

@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { ImageCacheManager } from './manager-image-cache.js';
+import { HookManager } from './manager-hooks.js';
 
 /**
  * Token Image Utilities
@@ -16,6 +17,11 @@ export class TokenImageUtilities {
     static _turnIndicator = null;
     static _currentTurnTokenId = null;
     static _pulseAnimation = null;
+    
+    // Hook IDs for cleanup
+    static _updateCombatHookId = null;
+    static _deleteCombatHookId = null;
+    static _updateTokenHookId = null;
     
     /**
      * Store the original image for a token before any updates
@@ -217,8 +223,32 @@ export class TokenImageUtilities {
      */
     static initializeTurnIndicator() {
         // Register combat update hook
-        Hooks.on('updateCombat', TokenImageUtilities._onCombatUpdate);
-        Hooks.on('deleteCombat', TokenImageUtilities._onCombatDelete);
+        TokenImageUtilities._updateCombatHookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'Token Image Utilities: Monitor combat updates for turn indicator',
+            context: 'token-utilities-turn-indicator',
+            priority: 3,
+            callback: TokenImageUtilities._onCombatUpdate
+        });
+        
+        TokenImageUtilities._deleteCombatHookId = HookManager.registerHook({
+            name: 'deleteCombat',
+            description: 'Token Image Utilities: Clean up turn indicator on combat deletion',
+            context: 'token-utilities-turn-indicator',
+            priority: 3,
+            callback: TokenImageUtilities._onCombatDelete
+        });
+        
+        // Register token update hook for position tracking
+        TokenImageUtilities._updateTokenHookId = HookManager.registerHook({
+            name: 'updateToken',
+            description: 'Token Image Utilities: Track token position for turn indicator',
+            context: 'token-utilities-turn-indicator',
+            priority: 3,
+            callback: TokenImageUtilities._onTokenUpdate
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks registered", "", true, false);
         
         // Check if combat is already active
         if (game.combat && game.combat.started) {
@@ -231,8 +261,24 @@ export class TokenImageUtilities {
      */
     static cleanupTurnIndicator() {
         TokenImageUtilities._removeTurnIndicator();
-        Hooks.off('updateCombat', TokenImageUtilities._onCombatUpdate);
-        Hooks.off('deleteCombat', TokenImageUtilities._onCombatDelete);
+        
+        // Unregister hooks using HookManager
+        if (TokenImageUtilities._updateCombatHookId) {
+            HookManager.unregisterHook('updateCombat', TokenImageUtilities._updateCombatHookId);
+            TokenImageUtilities._updateCombatHookId = null;
+        }
+        
+        if (TokenImageUtilities._deleteCombatHookId) {
+            HookManager.unregisterHook('deleteCombat', TokenImageUtilities._deleteCombatHookId);
+            TokenImageUtilities._deleteCombatHookId = null;
+        }
+        
+        if (TokenImageUtilities._updateTokenHookId) {
+            HookManager.unregisterHook('updateToken', TokenImageUtilities._updateTokenHookId);
+            TokenImageUtilities._updateTokenHookId = null;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks unregistered", "", true, false);
     }
 
     /**
@@ -249,6 +295,25 @@ export class TokenImageUtilities {
      */
     static _onCombatDelete(combat, options, userId) {
         TokenImageUtilities._removeTurnIndicator();
+    }
+
+    /**
+     * Handle token updates (position changes)
+     */
+    static _onTokenUpdate(tokenDocument, changes, options, userId) {
+        // Only care about position changes for the current turn token
+        if (!TokenImageUtilities._currentTurnTokenId || tokenDocument.id !== TokenImageUtilities._currentTurnTokenId) {
+            return;
+        }
+        
+        // If position changed, update the indicator
+        if (changes.x !== undefined || changes.y !== undefined) {
+            const token = canvas.tokens.get(tokenDocument.id);
+            if (token) {
+                // Pass the changes so we can use the NEW position values
+                TokenImageUtilities._updateTurnIndicatorPosition(token, changes);
+            }
+        }
     }
 
     /**
@@ -348,19 +413,23 @@ export class TokenImageUtilities {
     /**
      * Update turn indicator position (for token movement)
      */
-    static _updateTurnIndicatorPosition(token) {
+    static _updateTurnIndicatorPosition(token, changes = null) {
         if (!TokenImageUtilities._turnIndicator || TokenImageUtilities._currentTurnTokenId !== token.id) {
             return;
         }
 
         const tokenWidth = token.document.width * canvas.grid.size;
         const tokenHeight = token.document.height * canvas.grid.size;
-        const tokenRadius = Math.max(tokenWidth, tokenHeight) / 2;
-        const ringRadius = tokenRadius + 8;
-        const tokenCenterX = token.x + tokenWidth / 2;
-        const tokenCenterY = token.y + tokenHeight / 2;
         
-        TokenImageUtilities._turnIndicator.style.left = `${tokenCenterX - ringRadius}px`;
-        TokenImageUtilities._turnIndicator.style.top = `${tokenCenterY - ringRadius}px`;
+        // Use the NEW position from changes if available, otherwise use current token position
+        const tokenX = changes?.x !== undefined ? changes.x : token.x;
+        const tokenY = changes?.y !== undefined ? changes.y : token.y;
+        
+        const tokenCenterX = tokenX + tokenWidth / 2;
+        const tokenCenterY = tokenY + tokenHeight / 2;
+        
+        // Update PIXI graphics position
+        TokenImageUtilities._turnIndicator.x = tokenCenterX;
+        TokenImageUtilities._turnIndicator.y = tokenCenterY;
     }
 }
