@@ -1875,118 +1875,6 @@ export class TokenImageReplacementWindow extends Application {
         return tags;
     }
 
-    // ================================================================== 
-    // ===== WORD COMBINATION UTILITIES =================================
-    // ================================================================== 
-    
-    /**
-     * Normalize text for matching - lowercase and standardize separators
-     * @param {string} text - Text to normalize
-     * @returns {string} Normalized text
-     */
-    static _normalizeText(text) {
-        if (!text || typeof text !== 'string') return '';
-        // Replace all special characters with spaces, then normalize
-        return text.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
-    }
-    
-    /**
-     * Extract words from text, splitting on common separators
-     * @param {string} text - Text to extract words from
-     * @returns {Array<string>} Array of words
-     */
-    static _extractWords(text) {
-        if (!text || typeof text !== 'string') return [];
-        // Since we normalize special characters to spaces, we only need to split on spaces
-        return text.split(/\s+/).filter(word => word.length > 0);
-    }
-    
-    
-    /**
-     * Check if any combination of source words matches in target text
-     * Returns the best match score found
-     * @param {Array<string>} sourceWords - Words to match
-     * @param {string} targetText - Text to search in
-     * @param {boolean} debug - Enable debug logging
-     * @returns {Object} { matched: boolean, score: number, matchType: string }
-     */
-    static _matchCombinations(sourceWords, targetText, debug = false) {
-        if (!Array.isArray(sourceWords) || sourceWords.length === 0 || !targetText) {
-            return { matched: false, score: 0, matchType: 'none' };
-        }
-        
-        const targetLower = this._normalizeText(targetText);
-        
-        
-        // Single word matching
-        if (sourceWords.length === 1) {
-            const word = sourceWords[0];
-            if (targetLower === word) {
-                return { matched: true, score: 1.0, matchType: 'exact' };
-            }
-            if (targetLower.startsWith(word)) {
-                return { matched: true, score: 0.9, matchType: 'starts' };
-            }
-            if (targetLower.endsWith(word)) {
-                return { matched: true, score: 0.85, matchType: 'ends' };
-            }
-            if (targetLower.includes(word)) {
-                return { matched: true, score: 0.8, matchType: 'contains' };
-            }
-            return { matched: false, score: 0, matchType: 'none' };
-        }
-        
-        // PRIORITY 1: Exact phrase matching (most important)
-        const phrase = sourceWords.join(' ');
-        if (targetLower === phrase) {
-            return { matched: true, score: 1.0, matchType: 'exact-phrase' };
-        }
-        if (targetLower.includes(phrase)) {
-            return { matched: true, score: 0.95, matchType: 'phrase-contains' };
-        }
-        
-        // PRIORITY 2: Check if target contains the phrase as separate words in sequence
-        const targetWords = this._extractWords(targetLower);
-        const sourcePhrase = sourceWords.join(' ');
-        
-        // Look for the phrase as consecutive words in the target
-        for (let i = 0; i <= targetWords.length - sourceWords.length; i++) {
-            const targetPhrase = targetWords.slice(i, i + sourceWords.length).join(' ');
-            if (targetPhrase === sourcePhrase) {
-                return { matched: true, score: 0.9, matchType: 'consecutive-words' };
-            }
-        }
-        
-        // PRIORITY 3: Individual word matching (only as last resort)
-        let exactWordMatches = 0;
-        let partialWordMatches = 0;
-        
-        for (const sourceWord of sourceWords) {
-            let foundExact = false;
-            let foundPartial = false;
-            
-            for (const targetWord of targetWords) {
-                if (targetWord === sourceWord) {
-                    exactWordMatches++;
-                    foundExact = true;
-                    break;
-                } else if (targetWord.includes(sourceWord) || sourceWord.includes(targetWord)) {
-                    partialWordMatches++;
-                    foundPartial = true;
-                    break;
-                }
-            }
-            
-        }
-        
-        // Only return individual word matches if we found at least some words
-        if (exactWordMatches > 0 || partialWordMatches > 0) {
-            const score = (exactWordMatches + partialWordMatches * 0.3) / sourceWords.length;
-            return { matched: true, score: Math.max(score, 0.1), matchType: 'individual-words' };
-        }
-        
-        return { matched: false, score: 0, matchType: 'none' };
-    }
 
     /**
      * Initialize threshold slider with current setting value
@@ -2050,7 +1938,7 @@ export class TokenImageReplacementWindow extends Application {
         if (searchMode === 'token' && tokenData) {
             // Actor Name (most important - clean creature name)
             if (tokenDocument && tokenDocument.actor && tokenDocument.actor.name) {
-                const actorNameMatch = ImageCacheManager._calculateTokenNameMatch(tokenDocument.actor.name, fileNameLower, filePathLower, fileInfo);
+                const actorNameMatch = ImageMatching._calculateTokenNameMatch(tokenDocument.actor.name, fileNameLower, filePathLower, fileInfo);
                 if (actorNameMatch > 0) {
                     totalScore += actorNameMatch * weights.actorName;
                     foundMatch = true;
@@ -2061,7 +1949,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Token Name (flexible matching for any naming convention)
             if (tokenDocument && tokenDocument.name) {
-                tokenNameMatch = ImageCacheManager._calculateTokenNameMatch(tokenDocument.name, fileNameLower, filePathLower, fileInfo);
+                tokenNameMatch = ImageMatching._calculateTokenNameMatch(tokenDocument.name, fileNameLower, filePathLower, fileInfo);
                 if (tokenNameMatch > 0) {
                     totalScore += tokenNameMatch * weights.tokenName;
                     foundMatch = true;
@@ -2073,7 +1961,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Represented Actor (most important)
             if (tokenData.representedActor) {
-                const actorMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
+                const actorMatch = ImageMatching._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
                 if (actorMatch > 0) {
                     totalScore += actorMatch * weights.representedActor;
                     foundMatch = true;
@@ -2096,7 +1984,7 @@ export class TokenImageReplacementWindow extends Application {
                     }
                 } else {
                     // Fallback to string matching
-                    typeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
+                    typeMatch = ImageMatching._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
                 }
                 
                 if (typeMatch > 0) {
@@ -2119,7 +2007,7 @@ export class TokenImageReplacementWindow extends Application {
                     }
                 } else {
                     // Fallback to string matching
-                    subtypeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
+                    subtypeMatch = ImageMatching._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
                 }
                 
                 if (subtypeMatch > 0) {
@@ -2131,7 +2019,7 @@ export class TokenImageReplacementWindow extends Application {
             // Equipment
             if (tokenData.equipment && tokenData.equipment.length > 0) {
                 for (const equipment of tokenData.equipment) {
-                    const equipmentMatch = ImageCacheManager._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
+                    const equipmentMatch = ImageMatching._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
                     if (equipmentMatch > 0) {
                         totalScore += equipmentMatch * weights.equipment;
                         foundMatch = true;
@@ -2143,7 +2031,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Background
             if (tokenData.background) {
-                const backgroundMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.background, fileNameLower, filePathLower, fileInfo);
+                const backgroundMatch = ImageMatching._calculateTokenDataMatch(tokenData.background, fileNameLower, filePathLower, fileInfo);
                 if (backgroundMatch > 0) {
                     totalScore += backgroundMatch * weights.background;
                     foundMatch = true;
@@ -2152,7 +2040,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Size
             if (tokenData.size) {
-                const sizeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
+                const sizeMatch = ImageMatching._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
                 if (sizeMatch > 0) {
                     totalScore += sizeMatch * weights.size;
                     foundMatch = true;
@@ -2340,138 +2228,7 @@ export class TokenImageReplacementWindow extends Application {
         return clampedScore;
     }
 
-    /**
-     * Calculate match score for a specific token data point
-     * Uses word combination utilities for improved multi-word matching
-     * @param {string} tokenValue - The token data value to match
-     * @param {string} fileNameLower - Lowercase filename
-     * @param {string} filePathLower - Lowercase file path
-     * @param {Object} fileInfo - File information object
-     * @returns {number} Match score (0.0 to 1.0)
-     */
-    _calculateTokenDataMatch(tokenValue, fileNameLower, filePathLower, fileInfo) {
-        if (!tokenValue) return 0;
-        
-        const valueLower = ImageMatching._normalizeText(tokenValue);
-        const valueWords = ImageMatching._extractWords(valueLower);
-        let maxScore = 0;
-        
-        // Primary filename matching using word combination utilities
-        const filenameMatch = ImageMatching._matchCombinations(valueWords, fileNameLower);
-        if (filenameMatch.matched) {
-            maxScore = Math.max(maxScore, filenameMatch.score);
-        }
-        
-        // Metadata tag matching
-        if (fileInfo.metadata && fileInfo.metadata.tags) {
-            for (const tag of fileInfo.metadata.tags) {
-                const tagMatch = ImageMatching._matchCombinations(valueWords, tag);
-                if (tagMatch.matched) {
-                    // Tags are high-value matches, boost score slightly
-                    maxScore = Math.max(maxScore, tagMatch.score * 1.0);
-                }
-            }
-        }
-        
-        // Specific metadata fields matching
-        if (fileInfo.metadata) {
-            const metadataFields = [
-                'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
-                'equipment', 'pose', 'action', 'direction', 'quality', 'class', 'profession'
-            ];
-            
-            for (const field of metadataFields) {
-                const value = fileInfo.metadata[field];
-                if (value && typeof value === 'string') {
-                    const metadataMatch = ImageMatching._matchCombinations(valueWords, value);
-                    if (metadataMatch.matched) {
-                        maxScore = Math.max(maxScore, metadataMatch.score * 0.95);
-                    }
-                }
-            }
-        }
-        
-        // Folder path matching (lower priority)
-        const pathMatch = ImageMatching._matchCombinations(valueWords, filePathLower);
-        if (pathMatch.matched) {
-            // Path matches are less valuable, reduce score
-            maxScore = Math.max(maxScore, pathMatch.score * 0.6);
-        }
-        
-        return maxScore;
-    }
 
-    /**
-     * Calculate match score for token name (flexible matching for any naming convention)
-     * Uses word combination utilities for improved multi-word matching
-     * @param {string} tokenName - The token name (e.g., "Bob (Creature)", "Creature 1", "Bob")
-     * @param {string} fileNameLower - Lowercase filename
-     * @param {string} filePathLower - Lowercase file path
-     * @param {Object} fileInfo - File information object
-     * @returns {number} Match score (0.0 to 1.0)
-     */
-    _calculateTokenNameMatch(tokenName, fileNameLower, filePathLower, fileInfo) {
-        if (!tokenName) return 0;
-        
-        const tokenNameLower = ImageMatching._normalizeText(tokenName);
-        let maxScore = 0;
-        
-        // Extract potential creature names from token name
-        const potentialCreatureNames = [];
-        
-        // 1. Check for parentheses: "Bob (Creature)" -> "Creature" or "Bob (Frost Giant)" -> "Frost Giant"
-        const parenMatch = tokenNameLower.match(/\(([^)]+)\)/);
-        if (parenMatch) {
-            const parenContent = parenMatch[1].trim();
-            potentialCreatureNames.push(parenContent); // Keep full multi-word names
-        }
-        
-        // 2. Check for numbers: "Creature 1" -> "Creature" or "Frost Giant 2" -> "Frost Giant"
-        const numberMatch = tokenNameLower.match(/^(.+?)\s+\d+$/);
-        if (numberMatch) {
-            potentialCreatureNames.push(numberMatch[1].trim());
-        }
-        
-        // 3. Check for "the": "Bob the Creature" -> "Creature" or "Bob the Frost Giant" -> "Frost Giant"
-        const theMatch = tokenNameLower.match(/\bthe\s+(.+)$/);
-        if (theMatch) {
-            potentialCreatureNames.push(theMatch[1].trim());
-        }
-        
-        // 4. If no patterns match, use the full token name
-        if (potentialCreatureNames.length === 0) {
-            potentialCreatureNames.push(tokenNameLower);
-        }
-        
-        // Remove duplicates and filter out common words
-        const uniqueNames = [...new Set(potentialCreatureNames)].filter(name => 
-            name.length >= 2 && 
-            !['the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for'].includes(name)
-        );
-        
-        // Test each potential creature name against the file using word combination utilities
-        for (const creatureName of uniqueNames) {
-            const creatureWords = ImageMatching._extractWords(creatureName);
-            
-            // Filename matching using word combinations
-            const filenameMatch = ImageMatching._matchCombinations(creatureWords, fileNameLower);
-            if (filenameMatch.matched) {
-                maxScore = Math.max(maxScore, filenameMatch.score);
-            }
-            
-            // Metadata tag matching
-            if (fileInfo.metadata && fileInfo.metadata.tags) {
-                for (const tag of fileInfo.metadata.tags) {
-                    const tagMatch = ImageMatching._matchCombinations(creatureWords, tag);
-                    if (tagMatch.matched) {
-                        maxScore = Math.max(maxScore, tagMatch.score * 1.0);
-                    }
-                }
-            }
-        }
-        
-        return maxScore;
-    }
 
     /**
      * Initialize threshold slider with current setting value
