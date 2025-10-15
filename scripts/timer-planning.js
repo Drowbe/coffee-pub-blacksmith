@@ -106,6 +106,11 @@ export class PlanningTimer {
     }
 
     static async timerCleanup(data) {
+        // Ensure state is initialized before proceeding
+        if (!PlanningTimer.state) {
+            PlanningTimer.state = foundry.utils.deepClone(PlanningTimer.DEFAULTS.state);
+        }
+        
         if (!game.user.isGM) {
             // Players only update UI based on received data
             if (data?.wasExpired || data?.shouldFadeOut) {

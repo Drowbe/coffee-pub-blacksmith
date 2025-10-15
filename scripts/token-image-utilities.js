@@ -24,6 +24,7 @@ export class TokenImageUtilities {
     // Targeted indicator management
     static _targetedIndicators = new Map(); // Map of tokenId -> graphics object
     static _targetedTokens = new Set(); // Set of currently targeted token IDs
+    static _targetedAnimations = new Map(); // Map of tokenId -> animation object
     
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
@@ -506,9 +507,63 @@ export class TokenImageUtilities {
         
         postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks registered", "", true, false);
         
+        // Hide Foundry's default target indicators if enabled
+        TokenImageUtilities._hideDefaultTargetIndicators();
+        
         // Check if combat is already active
         if (game.combat && game.combat.started) {
             TokenImageUtilities._updateTurnIndicator();
+        }
+    }
+
+    /**
+     * Hide Foundry's default target indicators by hiding specific PIXI visual elements
+     */
+    static _hideDefaultTargetIndicators() {
+        if (!getSettingSafely(MODULE.ID, 'hideDefaultTargetIndicators', false)) {
+            return;
+        }
+        
+        // Hook into token refresh to hide target indicators
+        Hooks.on('refreshToken', (token) => {
+            TokenImageUtilities._hideTokenTargetVisuals(token);
+        });
+        
+        // Apply to all existing tokens
+        if (canvas.tokens) {
+            for (const token of canvas.tokens.placeables) {
+                TokenImageUtilities._hideTokenTargetVisuals(token);
+            }
+        }
+    }
+    
+    /**
+     * Hide only the visual PIXI elements of target indicators, not the entire target object
+     */
+    static _hideTokenTargetVisuals(token) {
+        if (!token.target) return;
+        
+        // Hide specific visual elements without breaking DOM functionality
+        if (token.target.reticle) {
+            token.target.reticle.visible = false;
+        }
+        if (token.target.arrows) {
+            token.target.arrows.visible = false;
+        }
+        if (token.target.pip) {
+            token.target.pip.visible = false;
+        }
+        if (token.target.border) {
+            token.target.border.visible = false;
+        }
+        
+        // Hide any other visual sprites in the target object
+        if (token.target.children) {
+            for (const child of token.target.children) {
+                if (child.isSprite || child.isGraphics) {
+                    child.visible = false;
+                }
+            }
         }
     }
 
@@ -678,19 +733,52 @@ export class TokenImageUtilities {
     }
     
     /**
-     * Create animation for the targeted turn indicator based on settings
+     * Create animation for a specific targeted indicator based on settings
      */
-    static _createTurnIndicatorTargetedAnimation(settings) {
+    static _createTargetedIndicatorAnimation(tokenId, graphics, settings) {
+        // Remove existing animation if any
+        const existingAnimation = TokenImageUtilities._targetedAnimations.get(tokenId);
+        if (existingAnimation) {
+            canvas.app.ticker.remove(existingAnimation.update);
+        }
+        
+        let animation = null;
+        
         switch (settings.animation) {
             case 'pulse':
-                TokenImageUtilities._createPulseAnimation(settings);
+                animation = {
+                    time: 0,
+                    update: (delta) => {
+                        if (!graphics || graphics.destroyed) return;
+                        animation.time += delta * settings.pulseSpeed;
+                        const pulseRange = (settings.pulseMax - settings.pulseMin) / 2;
+                        const pulseMid = settings.pulseMin + pulseRange;
+                        const opacity = pulseMid + Math.sin(animation.time) * pulseRange;
+                        graphics.alpha = opacity;
+                    }
+                };
+                canvas.app.ticker.add(animation.update);
                 break;
             case 'rotate':
-                TokenImageUtilities._createRotateAnimation(settings);
+                animation = {
+                    time: 0,
+                    update: (delta) => {
+                        if (!graphics || graphics.destroyed) return;
+                        animation.time += delta * settings.pulseSpeed;
+                        graphics.rotation = animation.time;
+                    }
+                };
+                canvas.app.ticker.add(animation.update);
                 break;
             case 'fixed':
             default:
-                break; // No animation
+                // No animation
+                break;
+        }
+        
+        // Store animation reference if created
+        if (animation) {
+            TokenImageUtilities._targetedAnimations.set(tokenId, animation);
         }
     }
     
@@ -959,7 +1047,8 @@ export class TokenImageUtilities {
         canvas.interface.addChild(graphics);
         TokenImageUtilities._targetedIndicators.set(tokenDocument.id, graphics);
         
-        TokenImageUtilities._createTurnIndicatorTargetedAnimation(settings);
+        // Create animation for this specific targeted indicator
+        TokenImageUtilities._createTargetedIndicatorAnimation(tokenDocument.id, graphics, settings);
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Targeted indicator (${settings.style}, ${settings.animation}) added for ${token.name}`, "", true, false);
     }
@@ -974,6 +1063,13 @@ export class TokenImageUtilities {
             graphics.destroy();
             TokenImageUtilities._targetedIndicators.delete(tokenId);
         }
+        
+        // Remove animation if exists
+        const animation = TokenImageUtilities._targetedAnimations.get(tokenId);
+        if (animation) {
+            canvas.app.ticker.remove(animation.update);
+            TokenImageUtilities._targetedAnimations.delete(tokenId);
+        }
     }
     
     /**
@@ -986,6 +1082,12 @@ export class TokenImageUtilities {
         }
         TokenImageUtilities._targetedIndicators.clear();
         TokenImageUtilities._targetedTokens.clear();
+        
+        // Clean up all animations
+        for (const [tokenId, animation] of TokenImageUtilities._targetedAnimations) {
+            canvas.app.ticker.remove(animation.update);
+        }
+        TokenImageUtilities._targetedAnimations.clear();
     }
     
     /**

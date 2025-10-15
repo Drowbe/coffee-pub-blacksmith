@@ -3,15 +3,15 @@
 ## CRITICAL ISSUES (High Severity)
 
 ### 🚨 PLANNING TIMER UNDEFINED ERROR (Found: January 15, 2025)
-- **Issue**: `timer-planning.js:127` throws "Cannot read properties of undefined (reading 'isActive')"
-- **Location**: `scripts/timer-planning.js` line 127 in `timerCleanup` function
+- **Issue**: `timer-planning.js:132` throws "Cannot read properties of undefined (reading 'isActive')"
+- **Location**: `scripts/timer-planning.js` line 132 in `timerCleanup` function
 - **Impact**: Breaks planning timer cleanup, potentially causing cascading errors
 - **Status**: 🚨 CRITICAL - ERROR IN PRODUCTION
 - **Error Stack**:
   ```
-  timer-planning.js:127 Uncaught (in promise) TypeError: undefined. Cannot read properties of undefined (reading 'isActive')
+  timer-planning.js:132 Uncaught (in promise) TypeError: undefined. Cannot read properties of undefined (reading 'isActive')
   [Detected 2 packages: coffee-pub-blacksmith(12.1.15), socketlib(v1.1.3)]
-      at Object.timerCleanup (timer-planning.js:127:28)
+      at Object.timerCleanup (timer-planning.js:132:28)
       at SocketlibSocket._handleRequest (socketlib.js:254:9)
       at SocketlibSocket._onSocketReceived (socketlib.js:212:9)
   ```

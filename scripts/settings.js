@@ -2301,7 +2301,16 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
-
+	// Hide Foundry Default Target Indicators
+	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
+		name: 'Hide Default Target Indicators',
+		hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false
+	});
 
 
 
