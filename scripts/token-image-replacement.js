@@ -3619,12 +3619,8 @@ export class TokenImageReplacementWindow extends Application {
                     currentFilter = openWindow.currentFilter;
                 }
                 
-                // Create temporary window instance to access unified matching methods
-                const tempWindow = new TokenImageReplacementWindow();
-                tempWindow.currentFilter = currentFilter;
-                
-                // Get filtered files and find alternative match
-                const filesToSearch = tempWindow._getFilteredFiles();
+                // Get all files from cache (no UI filtering for error recovery)
+                const filesToSearch = Array.from(TokenImageReplacement.cache.files.values());
                 // Apply threshold based on current filter (like main window)
                 const applyThreshold = currentFilter === 'selected';
                 const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
@@ -3666,12 +3662,8 @@ export class TokenImageReplacementWindow extends Application {
                         currentFilter = openWindow.currentFilter;
                     }
                     
-                    // Create temporary window instance to access unified matching methods
-                    const tempWindow = new TokenImageReplacementWindow();
-                    tempWindow.currentFilter = currentFilter;
-                    
-                    // Get filtered files and find alternative match
-                    const filesToSearch = tempWindow._getFilteredFiles();
+                    // Get all files from cache (no UI filtering for error recovery)
+                    const filesToSearch = Array.from(TokenImageReplacement.cache.files.values());
                     // Apply threshold based on current filter (like main window)
                     const applyThreshold = currentFilter === 'selected';
                     const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
