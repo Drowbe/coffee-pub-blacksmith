@@ -1711,6 +1711,7 @@ export class TokenImageReplacementWindow extends Application {
                     </div>
                     <div class="tir-thumbnail-tagset">
                         ${tags.map(tag => `<span class="tir-thumbnail-tag">${tag}</span>`).join('')}
+                        <!-- DEBUG: Tags count: ${tags.length} -->
                     </div>
                 </div>
             `;
@@ -1740,8 +1741,6 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
-        // Debug: Log what we're working with
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_getTagsForMatch) - File: ${match.name}, Has metadata: ${!!match.metadata}, Metadata tags: ${match.metadata?.tags?.length || 0}`, "", true, false);
         
         // Add original image tag if applicable
         if (match.isOriginal) {
@@ -1803,9 +1802,7 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        const finalTags = [...new Set(tags)]; // Remove duplicates
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_getTagsForMatch) - Final tags for ${match.name}: [${finalTags.join(', ')}]`, "", true, false);
-        return finalTags;
+        return [...new Set(tags)]; // Remove duplicates
     }
 
     _applyPagination() {
