@@ -5,7 +5,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { TokenImageReplacement } from './manager-image-cache.js';
+import { ImageCacheManager } from './manager-image-cache.js';
 import { ImageMatching } from './manager-image-matching.js';
 
 /**
@@ -121,13 +121,13 @@ export class TokenImageReplacementWindow extends Application {
      */
     _getFilteredFiles() {
         // Safety check for cache
-        if (!TokenImageReplacement.cache || !TokenImageReplacement.cache.files) {
+        if (!ImageCacheManager.cache || !ImageCacheManager.cache.files) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not available in _getFilteredFiles`, "", true, false);
             return [];
         }
         
         // Get all files from cache
-        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        const allFiles = Array.from(ImageCacheManager.cache.files.values());
         
         // Debug: Show sample paths
         if (allFiles.length > 0) {
@@ -142,7 +142,7 @@ export class TokenImageReplacementWindow extends Application {
         // Cache search terms for "selected" filter to avoid repeated calls
         let processedTerms = null;
         if (this.currentFilter === 'selected' && this.selectedToken) {
-            const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+            const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Search terms: ${searchTerms.join(', ')}`, "", true, false);
             processedTerms = searchTerms
                 .filter(term => term && term.length >= 2)
@@ -217,7 +217,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Use cached search terms if available, otherwise get them
                     if (!this._cachedSearchTerms) {
-                        const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                        const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
                         this._cachedSearchTerms = searchTerms
                             .filter(term => term && term.length >= 2)
                             .map(term => term.toLowerCase());
@@ -253,7 +253,7 @@ export class TokenImageReplacementWindow extends Application {
 
     getData() {
         // Use only the static cache state as source of truth
-        const systemScanning = TokenImageReplacement.cache.isScanning;
+        const systemScanning = ImageCacheManager.cache.isScanning;
         
         // Calculate progress percentage
         let progressPercentage = 0;
@@ -288,15 +288,15 @@ export class TokenImageReplacementWindow extends Application {
             categories: this._getCategories(),
             aggregatedTags: this._getAggregatedTags(),
             hasAggregatedTags: this._getAggregatedTags().length > 0,
-            overallProgress: TokenImageReplacement.cache.overallProgress,
-            totalSteps: TokenImageReplacement.cache.totalSteps,
-            overallProgressPercentage: TokenImageReplacement.cache.totalSteps > 0 ? Math.round((TokenImageReplacement.cache.overallProgress / TokenImageReplacement.cache.totalSteps) * 100) : 0,
-            currentStepName: TokenImageReplacement.cache.currentStepName,
-            currentStepProgress: TokenImageReplacement.cache.currentStepProgress,
-            currentStepTotal: TokenImageReplacement.cache.currentStepTotal,
-            currentStepProgressPercentage: TokenImageReplacement.cache.currentStepTotal > 0 ? Math.round((TokenImageReplacement.cache.currentStepProgress / TokenImageReplacement.cache.currentStepTotal) * 100) : 0,
-            currentPath: TokenImageReplacement.cache.currentPath,
-            currentFileName: TokenImageReplacement.cache.currentFileName,
+            overallProgress: ImageCacheManager.cache.overallProgress,
+            totalSteps: ImageCacheManager.cache.totalSteps,
+            overallProgressPercentage: ImageCacheManager.cache.totalSteps > 0 ? Math.round((ImageCacheManager.cache.overallProgress / ImageCacheManager.cache.totalSteps) * 100) : 0,
+            currentStepName: ImageCacheManager.cache.currentStepName,
+            currentStepProgress: ImageCacheManager.cache.currentStepProgress,
+            currentStepTotal: ImageCacheManager.cache.currentStepTotal,
+            currentStepProgressPercentage: ImageCacheManager.cache.currentStepTotal > 0 ? Math.round((ImageCacheManager.cache.currentStepProgress / ImageCacheManager.cache.currentStepTotal) * 100) : 0,
+            currentPath: ImageCacheManager.cache.currentPath,
+            currentFileName: ImageCacheManager.cache.currentFileName,
             cacheStatus: this._getCacheStatus(),
             updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true),
             fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
@@ -414,7 +414,7 @@ export class TokenImageReplacementWindow extends Application {
         }
 
         // Check cache status
-        if (!TokenImageReplacement.cache) {
+        if (!ImageCacheManager.cache) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized in _findMatches`, "", true, false);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'Cache not initialized. Please wait for cache to load.';
@@ -422,14 +422,14 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
-        if (TokenImageReplacement.cache.isPaused) {
+        if (ImageCacheManager.cache.isPaused) {
             this.notificationIcon = 'fas fa-pause';
             this.notificationText = 'Cache scanning paused. Use "Refresh Cache" to resume.';
-        } else if (TokenImageReplacement.cache.isScanning) {
+        } else if (ImageCacheManager.cache.isScanning) {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
-        } else if (TokenImageReplacement.cache.files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache check - files.size: ${TokenImageReplacement.cache.files.size}, cache exists: ${!!TokenImageReplacement.cache}`, "", true, false);
+        } else if (ImageCacheManager.cache.files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache check - files.size: ${ImageCacheManager.cache.files.size}, cache exists: ${!!ImageCacheManager.cache}`, "", true, false);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
         } else {
@@ -482,7 +482,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Apply unified matching
                 // Apply threshold only on SELECTED tab
                 const applyThreshold = this.currentFilter === 'selected';
-                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
+                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, ImageCacheManager.cache, ImageCacheManager._extractTokenData, applyThreshold);
                 
                 // Filter out any results that are the current image to avoid duplicates
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
@@ -496,13 +496,13 @@ export class TokenImageReplacementWindow extends Application {
                 if (this.selectedToken && this.allMatches.length > 0) {
                     const currentImage = this.allMatches.find(match => match.isCurrent);
                     if (currentImage) {
-                        const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                        const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
                         const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
                             name: currentImage.name,
                             path: currentImage.fullPath,
                             metadata: currentImage.metadata
                         };
-                        currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
+                        currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.cache);
                         
                         // Note: Current image (selected token) is always shown regardless of threshold
                         // The threshold only affects other matching images, not the selected token itself
@@ -600,7 +600,7 @@ export class TokenImageReplacementWindow extends Application {
             }
 
             // Save the updated cache
-            await TokenImageReplacement._saveCacheToStorage(true); // Incremental save
+            await ImageCacheManager._saveCacheToStorage(true); // Incremental save
 
             // Refresh the current view if we're on favorites
             if (this.currentFilter === 'favorites') {
@@ -650,11 +650,11 @@ export class TokenImageReplacementWindow extends Application {
         this.render();
 
         try {
-            await TokenImageReplacement.scanForImages();
+            await ImageCacheManager.scanForImages();
             
             // Check if we have completion data to show
-            if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
-                const data = TokenImageReplacement.cache.completionData;
+            if (ImageCacheManager.cache.justCompleted && ImageCacheManager.cache.completionData) {
+                const data = ImageCacheManager.cache.completionData;
                 let message = `Token Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`;
                 if (data.ignoredFiles > 0) {
                     message += ` (${data.ignoredFiles} files ignored by filter)`;
@@ -669,7 +669,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _onPauseCache() {
-        const paused = TokenImageReplacement.pauseCache();
+        const paused = ImageCacheManager.pauseCache();
         if (paused) {
             this.render();
             ui.notifications.info("Cache scanning paused");
@@ -690,7 +690,7 @@ export class TokenImageReplacementWindow extends Application {
 
         if (confirmed) {
             try {
-                await TokenImageReplacement.deleteCache();
+                await ImageCacheManager.deleteCache();
                 ui.notifications.info("Cache deleted successfully");
                 this.render();
             } catch (error) {
@@ -700,7 +700,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _onPauseCache() {
-        const paused = TokenImageReplacement.pauseCache();
+        const paused = ImageCacheManager.pauseCache();
         if (paused) {
             ui.notifications.info("Cache scanning paused. You can resume by refreshing the cache.");
             this.render();
@@ -1008,9 +1008,9 @@ export class TokenImageReplacementWindow extends Application {
         try {
             
             // Ensure cache is initialized
-            if (!TokenImageReplacement.cache || TokenImageReplacement.cache.files.size === 0) {
+            if (!ImageCacheManager.cache || ImageCacheManager.cache.files.size === 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized, initializing...`, "", true, false);
-                await TokenImageReplacement._initializeCache();
+                await ImageCacheManager._initializeCache();
             }
             
             // Check if there are any controlled tokens
@@ -1091,7 +1091,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _performSearch(searchTerm) {
-        if (TokenImageReplacement.cache.files.size === 0) {
+        if (ImageCacheManager.cache.files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform search`, "", true, false);
             this.matches = [];
             this.allMatches = [];
@@ -1136,7 +1136,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Step 3: Apply unified matching with search terms
         // Search mode never applies threshold
-        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
+        const searchResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerm, null, 'search', ImageCacheManager.cache, ImageCacheManager._extractTokenData, false);
         
         // Filter out any results that are the current image to avoid duplicates
         const filteredResults = searchResults.filter(result => !result.isCurrent);
@@ -1162,13 +1162,13 @@ export class TokenImageReplacementWindow extends Application {
         if (this.selectedToken && this.allMatches.length > 0) {
             const currentImage = this.allMatches.find(match => match.isCurrent);
             if (currentImage) {
-                const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
                 const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
                     name: currentImage.name,
                     path: currentImage.fullPath,
                     metadata: currentImage.metadata
                 };
-                currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
+                currentImage.searchScore = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.cache);
                 
                 // Note: Current image (selected token) is always shown regardless of threshold
                 // The threshold only affects other matching images, not the selected token itself
@@ -1254,7 +1254,7 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 // Search by creature type with multi-word support
-                for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+                for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
                     if (Array.isArray(files) && files.includes(fileName)) {
                         const creatureTypeLower = creatureType.toLowerCase();
                         for (const word of searchWords) {
@@ -1269,7 +1269,7 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 // Search by folder categorization with multi-word support
-                for (const [folderPath, files] of TokenImageReplacement.cache.folders.entries()) {
+                for (const [folderPath, files] of ImageCacheManager.cache.folders.entries()) {
                     if (Array.isArray(files) && files.includes(fileName)) {
                         const folderName = folderPath.split('/').pop().toLowerCase();
                         for (const word of searchWords) {
@@ -1662,7 +1662,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Add creature type tags (same logic as _getTagsForFile)
         const fileName = match.name || '';
-        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+        for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
             if (Array.isArray(files) && files.includes(fileName)) {
                 const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
                 if (!tags.includes(cleanType)) {
@@ -1773,10 +1773,10 @@ export class TokenImageReplacementWindow extends Application {
         // Apply search term if any
         if (this.searchTerm && this.searchTerm.length >= 3) {
             // Search mode never applies threshold
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, this.searchTerm, null, 'search', ImageCacheManager.cache, ImageCacheManager._extractTokenData, false);
         } else {
             // Browse mode never applies threshold
-            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, false);
+            this.allMatches = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, null, null, 'browse', ImageCacheManager.cache, ImageCacheManager._extractTokenData, false);
         }
         
         // Deduplicate results to prevent same file appearing multiple times
@@ -1800,7 +1800,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // First try exact match (case-insensitive)
         const exactKey = fileName.toLowerCase();
-        let fileInfo = TokenImageReplacement.cache.files.get(exactKey);
+        let fileInfo = ImageCacheManager.cache.files.get(exactKey);
         if (fileInfo) {
             return fileInfo;
         }
@@ -1808,14 +1808,14 @@ export class TokenImageReplacementWindow extends Application {
         // Try removing special characters and matching
         const cleanFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
         if (cleanFileName !== exactKey) {
-            fileInfo = TokenImageReplacement.cache.files.get(cleanFileName);
+            fileInfo = ImageCacheManager.cache.files.get(cleanFileName);
             if (fileInfo) {
                 return fileInfo;
             }
         }
         
         // Try fuzzy matching by iterating through cache keys
-        for (const [cacheKey, cacheValue] of TokenImageReplacement.cache.files.entries()) {
+        for (const [cacheKey, cacheValue] of ImageCacheManager.cache.files.entries()) {
             // Remove special characters from both names for comparison
             const cleanCacheKey = cacheKey.replace(/[^a-zA-Z0-9._-]/g, '');
             const cleanMatchName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
@@ -1850,7 +1850,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Add creature type tags
         const fileName = file.name || '';
-        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+        for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
             if (Array.isArray(files) && files.includes(fileName)) {
                 const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
                 if (!tags.includes(cleanType)) {
@@ -2039,7 +2039,7 @@ export class TokenImageReplacementWindow extends Application {
         // Extract token data for weighted scoring
         let tokenData = {};
         if (tokenDocument && searchMode === 'token') {
-            tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+            tokenData = ImageCacheManager._extractTokenData(tokenDocument);
             
         }
         
@@ -2069,7 +2069,7 @@ export class TokenImageReplacementWindow extends Application {
         if (searchMode === 'token' && tokenData) {
             // Actor Name (most important - clean creature name)
             if (tokenDocument && tokenDocument.actor && tokenDocument.actor.name) {
-                const actorNameMatch = TokenImageReplacement._calculateTokenNameMatch(tokenDocument.actor.name, fileNameLower, filePathLower, fileInfo);
+                const actorNameMatch = ImageCacheManager._calculateTokenNameMatch(tokenDocument.actor.name, fileNameLower, filePathLower, fileInfo);
                 if (actorNameMatch > 0) {
                     totalScore += actorNameMatch * weights.actorName;
                     foundMatch = true;
@@ -2080,7 +2080,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Token Name (flexible matching for any naming convention)
             if (tokenDocument && tokenDocument.name) {
-                tokenNameMatch = TokenImageReplacement._calculateTokenNameMatch(tokenDocument.name, fileNameLower, filePathLower, fileInfo);
+                tokenNameMatch = ImageCacheManager._calculateTokenNameMatch(tokenDocument.name, fileNameLower, filePathLower, fileInfo);
                 if (tokenNameMatch > 0) {
                     totalScore += tokenNameMatch * weights.tokenName;
                     foundMatch = true;
@@ -2092,7 +2092,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Represented Actor (most important)
             if (tokenData.representedActor) {
-                const actorMatch = TokenImageReplacement._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
+                const actorMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.representedActor, fileNameLower, filePathLower, fileInfo);
                 if (actorMatch > 0) {
                     totalScore += actorMatch * weights.representedActor;
                     foundMatch = true;
@@ -2115,7 +2115,7 @@ export class TokenImageReplacementWindow extends Application {
                     }
                 } else {
                     // Fallback to string matching
-                    typeMatch = TokenImageReplacement._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
+                    typeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.creatureType, fileNameLower, filePathLower, fileInfo);
                 }
                 
                 if (typeMatch > 0) {
@@ -2138,7 +2138,7 @@ export class TokenImageReplacementWindow extends Application {
                     }
                 } else {
                     // Fallback to string matching
-                    subtypeMatch = TokenImageReplacement._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
+                    subtypeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.creatureSubtype, fileNameLower, filePathLower, fileInfo);
                 }
                 
                 if (subtypeMatch > 0) {
@@ -2150,7 +2150,7 @@ export class TokenImageReplacementWindow extends Application {
             // Equipment
             if (tokenData.equipment && tokenData.equipment.length > 0) {
                 for (const equipment of tokenData.equipment) {
-                    const equipmentMatch = TokenImageReplacement._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
+                    const equipmentMatch = ImageCacheManager._calculateTokenDataMatch(equipment, fileNameLower, filePathLower, fileInfo);
                     if (equipmentMatch > 0) {
                         totalScore += equipmentMatch * weights.equipment;
                         foundMatch = true;
@@ -2162,7 +2162,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Background
             if (tokenData.background) {
-                const backgroundMatch = TokenImageReplacement._calculateTokenDataMatch(tokenData.background, fileNameLower, filePathLower, fileInfo);
+                const backgroundMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.background, fileNameLower, filePathLower, fileInfo);
                 if (backgroundMatch > 0) {
                     totalScore += backgroundMatch * weights.background;
                     foundMatch = true;
@@ -2171,7 +2171,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Size
             if (tokenData.size) {
-                const sizeMatch = TokenImageReplacement._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
+                const sizeMatch = ImageCacheManager._calculateTokenDataMatch(tokenData.size, fileNameLower, filePathLower, fileInfo);
                 if (sizeMatch > 0) {
                     totalScore += sizeMatch * weights.size;
                     foundMatch = true;
@@ -2627,7 +2627,7 @@ export class TokenImageReplacementWindow extends Application {
             const fileInfo = this._getFileInfoFromCache(match.name);
             if (!fileInfo) {
                 // Try using the match object directly as fallback
-                const score = await ImageMatching._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
+                const score = await ImageMatching._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.cache);
                 
                 if (score > bestScore && score >= threshold) {
                     bestScore = score;
@@ -2637,7 +2637,7 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Calculate score using unified algorithm
-            const score = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', TokenImageReplacement.cache);
+            const score = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.cache);
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
@@ -2647,7 +2647,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Log recommended token breakdown if we found a match
         if (bestMatch) {
-            const tokenData = TokenImageReplacement._extractTokenData(this.selectedToken.document);
+            const tokenData = ImageCacheManager._extractTokenData(this.selectedToken.document);
             const weights = {
                 actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
                 tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
@@ -2916,12 +2916,12 @@ export class TokenImageReplacementWindow extends Application {
 
     _getCacheStatus() {
         // Read directly from the actual cache, not from settings
-        if (TokenImageReplacement.cache.files.size === 0) {
+        if (ImageCacheManager.cache.files.size === 0) {
             return "No cache in storage";
         }
         
-        const fileCount = TokenImageReplacement.cache.files.size;
-        const lastScan = TokenImageReplacement.cache.lastScan;
+        const fileCount = ImageCacheManager.cache.files.size;
+        const lastScan = ImageCacheManager.cache.lastScan;
         
         // Get cache size from server settings (not localStorage)
         let cacheSizeText = '';
@@ -2948,20 +2948,20 @@ export class TokenImageReplacementWindow extends Application {
 
     _updateNotificationData() {
         // Only show notifications when there's something the user needs to know about
-        if (TokenImageReplacement.cache.isPaused) {
+        if (ImageCacheManager.cache.isPaused) {
             this.notificationIcon = 'fas fa-pause';
             this.notificationText = 'Cache scanning paused. Use "Refresh Cache" to resume.';
-        } else if (TokenImageReplacement.cache.isScanning) {
+        } else if (ImageCacheManager.cache.isScanning) {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
-        } else if (TokenImageReplacement.cache.justCompleted && TokenImageReplacement.cache.completionData) {
+        } else if (ImageCacheManager.cache.justCompleted && ImageCacheManager.cache.completionData) {
             this.notificationIcon = 'fas fa-check-circle';
-            let notificationText = `Scan Complete! Found ${TokenImageReplacement.cache.completionData.totalFiles} files across ${TokenImageReplacement.cache.completionData.totalFolders} folders in ${TokenImageReplacement.cache.completionData.timeString}`;
-            if (TokenImageReplacement.cache.completionData.ignoredFiles > 0) {
-                notificationText += ` (${TokenImageReplacement.cache.completionData.ignoredFiles} files ignored)`;
+            let notificationText = `Scan Complete! Found ${ImageCacheManager.cache.completionData.totalFiles} files across ${ImageCacheManager.cache.completionData.totalFolders} folders in ${ImageCacheManager.cache.completionData.timeString}`;
+            if (ImageCacheManager.cache.completionData.ignoredFiles > 0) {
+                notificationText += ` (${ImageCacheManager.cache.completionData.ignoredFiles} files ignored)`;
             }
             this.notificationText = notificationText;
-        } else if (TokenImageReplacement.cache.files.size === 0) {
+        } else if (ImageCacheManager.cache.files.size === 0) {
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
         } else {
@@ -2976,7 +2976,7 @@ export class TokenImageReplacementWindow extends Application {
         const topLevelFolders = new Map();
         
         // Count files directly from the file cache using the same path parsing logic as filtering
-        for (const fileInfo of TokenImageReplacement.cache.files.values()) {
+        for (const fileInfo of ImageCacheManager.cache.files.values()) {
             const path = fileInfo.path || fileInfo.fullPath || '';
             const pathParts = path.split('/');
             
@@ -2991,7 +2991,7 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Skip ignored folders
-            if (topLevel && !TokenImageReplacement._isFolderIgnored(topLevel)) {
+            if (topLevel && !ImageCacheManager._isFolderIgnored(topLevel)) {
                 const currentCount = topLevelFolders.get(topLevel) || 0;
                 topLevelFolders.set(topLevel, currentCount + 1);
             }
@@ -3001,7 +3001,7 @@ export class TokenImageReplacementWindow extends Application {
         const categories = [];
         for (const [categoryName, fileCount] of topLevelFolders) {
             categories.push({
-                name: TokenImageReplacement._cleanCategoryName(categoryName),
+                name: ImageCacheManager._cleanCategoryName(categoryName),
                 key: categoryName.toLowerCase(),
                 count: fileCount,
                 isActive: this.currentFilter === categoryName.toLowerCase()
@@ -3019,7 +3019,7 @@ export class TokenImageReplacementWindow extends Application {
         
         if (isCategoryMode) {
             // Category mode: Show ALL tags for this category
-            const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+            const allFiles = Array.from(ImageCacheManager.cache.files.values());
             let categoryFiles;
             if (this.currentFilter === 'all') {
                 categoryFiles = allFiles;  // For 'all', use all files
@@ -3028,7 +3028,7 @@ export class TokenImageReplacementWindow extends Application {
                 if (!this.selectedToken) {
                     categoryFiles = []; // No files if no token selected
                 } else {
-                    const searchTerms = TokenImageReplacement._getSearchTerms(this.selectedToken.document);
+                    const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
                     const processedTerms = searchTerms
                         .filter(term => term && term.length >= 2)
                         .map(term => term.toLowerCase());
@@ -3191,7 +3191,7 @@ export class TokenImageReplacementWindow extends Application {
                     // Select the token first
                     token.control({ releaseOthers: true });
                     // Then open the window
-                    TokenImageReplacement.openWindow();
+                    ImageCacheManager.openWindow();
                 }
             }
         };
@@ -3316,9 +3316,9 @@ export class TokenImageReplacementWindow extends Application {
         const deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', 'assets/images/tokens/dead_token.png');
         
         // Check if the file exists in our cache (only if cache is available)
-        if (TokenImageReplacement.cache && TokenImageReplacement.cache.files) {
+        if (ImageCacheManager.cache && ImageCacheManager.cache.files) {
             const fileName = deadTokenPath.split('/').pop();
-            const cachedFile = TokenImageReplacement.cache.files.get(fileName.toLowerCase());
+            const cachedFile = ImageCacheManager.cache.files.get(fileName.toLowerCase());
             
             if (cachedFile) {
                 return cachedFile.fullPath;
@@ -3446,13 +3446,13 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Check if cache is ready
-        if (TokenImageReplacement.cache.files.size === 0) {
+        if (ImageCacheManager.cache.files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - cache not ready", "", true, false);
             return;
         }
         
         // Extract token data
-        const tokenData = TokenImageReplacement._extractTokenData(tokenDocument);
+        const tokenData = ImageCacheManager._extractTokenData(tokenDocument);
         
         // Log formatted breakdown (simplified for new scoring system)
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== TOKEN DATA BREAKDOWN =====`, "", true, false);
@@ -3470,21 +3470,21 @@ export class TokenImageReplacementWindow extends Application {
         
         // Find matching image using unified matching system (same as SELECTED mode)
         // Get all files from cache (no UI filtering for dropped tokens)
-        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        const allFiles = Array.from(ImageCacheManager.cache.files.values());
         
         // Use unified matching with token mode (same parameters as SELECTED mode)
-        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, true);
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.cache, ImageCacheManager._extractTokenData, true);
         
         // Get the best match (highest score)
         const matchingImage = matches.length > 0 ? matches[0] : null;
         
         if (matchingImage) {
             // Validate the image path before applying
-            if (TokenImageReplacement._isInvalidFilePath(matchingImage.fullPath)) {
+            if (ImageCacheManager._isInvalidFilePath(matchingImage.fullPath)) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cannot apply invalid image path to ${tokenDocument.name}: ${matchingImage.fullPath}`, "", true, false);
                 
                 // Clean up the invalid path from cache to prevent future issues
-                TokenImageReplacement.cache.files.delete(matchingImage.name.toLowerCase());
+                ImageCacheManager.cache.files.delete(matchingImage.name.toLowerCase());
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed invalid path from cache: ${matchingImage.name}`, "", true, false);
                 
                 // Try to find an alternative match using unified matching system
@@ -3496,12 +3496,12 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 // Get all files from cache (no UI filtering for error recovery)
-                const filesToSearch = Array.from(TokenImageReplacement.cache.files.values());
+                const filesToSearch = Array.from(ImageCacheManager.cache.files.values());
                 // Apply threshold based on current filter (like main window)
                 const applyThreshold = currentFilter === 'selected';
-                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
+                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.cache, ImageCacheManager._extractTokenData, applyThreshold);
                 const alternativeMatch = matches.length > 0 ? matches[0] : null;
-                if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
+                if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
                     try {
                         await tokenDocument.update({
@@ -3528,7 +3528,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Check if the error is due to an invalid asset path
                 if (error.message.includes('Invalid Asset') || error.message.includes('loadTexture')) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid asset detected, removing from cache: ${matchingImage.fullPath}`, "", false, false);
-                    TokenImageReplacement.cache.files.delete(matchingImage.name.toLowerCase());
+                    ImageCacheManager.cache.files.delete(matchingImage.name.toLowerCase());
                     
                     // Try to find an alternative match using unified matching system
                     // Get current filter from any open window
@@ -3539,12 +3539,12 @@ export class TokenImageReplacementWindow extends Application {
                     }
                     
                     // Get all files from cache (no UI filtering for error recovery)
-                    const filesToSearch = Array.from(TokenImageReplacement.cache.files.values());
+                    const filesToSearch = Array.from(ImageCacheManager.cache.files.values());
                     // Apply threshold based on current filter (like main window)
                     const applyThreshold = currentFilter === 'selected';
-                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, applyThreshold);
+                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.cache, ImageCacheManager._extractTokenData, applyThreshold);
                     const alternativeMatch = matches.length > 0 ? matches[0] : null;
-                    if (alternativeMatch && !TokenImageReplacement._isInvalidFilePath(alternativeMatch.fullPath)) {
+                    if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
                         try {
                             await tokenDocument.update({

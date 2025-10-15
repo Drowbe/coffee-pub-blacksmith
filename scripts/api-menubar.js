@@ -11,7 +11,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
-import { TokenImageReplacement } from './manager-image-cache.js';
+import { ImageCacheManager } from './manager-image-cache.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -775,7 +775,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: true,
             onClick: () => {
-                TokenImageReplacement.openWindow();
+                ImageCacheManager.openWindow();
             }
         });
 

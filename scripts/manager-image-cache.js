@@ -12,7 +12,7 @@ import { ImageMatching } from './manager-image-matching.js';
  * Token Image Replacement Cache Management System
  * Handles all cache operations, file scanning, and storage
  */
-export class TokenImageReplacement {
+export class ImageCacheManager {
     static ID = 'token-image-replacement';
     
     // Cache structure for storing file information
@@ -512,7 +512,7 @@ export class TokenImageReplacement {
 
     /**
      * Test the weighted scoring system with example data
-     * Call this from console: TokenImageReplacement.testWeightedScoring()
+     * Call this from console: ImageCacheManager.testWeightedScoring()
      */
     static async testWeightedScoring() {
         
@@ -607,7 +607,7 @@ export class TokenImageReplacement {
                     
                     // Try to decompress to show original size
                     try {
-                        const decompressed = TokenImageReplacement._decompressCacheData(cacheData);
+                        const decompressed = ImageCacheManager._decompressCacheData(cacheData);
                         const uncompressedSizeMB = (new Blob([decompressed]).size / (1024 * 1024)).toFixed(2);
                         const compressionRatio = ((1 - cacheData.length / decompressed.length) * 100).toFixed(1);
                         postConsoleAndNotification(MODULE.NAME, `💾 Server Cache Size: ${uncompressedSizeMB}MB → ${compressedSizeMB}MB (${compressionRatio}% compression)`, "", true, false);
@@ -757,17 +757,17 @@ export class TokenImageReplacement {
         
         // Add test function to global scope for debugging
         if (game.user.isGM) {
-                game.TokenImageReplacement = this;
+                game.ImageCacheManager = this;
                 
                 // Add the cleanup functions to the global scope
-                game.TokenImageReplacement.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);
-                game.TokenImageReplacement.forceCleanupInvalidPaths = this.forceCleanupInvalidPaths.bind(this);
-                game.TokenImageReplacement.isScanning = this.isScanning.bind(this);
-                game.TokenImageReplacement.scanForImages = this.scanForImages.bind(this);
-                game.TokenImageReplacement.deleteCache = this.deleteCache.bind(this);
-                game.TokenImageReplacement.pauseCache = this.pauseCache.bind(this);
-                game.TokenImageReplacement.openWindow = this.openWindow.bind(this);
-                game.TokenImageReplacement.cleanup = TokenImageReplacementWindow._removeMiddleClickHandler;
+                game.ImageCacheManager.cleanupInvalidPaths = this._cleanupInvalidPaths.bind(this);
+                game.ImageCacheManager.forceCleanupInvalidPaths = this.forceCleanupInvalidPaths.bind(this);
+                game.ImageCacheManager.isScanning = this.isScanning.bind(this);
+                game.ImageCacheManager.scanForImages = this.scanForImages.bind(this);
+                game.ImageCacheManager.deleteCache = this.deleteCache.bind(this);
+                game.ImageCacheManager.pauseCache = this.pauseCache.bind(this);
+                game.ImageCacheManager.openWindow = this.openWindow.bind(this);
+                game.ImageCacheManager.cleanup = TokenImageReplacementWindow._removeMiddleClickHandler;
             }
     }
     
@@ -1434,7 +1434,7 @@ export class TokenImageReplacement {
                 const scanDirs = [];
                 for (let i = 0; i < response.dirs.length; i++) {
                     const dirName = response.dirs[i].split('/').pop();
-                    const isIgnored = TokenImageReplacement._isFolderIgnored(dirName);
+                    const isIgnored = ImageCacheManager._isFolderIgnored(dirName);
                     if (isIgnored) {
                         ignoredDirs.push(dirName);
                     } else {
@@ -1449,7 +1449,7 @@ export class TokenImageReplacement {
                 // Count non-ignored directories for accurate progress tracking
                 const nonIgnoredDirs = response.dirs.filter(dir => {
                     const dirName = dir.split('/').pop();
-                    return !TokenImageReplacement._isFolderIgnored(dirName);
+                    return !ImageCacheManager._isFolderIgnored(dirName);
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", true, false);
@@ -1471,7 +1471,7 @@ export class TokenImageReplacement {
                     const subDirName = subDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (TokenImageReplacement._isFolderIgnored(subDirName)) {
+                    if (ImageCacheManager._isFolderIgnored(subDirName)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring folder: ${subDirName}`, "", true, false);
                         continue;
                     }
@@ -1609,7 +1609,7 @@ export class TokenImageReplacement {
                     const deeperDirName = deeperDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (TokenImageReplacement._isFolderIgnored(deeperDirName)) {
+                    if (ImageCacheManager._isFolderIgnored(deeperDirName)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring subfolder: ${parentDirName}/${deeperDirName}`, "", true, false);
                         continue;
                     }
@@ -1647,7 +1647,7 @@ export class TokenImageReplacement {
         
         // Check if file has supported extension
         const extension = filePath.split('.').pop()?.toLowerCase();
-        if (!TokenImageReplacement.SUPPORTED_FORMATS.includes(`.${extension}`)) {
+        if (!ImageCacheManager.SUPPORTED_FORMATS.includes(`.${extension}`)) {
             return null;
         }
         
@@ -1680,7 +1680,7 @@ export class TokenImageReplacement {
         }
         
         // Extract metadata from filename and path
-        const metadata = TokenImageReplacement._extractMetadata(fileName, relativePath);
+        const metadata = ImageCacheManager._extractMetadata(fileName, relativePath);
         
         
         return {
@@ -2523,7 +2523,7 @@ export class TokenImageReplacement {
                     }
                     // Add files (only image files) - these are what matter for fingerprint
                     for (const file of result.files) {
-                        if (TokenImageReplacement.SUPPORTED_FORMATS.some(format => file.toLowerCase().endsWith(format))) {
+                        if (ImageCacheManager.SUPPORTED_FORMATS.some(format => file.toLowerCase().endsWith(format))) {
                             allPaths.push(file); // Just the file path, no prefix
                         }
                     }

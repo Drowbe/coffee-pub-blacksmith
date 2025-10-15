@@ -303,13 +303,13 @@ Hooks.once('ready', async () => {
         
         // No longer needed - cache management is now handled by the new simplified system
 
-        // Initialize TokenImageReplacement (GM only)
+        // Initialize ImageCacheManager (GM only)
         if (game.user.isGM) {
             try {
-                const { TokenImageReplacement } = await import('./manager-image-cache.js');
-                await TokenImageReplacement.initialize();
+                const { ImageCacheManager } = await import('./manager-image-cache.js');
+                await ImageCacheManager.initialize();
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageReplacement", error, true, false);
+                postConsoleAndNotification(MODULE.NAME, "Error importing ImageCacheManager", error, true, false);
             }
         }
 
