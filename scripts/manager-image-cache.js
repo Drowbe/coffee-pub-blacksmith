@@ -729,7 +729,7 @@ export class TokenImageReplacement {
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateActor (dead tokens)", "token-image-replacement-dead-tokens", true, false);
         
         // Add double-middle-click handler for tokens using HookManager
-        this._addMiddleClickHandler();
+        TokenImageReplacementWindow._addMiddleClickHandler();
         
         // Set up cleanup when module is disabled using HookManager
         const readyHookId = HookManager.registerHook({
@@ -746,7 +746,7 @@ export class TokenImageReplacement {
                     priority: 3, // Normal priority - cleanup
                     callback: (moduleId) => {
                         if (moduleId === MODULE.ID) {
-                            this._removeMiddleClickHandler();
+                            TokenImageReplacementWindow._removeMiddleClickHandler();
                         }
                     }
                 });
@@ -767,7 +767,7 @@ export class TokenImageReplacement {
                 game.TokenImageReplacement.deleteCache = this.deleteCache.bind(this);
                 game.TokenImageReplacement.pauseCache = this.pauseCache.bind(this);
                 game.TokenImageReplacement.openWindow = this.openWindow.bind(this);
-                game.TokenImageReplacement.cleanup = this._removeMiddleClickHandler.bind(this);
+                game.TokenImageReplacement.cleanup = TokenImageReplacementWindow._removeMiddleClickHandler;
             }
     }
     
@@ -1940,39 +1940,6 @@ export class TokenImageReplacement {
         return filteredTerms;
     }
     
-    /**
-     * Add double-middle-click handler for tokens using HookManager
-     */
-    static _addMiddleClickHandler() {
-        // Store the handler function so we can remove it later
-        this._middleClickHandler = (event) => {
-            // Check if it's a double-middle-click (button 1 with double-click timing)
-            if (event.button === 1 && event.detail === 2) {
-                // Find the token under the mouse
-                const token = canvas.tokens.placeables.find(t => t.hover);
-                if (token) {
-                    event.preventDefault();
-                    // Select the token first
-                    token.control({ releaseOthers: true });
-                    // Then open the window
-                    this.openWindow();
-                }
-            }
-        };
-        
-        // Add event listener directly - HookManager will clean up when module is disabled
-        document.addEventListener('mousedown', this._middleClickHandler);
-    }
-
-    /**
-     * Remove double-middle-click handler
-     */
-    static _removeMiddleClickHandler() {
-        if (this._middleClickHandler) {
-            document.removeEventListener('mousedown', this._middleClickHandler);
-            this._middleClickHandler = null;
-        }
-    }
     
     /**
      * Get cache statistics

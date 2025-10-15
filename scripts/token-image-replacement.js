@@ -377,11 +377,11 @@ export class TokenImageReplacementWindow extends Application {
 
     async _findMatches() {
         try {
-            // Reset results
-            this.matches = [];
-            this.allMatches = [];
-            this.currentPage = 0;
-            this.recommendedToken = null; // Reset recommended token
+        // Reset results
+        this.matches = [];
+        this.allMatches = [];
+        this.currentPage = 0;
+        this.recommendedToken = null; // Reset recommended token
 
         // If we have a selected token, add original and current images as the first matches
         // ALWAYS show original/current images when a token is selected, regardless of search mode
@@ -473,6 +473,7 @@ export class TokenImageReplacementWindow extends Application {
                     return;
                 } else {
                     // ALL tabs or other tabs: Use browse mode (no scores)
+                    searchMode = 'browse';
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
                 
@@ -518,18 +519,18 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-            // Apply pagination to show only first batch
-            this._applyPagination();
-            
-            // Update results to show proper tags
-            this._updateResults();
+        // Apply pagination to show only first batch
+        this._applyPagination();
+        
+        // Update results to show proper tags
+        this._updateResults();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error in _findMatches: ${error.message}`, "", true, false);
             console.error('Token Image Replacement: Error in _findMatches:', error);
             // Show error state in UI
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = `Error loading matches: ${error.message}`;
-            this._updateResults();
+        this._updateResults();
         }
     }
 
@@ -880,7 +881,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debounce token selection changes to prevent multiple rapid-fire executions
         this._tokenSelectionDebounceTimer = setTimeout(async () => {
-            await this._handleTokenSwitch();
+        await this._handleTokenSwitch();
         }, 100); // 100ms debounce
     }
 
@@ -1151,7 +1152,7 @@ export class TokenImageReplacementWindow extends Application {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Exact search found ${exactMatches.length} matches out of ${filteredResults.length} files`, "", true, false);
         } else {
             // Fuzzy search mode: show all results (including 0% matches)
-            this.allMatches.push(...filteredResults);
+        this.allMatches.push(...filteredResults);
         }
         
         // Deduplicate results to prevent same file appearing multiple times
@@ -3174,6 +3175,40 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
+
+    /**
+     * Add double-middle-click handler for tokens
+     */
+    static _addMiddleClickHandler() {
+        // Store the handler function so we can remove it later
+        this._middleClickHandler = (event) => {
+            // Check if it's a double-middle-click (button 1 with double-click timing)
+            if (event.button === 1 && event.detail === 2) {
+                // Find the token under the mouse
+                const token = canvas.tokens.placeables.find(t => t.hover);
+                if (token) {
+                    event.preventDefault();
+                    // Select the token first
+                    token.control({ releaseOthers: true });
+                    // Then open the window
+                    TokenImageReplacement.openWindow();
+                }
+            }
+        };
+        
+        // Add event listener directly
+        document.addEventListener('mousedown', this._middleClickHandler);
+    }
+
+    /**
+     * Remove double-middle-click handler
+     */
+    static _removeMiddleClickHandler() {
+        if (this._middleClickHandler) {
+            document.removeEventListener('mousedown', this._middleClickHandler);
+            this._middleClickHandler = null;
+        }
+    }
 
     /**
      * Handle global token selection changes
