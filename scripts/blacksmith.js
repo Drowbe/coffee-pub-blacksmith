@@ -313,6 +313,14 @@ Hooks.once('ready', async () => {
             }
         }
 
+        // Initialize Token Image Utilities (turn indicators, etc.)
+        try {
+            const { TokenImageUtilities } = await import('./token-image-utilities.js');
+            TokenImageUtilities.initializeTurnIndicator();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageUtilities", error, true, false);
+        }
+
 
         // Update nameplates
         updateNameplates();

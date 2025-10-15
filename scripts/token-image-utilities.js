@@ -12,6 +12,11 @@ import { ImageCacheManager } from './manager-image-cache.js';
  */
 export class TokenImageUtilities {
     
+    // Turn indicator management
+    static _turnIndicator = null;
+    static _currentTurnTokenId = null;
+    static _pulseAnimation = null;
+    
     /**
      * Store the original image for a token before any updates
      */
@@ -201,5 +206,161 @@ export class TokenImageUtilities {
                 await TokenImageUtilities.restorePreviousTokenImage(token.document);
             }
         }
+    }
+
+    // ================================================================== 
+    // ===== TURN INDICATOR FUNCTIONALITY ===============================
+    // ================================================================== 
+
+    /**
+     * Initialize turn indicator system
+     */
+    static initializeTurnIndicator() {
+        // Register combat update hook
+        Hooks.on('updateCombat', TokenImageUtilities._onCombatUpdate);
+        Hooks.on('deleteCombat', TokenImageUtilities._onCombatDelete);
+        
+        // Check if combat is already active
+        if (game.combat && game.combat.started) {
+            TokenImageUtilities._updateTurnIndicator();
+        }
+    }
+
+    /**
+     * Clean up turn indicator system
+     */
+    static cleanupTurnIndicator() {
+        TokenImageUtilities._removeTurnIndicator();
+        Hooks.off('updateCombat', TokenImageUtilities._onCombatUpdate);
+        Hooks.off('deleteCombat', TokenImageUtilities._onCombatDelete);
+    }
+
+    /**
+     * Handle combat updates
+     */
+    static _onCombatUpdate(combat, changes, options, userId) {
+        if (changes.turn !== undefined || changes.round !== undefined) {
+            TokenImageUtilities._updateTurnIndicator();
+        }
+    }
+
+    /**
+     * Handle combat deletion
+     */
+    static _onCombatDelete(combat, options, userId) {
+        TokenImageUtilities._removeTurnIndicator();
+    }
+
+    /**
+     * Update turn indicator based on current combat state
+     */
+    static _updateTurnIndicator() {
+        // Remove existing indicator
+        TokenImageUtilities._removeTurnIndicator();
+
+        // Check if combat is active
+        if (!game.combat || !game.combat.started) {
+            return;
+        }
+
+        // Get current combatant's token document
+        const combatant = game.combat.combatant;
+        if (!combatant || !combatant.token) {
+            return;
+        }
+
+        // Get the actual token object on the canvas
+        const tokenObject = canvas.tokens.get(combatant.token.id);
+        if (!tokenObject) {
+            return;
+        }
+
+        // Create new indicator
+        TokenImageUtilities._createTurnIndicator(tokenObject);
+    }
+
+    /**
+     * Create turn indicator for a token
+     */
+    static _createTurnIndicator(token) {
+        if (!token || !token.visible) {
+            return;
+        }
+
+        // Get token dimensions
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        const tokenRadius = Math.max(tokenWidth, tokenHeight) / 2;
+        const ringRadius = tokenRadius + 8; // Slightly bigger than token
+
+        // Create PIXI Graphics object for the ring
+        const graphics = new PIXI.Graphics();
+        
+        // Draw the ring
+        graphics.lineStyle(3, 0x00ff00, 0.8); // 3px width, green color, 0.8 opacity
+        graphics.drawCircle(0, 0, ringRadius);
+        
+        // Position at token center
+        const tokenCenterX = token.x + tokenWidth / 2;
+        const tokenCenterY = token.y + tokenHeight / 2;
+        graphics.position.set(tokenCenterX, tokenCenterY);
+        
+        // Add to canvas
+        canvas.interface.addChild(graphics);
+        TokenImageUtilities._turnIndicator = graphics;
+        TokenImageUtilities._currentTurnTokenId = token.id;
+        
+        // Create pulse animation using PIXI ticker
+        TokenImageUtilities._pulseAnimation = {
+            time: 0,
+            update: (delta) => {
+                if (!TokenImageUtilities._turnIndicator) return;
+                TokenImageUtilities._pulseAnimation.time += delta * 0.05;
+                const opacity = 0.55 + Math.sin(TokenImageUtilities._pulseAnimation.time) * 0.25; // Oscillate between 0.3 and 0.8
+                TokenImageUtilities._turnIndicator.alpha = opacity;
+            }
+        };
+        
+        canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);
+
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Turn indicator added for ${token.name}`, "", true, false);
+    }
+
+    /**
+     * Remove turn indicator
+     */
+    static _removeTurnIndicator() {
+        if (TokenImageUtilities._turnIndicator) {
+            // Remove animation ticker
+            if (TokenImageUtilities._pulseAnimation) {
+                canvas.app.ticker.remove(TokenImageUtilities._pulseAnimation.update);
+                TokenImageUtilities._pulseAnimation = null;
+            }
+            
+            // Remove graphics from canvas
+            canvas.interface.removeChild(TokenImageUtilities._turnIndicator);
+            TokenImageUtilities._turnIndicator.destroy();
+            TokenImageUtilities._turnIndicator = null;
+            TokenImageUtilities._currentTurnTokenId = null;
+        }
+    }
+
+    /**
+     * Update turn indicator position (for token movement)
+     */
+    static _updateTurnIndicatorPosition(token) {
+        if (!TokenImageUtilities._turnIndicator || TokenImageUtilities._currentTurnTokenId !== token.id) {
+            return;
+        }
+
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        const tokenRadius = Math.max(tokenWidth, tokenHeight) / 2;
+        const ringRadius = tokenRadius + 8;
+        const tokenCenterX = token.x + tokenWidth / 2;
+        const tokenCenterY = token.y + tokenHeight / 2;
+        
+        TokenImageUtilities._turnIndicator.style.left = `${tokenCenterX - ringRadius}px`;
+        TokenImageUtilities._turnIndicator.style.top = `${tokenCenterY - ringRadius}px`;
     }
 }
