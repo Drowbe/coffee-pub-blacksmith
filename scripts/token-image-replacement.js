@@ -3333,75 +3333,6 @@ export class TokenImageReplacementWindow extends Application {
         }
     }
 
-    /**
-     * Find a matching image for a token
-     */
-    static async findMatchingImage(tokenDocument) {
-        
-        // Check if feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
-            return null;
-        }
-        
-        // Check if we should skip this token type
-        if (!TokenImageReplacement._shouldUpdateToken(tokenDocument)) {
-            return null;
-        }
-        
-        // If cache is empty, return null - real-time search will be handled by caller
-        if (TokenImageReplacement.cache.files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache empty, skipping automatic matching", "", true, false);
-            return null;
-        }
-        
-        // Debug: Log cache status
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status - files: ${TokenImageReplacement.cache.files.size}, folders: ${TokenImageReplacement.cache.folders.size}, creatureTypes: ${TokenImageReplacement.cache.creatureTypes.size}`, "", true, false);
-        
-        // Debug: Log token details
-        const creatureType = tokenDocument.actor?.system?.details?.type?.value;
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Token details - name: "${tokenDocument.name}", creatureType: "${creatureType}"`, "", true, false);
-        
-        // Debug: Log timing - are we matching before or after nameplate change?
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: MATCHING TIMING - Current token name: "${tokenDocument.name}", Actor name: "${tokenDocument.actor?.name}"`, "", true, false);
-        
-        // For token dropping, use actor name instead of token name (before nameplate change)
-        const originalTokenName = tokenDocument.name;
-        tokenDocument.name = tokenDocument.actor?.name || tokenDocument.name;
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using actor name for matching: "${tokenDocument.name}"`, "", true, false);
-        
-        // Debug: Log some sample filenames to see what's in cache
-        const sampleFiles = Array.from(TokenImageReplacement.cache.files.keys()).slice(0, 10);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Sample cached files: ${sampleFiles.join(', ')}`, "", true, false);
-        
-        
-        // Use unified matching system (same as WINDOW)
-        // For DROP, always search ALL files (no UI filtering)
-        // Create temporary window instance to access unified matching methods
-        const tempWindow = new TokenImageReplacementWindow();
-        tempWindow.currentFilter = 'all'; // Always use 'all' for DROP to search complete file set
-        
-        // Get all files (no filtering for DROP - let scoring determine best match)
-        const filesToSearch = tempWindow._getFilteredFiles();
-        
-        // Use unified matching with token mode (same parameters as WINDOW)
-        // For token-based matching, searchTerms should be null (same as WINDOW system)
-        // Token drop should apply threshold (it's like SELECTED tab behavior)
-        const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, true);
-        
-        // Restore original token name
-        tokenDocument.name = originalTokenName;
-        
-        // Return the best match (highest score)
-        const match = matches.length > 0 ? matches[0] : null;
-        
-        if (match) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found match for ${tokenDocument.name}: ${match.name} (score: ${(match.searchScore * 100).toFixed(1)}%)`, "", true, false);
-            return match;
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No match found above threshold for ${tokenDocument.name}`, "", true, false);
-        return null;
-    }
 
     /**
      * Handle global token selection changes
@@ -3661,8 +3592,15 @@ export class TokenImageReplacementWindow extends Application {
         // Wait a moment for the token to be fully created on the canvas
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Find matching image
-        const matchingImage = await TokenImageReplacementWindow.findMatchingImage(tokenDocument);
+        // Find matching image using unified matching system (same as SELECTED mode)
+        // Get all files from cache (no UI filtering for dropped tokens)
+        const allFiles = Array.from(TokenImageReplacement.cache.files.values());
+        
+        // Use unified matching with token mode (same parameters as SELECTED mode)
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', TokenImageReplacement.cache, TokenImageReplacement._extractTokenData, true);
+        
+        // Get the best match (highest score)
+        const matchingImage = matches.length > 0 ? matches[0] : null;
         
         if (matchingImage) {
             // Validate the image path before applying
