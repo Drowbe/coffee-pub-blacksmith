@@ -27,6 +27,24 @@ export class TokenImageUtilities {
     static _updateTokenHookId = null;
     
     /**
+     * Get the current turn indicator settings from module config
+     */
+    static _getTurnIndicatorSettings() {
+        // Get color as hex string and convert to PIXI color integer
+        const colorHex = getSettingSafely(MODULE.ID, 'turnIndicatorColor', '#00ff00');
+        const color = parseInt(colorHex.replace('#', '0x'));
+        
+        return {
+            color: color,
+            thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
+            offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
+            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorPulseSpeed', 0.05),
+            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMin', 0.3),
+            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMax', 0.8)
+        };
+    }
+    
+    /**
      * Store the original image for a token before any updates
      */
     static async storeOriginalImage(tokenDocument) {
@@ -225,6 +243,12 @@ export class TokenImageUtilities {
      * Initialize turn indicator system
      */
     static initializeTurnIndicator() {
+        // Check if turn indicator is enabled
+        if (!getSettingSafely(MODULE.ID, 'turnIndicatorEnabled', true)) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator disabled in settings", "", true, false);
+            return;
+        }
+        
         // Register combat update hook
         TokenImageUtilities._updateCombatHookId = HookManager.registerHook({
             name: 'updateCombat',
@@ -363,17 +387,20 @@ export class TokenImageUtilities {
             return;
         }
 
+        // Get the current settings
+        const settings = TokenImageUtilities._getTurnIndicatorSettings();
+
         // Get token dimensions
         const tokenWidth = token.document.width * canvas.grid.size;
         const tokenHeight = token.document.height * canvas.grid.size;
         const tokenRadius = Math.max(tokenWidth, tokenHeight) / 2;
-        const ringRadius = tokenRadius + 8; // Slightly bigger than token
+        const ringRadius = tokenRadius + settings.offset;
 
         // Create PIXI Graphics object for the ring
         const graphics = new PIXI.Graphics();
         
-        // Draw the ring
-        graphics.lineStyle(3, 0x00ff00, 0.8); // 3px width, green color, 0.8 opacity
+        // Draw the ring using settings
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
         graphics.drawCircle(0, 0, ringRadius);
         
         // Position at token center
@@ -386,13 +413,15 @@ export class TokenImageUtilities {
         TokenImageUtilities._turnIndicator = graphics;
         TokenImageUtilities._currentTurnTokenId = token.id;
         
-        // Create pulse animation using PIXI ticker
+        // Create pulse animation using PIXI ticker with settings
         TokenImageUtilities._pulseAnimation = {
             time: 0,
             update: (delta) => {
                 if (!TokenImageUtilities._turnIndicator) return;
-                TokenImageUtilities._pulseAnimation.time += delta * 0.05;
-                const opacity = 0.55 + Math.sin(TokenImageUtilities._pulseAnimation.time) * 0.25; // Oscillate between 0.3 and 0.8
+                TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
+                const pulseRange = (settings.pulseMax - settings.pulseMin) / 2;
+                const pulseMid = settings.pulseMin + pulseRange;
+                const opacity = pulseMid + Math.sin(TokenImageUtilities._pulseAnimation.time) * pulseRange;
                 TokenImageUtilities._turnIndicator.alpha = opacity;
             }
         };
@@ -519,14 +548,17 @@ export class TokenImageUtilities {
         
         TokenImageUtilities._isMoving = false;
         
+        // Get the current settings
+        const settings = TokenImageUtilities._getTurnIndicatorSettings();
+        
         // Remove existing fade animation if any
         if (TokenImageUtilities._fadeAnimation) {
             canvas.app.ticker.remove(TokenImageUtilities._fadeAnimation);
         }
         
-        // Create fade in animation
+        // Create fade in animation - fade back to settings' max pulse alpha
         const startAlpha = TokenImageUtilities._turnIndicator.alpha;
-        const targetAlpha = 0.8; // Back to normal pulsing alpha
+        const targetAlpha = settings.pulseMax;
         const duration = 200; // ms
         let elapsed = 0;
         

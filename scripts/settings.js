@@ -3459,6 +3459,102 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// Turn Indicator Settings
+	game.settings.register(MODULE.ID, 'turnIndicatorEnabled', {
+		name: 'Enable Turn Indicator',
+		hint: 'Display a ring around the token whose turn it is in combat.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorColor', {
+		name: 'Turn Indicator Color',
+		hint: 'The color of the turn indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '#00ff00',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorThickness', {
+		name: 'Turn Indicator Thickness',
+		hint: 'The thickness of the turn indicator ring in pixels.',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 3,
+		range: {
+			min: 1,
+			max: 10,
+			step: 1
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorOffset', {
+		name: 'Turn Indicator Distance',
+		hint: 'How far the ring extends beyond the token edge in pixels.',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 8,
+		range: {
+			min: 0,
+			max: 20,
+			step: 1
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorPulseSpeed', {
+		name: 'Turn Indicator Pulse Speed',
+		hint: 'How fast the ring pulses (lower = slower, higher = faster).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.05,
+		range: {
+			min: 0.01,
+			max: 0.15,
+			step: 0.01
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorPulseMin', {
+		name: 'Turn Indicator Min Opacity',
+		hint: 'Minimum opacity when pulsing (0 = invisible, 1 = fully visible).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.3,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorPulseMax', {
+		name: 'Turn Indicator Max Opacity',
+		hint: 'Maximum opacity when pulsing (0 = invisible, 1 = fully visible).',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.8,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		requiresReload: false
+	});
+
 	// Combat Timer Settings
 	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
 		name: 'Timer Start Sound',
