@@ -35,6 +35,8 @@ export class TokenImageUtilities {
         const color = parseInt(colorHex.replace('#', '0x'));
         
         return {
+            style: getSettingSafely(MODULE.ID, 'turnIndicatorStyle', 'solid'),
+            animation: getSettingSafely(MODULE.ID, 'turnIndicatorAnimation', 'pulse'),
             color: color,
             thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
             offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
@@ -42,6 +44,85 @@ export class TokenImageUtilities {
             pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMin', 0.3),
             pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorPulseMax', 0.8)
         };
+    }
+    
+    /**
+     * Draw the turn indicator based on the selected style
+     */
+    static _drawTurnIndicatorStyle(graphics, settings, ringRadius) {
+        switch (settings.style) {
+            case 'dashed':
+                TokenImageUtilities._drawDashedCircle(graphics, settings, ringRadius);
+                break;
+            case 'spikes':
+                TokenImageUtilities._drawSpikedCircle(graphics, settings, ringRadius);
+                break;
+            case 'solid':
+            default:
+                TokenImageUtilities._drawSolidCircle(graphics, settings, ringRadius);
+                break;
+        }
+    }
+    
+    /**
+     * Draw a solid circle
+     */
+    static _drawSolidCircle(graphics, settings, ringRadius) {
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        graphics.drawCircle(0, 0, ringRadius);
+    }
+    
+    /**
+     * Draw a dashed circle
+     */
+    static _drawDashedCircle(graphics, settings, ringRadius) {
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        
+        const dashCount = 24; // Number of dashes
+        const dashAngle = (Math.PI * 2) / dashCount;
+        const dashLength = dashAngle * 0.6; // 60% dash, 40% gap
+        
+        for (let i = 0; i < dashCount; i++) {
+            const startAngle = i * dashAngle;
+            const endAngle = startAngle + dashLength;
+            graphics.arc(0, 0, ringRadius, startAngle, endAngle);
+        }
+    }
+    
+    /**
+     * Draw a circle with spikes
+     */
+    static _drawSpikedCircle(graphics, settings, ringRadius) {
+        // Draw the base circle
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        graphics.drawCircle(0, 0, ringRadius);
+        
+        // Draw 8 spikes at cardinal and ordinal directions
+        const spikeCount = 8;
+        const spikeLength = settings.offset * 0.8;
+        const spikeWidth = settings.thickness * 2;
+        
+        for (let i = 0; i < spikeCount; i++) {
+            const angle = (i * Math.PI * 2) / spikeCount;
+            const baseX = Math.cos(angle) * ringRadius;
+            const baseY = Math.sin(angle) * ringRadius;
+            const tipX = Math.cos(angle) * (ringRadius + spikeLength);
+            const tipY = Math.sin(angle) * (ringRadius + spikeLength);
+            
+            // Draw spike as a triangle
+            const perpAngle = angle + Math.PI / 2;
+            const leftX = baseX + Math.cos(perpAngle) * spikeWidth / 2;
+            const leftY = baseY + Math.sin(perpAngle) * spikeWidth / 2;
+            const rightX = baseX - Math.cos(perpAngle) * spikeWidth / 2;
+            const rightY = baseY - Math.sin(perpAngle) * spikeWidth / 2;
+            
+            graphics.beginFill(settings.color, settings.pulseMax);
+            graphics.moveTo(leftX, leftY);
+            graphics.lineTo(tipX, tipY);
+            graphics.lineTo(rightX, rightY);
+            graphics.closePath();
+            graphics.endFill();
+        }
     }
     
     /**
@@ -399,9 +480,8 @@ export class TokenImageUtilities {
         // Create PIXI Graphics object for the ring
         const graphics = new PIXI.Graphics();
         
-        // Draw the ring using settings
-        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
-        graphics.drawCircle(0, 0, ringRadius);
+        // Draw the ring using the selected style
+        TokenImageUtilities._drawTurnIndicatorStyle(graphics, settings, ringRadius);
         
         // Position at token center
         const tokenCenterX = token.x + tokenWidth / 2;
@@ -413,7 +493,34 @@ export class TokenImageUtilities {
         TokenImageUtilities._turnIndicator = graphics;
         TokenImageUtilities._currentTurnTokenId = token.id;
         
-        // Create pulse animation using PIXI ticker with settings
+        // Create animation based on selected style
+        TokenImageUtilities._createTurnIndicatorAnimation(settings);
+
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Turn indicator (${settings.style}, ${settings.animation}) added for ${token.name}`, "", true, false);
+    }
+    
+    /**
+     * Create animation for the turn indicator based on settings
+     */
+    static _createTurnIndicatorAnimation(settings) {
+        switch (settings.animation) {
+            case 'pulse':
+                TokenImageUtilities._createPulseAnimation(settings);
+                break;
+            case 'rotate':
+                TokenImageUtilities._createRotateAnimation(settings);
+                break;
+            case 'fixed':
+            default:
+                // No animation
+                break;
+        }
+    }
+    
+    /**
+     * Create pulse animation (opacity)
+     */
+    static _createPulseAnimation(settings) {
         TokenImageUtilities._pulseAnimation = {
             time: 0,
             update: (delta) => {
@@ -425,10 +532,23 @@ export class TokenImageUtilities {
                 TokenImageUtilities._turnIndicator.alpha = opacity;
             }
         };
-        
         canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);
-
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Turn indicator added for ${token.name}`, "", true, false);
+    }
+    
+    /**
+     * Create rotate animation
+     */
+    static _createRotateAnimation(settings) {
+        TokenImageUtilities._pulseAnimation = {
+            time: 0,
+            update: (delta) => {
+                if (!TokenImageUtilities._turnIndicator) return;
+                // Rotate based on pulse speed setting (faster speed = faster rotation)
+                TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
+                TokenImageUtilities._turnIndicator.rotation = TokenImageUtilities._pulseAnimation.time;
+            }
+        };
+        canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);
     }
 
     /**

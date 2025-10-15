@@ -3470,6 +3470,36 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
+	game.settings.register(MODULE.ID, 'turnIndicatorStyle', {
+		name: 'Turn Indicator Style',
+		hint: 'The visual style of the turn indicator ring.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			solid: "Solid Circle",
+			dashed: "Dashed Circle",
+			spikes: "Circle with Spikes"
+		},
+		default: 'solid',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'turnIndicatorAnimation', {
+		name: 'Turn Indicator Animation',
+		hint: 'The animation style for the turn indicator.',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			pulse: "Pulse (Opacity)",
+			rotate: "Rotate",
+			fixed: "Fixed (No Animation)"
+		},
+		default: 'pulse',
+		requiresReload: false
+	});
+
 	game.settings.register(MODULE.ID, 'turnIndicatorColor', {
 		name: 'Turn Indicator Color',
 		hint: 'The color of the turn indicator ring.',
