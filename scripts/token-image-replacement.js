@@ -491,8 +491,8 @@ export class TokenImageReplacementWindow extends Application {
             this.recommendedToken = null; // Reset recommended token
 
         // If we have a selected token, add original and current images as the first matches
-        // But only if we're not in search mode OR we're on the SELECTED tab (SELECTED tab always shows original/current)
-        if (this.selectedToken && (!(this.searchTerm && this.searchTerm.length >= 3) || this.currentFilter === 'selected')) {
+        // ALWAYS show original/current images when a token is selected, regardless of search mode
+        if (this.selectedToken) {
             // Add original image as the very first card
             const originalImage = TokenImageReplacementWindow._getOriginalImage(this.selectedToken.document);
             if (originalImage) {
