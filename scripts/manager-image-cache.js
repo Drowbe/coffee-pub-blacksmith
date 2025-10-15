@@ -1881,102 +1881,6 @@ export class TokenImageReplacement {
         }
     }
     
-    // findMatchingImage moved to TokenImageReplacementWindow
-    
-    /**
-     * Find a match using real-time directory scanning when cache is not ready
-     */
-    static async _findMatchInRealTime(tokenDocument) {
-        try {
-            const searchTerms = this._getSearchTerms(tokenDocument);
-            const basePath = game.settings.get(MODULE.ID, 'tokenImageReplacementBasePath') || 'assets/images/tokens';
-            
-            // Try to find matches in common creature type folders first
-            const creatureType = tokenDocument.actor?.system?.details?.type;
-            let searchPaths = [basePath];
-            
-            if (creatureType && typeof creatureType === 'object' && creatureType.value) {
-                const typeValue = creatureType.value.toLowerCase();
-                const creatureFolders = this.CREATURE_TYPE_FOLDERS[typeValue] || [];
-                
-                // Add creature-specific subdirectories to search
-                for (const folder of creatureFolders) {
-                    searchPaths.push(`${basePath}/${folder}`);
-                }
-            }
-            
-            // Search each path for matching files
-            for (const searchPath of searchPaths) {
-                try {
-                    const files = await FilePicker.browse('data', searchPath);
-                    if (files.target && files.files) {
-                        // Look for files that match our search terms
-                        const matchingFiles = files.files.filter(file => {
-                            const fileName = file.toLowerCase();
-                            if (searchTerms && searchTerms.length > 0) {
-                                return searchTerms.some(term => 
-                                    term && term.length > 2 && fileName.includes(term.toLowerCase())
-                                );
-                            } else {
-                                // Token-based matching - include all files for scoring
-                                return true;
-                            }
-                        });
-                        
-                        if (matchingFiles.length > 0) {
-                            // Return the first match found
-                            const matchFile = matchingFiles[0];
-                            const fullPath = `${searchPath}/${matchFile}`;
-                            
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Real-time match found: ${matchFile}`, "", true, false);
-                            
-                            return {
-                                name: matchFile.replace(/\.[^/.]+$/, ""), // Remove extension
-                                fileName: matchFile,
-                                fullPath: fullPath
-                            };
-                        }
-                    }
-                } catch (error) {
-                    // Directory might not exist, continue to next path
-                    continue;
-                }
-            }
-            
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No real-time matches found", "", true, false);
-            return null;
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Real-time search error: ${error.message}`, "", false, false);
-            return null;
-        }
-    }
-    
-    /**
-     * Determine if we should update this token
-     */
-    static _shouldUpdateToken(tokenDocument) {
-        // Skip linked tokens if setting is enabled
-        if (game.settings.get(MODULE.ID, 'tokenImageReplacementSkipLinked') && tokenDocument.actorLink) {
-            return false;
-        }
-        
-        // Check token type settings
-        const actorType = tokenDocument.actor?.type || 'npc';
-        
-        switch (actorType) {
-            case 'npc':
-                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateNPCs');
-            case 'vehicle':
-                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateVehicles');
-            case 'character':
-                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateActors');
-            default:
-                // Assume monster for other types
-                return game.settings.get(MODULE.ID, 'tokenImageReplacementUpdateMonsters');
-        }
-    }
-    
     /**
      * Get search terms for finding a matching image (always uses exact matching for token data)
      */
@@ -2069,22 +1973,6 @@ export class TokenImageReplacement {
             this._middleClickHandler = null;
         }
     }
-
-    /**
-     * Handle global token selection changes
-     */
-    // _onGlobalTokenSelectionChange moved to TokenImageReplacementWindow
-    // _storeOriginalImage moved to TokenImageReplacementWindow
-    // _getOriginalImage moved to TokenImageReplacementWindow
-    // _storePreviousImage moved to TokenImageReplacementWindow
-    // _getPreviousImage moved to TokenImageReplacementWindow
-    // _restorePreviousTokenImage moved to TokenImageReplacementWindow
-
-    // _getDeadTokenImagePath moved to TokenImageReplacementWindow
-    // _applyDeadTokenImage moved to TokenImageReplacementWindow
-    // _onActorUpdateForDeadToken moved to TokenImageReplacementWindow
-
-    // _onTokenCreated moved to TokenImageReplacementWindow
     
     /**
      * Get cache statistics
