@@ -1901,25 +1901,6 @@ export class TokenImageReplacementWindow extends Application {
         return text.split(/\s+/).filter(word => word.length > 0);
     }
     
-    /**
-     * Generate word combinations for matching - simplified approach
-     * Since we normalize all special characters to spaces, we only need space-separated combinations
-     * Examples:
-     *   ["frost", "giant"] -> ["frost giant"]
-     * @param {Array<string>} words - Array of words to combine
-     * @returns {Array<string>} Array of combinations
-     */
-    static _generateCombinations(words) {
-        if (!Array.isArray(words) || words.length === 0) return [];
-        if (words.length === 1) return [words[0]]; // Single word, no combinations needed
-        
-        const combinations = [];
-        
-        // Only generate space-separated combinations since we normalize special characters
-        combinations.push(words.join(' '));      // frost giant
-        
-        return combinations;
-    }
     
     /**
      * Check if any combination of source words matches in target text
