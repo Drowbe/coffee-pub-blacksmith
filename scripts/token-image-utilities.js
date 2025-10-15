@@ -21,10 +21,15 @@ export class TokenImageUtilities {
     static _fadeAnimation = null;
     static _movementTimeout = null;
     
+    // Targeted indicator management
+    static _targetedIndicators = new Map(); // Map of tokenId -> graphics object
+    static _targetedTokens = new Set(); // Set of currently targeted token IDs
+    
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
     static _deleteCombatHookId = null;
     static _updateTokenHookId = null;
+    static _targetingHookId = null; // Added for targeting changes
     
     /**
      * Get the current turn indicator settings from module config
@@ -491,6 +496,13 @@ export class TokenImageUtilities {
             priority: 3,
             callback: TokenImageUtilities._onTokenUpdate
         });
+        TokenImageUtilities._targetingHookId = HookManager.registerHook({
+            name: 'targetToken',
+            description: 'Token Image Utilities: Monitor targeting changes for targeted indicators',
+            context: 'token-utilities-targeted-indicator',
+            priority: 3,
+            callback: TokenImageUtilities._onTargetingChange
+        });
         
         postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks registered", "", true, false);
         
@@ -505,6 +517,7 @@ export class TokenImageUtilities {
      */
     static cleanupTurnIndicator() {
         TokenImageUtilities._removeTurnIndicator();
+        TokenImageUtilities._removeAllTargetedIndicators();
         
         // Unregister hooks using HookManager
         if (TokenImageUtilities._updateCombatHookId) {
@@ -520,6 +533,11 @@ export class TokenImageUtilities {
         if (TokenImageUtilities._updateTokenHookId) {
             HookManager.unregisterHook('updateToken', TokenImageUtilities._updateTokenHookId);
             TokenImageUtilities._updateTokenHookId = null;
+        }
+        
+        if (TokenImageUtilities._targetingHookId) {
+            HookManager.unregisterHook('targetToken', TokenImageUtilities._targetingHookId);
+            TokenImageUtilities._targetingHookId = null;
         }
         
         postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks unregistered", "", true, false);
@@ -545,25 +563,31 @@ export class TokenImageUtilities {
      * Handle token updates (position changes)
      */
     static _onTokenUpdate(tokenDocument, changes, options, userId) {
-        // Only care about position changes for the current turn token
-        if (!TokenImageUtilities._currentTurnTokenId || tokenDocument.id !== TokenImageUtilities._currentTurnTokenId) {
-            return;
+        const tokenId = tokenDocument.id;
+        
+        // Handle current turn indicator movement
+        if (TokenImageUtilities._currentTurnTokenId && tokenId === TokenImageUtilities._currentTurnTokenId) {
+            if (changes.x !== undefined || changes.y !== undefined) {
+                const token = canvas.tokens.get(tokenId);
+                if (token) {
+                    // Start fade out if not already moving
+                    if (!TokenImageUtilities._isMoving) {
+                        TokenImageUtilities._startMovementFade();
+                    }
+                    
+                    // Pass the changes so we can use the NEW position values
+                    TokenImageUtilities._updateTurnIndicatorPosition(token, changes);
+                    
+                    // Fade back in after movement completes
+                    TokenImageUtilities._scheduleMovementComplete();
+                }
+            }
         }
         
-        // If position changed, update the indicator
-        if (changes.x !== undefined || changes.y !== undefined) {
-            const token = canvas.tokens.get(tokenDocument.id);
-            if (token) {
-                // Start fade out if not already moving
-                if (!TokenImageUtilities._isMoving) {
-                    TokenImageUtilities._startMovementFade();
-                }
-                
-                // Pass the changes so we can use the NEW position values
-                TokenImageUtilities._updateTurnIndicatorPosition(token, changes);
-                
-                // Fade back in after movement completes
-                TokenImageUtilities._scheduleMovementComplete();
+        // Handle targeted indicator movement
+        if (TokenImageUtilities._targetedTokens.has(tokenId)) {
+            if (changes.x !== undefined || changes.y !== undefined) {
+                TokenImageUtilities._updateTargetedIndicatorPosition(tokenId, changes);
             }
         }
     }
@@ -853,5 +877,137 @@ export class TokenImageUtilities {
         };
         
         canvas.app.ticker.add(TokenImageUtilities._fadeAnimation);
+    }
+    
+    // ==================================================================
+    // ===== TARGETED INDICATOR FUNCTIONALITY ===========================
+    // ==================================================================
+    
+    /**
+     * Handle targeting changes
+     */
+    static _onTargetingChange(user, token, targeted) {
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Targeting change - User: ${user.name}, Token: ${token.name}, Targeted: ${targeted}`, "", true, false);
+        
+        if (!getSettingSafely(MODULE.ID, 'turnIndicatorTargetedEnabled', true)) {
+            postConsoleAndNotification(MODULE.NAME, "DEBUG: Targeted indicator disabled in settings", "", true, false);
+            return;
+        }
+        
+        const tokenId = token.id;
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Token ID: ${tokenId}, Already targeted: ${TokenImageUtilities._targetedTokens.has(tokenId)}`, "", true, false);
+        
+        if (targeted) {
+            // Token was targeted - add indicator
+            if (!TokenImageUtilities._targetedTokens.has(tokenId)) {
+                postConsoleAndNotification(MODULE.NAME, `DEBUG: Adding targeted indicator for ${token.name}`, "", true, false);
+                TokenImageUtilities._addTargetedIndicator(token);
+                TokenImageUtilities._targetedTokens.add(tokenId);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `DEBUG: Token ${token.name} already has targeted indicator`, "", true, false);
+            }
+        } else {
+            // Token was untargeted - remove indicator
+            if (TokenImageUtilities._targetedTokens.has(tokenId)) {
+                postConsoleAndNotification(MODULE.NAME, `DEBUG: Removing targeted indicator for ${token.name}`, "", true, false);
+                TokenImageUtilities._removeTargetedIndicator(tokenId);
+                TokenImageUtilities._targetedTokens.delete(tokenId);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `DEBUG: Token ${token.name} was not targeted`, "", true, false);
+            }
+        }
+    }
+    
+    /**
+     * Add targeted indicator to a token
+     */
+    static _addTargetedIndicator(tokenDocument) {
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: _addTargetedIndicator called for ${tokenDocument.name}`, "", true, false);
+        
+        // Get the actual Token object from the canvas
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (!token) {
+            postConsoleAndNotification(MODULE.NAME, `DEBUG: Token not found on canvas for ${tokenDocument.name}`, "", true, false);
+            return;
+        }
+        if (!token.visible) {
+            postConsoleAndNotification(MODULE.NAME, `DEBUG: Token ${token.name} is not visible`, "", true, false);
+            return;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Token found - ${token.name}, Position: ${token.x}, ${token.y}`, "", true, false);
+        
+        const settings = TokenImageUtilities._getTargetedIndicatorSettings();
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Settings - Style: ${settings.style}, Color: ${settings.color}, Thickness: ${settings.thickness}`, "", true, false);
+        
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        const tokenRadius = Math.max(tokenWidth, tokenHeight) / 2;
+        const ringRadius = tokenRadius + settings.offset;
+        
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Dimensions - Width: ${tokenWidth}, Height: ${tokenHeight}, Ring Radius: ${ringRadius}`, "", true, false);
+        
+        const graphics = new PIXI.Graphics();
+        TokenImageUtilities._drawTurnIndicatorTargetedStyle(graphics, settings, ringRadius);
+        
+        const tokenCenterX = token.x + tokenWidth / 2;
+        const tokenCenterY = token.y + tokenHeight / 2;
+        graphics.position.set(tokenCenterX, tokenCenterY);
+        
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Adding graphics to canvas at position ${tokenCenterX}, ${tokenCenterY}`, "", true, false);
+        
+        canvas.interface.addChild(graphics);
+        TokenImageUtilities._targetedIndicators.set(tokenDocument.id, graphics);
+        
+        TokenImageUtilities._createTurnIndicatorTargetedAnimation(settings);
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Targeted indicator (${settings.style}, ${settings.animation}) added for ${token.name}`, "", true, false);
+    }
+    
+    /**
+     * Remove targeted indicator from a token
+     */
+    static _removeTargetedIndicator(tokenId) {
+        const graphics = TokenImageUtilities._targetedIndicators.get(tokenId);
+        if (graphics) {
+            canvas.interface.removeChild(graphics);
+            graphics.destroy();
+            TokenImageUtilities._targetedIndicators.delete(tokenId);
+        }
+    }
+    
+    /**
+     * Remove all targeted indicators
+     */
+    static _removeAllTargetedIndicators() {
+        for (const [tokenId, graphics] of TokenImageUtilities._targetedIndicators) {
+            canvas.interface.removeChild(graphics);
+            graphics.destroy();
+        }
+        TokenImageUtilities._targetedIndicators.clear();
+        TokenImageUtilities._targetedTokens.clear();
+    }
+    
+    /**
+     * Update targeted indicator position (for token movement)
+     */
+    static _updateTargetedIndicatorPosition(tokenId, changes = null) {
+        const graphics = TokenImageUtilities._targetedIndicators.get(tokenId);
+        if (!graphics) return;
+        
+        const token = canvas.tokens.get(tokenId);
+        if (!token) return;
+        
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        
+        const tokenX = changes?.x !== undefined ? changes.x : token.x;
+        const tokenY = changes?.y !== undefined ? changes.y : token.y;
+        
+        const tokenCenterX = tokenX + tokenWidth / 2;
+        const tokenCenterY = tokenY + tokenHeight / 2;
+        
+        graphics.x = tokenCenterX;
+        graphics.y = tokenCenterY;
     }
 }
