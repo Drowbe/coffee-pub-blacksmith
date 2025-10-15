@@ -3211,6 +3211,31 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
+     * Open the Token Image Replacement window
+     */
+    static async openWindow() {
+        if (!game.user.isGM) {
+            ui.notifications.warn("Only GMs can use the Token Image Replacement window");
+            return;
+        }
+        
+        // Check if there's already an open window
+        const existingWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
+        if (existingWindow) {
+            existingWindow.render(true);
+            return;
+        }
+        
+        // Create new window
+        const window = new TokenImageReplacementWindow();
+        
+        // Check for selected token before rendering
+        await window._checkForSelectedToken();
+        
+        window.render(true);
+    }
+
+    /**
      * Handle global token selection changes
      */
     static async _onGlobalTokenSelectionChange(token, controlled) {

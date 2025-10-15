@@ -766,7 +766,7 @@ export class ImageCacheManager {
                 game.ImageCacheManager.scanForImages = this.scanForImages.bind(this);
                 game.ImageCacheManager.deleteCache = this.deleteCache.bind(this);
                 game.ImageCacheManager.pauseCache = this.pauseCache.bind(this);
-                game.ImageCacheManager.openWindow = this.openWindow.bind(this);
+                game.ImageCacheManager.openWindow = TokenImageReplacementWindow.openWindow;
                 game.ImageCacheManager.cleanup = TokenImageReplacementWindow._removeMiddleClickHandler;
             }
     }
@@ -1086,24 +1086,6 @@ export class ImageCacheManager {
         return cleanedCount;
     }
     
-    /**
-     * Open the Token Image Replacement window
-     */
-    static async openWindow() {
-        if (!game.user.isGM) {
-            ui.notifications.warn("Only GMs can use the Token Image Replacement window");
-            return;
-        }
-        
-        if (!this.window) {
-            this.window = new TokenImageReplacementWindow();
-        }
-        
-        // Check for selected token before rendering
-        await this.window._checkForSelectedToken();
-        
-        this.window.render(true);
-    }
     
     /**
      * Initialize the cache system
