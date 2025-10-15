@@ -567,18 +567,19 @@ export class TokenImageReplacementWindow extends Application {
                     searchMode = 'search';
                     searchTerms = this.searchTerm;
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE (search term takes priority)`, "", true, false);
-                } else if (this.selectedToken) {
-                    // If a token is selected and no search term, use token-based matching
+                } else if (this.currentFilter === 'selected' && this.selectedToken) {
+                    // SELECTED TAB + token selected: Use token-based matching
                     searchMode = 'token';
                     searchTerms = null; // Use token-based matching instead of search terms
                     tokenDocument = this.selectedToken.document;
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using TOKEN MODE (token selected)`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using TOKEN MODE (SELECTED tab with token)`, "", true, false);
                 } else if (this.currentFilter === 'selected' && !this.selectedToken) {
                     // SELECTED TAB but no token selected: Show no results
                     this.allMatches = [];
                     this._updateResults();
                     return;
                 } else {
+                    // ALL tabs or other tabs: Use browse mode (no scores)
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
                 
@@ -1739,6 +1740,9 @@ export class TokenImageReplacementWindow extends Application {
     _getTagsForMatch(match) {
         const tags = [];
         
+        // Debug: Log what we're working with
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_getTagsForMatch) - File: ${match.name}, Has metadata: ${!!match.metadata}, Metadata tags: ${match.metadata?.tags?.length || 0}`, "", true, false);
+        
         // Add original image tag if applicable
         if (match.isOriginal) {
             tags.push('ORIGINAL IMAGE');
@@ -1754,24 +1758,54 @@ export class TokenImageReplacementWindow extends Application {
             tags.push('FAVORITE');
         }
         
-        // Only use metadata-based tags - no fallbacks
-        if (match.metadata && match.metadata.tags && match.metadata.tags.length > 0) {
-            // Add metadata tags (already processed and formatted)
+        // Add metadata tags
+        if (match.metadata && match.metadata.tags) {
             match.metadata.tags.forEach(tag => {
                 if (!tags.includes(tag)) {
                     tags.push(tag);
                 }
             });
-        } else if (!match.isCurrent && !match.isOriginal) {
-            // No fallback for non-current/non-original images - this is a critical error that needs to be fixed
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR - No metadata available for ${match.name}. The scanning process is broken.`, "", true, false);
-            console.error(`Token Image Replacement: Missing metadata for file: ${match.name}`, match);
-            // Return empty array - no tags means no display
-            return [];
         }
-        // For current/original images without metadata, we still return their respective tags
         
-        return [...new Set(tags)]; // Remove duplicates
+        // Add creature type tags (same logic as _getTagsForFile)
+        const fileName = match.name || '';
+        for (const [creatureType, files] of TokenImageReplacement.cache.creatureTypes.entries()) {
+            if (Array.isArray(files) && files.includes(fileName)) {
+                const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
+                if (!tags.includes(cleanType)) {
+                    tags.push(cleanType);
+                }
+            }
+        }
+        
+        // Add folder path tags (same logic as _getTagsForFile)
+        if (match.path) {
+            const pathParts = match.path.split('/');
+            if (pathParts.length > 0) {
+                // Get the top-level folder name
+                let topLevel;
+                if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
+                    // Full path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
+                    topLevel = pathParts[4];
+                } else {
+                    // Relative path format: Adventurers/...
+                    topLevel = pathParts[0];
+                }
+                
+                // Skip ignored folders
+                const ignoredFolders = ['assets', 'images', 'tokens', 'FA_Tokens_Webp'];
+                if (topLevel && !ignoredFolders.includes(topLevel)) {
+                    const cleanFolder = topLevel.toLowerCase().replace(/\s+/g, '');
+                    if (!tags.includes(cleanFolder)) {
+                        tags.push(cleanFolder);
+                    }
+                }
+            }
+        }
+        
+        const finalTags = [...new Set(tags)]; // Remove duplicates
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_getTagsForMatch) - Final tags for ${match.name}: [${finalTags.join(', ')}]`, "", true, false);
+        return finalTags;
     }
 
     _applyPagination() {
