@@ -5,7 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [12.1.15] - 2025-01-10
+
+## [12.1.16] - Token Image Replacement Fixes and Code Cleanup
+
+### Fixed
+- **Category Tooltips Showing 0 Counts:** Fixed category buttons displaying incorrect file counts
+  - Root cause: Cache was storing files with empty `path` properties
+  - Solution: Updated all filtering methods to extract relative paths from `fullPath` when `path` is empty
+  - Applied fix to `_countFilesInCategory()`, `_getFilteredFiles()`, `_getAggregatedTags()`, `_getTagsForMatch()`, and `_getTagsForFile()`
+  - Category tooltips now show correct file counts
+
+- **Selected Tab Not Showing Results:** Fixed selected tab filtering to 0 results when token is selected
+  - Root cause: Same empty `path` property issue affecting file matching
+  - Solution: Updated selected tab filtering logic to properly extract relative paths
+  - Selected tab now correctly shows matching files based on token characteristics
+
+- **Favorites Tab Not Showing Actual Favorites:** Fixed favorites tab showing tags but no actual favorited files
+  - Root cause: `_getFileInfoFromCache()` was looking up files by empty `fileName` strings
+  - Solution: Use file objects directly from cache iteration instead of re-lookup by name
+  - Favorites tab now correctly displays all favorited files (ignoring relevance)
+
+- **Tag Display Issues:** Fixed aggregated tags not showing correctly in category and selected modes
+  - Root cause: Inconsistent path handling between category discovery and file filtering
+  - Solution: Unified path extraction logic across all tag-related methods
+  - Tags now display correctly for all filter modes (All, Selected, Favorites, Categories)
+
+### Changed
+- **Eliminated Hardcoded Path Assumptions:** Removed all hardcoded folder name assumptions from tag system
+  - Replaced hardcoded `ignoredFolders` array with dynamic retrieval from `tokenImageReplacementIgnoredFolders` setting
+  - Replaced hardcoded path depth assumptions and `FA_Tokens_Webp` checks with dynamic logic using `tokenImageReplacementPath` setting
+  - Module now adapts to any user folder structure without requiring specific naming conventions
+
+- **Code Organization:** Improved separation of concerns in token image replacement system
+  - Moved dead token management functions to `token-image-utilities.js` for better organization
+  - Updated `ImageCacheManager` to use dynamic category discovery instead of hardcoded categories
+  - Added `getDiscoveredCategories()` and `getCategoryFromFilePath()` methods for flexible path handling
+
+### Technical Improvements
+- **Dynamic Category Discovery:** Categories are now derived from actual cache data instead of hardcoded assumptions
+  - `ImageCacheManager.getDiscoveredCategories()` dynamically discovers top-level categories from `cache.folders`
+  - Respects user settings for ignored folders and base path configuration
+  - Categories automatically adapt to user's folder structure
+
+- **Consistent Path Handling:** Unified path interpretation across all filtering and tagging methods
+  - All methods now consistently use relative paths for category determination
+  - Proper fallback from `file.path` to extracted relative path from `file.fullPath`
+  - Eliminated inconsistencies between cache storage format and usage patterns
+
+### Code Cleanup
+- **Removed Debug Logging:** Cleaned up excessive debug logging that was causing console spam
+  - Removed 46,000+ debug log entries that were cluttering console output
+  - Kept essential logging for troubleshooting while removing verbose iteration logs
+
+- **TODO List Maintenance:** Cleaned up and reorganized TODO.md for better tracking
+  - Removed completed items to focus on active tasks
+  - Removed priority numbers and icons for cleaner presentation
+  - Marked "Targeted Indicators" as completed
+  - Confirmed "HookManager Return Value Handling" was already fixed
+
+### Performance
+- **Reduced Memory Usage:** Eliminated unnecessary file lookups in favorites filtering
+  - Direct file object usage instead of cache re-lookup reduces function call overhead
+  - More efficient filtering logic for large image collections
+
+
+## [12.1.15] - Memory Leak Fix
 
 ### Fixed
 - **CRITICAL: Memory Leak (7.9GB RAM Usage):** Fixed catastrophic memory leak causing browser crashes
