@@ -47,22 +47,6 @@
   }
   ```
 
-### 2. 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (BLOCKING)
-- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
-- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
-- **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration
-- **Status**: 🚨 CRITICAL - BLOCKING EXTERNAL MODULE INTEGRATION
-- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
-- **Notes**: This was supposed to be a core feature - all Coffee Pub modules should share OpenAI integration
-- **Dependencies**: Must be fixed before external modules can properly integrate
-- **Example of what should work**:
-  ```javascript
-  // External modules should be able to do this:
-  const response = await BlacksmithUtils.getOpenAIReplyAsHtml("Generate a monster description");
-  const jsonResponse = await BlacksmithUtils.getOpenAIReplyAsJson("Create a loot table");
-  const textResponse = await BlacksmithUtils.getOpenAIReplyAsText("Write a quest hook");
-  ```
-
 ### 2. Global Variable Accumulation
 - **Issue**: `tokenCount` Map is never cleared and grows indefinitely
 - **Location**: Line 350: `let tokenCount = new Map();`
@@ -379,6 +363,28 @@
 
 **Last Updated**: January 15, 2025
 **Next Review**: January 22, 2025
+
+## DEFERRED TASKS
+
+### 🚨 OPENAI API NOT EXPOSED TO EXTERNAL MODULES (DEFERRED)
+- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
+- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
+- **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration
+- **Status**: 🟠 DEFERRED - Not currently blocking any active development
+- **Original Priority**: CRITICAL - BLOCKING EXTERNAL MODULE INTEGRATION
+- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
+- **Notes**: This was supposed to be a core feature - all Coffee Pub modules should share OpenAI integration
+- **Dependencies**: Must be fixed before external modules can properly integrate
+- **Deferred Reason**: No external modules currently need this functionality
+- **Example of what should work**:
+  ```javascript
+  // External modules should be able to do this:
+  const response = await BlacksmithUtils.getOpenAIReplyAsHtml("Generate a monster description");
+  const jsonResponse = await BlacksmithUtils.getOpenAIReplyAsJson("Create a loot table");
+  const textResponse = await BlacksmithUtils.getOpenAIReplyAsText("Write a quest hook");
+  ```
+
+---
 
 ## RECENT MAJOR ACCOMPLISHMENTS
 
