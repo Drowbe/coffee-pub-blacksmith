@@ -28,19 +28,6 @@
 
 ## MEDIUM/LOW PRIORITY ISSUES
 
-### Settings Retrieval Not Cached
-- **Issue**: `_getTurnIndicatorSettings()` and `_getTargetedIndicatorSettings()` called multiple times per update
-- **Location**: `scripts/token-image-utilities.js` lines 59-87 & 89-117
-- **Impact**: 10+ `getSettingSafely()` calls per indicator update (minor performance cost)
-- **Status**: MINOR - LOW PRIORITY
-- **Plan**: 
-  - Cache settings object in static variable
-  - Invalidate cache on settings change
-  - Reuse cached settings for position updates
-- **Risk**: VERY LOW - Simple caching with invalidation
-- **Notes**: Low priority, optimize only if other issues are resolved
-
-
 ### Token Facing Direction
 - **Issue**: Add token facing direction based on movement
 - **Status**: PENDING
