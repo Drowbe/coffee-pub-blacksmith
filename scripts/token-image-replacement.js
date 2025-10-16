@@ -171,21 +171,16 @@ export class TokenImageReplacementWindow extends Application {
                     const fileText = `${path} ${fileName}`.toLowerCase();
                     return processedTerms.some(term => fileText.includes(term));
                 default:
-                    // For category filters (adventurers, adversaries, creatures, npcs, spirits), 
-                    // check if file is in that top-level folder
-                    // Path format can be either:
-                    // - Relative: "Adventurers/!Core_Adventurers/..."
-                    // - Full: "assets/images/tokens/FA_Tokens_Webp/Adventurers/..."
-                    const pathParts = path.split('/');
+                    // For category filters, check if file is in that category folder
+                    // Use base path setting to determine category
+                    const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+                    const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+                    const pathParts = path.split('/').filter(p => p);
                     
-                    // Try both formats
-                    let categoryFolder;
-                    if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
-                        // Full path format
-                        categoryFolder = pathParts[4];
-                    } else {
-                        // Relative path format - first part is the category
-                        categoryFolder = pathParts[0];
+                    // Category is first folder AFTER base path
+                    let categoryFolder = null;
+                    if (pathParts.length > baseDepth) {
+                        categoryFolder = pathParts[baseDepth];
                     }
                     
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
@@ -1653,25 +1648,28 @@ export class TokenImageReplacementWindow extends Application {
         
         // Add folder path tags (same logic as _getTagsForFile)
         if (match.path) {
-            const pathParts = match.path.split('/');
-            if (pathParts.length > 0) {
-                // Get the top-level folder name
-                let topLevel;
-                if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
-                    // Full path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
-                    topLevel = pathParts[4];
-                } else {
-                    // Relative path format: Adventurers/...
-                    topLevel = pathParts[0];
-                }
-                
-                // Skip ignored folders
-                const ignoredFolders = ['assets', 'images', 'tokens', 'FA_Tokens_Webp'];
-                if (topLevel && !ignoredFolders.includes(topLevel)) {
-                    const cleanFolder = topLevel.toLowerCase().replace(/\s+/g, '');
-                    if (!tags.includes(cleanFolder)) {
-                        tags.push(cleanFolder);
-                    }
+            // Get the top-level folder name using base path setting
+            let topLevel;
+            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            const pathParts = match.path.split('/').filter(p => p);
+            
+            // Category is first folder AFTER base path
+            if (pathParts.length > baseDepth) {
+                topLevel = pathParts[baseDepth];
+            } else {
+                // File is directly in base path (no category)
+                topLevel = null;
+            }
+            // Skip ignored folders (use user setting)
+            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+            const ignoredFolders = ignoredFoldersSetting 
+                ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
+                : [];
+            if (topLevel && !ignoredFolders.includes(topLevel)) {
+                const cleanFolder = topLevel.toLowerCase().replace(/\s+/g, '');
+                if (!tags.includes(cleanFolder)) {
+                    tags.push(cleanFolder);
                 }
             }
         }
@@ -1839,17 +1837,26 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Add folder path tags
+        // Add folder path tags (use base path setting and ignored folders)
         if (file.path) {
-            const pathParts = file.path.split('/');
-            pathParts.forEach(part => {
-                if (part && part !== 'creatures' && part !== 'tokens') {
-                    const cleanPart = part.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    if (cleanPart && !tags.includes(cleanPart)) {
-                        tags.push(cleanPart);
+            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            const pathParts = file.path.split('/').filter(p => p);
+            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+            const ignoredFolders = ignoredFoldersSetting 
+                ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
+                : [];
+            
+            // Only add the category folder (first folder after base path)
+            if (pathParts.length > baseDepth) {
+                const category = pathParts[baseDepth];
+                if (category && !ignoredFolders.includes(category)) {
+                    const cleanCategory = category.toLowerCase().replace(/\s+/g, '');
+                    if (!tags.includes(cleanCategory)) {
+                        tags.push(cleanCategory);
                     }
                 }
-            });
+            }
         }
         
         return tags;
@@ -2339,34 +2346,15 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _getCategories() {
-        // Generate categories from existing folder structure
-        const topLevelFolders = new Map();
-        
-        // Count files directly from the file cache using the same path parsing logic as filtering
-        for (const fileInfo of ImageCacheManager.cache.files.values()) {
-            const path = fileInfo.path || fileInfo.fullPath || '';
-            const pathParts = path.split('/');
-            
-            // Handle both relative and full path formats (same logic as _getFilteredFiles)
-            let topLevel;
-            if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
-                // Full path format: assets/images/tokens/FA_Tokens_Webp/Adventurers/...
-                topLevel = pathParts[4];
-            } else {
-                // Relative path format: Adventurers/...
-                topLevel = pathParts[0];
-            }
-            
-            // Skip ignored folders
-            if (topLevel && !ImageCacheManager._isFolderIgnored(topLevel)) {
-                const currentCount = topLevelFolders.get(topLevel) || 0;
-                topLevelFolders.set(topLevel, currentCount + 1);
-            }
-        }
+        // Use the new cache-based category discovery
+        const discoveredCategories = ImageCacheManager.getDiscoveredCategories();
         
         // Convert to array of category objects for template
         const categories = [];
-        for (const [categoryName, fileCount] of topLevelFolders) {
+        for (const categoryName of discoveredCategories) {
+            // Count files in this category
+            const fileCount = this._countFilesInCategory(categoryName);
+            
             categories.push({
                 name: ImageCacheManager._cleanCategoryName(categoryName),
                 key: categoryName.toLowerCase(),
@@ -2376,6 +2364,34 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         return categories;
+    }
+
+    /**
+     * Count files in a specific category
+     * @param {string} categoryName - The category name to count files for
+     * @returns {number} The number of files in this category
+     */
+    _countFilesInCategory(categoryName) {
+        let count = 0;
+        
+        for (const fileInfo of ImageCacheManager.cache.files.values()) {
+            const path = fileInfo.path || fileInfo.fullPath || '';
+            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            const pathParts = path.split('/').filter(p => p);
+            
+            // Category is first folder AFTER base path
+            let fileCategory = null;
+            if (pathParts.length > baseDepth) {
+                fileCategory = pathParts[baseDepth];
+            }
+            
+            if (fileCategory === categoryName) {
+                count++;
+            }
+        }
+        
+        return count;
     }
 
     _getAggregatedTags() {

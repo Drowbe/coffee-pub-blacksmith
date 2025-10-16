@@ -2666,6 +2666,70 @@ export class ImageCacheManager {
         }
     }
 
+    /**
+     * Get discovered categories from actual cache data
+     * Returns the actual folder names found in the cache, respecting user settings
+     * @returns {Array<string>} Array of category folder names
+     */
+    static getDiscoveredCategories() {
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+        const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+        const ignoredFolders = ignoredFoldersSetting 
+            ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
+            : [];
+        
+        const categories = new Set();
+        
+        // Use actual cache data to discover categories
+        for (const folderPath of this.cache.folders.keys()) {
+            const parts = folderPath.split('/').filter(p => p);
+            
+            // Category is first folder AFTER base path
+            if (parts.length > baseDepth) {
+                const category = parts[baseDepth];
+                if (category && !ignoredFolders.includes(category)) {
+                    categories.add(category);
+                }
+            }
+        }
+        
+        return Array.from(categories).sort();
+    }
 
+    /**
+     * Get category for a specific file path using base path setting
+     * @param {string} filePath - The file path to analyze
+     * @returns {string|null} The category name or null if no category
+     */
+    static getCategoryFromFilePath(filePath) {
+        if (!filePath) return null;
+        
+        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+        const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+        const pathParts = filePath.split('/').filter(p => p);
+        
+        // Category is first folder AFTER base path
+        if (pathParts.length > baseDepth) {
+            return pathParts[baseDepth];
+        }
+        
+        // File is directly in base path (no category)
+        return null;
+    }
+
+    /**
+     * Check if a folder should be ignored based on user settings
+     * @param {string} folderName - The folder name to check
+     * @returns {boolean} True if the folder should be ignored
+     */
+    static _isFolderIgnored(folderName) {
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+        const ignoredFolders = ignoredFoldersSetting 
+            ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
+            : [];
+        
+        return ignoredFolders.includes(folderName);
+    }
 
 }
