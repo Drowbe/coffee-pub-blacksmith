@@ -2182,15 +2182,15 @@ export const registerSettings = async () => {
 
 	game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', {
 		name: 'Turn Indicator Animation Speed',
-		hint: 'How fast the current turn indicator pulses (lower = slower, higher = faster).',
+		hint: 'Animation speed from 1 (very slow) to 10 (very fast).',
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 0.05,
+		default: 5,
 		range: {
-			min: 0.01,
-			max: 0.10,
-			step: 0.01
+			min: 1,
+			max: 10,
+			step: 1
 		},
 		requiresReload: false
 	});
@@ -2267,15 +2267,15 @@ export const registerSettings = async () => {
 
 	game.settings.register(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', {
 		name: 'Targeted Indicator Animation Speed',
-		hint: 'How fast the Targeted indicator pulses (lower = slower, higher = faster).',
+		hint: 'Animation speed from 1 (very slow) to 10 (very fast).',
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 0.05,
+		default: 5,
 		range: {
-			min: 0.01,
-			max: 0.10,
-			step: 0.01
+			min: 1,
+			max: 10,
+			step: 1
 		},
 		requiresReload: false
 	});

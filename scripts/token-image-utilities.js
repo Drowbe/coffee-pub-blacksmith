@@ -34,6 +34,26 @@ export class TokenImageUtilities {
     static _targetingHookId = null; // Added for targeting changes
     
     /**
+     * Map user-friendly speed (1-10) to animation-specific speed values
+     */
+    static _mapSpeedToAnimationSpeed(userSpeed, animationType) {
+        // Convert 1-10 scale to appropriate speeds for different animation types
+        switch (animationType) {
+            case 'pulse':
+                // Pulse: 1=0.005 (very slow), 10=0.1 (very fast)
+                return 0.005 + (userSpeed - 1) * (0.095 / 9);
+            
+            case 'rotate':
+                // Rotation: 1=0.001 (very slow), 10=0.05 (very fast)
+                return 0.001 + (userSpeed - 1) * (0.049 / 9);
+            
+            default:
+                // Default pulse mapping
+                return 0.005 + (userSpeed - 1) * (0.095 / 9);
+        }
+    }
+
+    /**
      * Get the current turn indicator settings from module config
      */
     static _getTurnIndicatorSettings() {
@@ -45,13 +65,17 @@ export class TokenImageUtilities {
         const innerColorHex = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', '#ff8100');
         const innerColor = parseInt(innerColorHex.replace('#', '0x'));
         
+        // Get user speed (1-10) and map to animation speed
+        const userSpeed = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', 5);
+        const animationType = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimation', 'pulse');
+        
         return {
             style: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentStyle', 'solid'),
-            animation: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimation', 'pulse'),
+            animation: animationType,
             color: color,
             thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
             offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
-            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', 0.05),
+            pulseSpeed: TokenImageUtilities._mapSpeedToAnimationSpeed(userSpeed, animationType),
             pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
             pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
             innerColor: innerColor,
@@ -71,13 +95,17 @@ export class TokenImageUtilities {
         const innerColorHex = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedBackgroundColor', '#a51214');
         const innerColor = parseInt(innerColorHex.replace('#', '0x'));
         
+        // Get user speed (1-10) and map to animation speed
+        const userSpeed = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', 5);
+        const animationType = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimation', 'pulse');
+        
         return {
             style: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedStyle', 'solid'),
-            animation: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimation', 'pulse'),
+            animation: animationType,
             color: color,
             thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
             offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
-            pulseSpeed: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', 0.05),
+            pulseSpeed: TokenImageUtilities._mapSpeedToAnimationSpeed(userSpeed, animationType),
             pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
             pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
             innerColor: innerColor,
