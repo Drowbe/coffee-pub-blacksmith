@@ -168,11 +168,6 @@ export class TokenImageReplacementWindow extends Application {
                     // Use the file object directly (we're already iterating over cache.files.values())
                     const hasFavorite = file.metadata?.tags?.includes('FAVORITE') || false;
                     
-                    // Debug first few files
-                    if (index < 3) {
-                        console.log(`🔍 DEBUG: Favorites filter - File "${fileName}" -> hasFavorite: ${hasFavorite}, tags:`, file.metadata?.tags);
-                    }
-                    
                     return hasFavorite;
                 case 'selected':
                     // Only show files that match the selected token's characteristics
@@ -180,14 +175,7 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Check if file matches any of the token's search terms
                     const fileText = `${path} ${fileName}`.toLowerCase();
-                    const matches = processedTerms.some(term => fileText.includes(term));
-                    
-                    // Debug first few files
-                    if (index < 3) {
-                        console.log(`🔍 DEBUG: Selected filter - File "${fileText}" vs terms [${processedTerms.join(', ')}] -> ${matches}`);
-                    }
-                    
-                    return matches;
+                    return processedTerms.some(term => fileText.includes(term));
                 default:
                     // For category filters, check if file is in that category folder
                     // Cache stores RELATIVE paths, so first part is the category
