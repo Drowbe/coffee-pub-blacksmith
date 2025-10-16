@@ -47,6 +47,10 @@ export class TokenImageUtilities {
                 // Rotation: 1=0.001 (very slow), 10=0.05 (very fast)
                 return 0.001 + (userSpeed - 1) * (0.049 / 9);
             
+            case 'wobble':
+                // Wobble: 1=0.005 (very slow), 10=0.08 (very fast)
+                return 0.005 + (userSpeed - 1) * (0.075 / 9);
+            
             default:
                 // Default pulse mapping
                 return 0.005 + (userSpeed - 1) * (0.095 / 9);
@@ -778,6 +782,9 @@ export class TokenImageUtilities {
             case 'rotate':
                 TokenImageUtilities._createRotateAnimation(settings);
                 break;
+            case 'wobble':
+                TokenImageUtilities._createWobbleAnimation(settings);
+                break;
             case 'fixed':
             default:
                 // No animation
@@ -803,11 +810,25 @@ export class TokenImageUtilities {
                     time: 0,
                     update: (delta) => {
                         if (!graphics || graphics.destroyed) return;
+                        
                         animation.time += delta * settings.pulseSpeed;
-                        const pulseRange = (settings.pulseMax - settings.pulseMin) / 2;
-                        const pulseMid = settings.pulseMin + pulseRange;
-                        const opacity = pulseMid + Math.sin(animation.time) * pulseRange;
-                        graphics.alpha = opacity;
+                        
+                        // Heartbeat pattern: Stay at max opacity, then quick fade out/in
+                        const pulseCycle = 6; // Base cycle time (adjusted by speed)
+                        const pulseDuration = 1.2; // How long the pulse lasts (doubled for slower fade)
+                        
+                        const cycleTime = animation.time % pulseCycle;
+                        
+                        if (cycleTime < pulseDuration) {
+                            // During pulse: fade out then back in quickly
+                            const pulseProgress = cycleTime / pulseDuration;
+                            // Use sine wave for smooth fade out/in within the pulse duration
+                            const opacity = settings.pulseMax - (Math.sin(pulseProgress * Math.PI) * (settings.pulseMax - settings.pulseMin));
+                            graphics.alpha = opacity;
+                        } else {
+                            // Between pulses: stay at max opacity
+                            graphics.alpha = settings.pulseMax;
+                        }
                     }
                 };
                 canvas.app.ticker.add(animation.update);
@@ -819,6 +840,20 @@ export class TokenImageUtilities {
                         if (!graphics || graphics.destroyed) return;
                         animation.time += delta * settings.pulseSpeed;
                         graphics.rotation = animation.time;
+                    }
+                };
+                canvas.app.ticker.add(animation.update);
+                break;
+            case 'wobble':
+                animation = {
+                    time: 0,
+                    update: (delta) => {
+                        if (!graphics || graphics.destroyed) return;
+                        animation.time += delta * settings.pulseSpeed;
+                        // Wobble scale between 0.95 and 1.05 (10% size variation)
+                        const wobbleAmount = 0.05;
+                        const scaleFactor = 1.0 + Math.sin(animation.time) * wobbleAmount;
+                        graphics.scale.set(scaleFactor);
                     }
                 };
                 canvas.app.ticker.add(animation.update);
@@ -841,13 +876,30 @@ export class TokenImageUtilities {
     static _createPulseAnimation(settings) {
         TokenImageUtilities._pulseAnimation = {
             time: 0,
+            phase: 'visible', // 'visible' or 'pulsing'
+            pulseStartTime: 0,
             update: (delta) => {
                 if (!TokenImageUtilities._turnIndicator) return;
+                
                 TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
-                const pulseRange = (settings.pulseMax - settings.pulseMin) / 2;
-                const pulseMid = settings.pulseMin + pulseRange;
-                const opacity = pulseMid + Math.sin(TokenImageUtilities._pulseAnimation.time) * pulseRange;
-                TokenImageUtilities._turnIndicator.alpha = opacity;
+                
+                // Heartbeat pattern: Stay at max opacity, then quick fade out/in
+                // Pulse every 2 seconds (adjustable by speed)
+                const pulseCycle = 6; // Base cycle time (adjusted by speed)
+                const pulseDuration = 1.2; // How long the pulse lasts (doubled for slower fade)
+                
+                const cycleTime = TokenImageUtilities._pulseAnimation.time % pulseCycle;
+                
+                if (cycleTime < pulseDuration) {
+                    // During pulse: fade out then back in quickly
+                    const pulseProgress = cycleTime / pulseDuration;
+                    // Use sine wave for smooth fade out/in within the pulse duration
+                    const opacity = settings.pulseMax - (Math.sin(pulseProgress * Math.PI) * (settings.pulseMax - settings.pulseMin));
+                    TokenImageUtilities._turnIndicator.alpha = opacity;
+                } else {
+                    // Between pulses: stay at max opacity
+                    TokenImageUtilities._turnIndicator.alpha = settings.pulseMax;
+                }
             }
         };
         canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);
@@ -864,6 +916,25 @@ export class TokenImageUtilities {
                 // Rotate based on pulse speed setting (faster speed = faster rotation)
                 TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
                 TokenImageUtilities._turnIndicator.rotation = TokenImageUtilities._pulseAnimation.time;
+            }
+        };
+        canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);
+    }
+
+    /**
+     * Create wobble animation (scale)
+     */
+    static _createWobbleAnimation(settings) {
+        TokenImageUtilities._pulseAnimation = {
+            time: 0,
+            update: (delta) => {
+                if (!TokenImageUtilities._turnIndicator) return;
+                // Wobble based on pulse speed setting
+                TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
+                // Wobble scale between 0.95 and 1.05 (10% size variation)
+                const wobbleAmount = 0.05;
+                const scaleFactor = 1.0 + Math.sin(TokenImageUtilities._pulseAnimation.time) * wobbleAmount;
+                TokenImageUtilities._turnIndicator.scale.set(scaleFactor);
             }
         };
         canvas.app.ticker.add(TokenImageUtilities._pulseAnimation.update);

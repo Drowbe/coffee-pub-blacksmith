@@ -2174,6 +2174,7 @@ export const registerSettings = async () => {
 		choices: {
 			pulse: "Pulse (Opacity)",
 			rotate: "Rotate",
+			wobble: "Wobble (Scale)",
 			fixed: "Fixed (No Animation)"
 		},
 		default: 'pulse',
@@ -2259,6 +2260,7 @@ export const registerSettings = async () => {
 		choices: {
 			pulse: "Pulse (Opacity)",
 			rotate: "Rotate",
+			wobble: "Wobble (Scale)",
 			fixed: "Fixed (No Animation)"
 		},
 		default: 'pulse',
