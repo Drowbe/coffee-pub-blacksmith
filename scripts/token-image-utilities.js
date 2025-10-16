@@ -131,6 +131,9 @@ export class TokenImageUtilities {
             case 'spikesIn':
                 TokenImageUtilities._drawInwardSpikedCircle(graphics, settings, ringRadius);
                 break;
+            case 'roundedSquare':
+                TokenImageUtilities._drawRoundedSquare(graphics, settings, ringRadius);
+                break;
             case 'solid':
             default:
                 TokenImageUtilities._drawSolidCircle(graphics, settings, ringRadius);
@@ -151,6 +154,9 @@ export class TokenImageUtilities {
                 break;
             case 'spikesIn':
                 TokenImageUtilities._drawInwardSpikedCircle(graphics, settings, ringRadius);
+                break;
+            case 'roundedSquare':
+                TokenImageUtilities._drawRoundedSquare(graphics, settings, ringRadius);
                 break;
             case 'solid':
             default:
@@ -298,6 +304,26 @@ export class TokenImageUtilities {
         }
         
         graphics.endFill();
+    }
+    
+    /**
+     * Draw a rounded square with inner fill
+     */
+    static _drawRoundedSquare(graphics, settings, ringRadius) {
+        // Calculate square size based on ring radius
+        // For a square to encompass the same area, use side = radius * sqrt(2)
+        const squareSize = ringRadius * 2;
+        const halfSize = squareSize / 2;
+        const cornerRadius = squareSize * 0.15; // 15% of size for nice rounded corners
+        
+        // Draw inner fill first (behind the ring)
+        graphics.beginFill(settings.innerColor, settings.innerOpacity);
+        graphics.drawRoundedRect(-halfSize, -halfSize, squareSize, squareSize, cornerRadius);
+        graphics.endFill();
+        
+        // Draw the rounded square border on top
+        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
+        graphics.drawRoundedRect(-halfSize, -halfSize, squareSize, squareSize, cornerRadius);
     }
     
     /**

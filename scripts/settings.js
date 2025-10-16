@@ -2159,7 +2159,8 @@ export const registerSettings = async () => {
 			solid: "Solid Circle",
 			dashed: "Dashed Circle",
 			spikes: "Circle with Spikes",
-			spikesIn: "Circle with Inward Spikes"
+			spikesIn: "Circle with Inward Spikes",
+			roundedSquare: "Rounded Square"
 		},
 		default: 'solid',
 		requiresReload: false
@@ -2245,7 +2246,8 @@ export const registerSettings = async () => {
 			solid: "Solid Circle",
 			dashed: "Dashed Circle",
 			spikes: "Circle with Spikes",
-			spikesIn: "Circle with Inward Spikes"
+			spikesIn: "Circle with Inward Spikes",
+			roundedSquare: "Rounded Square"
 		},
 		default: 'solid',
 		requiresReload: false
