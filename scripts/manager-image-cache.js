@@ -2672,46 +2672,54 @@ export class ImageCacheManager {
      * @returns {Array<string>} Array of category folder names
      */
     static getDiscoveredCategories() {
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-        const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
         const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
         const ignoredFolders = ignoredFoldersSetting 
             ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
             : [];
         
+        console.log("🔍 DEBUG: getDiscoveredCategories()");
+        console.log("🔍 DEBUG: Ignored folders:", ignoredFolders);
+        console.log("🔍 DEBUG: Cache folders keys:", Array.from(this.cache.folders.keys()));
+        
         const categories = new Set();
         
-        // Use actual cache data to discover categories
+        // Cache stores RELATIVE paths (without base path)
+        // Category is the FIRST part of the relative path
         for (const folderPath of this.cache.folders.keys()) {
             const parts = folderPath.split('/').filter(p => p);
+            console.log(`🔍 DEBUG: Processing folder path: "${folderPath}" -> parts:`, parts);
             
-            // Category is first folder AFTER base path
-            if (parts.length > baseDepth) {
-                const category = parts[baseDepth];
+            // First part is the category (since paths are relative to base)
+            if (parts.length > 0) {
+                const category = parts[0];
+                console.log(`🔍 DEBUG: Found category: "${category}"`);
                 if (category && !ignoredFolders.includes(category)) {
                     categories.add(category);
+                    console.log(`🔍 DEBUG: Added category: "${category}"`);
+                } else {
+                    console.log(`🔍 DEBUG: Skipped category: "${category}" (ignored or empty)`);
                 }
             }
         }
         
-        return Array.from(categories).sort();
+        const result = Array.from(categories).sort();
+        console.log("🔍 DEBUG: Final discovered categories:", result);
+        return result;
     }
 
     /**
-     * Get category for a specific file path using base path setting
-     * @param {string} filePath - The file path to analyze
+     * Get category for a specific file path (relative path from cache)
+     * @param {string} filePath - The file path to analyze (relative to base path)
      * @returns {string|null} The category name or null if no category
      */
     static getCategoryFromFilePath(filePath) {
         if (!filePath) return null;
         
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-        const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+        // Cache stores RELATIVE paths, so first part is the category
         const pathParts = filePath.split('/').filter(p => p);
         
-        // Category is first folder AFTER base path
-        if (pathParts.length > baseDepth) {
-            return pathParts[baseDepth];
+        if (pathParts.length > 0) {
+            return pathParts[0];
         }
         
         // File is directly in base path (no category)

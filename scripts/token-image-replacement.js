@@ -172,15 +172,13 @@ export class TokenImageReplacementWindow extends Application {
                     return processedTerms.some(term => fileText.includes(term));
                 default:
                     // For category filters, check if file is in that category folder
-                    // Use base path setting to determine category
-                    const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-                    const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+                    // Cache stores RELATIVE paths, so first part is the category
                     const pathParts = path.split('/').filter(p => p);
                     
-                    // Category is first folder AFTER base path
+                    // Category is first part of relative path
                     let categoryFolder = null;
-                    if (pathParts.length > baseDepth) {
-                        categoryFolder = pathParts[baseDepth];
+                    if (pathParts.length > 0) {
+                        categoryFolder = pathParts[0];
                     }
                     
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
@@ -1648,19 +1646,15 @@ export class TokenImageReplacementWindow extends Application {
         
         // Add folder path tags (same logic as _getTagsForFile)
         if (match.path) {
-            // Get the top-level folder name using base path setting
-            let topLevel;
-            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            // Cache stores RELATIVE paths, so first part is the category
             const pathParts = match.path.split('/').filter(p => p);
             
-            // Category is first folder AFTER base path
-            if (pathParts.length > baseDepth) {
-                topLevel = pathParts[baseDepth];
-            } else {
-                // File is directly in base path (no category)
-                topLevel = null;
+            // Category is first part of relative path
+            let topLevel = null;
+            if (pathParts.length > 0) {
+                topLevel = pathParts[0];
             }
+            
             // Skip ignored folders (use user setting)
             const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
             const ignoredFolders = ignoredFoldersSetting 
@@ -1837,19 +1831,18 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Add folder path tags (use base path setting and ignored folders)
+        // Add folder path tags (use ignored folders setting)
         if (file.path) {
-            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            // Cache stores RELATIVE paths, so first part is the category
             const pathParts = file.path.split('/').filter(p => p);
             const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
             const ignoredFolders = ignoredFoldersSetting 
                 ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
                 : [];
             
-            // Only add the category folder (first folder after base path)
-            if (pathParts.length > baseDepth) {
-                const category = pathParts[baseDepth];
+            // Only add the category folder (first part of relative path)
+            if (pathParts.length > 0) {
+                const category = pathParts[0];
                 if (category && !ignoredFolders.includes(category)) {
                     const cleanCategory = category.toLowerCase().replace(/\s+/g, '');
                     if (!tags.includes(cleanCategory)) {
@@ -2347,13 +2340,19 @@ export class TokenImageReplacementWindow extends Application {
 
     _getCategories() {
         // Use the new cache-based category discovery
+        console.log("🔍 DEBUG: Getting categories...");
+        console.log("🔍 DEBUG: Cache folders:", ImageCacheManager.cache.folders);
+        console.log("🔍 DEBUG: Base path setting:", getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', ''));
+        
         const discoveredCategories = ImageCacheManager.getDiscoveredCategories();
+        console.log("🔍 DEBUG: Discovered categories:", discoveredCategories);
         
         // Convert to array of category objects for template
         const categories = [];
         for (const categoryName of discoveredCategories) {
             // Count files in this category
             const fileCount = this._countFilesInCategory(categoryName);
+            console.log(`🔍 DEBUG: Category "${categoryName}" has ${fileCount} files`);
             
             categories.push({
                 name: ImageCacheManager._cleanCategoryName(categoryName),
@@ -2363,6 +2362,7 @@ export class TokenImageReplacementWindow extends Application {
             });
         }
         
+        console.log("🔍 DEBUG: Final categories:", categories);
         return categories;
     }
 
@@ -2376,14 +2376,13 @@ export class TokenImageReplacementWindow extends Application {
         
         for (const fileInfo of ImageCacheManager.cache.files.values()) {
             const path = fileInfo.path || fileInfo.fullPath || '';
-            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-            const baseDepth = basePath ? basePath.split('/').filter(p => p).length : 0;
+            // Cache stores RELATIVE paths, so first part is the category
             const pathParts = path.split('/').filter(p => p);
             
-            // Category is first folder AFTER base path
+            // Category is first part of relative path
             let fileCategory = null;
-            if (pathParts.length > baseDepth) {
-                fileCategory = pathParts[baseDepth];
+            if (pathParts.length > 0) {
+                fileCategory = pathParts[0];
             }
             
             if (fileCategory === categoryName) {
