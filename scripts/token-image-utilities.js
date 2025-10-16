@@ -819,9 +819,8 @@ export class TokenImageUtilities {
         TokenImageUtilities._drawTurnIndicatorCurrentStyle(graphics, settings, ringRadius);
         
         // Position at token center
-        const tokenCenterX = token.x + tokenWidth / 2;
-        const tokenCenterY = token.y + tokenHeight / 2;
-        graphics.position.set(tokenCenterX, tokenCenterY);
+        const center = TokenImageUtilities._calculateTokenCenter(token);
+        graphics.position.set(center.x, center.y);
         
         // Add to canvas
         canvas.interface.addChild(graphics);
@@ -1036,6 +1035,25 @@ export class TokenImageUtilities {
     }
 
     /**
+     * Calculate token center position, handling changes if provided
+     * @param {Token} token - The token to calculate position for
+     * @param {Object} changes - Optional changes object with x/y coordinates
+     * @returns {Object} - Object with x and y center coordinates
+     */
+    static _calculateTokenCenter(token, changes = null) {
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        
+        const tokenX = changes?.x !== undefined ? changes.x : token.x;
+        const tokenY = changes?.y !== undefined ? changes.y : token.y;
+        
+        return {
+            x: tokenX + tokenWidth / 2,
+            y: tokenY + tokenHeight / 2
+        };
+    }
+
+    /**
      * Update turn indicator position (for token movement)
      */
     static _updateTurnIndicatorPosition(token, changes = null) {
@@ -1043,19 +1061,11 @@ export class TokenImageUtilities {
             return;
         }
 
-        const tokenWidth = token.document.width * canvas.grid.size;
-        const tokenHeight = token.document.height * canvas.grid.size;
-        
-        // Use the NEW position from changes if available, otherwise use current token position
-        const tokenX = changes?.x !== undefined ? changes.x : token.x;
-        const tokenY = changes?.y !== undefined ? changes.y : token.y;
-        
-        const tokenCenterX = tokenX + tokenWidth / 2;
-        const tokenCenterY = tokenY + tokenHeight / 2;
+        const center = TokenImageUtilities._calculateTokenCenter(token, changes);
         
         // Update PIXI graphics position
-        TokenImageUtilities._turnIndicator.x = tokenCenterX;
-        TokenImageUtilities._turnIndicator.y = tokenCenterY;
+        TokenImageUtilities._turnIndicator.x = center.x;
+        TokenImageUtilities._turnIndicator.y = center.y;
     }
 
     /**
@@ -1225,11 +1235,10 @@ export class TokenImageUtilities {
         const graphics = new PIXI.Graphics();
         TokenImageUtilities._drawTurnIndicatorTargetedStyle(graphics, settings, ringRadius);
         
-        const tokenCenterX = token.x + tokenWidth / 2;
-        const tokenCenterY = token.y + tokenHeight / 2;
-        graphics.position.set(tokenCenterX, tokenCenterY);
+        const center = TokenImageUtilities._calculateTokenCenter(token);
+        graphics.position.set(center.x, center.y);
         
-        postConsoleAndNotification(MODULE.NAME, `DEBUG: Adding graphics to canvas at position ${tokenCenterX}, ${tokenCenterY}`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `DEBUG: Adding graphics to canvas at position ${center.x}, ${center.y}`, "", true, false);
         
         canvas.interface.addChild(graphics);
         TokenImageUtilities._targetedIndicators.set(tokenDocument.id, graphics);
@@ -1287,16 +1296,9 @@ export class TokenImageUtilities {
         const token = canvas.tokens.get(tokenId);
         if (!token) return;
         
-        const tokenWidth = token.document.width * canvas.grid.size;
-        const tokenHeight = token.document.height * canvas.grid.size;
+        const center = TokenImageUtilities._calculateTokenCenter(token, changes);
         
-        const tokenX = changes?.x !== undefined ? changes.x : token.x;
-        const tokenY = changes?.y !== undefined ? changes.y : token.y;
-        
-        const tokenCenterX = tokenX + tokenWidth / 2;
-        const tokenCenterY = tokenY + tokenHeight / 2;
-        
-        graphics.x = tokenCenterX;
-        graphics.y = tokenCenterY;
+        graphics.x = center.x;
+        graphics.y = center.y;
     }
 }
