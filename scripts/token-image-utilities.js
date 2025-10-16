@@ -32,6 +32,8 @@ export class TokenImageUtilities {
     static _deleteCombatHookId = null;
     static _updateTokenHookId = null;
     static _targetingHookId = null; // Added for targeting changes
+    static _canvasReadyHookId = null; // For hiding default target indicators
+    static _refreshTokenHookId = null; // For hiding default target indicators
     
     /**
      * Map user-friendly speed (1-10) to animation-specific speed values
@@ -583,30 +585,54 @@ export class TokenImageUtilities {
             return;
         }
         
-        // Use a continuous loop to hide target indicators every frame
-        Hooks.on('canvasReady', () => {
-            const hideTargets = () => {
-                if (canvas.tokens) {
-                    for (const token of canvas.tokens.placeables) {
-                        if (token.target) {
-                            // Hide the entire target object - this is more reliable
-                            token.target.visible = false;
-                        }
-                    }
-                }
-                TokenImageUtilities._hideTargetsAnimationId = requestAnimationFrame(hideTargets);
-            };
-            hideTargets();
+        // Register canvasReady hook via HookManager
+        TokenImageUtilities._canvasReadyHookId = HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'Token Image Utilities: Start continuous loop to hide default target indicators',
+            context: 'token-utilities-hide-targets',
+            priority: 3,
+            callback: TokenImageUtilities._onCanvasReadyForHiding
         });
         
-        // Also hook into token refresh as backup
-        Hooks.on('refreshToken', (token) => {
-            if (token.target) {
-                token.target.visible = false;
-            }
+        // Register refreshToken hook via HookManager as backup
+        TokenImageUtilities._refreshTokenHookId = HookManager.registerHook({
+            name: 'refreshToken',
+            description: 'Token Image Utilities: Hide target indicators on token refresh',
+            context: 'token-utilities-hide-targets',
+            priority: 3,
+            callback: TokenImageUtilities._onRefreshTokenForHiding
         });
         
         // Apply to all existing tokens immediately
+        TokenImageUtilities._hideAllTargetIndicators();
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Target hiding hooks registered", "", true, false);
+    }
+    
+    /**
+     * Canvas ready callback - starts the continuous hiding loop
+     */
+    static _onCanvasReadyForHiding() {
+        const hideTargets = () => {
+            TokenImageUtilities._hideAllTargetIndicators();
+            TokenImageUtilities._hideTargetsAnimationId = requestAnimationFrame(hideTargets);
+        };
+        hideTargets();
+    }
+    
+    /**
+     * Refresh token callback - hide target indicators on token refresh
+     */
+    static _onRefreshTokenForHiding(token) {
+        if (token.target) {
+            token.target.visible = false;
+        }
+    }
+    
+    /**
+     * Hide all target indicators on all tokens
+     */
+    static _hideAllTargetIndicators() {
         if (canvas.tokens) {
             for (const token of canvas.tokens.placeables) {
                 if (token.target) {
@@ -650,7 +676,18 @@ export class TokenImageUtilities {
             TokenImageUtilities._targetingHookId = null;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator hooks unregistered", "", true, false);
+        // Unregister target hiding hooks
+        if (TokenImageUtilities._canvasReadyHookId) {
+            HookManager.unregisterHook('canvasReady', TokenImageUtilities._canvasReadyHookId);
+            TokenImageUtilities._canvasReadyHookId = null;
+        }
+        
+        if (TokenImageUtilities._refreshTokenHookId) {
+            HookManager.unregisterHook('refreshToken', TokenImageUtilities._refreshTokenHookId);
+            TokenImageUtilities._refreshTokenHookId = null;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: All hooks unregistered and cleaned up", "", true, false);
     }
 
     /**

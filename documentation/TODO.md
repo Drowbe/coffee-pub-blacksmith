@@ -98,54 +98,42 @@
 
 ## TOKEN IMAGE UTILITIES ISSUES
 
-### 1. 🚨 HOOK MANAGEMENT MEMORY LEAKS (CRITICAL)
+### 1. ✅ HOOK MANAGEMENT MEMORY LEAKS (COMPLETED)
 - **Issue**: Two hooks in `token-image-utilities.js` registered with `Hooks.on()` instead of HookManager, never cleaned up
 - **Location**: `scripts/token-image-utilities.js` lines 587 & 603 in `_hideDefaultTargetIndicators()`
 - **Impact**: **SEVERE MEMORY LEAK** - Every module reload adds duplicate hooks, causing performance degradation
-- **Status**: 🚨 CRITICAL - MEMORY LEAK IN PRODUCTION
+- **Status**: ✅ COMPLETED - Fixed January 16, 2025
 - **Root Cause**: Direct `Hooks.on()` calls without cleanup (`Hooks.off()`) or HookManager registration
 - **Technical Details**:
   - `Hooks.on('canvasReady', ...)` - Line 587: Never removed
   - `Hooks.on('refreshToken', ...)` - Line 603: Never removed
   - After 10 reloads: 10x duplicate hooks running simultaneously
   - Each `canvasReady` hook starts a `requestAnimationFrame` loop
-- **Plan**: 
-  - Register hooks via HookManager with stored IDs
-  - Unregister hooks in `cleanupTurnIndicator()`
-  - Store hook IDs in static variables for cleanup
-- **Risk**: LOW - Simple refactor to use existing HookManager infrastructure
-- **Dependencies**: None
-- **Example of the problem**:
-  ```javascript
-  // Current broken behavior (Line 587):
-  Hooks.on('canvasReady', () => { ... });  // ← Never removed!
-  
-  // Should be:
-  TokenImageUtilities._canvasReadyHookId = HookManager.registerHook({
-      name: 'canvasReady',
-      description: 'Hide default target indicators',
-      context: 'token-utilities-hide-targets',
-      priority: 3,
-      callback: TokenImageUtilities._onCanvasReadyForHiding
-  });
-  ```
+- **Solution Implemented**: 
+  - ✅ Registered `canvasReady` hook via HookManager with stored ID
+  - ✅ Registered `refreshToken` hook via HookManager with stored ID
+  - ✅ Created dedicated callback functions: `_onCanvasReadyForHiding()` and `_onRefreshTokenForHiding()`
+  - ✅ Extracted loop logic to `_hideAllTargetIndicators()` helper function
+  - ✅ Updated `cleanupTurnIndicator()` to unregister both new hooks
+  - ✅ Proper cleanup prevents duplicate hooks on module reload
+- **Result**: No more memory leaks - hooks are properly managed and cleaned up
 
-### 2. 🚨 REQUESTANIMATIONFRAME LOOP ACCUMULATION (CRITICAL)
+### 2. ✅ REQUESTANIMATIONFRAME LOOP ACCUMULATION (RESOLVED)
 - **Issue**: `requestAnimationFrame` loop runs every frame (60 FPS) to hide target indicators, accumulates on reload
 - **Location**: `scripts/token-image-utilities.js` lines 588-597 in `_hideDefaultTargetIndicators()`
 - **Impact**: **SEVERE PERFORMANCE DEGRADATION** - Multiple loops running simultaneously after reloads
-- **Status**: 🚨 CRITICAL - PERFORMANCE ISSUE
+- **Status**: ✅ RESOLVED - Fixed via hook cleanup (January 16, 2025)
 - **Root Cause**: Loop started by uncleaned `canvasReady` hook, iterates all tokens every frame
 - **Performance Cost**:
   - With 50 tokens: 3,000 iterations/second (50 tokens × 60 FPS)
   - After 5 reloads: 15,000 iterations/second (5 loops running)
   - After 10 reloads: 30,000 iterations/second (10 loops running)
-- **Plan**: 
-  - OPTION 1: Fix hook cleanup (prevents multiple loops)
-  - OPTION 2: Remove `requestAnimationFrame` loop entirely, use only `refreshToken` hook
-  - OPTION 3: Add flag to prevent multiple loops from starting
-- **Risk**: LOW - Either fix hooks or remove continuous loop
-- **Recommended**: Fix hook cleanup (addresses both issues #1 and #2)
+- **Solution Implemented**: 
+  - ✅ Fixed hook cleanup (OPTION 1)
+  - ✅ `canvasReady` hook now properly unregistered via HookManager
+  - ✅ `cancelAnimationFrame()` stops existing loop
+  - ✅ No duplicate loops can start after module reload
+- **Result**: Loop still runs but only one instance, properly cleaned up on reload
 
 ### 3. 🟡 SETTINGS RETRIEVAL NOT CACHED (MINOR)
 - **Issue**: `_getTurnIndicatorSettings()` and `_getTargetedIndicatorSettings()` called multiple times per update
