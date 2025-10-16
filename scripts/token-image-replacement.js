@@ -2427,13 +2427,12 @@ export class TokenImageReplacementWindow extends Application {
                 });
             }
             
-            // Count tags from all files in this category
+            // Count ALL tags from all files in this category (metadata + creature types + folders)
             categoryFiles.forEach(file => {
-                if (file.metadata && file.metadata.tags) {
-                    file.metadata.tags.forEach(tag => {
-                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-                    });
-                }
+                const allTags = this._getTagsForFile(file);  // Gets ALL tag types!
+                allTags.forEach(tag => {
+                    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                });
             });
             
             // Return ALL tags for category (no limit)
