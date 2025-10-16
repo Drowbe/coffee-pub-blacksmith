@@ -153,8 +153,13 @@ export class TokenImageReplacementWindow extends Application {
         
         const filteredFiles = allFiles.filter((file, index) => {
         
-            const path = file.path || file.fullPath || '';
-            const fileName = file.name || file.fileName || file.fullPath?.split('/').pop() || '';
+            // Extract relative path from fullPath if path is empty
+            let path = file.path || '';
+            if (!path && file.fullPath) {
+                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+                path = file.fullPath.replace(`${basePath}/`, '');
+            }
+            const fileName = file.name || '';
             
             // Check if the file matches the current category filter
             switch (this.currentFilter) {
@@ -2340,19 +2345,13 @@ export class TokenImageReplacementWindow extends Application {
 
     _getCategories() {
         // Use the new cache-based category discovery
-        console.log("🔍 DEBUG: Getting categories...");
-        console.log("🔍 DEBUG: Cache folders:", ImageCacheManager.cache.folders);
-        console.log("🔍 DEBUG: Base path setting:", getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', ''));
-        
         const discoveredCategories = ImageCacheManager.getDiscoveredCategories();
-        console.log("🔍 DEBUG: Discovered categories:", discoveredCategories);
         
         // Convert to array of category objects for template
         const categories = [];
         for (const categoryName of discoveredCategories) {
             // Count files in this category
             const fileCount = this._countFilesInCategory(categoryName);
-            console.log(`🔍 DEBUG: Category "${categoryName}" has ${fileCount} files`);
             
             categories.push({
                 name: ImageCacheManager._cleanCategoryName(categoryName),
@@ -2362,7 +2361,6 @@ export class TokenImageReplacementWindow extends Application {
             });
         }
         
-        console.log("🔍 DEBUG: Final categories:", categories);
         return categories;
     }
 
@@ -2375,11 +2373,15 @@ export class TokenImageReplacementWindow extends Application {
         let count = 0;
         
         for (const fileInfo of ImageCacheManager.cache.files.values()) {
-            const path = fileInfo.path || fileInfo.fullPath || '';
-            // Cache stores RELATIVE paths, so first part is the category
-            const pathParts = path.split('/').filter(p => p);
+            // Extract relative path from fullPath if path is empty
+            let relativePath = fileInfo.path || '';
+            if (!relativePath && fileInfo.fullPath) {
+                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+                relativePath = fileInfo.fullPath.replace(`${basePath}/`, '');
+            }
             
-            // Category is first part of relative path
+            // First part of relative path is the category
+            const pathParts = relativePath.split('/').filter(p => p);
             let fileCategory = null;
             if (pathParts.length > 0) {
                 fileCategory = pathParts[0];
@@ -2422,19 +2424,25 @@ export class TokenImageReplacementWindow extends Application {
                         return processedTerms.some(term => fileText.includes(term));
                     });
                 }
+            } else if (this.currentFilter === 'favorites') {
+                // For favorites, filter by FAVORITE tag
+                categoryFiles = allFiles.filter(file => {
+                    return file.metadata?.tags?.includes('FAVORITE') || false;
+                });
             } else {
                 // For other categories, filter by folder
                 categoryFiles = allFiles.filter(file => {
-                    const path = file.path || file.fullPath || '';
-                    const pathParts = path.split('/');
+                    // Extract relative path from fullPath if path is empty
+                    let path = file.path || '';
+                    if (!path && file.fullPath) {
+                        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
+                        path = file.fullPath.replace(`${basePath}/`, '');
+                    }
+                    // First part of relative path is the category
+                    const pathParts = path.split('/').filter(p => p);
                     
-                    // Handle both relative and full path formats
-                    let categoryFolder;
-                    if (pathParts.length > 4 && pathParts[3] === 'FA_Tokens_Webp') {
-                        // Full path format
-                        categoryFolder = pathParts[4];
-                    } else {
-                        // Relative path format - first part is the category
+                    let categoryFolder = null;
+                    if (pathParts.length > 0) {
                         categoryFolder = pathParts[0];
                     }
                     

@@ -2677,34 +2677,23 @@ export class ImageCacheManager {
             ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
             : [];
         
-        console.log("🔍 DEBUG: getDiscoveredCategories()");
-        console.log("🔍 DEBUG: Ignored folders:", ignoredFolders);
-        console.log("🔍 DEBUG: Cache folders keys:", Array.from(this.cache.folders.keys()));
-        
         const categories = new Set();
         
         // Cache stores RELATIVE paths (without base path)
         // Category is the FIRST part of the relative path
         for (const folderPath of this.cache.folders.keys()) {
             const parts = folderPath.split('/').filter(p => p);
-            console.log(`🔍 DEBUG: Processing folder path: "${folderPath}" -> parts:`, parts);
             
             // First part is the category (since paths are relative to base)
             if (parts.length > 0) {
                 const category = parts[0];
-                console.log(`🔍 DEBUG: Found category: "${category}"`);
                 if (category && !ignoredFolders.includes(category)) {
                     categories.add(category);
-                    console.log(`🔍 DEBUG: Added category: "${category}"`);
-                } else {
-                    console.log(`🔍 DEBUG: Skipped category: "${category}" (ignored or empty)`);
                 }
             }
         }
         
-        const result = Array.from(categories).sort();
-        console.log("🔍 DEBUG: Final discovered categories:", result);
-        return result;
+        return Array.from(categories).sort();
     }
 
     /**
