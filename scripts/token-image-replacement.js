@@ -165,12 +165,12 @@ export class TokenImageReplacementWindow extends Application {
             switch (this.currentFilter) {
                 case 'favorites':
                     // Only show files that have the FAVORITE tag
-                    const fileInfo = this._getFileInfoFromCache(fileName);
-                    const hasFavorite = fileInfo?.metadata?.tags?.includes('FAVORITE') || false;
+                    // Use the file object directly (we're already iterating over cache.files.values())
+                    const hasFavorite = file.metadata?.tags?.includes('FAVORITE') || false;
                     
                     // Debug first few files
                     if (index < 3) {
-                        console.log(`🔍 DEBUG: Favorites filter - File "${fileName}" -> hasFavorite: ${hasFavorite}, tags:`, fileInfo?.metadata?.tags);
+                        console.log(`🔍 DEBUG: Favorites filter - File "${fileName}" -> hasFavorite: ${hasFavorite}, tags:`, file.metadata?.tags);
                     }
                     
                     return hasFavorite;
