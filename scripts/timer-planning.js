@@ -123,24 +123,24 @@ export class PlanningTimer {
             }
         } else {
             // Existing GM cleanup code
-            if (this.timer) {
-                clearInterval(this.timer);
-                this.timer = null;
+            if (PlanningTimer.timer) {
+                clearInterval(PlanningTimer.timer);
+                PlanningTimer.timer = null;
             }
 
             // Record planning end for stats if we were active and CombatStats is ready
-            if (this.state.isActive && CombatStats.currentStats) {
+            if (PlanningTimer.state.isActive && CombatStats.currentStats) {
                 CombatStats.recordPlanningEnd();
             }
 
-            this.state.isActive = false;
-            this.state.isPaused = true;
-            this.state.remaining = 0;
+            PlanningTimer.state.isActive = false;
+            PlanningTimer.state.isPaused = true;
+            PlanningTimer.state.remaining = 0;
             
             // Don't clear showingMessage or isExpired as they may be needed for UI
 
-            this.updateUI();
-            this.syncState();
+            PlanningTimer.updateUI();
+            PlanningTimer.syncState();
 
             // Add fade-out sequence for normal turn changes
             if (!data?.wasExpired) {
