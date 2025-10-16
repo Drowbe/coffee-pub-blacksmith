@@ -964,6 +964,10 @@ const journalDoubleClickHookId = HookManager.registerHook({
                 "OWNER": 3
             };
             const currentUser = game.user;
+            
+            // Remove any existing handler first to prevent accumulation
+            html.off('dblclick', '.journal-entry-page');
+            
             html.on('dblclick', '.journal-entry-page', event => {
                 event.preventDefault();
                 const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);

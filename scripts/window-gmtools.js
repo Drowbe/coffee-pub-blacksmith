@@ -155,6 +155,16 @@ export class CSSEditor extends FormApplication {
         };
     }
 
+    async close(options = {}) {
+        // Clean up global keyboard shortcut listener
+        if (this._keydownHandler) {
+            document.removeEventListener('keydown', this._keydownHandler);
+            this._keydownHandler = null;
+        }
+        
+        return super.close(options);
+    }
+
     async _updateObject(event, formData) {
         event.preventDefault();
         
@@ -264,8 +274,8 @@ export class CSSEditor extends FormApplication {
             this._replaceAll(html);
         });
         
-        // Global keyboard shortcuts
-        document.addEventListener('keydown', (event) => {
+        // Global keyboard shortcuts - store handler for cleanup
+        this._keydownHandler = (event) => {
             if (event.ctrlKey && event.key === 'f') {
                 event.preventDefault();
                 searchInput.focus();
@@ -275,7 +285,8 @@ export class CSSEditor extends FormApplication {
                 replaceInput.focus();
                 replaceInput.select();
             }
-        });
+        };
+        document.addEventListener('keydown', this._keydownHandler);
     }
 
     // Search functionality methods

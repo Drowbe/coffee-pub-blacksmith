@@ -107,6 +107,21 @@ class MenuBar {
         
         // Register combat bar event handlers
         this._registerCombatBarEvents();
+        
+        // Register cleanup hook for module unload
+        Hooks.once('ready', () => {
+            HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'MenuBar: Cleanup on module unload',
+                context: 'menubar-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) {
+                        this._cleanupCombatBarEvents();
+                    }
+                }
+            });
+        });
     }
 
     static async _registerPartials() {
@@ -435,8 +450,8 @@ class MenuBar {
      * @private
      */
     static _registerCombatBarEvents() {
-        // Use event delegation to handle clicks on combat bar controls
-        document.addEventListener('click', async (event) => {
+        // Store handlers for cleanup
+        this._combatBarClickHandler = async (event) => {
             // Check if this is a combat portrait click (pan to combatant)
             // But exclude initiative dice and other interactive elements
             const combatPortrait = event.target.closest('[data-combatant-id]');
@@ -657,10 +672,9 @@ class MenuBar {
                     postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for combatant ${combatantId}`, error, true, false);
                 }
             }
-        });
+        };
 
-        // Add double-click handler for GM to set current combatant
-        document.addEventListener('dblclick', async (event) => {
+        this._combatBarDblClickHandler = async (event) => {
             // Only allow GMs to set current combatant
             if (!game.user.isGM) return;
 
@@ -682,9 +696,31 @@ class MenuBar {
                     }
                 }
             }
-        });
+        };
+        
+        // Add event listeners
+        document.addEventListener('click', this._combatBarClickHandler);
+        document.addEventListener('dblclick', this._combatBarDblClickHandler);
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
+    }
+
+    /**
+     * Clean up combat bar event handlers
+     * @private
+     */
+    static _cleanupCombatBarEvents() {
+        if (this._combatBarClickHandler) {
+            document.removeEventListener('click', this._combatBarClickHandler);
+            this._combatBarClickHandler = null;
+        }
+        
+        if (this._combatBarDblClickHandler) {
+            document.removeEventListener('dblclick', this._combatBarDblClickHandler);
+            this._combatBarDblClickHandler = null;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers cleaned up", "", true, false);
     }
 
     /**

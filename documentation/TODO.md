@@ -2,17 +2,16 @@
 
 ## HIGH PRIORITY ISSUES
 
-### Complete Tag Optimizations
-- **Issue**: Tag system was broken in live production, needs fixes
-- **Location**: `scripts/token-image-replacement.js` - `_getTagsForMatch()`, `_getTagsForFile()`, `_getAggregatedTags()`
-- **Impact**: Tags not showing correctly when filter buttons clicked, especially with token selected
-- **Status**: IN PROGRESS
-- **Date Found**: January 15, 2025
+### Image Replacement - Progress Bars Not Updating
+- **Issue**: Progress bars in token image replacement window are not updating during operations
+- **Impact**: Users cannot see progress of scanning, searching, or other operations
+- **Status**: TODO
+- **Date Found**: January 16, 2025
 - **Plan**: 
-  - Fix broken live tag code
-  - Nail down "selected" tag experience
-  - Ensure tags show for creature types, folder paths, and metadata
-- **Notes**: Currently working better than before but needs refinement
+  - Investigate progress bar update mechanisms
+  - Fix progress bar rendering during long operations
+  - Ensure progress bars show accurate completion status
+- **Notes**: May be related to UI rendering or progress calculation logic
 
 ### Optimize and Speed Up Narrowing Code
 - **Issue**: Noticeable lag when searching/filtering images
@@ -60,22 +59,6 @@
   - Make it configurable (per-token or per-scene settings)
   - Add optional facing indicators
 - **Notes**: Enhancement that would make token movement feel more natural and immersive
-
-### Global Variables Without Cleanup
-- **Issue**: Global flags like `ctrlKeyActiveDuringRender` never reset
-- **Location**: Lines 420-430
-- **Impact**: Minor memory leak
-- **Status**: TODO
-- **Plan**: Add cleanup handlers
-- **Notes**: Very low priority
-
-### Event Listener Accumulation
-- **Issue**: Event listeners added without removal
-- **Location**: Line 500 (journal double-click)
-- **Impact**: Potential memory leaks
-- **Status**: TODO
-- **Plan**: Add proper cleanup
-- **Notes**: Need to ensure cleanup doesn't break functionality
 
 ## DEFERRED TASKS
 
