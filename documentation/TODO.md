@@ -40,17 +40,6 @@
 - **Risk**: VERY LOW - Simple caching with invalidation
 - **Notes**: Low priority, optimize only if other issues are resolved
 
-### Code Duplication - Position Calculations
-- **Issue**: Token center calculations duplicated in turn and targeted indicator position updates
-- **Location**: `scripts/token-image-utilities.js` lines 1009-1021 & 1253-1263
-- **Impact**: Code duplication, slightly harder to maintain
-- **Status**: ✅ COMPLETED
-- **Date Fixed**: January 16, 2025
-- **Solution**: 
-  - Created helper function `_calculateTokenCenter(token, changes)`
-  - Refactored 4 functions to use the helper: `_createTurnIndicator`, `_updateTurnIndicatorPosition`, `_addTargetedIndicator`, `_updateTargetedIndicatorPosition`
-  - Eliminated ~20 lines of duplicated code
-- **Notes**: ✅ Clean refactor with no functional changes - all indicators use identical positioning logic
 
 ### Token Facing Direction
 - **Issue**: Add token facing direction based on movement
