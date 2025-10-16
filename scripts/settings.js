@@ -2312,6 +2312,17 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
+	// Clear Targets After Turn
+	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
+		name: 'Clear Targets After Turn',
+		hint: 'Automatically clear all targets when the turn changes in combat.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false
+	});
+
 
 
 

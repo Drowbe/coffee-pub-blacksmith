@@ -25,6 +25,7 @@ export class TokenImageUtilities {
     static _targetedIndicators = new Map(); // Map of tokenId -> graphics object
     static _targetedTokens = new Set(); // Set of currently targeted token IDs
     static _targetedAnimations = new Map(); // Map of tokenId -> animation object
+    static _hideTargetsAnimationId = null; // ID for the continuous hiding loop
     
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
@@ -517,51 +518,41 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Hide Foundry's default target indicators by hiding specific PIXI visual elements
+     * Hide Foundry's default target indicators using a more aggressive approach
      */
     static _hideDefaultTargetIndicators() {
         if (!getSettingSafely(MODULE.ID, 'hideDefaultTargetIndicators', false)) {
             return;
         }
         
-        // Hook into token refresh to hide target indicators
-        Hooks.on('refreshToken', (token) => {
-            TokenImageUtilities._hideTokenTargetVisuals(token);
+        // Use a continuous loop to hide target indicators every frame
+        Hooks.on('canvasReady', () => {
+            const hideTargets = () => {
+                if (canvas.tokens) {
+                    for (const token of canvas.tokens.placeables) {
+                        if (token.target) {
+                            // Hide the entire target object - this is more reliable
+                            token.target.visible = false;
+                        }
+                    }
+                }
+                TokenImageUtilities._hideTargetsAnimationId = requestAnimationFrame(hideTargets);
+            };
+            hideTargets();
         });
         
-        // Apply to all existing tokens
+        // Also hook into token refresh as backup
+        Hooks.on('refreshToken', (token) => {
+            if (token.target) {
+                token.target.visible = false;
+            }
+        });
+        
+        // Apply to all existing tokens immediately
         if (canvas.tokens) {
             for (const token of canvas.tokens.placeables) {
-                TokenImageUtilities._hideTokenTargetVisuals(token);
-            }
-        }
-    }
-    
-    /**
-     * Hide only the visual PIXI elements of target indicators, not the entire target object
-     */
-    static _hideTokenTargetVisuals(token) {
-        if (!token.target) return;
-        
-        // Hide specific visual elements without breaking DOM functionality
-        if (token.target.reticle) {
-            token.target.reticle.visible = false;
-        }
-        if (token.target.arrows) {
-            token.target.arrows.visible = false;
-        }
-        if (token.target.pip) {
-            token.target.pip.visible = false;
-        }
-        if (token.target.border) {
-            token.target.border.visible = false;
-        }
-        
-        // Hide any other visual sprites in the target object
-        if (token.target.children) {
-            for (const child of token.target.children) {
-                if (child.isSprite || child.isGraphics) {
-                    child.visible = false;
+                if (token.target) {
+                    token.target.visible = false;
                 }
             }
         }
@@ -573,6 +564,12 @@ export class TokenImageUtilities {
     static cleanupTurnIndicator() {
         TokenImageUtilities._removeTurnIndicator();
         TokenImageUtilities._removeAllTargetedIndicators();
+        
+        // Stop the continuous hiding loop
+        if (TokenImageUtilities._hideTargetsAnimationId) {
+            cancelAnimationFrame(TokenImageUtilities._hideTargetsAnimationId);
+            TokenImageUtilities._hideTargetsAnimationId = null;
+        }
         
         // Unregister hooks using HookManager
         if (TokenImageUtilities._updateCombatHookId) {
@@ -604,6 +601,9 @@ export class TokenImageUtilities {
     static _onCombatUpdate(combat, changes, options, userId) {
         if (changes.turn !== undefined || changes.round !== undefined) {
             TokenImageUtilities._updateTurnIndicator();
+            
+            // Clear targets after turn change - check each user's individual setting
+            TokenImageUtilities._clearTargetsForUsersWithSetting();
         }
     }
 
@@ -612,6 +612,31 @@ export class TokenImageUtilities {
      */
     static _onCombatDelete(combat, options, userId) {
         TokenImageUtilities._removeTurnIndicator();
+    }
+
+    /**
+     * Clear all targets when turn changes
+     */
+    static _clearAllTargets() {
+        // Clear Foundry's targeting system
+        if (game.user.targets) {
+            game.user.targets.clear();
+        }
+        
+        // Also clear our custom targeted indicators
+        TokenImageUtilities._removeAllTargetedIndicators();
+        
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Cleared all targets after turn change", "", true, false);
+    }
+
+    /**
+     * Clear targets for users who have the setting enabled
+     */
+    static _clearTargetsForUsersWithSetting() {
+        // Check if the current user has the setting enabled
+        if (getSettingSafely(MODULE.ID, 'clearTargetsAfterTurn', false)) {
+            TokenImageUtilities._clearAllTargets();
+        }
     }
 
     /**
