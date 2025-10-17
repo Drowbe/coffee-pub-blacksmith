@@ -910,6 +910,13 @@ export class ImageCacheManager {
         this.cache.justCompleted = false;
         this.cache.completionData = null;
         
+        // Force window render to show progress bars immediately
+        const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+        if (windows.length > 0) {
+            this.window = windows[0];
+            this.window.render();
+        }
+        
         try {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", true, false);
             
@@ -1170,6 +1177,14 @@ export class ImageCacheManager {
         this.cache.justCompleted = false;
         this.cache.completionData = null; // Reset pause state when starting
         this.cache.ignoredFilesCount = 0; // Reset ignored files counter
+        
+        // Force window render to show progress bars immediately
+        const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
+        if (windows.length > 0) {
+            this.window = windows[0];
+            this.window.render();
+        }
+        
         const startTime = Date.now();
         
         // Set up timeout protection (3 hours max)

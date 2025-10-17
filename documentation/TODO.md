@@ -2,17 +2,6 @@
 
 ## HIGH PRIORITY ISSUES
 
-### Image Replacement - Progress Bars Not Updating
-- **Issue**: Progress bars in token image replacement window are not updating during operations
-- **Impact**: Users cannot see progress of scanning, searching, or other operations
-- **Status**: TODO
-- **Date Found**: January 16, 2025
-- **Plan**: 
-  - Investigate progress bar update mechanisms
-  - Fix progress bar rendering during long operations
-  - Ensure progress bars show accurate completion status
-- **Notes**: May be related to UI rendering or progress calculation logic
-
 ### Optimize and Speed Up Narrowing Code
 - **Issue**: Noticeable lag when searching/filtering images
 - **Location**: `scripts/token-image-replacement.js`, `scripts/manager-image-matching.js`
@@ -73,12 +62,6 @@
 - **Status**: TODO - Major feature for future development
 - **Impact**: **REVOLUTIONARY** - Transform AI from chat bot to knowledgeable campaign advisor
 - **Benefits**: Cost efficiency, better context, persistent world knowledge, smart learning
-
-### Memory Management
-- [ ] Add proper cleanup handlers
-- [ ] Implement event listener cleanup
-- [ ] Add memory monitoring
-- [ ] Cache settings values (redundant settings retrieval)
 
 ## ARCHITECTURAL CONCERNS
 

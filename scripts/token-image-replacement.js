@@ -713,6 +713,11 @@ export class TokenImageReplacementWindow extends Application {
         if (statusText) {
             this.scanStatusText = statusText;
         }
+        
+        // Update cache properties so template can read them
+        ImageCacheManager.cache.currentStepProgress = current;
+        ImageCacheManager.cache.currentStepTotal = total;
+        
         this.render();
     }
 
@@ -721,6 +726,11 @@ export class TokenImageReplacementWindow extends Application {
         this.scanProgress = 0;
         this.scanTotal = 0;
         this.scanStatusText = "Scanning Token Images...";
+        
+        // Reset cache properties
+        ImageCacheManager.cache.currentStepProgress = 0;
+        ImageCacheManager.cache.currentStepTotal = 0;
+        
         this.render();
     }
 
