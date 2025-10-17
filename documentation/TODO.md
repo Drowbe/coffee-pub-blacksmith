@@ -2,31 +2,29 @@
 
 ## MEDIUM/LOW PRIORITY ISSUES
 
-### None - All Critical Issues Resolved!
-
-## COMPLETED OPTIMIZATIONS
-
-### ✅ Memory Leaks and Performance - Fixed!
-- **Status**: COMPLETED
-- **Date**: 2025-10-17
-- **Summary**: Comprehensive scan revealed and fixed all critical memory leaks and key performance issues
-
-**🚨 MEMORY LEAKS FIXED:**
-- **MenuBar Timer Intervals** - Added `_stopTimerUpdates()` method and cleanup on module unload
-- **PlanningTimer Intervals** - Added cleanup hook for module unload
-- **CombatTimer Multiple Intervals** - Added `cleanupTimer()` method and ensured no overlapping intervals
-- **RoundTimer UpdateInterval** - Added `cleanupTimer()` method and cleanup on module unload
-- **LatencyChecker Interval** - Added `cleanupChecker()` method and cleanup on module unload
-
-**⚡ PERFORMANCE OPTIMIZATIONS COMPLETED:**
-- **Settings Caching** - Cached weight settings in `_applyUnifiedMatching()` to avoid 7x repeated `game.settings.get()` calls per file in loop
-
-**✅ EXCELLENT PRACTICES CONFIRMED:**
-- **TokenImageReplacementWindow** - Exemplary cleanup in `close()` method
-- **TokenImageUtilities** - Comprehensive cleanup in `cleanupTurnIndicator()`
-- **Search Result Caching** - Proper LRU cache with TTL expiration
-
-**Impact**: All timer intervals now have proper cleanup mechanisms registered via `HookManager` on module unload, preventing memory leaks across module reloads.
+### Death Token System Enhancements
+- **Issue**: Current death token system needs improvements for player characters and death saving throws
+- **Status**: PENDING
+- **Priority**: MEDIUM - Enhances gameplay experience for player death mechanics
+- **Required Features**:
+  1. **Player Death Token Logic**:
+     - Player tokens should NOT get the "death" token change at less than 0 HP unless they have failed all three death saving throws
+     - Current behavior applies death token immediately at 0 HP, which is incorrect for PCs
+  2. **Secondary Death Token for Players/Friendly NPCs**:
+     - Need a second "death" token specifically for players and friendly NPCs
+     - Should be visually distinct from hostile NPC death tokens
+     - Applied when player is unconscious (0 HP) but not yet dead (< 3 failed death saves)
+  3. **Death Saving Throw Overlay**:
+     - Introduce a visual overlay to display death saving throw status
+     - Should show success/failure marks (similar to D&D Beyond's UI)
+     - Update in real-time as death saves are rolled
+     - Position overlay on/near the token for easy visibility
+- **Location**: `scripts/token-image-utilities.js` (dead token management methods)
+- **Related Files**: 
+  - `scripts/token-image-utilities.js` - Core death token logic
+  - `images/tokens/death/` - Death token images
+  - Potentially needs new CSS/templates for overlay
+- **Notes**: This is a key feature for D&D 5e gameplay, ensuring proper death mechanics for player characters
 
 ## DEFERRED TASKS
 
