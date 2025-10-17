@@ -2,7 +2,35 @@
 
 ## MEDIUM/LOW PRIORITY ISSUES
 
-### None
+### Memory Leaks and Performance Optimizations
+- **Issue**: Codebase scan revealed several memory leaks and performance optimization opportunities
+- **Status**: PENDING
+- **Priority**: MEDIUM - System is stable but optimizations would improve performance
+- **Findings**:
+
+  **🚨 CRITICAL MEMORY LEAKS:**
+  - **MenuBar Timer Intervals** (`api-menubar.js`) - `setInterval` calls without cleanup mechanism
+  - **PlanningTimer Intervals** (`timer-planning.js`) - Multiple intervals may persist across reloads
+  - **CombatTimer Multiple Intervals** (`timer-combat.js`) - Potential for overlapping intervals
+  - **RoundTimer UpdateInterval** (`timer-round.js`) - Interval persists after timer stops
+  - **LatencyChecker Interval** (`latency-checker.js`) - Background interval continues running
+
+  **⚡ PERFORMANCE OPTIMIZATIONS:**
+  - **Settings Retrieved Multiple Times** (`manager-image-matching.js`) - Settings called 7x per loop instead of cached
+  - **Large Cache Memory Usage** (`manager-image-cache.js`) - 17,562+ files stored in memory
+  - **Sequential Token Matching** (`manager-image-matching.js`) - Could be parallelized
+
+  **✅ EXCELLENT PRACTICES FOUND:**
+  - **TokenImageReplacementWindow** - Exemplary cleanup in `close()` method
+  - **TokenImageUtilities** - Comprehensive cleanup in `cleanupTurnIndicator()`
+  - **Search Result Caching** - Proper LRU cache with TTL expiration
+
+- **Plan**: 
+  - Add cleanup mechanisms for timer intervals
+  - Cache settings retrieval in matching loops
+  - Consider memory optimization for large caches
+  - Implement proper interval cleanup on module unload
+- **Notes**: Overall codebase is in good condition - most systems have proper cleanup
 
 ## DEFERRED TASKS
 
