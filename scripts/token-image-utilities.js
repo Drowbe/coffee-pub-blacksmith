@@ -478,11 +478,8 @@ export class TokenImageUtilities {
      * Hook for actor updates - monitor HP changes for dead token replacement
      */
     static async onActorUpdateForDeadToken(actor, changes, options, userId) {
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - onActorUpdateForDeadToken called for ${actor.name}`, "", true, false);
-        
         // Check if feature is enabled
         if (!getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false)) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG - Dead token replacement disabled", "", true, false);
             return;
         }
         
@@ -493,13 +490,11 @@ export class TokenImageUtilities {
         
         // Check if HP changed
         if (!changes.system?.attributes?.hp) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG - No HP change detected", "", true, false);
             return;
         }
         
         // Get current HP
         const currentHP = actor.system.attributes.hp.value;
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG - HP changed to ${currentHP}`, "", true, false);
         
         // Find all tokens for this actor on current scene
         if (!canvas.scene) {

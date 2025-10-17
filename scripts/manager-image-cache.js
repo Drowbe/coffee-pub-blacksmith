@@ -1099,36 +1099,23 @@ export class ImageCacheManager {
      * Initialize the cache system
      */
     static async _initializeCache() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache) - Initializing cache system...", "", true, false);
-        
         // Only initialize if the feature is enabled
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache)Feature disabled in settings", "", true, false);
             return;
         }
         
         const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_initializeCache) - Retrieved basePath: "${basePath}"`, "", true, false);
         if (!basePath) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache)No base path configured", "", true, false);
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_initializeCache) Using base path: ${basePath}`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_initializeCache) - Cache files count before initialization: ${this.cache.files.size}`, "", true, false);
-        
         // Try to load cache from storage first
         if (await this._loadCacheFromStorage()) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache) Using cached data, skipping scan", "", true, false);
-            
             // Clean up any invalid paths that might be in the cached data
             const cleanedCount = this._cleanupInvalidPaths();
             if (cleanedCount > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_initializeCache) Cleaned up ${cleanedCount} invalid paths from cached data`, "", true, false);
-                
                 // Save the cleaned cache back to storage
                 await this._saveCacheToStorage();
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache) Saved cleaned cache to storage", "", true, false);
             }
             
             // Check if we need incremental updates
@@ -1140,10 +1127,8 @@ export class ImageCacheManager {
         // No cache found - show appropriate notification
         const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
         if (autoUpdate) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache) No image cache found, starting automatic scan...", "", true, false);
             ui.notifications.info("No Token Image Replacement images found. Scanning for images.");
         } else {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_initializeCache) - No image cache found, manual scan needed", "", true, false);
             ui.notifications.info("No Token Image Replacement images found. You need to scan for images before replacements will work.");
         }
         
@@ -1151,9 +1136,6 @@ export class ImageCacheManager {
         if (autoUpdate) {
             await this._scanFolderStructure(basePath);
         }
-        
-        // Log final cache status
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_initializeCache) - Cache initialization completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", true, false);
     }
     
     /**
@@ -1161,8 +1143,8 @@ export class ImageCacheManager {
      */
     static async _scanFolderStructure(basePath) {
         if (this.cache.isScanning) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_scanFolderStructure) Scan already in progress - please wait for it to complete", "", true, false);
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: You can check progress in the console above", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan already in progress - please wait for it to complete", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "You can check progress in the console above", "", true, false);
             return;
         }
         
@@ -2375,7 +2357,6 @@ export class ImageCacheManager {
         try {
             // Load cache from game.settings (server-side) instead of localStorage (browser-side)
             const savedCache = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_loadCacheFromStorage) - Loading cache - exists: ${!!savedCache}, size: ${savedCache?.length || 0}`, "", true, false);
             if (!savedCache) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache data found in server settings", "", true, false);
                 return false;
@@ -2399,14 +2380,7 @@ export class ImageCacheManager {
             const hasFolders = cacheData.folders || cacheData.fo;
             const hasCreatureTypes = cacheData.creatureTypes || cacheData.ct || cacheData.creatureType;
             
-            // Debug logging to see what we actually have
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_loadCacheFromStorage) - Cached basePath: "${cacheData.basePath}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_loadCacheFromStorage) - Cached fingerprint: "${cacheData.folderFingerprint}"`, "", true, false);
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache validation - Version: ${hasVersion}, Files: ${hasFiles?.length || 'missing'}, Folders: ${hasFolders?.length || 'missing'}, CreatureTypes: ${hasCreatureTypes?.length || 'missing'}`, "", true, false);
-            
-            // Debug: Log the actual cache data structure
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: (in loadCacheFromStorage) Cache data keys: ${Object.keys(cacheData).join(', ')}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: (in loadCacheFromStorage) CreatureTypes check - creatureTypes: ${!!cacheData.creatureTypes}, ct: ${!!cacheData.ct}, ct length: ${cacheData.ct?.length || 'undefined'}`, "", true, false);
             
             // TEMPORARY FIX: Allow cache with missing creatureTypes (can be empty array)
             if (!hasVersion || !hasFiles || !hasFolders) {
@@ -2459,9 +2433,8 @@ export class ImageCacheManager {
                     // Don't force rescan, just need to update fingerprint via incremental update
                 } else {
                 const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_loadCacheFromStorage) - Fingerprint comparison: cached="${savedFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
                     if (savedFingerprint !== currentFingerprint) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_loadCacheFromStorage) - Folder structure changed, will rescan", "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", true, false);
                     return false;
                 }
                 }
@@ -2583,12 +2556,6 @@ export class ImageCacheManager {
             
             await collectPaths.call(this, basePath);
             
-            // Debug: Log what we're actually counting
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_generateFolderFingerprint) - Collected ${allPaths.length} paths for fingerprint`, "", true, false);
-            if (allPaths.length > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_generateFolderFingerprint) - Sample paths: ${allPaths.slice(0, 5).join(', ')}`, "", true, false);
-            }
-            
             if (allPaths.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - No paths found for fingerprint at ${basePath}`, "", false, false);
             }
@@ -2610,7 +2577,6 @@ export class ImageCacheManager {
             }
             
             const fingerprint = hash.toString();
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_generateFolderFingerprint) - Fingerprint generated: ${fingerprint} (${allPaths.length} paths)`, "", false, false);
             
             return fingerprint;
             

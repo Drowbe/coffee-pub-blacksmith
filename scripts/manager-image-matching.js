@@ -526,8 +526,6 @@ export class ImageMatching {
     static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null, applyThreshold = true) {
         const results = [];
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - Mode: ${searchMode}, Files: ${filesToSearch.length}`, "", true, false);
-        
         // BROWSE MODE: No relevance scoring, just return all files
         if (searchMode === 'browse') {
             return filesToSearch.map(file => ({
@@ -543,16 +541,10 @@ export class ImageMatching {
         
         // RELEVANCE MODE: Use sophisticated scoring
         const threshold = applyThreshold ? (game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3) : 0;
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - Threshold: ${(threshold * 100).toFixed(1)}%, Files to search: ${filesToSearch.length}`, "", true, false);
                 
         for (let i = 0; i < filesToSearch.length; i++) {
             const fileInfo = filesToSearch[i]; 
             const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction);
-            
-            // Debug: Log first few scores to see what's happening (only for debugging)
-            if (i < 3) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_applyUnifiedMatching) - File ${i+1}: "${fileInfo.name || fileInfo.fullPath?.split('/').pop()}" scored ${(relevanceScore * 100).toFixed(1)}%`, "", true, false);
-            }
                         
             // Only include results above threshold
             if (relevanceScore >= threshold) {

@@ -149,11 +149,9 @@ export class TokenImageReplacementWindow extends Application {
         let processedTerms = null;
         if (this.currentFilter === 'selected' && this.selectedToken) {
             const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Search terms: ${searchTerms.join(', ')}`, "", true, false);
             processedTerms = searchTerms
                 .filter(term => term && term.length >= 2)
                 .map(term => term.toLowerCase());
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Selected filter - Processed terms: ${processedTerms.join(', ')}`, "", true, false);
         }
         
         const filteredFiles = allFiles.filter((file, index) => {
@@ -196,7 +194,6 @@ export class TokenImageReplacementWindow extends Application {
             }
         });
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filtered to ${filteredFiles.length} files`, "", true, false);
         return filteredFiles;
     }
 
@@ -458,19 +455,15 @@ export class TokenImageReplacementWindow extends Application {
                 let searchTerms = null;
                 let tokenDocument = null;
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Filter: ${this.currentFilter}, Has Token: ${!!this.selectedToken}, Search Term: "${this.searchTerm}"`, "", true, false);
-                
                 if (this.searchTerm && this.searchTerm.length >= 3) {
                     // SEARCH MODE: Use search term matching (highest priority)
                     searchMode = 'search';
                     searchTerms = this.searchTerm;
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using SEARCH MODE (search term takes priority)`, "", true, false);
                 } else if (this.currentFilter === 'selected' && this.selectedToken) {
                     // SELECTED TAB + token selected: Use token-based matching
                     searchMode = 'token';
                     searchTerms = null; // Use token-based matching instead of search terms
                     tokenDocument = this.selectedToken.document;
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using TOKEN MODE (SELECTED tab with token)`, "", true, false);
                 } else if (this.currentFilter === 'selected' && !this.selectedToken) {
                     // SELECTED TAB but no token selected: Show no results
                     this.allMatches = [];
@@ -479,7 +472,6 @@ export class TokenImageReplacementWindow extends Application {
                 } else {
                     // ALL tabs or other tabs: Use browse mode (no scores)
                     searchMode = 'browse';
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_findMatches) - Using BROWSE MODE (no scores)`, "", true, false);
                 }
                 
                 // Otherwise: BROWSE MODE (no search terms)
@@ -1840,19 +1832,6 @@ export class TokenImageReplacementWindow extends Application {
                 equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
                 size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
             };
-            
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== RECOMMENDED TOKEN BREAKDOWN =====`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: RECOMMENDED: "${bestMatch.name}" scored ${(bestScore * 100).toFixed(1)}%`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: TOKEN DATA:`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - ACTOR NAME: "${this.selectedToken.document?.actor?.name || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - TOKEN NAME: "${this.selectedToken.document?.name || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - REPRESENTED ACTOR: "${tokenData?.representedActor || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - CREATURE TYPE: "${tokenData?.creatureType || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - CREATURE SUBTYPE: "${tokenData?.creatureSubtype || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - EQUIPMENT: [${tokenData?.equipment?.join(', ') || 'NOT_FOUND'}]`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - SIZE: "${tokenData?.size || 'NOT_FOUND'}"`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `  - WEIGHTS: {actorName: ${weights.actorName}, tokenName: ${weights.tokenName}, representedActor: ${weights.representedActor}, creatureType: ${weights.creatureType}, creatureSubtype: ${weights.creatureSubtype}, equipment: ${weights.equipment}, size: ${weights.size}}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ======================================`, "", true, false);
         }
         
         return bestMatch;
