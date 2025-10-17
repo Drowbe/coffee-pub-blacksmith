@@ -2150,21 +2150,43 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
-	// Dead Token Image Path
+	// Dead Token Image Path (NPC/Monster)
 	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
-		name: 'Dead Token Image Path',
-		hint: 'Full path to a single dead token image that will be applied to ALL dead tokens (e.g., assets/images/tokens/dead_token.png)',
+		name: 'Dead Token Image Path (NPC)',
+		hint: 'Full path to dead token image for NPCs/Monsters (applied immediately at 0 HP)',
 		scope: 'world',
 		config: true,
 		type: String,
-		default: 'assets/images/tokens/death/pog-round-npc.webp',
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
+		requiresReload: false
+	});
+
+	// Dead Token Image Path (Player Character)
+	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
+		name: 'Dead Token Image Path (PC)',
+		hint: 'Full path to dead token image for Player Characters (applied after 3 failed death saves)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
+		requiresReload: false
+	});
+
+	// Unconscious Token Image Path (Player Character)
+	game.settings.register(MODULE.ID, 'unconsciousTokenImagePath', {
+		name: 'Unconscious Token Image Path (PC)',
+		hint: 'Full path to unconscious token image for Player Characters at 0 HP (before 3 failed death saves)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/death-save-3.webp',
 		requiresReload: false
 	});
 
 	// Dead Token Creature Type Filter
 	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
-		name: 'Dead Token Creature Types',
-		hint: 'Comma-separated creature types to apply dead tokens to (leave empty for all). Example: humanoid,beast,dragon',
+		name: 'Dead Token Creature Types (NPC)',
+		hint: 'Comma-separated creature types to apply dead tokens to for NPCs (leave empty for all). Example: humanoid,beast,dragon',
 		scope: 'world',
 		config: true,
 		type: String,

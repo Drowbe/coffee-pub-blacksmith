@@ -4,27 +4,34 @@
 
 ### Death Token System Enhancements
 - **Issue**: Current death token system needs improvements for player characters and death saving throws
-- **Status**: PENDING
+- **Status**: PARTIALLY COMPLETED - Items 1 & 2 done, Item 3 pending
 - **Priority**: MEDIUM - Enhances gameplay experience for player death mechanics
-- **Required Features**:
-  1. **Player Death Token Logic**:
-     - Player tokens should NOT get the "death" token change at less than 0 HP unless they have failed all three death saving throws
-     - Current behavior applies death token immediately at 0 HP, which is incorrect for PCs
-  2. **Secondary Death Token for Players/Friendly NPCs**:
-     - Need a second "death" token specifically for players and friendly NPCs
-     - Should be visually distinct from hostile NPC death tokens
-     - Applied when player is unconscious (0 HP) but not yet dead (< 3 failed death saves)
+
+**✅ COMPLETED:**
+  1. **Player Death Token Logic** - DONE
+     - ✅ Players now show "unconscious" token at 0 HP (uses `death-status-dying.webp`)
+     - ✅ Players only get "dead" token after 3 failed death saves (uses `splat-round-pc.webp`)
+     - ✅ NPCs get dead token immediately at 0 HP (uses `splat-round-npc.webp`)
+     - ✅ Monitors both HP changes and death save changes via `onActorUpdateForDeadToken`
+  2. **Secondary Death Token for Players/Friendly NPCs** - DONE
+     - ✅ Separate "dying" token for unconscious players (`death-status-dying.webp`)
+     - ✅ Distinct PC dead token (`splat-round-pc.webp`) vs NPC dead token (`splat-round-npc.webp`)
+     - ✅ Proper state management with `isUnconsciousTokenApplied` and `isDeadTokenApplied` flags
+
+**🔲 PENDING:**
   3. **Death Saving Throw Overlay**:
      - Introduce a visual overlay to display death saving throw status
      - Should show success/failure marks (similar to D&D Beyond's UI)
      - Update in real-time as death saves are rolled
      - Position overlay on/near the token for easy visibility
+     
 - **Location**: `scripts/token-image-utilities.js` (dead token management methods)
-- **Related Files**: 
-  - `scripts/token-image-utilities.js` - Core death token logic
-  - `images/tokens/death/` - Death token images
-  - Potentially needs new CSS/templates for overlay
-- **Notes**: This is a key feature for D&D 5e gameplay, ensuring proper death mechanics for player characters
+- **Implementation Details**:
+  - Modified `getDeadTokenImagePath()` to accept `isPlayerCharacter` and `isUnconsciousNotDead` parameters
+  - Modified `applyDeadTokenImage()` to handle PC vs NPC logic and unconscious vs dead states
+  - Modified `onActorUpdateForDeadToken()` to check death saves (`actor.system.attributes.death.failure >= 3`)
+  - Modified `restorePreviousTokenImage()` to clear both flags on revival
+- **Notes**: Core death mechanics now work correctly for D&D 5e! Overlay is a nice-to-have visual enhancement.
 
 ## DEFERRED TASKS
 
