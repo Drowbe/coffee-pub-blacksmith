@@ -1259,224 +1259,6 @@ export class TokenImageReplacementWindow extends Application {
         this._updateResults();
         
         console.timeEnd('Token Image Replacement: Search (full)');
-        
-        // PHASE 2: Start comprehensive search in background
-        this._streamSearchResults(searchTerm);
-    }
-
-    async _streamSearchResults(searchTerm) {
-        const searchTermLower = searchTerm.toLowerCase();
-        const batchSize = 100; // Process files in batches
-        let processedCount = 0;
-        
-        // Get filtered files based on current category filter
-        const filteredFiles = this._getFilteredFiles();
-        const totalFiles = filteredFiles.length;
-        
-        // Split search term into individual words
-        const searchWords = searchTermLower.split(/\s+/).filter(word => word.length > 0);
-        
-        // Process files in batches to avoid blocking the UI
-        const fileEntries = filteredFiles;
-        
-        for (let i = 0; i < fileEntries.length; i += batchSize) {
-            // Check if search was cancelled (new search started)
-            if (!this.isSearching) {
-                break;
-            }
-            
-            const batch = fileEntries.slice(i, i + batchSize);
-            const batchResults = [];
-            
-            // Process this batch
-            for (const fileInfo of batch) {
-                const fileName = fileInfo.name || '';
-                let score = 0;
-                let foundMatch = false;
-                let matchedWords = 0;
-                
-                // Search filename with multi-word support
-                const fileNameLower = fileName.toLowerCase();
-                for (const word of searchWords) {
-                    if (fileNameLower.includes(word)) {
-                        matchedWords++;
-                        if (fileNameLower === word) {
-                            score += 100; // Exact filename match
-                        } else if (fileNameLower.startsWith(word)) {
-                            score += 80; // Filename starts with term
-                        } else {
-                            score += 60; // Filename contains term
-                        }
-                        foundMatch = true;
-                    }
-                }
-                
-                // Bonus for matching all words
-                if (matchedWords === searchWords.length && searchWords.length > 1) {
-                    score += 20; // Multi-word bonus
-                }
-                
-                // Search folder path with multi-word support
-                if (fileInfo.path) {
-                    const pathLower = fileInfo.path.toLowerCase();
-                    for (const word of searchWords) {
-                        if (pathLower.includes(word)) {
-                            if (pathLower.includes(`/${word}/`)) {
-                                score += 70; // Folder name match
-                            } else {
-                                score += 40; // Path contains term
-                            }
-                            foundMatch = true;
-                        }
-                    }
-                }
-                
-                // Search by creature type with multi-word support
-                for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
-                    if (Array.isArray(files) && files.includes(fileName)) {
-                        const creatureTypeLower = creatureType.toLowerCase();
-                        for (const word of searchWords) {
-                            if (creatureTypeLower.includes(word)) {
-                                score += 90; // Creature type match
-                                foundMatch = true;
-                                break;
-                            }
-                        }
-                        if (foundMatch) break;
-                    }
-                }
-                
-                // Search by folder categorization with multi-word support
-                for (const [folderPath, files] of ImageCacheManager.cache.folders.entries()) {
-                    if (Array.isArray(files) && files.includes(fileName)) {
-                        const folderName = folderPath.split('/').pop().toLowerCase();
-                        for (const word of searchWords) {
-                            if (folderName.includes(word)) {
-                                score += 50; // Folder name match
-                                foundMatch = true;
-                                break;
-                            }
-                        }
-                        if (foundMatch) break;
-                    }
-                }
-                
-                // Search file extension with multi-word support
-                const extension = fileName ? fileName.split('.').pop().toLowerCase() : '';
-                for (const word of searchWords) {
-                    if (extension.includes(word)) {
-                        score += 30; // Extension match
-                        foundMatch = true;
-                        break;
-                    }
-                }
-                
-                // Search metadata tags with multi-word support
-                if (fileInfo.metadata && fileInfo.metadata.tags) {
-                    for (const tag of fileInfo.metadata.tags) {
-                        const tagLower = tag.toLowerCase();
-                        for (const word of searchWords) {
-                            if (tagLower.includes(word)) {
-                                if (tagLower === word) {
-                                    score += 95; // Exact metadata tag match
-                                } else if (tagLower.startsWith(word)) {
-                                    score += 85; // Metadata tag starts with term
-                                } else {
-                                    score += 75; // Metadata tag contains term
-                                }
-                                foundMatch = true;
-                            }
-                        }
-                    }
-                }
-                
-                // Search specific metadata fields with multi-word support
-                if (fileInfo.metadata) {
-                    const metadataFields = [
-                        'creatureType', 'subtype', 'specificType', 'weapon', 'armor', 
-                        'equipment', 'pose', 'action', 'direction', 'quality', 'class', 'profession'
-                    ];
-                    
-                    for (const field of metadataFields) {
-                        const value = fileInfo.metadata[field];
-                        if (value && typeof value === 'string') {
-                            const valueLower = value.toLowerCase();
-                            for (const word of searchWords) {
-                                if (valueLower.includes(word)) {
-                                    if (valueLower === word) {
-                                        score += 90; // Exact metadata field match
-                                    } else if (valueLower.startsWith(word)) {
-                                        score += 80; // Metadata field starts with term
-                                    } else {
-                                        score += 70; // Metadata field contains term
-                                    }
-                                    foundMatch = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Apply token context weighting if a token is selected
-                if (foundMatch && this.selectedToken) {
-                    const contextBonus = this._calculateTokenContextBonus(fileInfo, searchTermLower);
-                    score += contextBonus;
-                }
-                
-                if (foundMatch) {
-                    batchResults.push({
-                        name: fileInfo.name || fileInfo.fullPath?.split('/').pop() || 'Unknown File',
-                        path: fileInfo.path,
-                        fullPath: fileInfo.fullPath,
-                        searchScore: score,
-                        isCurrent: false,
-                        metadata: fileInfo.metadata || null
-                    });
-                }
-        }
-        
-            // Add batch results to allMatches
-            if (batchResults.length > 0) {
-                const filteredBatchResults = this._applyCategoryFilter(batchResults);
-                
-                // MEMORY FIX: Check for duplicates before adding to prevent memory leak
-                const existingPaths = new Set(this.allMatches.map(m => m.fullPath));
-                const newResults = filteredBatchResults.filter(r => !existingPaths.has(r.fullPath));
-                
-                // MEMORY FIX: Limit total results to prevent unbounded growth
-                const MAX_RESULTS = 2000; // Reasonable limit for performance
-                if (this.allMatches.length < MAX_RESULTS) {
-                    const remainingSpace = MAX_RESULTS - this.allMatches.length;
-                    const resultsToAdd = newResults.slice(0, remainingSpace);
-                    
-                    this.allMatches.push(...resultsToAdd);
-                    
-                    // Deduplicate results to prevent same file appearing multiple times
-                    this.allMatches = this._deduplicateResults(this.allMatches);
-                    
-                    // Sort results based on current sort order
-                    this.allMatches = this._sortResults(this.allMatches);
-                    
-                    // Update display with new results
-                    this._applyPagination();
-                    this._updateResults();
-                } else {
-                    // Stop searching if we've hit the limit
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Result limit reached (${MAX_RESULTS}), stopping search`, '', true, false);
-                    break;
-                }
-            }
-            
-            processedCount += batch.length;
-            
-            // Small delay to allow UI to update
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        
-        // Search complete
-        this.isSearching = false;
-        this._applyPagination();
-        this._updateResults();
     }
 
     _updateResults() {
@@ -1710,9 +1492,12 @@ export class TokenImageReplacementWindow extends Application {
         return html;
     }
 
+    /**
+     * Get tags for a match (includes special UI tags)
+     * OPTIMIZED: Uses pre-computed tags from metadata (Phase 1.2)
+     */
     _getTagsForMatch(match) {
         const tags = [];
-        
         
         // Add original image tag if applicable
         if (match.isOriginal) {
@@ -1724,53 +1509,10 @@ export class TokenImageReplacementWindow extends Application {
             tags.push('CURRENT IMAGE');
         }
         
-        // Add favorite tag if applicable
-        if (match.metadata?.tags?.includes('FAVORITE')) {
-            tags.push('FAVORITE');
-        }
-        
-        // Add metadata tags
+        // OPTIMIZATION: All other tags (metadata, creature types, categories) are pre-computed
+        // during cache build and stored in file.metadata.tags
         if (match.metadata && match.metadata.tags) {
-            match.metadata.tags.forEach(tag => {
-                if (!tags.includes(tag)) {
-                    tags.push(tag);
-                }
-            });
-        }
-        
-        // Add creature type tags (same logic as _getTagsForFile)
-        const fileName = match.name || '';
-        for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
-            if (Array.isArray(files) && files.includes(fileName)) {
-                const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
-                if (!tags.includes(cleanType)) {
-                    tags.push(cleanType);
-                }
-            }
-        }
-        
-        // Add folder path tags (same logic as _getTagsForFile)
-        if (match.path) {
-            // Cache stores RELATIVE paths, so first part is the category
-            const pathParts = match.path.split('/').filter(p => p);
-            
-            // Category is first part of relative path
-            let topLevel = null;
-            if (pathParts.length > 0) {
-                topLevel = pathParts[0];
-            }
-            
-            // Skip ignored folders (use user setting)
-            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
-            const ignoredFolders = ignoredFoldersSetting 
-                ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
-                : [];
-            if (topLevel && !ignoredFolders.includes(topLevel)) {
-                const cleanFolder = topLevel.toLowerCase().replace(/\s+/g, '');
-                if (!tags.includes(cleanFolder)) {
-                    tags.push(cleanFolder);
-                }
-            }
+            tags.push(...match.metadata.tags);
         }
         
         return [...new Set(tags)]; // Remove duplicates
@@ -1910,6 +1652,7 @@ export class TokenImageReplacementWindow extends Application {
 
     /**
      * Get tags for a specific file
+     * OPTIMIZED: Uses pre-computed tags from metadata (Phase 1.2)
      */
     _getTagsForFile(file) {
         const tags = [];
@@ -1919,48 +1662,13 @@ export class TokenImageReplacementWindow extends Application {
             tags.push('CURRENT IMAGE');
         }
         
-        // Add metadata tags
+        // OPTIMIZATION: Tags are now pre-computed during cache build
+        // This includes: metadata tags, creature types, and category folders
         if (file.metadata && file.metadata.tags) {
-            file.metadata.tags.forEach(tag => {
-                if (!tags.includes(tag)) {
-                    tags.push(tag);
-                }
-            });
+            tags.push(...file.metadata.tags);
         }
         
-        // Add creature type tags
-        const fileName = file.name || '';
-        for (const [creatureType, files] of ImageCacheManager.cache.creatureTypes.entries()) {
-            if (Array.isArray(files) && files.includes(fileName)) {
-                const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
-                if (!tags.includes(cleanType)) {
-                    tags.push(cleanType);
-                }
-            }
-        }
-        
-        // Add folder path tags (use ignored folders setting)
-        if (file.path) {
-            // Cache stores RELATIVE paths, so first part is the category
-            const pathParts = file.path.split('/').filter(p => p);
-            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
-            const ignoredFolders = ignoredFoldersSetting 
-                ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
-                : [];
-            
-            // Only add the category folder (first part of relative path)
-            if (pathParts.length > 0) {
-                const category = pathParts[0];
-                if (category && !ignoredFolders.includes(category)) {
-                    const cleanCategory = category.toLowerCase().replace(/\s+/g, '');
-                    if (!tags.includes(cleanCategory)) {
-                        tags.push(cleanCategory);
-                    }
-                }
-            }
-        }
-        
-        return tags;
+        return [...new Set(tags)]; // Remove duplicates
     }
 
 

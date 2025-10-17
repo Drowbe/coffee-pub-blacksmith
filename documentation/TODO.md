@@ -24,17 +24,19 @@
     - Expected gain: 50-90% speedup for repeated searches
     - **IMPLEMENTED**: LRU cache with TTL, max 50 entries, 5min expiration
   
-  - [ ] **Step 1.2**: Cache tag extraction results per file
+  - [x] **Step 1.2**: ✅ Cache tag extraction results per file
     - Store tags in file metadata during cache build
     - Reuse cached tags instead of recalculating
     - Risk: VERY LOW - Tags already stored, just need to use them
     - Expected gain: 20-30% speedup on tag filtering
+    - **IMPLEMENTED**: Tags now pre-computed during cache build, includes creature types + categories
   
-  - [ ] **Step 1.3**: Optimize browse mode (no scoring needed)
+  - [x] **Step 1.3**: ✅ Optimize browse mode (no scoring needed)
     - Skip relevance calculation when in browse mode
     - Already optimized, verify it's being used correctly
     - Risk: VERY LOW - Browse mode already exists
     - Expected gain: Instant results in browse mode
+    - **VERIFIED**: Browse mode uses simple map, no scoring. Also **DELETED 215 lines** of legacy `_streamSearchResults` code!
   
   **Phase 2: Medium-Risk Performance Gains**
   - [ ] **Step 2.1**: Implement streaming/incremental results

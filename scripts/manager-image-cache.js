@@ -1761,11 +1761,60 @@ export class ImageCacheManager {
             
             validFiles++;
             
-            // Categorize by folder
+            // Categorize by folder (determines creature types and folders)
             this._categorizeFile(fileName, filePath);
+            
+            // OPTIMIZATION: Enhance metadata tags with creature types and category
+            // This prevents recalculating these on every tag filter operation
+            this._enhanceFileTagsPostCategorization(fileName, filePath);
         }
         
         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", true, false);
+    }
+    
+    /**
+     * Enhance file metadata tags after categorization
+     * Adds creature type and category folder tags to prevent recalculation during filtering
+     * @param {string} fileName - The filename
+     * @param {string} filePath - The relative file path
+     */
+    static _enhanceFileTagsPostCategorization(fileName, filePath) {
+        const fileInfo = this.cache.files.get(fileName.toLowerCase());
+        if (!fileInfo || !fileInfo.metadata) {
+            return;
+        }
+        
+        // Ensure tags array exists
+        if (!fileInfo.metadata.tags) {
+            fileInfo.metadata.tags = [];
+        }
+        
+        // Add creature type tags if file was categorized
+        for (const [creatureType, files] of this.cache.creatureTypes.entries()) {
+            if (Array.isArray(files) && files.includes(fileName)) {
+                const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
+                if (!fileInfo.metadata.tags.includes(cleanType.toUpperCase())) {
+                    fileInfo.metadata.tags.push(cleanType.toUpperCase());
+                }
+            }
+        }
+        
+        // Add category folder tag (first part of relative path)
+        const pathParts = filePath.split('/').filter(p => p);
+        if (pathParts.length > 0) {
+            const category = pathParts[0];
+            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+            const ignoredFolders = ignoredFoldersSetting 
+                ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
+                : [];
+            
+            if (category && !ignoredFolders.includes(category)) {
+                const cleanCategory = category.toLowerCase().replace(/\s+/g, '');
+                if (!fileInfo.metadata.tags.includes(cleanCategory.toUpperCase())) {
+                    fileInfo.metadata.tags.push(cleanCategory.toUpperCase());
+                }
+            }
+        }
     }
     
     /**
