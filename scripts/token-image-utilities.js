@@ -451,28 +451,20 @@ export class TokenImageUtilities {
     static async applyDeadTokenImage(tokenDocument, actor) {
         // Check if feature is enabled and what mode it's in
         const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
-        console.log(`[TokenImageUtilities] applyDeadTokenImage - Mode: ${deadTokenMode}, Actor Type: ${actor.type}, Actor Name: ${actor.name}`);
-        
         if (deadTokenMode === 'disabled') {
-            console.log(`[TokenImageUtilities] Dead token replacement disabled, skipping`);
             return;
         }
         
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
-        console.log(`[TokenImageUtilities] Is Player Character: ${isPlayerCharacter}`);
         
         // Check if this token type should be affected based on the mode
         if (deadTokenMode === 'npcs' && isPlayerCharacter) {
-            console.log(`[TokenImageUtilities] NPCs only mode, skipping PC`);
             return; // NPCs only mode, skip PCs
         }
         if (deadTokenMode === 'pcs' && !isPlayerCharacter) {
-            console.log(`[TokenImageUtilities] PCs only mode, skipping NPC`);
             return; // PCs only mode, skip NPCs
         }
-        
-        console.log(`[TokenImageUtilities] Proceeding with dead token application`);
         
         // Check if dead token is already applied
         const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
@@ -519,10 +511,7 @@ export class TokenImageUtilities {
     static async onActorUpdateForDeadToken(actor, changes, options, userId) {
         // Check if feature is enabled and what mode it's in
         const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
-        console.log(`[TokenImageUtilities] onActorUpdateForDeadToken - Mode: ${deadTokenMode}, Actor: ${actor.name}, Changes:`, changes);
-        
         if (deadTokenMode === 'disabled') {
-            console.log(`[TokenImageUtilities] Dead token replacement disabled, skipping actor update`);
             return;
         }
         
