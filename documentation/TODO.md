@@ -17,11 +17,12 @@
 - **Incremental Optimization Plan** (attack one at a time):
   
   **Phase 1: Low-Risk Quick Wins** ⭐ START HERE
-  - [ ] **Step 1.1**: Add search result cache (Map: searchTerm → results)
+  - [x] **Step 1.1**: ✅ Add search result cache (Map: searchTerm → results)
     - Cache results for identical search terms
     - Invalidate cache on category/tag filter changes
     - Risk: VERY LOW - Simple Map-based caching
     - Expected gain: 50-90% speedup for repeated searches
+    - **IMPLEMENTED**: LRU cache with TTL, max 50 entries, 5min expiration
   
   - [ ] **Step 1.2**: Cache tag extraction results per file
     - Store tags in file metadata during cache build

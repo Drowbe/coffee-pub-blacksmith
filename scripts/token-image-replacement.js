@@ -47,6 +47,11 @@ export class TokenImageReplacementWindow extends Application {
         // Tag filtering system
         this.selectedTags = new Set(); // Track which tags are currently selected as filters
         this.tagSortMode = getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'); // Current tag sort mode
+        
+        // Search result caching (Phase 1.1 Optimization)
+        this._searchResultCache = new Map(); // Cache: searchKey → {results, timestamp}
+        this._searchCacheMaxSize = 50; // Maximum cached searches
+        this._searchCacheTTL = 300000; // Cache lifetime: 5 minutes (300000ms)
     }
 
     /**
@@ -1079,6 +1084,60 @@ export class TokenImageReplacementWindow extends Application {
     }
 
 
+    /**
+     * Generate cache key for search results
+     * @private
+     */
+    _generateSearchCacheKey(searchTerm, categoryFilter, selectedTags, sortOrder) {
+        const tagsArray = Array.from(selectedTags).sort();
+        return `${searchTerm}|${categoryFilter}|${tagsArray.join(',')}|${sortOrder}`;
+    }
+
+    /**
+     * Get cached search results if available and not expired
+     * @private
+     */
+    _getCachedSearchResults(cacheKey) {
+        const cached = this._searchResultCache.get(cacheKey);
+        if (!cached) return null;
+        
+        // Check if cache is expired
+        const now = Date.now();
+        if (now - cached.timestamp > this._searchCacheTTL) {
+            this._searchResultCache.delete(cacheKey);
+            return null;
+        }
+        
+        return cached.results;
+    }
+
+    /**
+     * Store search results in cache
+     * @private
+     */
+    _cacheSearchResults(cacheKey, results) {
+        // Implement LRU eviction if cache is full
+        if (this._searchResultCache.size >= this._searchCacheMaxSize) {
+            // Remove oldest entry
+            const firstKey = this._searchResultCache.keys().next().value;
+            this._searchResultCache.delete(firstKey);
+        }
+        
+        this._searchResultCache.set(cacheKey, {
+            results: [...results], // Deep copy to prevent mutation
+            timestamp: Date.now()
+        });
+    }
+
+    /**
+     * Invalidate search cache (called when filters/categories change)
+     * @private
+     */
+    _invalidateSearchCache() {
+        this._searchResultCache.clear();
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search cache cleared`, "", true, false);
+    }
+
     async _performSearch(searchTerm) {
         if (ImageCacheManager.cache.files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform search`, "", true, false);
@@ -1089,6 +1148,31 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
 
+        // Generate cache key
+        const cacheKey = this._generateSearchCacheKey(searchTerm, this.currentFilter, this.selectedTags, this.sortOrder);
+        
+        // Check cache first
+        const cachedResults = this._getCachedSearchResults(cacheKey);
+        if (cachedResults) {
+            console.time('Token Image Replacement: Search (cached)');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using cached results for search`, "", true, false);
+            
+            this.allMatches = cachedResults;
+            this.currentPage = 0;
+            this.isSearching = true;
+            
+            // Show cached results immediately
+            this._applyPagination();
+            this._updateResults();
+            
+            this.isSearching = false;
+            console.timeEnd('Token Image Replacement: Search (cached)');
+            return;
+        }
+
+        // Cache miss - perform full search
+        console.time('Token Image Replacement: Search (full)');
+        
         // Clear previous results
         this.allMatches = [];
         this.currentPage = 0;
@@ -1167,9 +1251,14 @@ export class TokenImageReplacementWindow extends Application {
         // Sort results based on current sort order
         this.allMatches = this._sortResults(this.allMatches);
         
+        // Cache the results before showing them
+        this._cacheSearchResults(cacheKey, this.allMatches);
+        
         // Show results immediately
         this._applyPagination();
         this._updateResults();
+        
+        console.timeEnd('Token Image Replacement: Search (full)');
         
         // PHASE 2: Start comprehensive search in background
         this._streamSearchResults(searchTerm);
@@ -1728,6 +1817,9 @@ export class TokenImageReplacementWindow extends Application {
             this.selectedTags.add(tagName);
         }
         
+        // Invalidate search cache when tags change
+        this._invalidateSearchCache();
+        
         // Update the visual state of the tag
         const $tag = $(event.currentTarget);
         if (this.selectedTags.has(tagName)) {
@@ -2230,6 +2322,7 @@ export class TokenImageReplacementWindow extends Application {
             // Set new filter
             this.currentFilter = category;
             this._cachedSearchTerms = null; // Clear cache when filter changes
+            this._invalidateSearchCache(); // Invalidate search cache when filter changes
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filter changed to: ${category}`, "", true, false);
             
