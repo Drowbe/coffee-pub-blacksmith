@@ -2,15 +2,7 @@
 
 ## MEDIUM/LOW PRIORITY ISSUES
 
-### Nameplate Modification Timing
-- **Issue**: Modify nameplates only when tokens are dropped on canvas, not when moved
-- **Status**: PENDING
-- **Plan**: 
-  - Investigate current nameplate modification triggers
-  - Change from movement-based to drop-based triggering
-  - Ensure nameplates are only updated on initial token placement
-  - Prevent unnecessary nameplate updates during token movement
-- **Notes**: Performance optimization to reduce unnecessary nameplate processing during movement
+### None
 
 ## DEFERRED TASKS
 

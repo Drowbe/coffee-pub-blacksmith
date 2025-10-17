@@ -29,25 +29,40 @@ export class CanvasTools {
     // *** TOKEN NAMEPLATES ***
     static _initializeNameplates() {
         Hooks.once('ready', this._updateNameplates.bind(this));
-        const updateTokenHookId = HookManager.registerHook({
-			name: 'updateToken',
-			description: 'Canvas Tools: Update nameplates when tokens change',
+        const createTokenHookId = HookManager.registerHook({
+			name: 'createToken',
+			description: 'Canvas Tools: Update nameplates when tokens are created',
 			context: 'manager-canvas-nameplates',
 			priority: 3,
 			callback: this._updateNameplates.bind(this)
 		});
     }
 
-    static _updateNameplates() {
+    static _updateNameplates(tokenDocument, options, userId) {
         // Only GMs can modify token nameplates
         if (!game.user.isGM) {
             return;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Modifying Nameplates...", "", true, false);
-        let tokens = canvas.tokens.placeables;
-        let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
+        // Only process if we have a specific token (from createToken hook)
+        if (!tokenDocument) {
+            // Fallback: process all tokens (for ready hook)
+            let tokens = canvas.tokens.placeables;
+            for (let token of tokens) {
+                this._updateSingleTokenNameplate(token);
+            }
+            return;
+        }
 
+        // Process only the newly created token
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (token) {
+            this._updateSingleTokenNameplate(token);
+        }
+    }
+
+    static _updateSingleTokenNameplate(token) {
+        let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
         let strNameplateColor = game.settings.get(MODULE.ID, 'nameplateColor');
         let strNameplateOutlineSize = game.settings.get(MODULE.ID, 'nameplateOutlineSize');
         let strNameplateOutlineColor = game.settings.get(MODULE.ID, 'nameplateOutlineColor');
@@ -55,15 +70,13 @@ export class CanvasTools {
         let color = parseInt((strNameplateColor.charAt(0) === '#' ? strNameplateColor.slice(1) : strNameplateColor), 16);
         let outlineColor = parseInt((strNameplateOutlineColor.charAt(0) === '#' ? strNameplateOutlineColor.slice(1) : strNameplateOutlineColor), 16);
 
-        for (let token of tokens) {
-            let nameplate = token.nameplate;
-            if(nameplate) {  
-                nameplate.style.fontSize = strNameplateFontsize;
-                nameplate.style.fontFamily = strNameplateFontFamily; 
-                nameplate.tint = color; 
-                nameplate.stroke = outlineColor;
-                nameplate.strokeThickness = parseInt(strNameplateOutlineSize);
-            }
+        let nameplate = token.nameplate;
+        if(nameplate) {  
+            nameplate.style.fontSize = strNameplateFontsize;
+            nameplate.style.fontFamily = strNameplateFontFamily; 
+            nameplate.tint = color; 
+            nameplate.stroke = outlineColor;
+            nameplate.strokeThickness = parseInt(strNameplateOutlineSize);
         }
     }
 
@@ -224,7 +237,7 @@ export class CanvasTools {
         // Log changes if any were made
         if (changesMade.length > 0) {
             const tokenName = tokenDocument.name || 'Unknown Token';
-            postConsoleAndNotification(MODULE.NAME, `Maintained token overrides for ${tokenName}: ${changesMade.join(', ')}`, "", true, false);
+            // Debug message removed for cleaner console output
         }
         
         return true;

@@ -1364,7 +1364,6 @@ export class TokenImageUtilities {
         // Apply rotation
         try {
             await tokenDocument.update({ rotation: normalizedAngle });
-            postConsoleAndNotification(MODULE.NAME, "Token Facing", `Rotated ${token.name} to ${normalizedAngle.toFixed(1)}°`, true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Token Facing Error", `Failed to rotate ${token.name}: ${error.message}`, false, false);
         }
