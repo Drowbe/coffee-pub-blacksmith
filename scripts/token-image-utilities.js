@@ -401,9 +401,8 @@ export class TokenImageUtilities {
         if (previousImage) {
             try {
                 await tokenDocument.update({ 'texture.src': previousImage.path });
-                // Clear both dead and unconscious flags
+                // Clear dead token flag
                 await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-                await tokenDocument.unsetFlag(MODULE.ID, 'isUnconsciousTokenApplied');
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
@@ -414,23 +413,17 @@ export class TokenImageUtilities {
     /**
      * Get the dead token image path based on character type
      * @param {boolean} isPlayerCharacter - Whether this is a player character
-     * @param {boolean} isUnconsciousNotDead - Whether PC is unconscious (0 HP) but not dead (< 3 failed saves)
-     * @returns {string} Path to the appropriate dead/unconscious token image
+     * @returns {string} Path to the appropriate dead token image
      */
-    static getDeadTokenImagePath(isPlayerCharacter = false, isUnconsciousNotDead = false) {
+    static getDeadTokenImagePath(isPlayerCharacter = false) {
         let deadTokenPath;
         
         if (isPlayerCharacter) {
-            if (isUnconsciousNotDead) {
-                // PC is unconscious (0 HP) but not yet dead - use "dying" token from setting
-                deadTokenPath = getSettingSafely(MODULE.ID, 'unconsciousTokenImagePath', 'modules/coffee-pub-blacksmith/images/tokens/death/death-status-dying.webp');
-            } else {
-                // PC has failed 3 death saves - use PC-specific dead token from setting
-                deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePathPC', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-pc.webp');
-            }
+            // PC has failed 3 death saves - use PC-specific dead token from setting
+            deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePathPC', 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp');
         } else {
             // NPC/Monster - use existing setting
-            deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-npc.webp');
+            deadTokenPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp');
         }
         
         // Check if the file exists in our cache (only if cache is available)
@@ -448,37 +441,32 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Apply dead or unconscious token image to a token
+     * Apply dead token image to a token
      * @param {TokenDocument} tokenDocument - The token document
      * @param {Actor} actor - The actor
-     * @param {boolean} isUnconsciousNotDead - Whether PC is unconscious (0 HP) but not dead (< 3 failed saves)
      */
-    static async applyDeadTokenImage(tokenDocument, actor, isUnconsciousNotDead = false) {
-        // Check if feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false)) {
+    static async applyDeadTokenImage(tokenDocument, actor) {
+        // Check if feature is enabled and what mode it's in
+        const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
+        if (deadTokenMode === 'disabled') {
             return;
         }
         
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
         
-        // Check if dead/unconscious token is already applied
-        const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
-        const isUnconsciousTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isUnconsciousTokenApplied');
+        // Check if this token type should be affected based on the mode
+        if (deadTokenMode === 'npcs' && isPlayerCharacter) {
+            return; // NPCs only mode, skip PCs
+        }
+        if (deadTokenMode === 'pcs' && !isPlayerCharacter) {
+            return; // PCs only mode, skip NPCs
+        }
         
-        // For PCs: Update token if state changed (unconscious -> dead or vice versa)
-        if (isPlayerCharacter) {
-            if (isUnconsciousNotDead && isUnconsciousTokenApplied) {
-                return; // Already showing unconscious token
-            }
-            if (!isUnconsciousNotDead && isDeadTokenApplied) {
-                return; // Already showing dead token
-            }
-        } else {
-            // For NPCs: Only apply once
-            if (isDeadTokenApplied) {
-                return;
-            }
+        // Check if dead token is already applied
+        const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
+        if (isDeadTokenApplied) {
+            return; // Already showing dead token
         }
         
         // Check creature type filter (skip for player characters)
@@ -495,28 +483,19 @@ export class TokenImageUtilities {
             }
         }
         
-        // Store current image as "previous" before applying dead/unconscious token
+        // Store current image as "previous" before applying dead token
         await TokenImageUtilities.storePreviousImage(tokenDocument);
         
         // Get the appropriate token image path
-        const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter, isUnconsciousNotDead);
+        const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter);
         
         if (deadTokenPath) {
             try {
                 await tokenDocument.update({ 'texture.src': deadTokenPath });
-                
-                // Set appropriate flag based on state
-                if (isPlayerCharacter && isUnconsciousNotDead) {
-                    await tokenDocument.setFlag(MODULE.ID, 'isUnconsciousTokenApplied', true);
-                    await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied unconscious token to ${tokenDocument.name}`, "", true, false);
-                } else {
-                    await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
-                    await tokenDocument.unsetFlag(MODULE.ID, 'isUnconsciousTokenApplied');
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied dead token to ${tokenDocument.name}`, "", true, false);
-                }
+                await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied dead token to ${tokenDocument.name}`, "", true, false);
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying dead/unconscious token: ${error.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying dead token: ${error.message}`, "", true, false);
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Dead token image path not configured for ${tokenDocument.name}`, "", true, false);
@@ -527,8 +506,9 @@ export class TokenImageUtilities {
      * Hook for actor updates - monitor HP and death save changes for dead token replacement
      */
     static async onActorUpdateForDeadToken(actor, changes, options, userId) {
-        // Check if feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false)) {
+        // Check if feature is enabled and what mode it's in
+        const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
+        if (deadTokenMode === 'disabled') {
             return;
         }
         
@@ -573,21 +553,18 @@ export class TokenImageUtilities {
                 if (isPlayerCharacter) {
                     if (hasFailed3DeathSaves) {
                         // PC has failed 3 death saves - apply dead token
-                        await TokenImageUtilities.applyDeadTokenImage(token.document, actor, false);
-                    } else {
-                        // PC is unconscious but not dead - apply unconscious token
-                        await TokenImageUtilities.applyDeadTokenImage(token.document, actor, true);
+                        await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
                     }
+                    // Otherwise: PC is unconscious but not dead - DO NOT change token (keep original)
                 } else {
                     // NPC at 0 HP - apply dead token immediately
-                    await TokenImageUtilities.applyDeadTokenImage(token.document, actor, false);
+                    await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
                 }
             } else {
-                // Token was revived (HP > 0) - restore previous image
+                // Token was revived (HP > 0) - restore previous image if dead token was applied
                 const isDeadTokenApplied = token.document.getFlag(MODULE.ID, 'isDeadTokenApplied');
-                const isUnconsciousTokenApplied = token.document.getFlag(MODULE.ID, 'isUnconsciousTokenApplied');
                 
-                if (isDeadTokenApplied || isUnconsciousTokenApplied) {
+                if (isDeadTokenApplied) {
                     await TokenImageUtilities.restorePreviousTokenImage(token.document);
                 }
             }

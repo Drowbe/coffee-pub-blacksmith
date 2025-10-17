@@ -9,14 +9,14 @@
 
 **✅ COMPLETED:**
   1. **Player Death Token Logic** - DONE
-     - ✅ Players now show "unconscious" token at 0 HP (uses `death-status-dying.webp`)
-     - ✅ Players only get "dead" token after 3 failed death saves (uses `splat-round-pc.webp`)
-     - ✅ NPCs get dead token immediately at 0 HP (uses `splat-round-npc.webp`)
+     - ✅ Players keep original token at 0 HP (unconscious, not dead)
+     - ✅ Players only get "dead" token after 3 failed death saves (uses `deadTokenImagePathPC` setting)
+     - ✅ NPCs get dead token immediately at 0 HP (uses `deadTokenImagePath` setting)
      - ✅ Monitors both HP changes and death save changes via `onActorUpdateForDeadToken`
   2. **Secondary Death Token for Players/Friendly NPCs** - DONE
-     - ✅ Separate "dying" token for unconscious players (`death-status-dying.webp`)
-     - ✅ Distinct PC dead token (`splat-round-pc.webp`) vs NPC dead token (`splat-round-npc.webp`)
-     - ✅ Proper state management with `isUnconsciousTokenApplied` and `isDeadTokenApplied` flags
+     - ✅ Distinct PC dead token (default: `pog-round-pc.webp`) vs NPC dead token (default: `pog-round-npc.webp`)
+     - ✅ User-configurable via dropdown: "Disabled", "NPCs and PCs", "NPCs Only", "PCs Only"
+     - ✅ Settings allow full customization of death token images for each type
 
 **🔲 PENDING:**
   3. **Death Saving Throw Overlay**:
@@ -27,11 +27,11 @@
      
 - **Location**: `scripts/token-image-utilities.js` (dead token management methods)
 - **Implementation Details**:
-  - Modified `getDeadTokenImagePath()` to accept `isPlayerCharacter` and `isUnconsciousNotDead` parameters
-  - Modified `applyDeadTokenImage()` to handle PC vs NPC logic and unconscious vs dead states
+  - Modified `getDeadTokenImagePath()` to use separate settings for PC vs NPC
+  - Modified `applyDeadTokenImage()` to check mode setting ('disabled', 'both', 'npcs', 'pcs')
   - Modified `onActorUpdateForDeadToken()` to check death saves (`actor.system.attributes.death.failure >= 3`)
-  - Modified `restorePreviousTokenImage()` to clear both flags on revival
-- **Notes**: Core death mechanics now work correctly for D&D 5e! Overlay is a nice-to-have visual enhancement.
+  - Settings: `enableDeadTokenReplacement` (dropdown), `deadTokenImagePath` (NPC), `deadTokenImagePathPC` (PC)
+- **Notes**: Core death mechanics now work correctly for D&D 5e! PCs keep their token until actually dead.
 
 ## DEFERRED TASKS
 

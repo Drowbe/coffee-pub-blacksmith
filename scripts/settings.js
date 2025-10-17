@@ -2142,11 +2142,17 @@ export const registerSettings = async () => {
 	// Enable Dead Token Replacement
 	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
 		name: 'Enable Dead Token Replacement',
-		hint: 'Automatically replace token images with "dead" versions when creatures reach 0 HP. Restores previous image when revived.',
+		hint: 'Choose which types of tokens should automatically change to "dead" versions when they reach 0 HP (NPCs die immediately, PCs die after 3 failed death saves)',
 		scope: 'world',
 		config: true,
-		type: Boolean,
-		default: false,
+		type: String,
+		choices: {
+			'disabled': 'Disabled',
+			'both': 'NPCs and PCs',
+			'npcs': 'NPCs Only',
+			'pcs': 'PCs Only'
+		},
+		default: 'disabled',
 		requiresReload: false
 	});
 
@@ -2169,17 +2175,6 @@ export const registerSettings = async () => {
 		config: true,
 		type: String,
 		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
-		requiresReload: false
-	});
-
-	// Unconscious Token Image Path (Player Character)
-	game.settings.register(MODULE.ID, 'unconsciousTokenImagePath', {
-		name: 'Unconscious Token Image Path (PC)',
-		hint: 'Full path to unconscious token image for Player Characters at 0 HP (before 3 failed death saves)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'modules/coffee-pub-blacksmith/images/tokens/death/death-save-3.webp',
 		requiresReload: false
 	});
 
