@@ -17,7 +17,6 @@
 ### Search Performance - Phase 2/3 Optimizations
 - **Issue**: Additional performance optimizations available if Phase 1 improvements prove insufficient
 - **Status**: DEFERRED - Phase 1 optimizations (caching, tag pre-computation) resolved lag issues
-- **Date Deferred**: January 17, 2025
 - **Reason for Deferral**: User testing confirms Phase 1 improvements are sufficient ("seems to have made lag better")
 - **Available if needed**:
   
