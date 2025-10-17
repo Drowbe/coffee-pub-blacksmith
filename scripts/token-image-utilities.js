@@ -765,6 +765,9 @@ export class TokenImageUtilities {
                 TokenImageUtilities._updateTargetedIndicatorPosition(tokenId, changes);
             }
         }
+        
+        // Handle token facing direction
+        TokenImageUtilities._handleTokenFacing(tokenDocument, changes);
     }
 
     /**
@@ -1300,5 +1303,88 @@ export class TokenImageUtilities {
         
         graphics.x = center.x;
         graphics.y = center.y;
+    }
+
+    /**
+     * Handle token facing direction based on movement
+     */
+    static async _handleTokenFacing(tokenDocument, changes) {
+        // Check if token facing is enabled
+        if (!getSettingSafely(MODULE.ID, 'enableTokenFacing', false)) {
+            return;
+        }
+
+        // Only process if position changed
+        if (changes.x === undefined && changes.y === undefined) {
+            return;
+        }
+
+        // Get the token object
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (!token) return;
+
+        // Respect the lock rotation setting
+        if (tokenDocument.lockRotation) {
+            return;
+        }
+
+        // Check facing mode
+        const facingMode = getSettingSafely(MODULE.ID, 'tokenFacingMode', 'all');
+        if (!TokenImageUtilities._shouldApplyFacing(token, facingMode)) {
+            return;
+        }
+
+        // Calculate movement distance
+        const oldX = token.x;
+        const oldY = token.y;
+        const newX = changes.x !== undefined ? changes.x : oldX;
+        const newY = changes.y !== undefined ? changes.y : oldY;
+
+        const deltaX = newX - oldX;
+        const deltaY = newY - oldY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // Check minimum distance threshold
+        const minDistance = getSettingSafely(MODULE.ID, 'tokenFacingMinDistance', 0.5);
+        const gridSize = canvas.grid.size;
+        const minDistancePixels = minDistance * gridSize;
+
+        if (distance < minDistancePixels) {
+            return;
+        }
+
+        // Calculate rotation angle
+        // Foundry uses degrees where 0 = right, 90 = down, 180 = left, 270 = up
+        const angleRadians = Math.atan2(deltaY, deltaX);
+        const angleDegrees = (angleRadians * 180 / Math.PI) - 90; // -90 to face the direction instead of showing back
+        
+        // Normalize to 0-360 range
+        const normalizedAngle = ((angleDegrees % 360) + 360) % 360;
+
+        // Apply rotation
+        try {
+            await tokenDocument.update({ rotation: normalizedAngle });
+            postConsoleAndNotification(MODULE.NAME, "Token Facing", `Rotated ${token.name} to ${normalizedAngle.toFixed(1)}°`, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Token Facing Error", `Failed to rotate ${token.name}: ${error.message}`, false, false);
+        }
+    }
+
+    /**
+     * Check if token should have facing applied based on mode
+     */
+    static _shouldApplyFacing(token, facingMode) {
+        switch (facingMode) {
+            case 'all':
+                return true;
+            case 'playerOnly':
+                return token.actor?.hasPlayerOwner || false;
+            case 'npcOnly':
+                return token.actor?.type === 'npc';
+            case 'combatOnly':
+                return game.combat?.getCombatantByToken(token.id) !== undefined;
+            default:
+                return true;
+        }
     }
 }

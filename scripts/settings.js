@@ -1525,6 +1525,47 @@ export const registerSettings = async () => {
 		default: true,
 	});
 
+	game.settings.register(MODULE.ID, 'enableTokenFacing', {
+		name: 'Enable Token Facing Direction',
+		hint: 'Automatically rotate tokens to face the direction they move. Tokens with "Lock Rotation" enabled will not be affected.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	game.settings.register(MODULE.ID, 'tokenFacingMinDistance', {
+		name: 'Minimum Movement Distance',
+		hint: 'Minimum distance a token must move (in grid units) before it rotates to face the movement direction. Prevents tiny adjustments from causing unwanted rotation.',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		range: {
+			min: 0.1,
+			max: 2.0,
+			step: 0.1,
+		},
+		default: 0.5,
+	});
+
+	game.settings.register(MODULE.ID, 'tokenFacingMode', {
+		name: 'Facing Mode',
+		hint: 'Which tokens should automatically face their movement direction.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		choices: {
+			'all': 'All Tokens',
+			'playerOnly': 'Player Tokens Only',
+			'npcOnly': 'NPC Tokens Only',
+			'combatOnly': 'Combat Tokens Only'
+		},
+		default: 'all',
+	});
+
 
 	// -- Scale Size --
 	game.settings.register(MODULE.ID,'setTokenScale', {
