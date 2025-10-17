@@ -183,6 +183,20 @@ class CombatTimer {
 					}
 				});
 
+                // Register cleanup hook for module unload
+                const unloadHookId = HookManager.registerHook({
+                    name: 'unloadModule',
+                    description: 'Combat Timer: Cleanup on module unload',
+                    context: 'timer-combat-cleanup',
+                    priority: 3,
+                    callback: (moduleId) => {
+                        if (moduleId === MODULE.ID) {
+                            this.cleanupTimer();
+                            postConsoleAndNotification(MODULE.NAME, "Combat Timer | Cleaned up on module unload", "", true, false);
+                        }
+                    }
+                });
+
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, false);
             }
@@ -192,6 +206,16 @@ class CombatTimer {
         Hooks.once('blacksmith.socketReady', () => {
             postConsoleAndNotification(MODULE.NAME, "Combat Timer | Socket is ready", "", true, false);
         });
+    }
+    
+    /**
+     * Clean up timer interval
+     */
+    static cleanupTimer() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
     }
 
     static async syncState() {
@@ -393,7 +417,7 @@ class CombatTimer {
         }
         
         if (!this.state.isPaused) {
-            if (this.timer) clearInterval(this.timer);
+            this.cleanupTimer();
             this.timer = setInterval(() => this.tick(), 1000);
         }
         
@@ -619,7 +643,7 @@ class CombatTimer {
 
         // Only GM should handle the interval and messages
         if (game.user.isGM) {
-            if (this.timer) clearInterval(this.timer);
+            this.cleanupTimer();
             this.timer = setInterval(() => this.tick(), 1000);
 
             // Record the start time for stats

@@ -47,6 +47,20 @@ export class LatencyChecker {
 				priority: 3,
 				callback: this.#onRenderPlayerList.bind(this)
 			});
+			
+			// Register cleanup hook for module unload
+			const unloadHookId = HookManager.registerHook({
+				name: 'unloadModule',
+				description: 'Latency Checker: Cleanup on module unload',
+				context: 'latency-checker-cleanup',
+				priority: 3,
+				callback: (moduleId) => {
+					if (moduleId === MODULE.ID) {
+						this.cleanupChecker();
+						postConsoleAndNotification(MODULE.NAME, "Latency Checker | Cleaned up on module unload", "", true, false);
+					}
+				}
+			});
             
             // Start periodic checks
             this.startPeriodicCheck();
@@ -285,5 +299,16 @@ export class LatencyChecker {
     // Helper to determine if GM is hosting locally
     static #isLocalGM() {
         return game.user.isGM && window.location.hostname === 'localhost';
+    }
+    
+    /**
+     * Clean up latency checker interval
+     */
+    static cleanupChecker() {
+        if (this.#checkInterval) {
+            clearInterval(this.#checkInterval);
+            this.#checkInterval = null;
+        }
+        this.#initialized = false;
     }
 } 

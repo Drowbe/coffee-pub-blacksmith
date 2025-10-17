@@ -273,24 +273,29 @@ export class ImageMatching {
      * @param {Array|string} searchTerms - Search terms (array for token matching, string for search)
      * @param {Object} tokenDocument - The token document (for context weighting)
      * @param {string} searchMode - 'token', 'search', or 'browse'
+     * @param {Object} cache - Cache object
+     * @param {Function} extractTokenDataFunction - Function to extract token data
+     * @param {Object} weights - Cached weight settings (Performance optimization)
      * @returns {number} Relevance score (0.0 to 1.0)
      */
-    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null, extractTokenDataFunction = null) {
+    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null, extractTokenDataFunction = null, weights = null) {
         const fileName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || '';
         const fileNameLower = fileName.toLowerCase();
         const filePath = fileInfo.path || fileInfo.fullPath || '';
         const filePathLower = filePath.toLowerCase();
         
-        // Get weighted settings - no hardcoded defaults, values must come from settings
-        const weights = {
-            actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
-            tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
-            representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
-            creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
-            creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
-            equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
-            size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
-        };
+        // Use passed weights or get from settings (fallback for backwards compatibility)
+        if (!weights) {
+            weights = {
+                actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
+                tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
+                representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
+                creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
+                creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
+                equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
+                size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+            };
+        }
         
         let totalScore = 0;
         let foundMatch = false;
@@ -541,28 +546,25 @@ export class ImageMatching {
         
         // RELEVANCE MODE: Use sophisticated scoring
         const threshold = applyThreshold ? (game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3) : 0;
+        
+        // Cache weight settings to avoid repeated lookups (Performance optimization)
+        const weights = {
+            actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
+            tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
+            representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
+            creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
+            creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
+            equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
+            size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+        };
                 
         for (let i = 0; i < filesToSearch.length; i++) {
             const fileInfo = filesToSearch[i]; 
-            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction);
+            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction, weights);
                         
             // Only include results above threshold
             if (relevanceScore >= threshold) {
-                // Log token data breakdown ONLY for files that actually MATCH
-                if (tokenDocument && searchMode === 'token' && extractTokenDataFunction) {
-                    const tokenData = extractTokenDataFunction(tokenDocument);
-                    const weights = {
-                        actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
-                        tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
-                        representedActor: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor') / 100,
-                        creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
-                        creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
-                        equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
-                        size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
-                    };
-                    
-                    // Removed excessive logging - was generating 30,000+ messages
-                }
+                // Note: Logging was previously removed due to excessive output (30,000+ messages)
                 
                 results.push({
                     ...fileInfo,

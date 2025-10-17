@@ -39,6 +39,10 @@ class MenuBar {
     };
     static secondaryBarTypes = new Map();
     static renderTimeout = null;
+    
+    // Timer interval tracking for cleanup
+    static _timerDisplayInterval = null;
+    static _timerSyncInterval = null;
 
     static async initialize() {
         // Load the templates
@@ -706,7 +710,7 @@ class MenuBar {
     }
 
     /**
-     * Clean up combat bar event handlers
+     * Clean up combat bar event handlers and timer intervals
      * @private
      */
     static _cleanupCombatBarEvents() {
@@ -720,7 +724,10 @@ class MenuBar {
             this._combatBarDblClickHandler = null;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers cleaned up", "", true, false);
+        // Clean up timer intervals
+        this._stopTimerUpdates();
+        
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers and timer intervals cleaned up", "", true, false);
     }
 
     /**
@@ -3013,16 +3020,35 @@ class MenuBar {
             return;
         }
 
+        // Clean up any existing intervals before starting new ones
+        this._stopTimerUpdates();
+
         // Update timer display every second locally
-        setInterval(() => this.updateTimerDisplay(), 1000);
+        this._timerDisplayInterval = setInterval(() => this.updateTimerDisplay(), 1000);
         
         // If GM, sync to other clients every 30 seconds
         if (game.user.isGM) {
-            setInterval(() => {
+            this._timerSyncInterval = setInterval(() => {
                 if (this.sessionEndTime) {
                     this.updateTimer(this.sessionEndTime, this.sessionStartTime, false);
                 }
             }, 30000); // 30 second intervals
+        }
+    }
+    
+    /**
+     * Stop timer update intervals
+     * @private
+     */
+    static _stopTimerUpdates() {
+        if (this._timerDisplayInterval) {
+            clearInterval(this._timerDisplayInterval);
+            this._timerDisplayInterval = null;
+        }
+        
+        if (this._timerSyncInterval) {
+            clearInterval(this._timerSyncInterval);
+            this._timerSyncInterval = null;
         }
     }
 

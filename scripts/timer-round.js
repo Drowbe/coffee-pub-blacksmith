@@ -40,12 +40,23 @@ export class RoundTimer {
         
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "timer-round", true, false);
+        
+        // Register cleanup hook for module unload
+        const unloadHookId = HookManager.registerHook({
+            name: 'unloadModule',
+            description: 'Round Timer: Cleanup on module unload',
+            context: 'timer-round-cleanup',
+            priority: 3,
+            callback: (moduleId) => {
+                if (moduleId === MODULE.ID) {
+                    this.cleanupTimer();
+                    postConsoleAndNotification(MODULE.NAME, "Round Timer | Cleaned up on module unload", "", true, false);
+                }
+            }
+        });
             
             // Clean up old interval if it exists
-            if (this.updateInterval) {
-                clearInterval(this.updateInterval);
-                this.updateInterval = null;
-            }
+            this.cleanupTimer();
 
             // Set up game activity tracking
             this.isActive = true;
@@ -213,5 +224,15 @@ export class RoundTimer {
         const currentRoundDuration = this._getCurrentRoundDuration();
         
         return totalCombatDuration + currentRoundDuration;
+    }
+    
+    /**
+     * Clean up timer interval
+     */
+    static cleanupTimer() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
     }
 } 

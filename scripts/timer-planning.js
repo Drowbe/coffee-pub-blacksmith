@@ -48,6 +48,22 @@ export class PlanningTimer {
 			priority: 3,
 			callback: this.forceEnd.bind(this)
 		});
+		
+		// Register cleanup hook for module unload
+		Hooks.once('ready', () => {
+			const unloadHookId = HookManager.registerHook({
+				name: 'unloadModule',
+				description: 'Planning Timer: Cleanup on module unload',
+				context: 'timer-planning-cleanup',
+				priority: 3,
+				callback: (moduleId) => {
+					if (moduleId === MODULE.ID) {
+						this.cleanupTimer();
+						postConsoleAndNotification(MODULE.NAME, "Planning Timer | Cleaned up on module unload", "", true, false);
+					}
+				}
+			});
+		});
 
         // Wait for game to be ready before checking initial state
         Hooks.once('ready', () => {
