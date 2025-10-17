@@ -4,7 +4,7 @@
 
 ### Death Token System Enhancements
 - **Issue**: Current death token system needs improvements for player characters and death saving throws
-- **Status**: PARTIALLY COMPLETED - Items 1 & 2 done, Item 3 pending
+- **Status**: ✅ COMPLETED - All items done!
 - **Priority**: MEDIUM - Enhances gameplay experience for player death mechanics
 
 **✅ COMPLETED:**
@@ -18,12 +18,17 @@
      - ✅ User-configurable via dropdown: "Disabled", "NPCs and PCs", "NPCs Only", "PCs Only"
      - ✅ Settings allow full customization of death token images for each type
 
-**🔲 PENDING:**
-  3. **Death Saving Throw Overlay**:
-     - Introduce a visual overlay to display death saving throw status
-     - Should show success/failure marks (similar to D&D Beyond's UI)
-     - Update in real-time as death saves are rolled
-     - Position overlay on/near the token for easy visibility
+**✅ COMPLETED:**
+  3. **Death Saving Throw Overlay** - DONE
+     - ✅ Visual overlay shows death save status above token
+     - ✅ 3 green circles for successes (top row)
+     - ✅ 3 red circles for failures (bottom row)
+     - ✅ Circles fill in as saves are rolled
+     - ✅ Updates in real-time when actor's death saves change
+     - ✅ Automatically appears when PC hits 0 HP
+     - ✅ Automatically disappears at 3 successes (stable) or 3 failures (dead)
+     - ✅ Moves with token using PIXI.Graphics
+     - ✅ Only shows for player characters (not NPCs)
      
 - **Location**: `scripts/token-image-utilities.js` (dead token management methods)
 - **Implementation Details**:

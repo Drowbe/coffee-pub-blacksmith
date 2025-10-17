@@ -27,6 +27,9 @@ export class TokenImageUtilities {
     static _targetedAnimations = new Map(); // Map of tokenId -> animation object
     static _hideTargetsAnimationId = null; // ID for the continuous hiding loop
     
+    // Death save overlay management
+    static _deathSaveOverlays = new Map(); // Map of tokenId -> graphics object
+    
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
     static _deleteCombatHookId = null;
@@ -448,20 +451,28 @@ export class TokenImageUtilities {
     static async applyDeadTokenImage(tokenDocument, actor) {
         // Check if feature is enabled and what mode it's in
         const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
+        console.log(`[TokenImageUtilities] applyDeadTokenImage - Mode: ${deadTokenMode}, Actor Type: ${actor.type}, Actor Name: ${actor.name}`);
+        
         if (deadTokenMode === 'disabled') {
+            console.log(`[TokenImageUtilities] Dead token replacement disabled, skipping`);
             return;
         }
         
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
+        console.log(`[TokenImageUtilities] Is Player Character: ${isPlayerCharacter}`);
         
         // Check if this token type should be affected based on the mode
         if (deadTokenMode === 'npcs' && isPlayerCharacter) {
+            console.log(`[TokenImageUtilities] NPCs only mode, skipping PC`);
             return; // NPCs only mode, skip PCs
         }
         if (deadTokenMode === 'pcs' && !isPlayerCharacter) {
+            console.log(`[TokenImageUtilities] PCs only mode, skipping NPC`);
             return; // PCs only mode, skip NPCs
         }
+        
+        console.log(`[TokenImageUtilities] Proceeding with dead token application`);
         
         // Check if dead token is already applied
         const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
@@ -508,7 +519,10 @@ export class TokenImageUtilities {
     static async onActorUpdateForDeadToken(actor, changes, options, userId) {
         // Check if feature is enabled and what mode it's in
         const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
+        console.log(`[TokenImageUtilities] onActorUpdateForDeadToken - Mode: ${deadTokenMode}, Actor: ${actor.name}, Changes:`, changes);
+        
         if (deadTokenMode === 'disabled') {
+            console.log(`[TokenImageUtilities] Dead token replacement disabled, skipping actor update`);
             return;
         }
         
@@ -569,6 +583,159 @@ export class TokenImageUtilities {
                 }
             }
         }
+        
+        // Update death save overlays for all tokens
+        TokenImageUtilities.updateDeathSaveOverlays();
+    }
+
+    // ================================================================== 
+    // ===== DEATH SAVE OVERLAY FUNCTIONALITY ===========================
+    // ==================================================================
+    
+    /**
+     * Update death save overlays for all tokens at 0 HP
+     */
+    static updateDeathSaveOverlays() {
+        if (!canvas.scene) return;
+        
+        // Check all tokens in the scene
+        for (const token of canvas.tokens.placeables) {
+            const actor = token.actor;
+            if (!actor) continue;
+            
+            // Only show for player characters
+            if (actor.type !== 'character') {
+                // Remove overlay if it exists for non-PCs
+                this._removeDeathSaveOverlay(token.id);
+                continue;
+            }
+            
+            const currentHP = actor.system?.attributes?.hp?.value || 0;
+            const deathSaves = actor.system?.attributes?.death;
+            
+            if (currentHP <= 0 && deathSaves) {
+                const successes = deathSaves.success || 0;
+                const failures = deathSaves.failure || 0;
+                
+                // Check if they've reached 3 of either (stable or dead)
+                if (successes >= 3 || failures >= 3) {
+                    // Remove overlay - they're either stable or dead
+                    this._removeDeathSaveOverlay(token.id);
+                } else {
+                    // Show/update overlay
+                    this._createOrUpdateDeathSaveOverlay(token, successes, failures);
+                }
+            } else {
+                // Remove overlay if HP > 0
+                this._removeDeathSaveOverlay(token.id);
+            }
+        }
+    }
+    
+    /**
+     * Create or update death save overlay for a token
+     */
+    static _createOrUpdateDeathSaveOverlay(token, successes, failures) {
+        // Remove existing overlay if present
+        this._removeDeathSaveOverlay(token.id);
+        
+        const graphics = new PIXI.Graphics();
+        
+        // Configuration
+        const radius = 8; // Circle radius
+        const spacing = 20; // Space between circles
+        const rowSpacing = 25; // Space between rows
+        const offsetY = -80; // Position above token (further up to be visible)
+        
+        // Calculate token center
+        const center = this._calculateTokenCenter(token);
+        
+        // Starting position (centered above token)
+        const startX = center.x - (spacing * 1); // Center of 3 circles
+        const startY = center.y + offsetY;
+        
+        // Draw success circles (green) - top row
+        for (let i = 0; i < 3; i++) {
+            const x = startX + (i * spacing);
+            const y = startY;
+            const filled = i < successes;
+            
+            graphics.lineStyle(2, 0x00FF00, 1); // Green border
+            if (filled) {
+                graphics.beginFill(0x00FF00, 0.9); // Green fill
+            } else {
+                graphics.beginFill(0x000000, 0.3); // Dark semi-transparent
+            }
+            graphics.drawCircle(x, y, radius);
+            graphics.endFill();
+        }
+        
+        // Draw failure circles (red) - bottom row
+        for (let i = 0; i < 3; i++) {
+            const x = startX + (i * spacing);
+            const y = startY + rowSpacing;
+            const filled = i < failures;
+            
+            graphics.lineStyle(2, 0xFF0000, 1); // Red border
+            if (filled) {
+                graphics.beginFill(0xFF0000, 0.9); // Red fill
+            } else {
+                graphics.beginFill(0x000000, 0.3); // Dark semi-transparent
+            }
+            graphics.drawCircle(x, y, radius);
+            graphics.endFill();
+        }
+        
+        // Add to canvas
+        canvas.interface.addChild(graphics);
+        this._deathSaveOverlays.set(token.id, graphics);
+    }
+    
+    /**
+     * Remove death save overlay for a token
+     */
+    static _removeDeathSaveOverlay(tokenId) {
+        const graphics = this._deathSaveOverlays.get(tokenId);
+        if (graphics) {
+            canvas.interface.removeChild(graphics);
+            graphics.destroy();
+            this._deathSaveOverlays.delete(tokenId);
+        }
+    }
+    
+    /**
+     * Remove all death save overlays
+     */
+    static _removeAllDeathSaveOverlays() {
+        for (const [tokenId, graphics] of this._deathSaveOverlays) {
+            canvas.interface.removeChild(graphics);
+            graphics.destroy();
+        }
+        this._deathSaveOverlays.clear();
+    }
+    
+    /**
+     * Update death save overlay position (for token movement)
+     */
+    static _updateDeathSaveOverlayPosition(tokenId, changes = null) {
+        const graphics = this._deathSaveOverlays.get(tokenId);
+        if (!graphics) return;
+        
+        const token = canvas.tokens.get(tokenId);
+        if (!token) return;
+        
+        // Get actor to check death saves
+        const actor = token.actor;
+        if (!actor) return;
+        
+        const deathSaves = actor.system?.attributes?.death;
+        if (!deathSaves) return;
+        
+        const successes = deathSaves.success || 0;
+        const failures = deathSaves.failure || 0;
+        
+        // Recreate the overlay at the new position
+        this._createOrUpdateDeathSaveOverlay(token, successes, failures);
     }
 
     // ================================================================== 
@@ -622,6 +789,9 @@ export class TokenImageUtilities {
         
         // Hide Foundry's default target indicators if enabled
         TokenImageUtilities._hideDefaultTargetIndicators();
+        
+        // Initialize death save overlays for any tokens at 0 HP
+        TokenImageUtilities.updateDeathSaveOverlays();
         
         // Check if combat is already active
         if (game.combat && game.combat.started) {
@@ -700,6 +870,7 @@ export class TokenImageUtilities {
     static cleanupTurnIndicator() {
         TokenImageUtilities._removeTurnIndicator();
         TokenImageUtilities._removeAllTargetedIndicators();
+        TokenImageUtilities._removeAllDeathSaveOverlays();
         
         // Stop the continuous hiding loop
         if (TokenImageUtilities._hideTargetsAnimationId) {
@@ -815,6 +986,13 @@ export class TokenImageUtilities {
         if (TokenImageUtilities._targetedTokens.has(tokenId)) {
             if (changes.x !== undefined || changes.y !== undefined) {
                 TokenImageUtilities._updateTargetedIndicatorPosition(tokenId, changes);
+            }
+        }
+        
+        // Handle death save overlay movement
+        if (TokenImageUtilities._deathSaveOverlays.has(tokenId)) {
+            if (changes.x !== undefined || changes.y !== undefined) {
+                TokenImageUtilities._updateDeathSaveOverlayPosition(tokenId, changes);
             }
         }
         
