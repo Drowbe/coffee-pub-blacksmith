@@ -843,6 +843,9 @@ export class TokenImageUtilities {
         // Position at token center
         graphics.position.set(center.x, center.y);
         
+        // Set zIndex to render above turn indicator (higher = on top)
+        graphics.zIndex = 100;
+        
         // Add to canvas
         canvas.interface.addChild(graphics);
         this._deathSaveOverlays.set(token.id, graphics);
@@ -906,6 +909,11 @@ export class TokenImageUtilities {
         if (!getSettingSafely(MODULE.ID, 'turnIndicatorCurrentEnabled', true)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator disabled in settings", "", true, false);
             return;
+        }
+        
+        // Enable sortable children for canvas.interface to support zIndex
+        if (canvas?.interface) {
+            canvas.interface.sortableChildren = true;
         }
         
         // Register combat update hook
