@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { HookManager } from './manager-hooks.js';
 
@@ -29,6 +29,7 @@ export class TokenImageUtilities {
     
     // Death save overlay management
     static _deathSaveOverlays = new Map(); // Map of tokenId -> graphics object
+    static _deathSaveStates = new Map(); // Map of actorId -> {wasStable: bool, wasHealed: bool} for tracking state changes
     
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
@@ -497,6 +498,13 @@ export class TokenImageUtilities {
                 await tokenDocument.update({ 'texture.src': deadTokenPath });
                 await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied dead token to ${tokenDocument.name}`, "", true, false);
+                
+                // Play death sound based on character type
+                const soundSetting = isPlayerCharacter ? 'deadTokenSoundPC' : 'deadTokenSoundNPC';
+                const sound = getSettingSafely(MODULE.ID, soundSetting, 'none');
+                if (sound && sound !== 'none') {
+                    await playSound(sound, 0.7, false, true);
+                }
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying dead token: ${error.message}`, "", true, false);
             }
@@ -603,6 +611,9 @@ export class TokenImageUtilities {
             const deathSaves = actor.system?.attributes?.death;
             const isStable = actor.system?.attributes?.hp?.stable || false;
             
+            // Get previous state for this actor
+            const previousState = this._deathSaveStates.get(actor.id) || { wasStable: false, wasAt0HP: false };
+            
             if (currentHP <= 0 && deathSaves) {
                 const successes = deathSaves.success || 0;
                 const failures = deathSaves.failure || 0;
@@ -617,14 +628,39 @@ export class TokenImageUtilities {
                     // Remove overlay - they're dead
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Removing overlay for ${actor.name} - dead`, "", true, false);
                     this._removeDeathSaveOverlay(token.id);
+                    // Update state
+                    this._deathSaveStates.set(actor.id, { wasStable: false, wasAt0HP: true });
                 } else {
+                    // Check if they just became stable (wasn't stable before, is stable now)
+                    if (isActuallyStable && !previousState.wasStable) {
+                        // Play stable sound
+                        const stableSound = getSettingSafely(MODULE.ID, 'deadTokenSoundStable', 'none');
+                        if (stableSound && stableSound !== 'none') {
+                            playSound(stableSound, 0.7, false, true);
+                        }
+                    }
+                    
                     // Show/update overlay (either dying or stable)
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Showing overlay for ${actor.name} - ${isActuallyStable ? 'stable' : 'dying'}`, "", true, false);
                     this._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
+                    
+                    // Update state
+                    this._deathSaveStates.set(actor.id, { wasStable: isActuallyStable, wasAt0HP: true });
                 }
             } else {
+                // Check if they were just healed (was at 0 HP, now > 0)
+                if (previousState.wasAt0HP && currentHP > 0) {
+                    // Play stable/heal sound
+                    const stableSound = getSettingSafely(MODULE.ID, 'deadTokenSoundStable', 'none');
+                    if (stableSound && stableSound !== 'none') {
+                        playSound(stableSound, 0.7, false, true);
+                    }
+                }
+                
                 // Remove overlay if HP > 0
                 this._removeDeathSaveOverlay(token.id);
+                // Update state
+                this._deathSaveStates.set(actor.id, { wasStable: false, wasAt0HP: false });
             }
         }
     }

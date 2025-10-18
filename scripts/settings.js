@@ -1987,7 +1987,17 @@ export const registerSettings = async () => {
 	});
 
 
-	// -- Fuzzy Match --
+
+
+
+
+
+
+
+
+	// *** TREASURE LOOT ***
+
+	// -- CONVERT DEAD TO LOOT --
 	game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
 		name: 'Convert Dead to Loot',
 		hint: 'If you have the module "Item Piles" installed, this will convert dead tokens to loot piles.',
@@ -2014,14 +2024,17 @@ export const registerSettings = async () => {
 		default: 10,
 	});
 
-
-
-
-
-
-
-
-	// *** TREASURE LOOT ***
+	// -- Loot SOund --
+	game.settings.register(MODULE.ID, 'lootTokenSoundCreate', {
+		name: "Stable PC Sound",
+		hint: "Sound to play when a token is turned into loot.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
 
 	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
 		name: 'Treasure Loot Table',
@@ -2139,6 +2152,7 @@ export const registerSettings = async () => {
 
 	// DEAD TOKEN REPLACEMENT
 
+	
 	// Enable Dead Token Replacement
 	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
 		name: 'Enable Dead Token Replacement',
@@ -2167,6 +2181,17 @@ export const registerSettings = async () => {
 		requiresReload: false
 	});
 
+	game.settings.register(MODULE.ID, 'deadTokenSoundNPC', {
+		name: "Dead NPC Sound",
+		hint: "Sound to play when an NPC dies.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
 	// Dead Token Image Path (Player Character)
 	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
 		name: 'Dead Token Image Path (PC)',
@@ -2176,6 +2201,17 @@ export const registerSettings = async () => {
 		type: String,
 		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
 		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundPC', {
+		name: "Dead PC Sound",
+		hint: "Sound to play when an Player Character dies.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
 	});
 
 	// Dead Token Creature Type Filter
@@ -2191,7 +2227,16 @@ export const registerSettings = async () => {
 
 
 
-
+	game.settings.register(MODULE.ID, 'deadTokenSoundStable', {
+		name: "Stable PC Sound",
+		hint: "Sound to play when an Player Character becomes stable.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
 
 
 
@@ -3293,16 +3338,18 @@ export const registerSettings = async () => {
 	});
 
 	// New Round Sound Setting
-			game.settings.register(MODULE.ID, 'newRoundSound', {
-			name: "New Round Sound",
-			hint: "Sound to play when a new round begins",
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			type: String,
-			choices: BLACKSMITH.arrSoundChoices,
-			default: "none"
-		});
+	game.settings.register(MODULE.ID, 'newRoundSound', {
+		name: "New Round Sound",
+		hint: "Sound to play when a new round begins",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
+
 	// -------------------------------------
 
 	// *** COMBAT TRACKER SETTINGS ***
