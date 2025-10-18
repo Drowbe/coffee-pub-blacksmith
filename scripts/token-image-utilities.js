@@ -639,9 +639,7 @@ export class TokenImageUtilities {
         const graphics = new PIXI.Graphics();
         // Configuration
         const ringOutterRadius = 15;
-        const ringColor = 0x240B0B; 
-        const ringOpacity = 0.5;
-        const ringBackgroundColor = 0x9B1819;
+        const ringOpacity = 0.4;
         const ringBackgroundOpacity = 0.4;
         const dotRadius = 4; // Dot radius
         const dotSpacingNumSegments = 12
@@ -675,17 +673,19 @@ export class TokenImageUtilities {
         const center = this._calculateTokenCenter(token);
         
         // Determine death save state
-        let currentRingColor, currentBackgroundColor, shouldAnimate;
+        let currentRingColor, currentBackgroundColor, shouldAnimate, shouldShowDots;
         if (isStable) {
             // Stable - actor.system.attributes.hp.stable = true
             currentRingColor = stableRingColor;
             currentBackgroundColor = stableBackgroundColor;
-            shouldAnimate = false; // No animation for stable
+            shouldAnimate = true; // Keep heartbeat animation for stable
+            shouldShowDots = false; // No dots for stable
         } else {
             // Dying - still making death saves (failures >= 3 case is handled by removing overlay)
             currentRingColor = dyingRingColor;
             currentBackgroundColor = dyingBackgroundColor;
             shouldAnimate = true; // Animate for dying
+            shouldShowDots = true; // Show dots for dying
         }
         
         // Draw ring around token
@@ -697,7 +697,9 @@ export class TokenImageUtilities {
         graphics.drawCircle(center.x, center.y, ringRadius);
         graphics.endFill();
         
-        // Draw success dots (top half of ring) - center dot at top, others on sides
+        // Draw dots only if not stable
+        if (shouldShowDots) {
+            // Draw success dots (top half of ring) - center dot at top, others on sides
         for (let i = 0; i < 3; i++) {
             let angle;
             if (i === 0) {
@@ -742,6 +744,7 @@ export class TokenImageUtilities {
             graphics.drawCircle(dotX, dotY, dotRadius);
             graphics.endFill();
         }
+        } // Close shouldShowDots conditional
         
         // Add heartbeat animation to the background (only for dying state)
         const heartbeatAnimation = (delta) => {
@@ -781,8 +784,10 @@ export class TokenImageUtilities {
             graphics.drawCircle(center.x, center.y, ringRadius);
             graphics.endFill();
             
-            // Redraw success dots
-            for (let i = 0; i < 3; i++) {
+            // Redraw dots only if not stable
+            if (shouldShowDots) {
+                // Redraw success dots
+                for (let i = 0; i < 3; i++) {
                 let angle;
                 if (i === 0) {
                     angle = Math.PI / 2; // 90° - directly at top
@@ -826,7 +831,8 @@ export class TokenImageUtilities {
                 graphics.drawCircle(dotX, dotY, dotRadius);
                 graphics.endFill();
             }
-        };
+            } // Close shouldShowDots conditional in animation
+        }; // Close the heartbeatAnimation function
         
         // Start the heartbeat animation
         canvas.app.ticker.add(heartbeatAnimation);
@@ -837,7 +843,7 @@ export class TokenImageUtilities {
         // Add to canvas
         canvas.interface.addChild(graphics);
         this._deathSaveOverlays.set(token.id, graphics);
-    }
+    } // Close _createOrUpdateDeathSaveOverlay function
     
     /**
      * Remove death save overlay for a token
