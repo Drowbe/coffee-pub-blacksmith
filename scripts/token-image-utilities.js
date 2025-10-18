@@ -688,13 +688,13 @@ export class TokenImageUtilities {
             shouldShowDots = true; // Show dots for dying
         }
         
-        // Draw ring around token
+        // Draw ring around token (at 0,0 - will be positioned later)
         graphics.lineStyle(ringOutterRadius, currentRingColor, ringOpacity);
-        graphics.drawCircle(center.x, center.y, ringRadius);
+        graphics.drawCircle(0, 0, ringRadius);
         
         // Fill the center with semi-transparent color
         graphics.beginFill(currentBackgroundColor, ringBackgroundOpacity);
-        graphics.drawCircle(center.x, center.y, ringRadius);
+        graphics.drawCircle(0, 0, ringRadius);
         graphics.endFill();
         
         // Draw dots only if not stable
@@ -709,8 +709,8 @@ export class TokenImageUtilities {
             } else {
                 angle = Math.PI / 2 - Math.PI / dotSpacingNumSegments; // 60° - top left
             }
-            const dotX = center.x + Math.cos(angle) * dotDistance;
-            const dotY = center.y + Math.sin(angle) * dotDistance;
+            const dotX = Math.cos(angle) * dotDistance;
+            const dotY = Math.sin(angle) * dotDistance;
             
             graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity); 
             if (i < successes) {
@@ -732,8 +732,8 @@ export class TokenImageUtilities {
             } else {
                 angle = Math.PI / 2 + Math.PI - Math.PI / dotSpacingNumSegments; // 240° - bottom left
             }
-            const dotX = center.x + Math.cos(angle) * dotDistance;
-            const dotY = center.y + Math.sin(angle) * dotDistance;
+            const dotX = Math.cos(angle) * dotDistance;
+            const dotY = Math.sin(angle) * dotDistance;
             
             graphics.lineStyle(dotBorderThickness, dotColorBorder, 1);
             if (i < failures) {
@@ -775,13 +775,13 @@ export class TokenImageUtilities {
             // Clear and redraw with animated background opacity
             graphics.clear();
             
-            // Redraw ring
+            // Redraw ring (at 0,0 - graphics object is positioned at center)
             graphics.lineStyle(ringOutterRadius, currentRingColor, ringOpacity);
-            graphics.drawCircle(center.x, center.y, ringRadius);
+            graphics.drawCircle(0, 0, ringRadius);
             
             // Redraw background with heartbeat animation
             graphics.beginFill(currentBackgroundColor, ringBackgroundOpacity * heartbeat);
-            graphics.drawCircle(center.x, center.y, ringRadius);
+            graphics.drawCircle(0, 0, ringRadius);
             graphics.endFill();
             
             // Redraw dots only if not stable
@@ -796,8 +796,8 @@ export class TokenImageUtilities {
                 } else {
                     angle = Math.PI / 2 - Math.PI / dotSpacingNumSegments; // 60° - top left
                 }
-                const dotX = center.x + Math.cos(angle) * dotDistance;
-                const dotY = center.y + Math.sin(angle) * dotDistance;
+                const dotX = Math.cos(angle) * dotDistance;
+                const dotY = Math.sin(angle) * dotDistance;
                 
                 graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity); 
                 if (i < successes) {
@@ -819,8 +819,8 @@ export class TokenImageUtilities {
                 } else {
                     angle = Math.PI / 2 + Math.PI - Math.PI / dotSpacingNumSegments; // 240° - bottom left
                 }
-                const dotX = center.x + Math.cos(angle) * dotDistance;
-                const dotY = center.y + Math.sin(angle) * dotDistance;
+                const dotX = Math.cos(angle) * dotDistance;
+                const dotY = Math.sin(angle) * dotDistance;
                 
                 graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity);
                 if (i < failures) {
@@ -839,6 +839,9 @@ export class TokenImageUtilities {
         
         // Store animation reference for cleanup
         graphics._heartbeatAnimation = heartbeatAnimation;
+        
+        // Position at token center
+        graphics.position.set(center.x, center.y);
         
         // Add to canvas
         canvas.interface.addChild(graphics);
@@ -883,22 +886,12 @@ export class TokenImageUtilities {
         const token = canvas.tokens.get(tokenId);
         if (!token) return;
         
-        // Get actor to check death saves
-        const actor = token.actor;
-        if (!actor) return;
+        // Calculate new center position using the same helper as turn indicator
+        const center = TokenImageUtilities._calculateTokenCenter(token, changes);
         
-        const deathSaves = actor.system?.attributes?.death;
-        if (!deathSaves) return;
-        
-        const successes = deathSaves.success || 0;
-        const failures = deathSaves.failure || 0;
-        const isStable = actor.system?.attributes?.hp?.stable || false;
-        
-        // Check if they're stable (either by flag OR by 3 successes)
-        const isActuallyStable = isStable || successes >= 3;
-        
-        // Recreate the overlay at the new position
-        this._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
+        // Update PIXI graphics position (smooth movement, no recreation)
+        graphics.x = center.x;
+        graphics.y = center.y;
     }
 
     // ================================================================== 

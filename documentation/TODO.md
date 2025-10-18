@@ -7,23 +7,32 @@
 
 ### Death Save/Stable Ring Not Moving with Token
 - **Issue**: Death save overlay ring does not move smoothly with token like turn indicator and targeted rings do
-- **Status**: PENDING - Needs fix
+- **Status**: ✅ COMPLETED - Fixed
 - **Priority**: CRITICAL - Visual bug that breaks immersion and usability
 - **Expected Behavior**: Death save/stable ring should move in real-time as token is dragged, just like turn indicator and targeted indicator rings
 - **Actual Behavior**: Ring stays in original position when token moves, only updates when token is dropped
 - **Location**: `scripts/token-image-utilities.js`
-- **Root Cause**: Death save overlay uses `_updateDeathSaveOverlayPosition()` which only triggers on `updateToken` hook (when token drop is finalized), not during drag
-- **Fix Needed**:
-  - Update `_onTokenUpdate()` to handle death save overlay position updates during token movement
-  - Ensure death save overlay updates during drag, not just on drop
-  - Follow same pattern as `_updateTurnIndicatorPosition()` and `_updateTargetedIndicatorPosition()`
-  - Use `changes.x` and `changes.y` from the hook to get new position
-- **Related Code**:
-  - `_onTokenUpdate()` - Main token update handler (line ~500-600)
-  - `_updateDeathSaveOverlayPosition()` - Currently only recreates overlay, doesn't smoothly move it
-  - `_updateTurnIndicatorPosition()` - Reference for how to do smooth position updates
-  - `_updateTargetedIndicatorPosition()` - Another reference for smooth updates
-- **Notes**: This should be a quick fix - just need to add the death save overlay position update to the existing token movement handler, similar to how turn indicator and targeted rings are handled.
+- **Root Cause**: Death save overlay was recreating the entire overlay instead of just updating the position
+- **Fix Applied**:
+  - Modified `_updateDeathSaveOverlayPosition()` to simply update `graphics.x` and `graphics.y` instead of recreating overlay
+  - Uses `_calculateTokenCenter()` helper to get new position with `changes` parameter
+  - Now follows same pattern as `_updateTurnIndicatorPosition()` and `_updateTargetedIndicatorPosition()`
+  - Handler was already in place in `_onTokenUpdate()` (lines 1156-1160), just needed proper implementation
+- **Solution**:
+  ```javascript
+  static _updateDeathSaveOverlayPosition(tokenId, changes = null) {
+      const graphics = this._deathSaveOverlays.get(tokenId);
+      if (!graphics) return;
+      
+      const token = canvas.tokens.get(tokenId);
+      if (!token) return;
+      
+      const center = TokenImageUtilities._calculateTokenCenter(token, changes);
+      graphics.x = center.x;
+      graphics.y = center.y;
+  }
+  ```
+- **Notes**: Quick fix as expected - changed from recreating overlay to just updating position. Much more efficient and now provides smooth real-time movement during token drag.
 
 ### Combat Tracker - Roll Player Character Initiative Not Working
 - **Issue**: "Roll Player Character Initiative" button doesn't roll initiative for player characters
