@@ -601,18 +601,26 @@ export class TokenImageUtilities {
             
             const currentHP = actor.system?.attributes?.hp?.value || 0;
             const deathSaves = actor.system?.attributes?.death;
+            const isStable = actor.system?.attributes?.hp?.stable || false;
             
             if (currentHP <= 0 && deathSaves) {
                 const successes = deathSaves.success || 0;
                 const failures = deathSaves.failure || 0;
                 
-                // Check if they've reached 3 of either (stable or dead)
-                if (successes >= 3 || failures >= 3) {
-                    // Remove overlay - they're either stable or dead
+                // Check if they're stable (either by flag OR by 3 successes) or have 3 failures (dead)
+                const isActuallyStable = isStable || successes >= 3;
+                
+                // Debug logging
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ${actor.name} - successes: ${successes}, failures: ${failures}, isStable: ${isStable}, isActuallyStable: ${isActuallyStable}`, "", true, false);
+                
+                if (failures >= 3) {
+                    // Remove overlay - they're dead
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Removing overlay for ${actor.name} - dead`, "", true, false);
                     this._removeDeathSaveOverlay(token.id);
                 } else {
-                    // Show/update overlay
-                    this._createOrUpdateDeathSaveOverlay(token, successes, failures);
+                    // Show/update overlay (either dying or stable)
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Showing overlay for ${actor.name} - ${isActuallyStable ? 'stable' : 'dying'}`, "", true, false);
+                    this._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
                 }
             } else {
                 // Remove overlay if HP > 0
@@ -624,7 +632,7 @@ export class TokenImageUtilities {
     /**
      * Create or update death save overlay for a token
      */
-    static _createOrUpdateDeathSaveOverlay(token, successes, failures) {
+    static _createOrUpdateDeathSaveOverlay(token, successes, failures, isStable) {
         // Remove existing overlay if present
         this._removeDeathSaveOverlay(token.id);
         
@@ -654,18 +662,38 @@ export class TokenImageUtilities {
         const heartbeatMinOpacity = 0.3; // Minimum background opacity
         const heartbeatMaxOpacity = 1.0; // Maximum background opacity
         
+        // Death save state colors
+        const dyingRingColor = 0x240B0B; // Red for dying
+        const dyingBackgroundColor = 0x9B1819; // Red background for dying
+        const stableRingColor = 0x0B240B; // Green for stable
+        const stableBackgroundColor = 0x189B18; // Green background for stable
+        
         const ringRadius = Math.max(token.document.width, token.document.height) * canvas.grid.size / 2 + 15; // Ring around token
         const dotDistance = ringRadius + 0; // Distance from token center to dots
         
         // Calculate token center
         const center = this._calculateTokenCenter(token);
         
-        // Draw red ring around token
-        graphics.lineStyle(ringOutterRadius, ringColor, ringOpacity); // Red ring, 3px thick
+        // Determine death save state
+        let currentRingColor, currentBackgroundColor, shouldAnimate;
+        if (isStable) {
+            // Stable - actor.system.attributes.hp.stable = true
+            currentRingColor = stableRingColor;
+            currentBackgroundColor = stableBackgroundColor;
+            shouldAnimate = false; // No animation for stable
+        } else {
+            // Dying - still making death saves (failures >= 3 case is handled by removing overlay)
+            currentRingColor = dyingRingColor;
+            currentBackgroundColor = dyingBackgroundColor;
+            shouldAnimate = true; // Animate for dying
+        }
+        
+        // Draw ring around token
+        graphics.lineStyle(ringOutterRadius, currentRingColor, ringOpacity);
         graphics.drawCircle(center.x, center.y, ringRadius);
         
-        // Fill the center with semi-transparent red
-        graphics.beginFill(ringBackgroundColor, ringBackgroundOpacity); // Semi-transparent red fill
+        // Fill the center with semi-transparent color
+        graphics.beginFill(currentBackgroundColor, ringBackgroundOpacity);
         graphics.drawCircle(center.x, center.y, ringRadius);
         graphics.endFill();
         
@@ -715,8 +743,13 @@ export class TokenImageUtilities {
             graphics.endFill();
         }
         
-        // Add heartbeat animation to the background
+        // Add heartbeat animation to the background (only for dying state)
         const heartbeatAnimation = (delta) => {
+            // Only animate if character is dying
+            if (!shouldAnimate) {
+                return;
+            }
+            
             const time = Date.now() * heartbeatSpeed; // Use configurable speed
             // Heartbeat pattern: quick pulse, pause, quick pulse, longer pause
             let heartbeat;
@@ -740,11 +773,11 @@ export class TokenImageUtilities {
             graphics.clear();
             
             // Redraw ring
-            graphics.lineStyle(ringOutterRadius, ringColor, ringOpacity);
+            graphics.lineStyle(ringOutterRadius, currentRingColor, ringOpacity);
             graphics.drawCircle(center.x, center.y, ringRadius);
             
             // Redraw background with heartbeat animation
-            graphics.beginFill(ringBackgroundColor, ringBackgroundOpacity * heartbeat);
+            graphics.beginFill(currentBackgroundColor, ringBackgroundOpacity * heartbeat);
             graphics.drawCircle(center.x, center.y, ringRadius);
             graphics.endFill();
             
@@ -853,9 +886,13 @@ export class TokenImageUtilities {
         
         const successes = deathSaves.success || 0;
         const failures = deathSaves.failure || 0;
+        const isStable = actor.system?.attributes?.hp?.stable || false;
+        
+        // Check if they're stable (either by flag OR by 3 successes)
+        const isActuallyStable = isStable || successes >= 3;
         
         // Recreate the overlay at the new position
-        this._createOrUpdateDeathSaveOverlay(token, successes, failures);
+        this._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
     }
 
     // ================================================================== 
