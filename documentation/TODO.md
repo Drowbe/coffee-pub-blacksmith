@@ -1,42 +1,88 @@
 # TODO - Active Issues and Future Tasks
 
-## MEDIUM/LOW PRIORITY ISSUES
+## ACTIVE ISSUES
 
-### Death Token System Enhancements
-- **Issue**: Current death token system needs improvements for player characters and death saving throws
-- **Status**: ✅ COMPLETED - All items done!
-- **Priority**: MEDIUM - Enhances gameplay experience for player death mechanics
+### CRITICAL ISSUES
+- **CRITICAL** Scene navigation tab click events are not working - cannot switch scenes by clicking tabs
 
-**✅ COMPLETED:**
-  1. **Player Death Token Logic** - DONE
-     - ✅ Players keep original token at 0 HP (unconscious, not dead)
-     - ✅ Players only get "dead" token after 3 failed death saves (uses `deadTokenImagePathPC` setting)
-     - ✅ NPCs get dead token immediately at 0 HP (uses `deadTokenImagePath` setting)
-     - ✅ Monitors both HP changes and death save changes via `onActorUpdateForDeadToken`
-  2. **Secondary Death Token for Players/Friendly NPCs** - DONE
-     - ✅ Distinct PC dead token (default: `pog-round-pc.webp`) vs NPC dead token (default: `pog-round-npc.webp`)
-     - ✅ User-configurable via dropdown: "Disabled", "NPCs and PCs", "NPCs Only", "PCs Only"
-     - ✅ Settings allow full customization of death token images for each type
+### Death Save/Stable Ring Not Moving with Token
+- **Issue**: Death save overlay ring does not move smoothly with token like turn indicator and targeted rings do
+- **Status**: PENDING - Needs fix
+- **Priority**: CRITICAL - Visual bug that breaks immersion and usability
+- **Expected Behavior**: Death save/stable ring should move in real-time as token is dragged, just like turn indicator and targeted indicator rings
+- **Actual Behavior**: Ring stays in original position when token moves, only updates when token is dropped
+- **Location**: `scripts/token-image-utilities.js`
+- **Root Cause**: Death save overlay uses `_updateDeathSaveOverlayPosition()` which only triggers on `updateToken` hook (when token drop is finalized), not during drag
+- **Fix Needed**:
+  - Update `_onTokenUpdate()` to handle death save overlay position updates during token movement
+  - Ensure death save overlay updates during drag, not just on drop
+  - Follow same pattern as `_updateTurnIndicatorPosition()` and `_updateTargetedIndicatorPosition()`
+  - Use `changes.x` and `changes.y` from the hook to get new position
+- **Related Code**:
+  - `_onTokenUpdate()` - Main token update handler (line ~500-600)
+  - `_updateDeathSaveOverlayPosition()` - Currently only recreates overlay, doesn't smoothly move it
+  - `_updateTurnIndicatorPosition()` - Reference for how to do smooth position updates
+  - `_updateTargetedIndicatorPosition()` - Another reference for smooth updates
+- **Notes**: This should be a quick fix - just need to add the death save overlay position update to the existing token movement handler, similar to how turn indicator and targeted rings are handled.
 
-**✅ COMPLETED:**
-  3. **Death Saving Throw Overlay** - DONE
-     - ✅ Visual overlay shows death save status above token
-     - ✅ 3 green circles for successes (top row)
-     - ✅ 3 red circles for failures (bottom row)
-     - ✅ Circles fill in as saves are rolled
-     - ✅ Updates in real-time when actor's death saves change
-     - ✅ Automatically appears when PC hits 0 HP
-     - ✅ Automatically disappears at 3 successes (stable) or 3 failures (dead)
-     - ✅ Moves with token using PIXI.Graphics
-     - ✅ Only shows for player characters (not NPCs)
-     
-- **Location**: `scripts/token-image-utilities.js` (dead token management methods)
-- **Implementation Details**:
-  - Modified `getDeadTokenImagePath()` to use separate settings for PC vs NPC
-  - Modified `applyDeadTokenImage()` to check mode setting ('disabled', 'both', 'npcs', 'pcs')
-  - Modified `onActorUpdateForDeadToken()` to check death saves (`actor.system.attributes.death.failure >= 3`)
-  - Settings: `enableDeadTokenReplacement` (dropdown), `deadTokenImagePath` (NPC), `deadTokenImagePathPC` (PC)
-- **Notes**: Core death mechanics now work correctly for D&D 5e! PCs keep their token until actually dead.
+### Combat Tracker - Roll Player Character Initiative Not Working
+- **Issue**: "Roll Player Character Initiative" button doesn't roll initiative for player characters
+- **Status**: PENDING - Needs investigation
+- **Priority**: MEDIUM - Affects combat workflow
+- **Expected Behavior**: Should roll initiative for all player characters when clicked
+- **Actual Behavior**: Nothing happens when button is clicked
+- **Location**: Likely in `scripts/combat-tracker.js` or `scripts/combat-tools.js`
+- **Investigation Needed**:
+  - Find the button click handler for "Roll Player Character Initiative"
+  - Check if the function is being called
+  - Verify the logic for identifying player characters
+  - Verify the initiative roll is being triggered correctly
+
+### Convert Dead to Loot - Missing Token Change
+- **Issue**: When converting a dead player/NPC to loot, the token image should change (similar to dead token replacement)
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Visual consistency and clarity
+- **Expected Behavior**: When "Convert to Loot" is triggered, token should change to a loot-appropriate image (chest, bag, corpse pile, etc.)
+- **Actual Behavior**: Token remains as the dead token (or original token if not using dead tokens)
+- **Location**: Likely in the same area as dead token logic - `scripts/token-image-utilities.js`
+- **Implementation Plan**:
+  - Find where "Convert Dead to Loot" functionality is triggered
+  - Add token image replacement similar to `applyDeadTokenImage()`
+  - Create new setting: `lootTokenImagePath` (default: some loot icon/chest image)
+  - Store original/previous image for potential restoration
+  - Apply loot token when conversion happens
+- **Related Files**: 
+  - `scripts/token-image-utilities.js` (dead token management)
+  - Search for loot conversion logic in codebase
+- **Notes**: Should follow same pattern as dead token replacement for consistency
+
+### Combat Stats - Review and Refactor
+- **Issue**: Combat stats system needs review and potential refactoring
+- **Status**: PENDING - Needs investigation and planning
+- **Priority**: MEDIUM - Code quality and maintainability
+- **Current State**: Combat stats functionality exists but may need cleanup/optimization
+- **Location**: `scripts/stats-combat.js`, potentially `scripts/stats-player.js`
+- **Investigation Needed**:
+  - Review current combat stats implementation
+  - Identify what stats are being tracked and how
+  - Check for unused code or duplicate logic
+  - Verify stats are being stored/retrieved correctly
+  - Check for performance issues
+  - Review UI/UX for displaying stats
+- **Potential Issues to Look For**:
+  - Redundant or unused stat tracking
+  - Inefficient data storage
+  - Missing or incomplete stat categories
+  - Poor separation of concerns
+  - Memory leaks or performance bottlenecks
+  - Unclear or confusing UI
+- **Refactoring Goals**:
+  - Clean, maintainable code
+  - Efficient stat tracking and storage
+  - Clear separation between tracking logic and display logic
+  - Good performance even with many combats
+  - Useful and actionable stats for GMs/players
+- **Notes**: This is a code quality task - review first, then create specific refactoring plan
 
 ## DEFERRED TASKS
 
@@ -84,6 +130,158 @@
   ```
 
 ## FUTURE PHASES
+
+### Auto-Roll Injury Based on Rules
+- **Issue**: Automatically roll for injuries when certain conditions are met
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement for injury system
+- **Description**: Automatically trigger injury rolls based on configurable rules/conditions
+- **Requirements**:
+  1. **Trigger Conditions**:
+     - HP drops below threshold (e.g., 0 HP, negative HP, below 50%)
+     - Critical hit received
+     - Massive damage (e.g., single hit > half max HP)
+     - Failed death saving throw
+     - Specific damage types (fire, necrotic, etc.)
+     - Fall damage above threshold
+     - Custom conditions (via settings)
+  2. **Injury Table Integration**:
+     - Use existing injury compendium/tables
+     - Support multiple injury severity levels (minor, major, critical)
+     - Roll on appropriate table based on trigger condition
+     - Apply injury to actor automatically
+  3. **Rule Configuration**:
+     - Enable/disable auto-roll globally
+     - Configure which conditions trigger injury rolls
+     - Set thresholds (HP %, damage amount, etc.)
+     - Choose which injury tables to use
+     - Option to prompt GM for confirmation vs auto-apply
+  4. **Player/NPC Distinction**:
+     - Apply to PCs only, NPCs only, or both
+     - Different rules for each (e.g., PCs get injuries, NPCs don't)
+     - Configurable per actor type
+  5. **Notifications & UI**:
+     - Chat message when injury is rolled
+     - Show injury description/effects
+     - Optional sound effect
+     - Visual indicator on token (icon, overlay, etc.)
+  6. **Settings**:
+     - Toggle to enable/disable auto-injury system
+     - Configure trigger conditions and thresholds
+     - Choose injury tables per severity level
+     - Apply to PCs/NPCs/both
+     - Confirmation mode (auto vs prompt)
+- **Location**: `scripts/token-image-utilities.js` or new `scripts/injury-manager.js`
+- **Related Files**: 
+  - `packs/blacksmith-injuries` (injury compendium)
+  - Hook into `updateActor` for HP changes
+  - Hook into combat damage for critical hits
+- **Technical Considerations**:
+  - Monitor `updateActor` hook for HP/death save changes
+  - Calculate damage taken (compare old HP to new HP)
+  - Detect critical hits and damage types
+  - Roll on RollTable and parse results
+  - Apply injury effects to actor
+  - Handle edge cases (temp HP, healing, resistance/immunity)
+- **Injury Rules to Support**:
+  - D&D 5e variant rules (DMG p.272 - Lingering Injuries)
+  - Critical hit injuries
+  - Massive damage injuries
+  - Death save failure injuries
+  - Custom homebrew rules
+- **Benefits**: 
+  - Automated injury tracking
+  - Consistent application of injury rules
+  - Adds consequences to combat damage
+  - Enhances gritty/realistic campaigns
+- **Challenges**: 
+  - Determining appropriate injury severity
+  - Balancing automation vs GM control
+  - Handling multiple simultaneous triggers
+  - Preventing injury spam
+  - Managing injury effects/conditions in Foundry
+- **Integration with Existing Features**:
+  - Works with dead token replacement
+  - Works with death save overlay
+  - Could trigger special token changes for severely injured characters
+- **Notes**: Should be fully opt-in with clear warnings about game balance impact. GMs should have full control over when/how injuries are applied.
+
+### Token Movement Sounds
+- **Issue**: Add audio feedback when tokens are moved on the canvas
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Nice-to-have feature for immersion
+- **Description**: Play contextual sounds when tokens move (footsteps, flying, swimming, etc.)
+- **Requirements**:
+  1. **Sound Selection**:
+     - Default movement sound (footsteps, generic movement)
+     - Contextual sounds based on token type or terrain
+     - Potentially different sounds for: walking, running, flying, swimming, sneaking
+     - User-configurable sound library
+  2. **Trigger Logic**:
+     - Detect token movement via `updateToken` hook
+     - Calculate distance moved to determine if sound should play
+     - Respect minimum movement threshold (avoid sounds for tiny adjustments)
+     - Consider movement speed (walk vs run vs teleport)
+  3. **Sound Management**:
+     - Volume control (separate from Foundry's ambient sound volume)
+     - Enable/disable toggle
+     - Per-token sound override (dragon has wing flaps, ghost is silent, etc.)
+     - Prevent sound spam (cooldown between plays)
+  4. **Settings**:
+     - Toggle to enable/disable movement sounds
+     - Volume slider
+     - Minimum movement distance threshold
+     - Sound selection per movement type
+     - Per-token sound overrides
+- **Location**: `scripts/token-movement.js` or `scripts/token-handler.js`
+- **Technical Considerations**:
+  - Use Foundry's `AudioHelper.play()` for sound playback
+  - Manage sound instances to prevent overlapping/spam
+  - Consider performance with many simultaneous movements
+  - Handle muted/GM-only movements appropriately
+- **Sound Resources Needed**:
+  - Footsteps (various surfaces: stone, wood, grass, water)
+  - Flying (wing flaps, magical hover)
+  - Swimming/water movement
+  - Sneaking/quiet movement
+  - Teleportation/magical movement
+- **Benefits**: Enhanced immersion, better audio feedback, more tactile feel to token movement
+- **Challenges**: 
+  - Finding/creating appropriate sound assets
+  - Balancing sound frequency (avoiding annoyance)
+  - Performance with many tokens moving simultaneously
+  - Handling edge cases (token dragged vs programmatically moved)
+- **Notes**: Should be subtle and non-intrusive by default. Consider limiting to GM-controlled tokens only as an option.
+
+### No Initiative Mode
+- **Issue**: Alternative combat mode where GM manually controls turn order instead of initiative rolls
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement for narrative-focused games
+- **Description**: A theater-of-the-mind friendly combat mode that removes initiative rolling
+- **Requirements**:
+  1. **Auto-Group Combatants**:
+     - Players grouped first (in party order or alphabetical)
+     - Monsters/NPCs grouped second (in alphabetical order or GM-defined order)
+     - Initiative values auto-assigned to maintain group order (e.g., Players: 20-19-18..., NPCs: 10-9-8...)
+  2. **Manual Turn Control**:
+     - GM uses existing "Set As Current Combatant" button to advance turns
+     - No automatic turn advancement based on initiative
+     - GM decides who acts next within each group
+  3. **Turn Tracking Visual**:
+     - Need visual indicator to show which combatants have already acted this round
+     - Could use: token overlay, combat tracker icon, dimming/graying, checkmark, etc.
+     - Should reset when round advances
+  4. **Settings**:
+     - Toggle to enable/disable "No Initiative Mode"
+     - Option to choose grouping method (party order, alphabetical, custom)
+     - Option to choose turn indicator style
+- **Location**: `scripts/combat-tracker.js`, `scripts/combat-tools.js`
+- **Benefits**: Faster combat setup, more narrative control, better for new players unfamiliar with initiative
+- **Challenges**: 
+  - Finding good visual indicator for "has acted" that doesn't conflict with other UI elements
+  - Ensuring compatibility with existing combat features (timers, turn indicator rings, etc.)
+  - Deciding how to handle turn advancement (auto-advance vs manual only)
+- **Notes**: This would be a significant UX change requiring careful design and testing
 
 ### CODEX-AI Integration
 - [ ] **FUTURE**: Integrate CODEX system with AI API for cost-efficient context management

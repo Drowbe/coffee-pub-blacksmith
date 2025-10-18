@@ -638,11 +638,11 @@ export class TokenImageUtilities {
         
         const graphics = new PIXI.Graphics();
         // Configuration
-        const ringOutterRadius = 15;
+        const ringOutterRadius = 8;
         const ringOpacity = 0.4;
         const ringBackgroundOpacity = 0.4;
-        const dotRadius = 4; // Dot radius
-        const dotSpacingNumSegments = 12
+        const dotRadius = 2; // Dot radius
+        const dotSpacingNumSegments = 18;
         const dotColorBorder = 0xFBF8DA;
         const dotBorderThickness = 1;
         const dotBorderOpacity = 0.7;
@@ -666,7 +666,7 @@ export class TokenImageUtilities {
         const stableRingColor = 0x0B240B; // Green for stable
         const stableBackgroundColor = 0x189B18; // Green background for stable
         
-        const ringRadius = Math.max(token.document.width, token.document.height) * canvas.grid.size / 2 + 15; // Ring around token
+        const ringRadius = Math.max(token.document.width, token.document.height) * canvas.grid.size / 2 + ringOutterRadius; // Ring around token
         const dotDistance = ringRadius + 0; // Distance from token center to dots
         
         // Calculate token center
