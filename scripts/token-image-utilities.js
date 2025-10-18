@@ -629,51 +629,177 @@ export class TokenImageUtilities {
         this._removeDeathSaveOverlay(token.id);
         
         const graphics = new PIXI.Graphics();
-        
         // Configuration
-        const radius = 8; // Circle radius
-        const spacing = 20; // Space between circles
-        const rowSpacing = 25; // Space between rows
-        const offsetY = -80; // Position above token (further up to be visible)
+        const ringOutterRadius = 15;
+        const ringColor = 0x240B0B; 
+        const ringOpacity = 0.5;
+        const ringBackgroundColor = 0x9B1819;
+        const ringBackgroundOpacity = 0.4;
+        const dotRadius = 4; // Dot radius
+        const dotSpacingNumSegments = 12
+        const dotColorBorder = 0xFBF8DA;
+        const dotBorderThickness = 1;
+        const dotBorderOpacity = 0.7;
+        const dotColorSuccess = 0x03C602;
+        const dotColorFailure = 0xCB1B1C;
+        const dotColorEmpty = 0xFBF8DA;
+        const dotColorOpacity = 0.7;
+        
+        // Animation settings
+        const heartbeatSpeed = 0.003; // Animation speed multiplier (lower = slower)
+        const heartbeatCycleDuration = 10; // Total cycle duration in seconds
+        const heartbeatFirstPulseDuration = 0.9; // First pulse duration
+        const heartbeatSecondPulseDuration = 0.9; // Second pulse duration
+        const heartbeatRestDuration = heartbeatCycleDuration - heartbeatFirstPulseDuration - heartbeatSecondPulseDuration; // Rest duration
+        const heartbeatMinOpacity = 0.3; // Minimum background opacity
+        const heartbeatMaxOpacity = 1.0; // Maximum background opacity
+        
+        const ringRadius = Math.max(token.document.width, token.document.height) * canvas.grid.size / 2 + 15; // Ring around token
+        const dotDistance = ringRadius + 0; // Distance from token center to dots
         
         // Calculate token center
         const center = this._calculateTokenCenter(token);
         
-        // Starting position (centered above token)
-        const startX = center.x - (spacing * 1); // Center of 3 circles
-        const startY = center.y + offsetY;
+        // Draw red ring around token
+        graphics.lineStyle(ringOutterRadius, ringColor, ringOpacity); // Red ring, 3px thick
+        graphics.drawCircle(center.x, center.y, ringRadius);
         
-        // Draw success circles (green) - top row
+        // Fill the center with semi-transparent red
+        graphics.beginFill(ringBackgroundColor, ringBackgroundOpacity); // Semi-transparent red fill
+        graphics.drawCircle(center.x, center.y, ringRadius);
+        graphics.endFill();
+        
+        // Draw success dots (top half of ring) - center dot at top, others on sides
         for (let i = 0; i < 3; i++) {
-            const x = startX + (i * spacing);
-            const y = startY;
-            const filled = i < successes;
-            
-            graphics.lineStyle(2, 0x00FF00, 1); // Green border
-            if (filled) {
-                graphics.beginFill(0x00FF00, 0.9); // Green fill
+            let angle;
+            if (i === 0) {
+                angle = Math.PI / 2; // 90° - directly at top
+            } else if (i === 1) {
+                angle = Math.PI / 2 + Math.PI / dotSpacingNumSegments; // 120° - top right
             } else {
-                graphics.beginFill(0x000000, 0.3); // Dark semi-transparent
+                angle = Math.PI / 2 - Math.PI / dotSpacingNumSegments; // 60° - top left
             }
-            graphics.drawCircle(x, y, radius);
+            const dotX = center.x + Math.cos(angle) * dotDistance;
+            const dotY = center.y + Math.sin(angle) * dotDistance;
+            
+            graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity); 
+            if (i < successes) {
+                graphics.beginFill(dotColorSuccess, dotColorOpacity);
+            } else {
+                graphics.beginFill(dotColorEmpty, dotColorOpacity); 
+            }
+            graphics.drawCircle(dotX, dotY, dotRadius);
             graphics.endFill();
         }
         
-        // Draw failure circles (red) - bottom row
+        // Draw failure dots (bottom half of ring) - center dot at bottom, others on sides
         for (let i = 0; i < 3; i++) {
-            const x = startX + (i * spacing);
-            const y = startY + rowSpacing;
-            const filled = i < failures;
-            
-            graphics.lineStyle(2, 0xFF0000, 1); // Red border
-            if (filled) {
-                graphics.beginFill(0xFF0000, 0.9); // Red fill
+            let angle;
+            if (i === 0) {
+                angle = Math.PI / 2 + Math.PI; // 270° - directly at bottom
+            } else if (i === 1) {
+                angle = Math.PI / 2 + Math.PI + Math.PI / dotSpacingNumSegments; // 300° - bottom right
             } else {
-                graphics.beginFill(0x000000, 0.3); // Dark semi-transparent
+                angle = Math.PI / 2 + Math.PI - Math.PI / dotSpacingNumSegments; // 240° - bottom left
             }
-            graphics.drawCircle(x, y, radius);
+            const dotX = center.x + Math.cos(angle) * dotDistance;
+            const dotY = center.y + Math.sin(angle) * dotDistance;
+            
+            graphics.lineStyle(dotBorderThickness, dotColorBorder, 1);
+            if (i < failures) {
+                graphics.beginFill(dotColorFailure, dotColorOpacity);
+            } else {
+                graphics.beginFill(dotColorEmpty, dotColorOpacity);
+            }
+            graphics.drawCircle(dotX, dotY, dotRadius);
             graphics.endFill();
         }
+        
+        // Add heartbeat animation to the background
+        const heartbeatAnimation = (delta) => {
+            const time = Date.now() * heartbeatSpeed; // Use configurable speed
+            // Heartbeat pattern: quick pulse, pause, quick pulse, longer pause
+            let heartbeat;
+            const cycle = time % heartbeatCycleDuration; // Use configurable cycle duration
+            if (cycle < heartbeatFirstPulseDuration) {
+                // First quick pulse
+                heartbeat = heartbeatMinOpacity + (heartbeatMaxOpacity - heartbeatMinOpacity) * Math.sin(cycle * Math.PI / heartbeatFirstPulseDuration);
+            } else if (cycle < heartbeatFirstPulseDuration + heartbeatSecondPulseDuration) {
+                // Second quick pulse
+                const pulseTime = (cycle - heartbeatFirstPulseDuration) / heartbeatSecondPulseDuration;
+                heartbeat = heartbeatMinOpacity + (heartbeatMaxOpacity - heartbeatMinOpacity) * Math.sin(pulseTime * Math.PI);
+            } else if (cycle < heartbeatFirstPulseDuration + heartbeatSecondPulseDuration + heartbeatRestDuration) {
+                // Rest period
+                heartbeat = heartbeatMinOpacity;
+            } else {
+                // Should never reach here, but fallback to rest
+                heartbeat = heartbeatMinOpacity;
+            }
+            
+            // Clear and redraw with animated background opacity
+            graphics.clear();
+            
+            // Redraw ring
+            graphics.lineStyle(ringOutterRadius, ringColor, ringOpacity);
+            graphics.drawCircle(center.x, center.y, ringRadius);
+            
+            // Redraw background with heartbeat animation
+            graphics.beginFill(ringBackgroundColor, ringBackgroundOpacity * heartbeat);
+            graphics.drawCircle(center.x, center.y, ringRadius);
+            graphics.endFill();
+            
+            // Redraw success dots
+            for (let i = 0; i < 3; i++) {
+                let angle;
+                if (i === 0) {
+                    angle = Math.PI / 2; // 90° - directly at top
+                } else if (i === 1) {
+                    angle = Math.PI / 2 + Math.PI / dotSpacingNumSegments; // 120° - top right
+                } else {
+                    angle = Math.PI / 2 - Math.PI / dotSpacingNumSegments; // 60° - top left
+                }
+                const dotX = center.x + Math.cos(angle) * dotDistance;
+                const dotY = center.y + Math.sin(angle) * dotDistance;
+                
+                graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity); 
+                if (i < successes) {
+                    graphics.beginFill(dotColorSuccess, dotColorOpacity);
+                } else {
+                    graphics.beginFill(dotColorEmpty, dotColorOpacity); 
+                }
+                graphics.drawCircle(dotX, dotY, dotRadius);
+                graphics.endFill();
+            }
+            
+            // Redraw failure dots
+            for (let i = 0; i < 3; i++) {
+                let angle;
+                if (i === 0) {
+                    angle = Math.PI / 2 + Math.PI; // 270° - directly at bottom
+                } else if (i === 1) {
+                    angle = Math.PI / 2 + Math.PI + Math.PI / dotSpacingNumSegments; // 300° - bottom right
+                } else {
+                    angle = Math.PI / 2 + Math.PI - Math.PI / dotSpacingNumSegments; // 240° - bottom left
+                }
+                const dotX = center.x + Math.cos(angle) * dotDistance;
+                const dotY = center.y + Math.sin(angle) * dotDistance;
+                
+                graphics.lineStyle(dotBorderThickness, dotColorBorder, dotBorderOpacity);
+                if (i < failures) {
+                    graphics.beginFill(dotColorFailure, dotColorOpacity);
+                } else {
+                    graphics.beginFill(dotColorEmpty, dotColorOpacity);
+                }
+                graphics.drawCircle(dotX, dotY, dotRadius);
+                graphics.endFill();
+            }
+        };
+        
+        // Start the heartbeat animation
+        canvas.app.ticker.add(heartbeatAnimation);
+        
+        // Store animation reference for cleanup
+        graphics._heartbeatAnimation = heartbeatAnimation;
         
         // Add to canvas
         canvas.interface.addChild(graphics);
@@ -686,6 +812,11 @@ export class TokenImageUtilities {
     static _removeDeathSaveOverlay(tokenId) {
         const graphics = this._deathSaveOverlays.get(tokenId);
         if (graphics) {
+            // Remove heartbeat animation if it exists
+            if (graphics._heartbeatAnimation) {
+                canvas.app.ticker.remove(graphics._heartbeatAnimation);
+            }
+            
             canvas.interface.removeChild(graphics);
             graphics.destroy();
             this._deathSaveOverlays.delete(tokenId);
