@@ -539,8 +539,8 @@ export class CanvasTools {
                 }
             });
             
-            // Update the image
-            await TokenImageUtilities.applyLootTokenImage(token.document);
+            // Update the image using unified function
+            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
             
             // Apply TokenFX if available
             if (game.modules.get("tokenmagic")?.active) {

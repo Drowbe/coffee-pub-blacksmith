@@ -445,13 +445,39 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Store the current image once (with flag to prevent overwrites)
+     * Unified token image management - based on working dead token code
      * @param {TokenDocument} tokenDocument - The token document
+     * @param {string} mode - 'dead', 'loot', or 'restore'
+     * @param {object} options - Additional options (actor, isPlayerCharacter)
      */
-    static async storeCurrentImageOnce(tokenDocument) {
+    static async updateTokenImage(tokenDocument, mode, options = {}) {
         if (!tokenDocument) return;
         
-        // Only store if not already stored
+        // RESTORE MODE
+        if (mode === 'restore') {
+            const currentImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
+            if (currentImage) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE update - current texture: ${tokenDocument.texture.src}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Attempting to restore to: ${currentImage}`, "", true, false);
+                
+                try {
+                    await tokenDocument.update({ 'texture.src': currentImage });
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
+                    
+                    // Clear all flags
+                    await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
+                    await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
+                    await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
+                    await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR restoring image: ${error.message}`, "", true, false);
+                }
+            }
+            return;
+        }
+        
+        // STORE CURRENT IMAGE (only once)
         const alreadyStored = tokenDocument.getFlag(MODULE.ID, 'currentImageStored');
         if (!alreadyStored) {
             const currentImage = tokenDocument.texture.src;
@@ -459,50 +485,61 @@ export class TokenImageUtilities {
             await tokenDocument.setFlag(MODULE.ID, 'currentImageStored', true);
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}: ${currentImage}`, "", true, false);
         }
-    }
-
-    /**
-     * Restore the current image and clear all flags
-     * @param {TokenDocument} tokenDocument - The token document
-     */
-    static async restoreCurrentImage(tokenDocument) {
-        if (!tokenDocument) return;
         
-        const currentImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
-        if (currentImage) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE update - current texture: ${tokenDocument.texture.src}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Attempting to restore to: ${currentImage}`, "", true, false);
+        // DEAD MODE
+        if (mode === 'dead') {
+            const isPlayerCharacter = options.isPlayerCharacter || false;
+            
+            // Check if dead token is already applied
+            const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
+            if (isDeadTokenApplied) {
+                return; // Already showing dead token
+            }
+            
+            // Get the appropriate token image path
+            const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter);
+            
+            if (deadTokenPath) {
+                try {
+                    await tokenDocument.update({ 'texture.src': deadTokenPath });
+                    await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
+                    await tokenDocument.setFlag(MODULE.ID, 'imageState', 'dead');
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied dead token to ${tokenDocument.name}`, "", true, false);
+                    
+                    // Play death sound based on character type
+                    const soundSetting = isPlayerCharacter ? 'deadTokenSoundPC' : 'deadTokenSoundNPC';
+                    const sound = getSettingSafely(MODULE.ID, soundSetting, 'none');
+                    if (sound && sound !== 'none') {
+                        await playSound(sound, 0.7, false, true);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying dead token: ${error.message}`, "", true, false);
+                }
+            }
+        }
+        
+        // LOOT MODE
+        if (mode === 'loot') {
+            const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
             
             try {
-                await tokenDocument.update({ 'texture.src': currentImage });
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
-                
-                // Clear all flags
-                await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
-                await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
-                await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
-                await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied'); // legacy cleanup
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+                await tokenDocument.update({ 'texture.src': lootImagePath });
+                await tokenDocument.setFlag(MODULE.ID, 'imageState', 'loot');
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied loot token to ${tokenDocument.name}`, "", true, false);
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR restoring image: ${error.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying loot token: ${error.message}`, "", true, false);
             }
         }
     }
 
     /**
-     * Apply dead token image to a token (simplified - no HP monitoring)
+     * Apply dead token image - wrapper for creature type filtering
      * @param {TokenDocument} tokenDocument - The token document
      * @param {Actor} actor - The actor
      */
     static async applyDeadTokenImage(tokenDocument, actor) {
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
-        
-        // Check if dead token is already applied
-        const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
-        if (isDeadTokenApplied) {
-            return; // Already showing dead token
-        }
         
         // Check creature type filter (skip for player characters)
         if (!isPlayerCharacter) {
@@ -512,56 +549,14 @@ export class TokenImageUtilities {
             if (allowedTypes && allowedTypes.trim() !== '') {
                 const types = allowedTypes.split(',').map(t => t.trim().toLowerCase());
                 if (!types.includes(creatureType)) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping dead token for ${tokenDocument.name} - creature type ${creatureType} not in filter`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Skipping dead token for ${tokenDocument.name} - creature type ${creatureType} not in filter`, "", true, false);
                     return;
                 }
             }
         }
         
-        // Get the appropriate token image path
-        const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter);
-        
-        if (deadTokenPath) {
-            try {
-                await tokenDocument.update({ 'texture.src': deadTokenPath });
-                await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
-                await tokenDocument.setFlag(MODULE.ID, 'imageState', 'dead');
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied dead token to ${tokenDocument.name}`, "", true, false);
-                
-                // Play death sound based on character type
-                const soundSetting = isPlayerCharacter ? 'deadTokenSoundPC' : 'deadTokenSoundNPC';
-                const sound = getSettingSafely(MODULE.ID, soundSetting, 'none');
-                if (sound && sound !== 'none') {
-                    await playSound(sound, 0.7, false, true);
-                }
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying dead token: ${error.message}`, "", true, false);
-            }
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Dead token image path not configured for ${tokenDocument.name}`, "", true, false);
-        }
-    }
-
-    /**
-     * Apply loot token image to a token
-     * @param {TokenDocument} tokenDocument - The token document
-     */
-    static async applyLootTokenImage(tokenDocument) {
-        if (!tokenDocument) return;
-        
-        // Store current image before applying loot token (only once)
-        await TokenImageUtilities.storeCurrentImageOnce(tokenDocument);
-        
-        // Get loot image path
-        const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
-        
-        try {
-            await tokenDocument.update({ 'texture.src': lootImagePath });
-            await tokenDocument.setFlag(MODULE.ID, 'imageState', 'loot');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied loot token to ${tokenDocument.name}`, "", true, false);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying loot token: ${error.message}`, "", true, false);
-        }
+        // Use unified function
+        await TokenImageUtilities.updateTokenImage(tokenDocument, 'dead', { isPlayerCharacter });
     }
 
     /**
@@ -596,10 +591,7 @@ export class TokenImageUtilities {
         
         for (const token of tokens) {
             if (currentHP <= 0) {
-                // Token at 0 HP or below - store current image and apply appropriate state
-                await TokenImageUtilities.storeCurrentImageOnce(token.document);
-                
-                // Check dead token settings
+                // Token at 0 HP or below - check dead token settings
                 const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
                 if (deadTokenMode !== 'disabled') {
                     // For player characters, check death saves
@@ -638,9 +630,9 @@ export class TokenImageUtilities {
                         }
                     }
                     
-                    // Restore the current image
+                    // Restore the current image using unified function
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: About to restore current image for ${token.name}, imageState: ${imageState}`, "", true, false);
-                    await TokenImageUtilities.restoreCurrentImage(token.document);
+                    await TokenImageUtilities.updateTokenImage(token.document, 'restore');
                 }
             }
         }
