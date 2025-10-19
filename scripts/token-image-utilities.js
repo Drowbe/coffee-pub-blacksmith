@@ -560,6 +560,101 @@ export class TokenImageUtilities {
     }
 
     /**
+     * Convert token to loot pile (moved from manager-canvas.js)
+     */
+    static async _convertTokenToLoot(token) {
+        try {
+            // Check if user has permission to update tokens
+            if (!game.user.isGM) {
+                postConsoleAndNotification(MODULE.NAME, "Only Game Masters can convert tokens to loot.", "", true, false);
+                return;
+            }
+            
+            // Import CanvasTools for helper functions
+            const { CanvasTools } = await import('./manager-canvas.js');
+            
+            // Add loot from tables if configured
+            const tables = [
+                {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
+                {setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount'},
+                {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
+            ];
+            
+            // Roll loot from each configured table
+            for (const table of tables) {
+                const tableName = game.settings.get(MODULE.ID, table.setting);
+                if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
+                    const amount = game.settings.get(MODULE.ID, table.amount);
+                    if (amount > 0) {
+                        await CanvasTools._rollLootTable(tableName, amount, token.actor);
+                    }
+                }
+            }
+            
+            // Add random coins
+            await CanvasTools._addRandomCoins(token.actor);
+
+            // Set up proper permissions before converting to item pile
+            const updates = {
+                "permission.default": CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED,
+                "flags.item-piles": {
+                    "enabled": true,
+                    "interactable": true,
+                    "lootable": true
+                }
+            };
+            
+            // Update token permissions
+            await token.document.update(updates);
+            
+            // Convert to item pile with proper configuration
+            await game.itempiles.API.turnTokensIntoItemPiles([token], {
+                pileSettings: {
+                    enabled: true,
+                    interactable: true,
+                    lootable: true,
+                    closed: false,
+                    shareItemsWithPlayers: true,
+                    displayOne: false
+                }
+            });
+            
+            // Update the image using unified function
+            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+            
+            // Apply TokenFX if available
+            if (game.modules.get("tokenmagic")?.active) {
+                await CanvasTools._applyTokenEffect(token);
+            }
+            
+            // Play sound
+            const sound = game.settings.get(MODULE.ID, 'tokenLootSound');
+            if (sound) {
+                AudioHelper.play({src: sound, volume: 0.5, autoplay: true, loop: false}, true);
+            }
+            
+            // Send chat message if enabled
+            if (game.settings.get(MODULE.ID, 'tokenLootChatMessage')) {
+                const messageData = {
+                    isPublic: true,
+                    theme: 'default',
+                    isLootDrop: true,
+                    tokenName: token.name
+                };
+
+                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
+
+                await ChatMessage.create({
+                    content: messageHtml,
+                    speaker: ChatMessage.getSpeaker()
+                });
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Error converting token to loot: ${error.message}`, "", true, false);
+        }
+    }
+
+    /**
      * Centralized HP monitoring function - handles all HP-related state changes
      */
     static async onActorHPChange(actor, changes, options, userId) {
@@ -614,6 +709,22 @@ export class TokenImageUtilities {
                         // NPC at 0 HP - apply dead token immediately
                         await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
                     }
+                }
+                
+                // Check if loot conversion is enabled (NPCs only)
+                if (!isPlayerCharacter && getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false)) {
+                    // Schedule loot conversion after delay
+                    const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
+                    setTimeout(async () => {
+                        // Re-check HP to ensure token is still dead
+                        const currentActor = game.actors.get(actor.id);
+                        if (currentActor && currentActor.system.attributes.hp.value <= 0) {
+                            const lootToken = canvas.tokens.placeables.find(t => t.actor?.id === actor.id);
+                            if (lootToken) {
+                                await TokenImageUtilities._convertTokenToLoot(lootToken);
+                            }
+                        }
+                    }, delay);
                 }
             } else {
                 // Token was revived (HP > 0) - restore current image if any state was applied
