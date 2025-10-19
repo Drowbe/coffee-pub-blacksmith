@@ -9,6 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { TokenImageUtilities } from './token-image-utilities.js';
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================
@@ -539,8 +540,7 @@ export class CanvasTools {
             });
             
             // Update the image
-            const newImage = game.settings.get(MODULE.ID, 'tokenLootPileImage');
-            await token.document.update({img: newImage});
+            await TokenImageUtilities.applyLootTokenImage(token.document);
             
             // Apply TokenFX if available
             if (game.modules.get("tokenmagic")?.active) {
