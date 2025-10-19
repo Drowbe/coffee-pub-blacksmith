@@ -445,46 +445,38 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Store the current (selected) image before applying temporary states
+     * Store the current image once (with flag to prevent overwrites)
      * @param {TokenDocument} tokenDocument - The token document
      */
-    static async storeCurrentImage(tokenDocument) {
+    static async storeCurrentImageOnce(tokenDocument) {
         if (!tokenDocument) return;
         
-        const currentImage = tokenDocument.texture.src;
-        await tokenDocument.setFlag(MODULE.ID, 'currentImage', currentImage);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}`, "", true, false);
+        // Only store if not already stored
+        const alreadyStored = tokenDocument.getFlag(MODULE.ID, 'currentImageStored');
+        if (!alreadyStored) {
+            const currentImage = tokenDocument.texture.src;
+            await tokenDocument.setFlag(MODULE.ID, 'currentImage', currentImage);
+            await tokenDocument.setFlag(MODULE.ID, 'currentImageStored', true);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}: ${currentImage}`, "", true, false);
+        }
     }
 
     /**
-     * Get the stored current (selected) image
-     * @param {TokenDocument} tokenDocument - The token document
-     * @returns {string|null} The current image path
-     */
-    static getCurrentImage(tokenDocument) {
-        if (!tokenDocument) return null;
-        return tokenDocument.getFlag(MODULE.ID, 'currentImage');
-    }
-
-    /**
-     * Restore the token to its current (selected) image
+     * Restore the current image and clear all flags
      * @param {TokenDocument} tokenDocument - The token document
      */
     static async restoreCurrentImage(tokenDocument) {
         if (!tokenDocument) return;
         
-        const currentImage = this.getCurrentImage(tokenDocument);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: restoreCurrentImage called for ${tokenDocument.name}, currentImage: ${currentImage}`, "", true, false);
-        
+        const currentImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
         if (currentImage) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Updating texture.src to: ${currentImage}`, "", true, false);
             await tokenDocument.update({ 'texture.src': currentImage });
+            // Clear all flags
             await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
+            await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
             await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
             await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied'); // legacy cleanup
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name}`, "", true, false);
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: No current image stored for ${tokenDocument.name}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
         }
     }
 
@@ -531,8 +523,8 @@ export class TokenImageUtilities {
             }
         }
         
-        // Store current image before applying dead token
-        await TokenImageUtilities.storeCurrentImage(tokenDocument);
+        // Store current image before applying dead token (only once)
+        await TokenImageUtilities.storeCurrentImageOnce(tokenDocument);
         
         // Get the appropriate token image path
         const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter);
@@ -565,11 +557,8 @@ export class TokenImageUtilities {
     static async applyLootTokenImage(tokenDocument) {
         if (!tokenDocument) return;
         
-        // Store current image before applying loot token (if not already stored)
-        const currentImage = this.getCurrentImage(tokenDocument);
-        if (!currentImage) {
-            await TokenImageUtilities.storeCurrentImage(tokenDocument);
-        }
+        // Store current image before applying loot token (only once)
+        await TokenImageUtilities.storeCurrentImageOnce(tokenDocument);
         
         // Get loot image path
         const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
