@@ -723,7 +723,7 @@ export class ImageCacheManager {
             description: 'Token Image Replacement: Monitor actor HP changes for dead token replacement',
             context: 'token-image-replacement-dead-tokens',
             priority: 3, // Normal priority - token processing
-            callback: TokenImageUtilities.onActorUpdateForDeadToken
+            callback: TokenImageUtilities.onActorHPChange
         });
 
         // Log hook registration

@@ -1992,6 +1992,94 @@ export const registerSettings = async () => {
 
 
 
+	// DEAD TOKEN REPLACEMENT
+
+	
+	// Enable Dead Token Replacement
+	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
+		name: 'Enable Dead Token Replacement',
+		hint: 'Choose which types of tokens should automatically change to "dead" versions when they reach 0 HP (NPCs die immediately, PCs die after 3 failed death saves)',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'disabled': 'Disabled',
+			'both': 'NPCs and PCs',
+			'npcs': 'NPCs Only',
+			'pcs': 'PCs Only'
+		},
+		default: 'disabled',
+		requiresReload: false
+	});
+
+	// Dead Token Image Path (NPC/Monster)
+	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
+		name: 'Dead Token Image Path (NPC)',
+		hint: 'Full path to dead token image for NPCs/Monsters (applied immediately at 0 HP)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundNPC', {
+		name: "Dead NPC Sound",
+		hint: "Sound to play when an NPC dies.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
+	// Dead Token Image Path (Player Character)
+	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
+		name: 'Dead Token Image Path (PC)',
+		hint: 'Full path to dead token image for Player Characters (applied after 3 failed death saves)',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
+		requiresReload: false
+	});
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundPC', {
+		name: "Dead PC Sound",
+		hint: "Sound to play when an Player Character dies.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
+	// Dead Token Creature Type Filter
+	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
+		name: 'Dead Token Creature Types (NPC)',
+		hint: 'Comma-separated creature types to apply dead tokens to for NPCs (leave empty for all). Example: humanoid,beast,dragon',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: false
+	});
+
+
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundStable', {
+		name: "Stable PC Sound",
+		hint: "Sound to play when an Player Character becomes stable.",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
 
 
 
@@ -2149,94 +2237,6 @@ export const registerSettings = async () => {
 
 
 
-
-	// DEAD TOKEN REPLACEMENT
-
-	
-	// Enable Dead Token Replacement
-	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
-		name: 'Enable Dead Token Replacement',
-		hint: 'Choose which types of tokens should automatically change to "dead" versions when they reach 0 HP (NPCs die immediately, PCs die after 3 failed death saves)',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'disabled': 'Disabled',
-			'both': 'NPCs and PCs',
-			'npcs': 'NPCs Only',
-			'pcs': 'PCs Only'
-		},
-		default: 'disabled',
-		requiresReload: false
-	});
-
-	// Dead Token Image Path (NPC/Monster)
-	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
-		name: 'Dead Token Image Path (NPC)',
-		hint: 'Full path to dead token image for NPCs/Monsters (applied immediately at 0 HP)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundNPC', {
-		name: "Dead NPC Sound",
-		hint: "Sound to play when an NPC dies.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Dead Token Image Path (Player Character)
-	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
-		name: 'Dead Token Image Path (PC)',
-		hint: 'Full path to dead token image for Player Characters (applied after 3 failed death saves)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundPC', {
-		name: "Dead PC Sound",
-		hint: "Sound to play when an Player Character dies.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Dead Token Creature Type Filter
-	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
-		name: 'Dead Token Creature Types (NPC)',
-		hint: 'Comma-separated creature types to apply dead tokens to for NPCs (leave empty for all). Example: humanoid,beast,dragon',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: false
-	});
-
-
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundStable', {
-		name: "Stable PC Sound",
-		hint: "Sound to play when an Player Character becomes stable.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
 
 
 

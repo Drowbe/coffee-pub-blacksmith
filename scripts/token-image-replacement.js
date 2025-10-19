@@ -302,7 +302,9 @@ export class TokenImageReplacementWindow extends Application {
             cacheStatus: this._getCacheStatus(),
             updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true),
             fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
-            tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count')
+            tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'),
+            convertDeadToLoot: getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false),
+            deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled') !== 'disabled'
         };
     }
 
@@ -371,6 +373,12 @@ export class TokenImageReplacementWindow extends Application {
         
         // Fuzzy Search toggle
         html.find('#fuzzySearch').on('change', this._onFuzzySearchToggle.bind(this));
+        
+        // Convert Dead To Loot toggle
+        html.find('#convertDeadToLoot').on('change', this._onConvertDeadToLootToggle.bind(this));
+        
+        // Dead Token Replacement toggle
+        html.find('#deadTokenReplacement').on('change', this._onDeadTokenReplacementToggle.bind(this));
         
         // Initialize threshold slider with current value
         this._initializeThresholdSlider();
@@ -1736,6 +1744,31 @@ export class TokenImageReplacementWindow extends Application {
         
         // Refresh results with new search mode
         await this._findMatches();
+    }
+
+    /**
+     * Handle Convert Dead To Loot toggle change
+     */
+    async _onConvertDeadToLootToggle(event) {
+        const isEnabled = event.target.checked;
+        await game.settings.set(MODULE.ID, 'tokenConvertDeadToLoot', isEnabled);
+        
+        postConsoleAndNotification(MODULE.NAME, `Convert Dead To Loot ${isEnabled ? 'enabled' : 'disabled'}`, 
+            isEnabled ? 'Dead tokens will be converted to loot piles' : 'Dead tokens will not be converted to loot piles', 
+            false, true);
+    }
+
+    /**
+     * Handle Dead Token Replacement toggle change
+     */
+    async _onDeadTokenReplacementToggle(event) {
+        const isEnabled = event.target.checked;
+        const newValue = isEnabled ? 'both' : 'disabled';
+        await game.settings.set(MODULE.ID, 'enableDeadTokenReplacement', newValue);
+        
+        postConsoleAndNotification(MODULE.NAME, `Dead Token Replacement ${isEnabled ? 'enabled' : 'disabled'}`, 
+            isEnabled ? 'Tokens will change to dead versions at 0 HP' : 'Tokens will not change when dead', 
+            false, true);
     }
 
     /**

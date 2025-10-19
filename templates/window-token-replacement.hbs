@@ -46,12 +46,32 @@
                 </div>
                 <!-- Update Dropped Tokens Toggle -->
                 <div class="tir-toggle-container">
-                    <span class="tir-toggle-label">Update Dropped Tokens</span>
+                    <span class="tir-toggle-label">Update Dropped</span>
                     <div class="tir-toggle">
                         <input type="checkbox" name="updateDropped" id="updateDropped" {{#if updateDropped}}checked{{/if}}>
                         <label for="updateDropped" class="tir-toggle-slider"></label>
                     </div>
                 </div>
+
+
+                <!-- Update Loot Tokens Toggle -->
+                <div class="tir-toggle-container">
+                    <span class="tir-toggle-label">Loot Piles</span>
+                    <div class="tir-toggle">
+                        <input type="checkbox" name="convertDeadToLoot" id="convertDeadToLoot" {{#if convertDeadToLoot}}checked{{/if}}>
+                        <label for="convertDeadToLoot" class="tir-toggle-slider"></label>
+                    </div>
+                </div>
+
+                <!-- Update Dropped Tokens Toggle -->
+                <div class="tir-toggle-container">
+                    <span class="tir-toggle-label">Convert Dead</span>
+                    <div class="tir-toggle">
+                        <input type="checkbox" name="deadTokenReplacement" id="deadTokenReplacement" {{#if deadTokenReplacement}}checked{{/if}}>
+                        <label for="deadTokenReplacement" class="tir-toggle-slider"></label>
+                    </div>
+                </div>
+
 
             </div>
         </div>

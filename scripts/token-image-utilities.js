@@ -470,38 +470,33 @@ export class TokenImageUtilities {
         
         const currentImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
         if (currentImage) {
-            await tokenDocument.update({ 'texture.src': currentImage });
-            // Clear all flags
-            await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
-            await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
-            await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
-            await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied'); // legacy cleanup
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE update - current texture: ${tokenDocument.texture.src}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Attempting to restore to: ${currentImage}`, "", true, false);
+            
+            try {
+                await tokenDocument.update({ 'texture.src': currentImage });
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
+                
+                // Clear all flags
+                await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
+                await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
+                await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
+                await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied'); // legacy cleanup
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR restoring image: ${error.message}`, "", true, false);
+            }
         }
     }
 
     /**
-     * Apply dead token image to a token
+     * Apply dead token image to a token (simplified - no HP monitoring)
      * @param {TokenDocument} tokenDocument - The token document
      * @param {Actor} actor - The actor
      */
     static async applyDeadTokenImage(tokenDocument, actor) {
-        // Check if feature is enabled and what mode it's in
-        const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
-        if (deadTokenMode === 'disabled') {
-            return;
-        }
-        
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
-        
-        // Check if this token type should be affected based on the mode
-        if (deadTokenMode === 'npcs' && isPlayerCharacter) {
-            return; // NPCs only mode, skip PCs
-        }
-        if (deadTokenMode === 'pcs' && !isPlayerCharacter) {
-            return; // PCs only mode, skip NPCs
-        }
         
         // Check if dead token is already applied
         const isDeadTokenApplied = tokenDocument.getFlag(MODULE.ID, 'isDeadTokenApplied');
@@ -522,9 +517,6 @@ export class TokenImageUtilities {
                 }
             }
         }
-        
-        // Store current image before applying dead token (only once)
-        await TokenImageUtilities.storeCurrentImageOnce(tokenDocument);
         
         // Get the appropriate token image path
         const deadTokenPath = TokenImageUtilities.getDeadTokenImagePath(isPlayerCharacter);
@@ -573,15 +565,9 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Hook for actor updates - monitor HP and death save changes for dead token replacement
+     * Centralized HP monitoring function - handles all HP-related state changes
      */
-    static async onActorUpdateForDeadToken(actor, changes, options, userId) {
-        // Check if feature is enabled and what mode it's in
-        const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
-        if (deadTokenMode === 'disabled') {
-            return;
-        }
-        
+    static async onActorHPChange(actor, changes, options, userId) {
         // Only GMs can update tokens
         if (!game.user.isGM) {
             return;
@@ -601,15 +587,6 @@ export class TokenImageUtilities {
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
         
-        // For player characters, check death saves
-        let hasFailed3DeathSaves = false;
-        if (isPlayerCharacter) {
-            const deathSaves = actor.system.attributes.death;
-            if (deathSaves) {
-                hasFailed3DeathSaves = (deathSaves.failure >= 3);
-            }
-        }
-        
         // Find all tokens for this actor on current scene
         if (!canvas.scene) {
             return;
@@ -619,16 +596,32 @@ export class TokenImageUtilities {
         
         for (const token of tokens) {
             if (currentHP <= 0) {
-                // Token at 0 HP or below
-                if (isPlayerCharacter) {
-                    if (hasFailed3DeathSaves) {
-                        // PC has failed 3 death saves - apply dead token
+                // Token at 0 HP or below - store current image and apply appropriate state
+                await TokenImageUtilities.storeCurrentImageOnce(token.document);
+                
+                // Check dead token settings
+                const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
+                if (deadTokenMode !== 'disabled') {
+                    // For player characters, check death saves
+                    let hasFailed3DeathSaves = false;
+                    if (isPlayerCharacter) {
+                        const deathSaves = actor.system.attributes.death;
+                        if (deathSaves) {
+                            hasFailed3DeathSaves = (deathSaves.failure >= 3);
+                        }
+                    }
+                    
+                    // Apply dead token based on character type and death saves
+                    if (isPlayerCharacter) {
+                        if (hasFailed3DeathSaves) {
+                            // PC has failed 3 death saves - apply dead token
+                            await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
+                        }
+                        // Otherwise: PC is unconscious but not dead - DO NOT change token (keep original)
+                    } else {
+                        // NPC at 0 HP - apply dead token immediately
                         await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
                     }
-                    // Otherwise: PC is unconscious but not dead - DO NOT change token (keep original)
-                } else {
-                    // NPC at 0 HP - apply dead token immediately
-                    await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
                 }
             } else {
                 // Token was revived (HP > 0) - restore current image if any state was applied
