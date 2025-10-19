@@ -474,12 +474,17 @@ export class TokenImageUtilities {
         if (!tokenDocument) return;
         
         const currentImage = this.getCurrentImage(tokenDocument);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: restoreCurrentImage called for ${tokenDocument.name}, currentImage: ${currentImage}`, "", true, false);
+        
         if (currentImage) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Updating texture.src to: ${currentImage}`, "", true, false);
             await tokenDocument.update({ 'texture.src': currentImage });
             await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
             await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
             await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied'); // legacy cleanup
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name}`, "", true, false);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: No current image stored for ${tokenDocument.name}`, "", false, false);
         }
     }
 
@@ -641,6 +646,18 @@ export class TokenImageUtilities {
                 const imageState = token.document.getFlag(MODULE.ID, 'imageState');
                 
                 if (imageState && (imageState === 'dead' || imageState === 'loot')) {
+                    // If it was converted to loot pile, revert it first
+                    if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
+                        try {
+                            await game.itempiles.API.revertTokensFromItemPiles([token]);
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Reverted ${token.name} from item pile`, "", true, false);
+                        } catch (error) {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error reverting from item pile: ${error.message}`, "", true, false);
+                        }
+                    }
+                    
+                    // Restore the current image
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: About to restore current image for ${token.name}, imageState: ${imageState}`, "", true, false);
                     await TokenImageUtilities.restoreCurrentImage(token.document);
                 }
             }
