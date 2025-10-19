@@ -499,22 +499,13 @@ export class CanvasTools {
                 {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
             ];
             
-            // Roll loot from each configured table
+            // Roll loot from each configured table using our own implementation
             for (const table of tables) {
                 const tableName = game.settings.get(MODULE.ID, table.setting);
-                if (tableName && tableName !== "none") {
+                if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
                     const amount = game.settings.get(MODULE.ID, table.amount);
-                    try {
-                        await game.itempiles.API.rollItemTable(tableName, {
-                            timesToRoll: amount,
-                            targetActor: token.actor,
-                            options: {
-                                suppressWarnings: true
-                            }
-                        });
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, `Error rolling loot table ${tableName}:`, error, true, false);
-                        continue; // Continue with next table even if this one fails
+                    if (amount > 0) {
+                        await this._rollLootTable(tableName, amount, token.actor);
                     }
                 }
             }
@@ -608,6 +599,90 @@ export class CanvasTools {
             await token.TMFXaddUpdateFilters(params);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error applying token effect:", error, true, false);
+        }
+    }
+
+    /**
+     * Roll a loot table and add results to an actor's inventory
+     * @param {string} tableName - Name of the RollTable
+     * @param {number} timesToRoll - How many times to roll the table
+     * @param {Actor} actor - The actor to add items to
+     */
+    static async _rollLootTable(tableName, timesToRoll, actor) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, `Looking for loot table: "${tableName}"`, "", true, false);
+            
+            // Find the table by name
+            const table = game.tables.find(t => t.name === tableName);
+            if (!table) {
+                postConsoleAndNotification(MODULE.NAME, `Loot table "${tableName}" not found`, "", false, false);
+                return;
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, `Found table "${tableName}", rolling ${timesToRoll} times`, "", true, false);
+            
+            // Roll the table multiple times
+            for (let i = 0; i < timesToRoll; i++) {
+                const roll = await table.draw({ displayChat: false });
+                postConsoleAndNotification(MODULE.NAME, `Roll ${i+1} results:`, roll, true, false);
+                
+                if (!roll || !roll.results || roll.results.length === 0) {
+                    continue;
+                }
+                
+                // Process each result
+                for (const result of roll.results) {
+                    postConsoleAndNotification(MODULE.NAME, `Processing result - type: ${result.type}, text: ${result.text}, documentCollection: ${result.documentCollection}`, "", true, false);
+                    
+                    // Check if this result has a document reference (item from compendium)
+                    // Type can be CONST.TABLE_RESULT_TYPES.DOCUMENT (2) or 'pack' depending on version
+                    if (result.type === CONST.TABLE_RESULT_TYPES.DOCUMENT || result.type === 'pack' || result.documentCollection) {
+                        postConsoleAndNotification(MODULE.NAME, `This is a document/pack result`, "", true, false);
+                        
+                        // Get the item from the result
+                        let item = null;
+                        
+                        // Try to get the item from the documentCollection
+                        if (result.documentCollection && result.documentId) {
+                            postConsoleAndNotification(MODULE.NAME, `Getting item from pack: ${result.documentCollection}, ID: ${result.documentId}`, "", true, false);
+                            const pack = game.packs.get(result.documentCollection);
+                            if (pack) {
+                                item = await pack.getDocument(result.documentId);
+                                postConsoleAndNotification(MODULE.NAME, `Retrieved item:`, item, true, false);
+                            } else {
+                                postConsoleAndNotification(MODULE.NAME, `Pack not found: ${result.documentCollection}`, "", false, false);
+                            }
+                        }
+                        
+                        // If we found an item, add it to the actor
+                        if (item) {
+                            // Create a copy of the item data
+                            const itemData = item.toObject();
+                            
+                            // Set quantity if the result has a quantity range
+                            if (result.range && result.range[0] !== result.range[1]) {
+                                const quantity = Math.floor(Math.random() * (result.range[1] - result.range[0] + 1)) + result.range[0];
+                                if (itemData.system?.quantity !== undefined) {
+                                    itemData.system.quantity = quantity;
+                                }
+                            }
+                            
+                            // Add the item to the actor
+                            await actor.createEmbeddedDocuments('Item', [itemData]);
+                            postConsoleAndNotification(MODULE.NAME, `Added ${itemData.name} to ${actor.name}`, "", false, false);
+                        } else {
+                            postConsoleAndNotification(MODULE.NAME, `Could not retrieve item from result`, "", false, false);
+                        }
+                    } else if (result.type === CONST.TABLE_RESULT_TYPES.TEXT || result.type === 'text') {
+                        // Text result - just log it
+                        postConsoleAndNotification(MODULE.NAME, `Loot table text result: ${result.text}`, "", true, false);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, `Unknown result type: ${result.type}`, "", true, false);
+                    }
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Error rolling loot table ${tableName}:`, error, false, false);
         }
     }
 

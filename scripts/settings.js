@@ -2119,15 +2119,15 @@ export const registerSettings = async () => {
 	});
 
 	game.settings.register(MODULE.ID, 'tokenLootSound', {
-        scope: 'client',
-        config: false,
+        scope: 'world',
+        config: true,
         type: String,
         default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
     });
 
 	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
-        scope: 'client',
-        config: false,
+        scope: 'world',
+        config: true,
         type: String,
         default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
     });
