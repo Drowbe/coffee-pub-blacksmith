@@ -2017,8 +2017,8 @@ export const registerSettings = async () => {
 		requiresReload: false,
 		type: Number,
 		range: {
-		min: 0,
-		max: 30,
+		min: 5,
+		max: 60,
 		step: 1,
 		},
 		default: 10,
