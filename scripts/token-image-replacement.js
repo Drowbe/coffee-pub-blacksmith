@@ -304,7 +304,8 @@ export class TokenImageReplacementWindow extends Application {
             fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
             tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'),
             convertDeadToLoot: getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false),
-            deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled') !== 'disabled'
+            deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled') !== 'disabled',
+            itemPilesInstalled: game.modules.get("item-piles")?.active || false
         };
     }
 

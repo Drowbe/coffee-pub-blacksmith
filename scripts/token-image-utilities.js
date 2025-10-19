@@ -469,6 +469,7 @@ export class TokenImageUtilities {
                     await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
                     await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
                     await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
+                    await tokenDocument.unsetFlag(MODULE.ID, 'blnLootAdded');
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR restoring image: ${error.message}`, "", true, false);
@@ -526,7 +527,9 @@ export class TokenImageUtilities {
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - updating ${tokenDocument.name} to: ${lootImagePath}`, "", true, false);
             
             try {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - BEFORE update: ${tokenDocument.texture.src}`, "", true, false);
                 await tokenDocument.update({ 'texture.src': lootImagePath });
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - AFTER update: ${tokenDocument.texture.src}`, "", true, false);
                 await tokenDocument.setFlag(MODULE.ID, 'imageState', 'loot');
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied loot token to ${tokenDocument.name}`, "", true, false);
             } catch (error) {
@@ -573,29 +576,46 @@ export class TokenImageUtilities {
                 return;
             }
             
+            // Check if Item Piles module is installed and active
+            if (!game.modules.get("item-piles")?.active) {
+                postConsoleAndNotification(MODULE.NAME, "Item Piles module not installed. Cannot convert token to loot.", "", true, false);
+                return;
+            }
+            
             // Import CanvasTools for helper functions
             const { CanvasTools } = await import('./manager-canvas.js');
             
-            // Add loot from tables if configured
-            const tables = [
-                {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
-                {setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount'},
-                {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
-            ];
+            // Check if loot has already been added to this token
+            const lootAlreadyAdded = token.document.getFlag(MODULE.ID, 'blnLootAdded');
             
-            // Roll loot from each configured table
-            for (const table of tables) {
-                const tableName = game.settings.get(MODULE.ID, table.setting);
-                if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
-                    const amount = game.settings.get(MODULE.ID, table.amount);
-                    if (amount > 0) {
-                        await CanvasTools._rollLootTable(tableName, amount, token.actor);
+            if (!lootAlreadyAdded) {
+                // Add loot from tables if configured
+                const tables = [
+                    {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
+                    {setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount'},
+                    {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
+                ];
+                
+                // Roll loot from each configured table
+                for (const table of tables) {
+                    const tableName = game.settings.get(MODULE.ID, table.setting);
+                    if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
+                        const amount = game.settings.get(MODULE.ID, table.amount);
+                        if (amount > 0) {
+                            await CanvasTools._rollLootTable(tableName, amount, token.actor);
+                        }
                     }
                 }
+                
+                // Add random coins
+                await CanvasTools._addRandomCoins(token.actor);
+                
+                // Mark that loot has been added
+                await token.document.setFlag(MODULE.ID, 'blnLootAdded', true);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Added loot to ${token.name}`, "", true, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot already added to ${token.name}, skipping loot generation`, "", true, false);
             }
-            
-            // Add random coins
-            await CanvasTools._addRandomCoins(token.actor);
 
             // Set up proper permissions before converting to item pile
             const updates = {
@@ -610,7 +630,13 @@ export class TokenImageUtilities {
             // Update token permissions
             await token.document.update(updates);
             
+            // Update the image using unified function BEFORE Item Piles conversion
+            // This ensures we store the current image before Item Piles changes it
+            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+            
             // Convert to item pile with proper configuration
+            // NOTE: Item Piles will likely change the token image to its default
+            // We need to override it after conversion
             await game.itempiles.API.turnTokensIntoItemPiles([token], {
                 pileSettings: {
                     enabled: true,
@@ -622,8 +648,10 @@ export class TokenImageUtilities {
                 }
             });
             
-            // Update the image using unified function
-            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+            // Force the loot image AGAIN after Item Piles conversion
+            // Item Piles changes the image, so we need to override it
+            const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
+            await token.document.update({ 'texture.src': lootImagePath }, { render: true });
             
             // Apply TokenFX if available
             if (game.modules.get("tokenmagic")?.active) {
