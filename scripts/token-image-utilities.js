@@ -501,7 +501,9 @@ export class TokenImageUtilities {
             
             if (deadTokenPath) {
                 try {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEAD MODE - BEFORE update: ${tokenDocument.texture.src}`, "", true, false);
                     await tokenDocument.update({ 'texture.src': deadTokenPath });
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEAD MODE - AFTER update: ${tokenDocument.texture.src}`, "", true, false);
                     await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
                     await tokenDocument.setFlag(MODULE.ID, 'imageState', 'dead');
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied dead token to ${tokenDocument.name}`, "", true, false);
@@ -521,6 +523,7 @@ export class TokenImageUtilities {
         // LOOT MODE
         if (mode === 'loot') {
             const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - updating ${tokenDocument.name} to: ${lootImagePath}`, "", true, false);
             
             try {
                 await tokenDocument.update({ 'texture.src': lootImagePath });
@@ -712,17 +715,33 @@ export class TokenImageUtilities {
                 }
                 
                 // Check if loot conversion is enabled (NPCs only)
-                if (!isPlayerCharacter && getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false)) {
+                const lootEnabled = getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot conversion enabled: ${lootEnabled}, isPlayerCharacter: ${isPlayerCharacter}`, "", true, false);
+                
+                if (!isPlayerCharacter && lootEnabled) {
                     // Schedule loot conversion after delay
                     const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Scheduling loot conversion for ${token.name} in ${delay}ms`, "", true, false);
+                    
                     setTimeout(async () => {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot conversion timeout fired for actor ${actor.id}`, "", true, false);
+                        
                         // Re-check HP to ensure token is still dead
                         const currentActor = game.actors.get(actor.id);
-                        if (currentActor && currentActor.system.attributes.hp.value <= 0) {
-                            const lootToken = canvas.tokens.placeables.find(t => t.actor?.id === actor.id);
-                            if (lootToken) {
+                        const lootToken = canvas.tokens.placeables.find(t => t.actor?.id === actor.id);
+                        
+                        if (lootToken) {
+                            const tokenHP = lootToken.actor.system.attributes.hp.value;
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Token HP check: ${tokenHP} (type: ${typeof tokenHP})`, "", true, false);
+                            
+                            if (tokenHP <= 0) {
+                                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Calling _convertTokenToLoot for ${lootToken.name}`, "", true, false);
                                 await TokenImageUtilities._convertTokenToLoot(lootToken);
+                            } else {
+                                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Token no longer dead (HP: ${tokenHP}), skipping loot conversion`, "", true, false);
                             }
+                        } else {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot token not found for actor ${actor.id}`, "", true, false);
                         }
                     }, delay);
                 }
