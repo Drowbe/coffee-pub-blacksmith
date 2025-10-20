@@ -2215,7 +2215,7 @@ class MenuBar {
 
                    const combatantData = {
                        id: combatant.id,
-                       name: actor?.name || token?.name || 'Unknown',
+                       name: token?.name || actor?.name || 'Unknown',
                        portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
                        initiative: combatant.initiative || 0,
                        isCurrent: combatant.id === combat.current.combatantId,
