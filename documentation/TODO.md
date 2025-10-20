@@ -5,24 +5,6 @@
 ### CRITICAL ISSUES
 - **CRITICAL** Scene navigation tab click events are not working - cannot switch scenes by clicking tabs
 
-### Refactor Dead Token Image Application to Use Unified Function
-- **Issue**: `applyDeadTokenImage()` wrapper function should call `updateTokenImage()` directly instead of using a separate wrapper
-- **Status**: PENDING - Refactor needed
-- **Priority**: LOW - Code cleanup/consistency
-- **Current Behavior**: 
-  - Lines 735, 740 call `applyDeadTokenImage(token.document, actor)`
-  - `applyDeadTokenImage()` does creature type filtering, then calls `updateTokenImage(tokenDocument, 'dead')`
-- **Desired Behavior**: 
-  - Call `updateTokenImage(token.document, 'dead')` directly from HP monitoring
-  - Move creature type filtering logic inline or into HP monitoring
-  - Remove `applyDeadTokenImage()` wrapper function
-- **Reason**: 
-  - Simplify code architecture
-  - Loot already calls `updateTokenImage()` directly (line 752)
-  - Dead should follow the same pattern for consistency
-- **Location**: `scripts/token-image-utilities.js` lines 735, 740, and function at line 548
-- **Notes**: This is a refactoring task to improve code consistency after the loot image refactor
-
 ### Death Save/Stable Ring Not Moving with Token
 - **Issue**: Death save overlay ring does not move smoothly with token like turn indicator and targeted rings do
 - **Status**: ✅ COMPLETED - Fixed

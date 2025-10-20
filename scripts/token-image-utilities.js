@@ -335,84 +335,84 @@ export class TokenImageUtilities {
     /**
      * Store the original image for a token before any updates
      */
-    // static async storeOriginalImage(tokenDocument) {
-    //     if (!tokenDocument || !tokenDocument.texture) {
-    //         return;
-    //     }
+    static async storeOriginalImage(tokenDocument) {
+        if (!tokenDocument || !tokenDocument.texture) {
+            return;
+        }
         
-    //     const originalImage = {
-    //         path: tokenDocument.texture.src,
-    //         name: tokenDocument.texture.src.split('/').pop(),
-    //         timestamp: Date.now()
-    //     };
+        const originalImage = {
+            path: tokenDocument.texture.src,
+            name: tokenDocument.texture.src.split('/').pop(),
+            timestamp: Date.now()
+        };
         
-    //     // Store in token flags for persistence
-    //     await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
-    // }
+        // Store in token flags for persistence
+        await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
+    }
 
     /**
      * Get the original image for a token
      */
-    // static getOriginalImage(tokenDocument) {
-    //     if (!tokenDocument) {
-    //         return null;
-    //     }
+    static getOriginalImage(tokenDocument) {
+        if (!tokenDocument) {
+            return null;
+        }
         
-    //     // Get from token flags for persistence
-    //     return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
-    // }
+        // Get from token flags for persistence
+        return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
+    }
 
     /**
      * Store the previous image for a token before applying dead token
      * This allows restoration to the replaced image (not original) when revived
      */
-    // static async storePreviousImage(tokenDocument) {
-    //     if (!tokenDocument || !tokenDocument.texture) {
-    //         return;
-    //     }
+    static async storePreviousImage(tokenDocument) {
+        if (!tokenDocument || !tokenDocument.texture) {
+            return;
+        }
         
-    //     const previousImage = {
-    //         path: tokenDocument.texture.src,
-    //         name: tokenDocument.texture.src.split('/').pop(),
-    //         timestamp: Date.now()
-    //     };
+        const previousImage = {
+            path: tokenDocument.texture.src,
+            name: tokenDocument.texture.src.split('/').pop(),
+            timestamp: Date.now()
+        };
         
-    //     // Store in token flags for persistence
-    //     await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
-    // }
+        // Store in token flags for persistence
+        await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
+    }
 
     /**
      * Get the previous image for a token (image before dead token was applied)
      */
-    // static getPreviousImage(tokenDocument) {
-    //     if (!tokenDocument) {
-    //         return null;
-    //     }
+    static getPreviousImage(tokenDocument) {
+        if (!tokenDocument) {
+            return null;
+        }
         
-    //     // Get from token flags for persistence
-    //     return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
-    // }
+        // Get from token flags for persistence
+        return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
+    }
 
-    // /**
-    //  * Restore the previous token image (used when token is revived)
-    //  */
-    // static async restorePreviousTokenImage(tokenDocument) {
-    //     if (!tokenDocument) {
-    //         return;
-    //     }
+    /**
+     * Restore the previous token image (used when token is revived)
+     */
+    static async restorePreviousTokenImage(tokenDocument) {
+        if (!tokenDocument) {
+            return;
+        }
         
-    //     const previousImage = TokenImageUtilities.getPreviousImage(tokenDocument);
-    //     if (previousImage) {
-    //         try {
-    //             await tokenDocument.update({ 'texture.src': previousImage.path });
-    //             // Clear dead token flag
-    //             await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-    //             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
-    //         } catch (error) {
-    //             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
-    //         }
-    //     }
-    // }
+        const previousImage = TokenImageUtilities.getPreviousImage(tokenDocument);
+        if (previousImage) {
+            try {
+                await tokenDocument.update({ 'texture.src': previousImage.path });
+                // Clear dead token flag
+                await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
+            }
+        }
+    }
 
     /**
      * Get the dead token image path based on character type
@@ -487,7 +487,8 @@ export class TokenImageUtilities {
             await tokenDocument.setFlag(MODULE.ID, 'currentImageStored', true);
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}: ${currentImage}`, "", true, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Current image already stored for ${tokenDocument.name}: ${currentImage}`, "", true, false);
+            const storedImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Current image already stored for ${tokenDocument.name}: ${storedImage}`, "", true, false);
         }
         
         // DEAD MODE
@@ -542,11 +543,11 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Apply dead token image - wrapper for creature type filtering
+     * Convert token to dead (handles creature type filtering and image change)
      * @param {TokenDocument} tokenDocument - The token document
      * @param {Actor} actor - The actor
      */
-    static async applyDeadTokenImage(tokenDocument, actor) {
+    static async _convertTokenToDead(tokenDocument, actor) {
         // Determine if this is a player character
         const isPlayerCharacter = actor.type === 'character';
         
@@ -732,12 +733,12 @@ export class TokenImageUtilities {
                     if (isPlayerCharacter) {
                         if (hasFailed3DeathSaves) {
                             // PC has failed 3 death saves - apply dead token
-                            await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
+                            await TokenImageUtilities._convertTokenToDead(token.document, actor);
                         }
                         // Otherwise: PC is unconscious but not dead - DO NOT change token (keep original)
                     } else {
                         // NPC at 0 HP - apply dead token immediately
-                        await TokenImageUtilities.applyDeadTokenImage(token.document, actor);
+                        await TokenImageUtilities._convertTokenToDead(token.document, actor);
                     }
                 }
                 
