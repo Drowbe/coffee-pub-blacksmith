@@ -335,84 +335,84 @@ export class TokenImageUtilities {
     /**
      * Store the original image for a token before any updates
      */
-    static async storeOriginalImage(tokenDocument) {
-        if (!tokenDocument || !tokenDocument.texture) {
-            return;
-        }
+    // static async storeOriginalImage(tokenDocument) {
+    //     if (!tokenDocument || !tokenDocument.texture) {
+    //         return;
+    //     }
         
-        const originalImage = {
-            path: tokenDocument.texture.src,
-            name: tokenDocument.texture.src.split('/').pop(),
-            timestamp: Date.now()
-        };
+    //     const originalImage = {
+    //         path: tokenDocument.texture.src,
+    //         name: tokenDocument.texture.src.split('/').pop(),
+    //         timestamp: Date.now()
+    //     };
         
-        // Store in token flags for persistence
-        await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
-    }
+    //     // Store in token flags for persistence
+    //     await tokenDocument.setFlag(MODULE.ID, 'originalImage', originalImage);
+    // }
 
     /**
      * Get the original image for a token
      */
-    static getOriginalImage(tokenDocument) {
-        if (!tokenDocument) {
-            return null;
-        }
+    // static getOriginalImage(tokenDocument) {
+    //     if (!tokenDocument) {
+    //         return null;
+    //     }
         
-        // Get from token flags for persistence
-        return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
-    }
+    //     // Get from token flags for persistence
+    //     return tokenDocument.getFlag(MODULE.ID, 'originalImage') || null;
+    // }
 
     /**
      * Store the previous image for a token before applying dead token
      * This allows restoration to the replaced image (not original) when revived
      */
-    static async storePreviousImage(tokenDocument) {
-        if (!tokenDocument || !tokenDocument.texture) {
-            return;
-        }
+    // static async storePreviousImage(tokenDocument) {
+    //     if (!tokenDocument || !tokenDocument.texture) {
+    //         return;
+    //     }
         
-        const previousImage = {
-            path: tokenDocument.texture.src,
-            name: tokenDocument.texture.src.split('/').pop(),
-            timestamp: Date.now()
-        };
+    //     const previousImage = {
+    //         path: tokenDocument.texture.src,
+    //         name: tokenDocument.texture.src.split('/').pop(),
+    //         timestamp: Date.now()
+    //     };
         
-        // Store in token flags for persistence
-        await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
-    }
+    //     // Store in token flags for persistence
+    //     await tokenDocument.setFlag(MODULE.ID, 'previousImage', previousImage);
+    // }
 
     /**
      * Get the previous image for a token (image before dead token was applied)
      */
-    static getPreviousImage(tokenDocument) {
-        if (!tokenDocument) {
-            return null;
-        }
+    // static getPreviousImage(tokenDocument) {
+    //     if (!tokenDocument) {
+    //         return null;
+    //     }
         
-        // Get from token flags for persistence
-        return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
-    }
+    //     // Get from token flags for persistence
+    //     return tokenDocument.getFlag(MODULE.ID, 'previousImage') || null;
+    // }
 
-    /**
-     * Restore the previous token image (used when token is revived)
-     */
-    static async restorePreviousTokenImage(tokenDocument) {
-        if (!tokenDocument) {
-            return;
-        }
+    // /**
+    //  * Restore the previous token image (used when token is revived)
+    //  */
+    // static async restorePreviousTokenImage(tokenDocument) {
+    //     if (!tokenDocument) {
+    //         return;
+    //     }
         
-        const previousImage = TokenImageUtilities.getPreviousImage(tokenDocument);
-        if (previousImage) {
-            try {
-                await tokenDocument.update({ 'texture.src': previousImage.path });
-                // Clear dead token flag
-                await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
-            }
-        }
-    }
+    //     const previousImage = TokenImageUtilities.getPreviousImage(tokenDocument);
+    //     if (previousImage) {
+    //         try {
+    //             await tokenDocument.update({ 'texture.src': previousImage.path });
+    //             // Clear dead token flag
+    //             await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
+    //             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored previous image for ${tokenDocument.name}`, "", true, false);
+    //         } catch (error) {
+    //             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error restoring previous image: ${error.message}`, "", true, false);
+    //         }
+    //     }
+    // }
 
     /**
      * Get the dead token image path based on character type
@@ -457,24 +457,23 @@ export class TokenImageUtilities {
         if (mode === 'restore') {
             const currentImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
             if (currentImage) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE update - current texture: ${tokenDocument.texture.src}`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Attempting to restore to: ${currentImage}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - BEFORE update - current texture: ${tokenDocument.texture.src}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - Attempting to restore to: ${currentImage}`, "", true, false);
                 
                 try {
                     // Use the object form for the update to ensure it works with unlinked tokens
                     const updateData = { 'texture.src': currentImage };
                     await tokenDocument.update(updateData, { render: true, diff: false });
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
                     
                     // Clear all flags
                     await tokenDocument.unsetFlag(MODULE.ID, 'currentImage');
                     await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
                     await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
                     await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-                    await tokenDocument.unsetFlag(MODULE.ID, 'blnLootAdded');
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR restoring image: ${error.message}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - ERROR restoring image: ${error.message}`, "", true, false);
                 }
             }
             return;
@@ -487,6 +486,8 @@ export class TokenImageUtilities {
             await tokenDocument.setFlag(MODULE.ID, 'currentImage', currentImage);
             await tokenDocument.setFlag(MODULE.ID, 'currentImageStored', true);
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}: ${currentImage}`, "", true, false);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Current image already stored for ${tokenDocument.name}: ${currentImage}`, "", true, false);
         }
         
         // DEAD MODE
@@ -632,13 +633,7 @@ export class TokenImageUtilities {
             // Update token permissions
             await token.document.update(updates);
             
-            // Update the image using unified function BEFORE Item Piles conversion
-            // This ensures we store the current image before Item Piles changes it
-            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
-            
             // Convert to item pile with proper configuration
-            // NOTE: Item Piles will likely change the token image to its default
-            // We need to override it after conversion
             await game.itempiles.API.turnTokensIntoItemPiles([token], {
                 pileSettings: {
                     enabled: true,
@@ -650,16 +645,7 @@ export class TokenImageUtilities {
                 }
             });
             
-            // Force the loot image AGAIN after Item Piles conversion
-            // Item Piles changes the image, so we need to override it
-            const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp');
-            await token.document.update({ 'texture.src': lootImagePath }, { render: true });
-            
-            // Apply TokenFX if available
-            if (game.modules.get("tokenmagic")?.active) {
-                await CanvasTools._applyTokenEffect(token);
-            }
-            
+           
             // Play sound
             const sound = game.settings.get(MODULE.ID, 'tokenLootSound');
             if (sound) {
@@ -742,7 +728,7 @@ export class TokenImageUtilities {
                         }
                     }
                     
-                    // Apply dead token based on character type and death saves
+                    // Apply dead token based on character type and death save
                     if (isPlayerCharacter) {
                         if (hasFailed3DeathSaves) {
                             // PC has failed 3 death saves - apply dead token
@@ -759,7 +745,10 @@ export class TokenImageUtilities {
                 const lootEnabled = getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false);
                 
                 if (!isPlayerCharacter && lootEnabled) {
-                    // Schedule loot conversion after delay
+                    // Apply loot image immediately
+                    await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+                    
+                    // Schedule loot actions after delay
                     const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
                     const tokenId = token.id; // Capture the specific token ID
                     
@@ -781,20 +770,12 @@ export class TokenImageUtilities {
                 const imageState = token.document.getFlag(MODULE.ID, 'imageState');
                 const storedImage = token.document.getFlag(MODULE.ID, 'currentImage');
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - ${token.name}: imageState=${imageState}, storedImage=${storedImage}, currentTexture=${token.document.texture.src}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - TOKEN NAME: ${token.name}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - imageState=${imageState}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - storedImage=${storedImage}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - currentTexture=${token.document.texture.src}`, "", true, false);
                 
                 if (imageState && (imageState === 'dead' || imageState === 'loot')) {
-                    // If it was converted to loot pile, revert it first
-                    if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
-                        try {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE Item Piles revert - texture: ${token.document.texture.src}`, "", true, false);
-                            await game.itempiles.API.revertTokensFromItemPiles([token]);
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER Item Piles revert - texture: ${token.document.texture.src}`, "", true, false);
-                        } catch (error) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error reverting from item pile: ${error.message}`, "", true, false);
-                        }
-                    }
-                    
                     // Get fresh document reference after Item Piles reversion
                     const freshToken = canvas.tokens.get(token.id);
                     if (freshToken) {
@@ -802,6 +783,17 @@ export class TokenImageUtilities {
                         await TokenImageUtilities.updateTokenImage(freshToken.document, 'restore');
                     }
                 }
+
+                // If it was converted to loot pile, revert it to a token
+                if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
+                    try {
+                        await game.itempiles.API.revertTokensFromItemPiles([token]);
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER ITEM PILES REVERT - texture: ${token.document.texture.src}`, "", true, false);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR reverting from item pile: ${error.message}`, "", false, false);
+                    }
+                }
+
             }
         }
         

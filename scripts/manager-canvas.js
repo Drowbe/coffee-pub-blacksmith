@@ -452,33 +452,6 @@ export class CanvasTools {
         }
     }
 
-    static async _applyTokenEffect(token) {
-        try {
-            const params = [{
-                filterType: "polymorph",
-                filterId: "tokenToLootPile",
-                type: 3,
-                padding: 70,
-                magnify: 1,
-                imagePath: game.settings.get(MODULE.ID, 'tokenLootPileImage'),
-                animated: {
-                    progress: {
-                        active: true,
-                        animType: "halfCosOscillation",
-                        val1: 0,
-                        val2: 100,
-                        loops: 1,
-                        loopDuration: 1000
-                    }
-                }
-            }];
-            
-            await token.TMFXaddUpdateFilters(params);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Error applying token effect:", error, true, false);
-        }
-    }
-
     /**
      * Roll a loot table and add results to an actor's inventory
      * @param {string} tableName - Name of the RollTable
