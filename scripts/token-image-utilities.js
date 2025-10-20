@@ -755,32 +755,22 @@ export class TokenImageUtilities {
                 
                 // Check if loot conversion is enabled (NPCs only)
                 const lootEnabled = getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot conversion enabled: ${lootEnabled}, isPlayerCharacter: ${isPlayerCharacter}`, "", true, false);
                 
                 if (!isPlayerCharacter && lootEnabled) {
                     // Schedule loot conversion after delay
                     const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Scheduling loot conversion for ${token.name} in ${delay}ms`, "", true, false);
+                    const tokenId = token.id; // Capture the specific token ID
                     
                     setTimeout(async () => {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot conversion timeout fired for actor ${actor.id}`, "", true, false);
-                        
-                        // Re-check HP to ensure token is still dead
-                        const currentActor = game.actors.get(actor.id);
-                        const lootToken = canvas.tokens.placeables.find(t => t.actor?.id === actor.id);
+                        // Find the SPECIFIC token by ID, not just any token with the same actor
+                        const lootToken = canvas.tokens.placeables.find(t => t.id === tokenId);
                         
                         if (lootToken) {
                             const tokenHP = lootToken.actor.system.attributes.hp.value;
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Token HP check: ${tokenHP} (type: ${typeof tokenHP})`, "", true, false);
                             
                             if (tokenHP <= 0) {
-                                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Calling _convertTokenToLoot for ${lootToken.name}`, "", true, false);
                                 await TokenImageUtilities._convertTokenToLoot(lootToken);
-                            } else {
-                                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Token no longer dead (HP: ${tokenHP}), skipping loot conversion`, "", true, false);
                             }
-                        } else {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot token not found for actor ${actor.id}`, "", true, false);
                         }
                     }, delay);
                 }
