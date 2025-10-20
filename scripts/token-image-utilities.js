@@ -461,7 +461,9 @@ export class TokenImageUtilities {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Attempting to restore to: ${currentImage}`, "", true, false);
                 
                 try {
-                    await tokenDocument.update({ 'texture.src': currentImage });
+                    // Use the object form for the update to ensure it works with unlinked tokens
+                    const updateData = { 'texture.src': currentImage };
+                    await tokenDocument.update(updateData, { render: true, diff: false });
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
                     
                     // Clear all flags
@@ -777,21 +779,28 @@ export class TokenImageUtilities {
             } else {
                 // Token was revived (HP > 0) - restore current image if any state was applied
                 const imageState = token.document.getFlag(MODULE.ID, 'imageState');
+                const storedImage = token.document.getFlag(MODULE.ID, 'currentImage');
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - ${token.name}: imageState=${imageState}, storedImage=${storedImage}, currentTexture=${token.document.texture.src}`, "", true, false);
                 
                 if (imageState && (imageState === 'dead' || imageState === 'loot')) {
                     // If it was converted to loot pile, revert it first
                     if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
                         try {
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: BEFORE Item Piles revert - texture: ${token.document.texture.src}`, "", true, false);
                             await game.itempiles.API.revertTokensFromItemPiles([token]);
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Reverted ${token.name} from item pile`, "", true, false);
+                            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER Item Piles revert - texture: ${token.document.texture.src}`, "", true, false);
                         } catch (error) {
                             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error reverting from item pile: ${error.message}`, "", true, false);
                         }
                     }
                     
-                    // Restore the current image using unified function
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: About to restore current image for ${token.name}, imageState: ${imageState}`, "", true, false);
-                    await TokenImageUtilities.updateTokenImage(token.document, 'restore');
+                    // Get fresh document reference after Item Piles reversion
+                    const freshToken = canvas.tokens.get(token.id);
+                    if (freshToken) {
+                        // Restore the current image using unified function with fresh reference
+                        await TokenImageUtilities.updateTokenImage(freshToken.document, 'restore');
+                    }
                 }
             }
         }
