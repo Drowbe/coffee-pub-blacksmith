@@ -473,7 +473,7 @@ export class TokenImageUtilities {
                     await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - ERROR restoring image: ${error.message}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - ERROR restoring image: ${error.message}`, "", false, false);
                 }
             }
             return;
@@ -488,7 +488,7 @@ export class TokenImageUtilities {
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Stored current image for ${tokenDocument.name}: ${currentImage}`, "", true, false);
         } else {
             const storedImage = tokenDocument.getFlag(MODULE.ID, 'currentImage');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Current image already stored for ${tokenDocument.name}: ${storedImage}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Current image already stored for ${tokenDocument.name}: ${storedImage}`, "", false, false);
         }
         
         // DEAD MODE
@@ -506,13 +506,10 @@ export class TokenImageUtilities {
             
             if (deadTokenPath) {
                 try {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEAD MODE - BEFORE update: ${tokenDocument.texture.src}`, "", true, false);
                     await tokenDocument.update({ 'texture.src': deadTokenPath });
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEAD MODE - AFTER update: ${tokenDocument.texture.src}`, "", true, false);
                     await tokenDocument.setFlag(MODULE.ID, 'isDeadTokenApplied', true);
                     await tokenDocument.setFlag(MODULE.ID, 'imageState', 'dead');
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied dead token to ${tokenDocument.name}`, "", true, false);
-                    
+                   
                     // Play death sound based on character type
                     const soundSetting = isPlayerCharacter ? 'deadTokenSoundPC' : 'deadTokenSoundNPC';
                     const sound = getSettingSafely(MODULE.ID, soundSetting, 'none');
@@ -520,7 +517,7 @@ export class TokenImageUtilities {
                         await playSound(sound, 0.7, false, true);
                     }
                 } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying dead token: ${error.message}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying dead token: ${error.message}`, "", false, false);
                 }
             }
         }
@@ -531,13 +528,10 @@ export class TokenImageUtilities {
             postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - updating ${tokenDocument.name} to: ${lootImagePath}`, "", true, false);
             
             try {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - BEFORE update: ${tokenDocument.texture.src}`, "", true, false);
                 await tokenDocument.update({ 'texture.src': lootImagePath });
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: LOOT MODE - AFTER update: ${tokenDocument.texture.src}`, "", true, false);
                 await tokenDocument.setFlag(MODULE.ID, 'imageState', 'loot');
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Applied loot token to ${tokenDocument.name}`, "", true, false);
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying loot token: ${error.message}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Error applying loot token: ${error.message}`, "", false, false);
             }
         }
     }
