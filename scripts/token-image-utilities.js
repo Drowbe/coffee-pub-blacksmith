@@ -725,7 +725,6 @@ export class TokenImageUtilities {
         // If no tokens match the current HP, fall back to all tokens (for safety)
         const tokensToProcess = updatedTokens.length > 0 ? updatedTokens : tokens;
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: HP Change - Actor: ${actor.name}, HP: ${currentHP}, Total tokens: ${tokens.length}, Updated tokens: ${updatedTokens.length}, Processing: ${tokensToProcess.length}`, "", true, false);
         
         for (const token of tokensToProcess) {
             if (currentHP <= 0) {
