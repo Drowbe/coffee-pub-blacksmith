@@ -715,7 +715,19 @@ export class TokenImageUtilities {
         
         const tokens = canvas.tokens.placeables.filter(t => t.actor?.id === actor.id);
         
-        for (const token of tokens) {
+        // CRITICAL FIX: Only process tokens that actually have the updated HP value
+        // This prevents all tokens of the same actor from getting updated when only one changes
+        const updatedTokens = tokens.filter(token => {
+            const tokenHP = token.actor?.system?.attributes?.hp?.value;
+            return tokenHP === currentHP;
+        });
+        
+        // If no tokens match the current HP, fall back to all tokens (for safety)
+        const tokensToProcess = updatedTokens.length > 0 ? updatedTokens : tokens;
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: HP Change - Actor: ${actor.name}, HP: ${currentHP}, Total tokens: ${tokens.length}, Updated tokens: ${updatedTokens.length}, Processing: ${tokensToProcess.length}`, "", true, false);
+        
+        for (const token of tokensToProcess) {
             if (currentHP <= 0) {
                 // Token at 0 HP or below - check dead token settings
                 const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
