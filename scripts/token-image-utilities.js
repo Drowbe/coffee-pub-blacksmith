@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { HookManager } from './manager-hooks.js';
+import { CanvasTools } from './manager-canvas.js';
 
 /**
  * Token Image Utilities
@@ -580,9 +581,6 @@ export class TokenImageUtilities {
                 return;
             }
             
-            // Import CanvasTools for helper functions
-            const { CanvasTools } = await import('./manager-canvas.js');
-            
             // Check if loot has already been added to this token
             const lootAlreadyAdded = token.document.getFlag(MODULE.ID, 'blnLootAdded');
             
@@ -628,7 +626,11 @@ export class TokenImageUtilities {
             // Update token permissions
             await token.document.update(updates);
             
+            // Get loot image path
+            const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-square-loot-chest.webp');
+            
             // Convert to item pile with proper configuration
+            // Pass tokenSettings to preserve our loot image and prevent Item Piles from changing it
             await game.itempiles.API.turnTokensIntoItemPiles([token], {
                 pileSettings: {
                     enabled: true,
@@ -638,6 +640,8 @@ export class TokenImageUtilities {
                     shareItemsWithPlayers: true,
                     displayOne: false
                 }
+            }, {
+                img: lootImagePath
             });
             
            
@@ -712,6 +716,7 @@ export class TokenImageUtilities {
         for (const token of tokensToProcess) {
             if (currentHP <= 0) {
                 // Token at 0 HP or below - check dead token settings
+                // DEAD TOKEN MODE CHECK
                 const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
                 if (deadTokenMode !== 'disabled') {
                     // For player characters, check death saves
@@ -736,18 +741,28 @@ export class TokenImageUtilities {
                     }
                 }
                 
+                // LOOT MODE CHECK
                 // Check if loot conversion is enabled (NPCs only)
                 const lootEnabled = getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false);
-                
+                const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
+                const tokenId = token.id; // Capture the specific token ID
+
+                // If NPC and loot conversion is enabled, schedule loot actions after delay
                 if (!isPlayerCharacter && lootEnabled) {
-                    // Apply loot image immediately
-                    await TokenImageUtilities.updateTokenImage(token.document, 'loot');
-                    
+
+
+                    // Apply loot image 
+                    await TokenImageUtilities.updateTokenImage(token.document, 'loot');  
+
+
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Waiting for the delay to complete`, delay, true, false);
+
                     // Schedule loot actions after delay
-                    const delay = getSettingSafely(MODULE.ID, 'tokenConvertDelay', 5) * 1000;
-                    const tokenId = token.id; // Capture the specific token ID
-                    
                     setTimeout(async () => {
+
+                        
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Delay complete`, "", true, false);
+
                         // Find the SPECIFIC token by ID, not just any token with the same actor
                         const lootToken = canvas.tokens.placeables.find(t => t.id === tokenId);
                         

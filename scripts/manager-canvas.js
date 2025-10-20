@@ -9,7 +9,6 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { TokenImageUtilities } from './token-image-utilities.js';
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================
