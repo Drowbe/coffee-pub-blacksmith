@@ -1344,6 +1344,9 @@ export class TokenImageUtilities {
                 }
             }
             
+            // Update turn indicator if combat is active
+            TokenImageUtilities._updateTurnIndicator();
+            
             // Clear timeout reference after execution
             TokenImageUtilities._canvasReadyTimeout = null;
         }, 100); // Small delay to ensure tokens are fully positioned
@@ -1828,9 +1831,16 @@ export class TokenImageUtilities {
                 TokenImageUtilities._movementTimeout = null;
             }
             
-            // Remove graphics from canvas
-            canvas.interface.removeChild(TokenImageUtilities._turnIndicator);
-            TokenImageUtilities._turnIndicator.destroy();
+            // Safely remove from canvas
+            if (canvas?.interface && TokenImageUtilities._turnIndicator.parent) {
+                canvas.interface.removeChild(TokenImageUtilities._turnIndicator);
+            }
+            
+            // Only destroy if not already destroyed
+            if (!TokenImageUtilities._turnIndicator.destroyed) {
+                TokenImageUtilities._turnIndicator.destroy();
+            }
+            
             TokenImageUtilities._turnIndicator = null;
             TokenImageUtilities._currentTurnTokenId = null;
             TokenImageUtilities._isMoving = false;
@@ -2058,8 +2068,16 @@ export class TokenImageUtilities {
     static _removeTargetedIndicator(tokenId) {
         const graphics = TokenImageUtilities._targetedIndicators.get(tokenId);
         if (graphics) {
-            canvas.interface.removeChild(graphics);
-            graphics.destroy();
+            // Safely remove from canvas
+            if (canvas?.interface && graphics.parent) {
+                canvas.interface.removeChild(graphics);
+            }
+            
+            // Only destroy if not already destroyed
+            if (!graphics.destroyed) {
+                graphics.destroy();
+            }
+            
             TokenImageUtilities._targetedIndicators.delete(tokenId);
         }
         
@@ -2076,8 +2094,15 @@ export class TokenImageUtilities {
      */
     static _removeAllTargetedIndicators() {
         for (const [tokenId, graphics] of TokenImageUtilities._targetedIndicators) {
-            canvas.interface.removeChild(graphics);
-            graphics.destroy();
+            // Safely remove from canvas
+            if (canvas?.interface && graphics.parent) {
+                canvas.interface.removeChild(graphics);
+            }
+            
+            // Only destroy if not already destroyed
+            if (!graphics.destroyed) {
+                graphics.destroy();
+            }
         }
         TokenImageUtilities._targetedIndicators.clear();
         TokenImageUtilities._targetedTokens.clear();
