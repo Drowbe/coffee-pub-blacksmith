@@ -7,7 +7,7 @@
 
 ### CRITICAL - Memory Leaks in CanvasTools and TokenImageUtilities
 - **Issue**: Multiple memory leaks introduced in recent refactoring of canvas tools and token image utilities
-- **Status**: PENDING - Needs immediate fix
+- **Status**: ✅ COMPLETED - All memory leaks fixed
 - **Priority**: CRITICAL - Memory leaks will degrade performance over time and cause module reload issues
 - **Location**: `scripts/manager-canvas.js`, `scripts/token-image-utilities.js`
 - **Specific Leaks Identified**:
@@ -53,6 +53,15 @@
   4. Register `unloadModule` hooks in both classes to call cleanup methods
   5. Review setTimeout in `onActorHPChange` for proper cleanup
 - **Notes**: These leaks were introduced during the refactoring to centralize HP monitoring and image state management. Need to be fixed before next release.
+- **Resolution**:
+  - ✅ Added static properties to store all hook IDs in CanvasTools
+  - ✅ Created CanvasTools.cleanup() method to unregister all hooks
+  - ✅ Registered unloadModule hook in CanvasTools.initialize()
+  - ✅ Enhanced TokenImageUtilities.cleanupTurnIndicator() to clear all Maps/Sets
+  - ✅ Added _lootConversionTimeouts Map to track pending setTimeout calls
+  - ✅ Clear timeouts on restoration and on cleanup
+  - ✅ Registered unloadModule hook in TokenImageUtilities.initializeTurnIndicator()
+  - All resources now properly cleaned up on module disable/reload
 
 ### Death Save/Stable Ring Not Moving with Token
 - **Issue**: Death save overlay ring does not move smoothly with token like turn indicator and targeted rings do

@@ -16,6 +16,13 @@ import { HookManager } from './manager-hooks.js';
 
 export class CanvasTools {
     static ID = 'canvas-tools';
+    
+    // Hook IDs for cleanup
+    static _nameplateCreateTokenHookId = null;
+    static _preCreateTokenHookId = null;
+    static _preUpdateTokenHookId = null;
+    static _createTokenHookId = null;
+    static _tokenAddedToSceneHookId = null;
 
     static initialize() {
         // Initialize token nameplate functionality
@@ -24,12 +31,27 @@ export class CanvasTools {
         this._initializeTokenNaming();
         // Initialize token conversion functionality (dead to loot)
         this._initializeTokenConversion();
+        
+        // Register cleanup hook for module unload
+        Hooks.once('ready', () => {
+            HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'CanvasTools: Cleanup on module unload',
+                context: 'canvas-tools-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) {
+                        CanvasTools.cleanup();
+                    }
+                }
+            });
+        });
     }
 
     // *** TOKEN NAMEPLATES ***
     static _initializeNameplates() {
         Hooks.once('ready', this._updateNameplates.bind(this));
-        const createTokenHookId = HookManager.registerHook({
+        CanvasTools._nameplateCreateTokenHookId = HookManager.registerHook({
 			name: 'createToken',
 			description: 'Canvas Tools: Update nameplates when tokens are created',
 			context: 'manager-canvas-nameplates',
@@ -83,7 +105,7 @@ export class CanvasTools {
     // *** TOKEN NAMING ***
     static _initializeTokenNaming() {
         // Hook for token behavior overrides (runs before token creation)
-        const preCreateTokenHookId = HookManager.registerHook({
+        CanvasTools._preCreateTokenHookId = HookManager.registerHook({
 			name: 'preCreateToken',
 			description: 'Canvas Tools: Apply token behavior overrides before creation',
 			context: 'manager-canvas-pre-create',
@@ -92,7 +114,7 @@ export class CanvasTools {
 		});
 		
 		// Hook for token behavior overrides on updates (runs before token updates)
-		const preUpdateTokenHookId = HookManager.registerHook({
+		CanvasTools._preUpdateTokenHookId = HookManager.registerHook({
 			name: 'preUpdateToken',
 			description: 'Canvas Tools: Apply token behavior overrides before updates',
 			context: 'manager-canvas-pre-update',
@@ -101,7 +123,7 @@ export class CanvasTools {
 		});
 		
 		// Hook for token naming and other post-creation modifications
-		const createTokenHookId = HookManager.registerHook({
+		CanvasTools._createTokenHookId = HookManager.registerHook({
 			name: 'createToken',
 			description: 'Canvas Tools: Handle token creation for naming and modifications',
 			context: 'manager-canvas-create',
@@ -110,7 +132,7 @@ export class CanvasTools {
 		});
 		
 		// Hook for when tokens are added to the scene (runs after token creation but before rendering)
-		const tokenAddedToSceneHookId = HookManager.registerHook({
+		CanvasTools._tokenAddedToSceneHookId = HookManager.registerHook({
 			name: 'createToken',
 			description: 'Canvas Tools: Handle tokens added to scene for behavior overrides',
 			context: 'manager-canvas-scene-add',
@@ -584,5 +606,39 @@ export class CanvasTools {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error adding coins:", error, true, false);
         }
+    }
+
+    /**
+     * Clean up all hooks and resources
+     */
+    static cleanup() {
+        // Unregister nameplate hooks
+        if (CanvasTools._nameplateCreateTokenHookId) {
+            HookManager.unregisterHook('createToken', CanvasTools._nameplateCreateTokenHookId);
+            CanvasTools._nameplateCreateTokenHookId = null;
+        }
+        
+        // Unregister token naming hooks
+        if (CanvasTools._preCreateTokenHookId) {
+            HookManager.unregisterHook('preCreateToken', CanvasTools._preCreateTokenHookId);
+            CanvasTools._preCreateTokenHookId = null;
+        }
+        
+        if (CanvasTools._preUpdateTokenHookId) {
+            HookManager.unregisterHook('preUpdateToken', CanvasTools._preUpdateTokenHookId);
+            CanvasTools._preUpdateTokenHookId = null;
+        }
+        
+        if (CanvasTools._createTokenHookId) {
+            HookManager.unregisterHook('createToken', CanvasTools._createTokenHookId);
+            CanvasTools._createTokenHookId = null;
+        }
+        
+        if (CanvasTools._tokenAddedToSceneHookId) {
+            HookManager.unregisterHook('createToken', CanvasTools._tokenAddedToSceneHookId);
+            CanvasTools._tokenAddedToSceneHookId = null;
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "CanvasTools: All hooks unregistered and cleaned up", "", true, false);
     }
 }

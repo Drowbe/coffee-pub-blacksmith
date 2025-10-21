@@ -32,6 +32,9 @@ export class TokenImageUtilities {
     static _deathSaveOverlays = new Map(); // Map of tokenId -> graphics object
     static _deathSaveStates = new Map(); // Map of actorId -> {wasStable: bool, wasHealed: bool} for tracking state changes
     
+    // Loot conversion timeout management
+    static _lootConversionTimeouts = new Map(); // Map of tokenId -> setTimeout ID for cleanup
+    
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
     static _deleteCombatHookId = null;
@@ -752,8 +755,14 @@ export class TokenImageUtilities {
 
                 // If NPC and loot conversion is enabled, schedule loot actions after delay
                 if (!isPlayerCharacter && lootEnabled) {
+                    // Clear any existing timeout for this token
+                    const existingTimeout = TokenImageUtilities._lootConversionTimeouts.get(tokenId);
+                    if (existingTimeout) {
+                        clearTimeout(existingTimeout);
+                    }
+                    
                     // Schedule loot actions after delay
-                    setTimeout(async () => {
+                    const timeoutId = setTimeout(async () => {
                         // Find the SPECIFIC token by ID, not just any token with the same actor
                         const lootToken = canvas.tokens.placeables.find(t => t.id === tokenId);
                         if (lootToken) {
@@ -765,8 +774,14 @@ export class TokenImageUtilities {
                         }
 
                         // Apply loot image 
-                        await TokenImageUtilities.updateTokenImage(token.document, 'loot');  
+                        await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+                        
+                        // Clean up the timeout ID after execution
+                        TokenImageUtilities._lootConversionTimeouts.delete(tokenId);
                     }, delay);
+                    
+                    // Store the timeout ID for cleanup
+                    TokenImageUtilities._lootConversionTimeouts.set(tokenId, timeoutId);
                 }
             } else {
                 // *** RESTORE IMAGE MODE ***
@@ -774,6 +789,12 @@ export class TokenImageUtilities {
                 const imageState = token.document.getFlag(MODULE.ID, 'imageState');
                 const storedImage = token.document.getFlag(MODULE.ID, 'currentImage');
                 
+                // Cancel any pending loot conversion for this token
+                const pendingTimeout = TokenImageUtilities._lootConversionTimeouts.get(token.id);
+                if (pendingTimeout) {
+                    clearTimeout(pendingTimeout);
+                    TokenImageUtilities._lootConversionTimeouts.delete(token.id);
+                }
                 
                 if (imageState && (imageState === 'dead' || imageState === 'loot')) {
                     // Get fresh document reference after Item Piles reversion
@@ -1208,6 +1229,21 @@ export class TokenImageUtilities {
         // Initialize death save overlays for any tokens at 0 HP
         TokenImageUtilities.updateDeathSaveOverlays();
         
+        // Register cleanup hook for module unload
+        Hooks.once('ready', () => {
+            HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'Token Image Utilities: Cleanup on module unload',
+                context: 'token-utilities-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) {
+                        TokenImageUtilities.cleanupTurnIndicator();
+                    }
+                }
+            });
+        });
+        
         // Check if combat is already active
         if (game.combat && game.combat.started) {
             TokenImageUtilities._updateTurnIndicator();
@@ -1280,12 +1316,26 @@ export class TokenImageUtilities {
     }
 
     /**
-     * Clean up turn indicator system
+     * Clean up turn indicator system and all resources
      */
     static cleanupTurnIndicator() {
+        // Remove all PIXI graphics and clear Maps/Sets
         TokenImageUtilities._removeTurnIndicator();
         TokenImageUtilities._removeAllTargetedIndicators();
         TokenImageUtilities._removeAllDeathSaveOverlays();
+        
+        // Clear all pending loot conversion timeouts
+        for (const [tokenId, timeoutId] of TokenImageUtilities._lootConversionTimeouts) {
+            clearTimeout(timeoutId);
+        }
+        TokenImageUtilities._lootConversionTimeouts.clear();
+        
+        // Explicitly clear all Maps and Sets to prevent memory leaks
+        TokenImageUtilities._deathSaveOverlays.clear();
+        TokenImageUtilities._deathSaveStates.clear();
+        TokenImageUtilities._targetedIndicators.clear();
+        TokenImageUtilities._targetedTokens.clear();
+        TokenImageUtilities._targetedAnimations.clear();
         
         // Stop the continuous hiding loop
         if (TokenImageUtilities._hideTargetsAnimationId) {
@@ -1325,7 +1375,7 @@ export class TokenImageUtilities {
             TokenImageUtilities._refreshTokenHookId = null;
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: All hooks unregistered and cleaned up", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: All hooks unregistered, Maps/Sets cleared, and cleaned up", "", true, false);
     }
 
     /**
