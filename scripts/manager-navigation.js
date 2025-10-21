@@ -8,6 +8,7 @@ import { HookManager } from './manager-hooks.js';
  */
 export class NavigationManager {
     static _singleClickTimeouts = new Map();
+    static _renderTimeouts = []; // Track setTimeout IDs from render hooks
 
     /**
      * Initialize scene navigation hooks
@@ -91,12 +92,20 @@ export class NavigationManager {
         HookManager.unregisterHook('renderSceneDirectory', 'scene-navigation-directory');
         HookManager.unregisterHook('renderSceneNavigation', 'scene-navigation-bar');
         
-        // Clear any pending timeouts
+        // Clear any pending single-click timeouts
         if (NavigationManager._singleClickTimeouts) {
             NavigationManager._singleClickTimeouts.forEach(timeoutId => {
                 clearTimeout(timeoutId);
             });
             NavigationManager._singleClickTimeouts.clear();
+        }
+        
+        // Clear any pending render timeouts
+        if (NavigationManager._renderTimeouts) {
+            NavigationManager._renderTimeouts.forEach(timeoutId => {
+                clearTimeout(timeoutId);
+            });
+            NavigationManager._renderTimeouts = [];
         }
         
         postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleanup completed', '', true, false);
@@ -109,7 +118,13 @@ export class NavigationManager {
     static _onRenderSceneDirectory(app, html) {
         NavigationManager._attachSceneClickListeners(html);
         // Update icons after render (Foundry wipes them out on re-render)
-        setTimeout(() => NavigationManager._updateSceneIcons(), 10);
+        const timeoutId = setTimeout(() => {
+            NavigationManager._updateSceneIcons();
+            // Remove from tracking array after execution
+            const index = NavigationManager._renderTimeouts.indexOf(timeoutId);
+            if (index > -1) NavigationManager._renderTimeouts.splice(index, 1);
+        }, 10);
+        NavigationManager._renderTimeouts.push(timeoutId);
     }
 
     /**
@@ -119,7 +134,13 @@ export class NavigationManager {
     static _onRenderSceneNavigation(app, html) {
         NavigationManager._attachSceneClickListeners(html);
         // Update icons after render (Foundry wipes them out on re-render)
-        setTimeout(() => NavigationManager._updateSceneIcons(), 10);
+        const timeoutId = setTimeout(() => {
+            NavigationManager._updateSceneIcons();
+            // Remove from tracking array after execution
+            const index = NavigationManager._renderTimeouts.indexOf(timeoutId);
+            if (index > -1) NavigationManager._renderTimeouts.splice(index, 1);
+        }, 10);
+        NavigationManager._renderTimeouts.push(timeoutId);
     }
 
     /**

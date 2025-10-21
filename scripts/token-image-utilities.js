@@ -34,6 +34,7 @@ export class TokenImageUtilities {
     
     // Loot conversion timeout management
     static _lootConversionTimeouts = new Map(); // Map of tokenId -> setTimeout ID for cleanup
+    static _canvasReadyTimeout = null; // Track canvasReady setTimeout for cleanup
     
     // Hook IDs for cleanup
     static _updateCombatHookId = null;
@@ -1300,8 +1301,14 @@ export class TokenImageUtilities {
      * Callback for canvasReady hook to recreate death save overlays
      */
     static _onCanvasReadyForDeathSaves() {
+        // Clear any existing timeout
+        if (TokenImageUtilities._canvasReadyTimeout) {
+            clearTimeout(TokenImageUtilities._canvasReadyTimeout);
+            TokenImageUtilities._canvasReadyTimeout = null;
+        }
+        
         // Use setTimeout to ensure tokens are fully rendered with correct positions
-        setTimeout(() => {
+        TokenImageUtilities._canvasReadyTimeout = setTimeout(() => {
             // Iterate through all actors that were showing death save overlays
             for (const [actorId, state] of TokenImageUtilities._deathSaveStates) {
                 const actor = game.actors.get(actorId);
@@ -1330,6 +1337,9 @@ export class TokenImageUtilities {
                     }
                 }
             }
+            
+            // Clear timeout reference after execution
+            TokenImageUtilities._canvasReadyTimeout = null;
         }, 100); // Small delay to ensure tokens are fully positioned
     }
 
@@ -1412,6 +1422,12 @@ export class TokenImageUtilities {
             clearTimeout(timeoutId);
         }
         TokenImageUtilities._lootConversionTimeouts.clear();
+        
+        // Clear canvasReady timeout
+        if (TokenImageUtilities._canvasReadyTimeout) {
+            clearTimeout(TokenImageUtilities._canvasReadyTimeout);
+            TokenImageUtilities._canvasReadyTimeout = null;
+        }
         
         // Explicitly clear all Maps and Sets to prevent memory leaks
         TokenImageUtilities._deathSaveOverlays.clear();
