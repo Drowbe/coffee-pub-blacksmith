@@ -908,9 +908,15 @@ export class TokenImageUtilities {
     static _createOrUpdateDeathSaveOverlay(token, successes, failures, isStable) {
         // Check if overlay already exists and is valid (not destroyed)
         const existingGraphics = this._deathSaveOverlays.get(token.id);
-        if (existingGraphics && !existingGraphics.destroyed && existingGraphics.parent) {
-            return;
+        if (existingGraphics) {
+            const isValid = !existingGraphics.destroyed && existingGraphics.parent;
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Existing overlay found for ${token.name}, destroyed: ${existingGraphics.destroyed}, hasParent: ${!!existingGraphics.parent}, isValid: ${isValid}`, "", true, false);
+            if (isValid) {
+                return;
+            }
         }
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Creating overlay for ${token.name}`, "", true, false);
         
         // Remove existing overlay if present (even if destroyed, to clean up the map)
         this._removeDeathSaveOverlay(token.id);
@@ -1738,7 +1744,7 @@ export class TokenImageUtilities {
             phase: 'visible', // 'visible' or 'pulsing'
             pulseStartTime: 0,
             update: (delta) => {
-                if (!TokenImageUtilities._turnIndicator) return;
+                if (!TokenImageUtilities._turnIndicator || TokenImageUtilities._turnIndicator.destroyed) return;
                 
                 TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
                 
@@ -1771,7 +1777,7 @@ export class TokenImageUtilities {
         TokenImageUtilities._pulseAnimation = {
             time: 0,
             update: (delta) => {
-                if (!TokenImageUtilities._turnIndicator) return;
+                if (!TokenImageUtilities._turnIndicator || TokenImageUtilities._turnIndicator.destroyed) return;
                 // Rotate based on pulse speed setting (faster speed = faster rotation)
                 TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
                 TokenImageUtilities._turnIndicator.rotation = TokenImageUtilities._pulseAnimation.time;
@@ -1787,7 +1793,7 @@ export class TokenImageUtilities {
         TokenImageUtilities._pulseAnimation = {
             time: 0,
             update: (delta) => {
-                if (!TokenImageUtilities._turnIndicator) return;
+                if (!TokenImageUtilities._turnIndicator || TokenImageUtilities._turnIndicator.destroyed) return;
                 // Wobble based on pulse speed setting
                 TokenImageUtilities._pulseAnimation.time += delta * settings.pulseSpeed;
                 // Wobble scale between 0.95 and 1.05 (10% size variation)
