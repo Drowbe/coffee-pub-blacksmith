@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { HookManager } from './manager-hooks.js';
 
 /**
  * Manages all libWrapper integrations for the Blacksmith module
@@ -78,7 +79,7 @@ export class WrapperManager {
             
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Total wrappers registered', wrapperRegistrations.length, true, false);
 
-            // Register scene navigation using native hooks instead of libWrapper to avoid conflicts
+            // Register scene navigation using HookManager for proper cleanup
             WrapperManager._registerSceneNavigationHooks();
 
         } catch (error) {
@@ -88,57 +89,94 @@ export class WrapperManager {
     }
 
     /**
-     * Register scene navigation using native Foundry hooks to avoid libWrapper conflicts
+     * Register scene navigation using native hooks with proper cleanup
      * @private
      */
     static _registerSceneNavigationHooks() {
-        console.log('Scene Navigation: Registering native hooks...');
+        console.log('Scene Navigation: Registering hooks via HookManager...');
         
-        // Try multiple hook names for scene directory
-        const sceneHooks = [
-            'renderSceneDirectory',
-            'renderSceneNavigation', 
-            'renderDirectory',
-            'renderApplication'
-        ];
-        
-        for (const hookName of sceneHooks) {
-            Hooks.on(hookName, (app, html) => {
-                console.log(`Scene Navigation: ${hookName} hook fired`, app, html);
-                // Check if this is the scene directory
-                if (app && (app.constructor.name === 'SceneDirectory' || app.constructor.name === 'SceneNavigation')) {
-                    console.log('Scene Navigation: This is the scene directory!', app.constructor.name);
-                    WrapperManager._attachSceneClickListeners(html);
-                }
-            });
-        }
-        
-        // Also try the ready hook as a fallback
-        Hooks.once('ready', () => {
-            console.log('Scene Navigation: Ready hook fired, checking for scene directory...');
-            const sceneDirectory = ui.scenes;
-            if (sceneDirectory && sceneDirectory.element) {
-                console.log('Scene Navigation: Found scene directory element', sceneDirectory.element);
-                WrapperManager._attachSceneClickListeners(sceneDirectory.element);
-            } else {
-                console.log('Scene Navigation: No scene directory found in ui.scenes');
-            }
+        // Register renderSceneDirectory hook
+        HookManager.registerHook({
+            name: 'renderSceneDirectory',
+            description: 'Scene Navigation: Attach click listeners to scene directory',
+            context: 'Module',
+            priority: 3,
+            key: 'scene-navigation-directory',
+            callback: WrapperManager._onRenderSceneDirectory
         });
         
-        // Check immediately if scene directory is already rendered
+        // Register renderSceneNavigation hook
+        HookManager.registerHook({
+            name: 'renderSceneNavigation',
+            description: 'Scene Navigation: Attach click listeners to scene navigation bar',
+            context: 'Module',
+            priority: 3,
+            key: 'scene-navigation-bar',
+            callback: WrapperManager._onRenderSceneNavigation
+        });
+        
+        // Register cleanup hook
+        HookManager.registerHook({
+            name: 'unloadModule',
+            description: 'Scene Navigation: Cleanup scene navigation hooks',
+            context: 'Module',
+            priority: 3,
+            key: 'scene-navigation-cleanup',
+            callback: WrapperManager._cleanupSceneNavigation
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Hooks registered via HookManager', '', true, false);
+    }
+
+    /**
+     * Cleanup scene navigation hooks
+     * @private
+     */
+    static _cleanupSceneNavigation() {
+        console.log('Scene Navigation: Cleaning up hooks...');
+        
+        // Unregister hooks via HookManager
+        HookManager.unregisterHook('renderSceneDirectory', 'scene-navigation-directory');
+        HookManager.unregisterHook('renderSceneNavigation', 'scene-navigation-bar');
+        
+        // Clear any pending timeouts
+        if (WrapperManager._singleClickTimeouts) {
+            WrapperManager._singleClickTimeouts.forEach(timeoutId => {
+                clearTimeout(timeoutId);
+            });
+            WrapperManager._singleClickTimeouts.clear();
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleanup completed', '', true, false);
+    }
+
+    /**
+     * Hook callback for renderSceneDirectory
+     * @private
+     */
+    static _onRenderSceneDirectory(app, html) {
+        console.log('Scene Navigation: *** renderSceneDirectory CALLBACK FIRED ***', {app, html, htmlType: html?.constructor?.name});
+        WrapperManager._attachSceneClickListeners(html);
+        
+        // Also check if scene directory is already rendered and attach listeners
         setTimeout(() => {
-            console.log('Scene Navigation: Checking for scene directory after timeout...');
             const sceneDirectory = ui.scenes;
             if (sceneDirectory && sceneDirectory.element) {
-                console.log('Scene Navigation: Found scene directory element after timeout', sceneDirectory.element);
+                console.log('Scene Navigation: Double-checking scene directory after render', sceneDirectory.element);
                 WrapperManager._attachSceneClickListeners(sceneDirectory.element);
-            } else {
-                console.log('Scene Navigation: No scene directory found after timeout');
             }
-        }, 1000);
-        
-        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Native hooks registered', '', true, false);
+        }, 100);
     }
+
+    /**
+     * Hook callback for renderSceneNavigation
+     * @private
+     */
+    static _onRenderSceneNavigation(app, html) {
+        console.log('Scene Navigation: *** renderSceneNavigation CALLBACK FIRED ***', {app, html, htmlType: html?.constructor?.name});
+        WrapperManager._attachSceneClickListeners(html);
+    }
+
 
     /**
      * Attach click listeners to scene elements
