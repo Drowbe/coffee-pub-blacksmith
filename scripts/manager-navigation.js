@@ -108,6 +108,8 @@ export class NavigationManager {
      */
     static _onRenderSceneDirectory(app, html) {
         NavigationManager._attachSceneClickListeners(html);
+        // Update icons after render (Foundry wipes them out on re-render)
+        setTimeout(() => NavigationManager._updateSceneIcons(), 10);
     }
 
     /**
@@ -116,6 +118,8 @@ export class NavigationManager {
      */
     static _onRenderSceneNavigation(app, html) {
         NavigationManager._attachSceneClickListeners(html);
+        // Update icons after render (Foundry wipes them out on re-render)
+        setTimeout(() => NavigationManager._updateSceneIcons(), 10);
     }
 
     /**
@@ -224,7 +228,8 @@ export class NavigationManager {
                     // Only proceed if this wasn't followed by a double-click
                     if (event.detail === 1) {
                         await scene.view();
-                        // Icons will be updated automatically by the updateScene hook
+                        // Update icons after viewing (scene.view doesn't trigger updateScene hook)
+                        NavigationManager._updateSceneIcons();
                     }
                     // Clean up the timeout reference
                     if (NavigationManager._singleClickTimeouts) {
@@ -251,7 +256,7 @@ export class NavigationManager {
         if (!blnShowIcons) return;
 
         const activeSceneId = game.scenes.active?.id;
-        const currentSceneId = game.scenes.current?.id;
+        const viewingSceneId = game.scenes.current?.id;
         
         game.scenes.forEach(scene => {
             const sceneElement = $(`.directory-list .scene[data-entry-id=${scene.id}]`);
@@ -264,9 +269,9 @@ export class NavigationManager {
             
             // Add appropriate icon
             if (scene.id === activeSceneId) {
-                $(sceneNameElement).prepend("<i class='fa-solid fa-bow-arrow tabs-scenes-icon'></i> ");
-            } else if (scene.id === currentSceneId) {
-                $(sceneNameElement).prepend("<i class='fa-solid fa-eye tabs-scenes-icon'></i> ");
+                $(sceneNameElement).prepend("<i class='fa-solid fa-bow-arrow tabs-scenes-icon icon-active'></i> ");
+            } else if (scene.id === viewingSceneId) {
+                $(sceneNameElement).prepend("<i class='fa-solid fa-eye tabs-scenes-icon icon-viewing'></i> ");
             }
         });
     }

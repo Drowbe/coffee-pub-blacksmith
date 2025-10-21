@@ -1,10 +1,21 @@
-  /* Icon */
-  i.tabs-scenes-icon {
-    padding: 4px 2px 2px 2px; 
-    font-size: .8em;
-    margin-right: 4px;
-    border: 1px solid rgba(79, 197, 56, 0.2);
-    background-color: rgba(48, 120, 34, 0.2);
-    color: rgba(79, 197, 56, 0.9);
-    border-radius: 3px;
+/* Icon */
+i.tabs-scenes-icon {
+  padding: 4px 2px 2px 2px; 
+  font-size: .8em;
+  margin-right: 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+i.tabs-scenes-icon.icon-active {
+  border: 1px solid rgba(79, 197, 56, 0.2);
+  background-color: rgba(48, 120, 34, 0.2);
+  color: rgba(79, 197, 56, 0.9);
+}
+i.tabs-scenes-icon.icon-viewing{
+  border: 1px solid rgba(92, 213, 251, 0.2);
+  background-color: rgba(92, 213, 251, 0.2);
+  color: rgba(92, 213, 251, 0.9);
 }
