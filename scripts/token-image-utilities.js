@@ -905,12 +905,9 @@ export class TokenImageUtilities {
      * Create or update death save overlay for a token
      */
     static _createOrUpdateDeathSaveOverlay(token, successes, failures, isStable) {
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Creating overlay for ${token.name}, successes: ${successes}, failures: ${failures}, isStable: ${isStable}`, "", true, false);
-        
         // Check if overlay already exists and is valid (not destroyed)
         const existingGraphics = this._deathSaveOverlays.get(token.id);
         if (existingGraphics && !existingGraphics.destroyed && existingGraphics.parent) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Overlay already exists for ${token.name}, skipping creation`, "", true, false);
             return;
         }
         
@@ -918,7 +915,6 @@ export class TokenImageUtilities {
         this._removeDeathSaveOverlay(token.id);
         
         const graphics = new PIXI.Graphics();
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Graphics object created, destroyed: ${graphics.destroyed}`, "", true, false);
         // Configuration
         const ringOutterRadius = 8;
         const ringOpacity = 0.4;
@@ -1032,7 +1028,6 @@ export class TokenImageUtilities {
         const heartbeatAnimation = (delta) => {
             // Safety check: if graphics object is destroyed, stop animation
             if (!graphics || graphics.destroyed) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Heartbeat animation stopping - graphics ${!graphics ? 'is null' : 'is destroyed'}`, "", true, false);
                 canvas.app.ticker.remove(heartbeatAnimation);
                 return;
             }
@@ -1143,8 +1138,6 @@ export class TokenImageUtilities {
         // Add to canvas
         canvas.interface.addChild(graphics);
         this._deathSaveOverlays.set(token.id, graphics);
-        
-        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Overlay added to canvas for ${token.name}, graphics.destroyed: ${graphics.destroyed}, parent: ${graphics.parent ? 'yes' : 'no'}, visible: ${graphics.visible}, alpha: ${graphics.alpha}, zIndex: ${graphics.zIndex}, pos: (${graphics.position.x}, ${graphics.position.y})`, "", true, false);
     } // Close _createOrUpdateDeathSaveOverlay function
     
     /**
@@ -1307,8 +1300,6 @@ export class TokenImageUtilities {
      * Callback for canvasReady hook to recreate death save overlays
      */
     static _onCanvasReadyForDeathSaves() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: DEBUG - canvasReady fired, recreating death save overlays", "", true, false);
-        
         // Use setTimeout to ensure tokens are fully rendered with correct positions
         setTimeout(() => {
             // Iterate through all actors that were showing death save overlays
@@ -1321,10 +1312,7 @@ export class TokenImageUtilities {
                 if (!token) continue;
                 
                 // Verify token has valid position
-                if (token.x === undefined || token.y === undefined) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Token ${actor.name} position not ready, skipping`, "", true, false);
-                    continue;
-                }
+                if (token.x === undefined || token.y === undefined) continue;
                 
                 const currentHP = actor.system.attributes.hp.value;
                 const isStable = actor.system.attributes.hp.stable || false;
@@ -1338,7 +1326,6 @@ export class TokenImageUtilities {
                     
                     // Don't recreate if they have 3 failures (dead)
                     if (failures < 3) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Recreating overlay for ${actor.name} at (${token.x}, ${token.y})`, "", true, false);
                         TokenImageUtilities._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
                     }
                 }

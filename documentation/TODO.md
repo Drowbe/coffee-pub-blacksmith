@@ -3,39 +3,6 @@
 ## ACTIVE ISSUES
 
 ### CRITICAL ISSUES
-- **CRITICAL** Scene navigation click listeners only attach after manual scene activation
-  - **Issue**: Scene navigation hooks (`renderSceneDirectory`, `renderSceneNavigation`) are registered but don't fire on initial page load
-  - **Location**: `scripts/manager-navigation.js`
-  - **Root Cause**: Foundry doesn't trigger these render hooks until UI elements are actually rendered, which doesn't happen until a scene is manually activated
-  - **Impact**: Users cannot use single-click (view) or double-click (activate) scene navigation features until they manually activate a scene first
-  - **Current Behavior**: 
-    - Hooks register successfully on page load
-    - Callbacks never fire until manual scene activation
-    - After manual activation, hooks fire and listeners attach correctly
-  - **Fix Needed**: Implement event delegation or use a different hook that fires on initial page load (e.g., `ready` hook + DOM check)
-
-- **CRITICAL** Scene active/viewing icons not displaying
-  - **Issue**: The view/active icons for scenes are not consistently showing in the scene directory
-  - **Location**: `NavigationManager._updateSceneIcons()` in `scripts/manager-navigation.js`
-  - **Root Cause**: Likely related to timing issue - icons may be updated before DOM is ready or listeners not triggering icon updates
-  - **Impact**: Users don't have visual feedback for which scene is active vs. being viewed
-  - **Fix Needed**: Ensure `_updateSceneIcons()` is called at the right time and verify DOM selectors are correct
-
-- **CRITICAL** Death Save Heartbeat Animation crashes on scene change
-  - **Issue**: `TypeError: Cannot read properties of null (reading 'clear')` at `token-image-utilities.js:1048`
-  - **Location**: `scripts/token-image-utilities.js` line 1048 in heartbeatAnimation function
-  - **Trigger**: Switching scenes while a token has an active death save overlay
-  - **Root Cause**: Heartbeat animation ticker callback tries to draw on graphics object that's been destroyed when scene changes
-  - **Impact**: Console error spam on every scene change, animations broken
-  - **Call Stack**:
-    ```
-    at Q.clear (SmoothGraphics.ts:568:24)
-    at mn.heartbeatAnimation [as fn] (token-image-utilities.js:1048:22)
-    at mn.emit (TickerListener.ts:71:47)
-    at Pt.update (Ticker.ts:427:37)
-    ```
-  - **Fix Needed**: Add null check before `graphics.clear()` in heartbeat animation, or remove ticker callback when graphics are destroyed
-
 
 ### Combat Tracker - Roll Player Character Initiative Not Working
 - **Issue**: "Roll Player Character Initiative" button doesn't roll initiative for player characters
