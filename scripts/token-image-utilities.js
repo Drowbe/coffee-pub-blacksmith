@@ -905,10 +905,20 @@ export class TokenImageUtilities {
      * Create or update death save overlay for a token
      */
     static _createOrUpdateDeathSaveOverlay(token, successes, failures, isStable) {
-        // Remove existing overlay if present
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Creating overlay for ${token.name}, successes: ${successes}, failures: ${failures}, isStable: ${isStable}`, "", true, false);
+        
+        // Check if overlay already exists and is valid (not destroyed)
+        const existingGraphics = this._deathSaveOverlays.get(token.id);
+        if (existingGraphics && !existingGraphics.destroyed && existingGraphics.parent) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Overlay already exists for ${token.name}, skipping creation`, "", true, false);
+            return;
+        }
+        
+        // Remove existing overlay if present (even if destroyed, to clean up the map)
         this._removeDeathSaveOverlay(token.id);
         
         const graphics = new PIXI.Graphics();
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Graphics object created, destroyed: ${graphics.destroyed}`, "", true, false);
         // Configuration
         const ringOutterRadius = 8;
         const ringOpacity = 0.4;
@@ -1020,6 +1030,13 @@ export class TokenImageUtilities {
         
         // Add heartbeat animation to the background (only for dying state)
         const heartbeatAnimation = (delta) => {
+            // Safety check: if graphics object is destroyed, stop animation
+            if (!graphics || graphics.destroyed) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Heartbeat animation stopping - graphics ${!graphics ? 'is null' : 'is destroyed'}`, "", true, false);
+                canvas.app.ticker.remove(heartbeatAnimation);
+                return;
+            }
+            
             // Only animate if character is dying
             if (!shouldAnimate) {
                 return;
@@ -1118,9 +1135,16 @@ export class TokenImageUtilities {
         // Set zIndex to render above turn indicator (higher = on top)
         graphics.zIndex = 100;
         
+        // Enable sortable children for canvas.interface to support zIndex
+        if (canvas?.interface) {
+            canvas.interface.sortableChildren = true;
+        }
+        
         // Add to canvas
         canvas.interface.addChild(graphics);
         this._deathSaveOverlays.set(token.id, graphics);
+        
+        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Overlay added to canvas for ${token.name}, graphics.destroyed: ${graphics.destroyed}, parent: ${graphics.parent ? 'yes' : 'no'}, visible: ${graphics.visible}, alpha: ${graphics.alpha}, zIndex: ${graphics.zIndex}, pos: (${graphics.position.x}, ${graphics.position.y})`, "", true, false);
     } // Close _createOrUpdateDeathSaveOverlay function
     
     /**
@@ -1130,12 +1154,20 @@ export class TokenImageUtilities {
         const graphics = this._deathSaveOverlays.get(tokenId);
         if (graphics) {
             // Remove heartbeat animation if it exists
-            if (graphics._heartbeatAnimation) {
+            if (graphics._heartbeatAnimation && canvas?.app?.ticker) {
                 canvas.app.ticker.remove(graphics._heartbeatAnimation);
             }
             
-            canvas.interface.removeChild(graphics);
-            graphics.destroy();
+            // Safely remove from canvas
+            if (canvas?.interface && graphics.parent) {
+                canvas.interface.removeChild(graphics);
+            }
+            
+            // Only destroy if not already destroyed
+            if (!graphics.destroyed) {
+                graphics.destroy();
+            }
+            
             this._deathSaveOverlays.delete(tokenId);
         }
     }
@@ -1145,8 +1177,20 @@ export class TokenImageUtilities {
      */
     static _removeAllDeathSaveOverlays() {
         for (const [tokenId, graphics] of this._deathSaveOverlays) {
-            canvas.interface.removeChild(graphics);
-            graphics.destroy();
+            // Remove heartbeat animation if it exists
+            if (graphics._heartbeatAnimation && canvas?.app?.ticker) {
+                canvas.app.ticker.remove(graphics._heartbeatAnimation);
+            }
+            
+            // Safely remove from canvas
+            if (canvas?.interface && graphics.parent) {
+                canvas.interface.removeChild(graphics);
+            }
+            
+            // Only destroy if not already destroyed
+            if (!graphics.destroyed) {
+                graphics.destroy();
+            }
         }
         this._deathSaveOverlays.clear();
     }
@@ -1248,6 +1292,58 @@ export class TokenImageUtilities {
         if (game.combat && game.combat.started) {
             TokenImageUtilities._updateTurnIndicator();
         }
+        
+        // Register canvasReady hook to recreate death save overlays after scene changes
+        HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'Token Image Utilities: Recreate death save overlays after scene change',
+            context: 'token-utilities-death-saves',
+            priority: 3,
+            callback: TokenImageUtilities._onCanvasReadyForDeathSaves
+        });
+    }
+    
+    /**
+     * Callback for canvasReady hook to recreate death save overlays
+     */
+    static _onCanvasReadyForDeathSaves() {
+        postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: DEBUG - canvasReady fired, recreating death save overlays", "", true, false);
+        
+        // Use setTimeout to ensure tokens are fully rendered with correct positions
+        setTimeout(() => {
+            // Iterate through all actors that were showing death save overlays
+            for (const [actorId, state] of TokenImageUtilities._deathSaveStates) {
+                const actor = game.actors.get(actorId);
+                if (!actor) continue;
+                
+                // Find the token on the current scene
+                const token = canvas.tokens?.placeables.find(t => t.actor?.id === actorId);
+                if (!token) continue;
+                
+                // Verify token has valid position
+                if (token.x === undefined || token.y === undefined) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Token ${actor.name} position not ready, skipping`, "", true, false);
+                    continue;
+                }
+                
+                const currentHP = actor.system.attributes.hp.value;
+                const isStable = actor.system.attributes.hp.stable || false;
+                const deathSaves = actor.system.attributes.death;
+                
+                // Only recreate if they're still at 0 HP
+                if (currentHP <= 0 && deathSaves) {
+                    const successes = deathSaves.success || 0;
+                    const failures = deathSaves.failure || 0;
+                    const isActuallyStable = isStable || successes >= 3;
+                    
+                    // Don't recreate if they have 3 failures (dead)
+                    if (failures < 3) {
+                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: DEBUG - Recreating overlay for ${actor.name} at (${token.x}, ${token.y})`, "", true, false);
+                        TokenImageUtilities._createOrUpdateDeathSaveOverlay(token, successes, failures, isActuallyStable);
+                    }
+                }
+            }
+        }, 100); // Small delay to ensure tokens are fully positioned
     }
 
     /**
