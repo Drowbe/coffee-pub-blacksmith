@@ -6,6 +6,8 @@ import { postConsoleAndNotification } from './api-core.js';
  * This centralizes our core Foundry VTT modifications and provides a clean API for other Coffee Pub modules
  */
 export class WrapperManager {
+    static _singleClickTimeouts = new Map();
+    
     static initialize() {
 
         
@@ -60,11 +62,6 @@ export class WrapperManager {
                     callback: this._onTokenDraw,
                     type: 'WRAPPER'
                 },
-                {
-                    target: 'SceneDirectory.prototype._onClickEntryName',
-                    callback: this._onSceneClick,
-                    type: 'MIXED'
-                }
             ];
 
             // Register all wrappers and log their registration
@@ -81,10 +78,193 @@ export class WrapperManager {
             
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Total wrappers registered', wrapperRegistrations.length, true, false);
 
+            // Register scene navigation using native hooks instead of libWrapper to avoid conflicts
+            WrapperManager._registerSceneNavigationHooks();
 
         } catch (error) {
             console.error("Coffee Pub Blacksmith | Error registering wrappers:", error);
             ui.notifications.error("Coffee Pub Blacksmith | Failed to register some wrappers. See console for details.");
+        }
+    }
+
+    /**
+     * Register scene navigation using native Foundry hooks to avoid libWrapper conflicts
+     * @private
+     */
+    static _registerSceneNavigationHooks() {
+        console.log('Scene Navigation: Registering native hooks...');
+        
+        // Try multiple hook names for scene directory
+        const sceneHooks = [
+            'renderSceneDirectory',
+            'renderSceneNavigation', 
+            'renderDirectory',
+            'renderApplication'
+        ];
+        
+        for (const hookName of sceneHooks) {
+            Hooks.on(hookName, (app, html) => {
+                console.log(`Scene Navigation: ${hookName} hook fired`, app, html);
+                // Check if this is the scene directory
+                if (app && (app.constructor.name === 'SceneDirectory' || app.constructor.name === 'SceneNavigation')) {
+                    console.log('Scene Navigation: This is the scene directory!', app.constructor.name);
+                    WrapperManager._attachSceneClickListeners(html);
+                }
+            });
+        }
+        
+        // Also try the ready hook as a fallback
+        Hooks.once('ready', () => {
+            console.log('Scene Navigation: Ready hook fired, checking for scene directory...');
+            const sceneDirectory = ui.scenes;
+            if (sceneDirectory && sceneDirectory.element) {
+                console.log('Scene Navigation: Found scene directory element', sceneDirectory.element);
+                WrapperManager._attachSceneClickListeners(sceneDirectory.element);
+            } else {
+                console.log('Scene Navigation: No scene directory found in ui.scenes');
+            }
+        });
+        
+        // Check immediately if scene directory is already rendered
+        setTimeout(() => {
+            console.log('Scene Navigation: Checking for scene directory after timeout...');
+            const sceneDirectory = ui.scenes;
+            if (sceneDirectory && sceneDirectory.element) {
+                console.log('Scene Navigation: Found scene directory element after timeout', sceneDirectory.element);
+                WrapperManager._attachSceneClickListeners(sceneDirectory.element);
+            } else {
+                console.log('Scene Navigation: No scene directory found after timeout');
+            }
+        }, 1000);
+        
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Native hooks registered', '', true, false);
+    }
+
+    /**
+     * Attach click listeners to scene elements
+     * @private
+     */
+    static _attachSceneClickListeners(html) {
+        console.log('Scene Navigation: Attaching click listeners to:', html);
+        
+        // Try different selectors
+        const selectors = [
+            '.directory-item .scene-name',
+            '.directory-item a',
+            '.directory-item .scene',
+            '.scene-name'
+        ];
+        
+        for (const selector of selectors) {
+            const elements = html.find(selector);
+            console.log(`Scene Navigation: Found ${elements.length} elements for selector "${selector}"`);
+            
+            if (elements.length > 0) {
+                elements.off('click.blacksmith').on('click.blacksmith', WrapperManager._onSceneClickNative);
+                console.log(`Scene Navigation: Attached listeners to ${elements.length} elements using selector "${selector}"`);
+            }
+        }
+    }
+
+    /**
+     * Native click handler for scene navigation
+     * @private
+     */
+    static async _onSceneClickNative(event) {
+        try {
+            console.log('Scene Navigation: *** NATIVE HANDLER CALLED ***', {
+                type: event?.type,
+                detail: event?.detail,
+                shiftKey: event?.shiftKey
+            });
+            
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: *** NATIVE HANDLER CALLED ***', {
+                type: event?.type,
+                detail: event?.detail,
+                shiftKey: event?.shiftKey
+            }, true, false);
+            
+            if (!event) return;
+
+            // Only handle if custom clicks are enabled
+            const blnCustomClicks = game.settings.get(MODULE.ID, 'enableSceneClickBehaviors');
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks enabled', blnCustomClicks, true, false);
+
+            if (!blnCustomClicks) {
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks disabled, allowing default', '', true, false);
+                return; // Allow default behavior
+            }
+
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Preventing default and stopping propagation', '', true, false);
+            event.preventDefault();
+            event.stopPropagation();
+
+            const directoryItem = event.currentTarget.closest(".directory-item");
+            const entryId = directoryItem?.dataset.entryId;
+            
+            // Check if this is actually a scene (not other documents)
+            const scene = game.scenes.get(entryId);
+            if (!scene) {
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Not a scene, allowing default', {entryId}, true, false);
+                return; // Allow default behavior
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Scene identified', {name: scene?.name, id: entryId}, true, false);
+            
+            // Handle shift-click for configuration
+            if (event.shiftKey) {
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Shift-click detected, opening config', '', true, false);
+                scene.sheet.render(true);
+                return;
+            }
+
+            // Handle double-click for activation
+            if (event.type === "click" && event.detail === 2) {
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Double-click detected, activating scene', scene.name, true, false);
+                // Clear any pending single-click timeout for this scene
+                if (WrapperManager._singleClickTimeouts && WrapperManager._singleClickTimeouts.has(entryId)) {
+                    clearTimeout(WrapperManager._singleClickTimeouts.get(entryId));
+                    WrapperManager._singleClickTimeouts.delete(entryId);
+                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleared pending single-click timeout', scene.name, true, false);
+                }
+                await scene.activate();
+                WrapperManager._updateSceneIcons();
+                return;
+            }
+
+            // Handle single-click for viewing with a delay
+            if (event.type === "click" && event.detail === 1) {
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Single-click detected, scheduling view in 250ms', scene.name, true, false);
+                
+                // Clear any existing timeout for this scene
+                if (WrapperManager._singleClickTimeouts && WrapperManager._singleClickTimeouts.has(entryId)) {
+                    clearTimeout(WrapperManager._singleClickTimeouts.get(entryId));
+                }
+                
+                // Store the timeout ID
+                if (!WrapperManager._singleClickTimeouts) {
+                    WrapperManager._singleClickTimeouts = new Map();
+                }
+                
+                const timeoutId = setTimeout(async () => {
+                    // Only proceed if this wasn't followed by a double-click
+                    if (event.detail === 1) {
+                        await scene.view();
+                        WrapperManager._updateSceneIcons();
+                    }
+                    // Clean up the timeout reference
+                    if (WrapperManager._singleClickTimeouts) {
+                        WrapperManager._singleClickTimeouts.delete(entryId);
+                    }
+                }, 250); // 250ms delay
+                
+                WrapperManager._singleClickTimeouts.set(entryId, timeoutId);
+                return;
+            }
+            
+        } catch (error) {
+            console.error('Scene Navigation: ERROR in native handler', error);
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR in native handler', error.message, false, true);
         }
     }
 
@@ -190,11 +370,18 @@ export class WrapperManager {
      * Handles custom scene navigation click behaviors
      */
     static async _onSceneClick(wrapped, event) {
-        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: *** WRAPPER CALLED ***', {
-            type: event?.type,
-            detail: event?.detail,
-            shiftKey: event?.shiftKey
-        }, true, false);
+        try {
+            console.log('Scene Navigation: *** WRAPPER CALLED ***', {
+                type: event?.type,
+                detail: event?.detail,
+                shiftKey: event?.shiftKey
+            });
+            
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: *** WRAPPER CALLED ***', {
+                type: event?.type,
+                detail: event?.detail,
+                shiftKey: event?.shiftKey
+            }, true, false);
         
         if (!event) {
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: No event, calling wrapped', '', true, false);
@@ -214,9 +401,17 @@ export class WrapperManager {
         event.preventDefault();
         event.stopPropagation();
 
-        const sceneId = event.currentTarget.closest(".directory-item").dataset.entryId;
-        const scene = game.scenes.get(sceneId);
-        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Scene identified', {name: scene?.name, id: sceneId}, true, false);
+        const directoryItem = event.currentTarget.closest(".directory-item");
+        const entryId = directoryItem?.dataset.entryId;
+        
+        // Check if this is actually a scene (not other documents)
+        const scene = game.scenes.get(entryId);
+        if (!scene) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Not a scene, calling wrapped', {entryId}, true, false);
+            return wrapped(event);
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Scene identified', {name: scene?.name, id: entryId}, true, false);
         
         // Handle shift-click for configuration
         if (event.shiftKey) {
@@ -228,6 +423,12 @@ export class WrapperManager {
         // Handle double-click for activation
         if (event.type === "click" && event.detail === 2) {
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Double-click detected, activating scene', scene.name, true, false);
+            // Clear any pending single-click timeout for this scene
+            if (WrapperManager._singleClickTimeouts && WrapperManager._singleClickTimeouts.has(entryId)) {
+                clearTimeout(WrapperManager._singleClickTimeouts.get(entryId));
+                WrapperManager._singleClickTimeouts.delete(entryId);
+                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleared pending single-click timeout', scene.name, true, false);
+            }
             await scene.activate();
             WrapperManager._updateSceneIcons();
             return;
@@ -236,23 +437,43 @@ export class WrapperManager {
         // Handle single-click for viewing with a delay
         if (event.type === "click" && event.detail === 1) {
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Single-click detected, scheduling view in 250ms', scene.name, true, false);
-            // Store the clicked scene for the timeout
-            const clickedScene = scene;
             
-            // Wait briefly to see if this becomes a double-click
-            setTimeout(async () => {
+            // Clear any existing timeout for this scene
+            if (WrapperManager._singleClickTimeouts && WrapperManager._singleClickTimeouts.has(entryId)) {
+                clearTimeout(WrapperManager._singleClickTimeouts.get(entryId));
+            }
+            
+            // Store the timeout ID
+            if (!WrapperManager._singleClickTimeouts) {
+                WrapperManager._singleClickTimeouts = new Map();
+            }
+            
+            const timeoutId = setTimeout(async () => {
                 // Only proceed if this wasn't followed by a double-click
                 if (event.detail === 1) {
-                    await clickedScene.view();
+                    await scene.view();
                     WrapperManager._updateSceneIcons();
                 }
+                // Clean up the timeout reference
+                if (WrapperManager._singleClickTimeouts) {
+                    WrapperManager._singleClickTimeouts.delete(entryId);
+                }
             }, 250); // 250ms delay
+            
+            WrapperManager._singleClickTimeouts.set(entryId, timeoutId);
             return;
         }
         
         // If we didn't handle the event, call the original function
         postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: No matching condition, calling wrapped', '', true, false);
         return wrapped(event);
+        
+        } catch (error) {
+            console.error('Scene Navigation: ERROR in wrapper', error);
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR in wrapper', error.message, false, true);
+            // On error, call the original function
+            return wrapped(event);
+        }
     }
 
     /**
