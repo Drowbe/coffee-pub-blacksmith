@@ -296,7 +296,9 @@ Hooks.once('ready', async () => {
         WrapperManager.initialize();
         
         // Initialize scene navigation
+        console.log('BLACKSMITH: About to call NavigationManager.initialize()');
         NavigationManager.initialize();
+        console.log('BLACKSMITH: NavigationManager.initialize() completed');
         
         // Initialize latency checker
         LatencyChecker.initialize();
