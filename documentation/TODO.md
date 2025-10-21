@@ -3,9 +3,23 @@
 ## ACTIVE ISSUES
 
 ### CRITICAL ISSUES
-- **CRITICAL** Scene navigation tab click events are not working - cannot switch scenes by clicking tabs
-  - **Update**: Wrapper IS registered and working, but investigation revealed two other critical bugs (see below)
-  - **Status**: Needs user confirmation - scenes may actually be switching despite error
+- **CRITICAL** Scene navigation click listeners only attach after manual scene activation
+  - **Issue**: Scene navigation hooks (`renderSceneDirectory`, `renderSceneNavigation`) are registered but don't fire on initial page load
+  - **Location**: `scripts/manager-navigation.js`
+  - **Root Cause**: Foundry doesn't trigger these render hooks until UI elements are actually rendered, which doesn't happen until a scene is manually activated
+  - **Impact**: Users cannot use single-click (view) or double-click (activate) scene navigation features until they manually activate a scene first
+  - **Current Behavior**: 
+    - Hooks register successfully on page load
+    - Callbacks never fire until manual scene activation
+    - After manual activation, hooks fire and listeners attach correctly
+  - **Fix Needed**: Implement event delegation or use a different hook that fires on initial page load (e.g., `ready` hook + DOM check)
+
+- **CRITICAL** Scene active/viewing icons not displaying
+  - **Issue**: The view/active icons for scenes are not consistently showing in the scene directory
+  - **Location**: `NavigationManager._updateSceneIcons()` in `scripts/manager-navigation.js`
+  - **Root Cause**: Likely related to timing issue - icons may be updated before DOM is ready or listeners not triggering icon updates
+  - **Impact**: Users don't have visual feedback for which scene is active vs. being viewed
+  - **Fix Needed**: Ensure `_updateSceneIcons()` is called at the right time and verify DOM selectors are correct
 
 - **CRITICAL** Death Save Heartbeat Animation crashes on scene change
   - **Issue**: `TypeError: Cannot read properties of null (reading 'clear')` at `token-image-utilities.js:1048`
@@ -22,11 +36,6 @@
     ```
   - **Fix Needed**: Add null check before `graphics.clear()` in heartbeat animation, or remove ticker callback when graphics are destroyed
 
-- **CRITICAL** Scene navigation wrapper prevents event propagation
-  - **Issue**: `event.stopPropagation()` at line 82 in `manager-libwrapper.js` prevents other event listeners from firing
-  - **Location**: `scripts/manager-libwrapper.js` line 82
-  - **Impact**: May break other modules or custom scripts that listen for scene clicks
-  - **Fix Needed**: Review if `stopPropagation()` is necessary or should be conditional
 
 ### Combat Tracker - Roll Player Character Initiative Not Working
 - **Issue**: "Roll Player Character Initiative" button doesn't roll initiative for player characters
