@@ -5,6 +5,55 @@
 ### CRITICAL ISSUES
 - **CRITICAL** Scene navigation tab click events are not working - cannot switch scenes by clicking tabs
 
+### CRITICAL - Memory Leaks in CanvasTools and TokenImageUtilities
+- **Issue**: Multiple memory leaks introduced in recent refactoring of canvas tools and token image utilities
+- **Status**: PENDING - Needs immediate fix
+- **Priority**: CRITICAL - Memory leaks will degrade performance over time and cause module reload issues
+- **Location**: `scripts/manager-canvas.js`, `scripts/token-image-utilities.js`
+- **Specific Leaks Identified**:
+  1. **CanvasTools Hook IDs Not Stored or Cleaned Up**:
+     - `_initializeNameplates()` line 32: `createTokenHookId` returned but never stored
+     - `_initializeTokenNaming()` lines 86-119: Four hook IDs returned but never stored or unregistered
+       - `preCreateTokenHookId`
+       - `preUpdateTokenHookId`
+       - `createTokenHookId`
+       - `tokenAddedToSceneHookId`
+     - These hooks will persist even after module unload
+  2. **TokenImageUtilities Static Maps/Sets Never Cleared**:
+     - `_deathSaveOverlays` (Map) - PIXI graphics objects that should be destroyed
+     - `_deathSaveStates` (Map) - Actor state tracking
+     - `_targetedIndicators` (Map) - PIXI graphics objects
+     - `_targetedTokens` (Set) - Token ID references
+     - `_targetedAnimations` (Map) - Animation objects with ticker callbacks
+     - These will accumulate data across module reloads
+  3. **setTimeout Callback in onActorHPChange**:
+     - Lines 756-769 in `token-image-utilities.js`
+     - Captures `tokenId` but may reference stale token objects
+     - No cleanup if module is reloaded before timeout fires
+  4. **Missing Cleanup Methods**:
+     - Neither `CanvasTools` nor `TokenImageUtilities` have cleanup methods
+     - No `unloadModule` hooks registered to clean up on module unload
+     - Will cause hooks to persist and memory to accumulate
+- **Impact**: 
+  - Hooks remain active after module disable/reload
+  - PIXI graphics objects not destroyed, consuming memory
+  - Animation ticker callbacks continue running
+  - Maps/Sets grow without bounds across reloads
+  - Performance degradation over time
+- **Required Fixes**:
+  1. Add static properties to store hook IDs in both classes
+  2. Add `cleanup()` static method to CanvasTools:
+     - Unregister all stored hook IDs via HookManager
+     - Clear any internal state
+  3. Add `cleanup()` static method to TokenImageUtilities (or expand existing `cleanupTurnIndicator()`):
+     - Clear all Maps: `_deathSaveOverlays`, `_deathSaveStates`, `_targetedIndicators`, `_targetedAnimations`
+     - Clear Set: `_targetedTokens`
+     - Destroy all PIXI graphics objects before clearing Maps
+     - Remove all animation ticker callbacks
+  4. Register `unloadModule` hooks in both classes to call cleanup methods
+  5. Review setTimeout in `onActorHPChange` for proper cleanup
+- **Notes**: These leaks were introduced during the refactoring to centralize HP monitoring and image state management. Need to be fixed before next release.
+
 ### Death Save/Stable Ring Not Moving with Token
 - **Issue**: Death save overlay ring does not move smoothly with token like turn indicator and targeted rings do
 - **Status**: ✅ COMPLETED - Fixed
