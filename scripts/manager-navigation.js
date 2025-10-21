@@ -18,13 +18,7 @@ export class NavigationManager {
         // Use setTimeout to delay execution until after module loading phase
         // All early hooks (init, ready, canvasReady, updateScene) have already fired
         setTimeout(() => {
-            try {
-                console.log('BLACKSMITH Scene Navigation: *** SETTIMEOUT CALLBACK STARTING ***');
-                NavigationManager._onReady();
-                console.log('BLACKSMITH Scene Navigation: *** SETTIMEOUT CALLBACK COMPLETED ***');
-            } catch (error) {
-                console.error('BLACKSMITH Scene Navigation: *** SETTIMEOUT CALLBACK ERROR ***', error);
-            }
+            NavigationManager._onReady();
         }, 1000); // 1 second delay to ensure module loading is complete
         
         // Register renderSceneDirectory hook
@@ -61,77 +55,28 @@ export class NavigationManager {
     }
 
     /**
-     * DEBUG: Ready hook callback to check DOM state and attempt early attachment
+     * Initialize scene navigation after module loading is complete
      * @private
      */
     static _onReady() {
-        console.log('═══════════════════════════════════════════════════════════');
-        console.log('Scene Navigation: *** READY HOOK FIRED - DIAGNOSTIC MODE ***');
-        console.log('═══════════════════════════════════════════════════════════');
-        
-        // Check various DOM elements and UI objects
-        const diagnostics = {
-            timestamp: new Date().toISOString(),
-            
-            // Check for scene directory element
-            sceneDirectoryElement: {
-                querySelector: document.querySelector('#scenes'),
-                querySelectorAll: document.querySelectorAll('.scene[data-entry-id]').length,
-                uiScenes: ui.scenes,
-                uiScenesElement: ui.scenes?.element,
-                uiScenesRendered: ui.scenes?.rendered
-            },
-            
-            // Check for scene navigation element
-            sceneNavigationElement: {
-                querySelector: document.querySelector('#navigation'),
-                sceneNameElements: document.querySelectorAll('.scene-name').length,
-                uiNav: ui.nav,
-                uiNavElement: ui.nav?.element,
-                uiNavRendered: ui.nav?.rendered
-            },
-            
-            // Check for directory items
-            directoryItems: {
-                allDirectoryItems: document.querySelectorAll('.directory-item').length,
-                sceneDirectoryItems: document.querySelectorAll('#scenes .directory-item').length,
-                directoryItemLinks: document.querySelectorAll('.directory-item a').length,
-                sceneLinks: document.querySelectorAll('.scene[data-entry-id] a').length
-            },
-            
-            // Check game state
-            gameState: {
-                scenesCount: game.scenes?.size,
-                activeScene: game.scenes?.active?.name,
-                currentScene: game.scenes?.current?.name,
-                viewedScene: game.scenes?.viewed?.name
-            }
-        };
-        
-        console.log('Scene Navigation: DOM DIAGNOSTIC RESULTS:', diagnostics);
+        // Update scene icons on initial load
+        NavigationManager._updateSceneIcons();
         
         // Try to attach listeners if elements exist
-        if (diagnostics.sceneDirectoryElement.querySelector) {
-            console.log('Scene Navigation: Scene directory found in DOM, attempting early attachment...');
-            NavigationManager._attachSceneClickListeners($(diagnostics.sceneDirectoryElement.querySelector));
-        } else {
-            console.log('Scene Navigation: ⚠️ Scene directory NOT found in DOM on ready hook');
+        const sceneDirectory = document.querySelector('#scenes');
+        if (sceneDirectory) {
+            NavigationManager._attachSceneClickListeners($(sceneDirectory));
         }
         
-        if (diagnostics.sceneNavigationElement.querySelector) {
-            console.log('Scene Navigation: Scene navigation found in DOM, attempting early attachment...');
-            NavigationManager._attachSceneClickListeners($(diagnostics.sceneNavigationElement.querySelector));
-        } else {
-            console.log('Scene Navigation: ⚠️ Scene navigation NOT found in DOM on ready hook');
+        const sceneNavigation = document.querySelector('#navigation');
+        if (sceneNavigation) {
+            NavigationManager._attachSceneClickListeners($(sceneNavigation));
         }
         
         // Try ui.scenes.element if direct query failed
-        if (!diagnostics.sceneDirectoryElement.querySelector && diagnostics.sceneDirectoryElement.uiScenesElement) {
-            console.log('Scene Navigation: Found ui.scenes.element, attempting attachment...');
-            NavigationManager._attachSceneClickListeners(diagnostics.sceneDirectoryElement.uiScenesElement);
+        if (!sceneDirectory && ui.scenes?.element) {
+            NavigationManager._attachSceneClickListeners(ui.scenes.element);
         }
-        
-        console.log('═══════════════════════════════════════════════════════════');
     }
 
     /**
@@ -162,17 +107,7 @@ export class NavigationManager {
      * @private
      */
     static _onRenderSceneDirectory(app, html) {
-        console.log('Scene Navigation: *** renderSceneDirectory CALLBACK FIRED ***', {app, html, htmlType: html?.constructor?.name});
         NavigationManager._attachSceneClickListeners(html);
-        
-        // Also check if scene directory is already rendered and attach listeners
-        setTimeout(() => {
-            const sceneDirectory = ui.scenes;
-            if (sceneDirectory && sceneDirectory.element) {
-                console.log('Scene Navigation: Double-checking scene directory after render', sceneDirectory.element);
-                NavigationManager._attachSceneClickListeners(sceneDirectory.element);
-            }
-        }, 100);
     }
 
     /**
@@ -180,7 +115,6 @@ export class NavigationManager {
      * @private
      */
     static _onRenderSceneNavigation(app, html) {
-        console.log('Scene Navigation: *** renderSceneNavigation CALLBACK FIRED ***', {app, html, htmlType: html?.constructor?.name});
         NavigationManager._attachSceneClickListeners(html);
     }
 
@@ -189,9 +123,7 @@ export class NavigationManager {
      * @private
      */
     static _attachSceneClickListeners(html) {
-        console.log('Scene Navigation: Attaching click listeners to:', html);
-        
-        // Try different selectors
+        // Try different selectors to find scene elements
         const selectors = [
             '.directory-item .scene-name',
             '.directory-item a',
@@ -201,27 +133,9 @@ export class NavigationManager {
         
         for (const selector of selectors) {
             const elements = html.find(selector);
-            console.log(`Scene Navigation: Found ${elements.length} elements for selector "${selector}"`);
-            
             if (elements.length > 0) {
                 elements.off('click.blacksmith').on('click.blacksmith', NavigationManager._onSceneClickNative);
-                console.log(`Scene Navigation: Attached listeners to ${elements.length} elements using selector "${selector}"`);
-                
-                // DEBUG: Verify listeners are actually attached
-                elements.each(function(index) {
-                    const $el = $(this);
-                    const events = $._data(this, 'events');
-                    const hasClickHandler = events && events.click;
-                    const clickHandlers = hasClickHandler ? events.click.length : 0;
-                    const ourHandler = hasClickHandler ? events.click.some(h => h.namespace === 'blacksmith') : false;
-                    
-                    console.log(`Scene Navigation: Element ${index} (${selector}) - hasClick: ${hasClickHandler}, handlers: ${clickHandlers}, hasOurs: ${ourHandler}`, {
-                        element: this,
-                        tagName: this.tagName,
-                        className: this.className,
-                        dataEntryId: this.closest('.directory-item')?.dataset?.entryId
-                    });
-                });
+                break; // Stop after finding elements with the first working selector
             }
         }
     }
@@ -310,7 +224,7 @@ export class NavigationManager {
                     // Only proceed if this wasn't followed by a double-click
                     if (event.detail === 1) {
                         await scene.view();
-                        NavigationManager._updateSceneIcons();
+                        // Icons will be updated automatically by the updateScene hook
                     }
                     // Clean up the timeout reference
                     if (NavigationManager._singleClickTimeouts) {
@@ -336,17 +250,23 @@ export class NavigationManager {
         const blnShowIcons = game.settings.get(MODULE.ID, 'enableSceneInteractions');
         if (!blnShowIcons) return;
 
+        const activeSceneId = game.scenes.active?.id;
+        const currentSceneId = game.scenes.current?.id;
+        
         game.scenes.forEach(scene => {
             const sceneElement = $(`.directory-list .scene[data-entry-id=${scene.id}]`);
             const sceneNameElement = $(sceneElement).find("a");
-            const strIconActive = "<i class='fa-solid fa-bow-arrow'></i> ";
-            const strIconViewing = "<i class='fa-solid fa-eye'></i> ";
             
+            if (sceneNameElement.length === 0) return; // Skip if element not found
+            
+            // Remove all existing icons
             $(sceneNameElement).find('.fa-solid').remove();
-            if (scene.id === game.scenes.active?.id) {
-                $(sceneNameElement).prepend(strIconActive);
-            } else if (scene.id === game.scenes.current?.id) {
-                $(sceneNameElement).prepend(strIconViewing);
+            
+            // Add appropriate icon
+            if (scene.id === activeSceneId) {
+                $(sceneNameElement).prepend("<i class='fa-solid fa-bow-arrow tabs-scenes-icon'></i> ");
+            } else if (scene.id === currentSceneId) {
+                $(sceneNameElement).prepend("<i class='fa-solid fa-eye tabs-scenes-icon'></i> ");
             }
         });
     }

@@ -20,10 +20,13 @@
 @import "window-roll-cinematic.css";
 @import "window-token-replacement.css";
 
+/* --- Tabs ---------------------- */
+@import "tabs-scenes.css";
+
 /* --- Toolbars ------------------- */
 @import "toolbars.css";
 @import "toolbar-zones.css";
-@import "encounter-toolbar.css";
+@import "toolbar-encounter.css";
 @import "journal-tools.css";
 
 /* --- Cards ---------------------- */
