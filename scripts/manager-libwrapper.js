@@ -62,75 +62,24 @@ export class WrapperManager {
                 },
                 {
                     target: 'SceneDirectory.prototype._onClickEntryName',
-                    callback: async function(event) {
-                
-                        if (!event) {
-                            
-                            return;
-                        }
-
-                        // Only handle if custom clicks are enabled
-                        const blnCustomClicks = game.settings.get(MODULE.ID, 'enableSceneClickBehaviors');
-
-                        
-                        if (!blnCustomClicks) {
-                            
-                            return this._original(event);
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        const sceneId = event.currentTarget.closest(".directory-item").dataset.entryId;
-                        const scene = game.scenes.get(sceneId);
-                        
-                        // Handle shift-click for configuration
-                        if (event.shiftKey) {
-
-                            scene.sheet.render(true);
-                            return;
-                        }
-
-                        // Handle double-click for activation
-                        if (event.type === "click" && event.detail === 2) {
-
-                            await scene.activate();
-                            WrapperManager._updateSceneIcons();
-                            return;
-                        }
-
-                        // Handle single-click for viewing with a delay
-                        if (event.type === "click" && event.detail === 1) {
-                            // Store the clicked scene for the timeout
-                            const clickedScene = scene;
-                            
-                            // Wait briefly to see if this becomes a double-click
-                            setTimeout(async () => {
-                                // Only proceed if this wasn't followed by a double-click
-                                if (event.detail === 1) {
-        
-                                    await clickedScene.view();
-                                    WrapperManager._updateSceneIcons();
-                                }
-                            }, 250); // 250ms delay
-                            return;
-                        }
-                    },
-                    type: 'OVERRIDE'
+                    callback: this._onSceneClick,
+                    type: 'MIXED'
                 }
             ];
 
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
                 try {
-    
+                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Attempting to register wrapper', {target: reg.target, type: reg.type}, true, false);
                     libWrapper.register(MODULE.ID, reg.target, reg.callback, reg.type);
-
+                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Successfully registered wrapper', reg.target, true, false);
                 } catch (wrapError) {
+                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR registering wrapper', {target: reg.target, error: wrapError.message}, false, true);
                     console.error(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError);
-                    ui.notifications.error(`Coffee Pub Blacksmith | Failed to register wrapper for ${reg.target}`);
                 }
             }
+            
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Total wrappers registered', wrapperRegistrations.length, true, false);
 
 
         } catch (error) {
@@ -234,6 +183,76 @@ export class WrapperManager {
             console.error("Coffee Pub Blacksmith | Error in token draw wrapper:", error);
             return wrapped(...args);
         }
+    }
+
+    /**
+     * Wrapper for SceneDirectory.prototype._onClickEntryName
+     * Handles custom scene navigation click behaviors
+     */
+    static async _onSceneClick(wrapped, event) {
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: *** WRAPPER CALLED ***', {
+            type: event?.type,
+            detail: event?.detail,
+            shiftKey: event?.shiftKey
+        }, true, false);
+        
+        if (!event) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: No event, calling wrapped', '', true, false);
+            return wrapped(event);
+        }
+
+        // Only handle if custom clicks are enabled
+        const blnCustomClicks = game.settings.get(MODULE.ID, 'enableSceneClickBehaviors');
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks enabled', blnCustomClicks, true, false);
+
+        if (!blnCustomClicks) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks disabled, calling wrapped', '', true, false);
+            return wrapped(event);
+        }
+
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Preventing default and stopping propagation', '', true, false);
+        event.preventDefault();
+        event.stopPropagation();
+
+        const sceneId = event.currentTarget.closest(".directory-item").dataset.entryId;
+        const scene = game.scenes.get(sceneId);
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Scene identified', {name: scene?.name, id: sceneId}, true, false);
+        
+        // Handle shift-click for configuration
+        if (event.shiftKey) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Shift-click detected, opening config', '', true, false);
+            scene.sheet.render(true);
+            return;
+        }
+
+        // Handle double-click for activation
+        if (event.type === "click" && event.detail === 2) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Double-click detected, activating scene', scene.name, true, false);
+            await scene.activate();
+            WrapperManager._updateSceneIcons();
+            return;
+        }
+
+        // Handle single-click for viewing with a delay
+        if (event.type === "click" && event.detail === 1) {
+            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Single-click detected, scheduling view in 250ms', scene.name, true, false);
+            // Store the clicked scene for the timeout
+            const clickedScene = scene;
+            
+            // Wait briefly to see if this becomes a double-click
+            setTimeout(async () => {
+                // Only proceed if this wasn't followed by a double-click
+                if (event.detail === 1) {
+                    await clickedScene.view();
+                    WrapperManager._updateSceneIcons();
+                }
+            }, 250); // 250ms delay
+            return;
+        }
+        
+        // If we didn't handle the event, call the original function
+        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: No matching condition, calling wrapped', '', true, false);
+        return wrapped(event);
     }
 
     /**
