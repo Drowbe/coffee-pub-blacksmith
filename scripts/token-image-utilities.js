@@ -715,6 +715,9 @@ export class TokenImageUtilities {
         
         for (const token of tokensToProcess) {
             if (currentHP <= 0) {
+
+                // *** SET IMAGE MODE ***
+
                 // Token at 0 HP or below - check dead token settings
                 // DEAD TOKEN MODE CHECK
                 const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
@@ -749,23 +752,10 @@ export class TokenImageUtilities {
 
                 // If NPC and loot conversion is enabled, schedule loot actions after delay
                 if (!isPlayerCharacter && lootEnabled) {
-
-
-                    // Apply loot image 
-                    await TokenImageUtilities.updateTokenImage(token.document, 'loot');  
-
-
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Waiting for the delay to complete`, delay, true, false);
-
                     // Schedule loot actions after delay
                     setTimeout(async () => {
-
-                        
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Delay complete`, "", true, false);
-
                         // Find the SPECIFIC token by ID, not just any token with the same actor
                         const lootToken = canvas.tokens.placeables.find(t => t.id === tokenId);
-                        
                         if (lootToken) {
                             const tokenHP = lootToken.actor.system.attributes.hp.value;
                             
@@ -773,17 +763,17 @@ export class TokenImageUtilities {
                                 await TokenImageUtilities._convertTokenToLoot(lootToken);
                             }
                         }
+
+                        // Apply loot image 
+                        await TokenImageUtilities.updateTokenImage(token.document, 'loot');  
                     }, delay);
                 }
             } else {
+                // *** RESTORE IMAGE MODE ***
                 // Token was revived (HP > 0) - restore current image if any state was applied
                 const imageState = token.document.getFlag(MODULE.ID, 'imageState');
                 const storedImage = token.document.getFlag(MODULE.ID, 'currentImage');
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - TOKEN NAME: ${token.name}`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - imageState=${imageState}`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - storedImage=${storedImage}`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: RESTORATION CHECK - currentTexture=${token.document.texture.src}`, "", true, false);
                 
                 if (imageState && (imageState === 'dead' || imageState === 'loot')) {
                     // Get fresh document reference after Item Piles reversion
@@ -798,7 +788,6 @@ export class TokenImageUtilities {
                 if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
                     try {
                         await game.itempiles.API.revertTokensFromItemPiles([token]);
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: AFTER ITEM PILES REVERT - texture: ${token.document.texture.src}`, "", true, false);
                     } catch (error) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR reverting from item pile: ${error.message}`, "", false, false);
                     }
