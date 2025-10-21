@@ -51,6 +51,7 @@ import { CPBPlayerStats } from './stats-player.js';
 import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './manager-libwrapper.js';
+import { NavigationManager } from './manager-navigation.js';
 import { ModuleManager } from './manager-modules.js';
 import { UtilsManager } from './manager-utilities.js';
 import { StatsAPI } from './api-stats.js';
@@ -294,6 +295,9 @@ Hooks.once('ready', async () => {
         // Initialize other components that depend on settings
         WrapperManager.initialize();
         
+        // Initialize scene navigation
+        NavigationManager.initialize();
+        
         // Initialize latency checker
         LatencyChecker.initialize();
         
@@ -417,7 +421,7 @@ function initializeSettingsDependentFeatures() {
         
         // Initial icon update if enabled
         if (blnShowIcons) {
-            WrapperManager._updateSceneIcons();
+            NavigationManager._updateSceneIcons();
         }
 
         // Register for scene updates
@@ -471,7 +475,7 @@ function initializeSettingsDependentFeatures() {
                 callback: () => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
-                    WrapperManager._updateSceneIcons();
+                    NavigationManager._updateSceneIcons();
                     
                     //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
                 }
@@ -489,7 +493,7 @@ function initializeSettingsDependentFeatures() {
                 callback: () => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
-                    WrapperManager._updateSceneIcons();
+                    NavigationManager._updateSceneIcons();
                     
                     //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
                 }
