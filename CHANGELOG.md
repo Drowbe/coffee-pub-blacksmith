@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [12.1.18] - Menubar Performance Optimization and Code Cleanup
+## [12.1.18] - Menubar Performance Optimization, Token Movement Features, and Code Cleanup
+
+### Added
+- **Token Movement Sounds:** Complete audio feedback system for token movement
+  - Settings for enabling/disabling movement sounds
+  - Separate sound selection for player tokens vs monster/NPC tokens
+  - Volume control slider (0.0 to 1.0)
+  - Distance threshold setting (1-50 feet) to prevent sounds on tiny movements
+  - GM-only processing to avoid permission errors
+  - Sound plays once (non-looping) and broadcasts to all players
+  - Integration with existing movement hooks and automated movement detection
 
 ### Fixed
 - **CRITICAL: Menubar Performance Issue:** Fixed massive performance bottleneck where menubar was re-rendering 14+ times during initialization
@@ -16,6 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `_defaultToolsRegistered` flag to prevent duplicate tool registration
   - Performance improvement: Reduced menubar renders from 14+ to 1 during initialization
   - Tooltip issues resolved as side effect of eliminating constant re-renders
+
+- **Token Image Replacement Threshold Slider:** Fixed threshold slider visibly jumping during image scanning
+  - Root cause: `_initializeThresholdSlider()` was being called on every UI re-render during scanning
+  - Solution: Added guard clause to prevent re-initialization during active scanning
+  - Threshold slider now remains stable during image scanning process
+
+- **Token Rotation Permission Errors:** Fixed permission errors when players tried to rotate tokens
+  - Root cause: Token facing logic was running on all clients, causing permission conflicts
+  - Solution: Implemented proper permission checking - GM can rotate any token, players can only rotate their own tokens
+  - Added `testUserPermission("OWNER")` check for non-GM users
+  - Eliminated "User lacks permission to update Token" errors
 
 - **Memory Monitor Tooltip Display:** Fixed memory monitor tooltip showing only memory value instead of detailed information
   - Root cause: Constant menubar re-renders were interfering with tooltip processing
