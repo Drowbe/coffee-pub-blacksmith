@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [12.1.17] - Performance Optimizations and Code Cleanup
 
+### Added
+- **Memory Monitor Tool:** New performance monitoring tool for the menubar
+  - Shows real-time memory usage (client heap, server heap, GPU textures)
+  - Configurable poll interval (5 seconds to 5 minutes)
+  - Detailed tooltip with comprehensive memory breakdown
+  - Click to log detailed memory information to console
+  - Cached data to prevent performance impact from frequent API calls
+
+- **Menubar Tool Visibility Settings:** Added individual show/hide controls for menubar tools
+  - `Show Settings Tool` - Toggle settings tool visibility (default: hidden)
+  - `Show Refresh Tool` - Toggle refresh tool visibility (default: hidden)  
+  - `Show Performance Monitor Tool` - Toggle performance monitor visibility (default: hidden)
+  - `Performance Monitor Poll Interval` - Slider to set update frequency (5s to 5min, default: 5s)
+
 ### Performance
 - **Search Performance Dramatically Improved:** Implemented comprehensive caching system for search operations
   - Added LRU cache (50 entries, 5-minute TTL) for search results
@@ -26,6 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No relevance calculations performed in browse mode
 
 ### Fixed
+- **Turn Ring Scene Change Issue:** Fixed turn indicator ring not loading on scene changes
+  - Added turn indicator update to `canvasReady` hook callback
+  - Turn ring now properly recreates after scene changes using same pattern as death save ring
+  - Added safety checks to prevent PIXI graphics destruction errors
+
+- **PIXI Graphics Destruction Safety:** Added safety checks for graphics object destruction
+  - Check if graphics object is already destroyed before calling `destroy()`
+  - Check if canvas/parent exists before removing from canvas
+  - Prevents "Cannot read properties of null" errors during scene changes
+
 - **Progress Bars Not Updating:** Fixed progress bars not showing during image scanning
   - Root cause: `updateScanProgress()` updated window properties but template read from cache properties
   - Solution: Update both window AND cache properties in `updateScanProgress()` and `completeScan()`
