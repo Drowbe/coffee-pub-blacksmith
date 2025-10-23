@@ -12,6 +12,7 @@ import { CombatTracker } from './combat-tracker.js';
 import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
+import { PerformanceUtility } from './utility-performance.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -779,6 +780,24 @@ class MenuBar {
             moduleId: "blacksmith-core",
             onClick: () => {
                 window.location.reload();
+            }
+        });
+
+        this.registerMenubarTool('memory-monitor', {
+            icon: "fa-solid fa-chart-line",
+            name: "memory-monitor",
+            title: () => {
+                return PerformanceUtility.getMemoryDisplayString();
+            },
+            tooltip: () => {
+                return PerformanceUtility.getMemoryTooltip();
+            },
+            zone: "left",
+            order: 3,
+            moduleId: "blacksmith-core",
+            onClick: () => {
+                const memInfo = PerformanceUtility.getMemoryInfo();
+                postConsoleAndNotification(MODULE.NAME, "Memory Information", memInfo, false, false);
             }
         });
 
