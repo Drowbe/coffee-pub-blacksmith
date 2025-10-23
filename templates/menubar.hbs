@@ -2,7 +2,7 @@
     {{!-- LEFT ZONE --}}
     <div class="blacksmith-menubar-left">
         {{#each toolsByZone.left}}
-        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             {{#if (eq name "settings")}}
             {{else if (eq name "refresh")}}
@@ -17,7 +17,7 @@
     <div class="blacksmith-menubar-middle">
         {{!-- General buttons (all players/gm) --}}
         {{#each toolsByZone.middle.general}}
-        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
@@ -30,7 +30,7 @@
         
         {{!-- Leader buttons (leader/gm) --}}
         {{#each toolsByZone.middle.leader}}
-        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
@@ -43,7 +43,7 @@
         
         {{!-- GM buttons (gm only) --}}
         {{#each toolsByZone.middle.gm}}
-        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+        <div class="button {{name}} button-active" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
             <i class="{{icon}}"></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>

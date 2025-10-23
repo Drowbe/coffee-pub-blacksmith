@@ -3515,6 +3515,51 @@ export const registerSettings = async () => {
 		},
 	});
 
+	// Show Settings Tool
+	game.settings.register(MODULE.ID, 'menubarShowSettings', {
+		name: 'Show Settings Tool',
+		hint: 'Show the settings tool in the menubar left zone.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// Show Refresh Tool
+	game.settings.register(MODULE.ID, 'menubarShowRefresh', {
+		name: 'Show Refresh Tool',
+		hint: 'Show the refresh tool in the menubar left zone.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// Show Performance Monitor Tool
+	game.settings.register(MODULE.ID, 'menubarShowPerformance', {
+		name: 'Show Performance Monitor Tool',
+		hint: 'Show the performance monitor tool in the menubar left zone.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false
+	});
+
+	// Performance Monitor Poll Interval
+	game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
+		name: 'Performance Monitor Poll Interval',
+		hint: 'How often to update the performance monitor data (in seconds).',
+		scope: 'client',
+		config: true,
+		type: Number,
+		default: 5,
+		range: {
+			min: 5,
+			max: 300,
+			step: 5
+		}
+	});
+
 
 
 	// *** TIMER SETTINGS ***

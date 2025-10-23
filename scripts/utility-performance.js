@@ -10,6 +10,36 @@ import { postConsoleAndNotification } from './api-core.js';
  */
 export class PerformanceUtility {
     
+    // Cache for memory values to avoid frequent API calls
+    static _memoryCache = {
+        data: null,
+        lastUpdate: 0,
+        updateInterval: 5000 // Default 5 seconds, will be updated from settings
+    };
+    
+    /**
+     * Get cached memory info or update if needed
+     * @returns {Object} Memory stats object
+     */
+    static _getCachedMemoryInfo() {
+        const now = Date.now();
+        
+        // Update interval from settings
+        const pollIntervalSeconds = game.settings.get(MODULE.ID, 'menubarPerformancePollInterval') || 5;
+        const pollIntervalMs = pollIntervalSeconds * 1000;
+        
+        // Return cached data if it's still fresh
+        if (this._memoryCache.data && (now - this._memoryCache.lastUpdate) < pollIntervalMs) {
+            return this._memoryCache.data;
+        }
+        
+        // Update cache with fresh data
+        this._memoryCache.data = this.getMemoryInfo();
+        this._memoryCache.lastUpdate = now;
+        
+        return this._memoryCache.data;
+    }
+    
     /**
      * Get client-side memory information
      * @returns {Object} Memory stats object
@@ -118,11 +148,12 @@ export class PerformanceUtility {
     }
 
     /**
-     * Get formatted memory display string for the menubar
+     * Get formatted memory display string for the menubar (uses cache)
      * @returns {string} Formatted memory usage string
      */
     static getMemoryDisplayString() {
-        const clientMem = this.getClientMemoryInfo();
+        const memInfo = this._getCachedMemoryInfo();
+        const clientMem = memInfo.client;
         
         if (!clientMem.available) {
             return "Memory N/A";
@@ -132,49 +163,51 @@ export class PerformanceUtility {
     }
 
     /**
-     * Get detailed tooltip information
+     * Get detailed tooltip information (same as console output, uses cache)
      * @returns {string} HTML formatted tooltip
      */
     static getMemoryTooltip() {
-        const memInfo = this.getMemoryInfo();
+        const memInfo = this._getCachedMemoryInfo();
         
-        let tooltip = "<div style='text-align: left;'>";
-        tooltip += "<strong>Memory Usage</strong><br><br>";
+        let tooltip = "<div style='text-align: left; font-family: monospace; font-size: 12px;'>";
+        tooltip += "<strong>Memory Usage Information</strong><br><br>";
         
         // Client memory
-        tooltip += "<strong>Client Heap:</strong><br>";
         if (memInfo.client.available) {
-            tooltip += `Used: ${memInfo.client.used}<br>`;
-            tooltip += `Total: ${memInfo.client.total}<br>`;
-            tooltip += `Limit: ${memInfo.client.limit}<br>`;
+            tooltip += `Client Heap:<br>`;
+            tooltip += `  Used: ${memInfo.client.used}<br>`;
+            tooltip += `  Total: ${memInfo.client.total}<br>`;
+            tooltip += `  Limit: ${memInfo.client.limit}<br>`;
         } else {
-            tooltip += "Unavailable<br>";
+            tooltip += "Client Heap: Unavailable<br>";
         }
         
         tooltip += "<br>";
         
         // Server memory
-        tooltip += "<strong>Server Heap:</strong><br>";
         if (memInfo.server.available) {
-            tooltip += `Used: ${memInfo.server.heapUsed}<br>`;
-            tooltip += `Total: ${memInfo.server.heapTotal}<br>`;
-            tooltip += `RSS: ${memInfo.server.rss}<br>`;
-            tooltip += `External: ${memInfo.server.external}<br>`;
+            tooltip += `Server Heap:<br>`;
+            tooltip += `  Used: ${memInfo.server.heapUsed}<br>`;
+            tooltip += `  Total: ${memInfo.server.heapTotal}<br>`;
+            tooltip += `  RSS: ${memInfo.server.rss}<br>`;
+            tooltip += `  External: ${memInfo.server.external}<br>`;
         } else {
-            tooltip += "Unavailable<br>";
+            tooltip += "Server Heap: Unavailable<br>";
         }
         
         tooltip += "<br>";
         
         // GPU texture memory
-        tooltip += "<strong>GPU Textures:</strong><br>";
         if (memInfo.gpu.available) {
-            tooltip += `Memory: ${memInfo.gpu.approxMB}<br>`;
-            tooltip += `Textures: ${memInfo.gpu.textureCount}<br>`;
+            tooltip += `GPU Textures:<br>`;
+            tooltip += `  Memory: ${memInfo.gpu.approxMB}<br>`;
+            tooltip += `  Textures: ${memInfo.gpu.textureCount}<br>`;
         } else {
-            tooltip += "Unavailable<br>";
+            tooltip += "GPU Textures: Unavailable<br>";
         }
         
+        tooltip += "<br>";
+        tooltip += "<em>Click to log detailed info to console</em>";
         tooltip += "</div>";
         
         return tooltip;

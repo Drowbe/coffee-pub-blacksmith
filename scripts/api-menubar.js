@@ -766,6 +766,9 @@ class MenuBar {
             zone: "left",
             order: 1,
             moduleId: "blacksmith-core",
+            visible: () => {
+                return game.settings.get(MODULE.ID, 'menubarShowSettings');
+            },
             onClick: () => {
                 game.settings.sheet.render(true);
             }
@@ -778,6 +781,9 @@ class MenuBar {
             zone: "left",
             order: 2,
             moduleId: "blacksmith-core",
+            visible: () => {
+                return game.settings.get(MODULE.ID, 'menubarShowRefresh');
+            },
             onClick: () => {
                 window.location.reload();
             }
@@ -795,6 +801,9 @@ class MenuBar {
             zone: "left",
             order: 3,
             moduleId: "blacksmith-core",
+            visible: () => {
+                return game.settings.get(MODULE.ID, 'menubarShowPerformance');
+            },
             onClick: () => {
                 const memInfo = PerformanceUtility.getMemoryInfo();
                 postConsoleAndNotification(MODULE.NAME, "Memory Information", memInfo, false, false);

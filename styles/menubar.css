@@ -149,6 +149,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-left: 3px;
 }
 .blacksmith-menubar-left .button-active:hover,
 .blacksmith-menubar-left .button-active:hover i,

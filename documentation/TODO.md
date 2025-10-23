@@ -4,6 +4,36 @@
 
 ### CRITICAL ISSUES
 
+### Critical: Fix Menubar Refresh Issue
+- **Issue**: Menubar re-renders entire component every second for timer updates instead of updating only timer text
+- **Status**: PENDING - Major performance issue
+- **Priority**: CRITICAL - Degrades overall performance significantly
+- **Current Behavior**: 
+  - Timer updates every second → triggers full menubar re-render
+  - All tool functions called every second (title, tooltip, visible)
+  - All tool data reprocessed every second
+  - Entire DOM rebuilt every second
+- **Performance Impact**:
+  - 10+ tools = 10+ function calls every second
+  - Complex tooltips = HTML generation every second
+  - Full DOM rebuild = expensive rendering every second
+  - Memory allocations = garbage collection pressure
+- **Expected Behavior**: Update only timer DOM text content directly, no full re-render
+- **Location**: `scripts/api-menubar.js` - `updateTimerDisplay()` and `renderMenubar()`
+- **Solution**: Modify timer update to use direct DOM manipulation instead of full menubar re-render
+- **Benefits**: 90%+ reduction in menubar processing, stable tooltips, better performance
+
+### High: Fix Memory Tooltip Issue
+- **Issue**: Memory monitor tooltip shows only memory value instead of detailed information
+- **Status**: PENDING - Symptom of menubar refresh issue
+- **Priority**: HIGH - Tooltip functionality broken
+- **Current Behavior**: Tooltip displays "827.2 MB" instead of detailed memory breakdown
+- **Expected Behavior**: Tooltip should show comprehensive memory info (client heap, server heap, GPU textures)
+- **Root Cause**: Menubar re-renders every second, causing tooltip to fall back to title value
+- **Location**: `scripts/utility-performance.js` - `getMemoryTooltip()`, `templates/menubar.hbs`
+- **Dependencies**: Fixing menubar refresh issue should resolve this automatically
+- **Workaround**: Added caching to reduce performance impact, but tooltip still broken
+
 ### Combat Tracker - Roll Player Character Initiative Not Working
 - **Issue**: "Roll Player Character Initiative" button doesn't roll initiative for player characters
 - **Status**: PENDING - Needs investigation
