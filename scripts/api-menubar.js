@@ -786,13 +786,10 @@ class MenuBar {
         });
 
         this.registerMenubarTool('memory-monitor', {
-            icon: "fa-solid fa-chart-line",
+            icon: "fa-solid fa-chart-simple",
             name: "memory-monitor",
             title: () => {
                 return PerformanceUtility.getMemoryDisplayString();
-            },
-            tooltip: () => {
-                return PerformanceUtility.getMemoryTooltip();
             },
             zone: "left",
             order: 3,
@@ -801,8 +798,76 @@ class MenuBar {
                 return game.settings.get(MODULE.ID, 'menubarShowPerformance');
             },
             onClick: () => {
-                const memInfo = PerformanceUtility.getMemoryInfo();
-                postConsoleAndNotification(MODULE.NAME, "Memory Information", memInfo, false, false);
+                // Format memory values to MB with 1 decimal place
+                const fmt = v => (v / 1048576).toFixed(1) + " MB";
+                
+                // Get client-side memory info
+                const client = performance.memory
+                    ? { 
+                        used: performance.memory.usedJSHeapSize, 
+                        total: performance.memory.totalJSHeapSize, 
+                        limit: performance.memory.jsHeapSizeLimit 
+                    }
+                    : null;
+
+                // Calculate texture memory estimate (system RAM side, not VRAM exact)
+                const bases = Object.values(PIXI.utils.BaseTextureCache ?? {});
+                let pixels = 0, valid = 0;
+                for (const b of bases) { 
+                    if (b?.valid) { 
+                        valid++; 
+                        pixels += (b.width * b.height); 
+                    } 
+                }
+                const approxTexMB = (pixels * 4) / (1024 * 1024);
+
+                // Get active modules count
+                const mods = game.modules.filter(m => m.active).length;
+
+                // Build comprehensive memory report
+                let msg = `<strong>PERFORMANCE CHECK</strong><br>`;
+                // Client Memory Section
+                msg += `<b>Client Heap:</b> `;
+                if (client) {
+                    msg += `${fmt(client.used)} / ${fmt(client.total)} (Limit ~${fmt(client.limit)})<br>`;
+                    
+                    // Add crash warning if in dangerous range
+                    if (client.used > 3.2 * 1024 * 1024 * 1024) {
+                        msg += `<b>WARNING:</b> Client Heap At Risk of Crash!<br>`;
+                    }
+                } else {
+                    msg += `Unavailable<br>`;
+                }
+              
+                // Texture Memory Section
+                msg += `<b>Loaded Textures:</b> ${valid} (~${approxTexMB.toFixed(1)} MB in System RAM)<br>`;
+        
+                // Modules Section
+                msg += `<b>Active Modules:</b> ${mods}<br>`;
+                if (mods > 80) {
+                    msg += `<b>HIGH:</b> Too Many Active Mmodules Impact Performance<br>`;
+                } else if (mods > 60) {
+                    msg += `<b>MEDIUM:</b> Consider Reviewing Active Modules<br>`;
+                }
+                // Performance Tips
+                msg += `<b>NOTE:</b> A high or growing client heap may indicate a memory leak.`;
+                   
+                // Show as permanent notification
+                ui.notifications.info(msg, { permanent: true });
+                
+                // Also log to console for debugging
+                console.log('Memory Monitor - Detailed Report:', {
+                    client: client ? {
+                        used: fmt(client.used),
+                        total: fmt(client.total),
+                        limit: fmt(client.limit)
+                    } : 'Unavailable',
+                    textures: {
+                        count: valid,
+                        estimatedMB: approxTexMB.toFixed(1)
+                    },
+                    modules: mods
+                });
             }
         });
 
