@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.1.18] - Menubar Performance Optimization and Code Cleanup
+
+### Fixed
+- **CRITICAL: Menubar Performance Issue:** Fixed massive performance bottleneck where menubar was re-rendering 14+ times during initialization
+  - Root cause: `registerMenubarTool()` was triggering `renderMenubar()` for every single tool registration
+  - Solution: Implemented batch tool registration system with single render at completion
+  - Added `_isRegisteringTools` flag to prevent renders during tool registration
+  - Added `_defaultToolsRegistered` flag to prevent duplicate tool registration
+  - Performance improvement: Reduced menubar renders from 14+ to 1 during initialization
+  - Tooltip issues resolved as side effect of eliminating constant re-renders
+
+- **Memory Monitor Tooltip Display:** Fixed memory monitor tooltip showing only memory value instead of detailed information
+  - Root cause: Constant menubar re-renders were interfering with tooltip processing
+  - Solution: Resolved automatically with menubar performance fix
+  - Tooltips now display comprehensive memory breakdown (client heap, server heap, GPU textures)
+
+### Performance
+- **Menubar Rendering Optimization:** Dramatically improved menubar initialization performance
+  - Eliminated 14+ unnecessary menubar re-renders during tool registration
+  - Single render after all tools are registered instead of per-tool renders
+  - Expected 90%+ reduction in menubar render operations during module load
+  - Improved overall module startup performance
+
+### Code Cleanup
+- **Debug Code Removal:** Cleaned up all Phase 1 analysis and debug code
+  - Removed verbose comment headers and investigation notes
+  - Removed debug logging (`postConsoleAndNotification` calls for monitoring)
+  - Removed stack trace logging in `renderMenubar()`
+  - Removed "END - HOOKMANAGER CALLBACK" comments
+  - Kept only essential functional code and performance optimizations
+
+### Technical Details
+- Implemented `MenuBar._isRegisteringTools` flag for batch rendering control
+- Implemented `MenuBar._defaultToolsRegistered` flag for duplicate prevention
+- Added guard conditions in `registerMenubarTool()` to skip renders during batch operations
+- Single `renderMenubar()` call at end of `registerDefaultTools()` instead of per-tool calls
+- Maintained all existing functionality while dramatically improving performance
+
+---
+
 ## [12.1.17] - Performance Optimizations and Code Cleanup
 
 ### Added
