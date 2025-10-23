@@ -59,12 +59,6 @@ const STATUS = {
 
 // Handle movement sounds for token movement
 function handleMovementSounds(tokenDocument, changes, userId) {
-    console.log("MOVEMENT SOUND DEBUG: Function called", { 
-        isGM: game.user.isGM, 
-        enabled: getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false),
-        settingValue: game.settings.get(MODULE.ID, 'movementSoundsEnabled')
-    });
-    
     // Only run on GM client to avoid permission issues
     if (!game.user.isGM) return;
     

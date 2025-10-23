@@ -2134,12 +2134,6 @@ export class TokenImageUtilities {
      * Handle token facing direction based on movement
      */
     static async _handleTokenFacing(tokenDocument, changes) {
-        console.log("TOKEN FACING DEBUG: Function called", { 
-            isGM: game.user.isGM, 
-            enabled: getSettingSafely(MODULE.ID, 'enableTokenFacing', false),
-            settingValue: game.settings.get(MODULE.ID, 'enableTokenFacing')
-        });
-        
         // Check if token facing is enabled
         if (!getSettingSafely(MODULE.ID, 'enableTokenFacing', false)) {
             return;
