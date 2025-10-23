@@ -1680,6 +1680,9 @@ export class TokenImageReplacementWindow extends Application {
      * Initialize threshold slider with current setting value
      */
     _initializeThresholdSlider() {
+        // Don't re-initialize during scanning - it's not needed
+        if (ImageCacheManager.cache?.isScanning) return;
+        
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const percentage = Math.round(currentThreshold * 100);
         

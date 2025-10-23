@@ -488,7 +488,8 @@ class CombatTracker {
     
     /**
      * Roll initiative for player-owned combatants
-     * This is the core method that safely handles initiative rolling for players
+     * For players: Rolls initiative for their own characters
+     * For GMs: Rolls initiative for player characters where owners aren't logged in
      * Handles the 'combatTrackerRollInitiativePlayer' setting
      * @param {Combat} combat - The combat instance
      */
@@ -496,11 +497,11 @@ class CombatTracker {
         // Return early if there's no combat
         if (!combat) return;
         
-        // Skip for GMs - they don't need this automation
-        if (game.user.isGM) return;
+        postConsoleAndNotification(MODULE.NAME, `Combat Tracker: _rollInitiativeForPlayerCharacters called (GM: ${game.user.isGM}, Setting: ${game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')})`, "", true, false);
         
         // Check if the setting is enabled for this user
         if (!game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Setting disabled, skipping", "", true, false);
             return;
         }
         
@@ -509,8 +510,11 @@ class CombatTracker {
         let foundCombatants = false;
         
         // Process each combatant individually instead of in batch
+        postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Processing ${combat.turns.length} combatants`, "", true, false);
+        
         for (const combatant of combat.turns) {
             try {
+                postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Checking combatant ${combatant.name} (actor: ${combatant.actor?.name}, type: ${combatant.actor?.type}, hasPlayerOwner: ${combatant.actor?.hasPlayerOwner}, initiative: ${combatant.initiative})`, "", true, false);
                 // Only process if:
                 // 1. The combatant has an actor
                 // 2. The actor is player-owned
@@ -529,13 +533,40 @@ class CombatTracker {
                     }
                 }
 
-                if (combatant.actor && 
-                    combatant.actor.hasPlayerOwner && 
-                    combatant.actor.isOwner && 
-                    combatant.initiative === null &&
-                    !isActuallyDead) {
+                // Determine if we should roll initiative for this combatant
+                let shouldRollInitiative = false;
+                
+                if (game.user.isGM) {
+                    // For GMs: Roll for player characters where owners aren't logged in
+                    // Check if any owner of this actor is currently active/logged in
+                    const hasActiveOwner = combatant.actor && combatant.actor.ownership && 
+                        Object.keys(combatant.actor.ownership).some(userId => {
+                            const user = game.users.get(userId);
+                            return user && user.active && combatant.actor.ownership[userId] === 3; // OWNER level
+                        });
                     
+                    postConsoleAndNotification(MODULE.NAME, `Combat Tracker: GM check for ${combatant.name} - hasPlayerOwner: ${combatant.actor?.hasPlayerOwner}, type: ${combatant.actor?.type}, hasActiveOwner: ${hasActiveOwner}, initiative: ${combatant.initiative}`, "", true, false);
+                    
+                    shouldRollInitiative = combatant.actor && 
+                        combatant.actor.hasPlayerOwner && 
+                        combatant.actor.type === "character" &&
+                        combatant.initiative === null &&
+                        !isActuallyDead &&
+                        !hasActiveOwner; // No active owner is logged in
+                } else {
+                    // For players: Roll for their own characters
+                    shouldRollInitiative = combatant.actor && 
+                        combatant.actor.hasPlayerOwner && 
+                        combatant.actor.isOwner && 
+                        combatant.initiative === null &&
+                        !isActuallyDead;
+                }
+
+                postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Final decision for ${combatant.name} - shouldRollInitiative: ${shouldRollInitiative}`, "", true, false);
+
+                if (shouldRollInitiative) {
                     // Roll initiative for this specific combatant
+                    postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Rolling initiative for ${combatant.name} (${game.user.isGM ? 'GM rolling for offline player' : 'Player rolling for own character'})`, "", true, false);
                     
                     // Use the combatant's own rollInitiative method (this is permission-safe)
                     await combatant.rollInitiative();

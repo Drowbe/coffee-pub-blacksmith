@@ -4,19 +4,6 @@
 
 ### MEDIUM PRIORITY ISSUES
 
-### Combat Tracker - Roll Player Character Initiative Not Working
-- **Issue**: "Roll Player Character Initiative" setting doesn't roll initiative for player characters
-- **Status**: PENDING - Needs investigation
-- **Priority**: MEDIUM - Affects combat workflow
-- **Expected Behavior**: Should auto roll initiative for all players if setting is set to "Roll Player Character Initiative". If no owner of a toelen is logged in AND if the setting is enabled for the GM, then the GM should roll initiative for those player characters.
-- **Actual Behavior**: Nothing happens when combat starts or the round changes. We need to see if the setting honors players but maybe not the GM. 
-- **Investigation Needed**:
-  - Find the setting for "Roll Player Character Initiative"
-  - Check if the function is being called
-  - Verify the logic for identifying player characters
-  - Verify the initiative roll is being triggered correctly
-
-
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning
