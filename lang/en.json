@@ -415,7 +415,25 @@
 		"toolbarShowDividers-Hint": "Display visual dividers between toolbar zones to help organize tools.",
 
 		"toolbarShowLabels-Label": "Show Toolbar Labels", 
-		"toolbarShowLabels-Hint": "Display zone labels below dividers to identify different toolbar sections."
+		"toolbarShowLabels-Hint": "Display zone labels below dividers to identify different toolbar sections.",
+
+		"headingH2MovementSounds-Label": "Token Movement Sounds",
+		"headingH2MovementSounds-Hint": "Configure audio feedback for token movement on the canvas.",
+
+		"movementSoundsEnabled-Label": "Enable Movement Sounds",
+		"movementSoundsEnabled-Hint": "Play audio feedback when tokens are moved on the canvas.",
+
+		"movementSoundPlayer-Label": "Player Movement Sound",
+		"movementSoundPlayer-Hint": "Sound to play when player tokens are moved.",
+
+		"movementSoundMonster-Label": "Monster Movement Sound",
+		"movementSoundMonster-Hint": "Sound to play when monster/NPC tokens are moved.",
+
+		"movementSoundVolume-Label": "Movement Sound Volume",
+		"movementSoundVolume-Hint": "Volume level for movement sounds (0.0 = silent, 1.0 = full volume).",
+
+		"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
+		"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet)."
 
 
 	}

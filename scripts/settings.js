@@ -4350,6 +4350,86 @@ export const registerSettings = async () => {
 		}
 	});
 
+	// *** TOKEN MOVEMENT SOUNDS ***
+
+	// ---------- SUBHEADING ----------
+	game.settings.register(MODULE.ID, "headingH2MovementSounds", {
+		name: MODULE.ID + '.headingH2MovementSounds-Label',
+		hint: MODULE.ID + '.headingH2MovementSounds-Hint',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+	// Enable Movement Sounds
+	game.settings.register(MODULE.ID, 'movementSoundsEnabled', {
+		name: 'Enable Movement Sounds',
+		hint: 'Play audio feedback when tokens are moved on the canvas.',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	// Player Movement Sound
+	game.settings.register(MODULE.ID, 'movementSoundPlayer', {
+		name: 'Player Movement Sound',
+		hint: 'Sound to play when player tokens are moved.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'SOUNDEFFECTGENERAL01', // Rustling Grass
+		choices: BLACKSMITH.arrSoundChoices,
+	});
+
+	// Monster Movement Sound
+	game.settings.register(MODULE.ID, 'movementSoundMonster', {
+		name: 'Monster Movement Sound',
+		hint: 'Sound to play when monster/NPC tokens are moved.',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'SOUNDEFFECTGENERAL06', // Clatter
+		choices: BLACKSMITH.arrSoundChoices,
+	});
+
+	// Movement Sound Volume
+	game.settings.register(MODULE.ID, 'movementSoundVolume', {
+		name: 'Movement Sound Volume',
+		hint: 'Volume level for movement sounds (0.0 = silent, 1.0 = full volume).',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 0.3,
+		range: {
+			min: 0.0,
+			max: 1.0,
+			step: 0.1
+		}
+	});
+
+	// Movement Sound Distance Threshold
+	game.settings.register(MODULE.ID, 'movementSoundDistanceThreshold', {
+		name: 'Movement Sound Distance Threshold',
+		hint: 'Minimum distance in feet that a token must move to trigger a sound (1-50 feet).',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 5,
+		range: {
+			min: 1,
+			max: 50,
+			step: 1
+		}
+	});
+
 	// *** DEBUG SETTINGS ***
 
 	// ---------- SUBHEADING ----------

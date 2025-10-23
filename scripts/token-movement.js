@@ -57,6 +57,74 @@ const STATUS = {
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
 // ================================================================== 
 
+// Handle movement sounds for token movement
+function handleMovementSounds(tokenDocument, changes, userId) {
+    postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Starting movement sound check", "", true, false);
+    
+    // Check if movement sounds are enabled
+    if (!getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false)) {
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Movement sounds disabled", "", true, false);
+        return;
+    }
+    
+    // Skip if this is automated movement (conga line, etc.)
+    const token = canvas.tokens.get(tokenDocument.id);
+    if (!token) {
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Token not found", "", true, false);
+        return;
+    }
+    
+    if (isAutomatedMovement(token, changes)) {
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Skipping automated movement", "", true, false);
+        return;
+    }
+    
+    // Calculate movement distance to avoid sounds for tiny adjustments
+    // Use the same pattern as handleLeaderMovement - _source is original, x/y is new position
+    const startX = tokenDocument._source.x;
+    const startY = tokenDocument._source.y;
+    const endX = tokenDocument.x;
+    const endY = tokenDocument.y;
+    
+    // Calculate distance in pixels, then convert to feet
+    const distancePixels = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    const distanceFeet = distancePixels; // In Foundry, pixels = feet (1:1 ratio)
+    const minMovementDistanceFeet = getSettingSafely(MODULE.ID, 'movementSoundDistanceThreshold', 5);
+    
+    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Start: (${startX.toFixed(1)}, ${startY.toFixed(1)}), End: (${endX.toFixed(1)}, ${endY.toFixed(1)}), Distance: ${distanceFeet.toFixed(2)} feet, minimum: ${minMovementDistanceFeet} feet`, "", true, false);
+    
+    if (distanceFeet < minMovementDistanceFeet) {
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Distance too small, skipping", "", true, false);
+        return;
+    }
+    
+    // Determine token type and appropriate sound
+    let soundConstant = null;
+    const isPlayerToken = token.actor?.hasPlayerOwner;
+    
+    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Token ${token.name} is ${isPlayerToken ? 'player' : 'monster'} token`, "", true, false);
+    
+    if (isPlayerToken) {
+        soundConstant = getSettingSafely(MODULE.ID, 'movementSoundPlayer', 'SOUNDEFFECTGENERAL01');
+    } else {
+        soundConstant = getSettingSafely(MODULE.ID, 'movementSoundMonster', 'SOUNDEFFECTGENERAL06');
+    }
+    
+    // Get volume setting
+    const volume = getSettingSafely(MODULE.ID, 'movementSoundVolume', 0.3);
+    
+    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Sound constant: ${soundConstant}, Volume: ${volume}`, "", true, false);
+    
+    // Play the sound using Blacksmith's proper API
+    if (soundConstant) {
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Playing sound", "", true, false);
+        playSound(soundConstant, volume);
+        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Sound play completed", "", true, false);
+    } else {
+        postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Cannot play sound - no sound constant`, "", true, false);
+    }
+}
+
 // Validate if token movement is allowed and return movement context
 function validateMovement(tokenDocument, changes, userId) {
     const currentMovement = getSettingSafely(MODULE.ID, 'movementType', 'none');
@@ -529,6 +597,9 @@ const updateTokenHookId = HookManager.registerHook({
     callback: (tokenDocument, changes, options, userId) => {
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     if (!changes.x && !changes.y) return;
+    
+    // Handle movement sounds
+    handleMovementSounds(tokenDocument, changes, userId);
     
     // Only process for GMs or when the leader is moving to avoid duplicate processing
     const movementContext = validateMovement(tokenDocument, changes, userId);

@@ -162,55 +162,157 @@ export class PerformanceUtility {
         return clientMem.used;
     }
 
+    // /**
+    //  * Get detailed tooltip information (same as console output, uses cache)
+    //  * @returns {string} HTML formatted tooltip
+    //  */
+    // static getMemoryTooltip() {
+    //     const memInfo = this._getCachedMemoryInfo();
+        
+    //     let tooltip = "<div style='text-align: left; font-family: monospace; font-size: 12px;'>";
+    //     tooltip += "<strong>Memory Usage Information</strong><br><br>";
+        
+    //     // Client memory
+    //     if (memInfo.client.available) {
+    //         tooltip += `Client Heap:<br>`;
+    //         tooltip += `  Used: ${memInfo.client.used}<br>`;
+    //         tooltip += `  Total: ${memInfo.client.total}<br>`;
+    //         tooltip += `  Limit: ${memInfo.client.limit}<br>`;
+    //     } else {
+    //         tooltip += "Client Heap: Unavailable<br>";
+    //     }
+        
+    //     tooltip += "<br>";
+        
+    //     // Server memory
+    //     if (memInfo.server.available) {
+    //         tooltip += `Server Heap:<br>`;
+    //         tooltip += `  Used: ${memInfo.server.heapUsed}<br>`;
+    //         tooltip += `  Total: ${memInfo.server.heapTotal}<br>`;
+    //         tooltip += `  RSS: ${memInfo.server.rss}<br>`;
+    //         tooltip += `  External: ${memInfo.server.external}<br>`;
+    //     } else {
+    //         tooltip += "Server Heap: Unavailable<br>";
+    //     }
+        
+    //     tooltip += "<br>";
+        
+    //     // GPU texture memory
+    //     if (memInfo.gpu.available) {
+    //         tooltip += `GPU Textures:<br>`;
+    //         tooltip += `  Memory: ${memInfo.gpu.approxMB}<br>`;
+    //         tooltip += `  Textures: ${memInfo.gpu.textureCount}<br>`;
+    //     } else {
+    //         tooltip += "GPU Textures: Unavailable<br>";
+    //     }
+        
+    //     tooltip += "<br>";
+    //     tooltip += "<em>Click to log detailed info to console</em>";
+    //     tooltip += "</div>";
+        
+    //     return tooltip;
+    // }
+
     /**
-     * Get detailed tooltip information (same as console output, uses cache)
-     * @returns {string} HTML formatted tooltip
+     * Get comprehensive performance report
+     * @returns {Object} Complete performance report
      */
-    static getMemoryTooltip() {
-        const memInfo = this._getCachedMemoryInfo();
+    static getPerformanceReport() {
+        // Get client-side memory info
+        const client = performance.memory
+            ? { 
+                used: performance.memory.usedJSHeapSize, 
+                total: performance.memory.totalJSHeapSize, 
+                limit: performance.memory.jsHeapSizeLimit 
+            }
+            : null;
+
+        // Calculate texture memory estimate (system RAM side, not VRAM exact)
+        const bases = Object.values(PIXI.utils.BaseTextureCache ?? {});
+        let pixels = 0, valid = 0;
+        for (const b of bases) { 
+            if (b?.valid) { 
+                valid++; 
+                pixels += (b.width * b.height); 
+            } 
+        }
+        const approxTexMB = (pixels * 4) / (1024 * 1024);
+
+        // Get active modules count
+        const mods = game.modules.filter(m => m.active).length;
+
+        return {
+            client,
+            textures: { count: valid, estimatedMB: approxTexMB },
+            modules: mods
+        };
+    }
+
+    /**
+     * Format performance report into HTML message
+     * @param {Object} report Performance report from getPerformanceReport()
+     * @returns {string} HTML formatted message
+     */
+    static formatPerformanceMessage(report) {
+        // Format memory values to MB with 1 decimal place
+        const fmt = v => (v / 1048576).toFixed(1) + " MB";
         
-        let tooltip = "<div style='text-align: left; font-family: monospace; font-size: 12px;'>";
-        tooltip += "<strong>Memory Usage Information</strong><br><br>";
+        // Build comprehensive memory report
+        let msg = `<strong>PERFORMANCE CHECK</strong><br>`;
         
-        // Client memory
-        if (memInfo.client.available) {
-            tooltip += `Client Heap:<br>`;
-            tooltip += `  Used: ${memInfo.client.used}<br>`;
-            tooltip += `  Total: ${memInfo.client.total}<br>`;
-            tooltip += `  Limit: ${memInfo.client.limit}<br>`;
+        // Client Memory Section
+        msg += `<b>Client Heap:</b> `;
+        if (report.client) {
+            msg += `${fmt(report.client.used)} / ${fmt(report.client.total)} (Limit ~${fmt(report.client.limit)})<br>`;
+            
+            // Add crash warning if in dangerous range
+            if (report.client.used > 3.2 * 1024 * 1024 * 1024) {
+                msg += `<b>WARNING:</b> Client Heap At Risk of Crash!<br>`;
+            }
         } else {
-            tooltip += "Client Heap: Unavailable<br>";
+            msg += `Unavailable<br>`;
+        }
+      
+        // Texture Memory Section
+        msg += `<b>Loaded Textures:</b> ${report.textures.count} (~${report.textures.estimatedMB.toFixed(1)} MB in System RAM)<br>`;
+
+        // Modules Section
+        msg += `<b>Active Modules:</b> ${report.modules}<br>`;
+        if (report.modules > 80) {
+            msg += `<b>HIGH:</b> Too Many Active Modules Impact Performance<br>`;
+        } else if (report.modules > 60) {
+            msg += `<b>MEDIUM:</b> Consider Reviewing Active Modules<br>`;
         }
         
-        tooltip += "<br>";
+        // Performance Tips
+        msg += `<b>NOTE:</b> A high or growing client heap may indicate a memory leak.`;
         
-        // Server memory
-        if (memInfo.server.available) {
-            tooltip += `Server Heap:<br>`;
-            tooltip += `  Used: ${memInfo.server.heapUsed}<br>`;
-            tooltip += `  Total: ${memInfo.server.heapTotal}<br>`;
-            tooltip += `  RSS: ${memInfo.server.rss}<br>`;
-            tooltip += `  External: ${memInfo.server.external}<br>`;
-        } else {
-            tooltip += "Server Heap: Unavailable<br>";
-        }
+        return msg;
+    }
+
+    /**
+     * Show performance check notification
+     */
+    static showPerformanceCheck() {
+        const report = this.getPerformanceReport();
+        const message = this.formatPerformanceMessage(report);
         
-        tooltip += "<br>";
+        // Show as permanent notification
+        ui.notifications.info(message, { permanent: true });
         
-        // GPU texture memory
-        if (memInfo.gpu.available) {
-            tooltip += `GPU Textures:<br>`;
-            tooltip += `  Memory: ${memInfo.gpu.approxMB}<br>`;
-            tooltip += `  Textures: ${memInfo.gpu.textureCount}<br>`;
-        } else {
-            tooltip += "GPU Textures: Unavailable<br>";
-        }
-        
-        tooltip += "<br>";
-        tooltip += "<em>Click to log detailed info to console</em>";
-        tooltip += "</div>";
-        
-        return tooltip;
+        // Also log to console for debugging
+        console.log('Memory Monitor - Detailed Report:', {
+            client: report.client ? {
+                used: (report.client.used / 1048576).toFixed(1) + " MB",
+                total: (report.client.total / 1048576).toFixed(1) + " MB",
+                limit: (report.client.limit / 1048576).toFixed(1) + " MB"
+            } : 'Unavailable',
+            textures: {
+                count: report.textures.count,
+                estimatedMB: report.textures.estimatedMB.toFixed(1)
+            },
+            modules: report.modules
+        });
     }
 
     /**
