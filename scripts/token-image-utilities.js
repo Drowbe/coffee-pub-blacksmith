@@ -2134,19 +2134,32 @@ export class TokenImageUtilities {
      * Handle token facing direction based on movement
      */
     static async _handleTokenFacing(tokenDocument, changes) {
+        console.log("TOKEN FACING DEBUG: Function called", { 
+            isGM: game.user.isGM, 
+            enabled: getSettingSafely(MODULE.ID, 'enableTokenFacing', false),
+            settingValue: game.settings.get(MODULE.ID, 'enableTokenFacing')
+        });
+        
         // Check if token facing is enabled
         if (!getSettingSafely(MODULE.ID, 'enableTokenFacing', false)) {
             return;
+        }
+        
+        // Check permissions: GM can rotate any token, players can only rotate their own tokens
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (!token) return;
+        
+        if (!game.user.isGM) {
+            // Non-GM users can only rotate tokens they own
+            if (!token.actor?.hasPlayerOwner || !token.actor?.testUserPermission(game.user, "OWNER")) {
+                return;
+            }
         }
 
         // Only process if position changed
         if (changes.x === undefined && changes.y === undefined) {
             return;
         }
-
-        // Get the token object
-        const token = canvas.tokens.get(tokenDocument.id);
-        if (!token) return;
 
         // Respect the lock rotation setting
         if (tokenDocument.lockRotation) {

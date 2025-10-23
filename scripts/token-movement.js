@@ -59,25 +59,23 @@ const STATUS = {
 
 // Handle movement sounds for token movement
 function handleMovementSounds(tokenDocument, changes, userId) {
-    postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Starting movement sound check", "", true, false);
+    console.log("MOVEMENT SOUND DEBUG: Function called", { 
+        isGM: game.user.isGM, 
+        enabled: getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false),
+        settingValue: game.settings.get(MODULE.ID, 'movementSoundsEnabled')
+    });
+    
+    // Only run on GM client to avoid permission issues
+    if (!game.user.isGM) return;
     
     // Check if movement sounds are enabled
-    if (!getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false)) {
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Movement sounds disabled", "", true, false);
-        return;
-    }
+    if (!getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false)) return;
     
     // Skip if this is automated movement (conga line, etc.)
     const token = canvas.tokens.get(tokenDocument.id);
-    if (!token) {
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Token not found", "", true, false);
-        return;
-    }
+    if (!token) return;
     
-    if (isAutomatedMovement(token, changes)) {
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Skipping automated movement", "", true, false);
-        return;
-    }
+    if (isAutomatedMovement(token, changes)) return;
     
     // Calculate movement distance to avoid sounds for tiny adjustments
     // Use the same pattern as handleLeaderMovement - _source is original, x/y is new position
@@ -91,18 +89,11 @@ function handleMovementSounds(tokenDocument, changes, userId) {
     const distanceFeet = distancePixels; // In Foundry, pixels = feet (1:1 ratio)
     const minMovementDistanceFeet = getSettingSafely(MODULE.ID, 'movementSoundDistanceThreshold', 5);
     
-    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Start: (${startX.toFixed(1)}, ${startY.toFixed(1)}), End: (${endX.toFixed(1)}, ${endY.toFixed(1)}), Distance: ${distanceFeet.toFixed(2)} feet, minimum: ${minMovementDistanceFeet} feet`, "", true, false);
-    
-    if (distanceFeet < minMovementDistanceFeet) {
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Distance too small, skipping", "", true, false);
-        return;
-    }
+    if (distanceFeet < minMovementDistanceFeet) return;
     
     // Determine token type and appropriate sound
     let soundConstant = null;
     const isPlayerToken = token.actor?.hasPlayerOwner;
-    
-    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Token ${token.name} is ${isPlayerToken ? 'player' : 'monster'} token`, "", true, false);
     
     if (isPlayerToken) {
         soundConstant = getSettingSafely(MODULE.ID, 'movementSoundPlayer', 'SOUNDEFFECTGENERAL01');
@@ -113,15 +104,9 @@ function handleMovementSounds(tokenDocument, changes, userId) {
     // Get volume setting
     const volume = getSettingSafely(MODULE.ID, 'movementSoundVolume', 0.3);
     
-    postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Sound constant: ${soundConstant}, Volume: ${volume}`, "", true, false);
-    
-    // Play the sound using Blacksmith's proper API
+    // Play the sound once and broadcast to all players
     if (soundConstant) {
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Playing sound", "", true, false);
-        playSound(soundConstant, volume);
-        postConsoleAndNotification(MODULE.NAME, "MOVEMENT SOUND: Sound play completed", "", true, false);
-    } else {
-        postConsoleAndNotification(MODULE.NAME, `MOVEMENT SOUND: Cannot play sound - no sound constant`, "", true, false);
+        playSound(soundConstant, volume, false, true); // sound, volume, loop=false, broadcast=true
     }
 }
 
@@ -263,7 +248,7 @@ export class MovementConfig extends Application {
                 {
                     id: 'normal-movement',
                     name: 'Free Movement',
-                    description: 'All party members can move their tokens at will without limitations but potential consequences. Move wisely.',
+                    description: 'All party members can move their tokens at will without limitations. Move wisely.',
                     icon: 'fa-person-walking',
                 },
                 {
@@ -275,7 +260,7 @@ export class MovementConfig extends Application {
                 {
                     id: 'combat-movement',
                     name: 'Combat Mode',
-                    description: 'Movement is locked down while combat is active or manually enabled. Players can only move their tokens during their turn in combat.',
+                    description: 'Movement is locked down while combat is active. Players can only move their tokens during their turn in combat.',
                     icon: 'fa-swords'
                 },
                 {
