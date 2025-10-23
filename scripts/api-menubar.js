@@ -2,6 +2,27 @@
 // ===== IMPORTS ====================================================
 // ================================================================== 
 
+// ================================================================== 
+// ===== PHASE 1 ANALYSIS SUMMARY ===================================
+// ================================================================== 
+// MAJOR DISCOVERY: Timer updates are NOT causing menubar re-renders!
+//
+// ANALYSIS FINDINGS:
+// ✅ updateTimerDisplay() uses direct DOM manipulation (efficient)
+// ✅ updateTimerDisplay() does NOT call renderMenubar()
+// ✅ Timer updates are isolated and performant
+//
+// NEXT INVESTIGATION NEEDED:
+// 🔍 What IS calling renderMenubar() every second?
+// 🔍 Enable debug logging to see "MENUBAR RENDER" messages
+// 🔍 Look for hidden timers, hooks, or other triggers
+//
+// MONITORING TOOLS ADDED:
+// - Debug logging in renderMenubar() using postConsoleAndNotification
+// - Stack trace shows caller information
+// - Clear TODO comments for easy cleanup after analysis
+// ================================================================== 
+
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely, setSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
@@ -89,7 +110,7 @@ class MenuBar {
             }, 1000);
 
             // Register default tools using our API
-            this.registerDefaultTools();
+            MenuBar.registerDefaultTools();
 
             // Register secondary bar types
             this.registerSecondaryBarTypes();
@@ -758,6 +779,22 @@ class MenuBar {
      * Register default menubar tools using the API
      */
     static registerDefaultTools() {
+        // ================================================================== 
+        // ===== PHASE 1 FIX: Prevent duplicate tool registration ===========
+        // ================================================================== 
+        // TODO: REMOVE THIS GUARD AFTER PHASE 1 ANALYSIS
+        postConsoleAndNotification(MODULE.NAME, "MENUBAR RENDER: registerDefaultTools() called", `Flag: ${MenuBar._defaultToolsRegistered}`, true, false);
+        if (MenuBar._defaultToolsRegistered) {
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR RENDER: Skipping duplicate registerDefaultTools() call", '', true, false);
+            return;
+        }
+        MenuBar._defaultToolsRegistered = true;
+        postConsoleAndNotification(MODULE.NAME, "MENUBAR RENDER: Setting flag to true", '', true, false);
+        
+        // Prevent renders during tool registration
+        MenuBar._isRegisteringTools = true;
+        // ================================================================== 
+
         // Left zone tools
         this.registerMenubarTool('settings', {
             icon: "fa-solid fa-gear",
@@ -984,6 +1021,15 @@ class MenuBar {
                 }
             }
         });
+        
+        // ================================================================== 
+        // ===== PHASE 1 FIX: Reset flag and render once ===================
+        // ================================================================== 
+        // TODO: REMOVE THIS CODE AFTER PHASE 1 ANALYSIS
+        MenuBar._isRegisteringTools = false;
+        postConsoleAndNotification(MODULE.NAME, "MENUBAR RENDER: Tool registration complete, rendering menubar", '', true, false);
+        this.renderMenubar();
+        // ==================================================================
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Default tools registered using API", "", true, false);
     }
@@ -1076,6 +1122,16 @@ class MenuBar {
             this.toolbarIcons.set(toolId, tool);
 
             postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool registered successfully", { toolId, moduleId: tool.moduleId }, true, false);
+
+            // ================================================================== 
+            // ===== PHASE 1 FIX: Prevent renders during tool registration ======
+            // ================================================================== 
+            // TODO: REMOVE THIS GUARD AFTER PHASE 1 ANALYSIS
+            if (MenuBar._isRegisteringTools) {
+                postConsoleAndNotification(MODULE.NAME, "MENUBAR RENDER: Skipping render during tool registration", `Tool: ${toolId}`, true, false);
+                return true;
+            }
+            // ==================================================================
 
             // Re-render the menubar to show the new tool
             this.renderMenubar();
@@ -2431,7 +2487,36 @@ class MenuBar {
     }
 
     static async renderMenubar(immediate = false) {
+        // ================================================================== 
+        // ===== PHASE 1 ANALYSIS: MENUBAR RENDER TRIGGERS =================
+        // ================================================================== 
+        // INVESTIGATION NEEDED: What triggers this function every second?
+        // 
+        // KNOWN TRIGGERS (from grep analysis):
+        // 1. Tool registration/unregistration
+        // 2. Notification add/update/remove
+        // 3. Leader changes
+        // 4. Combat initiative updates
+        // 5. Secondary bar operations
+        // 6. Initial load
+        //
+        // MYSTERY: None of these should happen every second!
+        // Need to find what's calling renderMenubar() every second.
+        // ================================================================== 
+
         try {
+        // ================================================================== 
+        // ===== PHASE 1 MONITORING: Track renderMenubar() calls ===========
+        // ================================================================== 
+        // TODO: REMOVE THIS MONITORING CODE AFTER PHASE 1 ANALYSIS
+        const stack = new Error().stack;
+        const stackLines = stack.split('\n');
+        const caller = stackLines[2]?.trim() || 'unknown';
+        const caller2 = stackLines[3]?.trim() || 'unknown';
+        const caller3 = stackLines[4]?.trim() || 'unknown';
+        postConsoleAndNotification(MODULE.NAME, `MENUBAR RENDER: immediate: ${immediate}`, `Caller: ${caller}\nCaller2: ${caller2}\nCaller3: ${caller3}`, true, false);
+        // ==================================================================
+
             // Debounce rapid render calls
             if (!immediate && this.renderTimeout) {
                 clearTimeout(this.renderTimeout);
@@ -3107,6 +3192,23 @@ class MenuBar {
     }
 
     static updateTimerDisplay() {
+        // ================================================================== 
+        // ===== PHASE 1 ANALYSIS: TIMER UPDATE FLOW =======================
+        // ================================================================== 
+        // ANALYSIS FINDINGS:
+        // ✅ updateTimerDisplay() already uses direct DOM manipulation
+        // ✅ updateTimerDisplay() does NOT call renderMenubar()
+        // ✅ Timer updates are isolated and efficient
+        // 
+        // CURRENT FLOW:
+        // 1. setInterval(() => this.updateTimerDisplay(), 1000) - every second
+        // 2. Direct DOM updates: timerSpan.textContent, timerSection.style
+        // 3. No menubar re-render triggered
+        //
+        // CONCLUSION: Timer updates are NOT the source of menubar re-renders!
+        // The performance issue must be elsewhere in the system.
+        // ================================================================== 
+
         const timerSpan = document.querySelector('.session-timer');
         const timerSection = document.querySelector('.timer-section');
         if (!timerSpan || !timerSection) return;
