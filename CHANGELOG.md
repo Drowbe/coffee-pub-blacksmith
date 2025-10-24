@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sound plays once (non-looping) and broadcasts to all players
   - Integration with existing movement hooks and automated movement detection
 
+- **Expanded Sound Library:** Added 49 new sound effects across multiple categories
+  - **Cartoon Sounds (2):** Tiptoe, Twangs
+  - **General Effects (6):** Candle Blow, Cocktail Shaker, Explosion, Owl Hoot, Sad Trombone, Toilet Flushing
+  - **Gore Effects (5):** Armor Blood, Blood Splash, Cut Splash, Entrails Splash, Deep Slash
+  - **Object Interactions (9):** Chest Lid Open, Chest Open, Chest Poison, Chest Treasure, Lever 01-03, Sack Open Long/Short
+  - **Reaction Sounds (18):** Crowd Clapping (Large/Small), Crowd Laughing, Gasp, Grunt Hit/Kick Object, Huzzah, Man Battlecry/Grunt/Huuuragh/Oof/Pain, Wilhelm Scream, Woman Groan/Pain/Scream, plus existing Ahhhhh/Oooooh/Yay
+  - **Step Sounds (10):** Beast, Creak 01-03, Metal, Stairs Down/Up, Water, Wood 01-02
+  - All sounds organized in subfolders with proper categorization and alphabetical sorting
+  - Removed duplicate root folder sounds in favor of organized subfolder versions
+
 ### Fixed
 - **CRITICAL: Menubar Performance Issue:** Fixed massive performance bottleneck where menubar was re-rendering 14+ times during initialization
   - Root cause: `registerMenubarTool()` was triggering `renderMenubar()` for every single tool registration
