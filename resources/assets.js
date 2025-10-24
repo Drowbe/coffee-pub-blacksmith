@@ -1001,6 +1001,120 @@ export const dataSounds = {
             "category": "effects"
         },
 
+        // Object Sounds
+        {
+            "name": "Object: Chest Lid Open",
+            "id": "sound-object-chest-lid-open",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-lid-open.mp3",
+            "constantname": "SOUNDOBJECTCHESTLIDOPEN",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-lid-open.mp3",
+            "tags": ["sound", "object", "chest", "lid", "open"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Chest Open",
+            "id": "sound-object-chest-open",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-open.mp3",
+            "constantname": "SOUNDOBJECTCHESTOPEN",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-open.mp3",
+            "tags": ["sound", "object", "chest", "open"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Chest Poison",
+            "id": "sound-object-chest-poison",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-poison.mp3",
+            "constantname": "SOUNDOBJECTCHESTPOISON",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-poison.mp3",
+            "tags": ["sound", "object", "chest", "poison", "trap"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Chest Treasure",
+            "id": "sound-object-chest-treasure",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-treasure.mp3",
+            "constantname": "SOUNDOBJECTCHESTTREASURE",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-chest-treasure.mp3",
+            "tags": ["sound", "object", "chest", "treasure", "loot"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Lever 01",
+            "id": "sound-object-lever-01",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-01.mp3",
+            "constantname": "SOUNDOBJECTLEVER01",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-01.mp3",
+            "tags": ["sound", "object", "lever", "mechanism"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Lever 02",
+            "id": "sound-object-lever-02",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-02.mp3",
+            "constantname": "SOUNDOBJECTLEVER02",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-02.mp3",
+            "tags": ["sound", "object", "lever", "mechanism"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Lever 03",
+            "id": "sound-object-lever-03",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-03.mp3",
+            "constantname": "SOUNDOBJECTLEVER03",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-lever-03.mp3",
+            "tags": ["sound", "object", "lever", "mechanism"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Sack Open Long",
+            "id": "sound-object-sack-open-long",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-sack-open-long.mp3",
+            "constantname": "SOUNDOBJECTSACKOPENLONG",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-sack-open-long.mp3",
+            "tags": ["sound", "object", "sack", "open", "long"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Object: Sack Open Short",
+            "id": "sound-object-sack-open-short",
+            "value": "modules/coffee-pub-blacksmith/sounds/objects/object-sack-open-short.mp3",
+            "constantname": "SOUNDOBJECTSACKOPENSHORT",
+            "path": "modules/coffee-pub-blacksmith/sounds/objects/object-sack-open-short.mp3",
+            "tags": ["sound", "object", "sack", "open", "short"],
+            "type": "sound",
+            "category": "effects"
+        },
+
+        // Cartoon Sounds
+        {
+            "name": "Cartoon: Tiptoe",
+            "id": "sound-cartoon-tiptoe",
+            "value": "modules/coffee-pub-blacksmith/sounds/cartoon/cartoon-tiptoe.mp3",
+            "constantname": "SOUNDCARTOONTIPTOE",
+            "path": "modules/coffee-pub-blacksmith/sounds/cartoon/cartoon-tiptoe.mp3",
+            "tags": ["sound", "cartoon", "tiptoe", "stealth", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Cartoon: Twangs",
+            "id": "sound-cartoon-twangs",
+            "value": "modules/coffee-pub-blacksmith/sounds/cartoon/cartoon-twangs.mp3",
+            "constantname": "SOUNDCARTOONTWANGS",
+            "path": "modules/coffee-pub-blacksmith/sounds/cartoon/cartoon-twangs.mp3",
+            "tags": ["sound", "cartoon", "twangs", "comedy", "spring"],
+            "type": "sound",
+            "category": "effects"
+        },
+
         // Effects and Magic
         {
             "name": "Effect: Sad Trombone",
@@ -1029,20 +1143,180 @@ export const dataSounds = {
         {
             "name": "Reaction: Ahhhhh",
             "id": "sound-reaction-ahhhhh",
-            "value": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-ahhhhh.mp3",
             "constantname": "SOUNDREACTIONAHHHH",
-            "path": "modules/coffee-pub-blacksmith/sounds/reaction-ahhhhh.mp3",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-ahhhhh.mp3",
             "tags": ["reaction", "ahhhh"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Crowd Clapping Large",
+            "id": "sound-reaction-crowd-clapping-large",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-clapping-large.mp3",
+            "constantname": "SOUNDREACTIONCROWDCLAPPINGLARGE",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-clapping-large.mp3",
+            "tags": ["reaction", "crowd", "clapping", "large", "applause"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Crowd Clapping Small",
+            "id": "sound-reaction-crowd-clapping-small",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-clapping-small.mp3",
+            "constantname": "SOUNDREACTIONCROWDCLAPPINGSMALL",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-clapping-small.mp3",
+            "tags": ["reaction", "crowd", "clapping", "small", "applause"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Crowd Laughing",
+            "id": "sound-reaction-crowd-laughing",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-laughing.mp3",
+            "constantname": "SOUNDREACTIONCROWDLAUGHING",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-crowd-laughing.mp3",
+            "tags": ["reaction", "crowd", "laughing", "comedy"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Gasp",
+            "id": "sound-reaction-gasp",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-gasp.mp3",
+            "constantname": "SOUNDREACTIONGASP",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-gasp.mp3",
+            "tags": ["reaction", "gasp", "surprise"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Grunt Hit Object",
+            "id": "sound-reaction-grunt-hit-object",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-grunt-hit-object.mp3",
+            "constantname": "SOUNDREACTIONGRUNTHITOBJECT",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-grunt-hit-object.mp3",
+            "tags": ["reaction", "grunt", "hit", "object", "effort"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Grunt Kick Object",
+            "id": "sound-reaction-grunt-kick-object",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-grunt-kick-object.mp3",
+            "constantname": "SOUNDREACTIONGRUNTKICKOBJECT",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-grunt-kick-object.mp3",
+            "tags": ["reaction", "grunt", "kick", "object", "effort"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Huzzah",
+            "id": "sound-reaction-huzzah",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-huzzah.mp3",
+            "constantname": "SOUNDREACTIONHUZZAH",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-huzzah.mp3",
+            "tags": ["reaction", "huzzah", "celebration"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Man Battlecry",
+            "id": "sound-reaction-man-battlecry",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-battlecry.mp3",
+            "constantname": "SOUNDREACTIONMANBATTLECRY",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-battlecry.mp3",
+            "tags": ["reaction", "man", "battlecry", "combat"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Man Grunt",
+            "id": "sound-reaction-man-grunt",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-grunt.mp3",
+            "constantname": "SOUNDREACTIONMANGRUNT",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-grunt.mp3",
+            "tags": ["reaction", "man", "grunt", "effort"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Man Huuuragh",
+            "id": "sound-reaction-man-huuuragh",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-huuuragh.mp3",
+            "constantname": "SOUNDREACTIONMANHUUURAGH",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-huuuragh.mp3",
+            "tags": ["reaction", "man", "huuuragh", "effort"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Man Oof",
+            "id": "sound-reaction-man-oof",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-oof.mp3",
+            "constantname": "SOUNDREACTIONMANOOF",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-oof.mp3",
+            "tags": ["reaction", "man", "oof", "pain"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Man Pain",
+            "id": "sound-reaction-man-pain",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-pain.mp3",
+            "constantname": "SOUNDREACTIONMANPAIN",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-man-pain.mp3",
+            "tags": ["reaction", "man", "pain", "hurt"],
             "type": "sound",
             "category": "reaction"
         },
         {
             "name": "Reaction: Oooooh",
             "id": "sound-reaction-oooooh",
-            "value": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-oooooh.mp3",
             "constantname": "SOUNDREACTIONOOOOOH",
-            "path": "modules/coffee-pub-blacksmith/sounds/reaction-oooooh.mp3",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-oooooh.mp3",
             "tags": ["reaction", "oooooh"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Scream Wilhelm",
+            "id": "sound-reaction-scream-wilhelm",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-scream-wilhelm.mp3",
+            "constantname": "SOUNDREACTIONSCREAMWILHELM",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-scream-wilhelm.mp3",
+            "tags": ["reaction", "scream", "wilhelm", "classic"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Woman Groan",
+            "id": "sound-reaction-woman-groan",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-groan.mp3",
+            "constantname": "SOUNDREACTIONWOMANGROAN",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-groan.mp3",
+            "tags": ["reaction", "woman", "groan", "effort"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Woman Pain",
+            "id": "sound-reaction-woman-pain",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-pain.mp3",
+            "constantname": "SOUNDREACTIONWOMANPAIN",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-pain.mp3",
+            "tags": ["reaction", "woman", "pain", "hurt"],
+            "type": "sound",
+            "category": "reaction"
+        },
+        {
+            "name": "Reaction: Woman Scream",
+            "id": "sound-reaction-woman-scream",
+            "value": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-scream.mp3",
+            "constantname": "SOUNDREACTIONWOMANSCREAM",
+            "path": "modules/coffee-pub-blacksmith/sounds/reactions/reaction-woman-scream.mp3",
+            "tags": ["reaction", "woman", "scream", "fear"],
             "type": "sound",
             "category": "reaction"
         },
@@ -1089,6 +1363,108 @@ export const dataSounds = {
             "category": "weapon"
         },
 
+        // Step Sounds
+        {
+            "name": "Steps: Beast",
+            "id": "sound-steps-beast",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-beast.mp3",
+            "constantname": "SOUNDSTEPSBEAST",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-beast.mp3",
+            "tags": ["sound", "steps", "beast", "animal", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Creak 01",
+            "id": "sound-steps-creak-01",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-01.mp3",
+            "constantname": "SOUNDSTEPSCREAK01",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-01.mp3",
+            "tags": ["sound", "steps", "creak", "wood", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Creak 02",
+            "id": "sound-steps-creak-02",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-02.mp3",
+            "constantname": "SOUNDSTEPSCREAK02",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-02.mp3",
+            "tags": ["sound", "steps", "creak", "wood", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Creak 03",
+            "id": "sound-steps-creak-03",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-03.mp3",
+            "constantname": "SOUNDSTEPSCREAK03",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-creak-03.mp3",
+            "tags": ["sound", "steps", "creak", "wood", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Metal",
+            "id": "sound-steps-metal",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-metal.mp3",
+            "constantname": "SOUNDSTEPSMETAL",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-metal.mp3",
+            "tags": ["sound", "steps", "metal", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Stairs Down",
+            "id": "sound-steps-stairs-down",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-stairs-down.mp3",
+            "constantname": "SOUNDSTEPSSTAIRSDOWN",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-stairs-down.mp3",
+            "tags": ["sound", "steps", "stairs", "down", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Stairs Up",
+            "id": "sound-steps-stairs-up",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-stairs-up.mp3",
+            "constantname": "SOUNDSTEPSSTAIRSUP",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-stairs-up.mp3",
+            "tags": ["sound", "steps", "stairs", "up", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Water",
+            "id": "sound-steps-water",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-water.mp3",
+            "constantname": "SOUNDSTEPSWATER",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-water.mp3",
+            "tags": ["sound", "steps", "water", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Wood 01",
+            "id": "sound-steps-wood-01",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-wood-01.mp3",
+            "constantname": "SOUNDSTEPSWOOD01",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-wood-01.mp3",
+            "tags": ["sound", "steps", "wood", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Steps: Wood 02",
+            "id": "sound-steps-wood-02",
+            "value": "modules/coffee-pub-blacksmith/sounds/steps/steps-wood-02.mp3",
+            "constantname": "SOUNDSTEPSWOOD02",
+            "path": "modules/coffee-pub-blacksmith/sounds/steps/steps-wood-02.mp3",
+            "tags": ["sound", "steps", "wood", "movement"],
+            "type": "sound",
+            "category": "effects"
+        },
+
         // Instruments
         {
             "name": "Instrument: Sad Trombone",
@@ -1133,32 +1509,12 @@ export const dataSounds = {
 
         // General Effects
         {
-            "name": "General: Rustling Grass",
-            "id": "sound-general-rustling-grass",
-            "value": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
-            "constantname": "SOUNDEFFECTGENERAL01",
-            "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
-            "tags": ["general", "grass", "rustling"],
-            "type": "sound",
-            "category": "effects"
-        },
-        {
-            "name": "General: Synth",
-            "id": "sound-general-synth",
-            "value": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
-            "constantname": "SOUNDEFFECTGENERAL03",
-            "path": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
-            "tags": ["sound", "general", "synth", "electronic"],
-            "type": "sound",
-            "category": "effects"
-        },
-        {
-            "name": "General: Spell Magic Circle",
-            "id": "sound-general-spell-circle",
-            "value": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
-            "constantname": "SOUNDEFFECTGENERAL02",
-            "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
-            "tags": ["sound", "general", "spell", "magic", "circle"],
+            "name": "General: Candle Blow",
+            "id": "sound-general-candle-blow",
+            "value": "modules/coffee-pub-blacksmith/sounds/fire-candle-blow.mp3",
+            "constantname": "SOUNDEFFECTGENERAL10",
+            "path": "modules/coffee-pub-blacksmith/sounds/fire-candle-blow.mp3",
+            "tags": ["sound", "general", "candle", "blow", "fire"],
             "type": "sound",
             "category": "effects"
         },
@@ -1185,20 +1541,142 @@ export const dataSounds = {
         {
             "name": "General: Cocktail Ice",
             "id": "sound-general-cocktail-ice",
-            "value": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
+            "value": "modules/coffee-pub-blacksmith/sounds/general/general-cocktail-ice.mp3",
             "constantname": "SOUNDEFFECTGENERAL08",
-            "path": "modules/coffee-pub-blacksmith/sounds/general-cocktail-ice.mp3",
+            "path": "modules/coffee-pub-blacksmith/sounds/general/general-cocktail-ice.mp3",
             "tags": ["sound", "general", "cocktail", "ice", "beverage"],
             "type": "sound",
             "category": "effects"
         },
         {
-            "name": "General: Toilet Flush",
-            "id": "sound-general-toilet-flush",
-            "value": "modules/coffee-pub-blacksmith/sounds/general-toilet-flush.mp3",
+            "name": "General: Cocktail Shaker",
+            "id": "sound-general-cocktail-shaker",
+            "value": "modules/coffee-pub-blacksmith/sounds/general/general-cocktail-shaker.mp3",
+            "constantname": "SOUNDEFFECTGENERAL11",
+            "path": "modules/coffee-pub-blacksmith/sounds/general/general-cocktail-shaker.mp3",
+            "tags": ["sound", "general", "cocktail", "shaker", "beverage"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Explosion",
+            "id": "sound-general-explosion",
+            "value": "modules/coffee-pub-blacksmith/sounds/general/general-explosion.mp3",
+            "constantname": "SOUNDEFFECTGENERAL12",
+            "path": "modules/coffee-pub-blacksmith/sounds/general/general-explosion.mp3",
+            "tags": ["sound", "general", "explosion", "blast", "boom"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Owl Hoot",
+            "id": "sound-general-owl-hoot",
+            "value": "modules/coffee-pub-blacksmith/sounds/beast-owl-hoot.mp3",
+            "constantname": "SOUNDEFFECTGENERAL13",
+            "path": "modules/coffee-pub-blacksmith/sounds/beast-owl-hoot.mp3",
+            "tags": ["sound", "general", "owl", "hoot", "beast", "animal"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Rustling Grass",
+            "id": "sound-general-rustling-grass",
+            "value": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
+            "constantname": "SOUNDEFFECTGENERAL01",
+            "path": "modules/coffee-pub-blacksmith/sounds/rustling-grass.mp3",
+            "tags": ["general", "grass", "rustling"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Sad Trombone",
+            "id": "sound-general-sad-trombone",
+            "value": "modules/coffee-pub-blacksmith/sounds/general/general-sadtrombone.mp3",
+            "constantname": "SOUNDEFFECTGENERAL14",
+            "path": "modules/coffee-pub-blacksmith/sounds/general/general-sadtrombone.mp3",
+            "tags": ["sound", "general", "sad", "trombone", "comedy"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Spell Magic Circle",
+            "id": "sound-general-spell-circle",
+            "value": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
+            "constantname": "SOUNDEFFECTGENERAL02",
+            "path": "modules/coffee-pub-blacksmith/sounds/spell-magic-circle.mp3",
+            "tags": ["sound", "general", "spell", "magic", "circle"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Synth",
+            "id": "sound-general-synth",
+            "value": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
+            "constantname": "SOUNDEFFECTGENERAL03",
+            "path": "modules/coffee-pub-blacksmith/sounds/synth.mp3",
+            "tags": ["sound", "general", "synth", "electronic"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "General: Toilet Flushing",
+            "id": "sound-general-toilet-flushing",
+            "value": "modules/coffee-pub-blacksmith/sounds/general/general-toilet-flushing.mp3",
             "constantname": "SOUNDEFFECTGENERAL09",
-            "path": "modules/coffee-pub-blacksmith/sounds/general-toilet-flush.mp3",
-            "tags": ["sound", "general", "toilet", "flush", "bathroom"],
+            "path": "modules/coffee-pub-blacksmith/sounds/general/general-toilet-flushing.mp3",
+            "tags": ["sound", "general", "toilet", "flushing", "bathroom"],
+            "type": "sound",
+            "category": "effects"
+        },
+
+        // Gore Sounds
+        {
+            "name": "Gore: Armor Blood",
+            "id": "sound-gore-armor-blood",
+            "value": "modules/coffee-pub-blacksmith/sounds/gore/gore-armor-blood.mp3",
+            "constantname": "SOUNDGOREARMORBLOOD",
+            "path": "modules/coffee-pub-blacksmith/sounds/gore/gore-armor-blood.mp3",
+            "tags": ["sound", "gore", "armor", "blood", "combat"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Gore: Blood Splash",
+            "id": "sound-gore-blood-splash",
+            "value": "modules/coffee-pub-blacksmith/sounds/gore/gore-blood-splash.mp3",
+            "constantname": "SOUNDGOREBLOODSPLASH",
+            "path": "modules/coffee-pub-blacksmith/sounds/gore/gore-blood-splash.mp3",
+            "tags": ["sound", "gore", "blood", "splash", "combat"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Gore: Cut Splash",
+            "id": "sound-gore-cut-splash",
+            "value": "modules/coffee-pub-blacksmith/sounds/gore/gore-cut-splash.mp3",
+            "constantname": "SOUNDGORECUTSPLASH",
+            "path": "modules/coffee-pub-blacksmith/sounds/gore/gore-cut-splash.mp3",
+            "tags": ["sound", "gore", "cut", "splash", "combat"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Gore: Entrails Splash",
+            "id": "sound-gore-entrails-splash",
+            "value": "modules/coffee-pub-blacksmith/sounds/gore/gore-entrails-splash.mp3",
+            "constantname": "SOUNDGOREENTRAILSSPLASH",
+            "path": "modules/coffee-pub-blacksmith/sounds/gore/gore-entrails-splash.mp3",
+            "tags": ["sound", "gore", "entrails", "splash", "combat"],
+            "type": "sound",
+            "category": "effects"
+        },
+        {
+            "name": "Gore: Deep Slash",
+            "id": "sound-gore-slash-deep",
+            "value": "modules/coffee-pub-blacksmith/sounds/gore/gore-slash-deep.mp3",
+            "constantname": "SOUNDGORESLASHDEEP",
+            "path": "modules/coffee-pub-blacksmith/sounds/gore/gore-slash-deep.mp3",
+            "tags": ["sound", "gore", "slash", "deep", "combat"],
             "type": "sound",
             "category": "effects"
         },
