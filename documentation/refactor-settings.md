@@ -360,13 +360,13 @@ Apply the same pattern to all other sections:
 ## Migration Checklist
 
 ### Implementation Steps:
-1. [ ] Add helper functions at top of file
-2. [ ] Define workflow group constants
-3. [ ] Replace Getting Started section (proof of concept)
-4. [ ] Test collapsible sections work
-5. [ ] Verify styling unchanged
-6. [ ] Migrate Themes and Experience section
-7. [ ] Migrate Run the Game section
+1. [x] Add helper functions at top of file
+2. [x] Define workflow group constants
+3. [x] Replace Getting Started section (proof of concept)
+4. [x] Test collapsible sections work
+5. [x] Verify styling unchanged
+6. [x] Migrate Themes and Experience section
+7. [x] Migrate Run the Game section (partial - Toolbar, Chat, Menubar)
 8. [ ] Migrate Manage Content section
 9. [ ] Migrate Rolling and Progression section
 10. [ ] Migrate Automation and AI section
@@ -406,3 +406,51 @@ Apply the same pattern to all other sections:
 - All existing functionality preserved
 - CSS styling completely compatible
 - Ready for FoundryVTT v12+ collapsible sections
+
+## Migration Status
+
+### ✅ COMPLETED SECTIONS:
+
+#### 1. Getting Started (3/3 settings) - COMPLETE
+- **Headers:** H1 Getting Started, H2 General, H2 Debug, H3 Console, H3 Latency
+- **Settings:** globalFancyConsole, latencyCheckInterval
+- **Status:** All migrated to `WORKFLOW_GROUPS.GETTING_STARTED`
+- **Helper Functions:** All headers use `registerHeader()` helper
+- **Group Parameter:** All settings have `group: WORKFLOW_GROUPS.GETTING_STARTED`
+
+#### 2. Themes and Experience (18/18 settings) - COMPLETE
+- **Headers:** H2 Themes, H3 Theme Selections, H3 Theme Default, H3 CSS Customization, H3 Debug Settings
+- **Settings:** All theme selection settings, defaultCardTheme, customCSS, cssTransition, cssDarkMode, globalDebugMode, globalConsoleDebugStyle
+- **Status:** All migrated to `WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE`
+- **Helper Functions:** All headers use `registerHeader()` helper
+- **Group Parameter:** All settings have `group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE`
+
+#### 3. Run the Game (5/5 settings migrated so far) - PARTIAL
+- **Headers:** H2 Toolbar, H2 Chat, H3 Menubar
+- **Settings:** toolbarShowDividers, toolbarShowLabels, enableMenubar, excludedUsersMenubar
+- **Status:** Migrated to `WORKFLOW_GROUPS.RUN_THE_GAME`
+- **Helper Functions:** All headers use `registerHeader()` helper
+- **Group Parameter:** All settings have `group: WORKFLOW_GROUPS.RUN_THE_GAME`
+
+### ⏳ PENDING SECTIONS:
+
+#### 4. Manage Content - NOT STARTED
+- Token settings
+- Image replacement settings
+- Content management tools
+
+#### 5. Rolling and Progression - NOT STARTED
+- Roll settings
+- XP settings
+- Progression tools
+
+#### 6. Automation and AI - NOT STARTED
+- AI integration settings
+- Automation tools
+- Smart features
+
+### 📊 OVERALL PROGRESS:
+- **Total Settings Migrated:** 34/100+ (estimated)
+- **Workflow Groups Complete:** 2/6 (Getting Started, Themes and Experience)
+- **Workflow Groups Partial:** 1/6 (Run the Game)
+- **Workflow Groups Pending:** 3/6 (Manage Content, Rolling and Progression, Automation and AI)

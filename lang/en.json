@@ -1,12 +1,38 @@
 {
 	"coffee-pub-blacksmith": {
 
-		"headingH1GettingStarted-Label": "Getting Started",
-		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
 
 		"headingH1Blacksmith-Label": "Introduction",
 		"headingH1Blacksmith-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
 
+
+		"headingH1GettingStarted-Label": "Getting Started",
+		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1ThemesAndExperience-Label": "Themes and Experience",
+		"headingH1ThemesAndExperience-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1RunTheGame-Label": "Run the Game",
+		"headingH1RunTheGame-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1ManageContent-Label": "Manage Content",
+		"headingH1ManageContent-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1RollingAndProgression-Label": "Rolling and Progression",
+		"headingH1RollingAndProgression-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1AutomationAndAI-Label": "Automation and AI",
+		"headingH1AutomationAndAI-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH1DeveloperTools-Label": "Developer Tools",
+		"headingH1DeveloperTools-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+
+
+
+
+
+		
 
 
 
@@ -414,8 +440,8 @@
 		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
 		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
 
-		"headingH2Toolbar-Label": "Foundry Toolbar",
-		"headingH2Toolbar-Hint": "Customize the Blacksmith toolbar appearance and functionality as it appears in the native DFoundry toolbar.",
+		"headingH3simplemenubar-Label": "Blacksmith Menubar",
+		"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
 
 		"toolbarShowDividers-Label": "Show Toolbar Dividers",
 		"toolbarShowDividers-Hint": "Display visual dividers between toolbar zones to help organize tools.",

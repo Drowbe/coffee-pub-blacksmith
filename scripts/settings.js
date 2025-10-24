@@ -39,7 +39,8 @@ const WORKFLOW_GROUPS = {
     RUN_THE_GAME: 'run-the-game',
     MANAGE_CONTENT: 'manage-content',
     ROLLING_AND_PROGRESSION: 'rolling-and-progression',
-    AUTOMATION_AND_AI: 'automation-and-ai'
+    AUTOMATION_AND_AI: 'automation-and-ai',
+	DEVELOPER_TOOLS: 'developer-tools'
 };
 
 // ================================================================== 
@@ -356,7 +357,10 @@ export const registerSettings = async () => {
     
 
 
-		// *** GETTING STARTED ***
+		// ================================================================== 
+		// == GETTING STARTED 
+		// ================================================================== 
+
 		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
 		// -------------------------------------
@@ -392,30 +396,265 @@ export const registerSettings = async () => {
 		// *** GENERAL SETTINGS ***
 		registerHeader('General', 'headingH2General-Label', 'headingH2General-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
 
-		// *** DEBUG SETTINGS ***
-		registerHeader('Debug', 'headingH2Debug-Label', 'headingH2Debug-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
-		// -------------------------------------
 		
-		// ---------- CONSOLE SETTINGS ----------
-		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+
+
+
+
+		// ================================================================== 
+		// == THEMES AND EXPERIENCE 
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('ThemesAndExperience', 'headingH1ThemesAndExperience-Label', 'headingH1ThemesAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+
+
+		// *** THEMES AND EXPERIENCE ***
+		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 		// -------------------------------------
 
-		// -- LOG FANCY CONSOLE --
-		game.settings.register(MODULE.ID, 'globalFancyConsole', {
-			name: MODULE.ID + '.globalFancyConsole-Label',
-			hint: MODULE.ID + '.globalFancyConsole-Hint',
-			type: Boolean,
+		
+
+
+
+
+		// ================================================================== 
+		// == RUN THE GAME
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+
+
+
+		// ================================================================== 
+		// == MANAGE CONTENT
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+
+
+
+
+		// ================================================================== 
+		// == ROLLING AND PROGRESSION
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+
+
+
+			
+		// *** XP DISTRIBUTION SETTINGS ***
+
+		// ---------- SUBHEADING ----------
+		game.settings.register(MODULE.ID, "headingH2XpDistribution", {
+			name: 'XP DISTRIBUTION',
+			hint: 'These settings control the automatic XP distribution system that triggers when combat ends.',
+			scope: "world",
 			config: true,
-			requiresReload: true,
-			scope: 'client',
-			default: true,
-			group: WORKFLOW_GROUPS.GETTING_STARTED
+			default: "",
+			type: String,
 		});
-		
-		// ---------- DEBUG SETTINGS ----------
-		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
 		// -------------------------------------
-		
+
+		// -- Enable XP Distribution --
+		game.settings.register(MODULE.ID, 'enableXpDistribution', {
+			name: 'Enable XP Distribution',
+			hint: 'When enabled, automatically show XP distribution window when combat ends',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: true
+		});
+
+		// -- Auto-distribute XP --
+		game.settings.register(MODULE.ID, 'autoDistributeXp', {
+			name: 'Auto-distribute XP',
+			hint: 'When enabled, automatically distribute XP without showing the distribution window',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: false
+		});
+
+		// -- Share XP Results --
+		game.settings.register(MODULE.ID, 'shareXpResults', {
+			name: 'Share XP Results',
+			hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: true
+		});
+
+		// -- XP Calculation Method --
+		game.settings.register(MODULE.ID, 'xpCalculationMethod', {
+			name: 'XP Calculation Method',
+			hint: 'Choose the method for calculating XP from monster CR. "Narrative/Goal-Based XP" allows you to enter XP for each player directly.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'dnd5e',
+			choices: {
+				'dnd5e': 'D&D 5e RAW (CR-based XP Calculations)',
+				'narrative': 'Narrative/Goal-Based XP (Manual Entry)',
+			}
+		});
+
+		// -- Party Size Handling --
+		game.settings.register(MODULE.ID, 'xpPartySizeHandling', {
+			name: 'Party Size Handling',
+			hint: 'Choose how XP is divided among the party. "D&D 5e RAW (No Multipliers)" divides total base XP among players (official rules). "House Rules (Scale for Party Size)" applies a party size multiplier to XP awarded (not RAW).',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'dnd5e',
+			choices: {
+				'dnd5e': 'D&D 5e RAW (No Multipliers)',
+				'multipliers': 'House Rules (Scale for Party Size)'
+			}
+		});
+
+
+		// -- Resolution Type XP Multipliers --
+		game.settings.register(MODULE.ID, 'xpMultiplierDefeated', {
+			name: 'Defeated XP Multiplier',
+			hint: 'Multiplier for defeated monsters (Default: 1.0)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 1.0,
+			range: {
+				min: 0,
+				max: 3,
+				step: 0.05
+			}
+		});
+
+		game.settings.register(MODULE.ID, 'xpMultiplierNegotiated', {
+			name: 'Negotiated XP Multiplier',
+			hint: 'Multiplier for negotiated monsters (Default: 1.0)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 1.0,
+			range: {
+				min: 0,
+				max: 3,
+				step: 0.05
+			}
+		});
+
+		game.settings.register(MODULE.ID, 'xpMultiplierEscaped', {
+			name: 'Escaped XP Multiplier',
+			hint: 'Multiplier for monsters that escaped (Default: 1.0)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 0.5,
+			range: {
+				min: 0,
+				max: 3,
+				step: 0.05
+			}
+		});
+
+		game.settings.register(MODULE.ID, 'xpMultiplierIgnored', {
+			name: 'Ignored XP Multiplier',
+			hint: 'Multiplier for ignored monsters (Default: 0.0)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 0.0,
+			range: {
+				min: 0,
+				max: 3,
+				step: 0.05
+			}
+		});
+
+		game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
+			name: 'Captured XP Multiplier',
+			hint: 'Multiplier for captured monsters (Default: 1.0)',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 1.0,
+			range: {
+				min: 0,
+				max: 3,
+				step: 0.05
+			}
+		});
+
+
+
+
+
+
+
+
+		// ================================================================== 
+		// == AUTOMATION AND AI
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('AutomationAndAI', 'headingH1AutomationAndAI-Label', 'headingH1AutomationAndAI-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION_AND_AI);
+
+
+
+
+
+		// ================================================================== 
+		// == DEVELOPER TOOLS
+		// ================================================================== 
+
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+
+		// *** CSS CUSTOMIZATION ***
+		registerHeader('CSS', 'headingH3CSS-Label', 'headingH3CSS-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+		game.settings.register(MODULE.ID, "customCSS", {
+			scope: "world",
+			config: false,
+			type: String,
+			default: "",
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		game.settings.register(MODULE.ID, "cssTransition", {
+			name: "Smooth Transition",
+			hint: "Ease the new css styles into place with a smooth transition",
+			scope: "world",
+			config: true,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		game.settings.register(MODULE.ID, "cssDarkMode", {
+			name: "Dark Mode",
+			hint: "Enable dark mode for the css editor",
+			scope: "world",
+			config: true,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		// *** DEBUG SETTINGS ***
+		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		// -------------------------------------
+
 		// -- LOG DEBUG SETTINGS --
 		game.settings.register(MODULE.ID, 'globalDebugMode', {
 			name: MODULE.ID + '.globalDebugMode-Label',
@@ -425,7 +664,7 @@ export const registerSettings = async () => {
 			requiresReload: true,
 			scope: 'client',
 			default: false,
-			group: WORKFLOW_GROUPS.GETTING_STARTED
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
 		// -- LOG DEBUG STYLE--
@@ -442,24 +681,38 @@ export const registerSettings = async () => {
 				'simple': 'Simply Delightful: Colorful Text and Variables',
 				'plain': 'Boring and Lame: Default console styles',
 			},
-			group: WORKFLOW_GROUPS.GETTING_STARTED
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+
+
+
+
+		// *** DEBUG SETTINGS ***
+		registerHeader('Debug', 'headingH2Debug-Label', 'headingH2Debug-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		// -------------------------------------
+
+		// ---------- CONSOLE SETTINGS ----------
+		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		// -------------------------------------
+
+		// -- LOG FANCY CONSOLE --
+		game.settings.register(MODULE.ID, 'globalFancyConsole', {
+			name: MODULE.ID + '.globalFancyConsole-Label',
+			hint: MODULE.ID + '.globalFancyConsole-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'client',
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
 		// *** LATENCY SETTINGS ***
-		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 		// -------------------------------------
 
 		// Latency Settings
-		game.settings.register(MODULE.ID, 'enableLatency', {
-			name: MODULE.ID + '.enableLatency-Label',
-			hint: MODULE.ID + '.enableLatency-Hint',
-			type: Boolean,
-			scope: 'world',
-			config: true,
-			default: true,
-			group: WORKFLOW_GROUPS.GETTING_STARTED
-		});
-
 		game.settings.register(MODULE.ID, 'latencyCheckInterval', {
 			name: MODULE.ID + '.latencyCheckInterval-Label',
 			hint: MODULE.ID + '.latencyCheckInterval-Hint',
@@ -472,7 +725,7 @@ export const registerSettings = async () => {
 				step: 5
 			},
 			default: 30,
-			group: WORKFLOW_GROUPS.GETTING_STARTED
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
 
@@ -480,40 +733,11 @@ export const registerSettings = async () => {
 
 
 
-		// *** THEMES AND EXPERIENCE ***
-		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-		// -------------------------------------
 
-		// *** CSS CUSTOMIZATION ***
-		registerHeader('CSS', 'headingH3CSS-Label', 'headingH3CSS-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
-		game.settings.register(MODULE.ID, "customCSS", {
-			scope: "world",
-			config: false,
-			type: String,
-			default: "",
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
 
-		game.settings.register(MODULE.ID, "cssTransition", {
-			name: "Smooth Transition",
-			hint: "Ease the new css styles into place with a smooth transition",
-			scope: "world",
-			config: true,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
 
-		game.settings.register(MODULE.ID, "cssDarkMode", {
-			name: "Dark Mode",
-			hint: "Enable dark mode for the css editor",
-			scope: "world",
-			config: true,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
+
 
 		// ================================================================== 
 		// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
@@ -533,17 +757,9 @@ export const registerSettings = async () => {
 			type: String,
 		});
 
-		// *** TOOLBAR SECION HERE ***
-
-		// ---------- HEADING - TOOLBAR  ----------
-		game.settings.register(MODULE.ID, "headingH2Toolbar", {
-			name: MODULE.ID + '.headingH2Toolbar-Label',
-			hint: MODULE.ID + '.headingH2Toolbar-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
+		// *** RUN THE GAME ***
+		// ---------- FOUNDRY TOOLBAR ----------
+		registerHeader('Toolbar', 'headingH2Toolbar-Label', 'headingH2Toolbar-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
 		
 		// ---------- TOOLBAR DIVIDERS ----------
 		game.settings.register(MODULE.ID, "toolbarShowDividers", {
@@ -552,7 +768,8 @@ export const registerSettings = async () => {
 			scope: "client",
 			config: true,
 			default: true,
-			type: Boolean
+			type: Boolean,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
 		// ---------- TOOLBAR LABELS ----------
@@ -562,34 +779,49 @@ export const registerSettings = async () => {
 			scope: "client",
 			config: true,
 			default: false,
-			type: Boolean
+			type: Boolean,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
+		// ---------- MENUBAR PANEL ----------
+		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
-
-
-		// *** THEMES ***
-		// ---------- HEADING - THEMES  ----------
-		game.settings.register(MODULE.ID, "headingH2Themes", {
-			name: MODULE.ID + '.headingH2Themes-Label',
-			hint: MODULE.ID + '.headingH2Themes-Hint',
-			scope: "world",
+		game.settings.register(MODULE.ID, 'enableMenubar', {
+			name: 'Show Blacksmith Panel',
+			hint: 'Show the Blacksmith panel in the chat log.',
+			type: Boolean,
 			config: true,
-			default: "",
-			type: String,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
+
+		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
+			name: 'Excluded Menubar Users',
+			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// ---------- CHAT ----------
+		registerHeader('Chat', 'headingH2Chat-Label', 'headingH2Chat-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+		// -------------------------------------
+
+
+
+
+		// *** THEMES AND EXPERIENCE ***
+		// ---------- THEMES ----------
+		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 		// -------------------------------------
 		// ---------- SUBHEADING - ENABLE/DISABLE ----------
-		game.settings.register(MODULE.ID, "headingH3simpleThemeSelections", {
-			name: MODULE.ID + '.headingH3simpleThemeSelections-Label',
-			hint: MODULE.ID + '.headingH3simpleThemeSelections-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
+		registerHeader('ThemeSelections', 'headingH3simpleThemeSelections-Label', 'headingH3simpleThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 		// -------------------------------------
-		+
+		
 		// Build out the themes based on the js file.
 		
 		registerThemes();
@@ -597,15 +829,8 @@ export const registerSettings = async () => {
 		
 		getThemeChoices();
 
-		// ---------- SUBHEADING - ENABLE/DISABLE ----------
-		game.settings.register(MODULE.ID, "headingH3simpleThemeDefault", {
-			name: MODULE.ID + '.headingH3simpleThemeDefault-Label',
-			hint: MODULE.ID + '.headingH3simpleThemeDefault-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
+		// ---------- SUBHEADING - DEFAULT THEME ----------
+		registerHeader('ThemeDefault', 'headingH3simpleThemeDefault-Label', 'headingH3simpleThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 		// -------------------------------------
 
 		// -- Default Card Theme --
@@ -617,51 +842,8 @@ export const registerSettings = async () => {
 			requiresReload: true,
 			type: String,
 			default: 'cardsdefault',
-			choices: BLACKSMITH.arrThemeChoices
-		});
-
-		// *** CHAT ***
-
-		// ---------- HEADING - CHAT  ----------
-		game.settings.register(MODULE.ID, "headingH2Chat", {
-			name: MODULE.ID + '.headingH2Chat-Label',
-			hint: MODULE.ID + '.headingH2Chat-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-
-		// *** MENUBAR SETTINGS ***
-		// ---------- SUBHEADING - MENUBAR ----------
-		game.settings.register(MODULE.ID, "headingH3simplemenubar", {
-			name: 'BLACKSMITH MENUBAR',
-			hint: 'Settings for the panel that appears in the chat log.',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-
-		game.settings.register(MODULE.ID, 'enableMenubar', {
-			name: 'Show Blacksmith Panel',
-			hint: 'Show the Blacksmith panel in the chat log.',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-		});
-
-		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
-			name: 'Excluded Menubar Users',
-			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: '',
+			choices: BLACKSMITH.arrThemeChoices,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
 		// -- Party Leader -- 
@@ -4289,148 +4471,6 @@ export const registerSettings = async () => {
 
 
 
-// *** XP DISTRIBUTION SETTINGS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2XpDistribution", {
-		name: 'XP DISTRIBUTION',
-		hint: 'These settings control the automatic XP distribution system that triggers when combat ends.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- Enable XP Distribution --
-	game.settings.register(MODULE.ID, 'enableXpDistribution', {
-		name: 'Enable XP Distribution',
-		hint: 'When enabled, automatically show XP distribution window when combat ends',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// -- Auto-distribute XP --
-	game.settings.register(MODULE.ID, 'autoDistributeXp', {
-		name: 'Auto-distribute XP',
-		hint: 'When enabled, automatically distribute XP without showing the distribution window',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Share XP Results --
-	game.settings.register(MODULE.ID, 'shareXpResults', {
-		name: 'Share XP Results',
-		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-	
-	// -- XP Calculation Method --
-	game.settings.register(MODULE.ID, 'xpCalculationMethod', {
-		name: 'XP Calculation Method',
-		hint: 'Choose the method for calculating XP from monster CR. "Narrative/Goal-Based XP" allows you to enter XP for each player directly.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'dnd5e',
-		choices: {
-			'dnd5e': 'D&D 5e RAW (CR-based XP Calculations)',
-			'narrative': 'Narrative/Goal-Based XP (Manual Entry)',
-		}
-	});
-
-	// -- Party Size Handling --
-	game.settings.register(MODULE.ID, 'xpPartySizeHandling', {
-		name: 'Party Size Handling',
-		hint: 'Choose how XP is divided among the party. "D&D 5e RAW (No Multipliers)" divides total base XP among players (official rules). "House Rules (Scale for Party Size)" applies a party size multiplier to XP awarded (not RAW).',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'dnd5e',
-		choices: {
-			'dnd5e': 'D&D 5e RAW (No Multipliers)',
-			'multipliers': 'House Rules (Scale for Party Size)'
-		}
-	});
-
-
-	// -- Resolution Type XP Multipliers --
-	game.settings.register(MODULE.ID, 'xpMultiplierDefeated', {
-		name: 'Defeated XP Multiplier',
-		hint: 'Multiplier for defeated monsters (Default: 1.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 1.0,
-		range: {
-			min: 0,
-			max: 3,
-			step: 0.05
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'xpMultiplierNegotiated', {
-		name: 'Negotiated XP Multiplier',
-		hint: 'Multiplier for negotiated monsters (Default: 1.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 1.0,
-		range: {
-			min: 0,
-			max: 3,
-			step: 0.05
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'xpMultiplierEscaped', {
-		name: 'Escaped XP Multiplier',
-		hint: 'Multiplier for monsters that escaped (Default: 1.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.5,
-		range: {
-			min: 0,
-			max: 3,
-			step: 0.05
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'xpMultiplierIgnored', {
-		name: 'Ignored XP Multiplier',
-		hint: 'Multiplier for ignored monsters (Default: 0.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.0,
-		range: {
-			min: 0,
-			max: 3,
-			step: 0.05
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
-		name: 'Captured XP Multiplier',
-		hint: 'Multiplier for captured monsters (Default: 1.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 1.0,
-		range: {
-			min: 0,
-			max: 3,
-			step: 0.05
-		}
-	});
 
 	// *** TOKEN MOVEMENT SOUNDS ***
 
