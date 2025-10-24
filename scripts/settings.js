@@ -2112,17 +2112,29 @@ export const registerSettings = async () => {
 		default: 10,
 	});
 
-	// -- Loot SOund --
-	game.settings.register(MODULE.ID, 'lootTokenSoundCreate', {
-		name: "Stable PC Sound",
+	// -- Loot Sound --
+	game.settings.register(MODULE.ID, 'tokenLootSound', {
+		name: "Loot Conversion Sound",
 		hint: "Sound to play when a token is turned into loot.",
 		scope: "world",
 		config: true,
 		requiresReload: false,
 		type: String,
 		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
+		default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
+    });
+
+	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
+		name: 'Loot Token Image Path',
+		hint: 'Full path to loot token image for tokens (applied after token converted to loot pile)',
+		scope: 'world',
+		config: true,
+		type: String,
+		requiresReload: false,
+        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
+    });
+
+
 
 	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
 		name: 'Treasure Loot Table',
@@ -2206,19 +2218,7 @@ export const registerSettings = async () => {
 		default: 3,
 	});
 
-	game.settings.register(MODULE.ID, 'tokenLootSound', {
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
-    });
 
-	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
-    });
 
 	game.settings.register(MODULE.ID, 'tokenLootChatMessage', {
 		name: 'Loot Chat Message',
