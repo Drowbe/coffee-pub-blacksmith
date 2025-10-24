@@ -2,6 +2,54 @@
 /* --- SETTINGS  ---------------------- */
 /* ------------------------------------ */
 
+/* NORMAL SETTING OVERRIDES */
+
+div[data-setting-id*="coffee-pub-monarch"],
+div[data-setting-id*="coffee-pub-squire"],
+div[data-setting-id*="coffee-pub-blacksmith"],
+div[data-setting-id*="coffee-pub-bubo"],
+div[data-setting-id*="coffee-pub-crier"],
+div[data-setting-id*="coffee-pub-scribe"],
+div[data-setting-id*="coffee-pub-bibliosoph"] {
+    background-color: rgba(9, 12, 3, 0.05);
+    padding: 2px 4px 2px 6px;
+    border-radius: 4px;
+}
+
+div[data-setting-id*="coffee-pub-monarch"] label,
+div[data-setting-id*="coffee-pub-squire"] label,
+div[data-setting-id*="coffee-pub-blacksmith"] label,
+div[data-setting-id*="coffee-pub-bubo"] label,
+div[data-setting-id*="coffee-pub-crier"] label,
+div[data-setting-id*="coffee-pub-scribe"] label,
+div[data-setting-id*="coffee-pub-bibliosoph"] label {
+    font-weight: 550;
+    font-size: 1.0em;
+    font-style: normal;
+}
+div[data-setting-id*="coffee-pub-monarch"] .notes,
+div[data-setting-id*="coffee-pub-squire"] .notes,
+div[data-setting-id*="coffee-pub-blacksmith"] .notes,
+div[data-setting-id*="coffee-pub-bubo"] .notes,
+div[data-setting-id*="coffee-pub-crier"] .notes,
+div[data-setting-id*="coffee-pub-scribe"] .notes,
+div[data-setting-id*="coffee-pub-bibliosoph"] .notes{
+    font-weight: 400;
+    font-size: 1.0em;
+    font-style: normal;
+    padding: 6px 0px 6px 0px;
+}
+
+div[data-setting-id*="coffee-pub-monarch"] .form-fields,
+div[data-setting-id*="coffee-pub-squire"] .form-fields,
+div[data-setting-id*="coffee-pub-blacksmith"] .form-fields,
+div[data-setting-id*="coffee-pub-bubo"] .form-fields,
+div[data-setting-id*="coffee-pub-crier"] .form-fields,
+div[data-setting-id*="coffee-pub-scribe"] .form-fields,
+div[data-setting-id*="coffee-pub-bibliosoph"] .form-fields{
+    margin: 6px 0px 6px 0px;
+}
+
 /* HEADINGS H1 - MAIN TITLE */
 
 input[name*="coffee-pub-monarch.headingH1"],
@@ -187,7 +235,7 @@ div[data-setting-id*="coffee-pub-bubo.headingH3simple"],
 div[data-setting-id*="coffee-pub-crier.headingH3simple"],
 div[data-setting-id*="coffee-pub-scribe.headingH3simple"],
 div[data-setting-id*="coffee-pub-bibliosoph.headingH3simple"] {
-    background-color: rgba(9, 12, 3, 0.05);
+    background-color: rgba(9, 12, 3, 0.15);
     border-radius: 4px;	
 }
 
@@ -218,14 +266,9 @@ div[data-setting-id*="coffee-pub-bubo.headingH4"],
 div[data-setting-id*="coffee-pub-crier.headingH4"],
 div[data-setting-id*="coffee-pub-scribe.headingH4"],
 div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] {
-	border-top: 1px dotted #5F5D58;
-	border-bottom: 1px dotted #5F5D58;
-	border-left: 1px dotted #5F5D58;
-	border-right: 1px dotted #5F5D58;
-	padding-top: 4px;
-	padding-bottom: 4px;
-	padding-left: 8px;
-	padding-right: 8px;
+	border: 1px dotted rgba(9, 12, 3, 0.4);
+	border-radius: 4px;	
+	padding: 6px 8px 6px 8px;
 }
 div[data-setting-id*="coffee-pub-monarch.headingH4"] label,
 div[data-setting-id*="coffee-pub-squire.headingH4"] label,
@@ -234,9 +277,11 @@ div[data-setting-id*="coffee-pub-bubo.headingH4"] label,
 div[data-setting-id*="coffee-pub-crier.headingH4"] label,
 div[data-setting-id*="coffee-pub-scribe.headingH4"] label,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] label {
-	font-weight:550;
-    font-size: 1.0em;
+    font-weight: 550;
+    font-size: 1.1em;
     font-style: normal;
+    margin: 0px 0px 6px 0px;
+    border-radius: 4px;
 }
 div[data-setting-id*="coffee-pub-monarch.headingH4"] i,
 div[data-setting-id*="coffee-pub-squire.headingH4"] i,
@@ -245,7 +290,7 @@ div[data-setting-id*="coffee-pub-bubo.headingH4"] i,
 div[data-setting-id*="coffee-pub-crier.headingH4"] i,
 div[data-setting-id*="coffee-pub-scribe.headingH4"] i,
 div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] i {
-	display: none;	
+    display: none;	
 }
 div[data-setting-id*="coffee-pub-monarch.headingH4"] .notes,
 div[data-setting-id*="coffee-pub-squire.headingH4"] .notes,
@@ -260,6 +305,7 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] .notes {
 }
 
 /* HORIZANTAL RULE HR */
+
 input[name*="coffee-pub-monarch.headingHR"],
 input[name*="coffee-pub-squire.headingHR"],
 input[name*="coffee-pub-blacksmith.headingHR"],
@@ -305,3 +351,4 @@ div[data-setting-id*="coffee-pub-scribe.headingHR"] .notes,
 div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] .notes {
     display: none;	
 }
+
