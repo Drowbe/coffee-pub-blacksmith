@@ -30,6 +30,43 @@ const formatPrompt = "Always format each answer as HTML code without CSS. Levera
 
 
 // ================================================================== 
+// ===== WORKFLOW GROUPS ============================================
+// ================================================================== 
+
+const WORKFLOW_GROUPS = {
+    GETTING_STARTED: 'getting-started',
+    THEMES_AND_EXPERIENCE: 'themes-and-experience',
+    RUN_THE_GAME: 'run-the-game',
+    MANAGE_CONTENT: 'manage-content',
+    ROLLING_AND_PROGRESSION: 'rolling-and-progression',
+    AUTOMATION_AND_AI: 'automation-and-ai'
+};
+
+// ================================================================== 
+// ===== HELPER FUNCTIONS ===========================================
+// ================================================================== 
+
+/**
+ * Helper function to register headers with reduced verbosity while preserving CSS styling
+ * @param {string} id - Unique identifier for the header
+ * @param {string} labelKey - Localization key for the label
+ * @param {string} hintKey - Localization key for the hint
+ * @param {string} level - Header level (H1, H2, H3, H4)
+ * @param {string} group - Workflow group for collapsible sections
+ */
+function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
+    game.settings.register(MODULE.ID, `heading${level}${id}`, {
+        name: MODULE.ID + `.${labelKey}`,
+        hint: MODULE.ID + `.${hintKey}`,
+        scope: "world",
+        config: true,
+        default: "",
+        type: String,
+        group: group
+    });
+}
+
+// ================================================================== 
 // ===== FUNCTIONS ==================================================
 // ================================================================== 
 
@@ -319,19 +356,12 @@ export const registerSettings = async () => {
     
 
 
-		// *** INTRODUCTION ***
-		// ---------- TITLE ----------
-		game.settings.register(MODULE.ID, "headingH1Blacksmith", {
-			name: MODULE.ID + '.headingH1Blacksmith-Label',
-			hint: MODULE.ID + '.headingH1Blacksmith-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
+		// *** GETTING STARTED ***
+		// ---------- MAIN SECTION HEADER ----------
+		registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
 		// -------------------------------------
 
-		// *** COFFEEE PUB MODULES ***
+		// *** COFFEE PUB MODULES ***
 		let moduleStatus = checkInstalledModules();
 		
 
@@ -343,6 +373,7 @@ export const registerSettings = async () => {
 			config: true,
 			default: "",
 			type: String,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 		// -------------------------------------
 
@@ -354,72 +385,68 @@ export const registerSettings = async () => {
 			config: true,
 			default: "",
 			type: String,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 		// -------------------------------------
 
+		// *** GENERAL SETTINGS ***
+		registerHeader('General', 'headingH2General-Label', 'headingH2General-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
 
-
-
-		// *** GENERAL ***
-		// ---------- HEADING - GENERAL  ----------
-		game.settings.register(MODULE.ID, "headingH2General", {
-			name: MODULE.ID + '.headingH2General-Label',
-			hint: MODULE.ID + '.headingH2General-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
+		// *** DEBUG SETTINGS ***
+		registerHeader('Debug', 'headingH2Debug-Label', 'headingH2Debug-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+		// -------------------------------------
+		
+		// ---------- CONSOLE SETTINGS ----------
+		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
 		// -------------------------------------
 
-
-		// *** CSS CUSTOMIZATION ***
-		game.settings.register(MODULE.ID, "headingH3CSS", {
-			name: "CSS Customization",
-			hint: "Customize the FoundryVTT interface with custom CSS",
-			scope: "world",
-			config: true,
-			type: String,
-			default: "CSS Customization"
-		});
-
-		game.settings.register(MODULE.ID, "customCSS", {
-			scope: "world",
-			config: false,
-			type: String,
-			default: ""
-		});
-
-		game.settings.register(MODULE.ID, "cssTransition", {
-			name: "Smooth Trasnition",
-			hint: "Ease the new css styles into place with a smooth transition",
-			scope: "world",
-			config: true,
+		// -- LOG FANCY CONSOLE --
+		game.settings.register(MODULE.ID, 'globalFancyConsole', {
+			name: MODULE.ID + '.globalFancyConsole-Label',
+			hint: MODULE.ID + '.globalFancyConsole-Hint',
 			type: Boolean,
-			default: true
-		});
-
-		game.settings.register(MODULE.ID, "cssDarkMode", {
-			name: "Dark Mode",
-			hint: "Enable dark mode for the css editor",
-			scope: "world",
 			config: true,
+			requiresReload: true,
+			scope: 'client',
+			default: true,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+		
+		// ---------- DEBUG SETTINGS ----------
+		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+		// -------------------------------------
+		
+		// -- LOG DEBUG SETTINGS --
+		game.settings.register(MODULE.ID, 'globalDebugMode', {
+			name: MODULE.ID + '.globalDebugMode-Label',
+			hint: MODULE.ID + '.globalDebugMode-Hint',
 			type: Boolean,
-			default: true
-		});
-
-
-
-
-		// ---------- LATENCY CHECKER ----------
-		game.settings.register(MODULE.ID, "headingH3Latency", {
-			name: MODULE.ID + '.headingH3Latency-Label',
-			hint: MODULE.ID + '.headingH3Latency-Hint',
-			scope: "world",
 			config: true,
-			default: "",
-			type: String,
+			requiresReload: true,
+			scope: 'client',
+			default: false,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
+
+		// -- LOG DEBUG STYLE--
+		game.settings.register(MODULE.ID, 'globalConsoleDebugStyle', {
+			name: MODULE.ID + '.globalConsoleDebugStyle-Label',
+			hint: MODULE.ID + '.globalConsoleDebugStyle-Hint',
+			type: String,
+			config: true,
+			requiresReload: true,
+			scope: 'client',
+			default: "fancy",
+			choices: {
+				'fancy': 'Fancy Pants: Large Font and Boxes',
+				'simple': 'Simply Delightful: Colorful Text and Variables',
+				'plain': 'Boring and Lame: Default console styles',
+			},
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+
+		// *** LATENCY SETTINGS ***
+		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
 		// -------------------------------------
 
 		// Latency Settings
@@ -430,6 +457,7 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			default: true,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 
 		game.settings.register(MODULE.ID, 'latencyCheckInterval', {
@@ -444,12 +472,66 @@ export const registerSettings = async () => {
 				step: 5
 			},
 			default: 30,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 
 
 
 
 
+
+		// *** THEMES AND EXPERIENCE ***
+		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		// -------------------------------------
+
+		// *** CSS CUSTOMIZATION ***
+		registerHeader('CSS', 'headingH3CSS-Label', 'headingH3CSS-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, "customCSS", {
+			scope: "world",
+			config: false,
+			type: String,
+			default: "",
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, "cssTransition", {
+			name: "Smooth Transition",
+			hint: "Ease the new css styles into place with a smooth transition",
+			scope: "world",
+			config: true,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, "cssDarkMode", {
+			name: "Dark Mode",
+			hint: "Enable dark mode for the css editor",
+			scope: "world",
+			config: true,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// ================================================================== 
+		// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
+		// ================================================================== 
+		// *** END OF NEW WORKFLOW-BASED ORGANIZATION ***
+		// Everything above this line uses the new helper functions and workflow groups
+		// Everything below this line is still using the old organization
+		// ================================================================== 
+
+		// *** VISUAL DIVIDER IN SETTINGS ***
+		game.settings.register(MODULE.ID, "headingHR", {
+			name: "** END OF NEW WORKFLOW **",
+			hint: "END OF NEW WORKFLOW-BASED ORGANIZATION - Everything below this line is still using the old organization",
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
 
 		// *** TOOLBAR SECION HERE ***
 
@@ -4427,77 +4509,6 @@ export const registerSettings = async () => {
 			min: 1,
 			max: 50,
 			step: 1
-		}
-	});
-
-	// *** DEBUG SETTINGS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2Debug", {
-		name: MODULE.ID + '.headingH2Debug-Label',
-		hint: MODULE.ID + '.headingH2Debug-Hint',
-		scope: "client",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	
-	// ---------- CONSOLE SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3simpleConsole", {
-		name: MODULE.ID + '.headingH3simpleConsole-Label',
-		hint: MODULE.ID + '.headingH3simpleConsole-Hint',
-		scope: "client",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- LOG FANCY CONSOLE --
-	game.settings.register(MODULE.ID, 'globalFancyConsole', {
-		name: MODULE.ID + '.globalFancyConsole-Label',
-		hint: MODULE.ID + '.globalFancyConsole-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: true,
-		scope: 'client',
-		default: true,
-	});
-	// ---------- DEBUG SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3simpleDebug", {
-		name: MODULE.ID + '.headingH3simpleDebug-Label',
-		hint: MODULE.ID + '.headingH3simpleDebug-Hint',
-		scope: "client",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	// -- LOG DEBUG SETTINGS --
-	game.settings.register(MODULE.ID, 'globalDebugMode', {
-		name: MODULE.ID + '.globalDebugMode-Label',
-		hint: MODULE.ID + '.globalDebugMode-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: true,
-		scope: 'client',
-		default: false,
-	});
-
-	// -- LOG DEBUG STYLE--
-	game.settings.register(MODULE.ID, 'globalConsoleDebugStyle', {
-		name: MODULE.ID + '.globalConsoleDebugStyle-Label',
-		hint: MODULE.ID + '.globalConsoleDebugStyle-Hint',
-		type: String,
-		config: true,
-		requiresReload: true,
-		scope: 'client',
-		default: "fancy",
-		choices: {
-			'fancy': 'Fancy Pants: Large Font and Boxes',
-			'simple': 'Simply Delightful: Colorful Text and Variables',
-			'plain': 'Boring and Lame: Default console styles',
 		}
 	});
 

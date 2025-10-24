@@ -1,6 +1,9 @@
 {
 	"coffee-pub-blacksmith": {
 
+		"headingH1GettingStarted-Label": "Getting Started",
+		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
 		"headingH1Blacksmith-Label": "Introduction",
 		"headingH1Blacksmith-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
 
@@ -23,6 +26,9 @@
 
 		"headingH2Themes-Label": "Themes",
 		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
+
+		"headingH3CSS-Label": "CSS Customization",
+		"headingH3CSS-Hint": "Customize the FoundryVTT interface with custom CSS",
 
 		"headingH3simpleThemeSelections-Label": "Theme Selections",
 		"headingH3simpleThemeSelections-Hint": "Description",
@@ -408,8 +414,8 @@
 		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
 		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
 
-		"headingH2Toolbar-Label": "Toolbar",
-		"headingH2Toolbar-Hint": "Customize the Blacksmith toolbar appearance and functionality.",
+		"headingH2Toolbar-Label": "Foundry Toolbar",
+		"headingH2Toolbar-Hint": "Customize the Blacksmith toolbar appearance and functionality as it appears in the native DFoundry toolbar.",
 
 		"toolbarShowDividers-Label": "Show Toolbar Dividers",
 		"toolbarShowDividers-Hint": "Display visual dividers between toolbar zones to help organize tools.",

@@ -4,6 +4,7 @@
 
 /* --- Shared ---------------------- */
 @import "common.css";
+@import "settings.css";
 
 /* --- Overrides ------------------- */
 @import "overrides-foundry.css"; 
