@@ -44,38 +44,39 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 
 ### ✅ COMPLETED MIGRATIONS
 
-#### GETTING STARTED GROUP - ✅ COMPLETE (Headers Only)
-
+#### GETTING STARTED GROUP - ✅ COMPLETE
 - ✅ `headingH1GettingStarted` - Main module title (migrated)
-- ADD AN H2 FOR "CoffeePub Suite"
+- ✅ `headingH2CoffeePubSuite` - Coffee Pub Suite header (migrated)
 - ✅ `headingH4BlacksmithInstalled` - Installed modules status (migrated)
 - ✅ `headingH4BlacksmithMissing` - Missing modules status (migrated)
 - ✅ `headingH2General` - General section header (migrated)
+- ✅ `headingH2DefaultPartySettings` - Default party settings header (migrated)
+- ✅ `defaultPartyName` - Default party name (migrated)
+- ✅ `defaultPartySize` - Default party size (migrated)
+- ✅ `defaultPartyMakeup` - Default party makeup (migrated)
+- ✅ `defaultPartyLevel` - Default party level (migrated)
+- ✅ `defaultRulebooks` - Default rulebooks (migrated)
 
-- ADD AN H2 FOR DEFAULT PARTY SETTINGS
-- ⏳ `defaultPartyName` - Default party name (pending)
-- ⏳ `defaultPartySize` - Default party size (pending)
-- ⏳ `defaultPartyMakeup` - Default party makeup (pending)
-- ⏳ `defaultPartyLevel` - Default party level (pending)
-- ⏳ `defaultRulebooks` - Default rulebooks (pending)
-
-#### LAYOUT AND EXPERIENCE GROUP - ✅ PARTIAL
+#### LAYOUT AND EXPERIENCE GROUP - ✅ COMPLETE
 - ✅ `headingH1LayoutAndExperience` - Main section header (migrated)
 - ✅ `headingH2Themes` - Themes section header (migrated)
 - ✅ `headingH3simpleThemeSelections` - Theme selections subheader (migrated)
 - ✅ `headingH3simpleThemeDefault` - Theme default subheader (migrated)
 - ✅ `defaultCardTheme` - Default card theme setting (migrated)
-- ⏳ `toolbarShowDividers` - Show toolbar dividers (pending)
-- ⏳ `toolbarShowLabels` - Show toolbar labels (pending)
-- ⏳ `smoothTransition` - Smooth transitions (pending)
-- ⏳ `darkMode` - Dark mode toggle (pending)
-- ⏳ `objectLinkStyle` - Object link styling (pending)
-- ⏳ `titlebarTextSize` - Titlebar text size (pending)
-- ⏳ `titlebarIconSize` - Titlebar icon size (pending)
-- ⏳ `sceneTitlePadding` - Scene title padding (pending)
-- ⏳ `scenePanelHeight` - Scene panel height (pending)
-- ⏳ `enableJournalDoubleClick` - Journal double-click (pending)
-- ⏳ `hideRollTableIcon` - Hide roll table icons (pending)
+- ✅ `headingH2FoundryEnhancements` - Foundry enhancements section header (migrated)
+- ✅ `headingH3QualityOfLife` - Quality of life subheader (migrated)
+- ✅ `enableJournalDoubleClick` - Journal double-click (migrated)
+- ✅ `objectLinkStyle` - Object link styling (migrated)
+- ✅ `hideRollTableIcon` - Hide roll table icons (migrated)
+- ✅ `headingH3Toolbar` - Toolbar subheader (migrated)
+- ✅ `toolbarShowDividers` - Show toolbar dividers (migrated)
+- ✅ `toolbarShowLabels` - Show toolbar labels (migrated)
+- ✅ `headingH3Windows` - Windows subheader (migrated)
+- ✅ `titlebarTextSize` - Titlebar text size (migrated)
+- ✅ `titlebarIconSize` - Titlebar icon size (migrated)
+- ✅ `headingH3Scenes` - Scenes subheader (migrated)
+- ✅ `sceneTitlePadding` - Scene title padding (migrated)
+- ✅ `scenePanelHeight` - Scene panel height (migrated)
 
 #### RUN THE GAME GROUP - ✅ PARTIAL
 - ✅ `headingH1RunTheGame` - Main section header (migrated)

@@ -9,62 +9,100 @@
 		"headingH1GettingStarted-Label": "Getting Started",
 		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
 
-		"headingH1LayoutAndExperience-Label": "Themes and Experience",
-		"headingH1LayoutAndExperience-Hint": "Customize themes, CSS, and visual experience settings",
 
-		"headingH1RunTheGame-Label": "Run the Game",
-		"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
-
-		"headingH1ManageContent-Label": "Manage Content",
-		"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
-
-		"headingH1RollingAndProgression-Label": "Rolling and Progression",
-		"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
-
-		"headingH1AutomationAndAI-Label": "Automation and AI",
-		"headingH1AutomationAndAI-Hint": "AI integration and automation features",
-
-		"headingH1DeveloperTools-Label": "Developer Tools",
-		"headingH1DeveloperTools-Hint": "Debug settings, console options, and developer tools",
+			"headingH2General-Label": "General",
+			"headingH2General-Hint": "General settings, connfiguration, and other goodies.",
 
 
+			"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
+			"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
 
+			"headingH2DefaultPartySettings-Label": "Default Party Settings",
+			"headingH2DefaultPartySettings-Hint": "Default settings for party creation and management",
 
+			"defaultPartyName-Label": "Default Party Name",
+			"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
 
+			"defaultPartySize-Label": "Default Party Size", 
+			"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
 
-		
+			"defaultPartyMakeup-Label": "Default Party Makeup",
+			"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
 
+			"defaultPartyLevel-Label": "Default Party Level",
+			"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
 
-
-		"headingH2General-Label": "General",
-		"headingH2General-Hint": "General settings, connfiguration, and other goodies.",
-
-
-		"headingH3PerformanceMenubarOptions-Label": "Menubar",
-		"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
+			"defaultRulebooks-Label": "Default Rulebooks",
+			"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
 
 
 
 
 
+	"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
+	"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
+	"headingH3QualityOfLife-Label": "Quality of Life",
+	"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
+	"headingH3Toolbar-Label": "Toolbar",
+	"headingH3Toolbar-Hint": "Toolbar customization and display options",
+	"headingH3Windows-Label": "Windows",
+	"headingH3Windows-Hint": "Window styling and titlebar customization",
+	"headingH3Scenes-Label": "Scenes",
+	"headingH3Scenes-Hint": "Scene layout and display customization",
 
-		"headingH3Latency-Label": "System Latency",
-		"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
+	"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
+	"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
+	"objectLinkStyle-Label": "Object Link Style",
+	"objectLinkStyle-Hint": "Styling for object links in chat and journals",
+	"hideRollTableIcon-Label": "Hide Roll Table Icon",
+	"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
+	"toolbarShowDividers-Label": "Show Toolbar Dividers",
+	"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
+	"toolbarShowLabels-Label": "Show Toolbar Labels",
+	"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
+	"titlebarTextSize-Label": "Titlebar Text Size",
+	"titlebarTextSize-Hint": "Size of text in window titlebars",
+	"titlebarIconSize-Label": "Titlebar Icon Size",
+	"titlebarIconSize-Hint": "Size of icons in window titlebars",
+	"sceneTitlePadding-Label": "Scene Title Padding",
+	"sceneTitlePadding-Hint": "Padding around scene titles",
+	"scenePanelHeight-Label": "Scene Panel Height",
+	"scenePanelHeight-Hint": "Height of scene panels",
 
-		"latencyCheckInterval-Label": "Latency Check Interval",
-		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",
-
-		"enableLatency-Label": "Enable System Latency Checks",
-		"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
-		
 
 
 
 
+	"headingH1RunTheGame-Label": "Run the Game",
+	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
 
 
-		"headingH2Themes-Label": "Themes",
-		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
+
+
+
+	"headingH1ManageContent-Label": "Manage Content",
+	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
+
+
+
+
+
+	"headingH1RollingAndProgression-Label": "Rolling and Progression",
+	"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
+
+
+
+
+
+	"headingH1AutomationAndAI-Label": "Automation and AI",
+	"headingH1AutomationAndAI-Hint": "AI integration and automation features",
+
+
+
+
+
+	"headingH1DeveloperTools-Label": "Developer Tools",
+	"headingH1DeveloperTools-Hint": "Debug settings, console options, and developer tools",
 
 		"headingH3CSS-Label": "CSS Customization",
 		"headingH3CSS-Hint": "Customize the FoundryVTT interface with custom CSS",
@@ -78,416 +116,415 @@
 		"headingH2ConsoleSettings-Label": "Console Log",
 		"headingH2ConsoleSettings-Hint": "Console output options",
 
-		"headingH2Toolbar-Label": "Toolbar",
-		"headingH2Toolbar-Hint": "FoundryVTT toolbar customization options",
+		"headingH3PerformanceMenubarOptions-Label": "Menubar",
+		"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
 
-		"headingH3simpleThemeSelections-Label": "Theme Selections",
-		"headingH3simpleThemeSelections-Hint": "Description",
+		"headingH3Latency-Label": "System Latency",
+		"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
 
-		"headingH3simpleThemeDefault-Label": "Theme Defaults",
-		"headingH3simpleThemeDefault-Hint": "Description",
+		"latencyCheckInterval-Label": "Latency Check Interval",
+		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",
 
-		"defaultCardTheme-Label": "Deault Coffee Pub Theme",
-		"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
+		"enableLatency-Label": "Enable System Latency Checks",
+		"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
 
-		"headingH2Chat-Label": "Chat",
-		"headingH2Chat-Hint": "Customize global chat settings in Foundry VTT. With options for adjusting the spacing, margin, and styling, you can tailor your chat layout to suit your preferences and enhance overall communication within the game.",
 
-		"headingH3CardAdjustments-Label": "Chat Adjustments",
-		"headingH3CardAdjustments-Hint": "Description",
 
-		"chatSpacing-Label": "Chat Gap",
-		"chatSpacing-Hint": "Increases the gap between chat messages. Applies to all messages, no just this module. Range: -20px to 60px. Default: 3px.",
 
-		"cardTopMargin-Label": "Top margin",
-		"cardTopMargin-Hint": "Increses or decreases the top margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"cardBottomMargin-Label": "Bottom margin",
-		"cardBottomMargin-Hint": "Increses or decreases the bottom margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
-		
-		"cardLeftMargin-Label": "Left margin",
-		"cardLeftMargin-Hint": "Increses or decreases the left margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"cardRightMargin-Label": "Right margin",
-		"cardRightMargin-Hint": "Increses or decreases the right margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"cardTopOffset-Label": "Top Offset",
-		"cardTopOffset-Hint": "Adds additional top margin for some cards. And example would be scribe chat narration cards. This offset only applies to Coffee Pub modules. Range: -80px to 80px.",
 
-		"headingH3CardSettings-Label": "Card Configurations",
-		"headingH3CardSettings-Hint": "Description",
 
-		"hideRollTableIcon-Label": "Remove Roll Table Icon",
-		"hideRollTableIcon-Hint": "Removes the leading icon from all roll tables when the results are posted tot he chat. This is necessary if you use Coffee Pub roll table cards. Defualt: True.",	
-		
-		"objectLinkStyle-Label": "Object Link Theme",
-		"objectLinkStyle-Hint": "Link theme for items, monstors, actors and other link blocks. This defines how UUID links are rendered. For example, a link like @UUID[Actor.xxxxxxxx]{Mummy} could be rendered as the default text or a more rich color block in a chat card. Default: Foundry Default.",
 
-		"headingH2Journals-Label": "Journals",
-		"headingH2Journals-Hint": "Tweak the journal behaviors to fit your needs.",
 
 
-		"enableJournalDoubleClick-Label": "Double-click to Edit",
-		"enableJournalDoubleClick-Hint": "Turn on double-clicking a journal enrty to open the edit mode of a journal. Defualt: Enabled (checked).",	
 
-		"enableEncounterToolbar-Label": "Enable Encounter Toolbar",
-		"enableEncounterToolbar-Hint": "Shows a toolbar in encounter journal entries that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
 
-		
+	"headingH2Themes-Label": "Themes",
+	"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
 
-		"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
-		"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
+	"headingH3simpleThemeSelections-Label": "Theme Selections",
+	"headingH3simpleThemeSelections-Hint": "Description",
 
-		"enableEncounterContentScanning-Label": "Enable Content Scanning",
-		"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
+	"headingH3simpleThemeDefault-Label": "Theme Defaults",
+	"headingH3simpleThemeDefault-Hint": "Description",
 
-		"enableEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
-		"enableEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
+	"defaultCardTheme-Label": "Deault Coffee Pub Theme",
+	"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
 
-		"toggleVisibility-Label": "Toggle Token Visibility",
-		"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
+	"headingH2Chat-Label": "Chat",
+	"headingH2Chat-Hint": "Customize global chat settings in Foundry VTT. With options for adjusting the spacing, margin, and styling, you can tailor your chat layout to suit your preferences and enhance overall communication within the game.",
 
-		"enableJournalTools-Label": "Enable Journal Tools",
-		"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+	"headingH3CardAdjustments-Label": "Chat Adjustments",
+	"headingH3CardAdjustments-Hint": "Description",
 
-		"journalToolsActorCompendium-Label": "Actor Compendium for Link Upgrades",
-		"journalToolsActorCompendium-Hint": "Compendium to use when upgrading actor links in journals. Leave empty to skip actor link upgrades.",
+	"chatSpacing-Label": "Chat Gap",
+	"chatSpacing-Hint": "Increases the gap between chat messages. Applies to all messages, no just this module. Range: -20px to 60px. Default: 3px.",
 
-		"journalToolsItemCompendium-Label": "Item Compendium for Link Upgrades",
-		"journalToolsItemCompendium-Hint": "Compendium to use when upgrading item links in journals. Leave empty to skip item link upgrades.",
+	"cardTopMargin-Label": "Top margin",
+	"cardTopMargin-Hint": "Increses or decreases the top margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"headingH2diceRollTool-Label": "Roll System",
-		"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
+	"cardBottomMargin-Label": "Bottom margin",
+	"cardBottomMargin-Hint": "Increses or decreases the bottom margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
+	
+	"cardLeftMargin-Label": "Left margin",
+	"cardLeftMargin-Hint": "Increses or decreases the left margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"headingH3diceRollToolSystem-Label": "Dice Roll System",
-		"headingH3diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can't be suppressed.",
+	"cardRightMargin-Label": "Right margin",
+	"cardRightMargin-Hint": "Increses or decreases the right margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
 
-		"diceRollToolSystem-Label": "Rolls from Chat Cards",
-		"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
+	"cardTopOffset-Label": "Top Offset",
+	"cardTopOffset-Hint": "Adds additional top margin for some cards. And example would be scribe chat narration cards. This offset only applies to Coffee Pub modules. Range: -80px to 80px.",
 
-		"headingH3diceRollToolIntegrations-Label": "Module Integrations",
-		"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other module. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
+	"headingH3CardSettings-Label": "Card Configurations",
+	"headingH3CardSettings-Hint": "Description",
 
-		"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
-		"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",
 
+	"headingH2Journals-Label": "Journals",
+	"headingH2Journals-Hint": "Tweak the journal behaviors to fit your needs.",
 
-		"headingH2Scenes-Label": "Scenes",
-		"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
+	"enableEncounterToolbar-Label": "Enable Encounter Toolbar",
+	"enableEncounterToolbar-Hint": "Shows a toolbar in encounter journal entries that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
 
-		"headingH3simpleSceneInteraction-Label": "Interaction",
-		"headingH3simpleSceneInteraction-Hint": "Description",
+	
 
-		"enableSceneInteractions-Label": "Show Scene Indicators",
-		"enableSceneInteractions-Hint": "Adds icons to the scene title letting you knwo which is active and which is being viewed. Defualt: Enabled (checked).",	
+	"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
+	"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
 
+	"enableEncounterContentScanning-Label": "Enable Content Scanning",
+	"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
 
-		"enableSceneClickBehaviors-Label": "Custom Mouse Behaviors",
-		"enableSceneClickBehaviors-Hint": "Change the default mouse behaviors on the Scene Directory. Left-click: View Scene, Double-click: Activate Scene, and Shift-Left-click: Open up the scene configuration window. Defualt: Enabled (checked).",	
+	"enableEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
+	"enableEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
 
+	"toggleVisibility-Label": "Toggle Token Visibility",
+	"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
 
-		"headingH3SceneSettings-Label": "Layout",
-		"headingH3SceneSettings-Hint": "Description",
+	"enableJournalTools-Label": "Enable Journal Tools",
+	"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
 
-		"sceneTextAlign-Label": "Title Alignment",
-		"sceneTextAlign-Hint": "Sets the alignment of the titles in the scene selector.  Defualt: Center.",
-		
-		"sceneFontSize-Label": "Title Size",
-		"sceneFontSize-Hint": "Sets the font size for the scene titles in the scene selector.  Defualt: 1.0em.",
+	"journalToolsActorCompendium-Label": "Actor Compendium for Link Upgrades",
+	"journalToolsActorCompendium-Hint": "Compendium to use when upgrading actor links in journals. Leave empty to skip actor link upgrades.",
 
-		"sceneTitlePadding-Label": "Title Padding",
-		"sceneTitlePadding-Hint": "Sets the padding (space) to the left and right of the titles in the scene selector. Defualt: 10px.",
+	"journalToolsItemCompendium-Label": "Item Compendium for Link Upgrades",
+	"journalToolsItemCompendium-Hint": "Compendium to use when upgrading item links in journals. Leave empty to skip item link upgrades.",
 
-		"scenePanelHeight-Label": "Panel Height",
-		"scenePanelHeight-Hint": "Sets the height of the scene panel. Default: 100px.",
+	"headingH2diceRollTool-Label": "Roll System",
+	"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
 
-		"headingH2Windows-Label": "Windows",
-		"headingH2Windows-Hint": "Style windows the way you want them.",
+	"headingH3diceRollToolSystem-Label": "Dice Roll System",
+	"headingH3diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can't be suppressed.",
 
-		"headingH3TitlebarSettings-Label": "Titlebar Adjustments",
-		"headingH3TitlebarSettings-Hint": "If your titlebar is getting too crowded, tweak the setting below until it is laid out how you want it. (Requires Reload)",
+	"diceRollToolSystem-Label": "Rolls from Chat Cards",
+	"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
 
-		"titlebarTextSize-Label": "Text Size",
-		"titlebarTextSize-Hint": "Changes the font size of the text in the titlebar of windows. Setting the size to 0 hides the text entirely. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 14px.",
+	"headingH3diceRollToolIntegrations-Label": "Module Integrations",
+	"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other module. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
 
-		"titlebarIconSize-Label": "Icon Size",
-		"titlebarIconSize-Hint": "Changes the icon size of the text in the titlebar of windows. Setting the size to 0 hides the icon entirely. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 14px.",
+	"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
+	"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",
 
-		"titlebarSpacing-Label": "Spacing",
-		"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
 
-		"headingH2Tokens-Label": "Tokens",
-		"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, chang ethe style of the nameplate under the token, and ignore tokens you wan tto leave untouched.",
+	"headingH2Scenes-Label": "Scenes",
+	"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 
-		"headingH3TokenSettings-Label": "Token Settings",
-		"headingH3TokenSettings-Hint": "Set how you want dropped tokens to behave.",
+	"headingH3simpleSceneInteraction-Label": "Interaction",
+	"headingH3simpleSceneInteraction-Hint": "Description",
 
-		"tokenNameFormat-Label": "Format",
-		"tokenNameFormat-Hint": "Choose the format of token renaming so they read how you want them.",
+	"enableSceneInteractions-Label": "Show Scene Indicators",
+	"enableSceneInteractions-Hint": "Adds icons to the scene title letting you knwo which is active and which is being viewed. Defualt: Enabled (checked).",	
 
-		"tokenNameTable-Label": "Random Name Table",
-		"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
-		"ignoredTokens-Label": "Ignored Tokens",
-		"ignoredTokens-Hint": "Add any token names you want ignored when renaming tokens, separated by commas.",
+	"enableSceneClickBehaviors-Label": "Custom Mouse Behaviors",
+	"enableSceneClickBehaviors-Hint": "Change the default mouse behaviors on the Scene Directory. Left-click: View Scene, Double-click: Activate Scene, and Shift-Left-click: Open up the scene configuration window. Defualt: Enabled (checked).",	
 
-		"fuzzyMatch-Label": "Fuzzy Match",
-		"fuzzyMatch-Hint": "If checked, if any part of the token contains the word it will be ignored. If unchecked, and exact match is required to ignore the token.",
 
-		"unlockTokenRotation-Label": "Unlock Token Rotation",
-		"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
+	"headingH3SceneSettings-Label": "Layout",
+	"headingH3SceneSettings-Hint": "Description",
 
-		"disableTokenRing-Label": "Disable Token Ring",
-		"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This will not turn off rings that are part of the token image itself.",
+	"sceneTextAlign-Label": "Title Alignment",
+	"sceneTextAlign-Hint": "Sets the alignment of the titles in the scene selector.  Defualt: Center.",
+	
+	"sceneFontSize-Label": "Title Size",
+	"sceneFontSize-Hint": "Sets the font size for the scene titles in the scene selector.  Defualt: 1.0em.",
 
-		"headingH3TokenImageReplacement-Label": "Token Image Replacement",
-		"headingH3TokenImageReplacement-Hint": "Automatically replace token images with custom images from your specified folder.",
+	"headingH2Windows-Label": "Windows",
+	"headingH2Windows-Hint": "Style windows the way you want them.",
 
-		"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
-		"tokenImageReplacementEnabled-Hint": "Master toggle for the token image replacement feature.",
+	"headingH3TitlebarSettings-Label": "Titlebar Adjustments",
+	"headingH3TitlebarSettings-Hint": "If your titlebar is getting too crowded, tweak the setting below until it is laid out how you want it. (Requires Reload)",
 
-		"tokenImageReplacementPath-Label": "Replacement Images Folder",
-		"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
+	"titlebarSpacing-Label": "Spacing",
+	"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
 
-		"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
-		"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
+	"headingH2Tokens-Label": "Tokens",
+	"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, chang ethe style of the nameplate under the token, and ignore tokens you wan tto leave untouched.",
 
-		"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
-		"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
+	"headingH3TokenSettings-Label": "Token Settings",
+	"headingH3TokenSettings-Hint": "Set how you want dropped tokens to behave.",
 
-		"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
-		"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
+	"tokenNameFormat-Label": "Format",
+	"tokenNameFormat-Hint": "Choose the format of token renaming so they read how you want them.",
 
-		"tokenImageReplacementUpdateActors-Label": "Update Actors",
-		"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
+	"tokenNameTable-Label": "Random Name Table",
+	"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
-		"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-		"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
+	"ignoredTokens-Label": "Ignored Tokens",
+	"ignoredTokens-Hint": "Add any token names you want ignored when renaming tokens, separated by commas.",
 
-		"tokenImageReplacementCacheStats-Label": "Cache Status",
-		"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+	"fuzzyMatch-Label": "Fuzzy Match",
+	"fuzzyMatch-Hint": "If checked, if any part of the token contains the word it will be ignored. If unchecked, and exact match is required to ignore the token.",
 
-		"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
-		"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
+	"unlockTokenRotation-Label": "Unlock Token Rotation",
+	"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
 
-		"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
-		"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
+	"disableTokenRing-Label": "Disable Token Ring",
+	"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This will not turn off rings that are part of the token image itself.",
 
-		"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-		"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
+	"headingH3TokenImageReplacement-Label": "Token Image Replacement",
+	"headingH3TokenImageReplacement-Hint": "Automatically replace token images with custom images from your specified folder.",
 
-		"tokenImageReplacementCategoryStyle-Label": "Category Style",
-		"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
+	"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
+	"tokenImageReplacementEnabled-Hint": "Master toggle for the token image replacement feature.",
 
-		"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
-		"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+	"tokenImageReplacementPath-Label": "Replacement Images Folder",
+	"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
 
-		"headingH3Nameplate-Label": "Nameplate",
-		"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",
+	"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
+	"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
 
-		"nameplateFontSize-Label": "Font Size",
-		"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
+	"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
+	"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
 
-		"nameplateFontFamily-Label": "Font Family",
-		"nameplateFontFamily-Hint": "Sets the font for nameplates under tokens. Default: Signika.",
+	"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
+	"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
 
-		"nameplateColor-Label": "Font Color",
-		"nameplateColor-Hint": "Sets the font color for nameplates under tokens. Default: #FFFFFF.",
+	"tokenImageReplacementUpdateActors-Label": "Update Actors",
+	"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
 
-		"nameplateOutlineSize-Label": "Outline Size",
-		"nameplateOutlineSize-Hint": "Sets the outline size for nameplates under tokens. Default: 2px.",
+	"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
+	"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
 
-		"nameplateOutlineColor-Label": " Outline Color",
-		"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
+	"tokenImageReplacementCacheStats-Label": "Cache Status",
+	"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
 
+	"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
+	"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
 
-		"headingH2OpenAI-Label": "Blacksmith AI Tools",
-		"headingH2OpenAI-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
+	"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
+	"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
 
-		"headingH3simpleheadingH2OpenAICore-Label": "Open AI Information",
-		"headingH3simpleheadingH2OpenAICore-Hint": "Description",
+	"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+	"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
 
-		"openAIMacro-Label": "Macro",
-		"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
+	"tokenImageReplacementCategoryStyle-Label": "Category Style",
+	"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
 
+	"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
+	"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
 
-		"openAIAPIKey-Label": "API Key",
-		"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
+	"headingH3Nameplate-Label": "Nameplate",
+	"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",
 
-		"openAIModel-Label": "Model",
-		"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
+	"nameplateFontSize-Label": "Font Size",
+	"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
 
-		"headingH3simpleheadingH2OpenAIContext-Label": "Context",
-		"headingH3simpleheadingH2OpenAIContext-Hint": "Description",
+	"nameplateFontFamily-Label": "Font Family",
+	"nameplateFontFamily-Hint": "Sets the font for nameplates under tokens. Default: Signika.",
 
-		"openAIContextLength-Label": "Context Length",
-		"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",
+	"nameplateColor-Label": "Font Color",
+	"nameplateColor-Hint": "Sets the font color for nameplates under tokens. Default: #FFFFFF.",
 
-		"openAIGameSystems-Label": "Game System",
-		"openAIGameSystems-Hint": "Optimize logic for the game system, including OpenAI prompt.",
+	"nameplateOutlineSize-Label": "Outline Size",
+	"nameplateOutlineSize-Hint": "Sets the outline size for nameplates under tokens. Default: 2px.",
 
-		"openAIPrompt-Label": "Default Prompt",
-		"openAIPrompt-Hint": "Overrides prompt for the game system above. Set to customize or refine OpenAI behavior.",
+	"nameplateOutlineColor-Label": " Outline Color",
+	"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
-		"openAITemperature-Label": "Temperature",
-		"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
-		"openAIProjectId-Label": "OpenAI Project ID",
-		"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
+	"headingH2OpenAI-Label": "Blacksmith AI Tools",
+	"headingH2OpenAI-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
 
+	"headingH3simpleheadingH2OpenAICore-Label": "Open AI Information",
+	"headingH3simpleheadingH2OpenAICore-Hint": "Description",
 
+	"openAIMacro-Label": "Macro",
+	"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
 
 
-		"headingH3NarrativeGenerator-Label": "Narration",
-		"headingH3NarrativeGenerator-Hint": "Description",
+	"openAIAPIKey-Label": "API Key",
+	"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
 
-		"encounterToolbarDeploymentHidden-Label": "Deployment Visibility",
-		"encounterToolbarDeploymentHidden-Hint": "If checked, deployed tokens will be hidden by default.",
+	"openAIModel-Label": "Model",
+	"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
 
-		
-		"defaultNarrativeFolder-Label": "Default Narrative Folder",
-		"defaultNarrativeFolder-Hint": "The folder that should be used when creating new narratives.",
+	"headingH3simpleheadingH2OpenAIContext-Label": "Context",
+	"headingH3simpleheadingH2OpenAIContext-Hint": "Description",
 
-		"defaultJournalPageTitle-Label": "Default Journal Page Title",
-		"defaultJournalPageTitle-Hint": "Optional: The title that should be used when creating new journal pages.",
+	"openAIContextLength-Label": "Context Length",
+	"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",
 
-		"defaultSceneLocation-Label": "Default Location",
-		"defaultSceneLocation-Hint": "LOCATION > Parent > Environtment > Area. The location that should be used when creating new scenes. (Optional)",
+	"openAIGameSystems-Label": "Game System",
+	"openAIGameSystems-Hint": "Optimize logic for the game system, including OpenAI prompt.",
 
-		"defaultSceneParent-Label": "Default Parent",
-		"defaultSceneParent-Hint": "Location > PARENT > Environtment > Area. The parent that should be used when creating new scenes. This would be the larger collection of scenes. e.g. Mines of Tethyamar, Castle of the White Dragon, etc. (optional)",
+	"openAIPrompt-Label": "Default Prompt",
+	"openAIPrompt-Hint": "Overrides prompt for the game system above. Set to customize or refine OpenAI behavior.",
 
-		"defaultSceneEnvironment-Label": "Default Environment",
-		"defaultSceneEnvironment-Hint": "LOCATION > Parent > ENVIRONMENT> Area. The kind of environment that should be used when creating the narrative.. e.g. Forest, Crypt, Dungeon, etc. (optional)",
+	"openAITemperature-Label": "Temperature",
+	"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
-		"defaultSceneArea-Label": "Default Area",
-		"defaultSceneArea-Hint": "Location > Parent > Environtment > AREA.  The area that should be used when creating new scenes. e.g. Chasmfall Castle, Old House, Goblin Cave, etc. (optional)",
+	"openAIProjectId-Label": "OpenAI Project ID",
+	"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
 
-		"narrativeUseCookies-Label": "Use Cookies for Data",
-		"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
 
-		"cookiesRememberCardStates-Label": "Remember Card States",
-		"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
 
-		"narrativeDefaultCardImage-Label": "Default Card Image",
-		"narrativeDefaultCardImage-Hint": "Select the default image option for new narrative cards.  (optional)",
 
-		"narrativeDefaultImagePath-Label": "Default Image Path",
-		"narrativeDefaultImagePath-Hint": "The default path to use for custom images in narrative cards. Used if 'custom' is selected above. (optional)",
+	"headingH3NarrativeGenerator-Label": "Narration",
+	"headingH3NarrativeGenerator-Hint": "Description",
 
-		"narrativeDefaultIncludeEncounter-Label": "Include Encounter by Default",
-		"narrativeDefaultIncludeEncounter-Hint": "If checked, new narratives will include an encounter section by default.",
+	"encounterToolbarDeploymentHidden-Label": "Deployment Visibility",
+	"encounterToolbarDeploymentHidden-Hint": "If checked, deployed tokens will be hidden by default.",
 
-		"narrativeDefaultIncludeTreasure-Label": "Include Treasure by Default",
-		"narrativeDefaultIncludeTreasure-Hint": "If checked, new narratives will include a treasure section by default.",
+	
+	"defaultNarrativeFolder-Label": "Default Narrative Folder",
+	"defaultNarrativeFolder-Hint": "The folder that should be used when creating new narratives.",
 
-		"narrativeDefaultXP-Label": "Default XP",
-		"narrativeDefaultXP-Hint": "The default XP value to use in new narratives. Use 'None' or a number (e.g., '3600 XP'). (optional)",
+	"defaultJournalPageTitle-Label": "Default Journal Page Title",
+	"defaultJournalPageTitle-Hint": "Optional: The title that should be used when creating new journal pages.",
 
-		"narrativeDefaultTreasureDetails-Label": "Default Treasure Details",
-		"narrativeDefaultTreasureDetails-Hint": "The default treasure description to use in new narratives. (optional)",
+	"defaultSceneLocation-Label": "Default Location",
+	"defaultSceneLocation-Hint": "LOCATION > Parent > Environtment > Area. The location that should be used when creating new scenes. (Optional)",
 
-		"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
-		"narrativeDefaultEncounterDetails-Hint": "The default encounter description to use in new narratives. (optional)",
+	"defaultSceneParent-Label": "Default Parent",
+	"defaultSceneParent-Hint": "Location > PARENT > Environtment > Area. The parent that should be used when creating new scenes. This would be the larger collection of scenes. e.g. Mines of Tethyamar, Castle of the White Dragon, etc. (optional)",
 
-		"headingH3EncounterDefaults-Label": "Encounter Defaults",
-		"headingH3EncounterDefaults-Hint": "These settings control default values for encounter templates.",
+	"defaultSceneEnvironment-Label": "Default Environment",
+	"defaultSceneEnvironment-Hint": "LOCATION > Parent > ENVIRONMENT> Area. The kind of environment that should be used when creating the narrative.. e.g. Forest, Crypt, Dungeon, etc. (optional)",
 
-		"defaultEncounterFolder-Label": "Default Encounter Folder",
-		"defaultEncounterFolder-Hint": "The folder that should be used when creating new encounters.",
+	"defaultSceneArea-Label": "Default Area",
+	"defaultSceneArea-Hint": "Location > Parent > Environtment > AREA.  The area that should be used when creating new scenes. e.g. Chasmfall Castle, Old House, Goblin Cave, etc. (optional)",
 
-		"encounterDefaultCardImage-Label": "Default Encounter Card Image",
-		"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
+	"narrativeUseCookies-Label": "Use Cookies for Data",
+	"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
 
-		"encounterDefaultImagePath-Label": "Default Encounter Image Path",
-		"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
+	"cookiesRememberCardStates-Label": "Remember Card States",
+	"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
 
-		"monsterCompendiumPrimary-Label": "Primary Monster Compendium",
-		"monsterCompendiumPrimary-Hint": "The primary monster compendium to use when linking monsters in new narratives. This is where we will look for a match first.",
+	"narrativeDefaultCardImage-Label": "Default Card Image",
+	"narrativeDefaultCardImage-Hint": "Select the default image option for new narrative cards.  (optional)",
 
-		"monsterCompendiumSecondary-Label": "Secondary Monster Compendium",
-		"monsterCompendiumSecondary-Hint": "The secondary monster compendium to use when linking monsters in new narratives. This is where we will look for a match if we don't find one in the primary compendium.",
+	"narrativeDefaultImagePath-Label": "Default Image Path",
+	"narrativeDefaultImagePath-Hint": "The default path to use for custom images in narrative cards. Used if 'custom' is selected above. (optional)",
 
-		"headingH3simpleConsole-Label": "Console",
-		"headingH3simpleConsole-Hint": "Description not needed",
+	"narrativeDefaultIncludeEncounter-Label": "Include Encounter by Default",
+	"narrativeDefaultIncludeEncounter-Hint": "If checked, new narratives will include an encounter section by default.",
 
-		"globalFancyConsole-Label": "Fancy Console",
-		"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
+	"narrativeDefaultIncludeTreasure-Label": "Include Treasure by Default",
+	"narrativeDefaultIncludeTreasure-Hint": "If checked, new narratives will include a treasure section by default.",
 
-		"headingH3simpleDebug-Label": "Debug",
-		"headingH3simpleDebug-Hint": "Description not needed",
+	"narrativeDefaultXP-Label": "Default XP",
+	"narrativeDefaultXP-Hint": "The default XP value to use in new narratives. Use 'None' or a number (e.g., '3600 XP'). (optional)",
 
-		"globalDebugMode-Label": "Debug Mode",
-		"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
+	"narrativeDefaultTreasureDetails-Label": "Default Treasure Details",
+	"narrativeDefaultTreasureDetails-Hint": "The default treasure description to use in new narratives. (optional)",
 
-		"globalConsoleDebugStyle-Label": "Debug Style",
-		"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
+	"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
+	"narrativeDefaultEncounterDetails-Hint": "The default encounter description to use in new narratives. (optional)",
 
-		"headingH2XpDistribution-Label": "XP DISTRIBUTION",
-		"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
+	"headingH3EncounterDefaults-Label": "Encounter Defaults",
+	"headingH3EncounterDefaults-Hint": "These settings control default values for encounter templates.",
 
-		"enableXpDistribution-Label": "Enable XP Distribution",
-		"enableXpDistribution-Hint": "When enabled, automatically show XP distribution window when combat ends",
+	"defaultEncounterFolder-Label": "Default Encounter Folder",
+	"defaultEncounterFolder-Hint": "The folder that should be used when creating new encounters.",
 
-		"autoDistributeXp-Label": "Auto-distribute XP",
-		"autoDistributeXp-Hint": "When enabled, automatically distribute XP without showing the distribution window",
+	"encounterDefaultCardImage-Label": "Default Encounter Card Image",
+	"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
 
-		"xpCalculationMethod-Label": "XP Calculation Method",
-		"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
+	"encounterDefaultImagePath-Label": "Default Encounter Image Path",
+	"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
 
-		"xpMultiplierDefeated-Label": "Defeated XP Multiplier",
-		"xpMultiplierDefeated-Hint": "XP multiplier for defeated monsters (1.0 = full XP)",
+	"monsterCompendiumPrimary-Label": "Primary Monster Compendium",
+	"monsterCompendiumPrimary-Hint": "The primary monster compendium to use when linking monsters in new narratives. This is where we will look for a match first.",
 
-		"xpMultiplierNegotiated-Label": "Negotiated XP Multiplier",
-		"xpMultiplierNegotiated-Hint": "XP multiplier for negotiated monsters (1.0 = full XP)",
+	"monsterCompendiumSecondary-Label": "Secondary Monster Compendium",
+	"monsterCompendiumSecondary-Hint": "The secondary monster compendium to use when linking monsters in new narratives. This is where we will look for a match if we don't find one in the primary compendium.",
 
-		"xpMultiplierFled-Label": "Fled XP Multiplier",
-		"xpMultiplierFled-Hint": "XP multiplier for monsters that fled (0.5 = half XP)",
+	"headingH3simpleConsole-Label": "Console",
+	"headingH3simpleConsole-Hint": "Description not needed",
 
-		"xpMultiplierBypassed-Label": "Bypassed XP Multiplier",
-		"xpMultiplierBypassed-Hint": "XP multiplier for bypassed monsters (0.0 = no XP)",
+	"globalFancyConsole-Label": "Fancy Console",
+	"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
 
-		"xpMultiplierCaptured-Label": "Captured XP Multiplier",
-		"xpMultiplierCaptured-Hint": "XP multiplier for captured monsters (1.0 = full XP)",
+	"headingH3simpleDebug-Label": "Debug",
+	"headingH3simpleDebug-Hint": "Description not needed",
 
-		"xpPartySizeHandling-Label": "Party Size Handling",
-		"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
+	"globalDebugMode-Label": "Debug Mode",
+	"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 
-		"shareXpResults-Label": "Share XP Results",
-		"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.",
+	"globalConsoleDebugStyle-Label": "Debug Style",
+	"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
 
-		"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
-		"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
+	"headingH2XpDistribution-Label": "XP DISTRIBUTION",
+	"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
 
-		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
-		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
+	"enableXpDistribution-Label": "Enable XP Distribution",
+	"enableXpDistribution-Hint": "When enabled, automatically show XP distribution window when combat ends",
 
-		"headingH3simplemenubar-Label": "Blacksmith Menubar",
-		"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+	"autoDistributeXp-Label": "Auto-distribute XP",
+	"autoDistributeXp-Hint": "When enabled, automatically distribute XP without showing the distribution window",
 
-		"toolbarShowDividers-Label": "Show Toolbar Dividers",
-		"toolbarShowDividers-Hint": "Display visual dividers between toolbar zones to help organize tools.",
+	"xpCalculationMethod-Label": "XP Calculation Method",
+	"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
 
-		"toolbarShowLabels-Label": "Show Toolbar Labels", 
-		"toolbarShowLabels-Hint": "Display zone labels below dividers to identify different toolbar sections.",
+	"xpMultiplierDefeated-Label": "Defeated XP Multiplier",
+	"xpMultiplierDefeated-Hint": "XP multiplier for defeated monsters (1.0 = full XP)",
 
-		"headingH2MovementSounds-Label": "Token Movement Sounds",
-		"headingH2MovementSounds-Hint": "Configure audio feedback for token movement on the canvas.",
+	"xpMultiplierNegotiated-Label": "Negotiated XP Multiplier",
+	"xpMultiplierNegotiated-Hint": "XP multiplier for negotiated monsters (1.0 = full XP)",
 
-		"movementSoundsEnabled-Label": "Enable Movement Sounds",
-		"movementSoundsEnabled-Hint": "Play audio feedback when tokens are moved on the canvas.",
+	"xpMultiplierFled-Label": "Fled XP Multiplier",
+	"xpMultiplierFled-Hint": "XP multiplier for monsters that fled (0.5 = half XP)",
 
-		"movementSoundPlayer-Label": "Player Movement Sound",
-		"movementSoundPlayer-Hint": "Sound to play when player tokens are moved.",
+	"xpMultiplierBypassed-Label": "Bypassed XP Multiplier",
+	"xpMultiplierBypassed-Hint": "XP multiplier for bypassed monsters (0.0 = no XP)",
 
-		"movementSoundMonster-Label": "Monster Movement Sound",
-		"movementSoundMonster-Hint": "Sound to play when monster/NPC tokens are moved.",
+	"xpMultiplierCaptured-Label": "Captured XP Multiplier",
+	"xpMultiplierCaptured-Hint": "XP multiplier for captured monsters (1.0 = full XP)",
 
-		"movementSoundVolume-Label": "Movement Sound Volume",
-		"movementSoundVolume-Hint": "Volume level for movement sounds (0.0 = silent, 1.0 = full volume).",
+	"xpPartySizeHandling-Label": "Party Size Handling",
+	"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
 
-		"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
-		"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet)."
+	"shareXpResults-Label": "Share XP Results",
+	"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.",
+
+	"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
+	"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
+
+	"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
+	"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
+
+	"headingH3simplemenubar-Label": "Blacksmith Menubar",
+	"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+
+	
+	"headingH2MovementSounds-Label": "Token Movement Sounds",
+	"headingH2MovementSounds-Hint": "Configure audio feedback for token movement on the canvas.",
+
+	"movementSoundsEnabled-Label": "Enable Movement Sounds",
+	"movementSoundsEnabled-Hint": "Play audio feedback when tokens are moved on the canvas.",
+
+	"movementSoundPlayer-Label": "Player Movement Sound",
+	"movementSoundPlayer-Hint": "Sound to play when player tokens are moved.",
+
+	"movementSoundMonster-Label": "Monster Movement Sound",
+	"movementSoundMonster-Hint": "Sound to play when monster/NPC tokens are moved.",
+
+	"movementSoundVolume-Label": "Movement Sound Volume",
+	"movementSoundVolume-Hint": "Volume level for movement sounds (0.0 = silent, 1.0 = full volume).",
+
+	"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
+	"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet)."
 
 
 	}

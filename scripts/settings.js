@@ -358,18 +358,17 @@ export const registerSettings = async () => {
 
 
 		// ================================================================== 
-		// == GETTING STARTED 
+		// == H1: GETTING STARTED
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
-		// -------------------------------------
 
-		// *** COFFEE PUB MODULES ***
+		// --------------------------------------
+		// -- H2: COFFEE PUB SUITE
+		// --------------------------------------
+		registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+
 		let moduleStatus = checkInstalledModules();
-		
 
-		// ---------- Installed Modules ----------
 		game.settings.register(MODULE.ID, "headingH4BlacksmithInstalled", {
 			name: "Activated Coffee Pub Modules",
 			hint: "The following Coffee Pub modules are activated: " + moduleStatus.activeModules + ". If you don't see a module you are expecting, check to see if you've activated it.",
@@ -379,9 +378,7 @@ export const registerSettings = async () => {
 			type: String,
 			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
-		// -------------------------------------
 
-		// ---------- Missing Modules ----------
 		game.settings.register(MODULE.ID, "headingH4BlacksmithMissing", {
 			name: "Other Coffee Pub Modules",
 			hint: "The following Coffee Pub modules are currently not installed or activated:  " + moduleStatus.missingModules + ".",
@@ -391,10 +388,83 @@ export const registerSettings = async () => {
 			type: String,
 			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
-		// -------------------------------------
 
-		// *** GENERAL SETTINGS ***
-		registerHeader('General', 'headingH2General-Label', 'headingH2General-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+		// --------------------------------------
+		// -- H2: DEFAULT PARTY SETTINGS
+		// --------------------------------------
+		registerHeader('DefaultPartySettings', 'headingH2DefaultPartySettings-Label', 'headingH2DefaultPartySettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+
+		game.settings.register(MODULE.ID, 'defaultPartyName', {
+			name: MODULE.ID + '.defaultPartyName-Label',
+			hint: MODULE.ID + '.defaultPartyName-Hint',
+			type: String,
+			scope: 'world',
+			config: true,
+			default: 'Adventurers',
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+
+		game.settings.register(MODULE.ID, 'defaultPartySize', {
+			name: MODULE.ID + '.defaultPartySize-Label',
+			hint: MODULE.ID + '.defaultPartySize-Hint',
+			type: Number,
+			scope: 'world',
+			config: true,
+			range: {
+				min: 1,
+				max: 20,
+				step: 1
+			},
+			default: 4,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+
+		game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
+			name: MODULE.ID + '.defaultPartyMakeup-Label',
+			hint: MODULE.ID + '.defaultPartyMakeup-Hint',
+			type: String,
+			scope: 'world',
+			config: true,
+			default: 'Mixed',
+			choices: {
+				'Mixed': 'Mixed Classes',
+				'Fighter': 'All Fighters',
+				'Rogue': 'All Rogues',
+				'Wizard': 'All Wizards',
+				'Cleric': 'All Clerics'
+			},
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+
+		game.settings.register(MODULE.ID, 'defaultPartyLevel', {
+			name: MODULE.ID + '.defaultPartyLevel-Label',
+			hint: MODULE.ID + '.defaultPartyLevel-Hint',
+			type: Number,
+			scope: 'world',
+			config: true,
+			range: {
+				min: 1,
+				max: 20,
+				step: 1
+			},
+			default: 1,
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+
+		game.settings.register(MODULE.ID, 'defaultRulebooks', {
+			name: MODULE.ID + '.defaultRulebooks-Label',
+			hint: MODULE.ID + '.defaultRulebooks-Hint',
+			type: String,
+			scope: 'world',
+			config: true,
+			default: 'Core Rules',
+			choices: {
+				'Core Rules': 'Core Rules Only',
+				'Extended': 'Core + Extended Rules',
+				'All': 'All Available Rules'
+			},
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
 
 		
 
@@ -402,17 +472,181 @@ export const registerSettings = async () => {
 
 
 		// ================================================================== 
-		// == THEMES AND EXPERIENCE 
+		// == H1: LAYOUT AND EXPERIENCE
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
-
-
-		// *** THEMES AND EXPERIENCE ***
+		// --------------------------------------
+		// -- H2: THEMES
+		// --------------------------------------
 		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-		// -------------------------------------
+
+		// --------------------------------------
+		// -- H3simple: THEME SELECTIONS
+		// --------------------------------------
+		registerHeader('ThemeSelections', 'headingH3simpleThemeSelections-Label', 'headingH3simpleThemeSelections-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		// Build out the themes based on the js file.
+		registerThemes();
+		// Make them available to other settings.
+		getThemeChoices();
+
+		// --------------------------------------
+		// -- H3simple: THEME DEFAULT
+		// --------------------------------------
+		registerHeader('ThemeDefault', 'headingH3simpleThemeDefault-Label', 'headingH3simpleThemeDefault-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'defaultCardTheme', {
+			name: MODULE.ID + '.defaultCardTheme-Label',
+			hint: MODULE.ID + '.defaultCardTheme-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: true,
+			type: String,
+			default: 'cardsdefault',
+			choices: BLACKSMITH.arrThemeChoices,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// --------------------------------------
+		// -- H2: FOUNDRY ENHANCEMENTS
+		// --------------------------------------
+		registerHeader('FoundryEnhancements', 'headingH2FoundryEnhancements-Label', 'headingH2FoundryEnhancements-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		// --------------------------------------
+		// -- H3simple: QUALITY OF LIFE
+		// --------------------------------------
+		registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
+			name: MODULE.ID + '.enableJournalDoubleClick-Label',
+			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, 'objectLinkStyle', {
+			name: MODULE.ID + '.objectLinkStyle-Label',
+			hint: MODULE.ID + '.objectLinkStyle-Hint',
+			scope: 'world',
+			config: true,
+			default: 'default',
+			type: String,
+			choices: {
+				'default': 'Default Style',
+				'bold': 'Bold Style',
+				'italic': 'Italic Style'
+			},
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
+			name: MODULE.ID + '.hideRollTableIcon-Label',
+			hint: MODULE.ID + '.hideRollTableIcon-Hint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// --------------------------------------
+		// -- H3simple: TOOLBAR
+		// --------------------------------------
+		registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'toolbarShowDividers', {
+			name: MODULE.ID + '.toolbarShowDividers-Label',
+			hint: MODULE.ID + '.toolbarShowDividers-Hint',
+			scope: 'client',
+			config: true,
+			default: true,
+			type: Boolean,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, 'toolbarShowLabels', {
+			name: MODULE.ID + '.toolbarShowLabels-Label',
+			hint: MODULE.ID + '.toolbarShowLabels-Hint',
+			scope: 'client',
+			config: true,
+			default: false,
+			type: Boolean,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// --------------------------------------
+		// -- H3simple: WINDOWS
+		// --------------------------------------
+		registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'titlebarTextSize', {
+			name: MODULE.ID + '.titlebarTextSize-Label',
+			hint: MODULE.ID + '.titlebarTextSize-Hint',
+			scope: 'world',
+			config: true,
+			default: 'medium',
+			type: String,
+			choices: {
+				'small': 'Small',
+				'medium': 'Medium',
+				'large': 'Large'
+			},
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, 'titlebarIconSize', {
+			name: MODULE.ID + '.titlebarIconSize-Label',
+			hint: MODULE.ID + '.titlebarIconSize-Hint',
+			scope: 'world',
+			config: true,
+			default: 'medium',
+			type: String,
+			choices: {
+				'small': 'Small',
+				'medium': 'Medium',
+				'large': 'Large'
+			},
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// --------------------------------------
+		// -- H3simple: SCENES
+		// --------------------------------------
+		registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'sceneTitlePadding', {
+			name: MODULE.ID + '.sceneTitlePadding-Label',
+			hint: MODULE.ID + '.sceneTitlePadding-Hint',
+			scope: 'world',
+			config: true,
+			default: 10,
+			type: Number,
+			range: {
+				min: 0,
+				max: 50,
+				step: 1
+			},
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		game.settings.register(MODULE.ID, 'scenePanelHeight', {
+			name: MODULE.ID + '.scenePanelHeight-Label',
+			hint: MODULE.ID + '.scenePanelHeight-Hint',
+			scope: 'world',
+			config: true,
+			default: 200,
+			type: Number,
+			range: {
+				min: 100,
+				max: 500,
+				step: 10
+			},
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
 
 		
 
@@ -800,31 +1034,6 @@ export const registerSettings = async () => {
 		});
 
 		// *** RUN THE GAME ***
-		// ---------- FOUNDRY TOOLBAR ----------
-		registerHeader('Toolbar', 'headingH2Toolbar-Label', 'headingH2Toolbar-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
-		
-		// ---------- TOOLBAR DIVIDERS ----------
-		game.settings.register(MODULE.ID, "toolbarShowDividers", {
-			name: MODULE.ID + '.toolbarShowDividers-Label',
-			hint: MODULE.ID + '.toolbarShowDividers-Hint',
-			scope: "client",
-			config: true,
-			default: true,
-			type: Boolean,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
-
-		// ---------- TOOLBAR LABELS ----------
-		game.settings.register(MODULE.ID, "toolbarShowLabels", {
-			name: MODULE.ID + '.toolbarShowLabels-Label',
-			hint: MODULE.ID + '.toolbarShowLabels-Hint',
-			scope: "client",
-			config: true,
-			default: false,
-			type: Boolean,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
-
 		// ---------- MENUBAR PANEL ----------
 		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
@@ -3030,72 +3239,6 @@ export const registerSettings = async () => {
 	game.settings.register(MODULE.ID, 'defaultCampaignName', {
 		name:'Default Campaign Name',
 		hint: 'The default campaign name to use when creating new narratives.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Party Name --
-	game.settings.register(MODULE.ID, 'defaultPartyName', {
-		name:'Default Party Name',
-		hint: 'The default party name to use when creating new narratives.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Party Size --
-	game.settings.register(MODULE.ID, 'defaultPartySize', {
-		name:'Default Party Size',
-		hint: 'The default party size to use when creating new narratives.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: Number,
-		default: 4,
-		range: {
-			min: 1,
-			max: 10,
-			step: 1,
-		},
-	});
-
-
-	// -- Default Party Makeup --
-	game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
-		name:'Default Party Makeup',
-		hint: 'The default party makeup to use when creating new narratives. (e.g. 1 Fighter, 1 Rogue, 1 Wizard, 1 Cleric)',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Party Level --
-	game.settings.register(MODULE.ID, 'defaultPartyLevel', {
-		name:'Default Party Level',
-		hint: 'The default party level to use when creating new narratives.',
-		scope: "world",
-		config: true,
-		requiresReload: false,	
-		type: Number,
-		default: 1,
-		range: {
-			min: 1,
-			max: 20,
-			step: 1,		
-		},
-	});
-
-	// -- Default Rulebooks Folder --
-	game.settings.register(MODULE.ID, 'defaultRulebooks', {
-		name:'Default Rulebooks',
-		hint: 'A comma separated list of default rule books to use when creating new narratives. (e.g. 2024 Monster Manual, 2024 Player\'s Handbook, etc.)',
 		scope: "world",
 		config: true,
 		requiresReload: false,
