@@ -44,27 +44,27 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 
 ### ✅ COMPLETED MIGRATIONS
 
-#### GETTING STARTED GROUP - ✅ COMPLETE
-- ✅ `headingH1Blacksmith` - Main module title (migrated)
+#### GETTING STARTED GROUP - ✅ COMPLETE (Headers Only)
+
+- ✅ `headingH1GettingStarted` - Main module title (migrated)
+- ADD AN H2 FOR "CoffeePub Suite"
 - ✅ `headingH4BlacksmithInstalled` - Installed modules status (migrated)
 - ✅ `headingH4BlacksmithMissing` - Missing modules status (migrated)
 - ✅ `headingH2General` - General section header (migrated)
-- ✅ `headingH2Debug` - Debug section header (migrated)
-- ✅ `headingH3simpleConsole` - Console subheader (migrated)
-- ✅ `headingH3simpleDebug` - Debug subheader (migrated)
-- ✅ `headingH3Latency` - Latency subheader (migrated)
-- ✅ `globalFancyConsole` - Fancy console toggle (migrated)
-- ✅ `globalDebugMode` - Debug mode toggle (migrated)
-- ✅ `globalConsoleDebugStyle` - Console debug style (migrated)
-- ✅ `enableLatency` - Enable latency checking (migrated)
-- ✅ `latencyCheckInterval` - Latency check interval (migrated)
 
-#### THEMES AND EXPERIENCE GROUP - ✅ PARTIAL
+- ADD AN H2 FOR DEFAULT PARTY SETTINGS
+- ⏳ `defaultPartyName` - Default party name (pending)
+- ⏳ `defaultPartySize` - Default party size (pending)
+- ⏳ `defaultPartyMakeup` - Default party makeup (pending)
+- ⏳ `defaultPartyLevel` - Default party level (pending)
+- ⏳ `defaultRulebooks` - Default rulebooks (pending)
+
+#### LAYOUT AND EXPERIENCE GROUP - ✅ PARTIAL
+- ✅ `headingH1LayoutAndExperience` - Main section header (migrated)
 - ✅ `headingH2Themes` - Themes section header (migrated)
-- ✅ `headingH3CSS` - CSS customization header (migrated - FIXED localization)
-- ✅ `customCSS` - Custom CSS storage (migrated)
-- ✅ `cssTransition` - Smooth transitions (migrated)
-- ✅ `cssDarkMode` - Dark mode toggle (migrated)
+- ✅ `headingH3simpleThemeSelections` - Theme selections subheader (migrated)
+- ✅ `headingH3simpleThemeDefault` - Theme default subheader (migrated)
+- ✅ `defaultCardTheme` - Default card theme setting (migrated)
 - ⏳ `toolbarShowDividers` - Show toolbar dividers (pending)
 - ⏳ `toolbarShowLabels` - Show toolbar labels (pending)
 - ⏳ `smoothTransition` - Smooth transitions (pending)
@@ -77,7 +77,15 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ⏳ `enableJournalDoubleClick` - Journal double-click (pending)
 - ⏳ `hideRollTableIcon` - Hide roll table icons (pending)
 
-#### RUN THE GAME GROUP - ⏳ PENDING
+#### RUN THE GAME GROUP - ✅ PARTIAL
+- ✅ `headingH1RunTheGame` - Main section header (migrated)
+- ✅ `headingH2Toolbar` - Toolbar section header (migrated)
+- ✅ `toolbarShowDividers` - Show toolbar dividers (migrated)
+- ✅ `toolbarShowLabels` - Show toolbar labels (migrated)
+- ✅ `headingH3simplemenubar` - Menubar subheader (migrated)
+- ✅ `enableMenubar` - Enable menubar (migrated)
+- ✅ `excludedUsersMenubar` - Excluded users menubar (migrated)
+- ✅ `headingH2Chat` - Chat section header (migrated)
 - ⏳ `measurementTemplate` - Measurement template (pending)
 - ⏳ `tokenImageReplacementEnabled` - Token image replacement (pending)
 - ⏳ `tokenNameTable` - Token name table (pending)
@@ -99,18 +107,27 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ⏳ `combatTimerEndTurn` - End turn on expiration (pending)
 - ⏳ `combatTimerAutoAdvanceMessage` - Auto advance message (pending)
 
+
 #### MANAGE CONTENT GROUP - ⏳ PENDING
-- ⏳ `monsterCompendium1-8` - Monster compendiums (8 settings) (pending)
-- ⏳ `itemCompendium1-8` - Item compendiums (8 settings) (pending)
-- ⏳ `featureCompendium1-8` - Feature compendiums (8 settings) (pending)
+
+- ADD AN H3simple FOR "Monsters"
 - ⏳ `searchWorldMonstersFirst` - Search world monsters first (pending)
 - ⏳ `searchWorldMonstersLast` - Search world monsters last (pending)
+- ⏳ `monsterCompendium1-8` - Monster compendiums (8 settings) (pending)
+
+- ADD AN H3simple FOR "Items"
 - ⏳ `searchWorldItemsFirst` - Search world items first (pending)
 - ⏳ `searchWorldItemsLast` - Search world items last (pending)
+- ⏳ `itemCompendium1-8` - Item compendiums (8 settings) (pending)
+
+- ADD AN H3simple FOR "Features"
+- ⏳ `featureCompendium1-8` - Feature compendiums (8 settings) (pending)
 - ⏳ `searchWorldFeaturesFirst` - Search world features first (pending)
 - ⏳ `searchWorldFeaturesLast` - Search world features last (pending)
 
-#### ROLLING AND PROGRESSION GROUP - ⏳ PENDING
+
+#### ROLLING AND PROGRESSION GROUP - ✅ HEADER ONLY
+- ✅ `headingH1RollingAndProgression` - Main section header (migrated)
 - ⏳ `rollToolEnabled` - Roll tool enabled (pending)
 - ⏳ `rollToolMacro` - Roll tool macro (pending)
 - ⏳ `trackCombatStats` - Track combat stats (pending)
@@ -119,6 +136,7 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ⏳ `xpDistributionEnabled` - XP distribution enabled (pending)
 - ⏳ `xpDistributionMethod` - XP distribution method (pending)
 
+
 #### AUTOMATION AND AI GROUP - ⏳ PENDING
 - ⏳ `openAIAPIKey` - OpenAI API key (pending)
 - ⏳ `openAIProjectId` - OpenAI project ID (pending)
@@ -126,11 +144,31 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ⏳ `openAIGameSystems` - Game systems (pending)
 - ⏳ `openAIPrompt` - OpenAI prompt (pending)
 - ⏳ `openAIContextLength` - Context length (pending)
-- ⏳ `defaultPartyName` - Default party name (pending)
-- ⏳ `defaultPartySize` - Default party size (pending)
-- ⏳ `defaultPartyMakeup` - Default party makeup (pending)
-- ⏳ `defaultPartyLevel` - Default party level (pending)
-- ⏳ `defaultRulebooks` - Default rulebooks (pending)
+
+
+#### DEVELOPER TOOLS GROUP - ✅ COMPLETE
+- ✅ `headingH1DeveloperTools` - Main section header (migrated)
+- ✅ `headingH2CSS` - CSS customization header (migrated)
+- ✅ `customCSS` - Custom CSS storage (migrated)
+- ✅ `cssTransition` - Smooth transitions (migrated)
+- ✅ `cssDarkMode` - Dark mode toggle (migrated)
+- ✅ `headingH2PerformanceTools` - Performance tools header (migrated)
+- ✅ `headingH3PerformanceMenubarOptions` - Menubar subheader (migrated)
+- ✅ `showPerformanceMonitorInMenubar` - Show performance monitor (migrated)
+- ✅ `showRefreshInMenubar` - Show refresh button (migrated)
+- ✅ `showSettingsInMenubar` - Show settings button (migrated)
+- ✅ `headingH3Latency` - System latency subheader (migrated)
+- ✅ `enableLatency` - Enable system latency checks (migrated)
+- ✅ `latencyCheckInterval` - Latency check interval (migrated)
+- ✅ `headingH2ConsoleSettings` - Console log setting header (migrated)
+- ✅ `headingH3simpleConsole` - Console settings subheader (migrated)
+- ✅ `globalFancyConsole` - Fancy console toggle (migrated)
+- ✅ `headingH3simpleDebug` - Debug settings subheader (migrated)
+- ✅ `globalDebugMode` - Debug mode toggle (migrated)
+- ✅ `globalConsoleDebugStyle` - Console debug style (migrated)
+
+
+
 
 
 

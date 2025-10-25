@@ -406,7 +406,7 @@ export const registerSettings = async () => {
 		// ================================================================== 
 
 		// ---------- MAIN SECTION HEADER ----------
-		registerHeader('ThemesAndExperience', 'headingH1ThemesAndExperience-Label', 'headingH1ThemesAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 
 

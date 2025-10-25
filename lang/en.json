@@ -9,8 +9,8 @@
 		"headingH1GettingStarted-Label": "Getting Started",
 		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
 
-		"headingH1ThemesAndExperience-Label": "Themes and Experience",
-		"headingH1ThemesAndExperience-Hint": "Customize themes, CSS, and visual experience settings",
+		"headingH1LayoutAndExperience-Label": "Themes and Experience",
+		"headingH1LayoutAndExperience-Hint": "Customize themes, CSS, and visual experience settings",
 
 		"headingH1RunTheGame-Label": "Run the Game",
 		"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
@@ -77,7 +77,7 @@
 
 		"headingH2ConsoleSettings-Label": "Console Log",
 		"headingH2ConsoleSettings-Hint": "Console output options",
-		
+
 		"headingH2Toolbar-Label": "Toolbar",
 		"headingH2Toolbar-Hint": "FoundryVTT toolbar customization options",
 
