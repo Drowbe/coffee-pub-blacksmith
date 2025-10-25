@@ -526,18 +526,6 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
-		// -- Enable Journal Double-Click --
-		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
-			name: MODULE.ID + '.enableJournalDoubleClick-Label',
-			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
-
 		// -- Object Link Style --
 		game.settings.register(MODULE.ID, 'objectLinkStyle', {
 			name: MODULE.ID + '.objectLinkStyle-Label',
@@ -559,9 +547,47 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
-		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
-			name: MODULE.ID + '.hideRollTableIcon-Label',
-			hint: MODULE.ID + '.hideRollTableIcon-Hint',
+		// --------------------------------------
+		// -- H3simple: CANVAS TOOLS
+		// --------------------------------------
+		registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		// -- Left UI --
+		game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
+			name: MODULE.ID + '.canvasToolsHideLeftUI-Label',
+			hint: MODULE.ID + '.canvasToolsHideLeftUI-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'client',
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Bottom UI --
+		game.settings.register(MODULE.ID, 'canvasToolsHideBottomUI', {
+			name: MODULE.ID + '.canvasToolsHideBottomUI-Label',
+			hint: MODULE.ID + '.canvasToolsHideBottomUI-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'client',
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+
+
+
+
+		// --------------------------------------
+		// -- H3simple: MENUBAR
+		// --------------------------------------
+		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+		game.settings.register(MODULE.ID, 'enableMenubar', {
+			name: MODULE.ID + '.enableMenubar-Label',
+			hint: MODULE.ID + '.enableMenubar-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: true,
@@ -569,6 +595,20 @@ export const registerSettings = async () => {
 			default: true,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
+
+		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
+			name: MODULE.ID + '.excludedUsersMenubar-Label',
+			hint: MODULE.ID + '.excludedUsersMenubar-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+
+
+
 
 		// --------------------------------------
 		// -- H3simple: TOOLBAR
@@ -699,6 +739,18 @@ export const registerSettings = async () => {
 		// -- H3simple: CHAT ADJUSTMENTS
 		// --------------------------------------
 		registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
+			name: MODULE.ID + '.hideRollTableIcon-Label',
+			hint: MODULE.ID + '.hideRollTableIcon-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
 
 		// -- Chat Gap --
 		game.settings.register(MODULE.ID, 'chatSpacing', {
@@ -855,7 +907,32 @@ export const registerSettings = async () => {
 		});
 
 
+		// --------------------------------------
+		// -- H3simple: JOURNAL TOOLS
+		// --------------------------------------
+		registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
+		// -- Enable Journal Double-Click --
+		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
+			name: MODULE.ID + '.enableJournalDoubleClick-Label',
+			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Journal Tools --
+		game.settings.register(MODULE.ID, 'enableJournalTools', {
+			name: MODULE.ID + '.enableJournalTools-Label',
+			hint: MODULE.ID + '.enableJournalTools-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+		});
 
 
 
@@ -867,30 +944,6 @@ export const registerSettings = async () => {
 		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 
-		// *** RUN THE GAME ***
-		// ---------- MENUBAR PANEL ----------
-		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
-
-		game.settings.register(MODULE.ID, 'enableMenubar', {
-			name: 'Show Blacksmith Panel',
-			hint: 'Show the Blacksmith panel in the chat log.',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
-
-		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
-			name: 'Excluded Menubar Users',
-			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: '',
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
 
 		// ================================================================== 
@@ -1660,17 +1713,6 @@ export const registerSettings = async () => {
 			default: true,
 		});
 
-		// *** JOURNAL TOOLS SETTINGS ***
-
-		// -- Journal Tools --
-		game.settings.register(MODULE.ID, 'enableJournalTools', {
-			name: MODULE.ID + '.enableJournalTools-Label',
-			hint: MODULE.ID + '.enableJournalTools-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
 
 
@@ -1699,57 +1741,6 @@ export const registerSettings = async () => {
 
 
 
-
-
-
-
-		// *** CANVAS ***
-
-		// ---------- HEADING - CANVAS  ----------
-		game.settings.register(MODULE.ID, "headingH2Canvas", {
-			name: 'Canvas',
-			hint: 'Blacksmith includes a number of tools that make managing things on the canvas easier.',
-			scope: "client",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-
-		// ---------- SUBHEADING - CANVAS TOOLS ----------
-		game.settings.register(MODULE.ID, "headingH3CanvasTools", {
-			name: 'Canvas Tools',
-			hint: 'Control which bits of the interface hide and show when toggled.',
-			scope: "client",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-
-		// -- Left UI --
-		game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
-			name: 'Hide Left UI',
-			hint: 'When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
-			type: Boolean,
-			config: true,
-			requiresReload: false,
-			scope: 'client',
-			default: true,
-		});
-
-		// -- Bottom UI --
-		game.settings.register(MODULE.ID, 'canvasToolsHideBottomUI', {
-			name: 'Hide Bottom UI',
-			hint: 'When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.',
-			type: Boolean,
-			config: true,
-			requiresReload: false,
-			scope: 'client',
-			default: true,
-		});
 
 
 

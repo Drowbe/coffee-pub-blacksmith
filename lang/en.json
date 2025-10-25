@@ -47,17 +47,29 @@
 
 			"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
 			"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
+			
 			"headingH3QualityOfLife-Label": "Quality of Life",
 			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
+			
+			"headingH3CanvasTools-Label": "Canvas Tools",
+			"headingH3CanvasTools-Hint": "Control which bits of the interface hide and show when toggled.",
+
+			"canvasToolsHideLeftUI-Label": "Hide Left UI",
+			"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+
+			"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
+			"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+
+
 			"headingH3Toolbar-Label": "Toolbar",
 			"headingH3Toolbar-Hint": "Toolbar customization and display options",
+			
 			"headingH3Windows-Label": "Windows",
 			"headingH3Windows-Hint": "Window styling and titlebar customization",
+			
 			"headingH3Scenes-Label": "Scenes",
 			"headingH3Scenes-Hint": "Scene layout and display customization",
 
-			"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
-			"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
 			"objectLinkStyle-Label": "Object Link Style",
 			"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 			"hideRollTableIcon-Label": "Hide Roll Table Icon",
@@ -80,8 +92,14 @@
 			"scenePanelHeight-Hint": "Height of scene panels",
 
 
+			"headingH3JournalTools-Label": "Journal Tools",
+			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
 
-
+			"enableJournalTools-Label": "Enable Journal Tools",
+			"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+		
+			"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
+			"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
 
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
@@ -206,15 +224,6 @@
 
 	"toggleVisibility-Label": "Toggle Token Visibility",
 	"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
-
-	"enableJournalTools-Label": "Enable Journal Tools",
-	"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
-
-	"journalToolsActorCompendium-Label": "Actor Compendium for Link Upgrades",
-	"journalToolsActorCompendium-Hint": "Compendium to use when upgrading actor links in journals. Leave empty to skip actor link upgrades.",
-
-	"journalToolsItemCompendium-Label": "Item Compendium for Link Upgrades",
-	"journalToolsItemCompendium-Hint": "Compendium to use when upgrading item links in journals. Leave empty to skip item link upgrades.",
 
 	"headingH2diceRollTool-Label": "Roll System",
 	"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
@@ -495,6 +504,13 @@
 
 	"headingH3simplemenubar-Label": "Blacksmith Menubar",
 	"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+
+	"enableMenubar-Label": "Enable Menubar",
+	"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+
+	"excludedUsersMenubar-Label": "Excluded Menubar Users",
+	"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+
 
 	
 	"headingH2MovementSounds-Label": "Token Movement Sounds",

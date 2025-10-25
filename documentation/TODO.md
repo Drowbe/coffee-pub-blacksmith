@@ -4,6 +4,58 @@
 
 ### MEDIUM PRIORITY ISSUES
 
+### Wire up enableMenubar Setting
+- **Issue**: enableMenubar setting needs to be properly connected to functionality
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Setting exists but may not be properly wired to menubar functionality
+- **Location**: `scripts/settings.js` (enableMenubar setting), `scripts/api-menubar.js` (menubar functionality)
+- **Tasks Needed**:
+  - Search for old references to "blacksmith chat panel" that the menubar replaced
+  - Ensure enableMenubar setting properly controls menubar visibility
+  - Verify excludedUsersMenubar setting hides menubar for excluded users
+  - Test that setting changes take effect (requiresReload: true is set)
+  - Update any documentation that references the old chat panel
+- **Related Settings**:
+  - `enableMenubar` - Main toggle for menubar functionality
+  - `excludedUsersMenubar` - List of users who should not see the menubar
+- **Notes**: This is part of the settings refactoring - ensure the migrated settings actually work
+
+### Wire up excludedUsersMenubar Setting
+- **Issue**: excludedUsersMenubar setting needs to be properly connected to hide menubar for excluded users
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Setting exists but may not be properly filtering menubar visibility
+- **Location**: `scripts/settings.js` (excludedUsersMenubar setting), `scripts/api-menubar.js` (menubar functionality)
+- **Tasks Needed**:
+  - Ensure excludedUsersMenubar setting properly hides menubar for users in the exclusion list
+  - Verify the setting is parsed correctly (comma-separated userIDs)
+  - Test that excluded users don't see the menubar panel
+  - Test that non-excluded users still see the menubar
+  - Verify the setting works in combination with enableMenubar
+- **Related Settings**:
+  - `excludedUsersMenubar` - Comma-separated list of userIDs to exclude from menubar
+  - `enableMenubar` - Main toggle for menubar functionality
+- **Notes**: This ensures proper user-level control over menubar visibility
+
+### Verify Auto Add XP is Wired
+- **Issue**: Auto Add XP functionality needs to be verified as properly connected
+- **Status**: PENDING - Needs verification
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Setting exists but needs verification that it actually works
+- **Location**: `scripts/settings.js` (autoDistributeXp setting), XP distribution functionality
+- **Tasks Needed**:
+  - Verify autoDistributeXp setting properly controls automatic XP distribution
+  - Test that XP is automatically distributed when the setting is enabled
+  - Test that XP distribution is manual when the setting is disabled
+  - Verify the setting works in combination with other XP settings
+  - Check that the setting affects the correct XP distribution triggers
+- **Related Settings**:
+  - `autoDistributeXp` - Auto-distribute XP toggle
+  - `enableXpDistribution` - Main XP distribution toggle
+  - `shareXpResults` - Share XP results setting
+- **Notes**: This is part of the settings refactoring - ensure migrated XP settings actually work
+
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning

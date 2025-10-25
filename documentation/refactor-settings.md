@@ -67,6 +67,10 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ✅ `defaultCardTheme` - Default card theme setting (migrated)
 - ✅ `headingH2FoundryEnhancements` - Foundry enhancements section header (migrated)
 - ✅ `headingH3QualityOfLife` - Quality of life subheader (migrated)
+- ✅ `headingH1RunTheGame` - Main section header (migrated)
+- ✅ `headingH3simplemenubar` - Menubar subheader (migrated)
+- ✅ `enableMenubar` - Enable menubar (migrated)
+- ✅ `excludedUsersMenubar` - Excluded users menubar (migrated)
 - ✅ `enableJournalDoubleClick` - Journal double-click (migrated)
 - ✅ `objectLinkStyle` - Object link styling (migrated)
 - ✅ `hideRollTableIcon` - Hide roll table icons (migrated)
@@ -92,14 +96,30 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ✅ `titlebarIconSize` - Titlebar icon size (migrated)
 - ✅ `titlebarSpacing` - Titlebar spacing (migrated)
 -  Canvas Tools Settings
-- ⏳ `canvasToolsHideLeftUI` - Hide left UI
-- ⏳ `canvasToolsHideBottomUI` - Hide bottom UI
+- ✅ `canvasToolsHideLeftUI` - Hide left UI
+- ✅ `canvasToolsHideBottomUI` - Hide bottom UI
 
 #### RUN THE GAME GROUP - ✅ PARTIAL
-- ✅ `headingH1RunTheGame` - Main section header (migrated)
-- ✅ `headingH3simplemenubar` - Menubar subheader (migrated)
-- ✅ `enableMenubar` - Enable menubar (migrated)
-- ✅ `excludedUsersMenubar` - Excluded users menubar (migrated)
+
+
+- Combat Tracker Settings
+- ⏳ `combatTrackerSetCurrentCombatant` - Set current combatant
+- ⏳ `combatTrackerClearInitiative` - Clear initiative
+- ⏳ `combatTrackerSetFirstTurn` - Set first turn
+- ⏳ `combatTrackerRollInitiativeNonPlayer` - Roll initiative non-player
+- ⏳ `combatTrackerRollInitiativePlayer` - Roll initiative player
+- ⏳ `combatTrackerAddInitiative` - Add initiative
+- ⏳ `combatTrackerOpen` - Combat tracker open
+- ⏳ `combatTrackerResizable` - Combat tracker resizable
+- ⏳ `combatTrackerSize` - Combat tracker size
+- ⏳ `combatTrackerShowHealthBar` - Show health bar
+- ⏳ `combatTrackerShowPortraits` - Show portraits
+
+
+
+
+
+
 
 #### MANAGE CONTENT GROUP - ✅ HEADER ONLY
 - ✅ `headingH1ManageContent` - Main section header (migrated)
@@ -193,6 +213,8 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 
 These settings are still using the old organization and need to be categorized into workflow groups:
 
+MAYBE THE TIMERS GO IN THE CAMPAING MANAGEMENT AREA?
+
 #### Session/Timer Settings
 - ⏳ `sessionEndTime` - Session end time (hidden setting)
 - ⏳ `sessionStartTime` - Session start time (hidden setting)  
@@ -238,18 +260,7 @@ These settings are still using the old organization and need to be categorized i
 - ⏳ `planningTimerExpiredMessage` - Planning timer expired message
 - ⏳ `planningTimerExpiredSound` - Planning timer expired sound
 
-#### Combat Tracker Settings
-- ⏳ `combatTrackerSetCurrentCombatant` - Set current combatant
-- ⏳ `combatTrackerClearInitiative` - Clear initiative
-- ⏳ `combatTrackerSetFirstTurn` - Set first turn
-- ⏳ `combatTrackerRollInitiativeNonPlayer` - Roll initiative non-player
-- ⏳ `combatTrackerRollInitiativePlayer` - Roll initiative player
-- ⏳ `combatTrackerAddInitiative` - Add initiative
-- ⏳ `combatTrackerOpen` - Combat tracker open
-- ⏳ `combatTrackerResizable` - Combat tracker resizable
-- ⏳ `combatTrackerSize` - Combat tracker size
-- ⏳ `combatTrackerShowHealthBar` - Show health bar
-- ⏳ `combatTrackerShowPortraits` - Show portraits
+
 
 
 
