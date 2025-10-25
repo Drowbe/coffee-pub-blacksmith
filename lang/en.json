@@ -10,22 +10,22 @@
 		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
 
 		"headingH1ThemesAndExperience-Label": "Themes and Experience",
-		"headingH1ThemesAndExperience-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1ThemesAndExperience-Hint": "Customize themes, CSS, and visual experience settings",
 
 		"headingH1RunTheGame-Label": "Run the Game",
-		"headingH1RunTheGame-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
 
 		"headingH1ManageContent-Label": "Manage Content",
-		"headingH1ManageContent-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
 
 		"headingH1RollingAndProgression-Label": "Rolling and Progression",
-		"headingH1RollingAndProgression-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
 
 		"headingH1AutomationAndAI-Label": "Automation and AI",
-		"headingH1AutomationAndAI-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1AutomationAndAI-Hint": "AI integration and automation features",
 
 		"headingH1DeveloperTools-Label": "Developer Tools",
-		"headingH1DeveloperTools-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+		"headingH1DeveloperTools-Hint": "Debug settings, console options, and developer tools",
 
 
 
@@ -40,21 +40,46 @@
 		"headingH2General-Hint": "General settings, connfiguration, and other goodies.",
 
 
-		"headingH3Latency-Label": "Player Latency",
-		"headingH3Latency-Hint": "Settings related to the player latency.",
+		"headingH3PerformanceMenubarOptions-Label": "Menubar",
+		"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
+
+
+
+
+
+
+		"headingH3Latency-Label": "System Latency",
+		"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
 
 		"latencyCheckInterval-Label": "Latency Check Interval",
-		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds.",
+		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",
 
-		"enableLatency-Label": "Enable Player Latency Checks",
-		"enableLatency-Hint": "If checked, the player latency will be checked and displayed in the player list.",
+		"enableLatency-Label": "Enable System Latency Checks",
+		"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
 		
+
+
+
+
+
 
 		"headingH2Themes-Label": "Themes",
 		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
 
 		"headingH3CSS-Label": "CSS Customization",
 		"headingH3CSS-Hint": "Customize the FoundryVTT interface with custom CSS",
+
+		"headingH2CSS-Label": "CSS Customization",
+		"headingH2CSS-Hint": "Customize CSS styling and appearance",
+
+		"headingH2PerformanceTools-Label": "Performance Tools",
+		"headingH2PerformanceTools-Hint": "Performance monitoring and menubar tools",
+
+		"headingH2ConsoleSettings-Label": "Console Log",
+		"headingH2ConsoleSettings-Hint": "Console output options",
+		
+		"headingH2Toolbar-Label": "Toolbar",
+		"headingH2Toolbar-Hint": "FoundryVTT toolbar customization options",
 
 		"headingH3simpleThemeSelections-Label": "Theme Selections",
 		"headingH3simpleThemeSelections-Hint": "Description",
@@ -383,17 +408,14 @@
 		"monsterCompendiumSecondary-Label": "Secondary Monster Compendium",
 		"monsterCompendiumSecondary-Hint": "The secondary monster compendium to use when linking monsters in new narratives. This is where we will look for a match if we don't find one in the primary compendium.",
 
-		"headingH2Debug-Label": "Developer Settings",
-		"headingH2Debug-Hint": "Only enable settings in the section if you are having problems -- these settings are global to all Coffee Pub modules. It will fill your console with lots of messages... lots of beautiful messages.",
-
-		"headingH3simpleConsole-Label": "Console Settings",
-		"headingH3simpleConsole-Hint": "Description",
+		"headingH3simpleConsole-Label": "Console",
+		"headingH3simpleConsole-Hint": "Description not needed",
 
 		"globalFancyConsole-Label": "Fancy Console",
 		"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
 
-		"headingH3simpleDebug-Label": "Debug Settings",
-		"headingH3simpleDebug-Hint": "Description",
+		"headingH3simpleDebug-Label": "Debug",
+		"headingH3simpleDebug-Hint": "Description not needed",
 
 		"globalDebugMode-Label": "Debug Mode",
 		"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",

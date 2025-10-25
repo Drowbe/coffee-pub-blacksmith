@@ -50,7 +50,7 @@ div[data-setting-id*="coffee-pub-bibliosoph"] .form-fields{
     margin: 6px 0px 6px 0px;
 }
 
-/* HEADINGS H1 - MAIN TITLE */
+/* HEADINGS H1 - MAIN SECTIONS */
 
 input[name*="coffee-pub-monarch.headingH1"],
 input[name*="coffee-pub-squire.headingH1"],
@@ -110,7 +110,7 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH1"] .notes {
     font-style: normal;
 }
 
-/* HEADINGS H2 */
+/* HEADINGS H2 - HEADINGS WITHIN THE SECTIONS TO GROUP LIKE SETTINGS */
 
 input[name*="coffee-pub-monarch.headingH2"],
 input[name*="coffee-pub-squire.headingH2"],
@@ -168,7 +168,10 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH2"] .notes {
     font-style: normal;
 }
 
-/* SUBHEADINGS H3 - NORMAL */
+/* SUBHEADINGS H3 - SUBHEADDINGS WITHIN SECTIONS */
+/* There are two types: simple and normal. */
+/* Simple H3simplle: subheadings do not have notes associated with them. */
+/* Normal H3: subheadings have notes associated with them. */
 
 input[name*="coffee-pub-monarch.headingH3"],
 input[name*="coffee-pub-squire.headingH3"],
@@ -249,7 +252,8 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH3simple"] .notes {
 	display: none;	
 }
 
-/* BOX TEXT H4 */
+/* BOX TEXT H4 - This puts a dotted box around the setting label and the notes.*/
+
 input[name*="coffee-pub-monarch.headingH4"],
 input[name*="coffee-pub-squire.headingH4"],
 input[name*="coffee-pub-blacksmith.headingH4"],
@@ -304,7 +308,7 @@ div[data-setting-id*="coffee-pub-bibliosoph.headingH4"] .notes {
     font-style: normal;
 }
 
-/* HORIZANTAL RULE HR */
+/* HORIZANTAL RULE HR - this is a simple divider that can be useed to separate thigns if needed.*/
 
 input[name*="coffee-pub-monarch.headingHR"],
 input[name*="coffee-pub-squire.headingHR"],
@@ -322,7 +326,7 @@ div[data-setting-id*="coffee-pub-bubo.headingHR"],
 div[data-setting-id*="coffee-pub-crier.headingHR"],
 div[data-setting-id*="coffee-pub-scribe.headingHR"],
 div[data-setting-id*="coffee-pub-bibliosoph.headingHR"] {
-    border-top: 1px dotted rgba(9, 12, 3, 0.4);
+    border-top: 20px dotted rgba(231, 2, 2, 0.4);
 }
 div[data-setting-id*="coffee-pub-monarch.headingHR"] label,
 div[data-setting-id*="coffee-pub-squire.headingHR"] label,

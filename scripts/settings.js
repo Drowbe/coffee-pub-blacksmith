@@ -613,15 +613,14 @@ export const registerSettings = async () => {
 
 
 		// ================================================================== 
-		// == DEVELOPER TOOLS
+		// == H1: DEVELOPER TOOLS
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
-
-		// *** CSS CUSTOMIZATION ***
-		registerHeader('CSS', 'headingH3CSS-Label', 'headingH3CSS-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		// --------------------------------------
+		// -- H2: CSS CUSTOMIZATION
+		// --------------------------------------
+		registerHeader('CSS', 'headingH2CSS-Label', 'headingH2CSS-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		game.settings.register(MODULE.ID, "customCSS", {
 			scope: "world",
@@ -651,9 +650,101 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
-		// *** DEBUG SETTINGS ***
-		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+		// --------------------------------------
+		// -- H2: PERFORMANCE TOOLS
+		// --------------------------------------
+		registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+		// -- H3: PERFORMANCE MENUBAR OPTIONS ---------------
+		registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+
+		game.settings.register(MODULE.ID, 'showPerformanceMonitorInMenubar', {
+			name: 'Show Performance Monitor',
+			hint: 'Show performance monitor in the menubar for system monitoring',
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		game.settings.register(MODULE.ID, 'showRefreshInMenubar', {
+			name: 'Show Refresh',
+			hint: 'Show refresh button in the menubar for performance monitoring',
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		game.settings.register(MODULE.ID, 'showSettingsInMenubar', {
+			name: 'Show Settings',
+			hint: 'Show settings button in the menubar for quick access',
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+
+		// -- H3: LATENCY SETTINGS ---------------
+		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+		game.settings.register(MODULE.ID, 'enableLatency', {
+			name: MODULE.ID + '.enableLatency-Label',
+			hint: MODULE.ID + '.enableLatency-Hint',
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		game.settings.register(MODULE.ID, 'latencyCheckInterval', {
+			name: MODULE.ID + '.latencyCheckInterval-Label',
+			hint: MODULE.ID + '.latencyCheckInterval-Hint',
+			type: Number,
+			scope: 'world',
+			config: true,
+			range: {
+				min: 5,
+				max: 300,
+				step: 5
+			},
+			default: 30,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+
+
+		// --------------------------------------
+		// -- H2: CONSOLE SETTINGS
+		// --------------------------------------
+		registerHeader('ConsoleSettings', 'headingH2ConsoleSettings-Label', 'headingH2ConsoleSettings-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+
+
+		// -- H3: CONSOLE SETTINGS ---------------
+		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 		// -------------------------------------
+
+		// -- LOG FANCY CONSOLE --
+		game.settings.register(MODULE.ID, 'globalFancyConsole', {
+			name: MODULE.ID + '.globalFancyConsole-Label',
+			hint: MODULE.ID + '.globalFancyConsole-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'client',
+			default: true,
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
+
+		// -- H3: DEBUG SETTINGS ---------------
+		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		// -- LOG DEBUG SETTINGS --
 		game.settings.register(MODULE.ID, 'globalDebugMode', {
@@ -683,55 +774,6 @@ export const registerSettings = async () => {
 			},
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
-
-
-
-
-
-		// *** DEBUG SETTINGS ***
-		registerHeader('Debug', 'headingH2Debug-Label', 'headingH2Debug-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
-		// -------------------------------------
-
-		// ---------- CONSOLE SETTINGS ----------
-		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
-		// -------------------------------------
-
-		// -- LOG FANCY CONSOLE --
-		game.settings.register(MODULE.ID, 'globalFancyConsole', {
-			name: MODULE.ID + '.globalFancyConsole-Label',
-			hint: MODULE.ID + '.globalFancyConsole-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'client',
-			default: true,
-			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
-		});
-
-		// *** LATENCY SETTINGS ***
-		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
-		// -------------------------------------
-
-		// Latency Settings
-		game.settings.register(MODULE.ID, 'latencyCheckInterval', {
-			name: MODULE.ID + '.latencyCheckInterval-Label',
-			hint: MODULE.ID + '.latencyCheckInterval-Hint',
-			type: Number,
-			scope: 'world',
-			config: true,
-			range: {
-				min: 5,
-				max: 300,
-				step: 5
-			},
-			default: 30,
-			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
-		});
-
-
-
-
-
 
 
 
