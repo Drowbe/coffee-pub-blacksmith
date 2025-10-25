@@ -867,7 +867,30 @@ export const registerSettings = async () => {
 		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 
+		// *** RUN THE GAME ***
+		// ---------- MENUBAR PANEL ----------
+		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
+		game.settings.register(MODULE.ID, 'enableMenubar', {
+			name: 'Show Blacksmith Panel',
+			hint: 'Show the Blacksmith panel in the chat log.',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
+			name: 'Excluded Menubar Users',
+			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
 
 
 		// ================================================================== 
@@ -1403,25 +1426,6 @@ export const registerSettings = async () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 		// ================================================================== 
 		// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
 		// ================================================================== 
@@ -1431,39 +1435,7 @@ export const registerSettings = async () => {
 		// ================================================================== 
 
 		// *** VISUAL DIVIDER IN SETTINGS ***
-		game.settings.register(MODULE.ID, "headingHR1", {
-			name: "",
-			hint: "",
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		game.settings.register(MODULE.ID, "headingHR2", {
-			name: "",
-			hint: "",
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		game.settings.register(MODULE.ID, "headingHR3", {
-			name: "",
-			hint: "",
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		game.settings.register(MODULE.ID, "headingHR4", {
-			name: "",
-			hint: "",
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		game.settings.register(MODULE.ID, "headingHR5", {
+		game.settings.register(MODULE.ID, "headingHR", {
 			name: "",
 			hint: "",
 			scope: "world",
@@ -1475,34 +1447,6 @@ export const registerSettings = async () => {
 
 
 
-
-
-
-
-		// *** RUN THE GAME ***
-		// ---------- MENUBAR PANEL ----------
-		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
-
-		game.settings.register(MODULE.ID, 'enableMenubar', {
-			name: 'Show Blacksmith Panel',
-			hint: 'Show the Blacksmith panel in the chat log.',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
-
-		game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
-			name: 'Excluded Menubar Users',
-			hint: 'List of userIDs that should not show up as selections in voting, rolls, or other tools. (comma-separated)',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: '',
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
 
 
