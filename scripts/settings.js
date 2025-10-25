@@ -39,7 +39,8 @@ const WORKFLOW_GROUPS = {
     RUN_THE_GAME: 'run-the-game',
     MANAGE_CONTENT: 'manage-content',
     ROLLING_AND_PROGRESSION: 'rolling-and-progression',
-    AUTOMATION_AND_AI: 'automation-and-ai',
+    AUTOMATION: 'automation',
+	ARTIFICIAL_INTELLIGENCE: 'artificial-intelligence',
 	DEVELOPER_TOOLS: 'developer-tools'
 };
 
@@ -363,6 +364,16 @@ export const registerSettings = async () => {
 		registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
 
 		// --------------------------------------
+		// -- H4: INTRODUCTION
+		// --------------------------------------
+		registerHeader('Introduction', 'headingH4Introduction-Label', 'headingH4Introduction-Hint', 'H4', WORKFLOW_GROUPS.GETTING_STARTED);
+
+		// --------------------------------------
+		// -- H2: COFFEE PUB SUITE
+		// --------------------------------------
+		registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+
+		// --------------------------------------
 		// -- H2: COFFEE PUB SUITE
 		// --------------------------------------
 		registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
@@ -422,17 +433,11 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
 			name: MODULE.ID + '.defaultPartyMakeup-Label',
 			hint: MODULE.ID + '.defaultPartyMakeup-Hint',
-			type: String,
-			scope: 'world',
+			scope: "world",
 			config: true,
-			default: 'Mixed',
-			choices: {
-				'Mixed': 'Mixed Classes',
-				'Fighter': 'All Fighters',
-				'Rogue': 'All Rogues',
-				'Wizard': 'All Wizards',
-				'Cleric': 'All Clerics'
-			},
+			requiresReload: false,
+			type: String,
+			default: '',
 			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 
@@ -454,21 +459,23 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE.ID, 'defaultRulebooks', {
 			name: MODULE.ID + '.defaultRulebooks-Label',
 			hint: MODULE.ID + '.defaultRulebooks-Hint',
-			type: String,
-			scope: 'world',
+			scope: "world",
 			config: true,
-			default: 'Core Rules',
-			choices: {
-				'Core Rules': 'Core Rules Only',
-				'Extended': 'Core + Extended Rules',
-				'All': 'All Available Rules'
-			},
+			requiresReload: false,
+			type: String,
+			default: '',
 			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 
-		
-
-
+		// -- Party Leader - HIDDEN SETTING -- 
+		game.settings.register(MODULE.ID, 'partyLeader', {
+			name: 'Party Leader',
+			hint: 'The currently selected party leader',
+			scope: 'world',
+			config: false,
+			type: Object,
+			default: { userId: '', actorId: '' }
+		});
 
 
 		// ================================================================== 
@@ -480,6 +487,7 @@ export const registerSettings = async () => {
 		// -- H2: THEMES
 		// --------------------------------------
 		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		
 
 		// --------------------------------------
 		// -- H3simple: THEME SELECTIONS
@@ -518,27 +526,35 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
+		// -- Enable Journal Double-Click --
 		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
 			name: MODULE.ID + '.enableJournalDoubleClick-Label',
 			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
-			scope: 'world',
-			config: true,
-			default: true,
 			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
+		// -- Object Link Style --
 		game.settings.register(MODULE.ID, 'objectLinkStyle', {
 			name: MODULE.ID + '.objectLinkStyle-Label',
 			hint: MODULE.ID + '.objectLinkStyle-Hint',
 			scope: 'world',
 			config: true,
-			default: 'default',
+			requiresReload: true,
 			type: String,
+			default: 'none',
 			choices: {
-				'default': 'Default Style',
-				'bold': 'Bold Style',
-				'italic': 'Italic Style'
+				'none': 'Foundry Default',
+				'text': 'Simple Text',
+				'green': 'Green',
+				'red': 'Red',
+				'blue': 'Blue',
+				'light': 'Light Mode',
+				'dark': 'Dark Mode',
 			},
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
@@ -546,10 +562,11 @@ export const registerSettings = async () => {
 		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
 			name: MODULE.ID + '.hideRollTableIcon-Label',
 			hint: MODULE.ID + '.hideRollTableIcon-Hint',
-			scope: 'world',
-			config: true,
-			default: false,
 			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
@@ -558,58 +575,25 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
+		// -- Show Toolbar Dividers --
 		game.settings.register(MODULE.ID, 'toolbarShowDividers', {
 			name: MODULE.ID + '.toolbarShowDividers-Label',
 			hint: MODULE.ID + '.toolbarShowDividers-Hint',
-			scope: 'client',
+			scope: "client",
 			config: true,
 			default: true,
 			type: Boolean,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
+		// -- Show Toolbar Labels --
 		game.settings.register(MODULE.ID, 'toolbarShowLabels', {
 			name: MODULE.ID + '.toolbarShowLabels-Label',
 			hint: MODULE.ID + '.toolbarShowLabels-Hint',
-			scope: 'client',
+			scope: "client",
 			config: true,
 			default: false,
 			type: Boolean,
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
-
-		// --------------------------------------
-		// -- H3simple: WINDOWS
-		// --------------------------------------
-		registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-
-		game.settings.register(MODULE.ID, 'titlebarTextSize', {
-			name: MODULE.ID + '.titlebarTextSize-Label',
-			hint: MODULE.ID + '.titlebarTextSize-Hint',
-			scope: 'world',
-			config: true,
-			default: 'medium',
-			type: String,
-			choices: {
-				'small': 'Small',
-				'medium': 'Medium',
-				'large': 'Large'
-			},
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
-
-		game.settings.register(MODULE.ID, 'titlebarIconSize', {
-			name: MODULE.ID + '.titlebarIconSize-Label',
-			hint: MODULE.ID + '.titlebarIconSize-Hint',
-			scope: 'world',
-			config: true,
-			default: 'medium',
-			type: String,
-			choices: {
-				'small': 'Small',
-				'medium': 'Medium',
-				'large': 'Large'
-			},
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
@@ -618,37 +602,261 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
-		game.settings.register(MODULE.ID, 'sceneTitlePadding', {
-			name: MODULE.ID + '.sceneTitlePadding-Label',
-			hint: MODULE.ID + '.sceneTitlePadding-Hint',
-			scope: 'world',
+
+		// -- SCENE INTERACTIONS --
+		game.settings.register(MODULE.ID, 'enableSceneInteractions', {
+			name: MODULE.ID + '.enableSceneInteractions-Label',
+			hint: MODULE.ID + '.enableSceneInteractions-Hint',
+			type: Boolean,
 			config: true,
-			default: 10,
-			type: Number,
-			range: {
-				min: 0,
-				max: 50,
-				step: 1
-			},
+			requiresReload: true,
+			scope: 'world',
+			default: true,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
+		// -- SCENE BEHAVIORS --
+		game.settings.register(MODULE.ID, 'enableSceneClickBehaviors', {
+			name: MODULE.ID + '.enableSceneClickBehaviors-Label',
+			hint: MODULE.ID + '.enableSceneClickBehaviors-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Scene Panel Height --
 		game.settings.register(MODULE.ID, 'scenePanelHeight', {
 			name: MODULE.ID + '.scenePanelHeight-Label',
 			hint: MODULE.ID + '.scenePanelHeight-Hint',
-			scope: 'world',
+			scope: "world",
 			config: true,
-			default: 200,
+			requiresReload: true,
 			type: Number,
 			range: {
-				min: 100,
-				max: 500,
-				step: 10
+				min: 30,
+				max: 300,
+				step: 5,
+			},
+			default: 100,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Scene Title Padding --
+		game.settings.register(MODULE.ID, 'sceneTitlePadding', {
+			name: MODULE.ID + '.sceneTitlePadding-Label',
+			hint: MODULE.ID + '.sceneTitlePadding-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+				min: -2,
+				max: 30,
+				step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Scene Text Align --
+		game.settings.register(MODULE.ID, 'sceneTextAlign', {
+			name: MODULE.ID + '.sceneTextAlign-Label',
+			hint: MODULE.ID + '.sceneTextAlign-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: true,
+			type: String,
+			default: 'left',
+			choices: {
+				'center': 'Foundry Default (Center)',
+				'left': 'Left Align Scene Title',
+				'right': 'Right Align Scene Title',
 			},
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
-		
+		// -- Scene Text Size --
+		game.settings.register(MODULE.ID, 'sceneFontSize', {
+			name: MODULE.ID + '.sceneFontSize-Label',
+			hint: MODULE.ID + '.sceneFontSize-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+				min: .5,
+				max: 3,
+				step: .05,
+			},
+			default: 1,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// --------------------------------------
+		// -- H3simple: CHAT ADJUSTMENTS
+		// --------------------------------------
+		registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		// -- Chat Gap --
+		game.settings.register(MODULE.ID, 'chatSpacing', {
+			name: MODULE.ID + '.chatSpacing-Label',
+			hint: MODULE.ID + '.chatSpacing-Hint',
+			scope: "world",
+			requiresReload: true,
+			config: true,
+			type: Number,
+			range: {
+				min: -20,
+				max: 60,
+				step: 1,
+			},
+			default: 3,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+		// -- Top Margin --
+		game.settings.register(MODULE.ID,'cardTopMargin', {
+			name: MODULE.ID + '.cardTopMargin-Label',
+			hint: MODULE.ID + '.cardTopMargin-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: -20,
+			max: 20,
+			step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+		// -- Bottom Margin --
+		game.settings.register(MODULE.ID,'cardBottomMargin', {
+			name: MODULE.ID + '.cardBottomMargin-Label',
+			hint: MODULE.ID + '.cardBottomMargin-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: -20,
+			max: 20,
+			step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+		// -- Left Margin --
+		game.settings.register(MODULE.ID,'cardLeftMargin', {
+			name: MODULE.ID + '.cardLeftMargin-Label',
+			hint: MODULE.ID + '.cardLeftMargin-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: -20,
+			max: 20,
+			step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+		// -- Right Margin --
+		game.settings.register(MODULE.ID,'cardRightMargin', {
+			name: MODULE.ID + '.cardRightMargin-Label',
+			hint: MODULE.ID + '.cardRightMargin-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: -20,
+			max: 20,
+			step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+		// -- Top Offset --
+		game.settings.register(MODULE.ID,'cardTopOffset', {
+			name: MODULE.ID + '.cardTopOffset-Label',
+			hint: MODULE.ID + '.cardTopOffset-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: -80,
+			max: 80,
+			step: 1,
+			},
+			default: 50,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+
+		// --------------------------------------
+		// -- H3simple: WINDOWS
+		// --------------------------------------
+		registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
+		// -- Titlebar Text Size --
+		game.settings.register(MODULE.ID, 'titlebarTextSize', {
+			name: MODULE.ID + '.titlebarTextSize-Label',
+			hint: MODULE.ID + '.titlebarTextSize-Hint',
+			scope: "client",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: 0,
+			max: 25,
+			step: 1,
+			},
+			default: 14,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Titlebar Icon Size --
+		game.settings.register(MODULE.ID, 'titlebarIconSize', {
+			name: MODULE.ID + '.titlebarIconSize-Label',
+			hint: MODULE.ID + '.titlebarIconSize-Hint',
+			scope: "client",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: 0,
+			max: 25,
+			step: 1,
+			},
+			default: 14,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+		// -- Titlebar Spacing --
+		game.settings.register(MODULE.ID,"titlebarSpacing", {
+			name: MODULE.ID + '.titlebarSpacing-Label',
+			hint: MODULE.ID + '.titlebarSpacing-Hint',
+			scope: "client",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: 0,
+			max: 25,
+			step: 1,
+			},
+			default: 0,
+			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+		});
+
+
+
+
 
 
 
@@ -656,8 +864,6 @@ export const registerSettings = async () => {
 		// ================================================================== 
 		// == RUN THE GAME
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 
@@ -667,8 +873,6 @@ export const registerSettings = async () => {
 		// ================================================================== 
 		// == MANAGE CONTENT
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
 
@@ -678,25 +882,62 @@ export const registerSettings = async () => {
 		// ================================================================== 
 		// == ROLLING AND PROGRESSION
 		// ================================================================== 
-
-		// ---------- MAIN SECTION HEADER ----------
 		registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
+		// --------------------------------------
+		// -- H2: ROLL SYSTEM
+		// --------------------------------------
+		registerHeader('diceRollTool', 'headingH2diceRollTool-Label', 'headingH2diceRollTool-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
-
-			
-		// *** XP DISTRIBUTION SETTINGS ***
-
-		// ---------- SUBHEADING ----------
-		game.settings.register(MODULE.ID, "headingH2XpDistribution", {
-			name: 'XP DISTRIBUTION',
-			hint: 'These settings control the automatic XP distribution system that triggers when combat ends.',
-			scope: "world",
+		// -- Chat Roll System Choice --
+		game.settings.register(MODULE.ID, 'diceRollToolSystem', {
+			name: 'Chat Roll System',
+			hint: 'Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can\'t be suppressed.',
+			scope: 'world',
 			config: true,
-			default: "",
 			type: String,
+			choices: {
+				'blacksmith': 'Blacksmith Roll System (Default)',
+				'foundry': 'Foundry Roll System'
+			},
+			default: 'blacksmith',
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
-		// -------------------------------------
+
+		registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3simple', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+
+		// -- Enable Dice So Nice Integration --
+		game.settings.register(MODULE.ID, 'diceRollToolEnableDiceSoNice', {
+			name: MODULE.ID + '.diceRollToolEnableDiceSoNice-Label',
+			hint: MODULE.ID + '.diceRollToolEnableDiceSoNice-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+		});
+
+
+		// -- Skill Check Preferences - HIDDEN SETTING --
+		game.settings.register(MODULE.ID, 'skillCheckPreferences', {
+			name: 'Skill Check Preferences',
+			hint: 'Default preferences for skill check dialog',
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {
+				showRollExplanation: true,
+				showDC: true,
+				groupRoll: true,
+				isCinematic: false
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+		});
+
+		// --------------------------------------
+		// -- H2: XP DISTRIBUTION
+		// --------------------------------------
+		registerHeader('XpDistribution', 'headingH2XpDistribution-Label', 'headingH2XpDistribution-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
 		// -- Enable XP Distribution --
 		game.settings.register(MODULE.ID, 'enableXpDistribution', {
@@ -705,7 +946,8 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			type: Boolean,
-			default: true
+			default: true,
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		// -- Auto-distribute XP --
@@ -715,7 +957,8 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			type: Boolean,
-			default: false
+			default: false,
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		// -- Share XP Results --
@@ -725,7 +968,8 @@ export const registerSettings = async () => {
 			scope: 'world',
 			config: true,
 			type: Boolean,
-			default: true
+			default: true,
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		// -- XP Calculation Method --
@@ -739,7 +983,8 @@ export const registerSettings = async () => {
 			choices: {
 				'dnd5e': 'D&D 5e RAW (CR-based XP Calculations)',
 				'narrative': 'Narrative/Goal-Based XP (Manual Entry)',
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		// -- Party Size Handling --
@@ -753,7 +998,8 @@ export const registerSettings = async () => {
 			choices: {
 				'dnd5e': 'D&D 5e RAW (No Multipliers)',
 				'multipliers': 'House Rules (Scale for Party Size)'
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 
@@ -769,7 +1015,8 @@ export const registerSettings = async () => {
 				min: 0,
 				max: 3,
 				step: 0.05
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		game.settings.register(MODULE.ID, 'xpMultiplierNegotiated', {
@@ -783,7 +1030,8 @@ export const registerSettings = async () => {
 				min: 0,
 				max: 3,
 				step: 0.05
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		game.settings.register(MODULE.ID, 'xpMultiplierEscaped', {
@@ -797,7 +1045,8 @@ export const registerSettings = async () => {
 				min: 0,
 				max: 3,
 				step: 0.05
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		game.settings.register(MODULE.ID, 'xpMultiplierIgnored', {
@@ -811,7 +1060,8 @@ export const registerSettings = async () => {
 				min: 0,
 				max: 3,
 				step: 0.05
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 		game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
@@ -825,26 +1075,157 @@ export const registerSettings = async () => {
 				min: 0,
 				max: 3,
 				step: 0.05
-			}
+			},
+			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
 
 
-
-
-
-
-
 		// ================================================================== 
-		// == AUTOMATION AND AI
+		// == AUTOMATION
 		// ================================================================== 
 
 		// ---------- MAIN SECTION HEADER ----------
-		registerHeader('AutomationAndAI', 'headingH1AutomationAndAI-Label', 'headingH1AutomationAndAI-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION_AND_AI);
+		registerHeader('Automation', 'headingH1Automation-Label', 'headingH1Automation-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION);
 
 
 
 
+
+
+
+
+
+
+		// ================================================================== 
+		// == Artifical Intelligence
+		// ================================================================== 
+		registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+
+
+		// --------------------------------------
+		// -- H3simple: Open AI Core
+		// --------------------------------------
+		registerHeader('OpenAICore', 'headingH3simpleheadingH2OpenAICore-Label', 'headingH3simpleheadingH2OpenAICore-Hint', 'H3simple', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+
+		// -- OPENAI MACRO --
+		game.settings.register(MODULE.ID,'openAIMacro', {
+			name: MODULE.ID + '.openAIMacro-Label',
+			hint: MODULE.ID + '.openAIMacro-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			default: '-- Choose a Macro --',
+			choices: BLACKSMITH.arrMacroChoices,
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+		// -- API KEY --
+		game.settings.register(MODULE.ID, 'openAIAPIKey', {
+			name: MODULE.ID + '.openAIAPIKey-Label',
+			hint: MODULE.ID + '.openAIAPIKey-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+		// -- PROJECT ID --
+		game.settings.register(MODULE.ID, 'openAIProjectId', {
+			name: MODULE.ID + '.openAIProjectId-Label',
+			hint: MODULE.ID + '.openAIProjectId-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+
+		// -- MODEL --
+		game.settings.register(MODULE.ID, 'openAIModel', {
+			name: MODULE.ID + '.openAIModel-Label',
+			hint: MODULE.ID + '.openAIModel-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: 'gpt-4-turbo-preview',
+			choices: {
+				'gpt-4-turbo-preview': 'GPT-4 Turbo (Latest: Best for D&D, 128K tokens)',
+				'gpt-4': 'GPT-4 (8,192 tokens)',
+				'gpt-3.5-turbo': 'GPT-3.5 Turbo (16K tokens)',
+			},
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+
+		// --------------------------------------
+		// -- H3simple: Open AI Context
+		// --------------------------------------
+		registerHeader('OpenAIContext', 'headingH3simpleheadingH2OpenAIContext-Label', 'headingH3simpleheadingH2OpenAIContext-Hint', 'H3simple', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+
+		// -- GAME SYSTEMS -- IS THIS USED??
+		game.settings.register(MODULE.ID, 'openAIGameSystems', {
+			name: MODULE.ID + '.openAIGameSystems-Label',
+			hint: MODULE.ID + '.openAIGameSystems-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: 'dnd5e',
+			choices: gameSystemChoices,
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+		// -- PROMPT --
+		game.settings.register(MODULE.ID, 'openAIPrompt', {
+			name: MODULE.ID + '.openAIPrompt-Label',
+			hint: MODULE.ID + '.openAIPrompt-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: genericPrompt + " " + formatPrompt,
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE 
+		});
+
+		// -- CONTEXT LENGTH --
+		game.settings.register(MODULE.ID,'openAIContextLength', {
+			name: MODULE.ID + '.openAIContextLength-Label',
+			hint: MODULE.ID + '.openAIContextLength-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+				min: 0,
+				max: 100,
+				step: 5,
+			},
+			default: 10,
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
+
+		// -- TEMPERATURE --
+		game.settings.register(MODULE.ID,'openAITemperature', {
+			name: MODULE.ID + '.openAITemperature-Label',
+			hint: MODULE.ID + '.openAITemperature-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+				min: 0,
+				max: 2,
+				step: .1,
+			},
+			default: 1,
+			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
+		});
 
 		// ================================================================== 
 		// == H1: DEVELOPER TOOLS
@@ -953,8 +1334,6 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
-
-
 		// --------------------------------------
 		// -- H2: CONSOLE SETTINGS
 		// --------------------------------------
@@ -1015,6 +1394,34 @@ export const registerSettings = async () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		// ================================================================== 
 		// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
 		// ================================================================== 
@@ -1024,14 +1431,53 @@ export const registerSettings = async () => {
 		// ================================================================== 
 
 		// *** VISUAL DIVIDER IN SETTINGS ***
-		game.settings.register(MODULE.ID, "headingHR", {
-			name: "** END OF NEW WORKFLOW **",
-			hint: "END OF NEW WORKFLOW-BASED ORGANIZATION - Everything below this line is still using the old organization",
+		game.settings.register(MODULE.ID, "headingHR1", {
+			name: "",
+			hint: "",
 			scope: "world",
 			config: true,
 			default: "",
 			type: String,
 		});
+		game.settings.register(MODULE.ID, "headingHR2", {
+			name: "",
+			hint: "",
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		game.settings.register(MODULE.ID, "headingHR3", {
+			name: "",
+			hint: "",
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		game.settings.register(MODULE.ID, "headingHR4", {
+			name: "",
+			hint: "",
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+		game.settings.register(MODULE.ID, "headingHR5", {
+			name: "",
+			hint: "",
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+
+
+
+
+
+
+
 
 		// *** RUN THE GAME ***
 		// ---------- MENUBAR PANEL ----------
@@ -1058,54 +1504,11 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-		// ---------- CHAT ----------
-		registerHeader('Chat', 'headingH2Chat-Label', 'headingH2Chat-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
-		// -------------------------------------
 
 
 
 
-		// *** THEMES AND EXPERIENCE ***
-		// ---------- THEMES ----------
-		registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-		// -------------------------------------
-		// ---------- SUBHEADING - ENABLE/DISABLE ----------
-		registerHeader('ThemeSelections', 'headingH3simpleThemeSelections-Label', 'headingH3simpleThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-		// -------------------------------------
-		
-		// Build out the themes based on the js file.
-		
-		registerThemes();
-		// Make them available to other settings.
-		
-		getThemeChoices();
 
-		// ---------- SUBHEADING - DEFAULT THEME ----------
-		registerHeader('ThemeDefault', 'headingH3simpleThemeDefault-Label', 'headingH3simpleThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-		// -------------------------------------
-
-		// -- Default Card Theme --
-		game.settings.register(MODULE.ID, 'defaultCardTheme', {
-			name: MODULE.ID + '.defaultCardTheme-Label',
-			hint: MODULE.ID + '.defaultCardTheme-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: 'cardsdefault',
-			choices: BLACKSMITH.arrThemeChoices,
-			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-		});
-
-		// -- Party Leader -- 
-		game.settings.register(MODULE.ID, 'partyLeader', {
-			name: 'Party Leader',
-			hint: 'The currently selected party leader',
-			scope: 'world',
-			config: false,
-			type: Object,
-			default: { userId: '', actorId: '' }
-		});
 
 
 
@@ -1218,187 +1621,19 @@ export const registerSettings = async () => {
 			default: 'normal-movement'
 		});
 
-		// *** CHAT SETTINGS ***
-		// ---------- SUBHEADING - CARD ADJUSTMENTS ----------
-		game.settings.register(MODULE.ID, "headingH3simpleCardAdjustments", {
-			name: MODULE.ID + '.headingH3CardAdjustments-Label',
-			hint: MODULE.ID + '.headingH3CardAdjustments-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-		// -- Chat Gap --
-		game.settings.register(MODULE.ID, 'chatSpacing', {
-			name: MODULE.ID + '.chatSpacing-Label',
-			hint: MODULE.ID + '.chatSpacing-Hint',
-			scope: "world",
-			requiresReload: true,
-			config: true,
-			type: Number,
-			range: {
-				min: -20,
-				max: 60,
-				step: 1,
-			},
-			default: 3,
-		});
-		// -- Top Margin --
-		game.settings.register(MODULE.ID,'cardTopMargin', {
-			name: MODULE.ID + '.cardTopMargin-Label',
-			hint: MODULE.ID + '.cardTopMargin-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: -20,
-			max: 20,
-			step: 1,
-			},
-			default: 0,
-		});
-		// -- Bottom Margin --
-		game.settings.register(MODULE.ID,'cardBottomMargin', {
-			name: MODULE.ID + '.cardBottomMargin-Label',
-			hint: MODULE.ID + '.cardBottomMargin-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: -20,
-			max: 20,
-			step: 1,
-			},
-			default: 0,
-		});
-		// -- Left Margin --
-		game.settings.register(MODULE.ID,'cardLeftMargin', {
-			name: MODULE.ID + '.cardLeftMargin-Label',
-			hint: MODULE.ID + '.cardLeftMargin-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: -20,
-			max: 20,
-			step: 1,
-			},
-			default: 0,
-		});
-		// -- Right Margin --
-		game.settings.register(MODULE.ID,'cardRightMargin', {
-			name: MODULE.ID + '.cardRightMargin-Label',
-			hint: MODULE.ID + '.cardRightMargin-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: -20,
-			max: 20,
-			step: 1,
-			},
-			default: 0,
-		});
-		// -- Top Offset --
-		game.settings.register(MODULE.ID,'cardTopOffset', {
-			name: MODULE.ID + '.cardTopOffset-Label',
-			hint: MODULE.ID + '.cardTopOffset-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: -80,
-			max: 80,
-			step: 1,
-			},
-			default: 50,
-		});
-
-		// *** ROLL TABLE OVERRIDES ***
-
-		// ---------- SUBHEADING - CARD SETTINGS ----------
-		game.settings.register(MODULE.ID, "headingH3simpleCardSettings", {
-			name: MODULE.ID + '.headingH3CardSettings-Label',
-			hint: MODULE.ID + '.headingH3CardSettings-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Remove Leading Icon from Roll Tables --
-		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
-			name: MODULE.ID + '.hideRollTableIcon-Label',
-			hint: MODULE.ID + '.hideRollTableIcon-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-		});
-		// *** LINK THEME ***
-		game.settings.register(MODULE.ID, 'objectLinkStyle', {
-			name: MODULE.ID + '.objectLinkStyle-Label',
-			hint: MODULE.ID + '.objectLinkStyle-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: 'none',
-			choices: {
-				'none': 'Foundry Default',
-				'text': 'Simple Text',
-				'green': 'Green',
-				'red': 'Red',
-				'blue': 'Blue',
-				'light': 'Light Mode',
-				'dark': 'Dark Mode',
-			}
-		});
 
 
-		// *** SCENE SETTINGS ***
-
-		// ---------- HEADING - JOURNALS  ----------
-		game.settings.register(MODULE.ID, "headingH2Journals", {
-			name: MODULE.ID + '.headingH2Journals-Label',
-			hint: MODULE.ID + '.headingH2Journals-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// ---------- SUBHEADING - JOURNAL QOL ----------
-		game.settings.register(MODULE.ID, "headingH3simpleJournalQOL", {
-			name: 'Quality of Life Settings',
-			hint: '',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
 
 
-		// -- JOURNAL INTERACTIONS --
-		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
-			name: MODULE.ID + '.enableJournalDoubleClick-Label',
-			hint: MODULE.ID + '.enableJournalDoubleClick-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-		});
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1433,8 +1668,6 @@ export const registerSettings = async () => {
 			type: String,
 			default: 'Encounters'
 		});
-
-
 
 		// -- Deployment Hidden --
 		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentHidden', {
@@ -1497,269 +1730,34 @@ export const registerSettings = async () => {
 
 
 
-		// *** ROLL SYSTEM SETTINGS ***
-
-		// ---------- HEADING - ROLL SYSTEM  ----------
-		game.settings.register(MODULE.ID, "headingH2diceRollTool", {
-			name: MODULE.ID + '.headingH2diceRollTool-Label',
-			hint: MODULE.ID + '.headingH2diceRollTool-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
 
 
-		// ---------- SUBHEADING - CHAT ROLL SYSTEM ----------
-		game.settings.register(MODULE.ID, "headingH3diceRollToolSystem", {
-			name: MODULE.ID + '.headingH3diceRollToolSystem-Label',
-			hint: MODULE.ID + '.headingH3diceRollToolSystem-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Chat Roll System Choice --
-		game.settings.register(MODULE.ID, 'diceRollToolSystem', {
-			name: 'Chat Roll System',
-			hint: 'Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can\'t be suppressed.',
-			scope: 'world',
-			config: true,
-			type: String,
-			choices: {
-				'blacksmith': 'Blacksmith Roll System (Default)',
-				'foundry': 'Foundry Roll System'
-			},
-			default: 'blacksmith'
-		});
-
-		// ---------- SUBHEADING - ROLL INTEGRATIONS ----------
-		game.settings.register(MODULE.ID, "headingH3diceRollToolIntegrations", {
-			name: MODULE.ID + '.headingH3diceRollToolIntegrations-Label',
-			hint: MODULE.ID + '.headingH3diceRollToolIntegrations-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Enable Dice So Nice Integration --
-		game.settings.register(MODULE.ID, 'diceRollToolEnableDiceSoNice', {
-			name: MODULE.ID + '.diceRollToolEnableDiceSoNice-Label',
-			hint: MODULE.ID + '.diceRollToolEnableDiceSoNice-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
 
-		// -- Hidden Setting -- Skill Check 
-		game.settings.register(MODULE.ID, 'skillCheckPreferences', {
-			name: 'Skill Check Preferences',
-			hint: 'Default preferences for skill check dialog',
-			scope: 'client',
-			config: false,
-			type: Object,
-			default: {
-				showRollExplanation: true,
-				showDC: true,
-				groupRoll: true,
-				isCinematic: false
-			}
-		});
 
 
-		// *** SCENE SETTINGS ***
-
-		// ---------- HEADING - SCENES  ----------
-		game.settings.register(MODULE.ID, "headingH2Scenes", {
-			name: MODULE.ID + '.headingH2Scenes-Label',
-			hint: MODULE.ID + '.headingH2Scenes-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
 
 
-		// ---------- SUBHEADING - SCENE INTERACTIONS ----------
-		game.settings.register(MODULE.ID, "headingH3simpleSceneInteraction", {
-			name: MODULE.ID + '.headingH3simpleSceneInteraction-Label',
-			hint: MODULE.ID + '.headingH3simpleSceneInteraction-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
 
-		// -- SCENE INTERACTIONS --
-		game.settings.register(MODULE.ID, 'enableSceneInteractions', {
-			name: MODULE.ID + '.enableSceneInteractions-Label',
-			hint: MODULE.ID + '.enableSceneInteractions-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-		});
 
-		// -- SCENE BEHAVIORS --
-		game.settings.register(MODULE.ID, 'enableSceneClickBehaviors', {
-			name: MODULE.ID + '.enableSceneClickBehaviors-Label',
-			hint: MODULE.ID + '.enableSceneClickBehaviors-Hint',
-			type: Boolean,
-			config: true,
-			requiresReload: true,
-			scope: 'world',
-			default: true,
-		});
 
-		// ---------- SUBHEADING - SCENE SETTINGS ----------
-		game.settings.register(MODULE.ID, "headingH3simpleSceneSettings", {
-			name: MODULE.ID + '.headingH3SceneSettings-Label',
-			hint: MODULE.ID + '.headingH3SceneSettings-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-		// -- Scene Text Align --
-		game.settings.register(MODULE.ID, 'sceneTextAlign', {
-			name: MODULE.ID + '.sceneTextAlign-Label',
-			hint: MODULE.ID + '.sceneTextAlign-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: 'left',
-			choices: {
-				'center': 'Foundry Default (Center)',
-				'left': 'Left Align Scene Title',
-				'right': 'Right Align Scene Title',
-			}
-		});
-		// -- Scene Text Size --
-		game.settings.register(MODULE.ID, 'sceneFontSize', {
-			name: MODULE.ID + '.sceneFontSize-Label',
-			hint: MODULE.ID + '.sceneFontSize-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-				min: .5,
-				max: 3,
-				step: .05,
-			},
-			default: 1,
-		});
-		// -- Scene Title Padding --
-		game.settings.register(MODULE.ID, 'sceneTitlePadding', {
-			name: MODULE.ID + '.sceneTitlePadding-Label',
-			hint: MODULE.ID + '.sceneTitlePadding-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-				min: -2,
-				max: 30,
-				step: 1,
-			},
-			default: 0,
-		});
 
-		// -- Scene Panel Height --
-		game.settings.register(MODULE.ID, 'scenePanelHeight', {
-			name: MODULE.ID + '.scenePanelHeight-Label',
-			hint: MODULE.ID + '.scenePanelHeight-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-				min: 30,
-				max: 300,
-				step: 5,
-			},
-			default: 100,
-		});
 
-		// *** TITLEBAR ***
 
-		// ---------- HEADING - WINDOWS  ----------
-		game.settings.register(MODULE.ID, "headingH2Windows", {
-			name: MODULE.ID + '.headingH2Windows-Label',
-			hint: MODULE.ID + '.headingH2Windows-Hint',
-			scope: "client",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
 
-		// ---------- SUBHEADING - TITLEBAR SETTINGS ----------
-		game.settings.register(MODULE.ID, "headingH3TitlebarSettings", {
-			name: MODULE.ID + '.headingH3TitlebarSettings-Label',
-			hint: MODULE.ID + '.headingH3TitlebarSettings-Hint',
-			scope: "client",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-		// -- Titlebar Text Size --
-		game.settings.register(MODULE.ID, "titlebarTextSize", {
-			name: MODULE.ID + '.titlebarTextSize-Label',
-			hint: MODULE.ID + '.titlebarTextSize-Hint',
-			scope: "client",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: 0,
-			max: 25,
-			step: 1,
-			},
-			default: 14,
-		});
-		// -- Titlebar Icon Size --
-		game.settings.register(MODULE.ID,"titlebarIconSize", {
-			name: MODULE.ID + '.titlebarIconSize-Label',
-			hint: MODULE.ID + '.titlebarIconSize-Hint',
-			scope: "client",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: 0,
-			max: 25,
-			step: 1,
-			},
-			default: 14,
-		});
-		// -- Titlebar Spacing --
-		game.settings.register(MODULE.ID,"titlebarSpacing", {
-			name: MODULE.ID + '.titlebarSpacing-Label',
-			hint: MODULE.ID + '.titlebarSpacing-Hint',
-			scope: "client",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: 0,
-			max: 25,
-			step: 1,
-			},
-			default: 0,
-		});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		// *** CANVAS ***
 
@@ -1775,7 +1773,7 @@ export const registerSettings = async () => {
 		// -------------------------------------
 
 
-		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
+		// ---------- SUBHEADING - CANVAS TOOLS ----------
 		game.settings.register(MODULE.ID, "headingH3CanvasTools", {
 			name: 'Canvas Tools',
 			hint: 'Control which bits of the interface hide and show when toggled.',
@@ -1808,6 +1806,12 @@ export const registerSettings = async () => {
 			scope: 'client',
 			default: true,
 		});
+
+
+
+
+
+
 
 		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
 		game.settings.register(MODULE.ID, "headingH3Movement", {
@@ -3055,146 +3059,6 @@ export const registerSettings = async () => {
 
 
 
-
-	// *** OPEN AI SETTINGS ***
-
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2OpenAI", {
-		name: MODULE.ID + '.headingH2OpenAI-Label',
-		hint: MODULE.ID + '.headingH2OpenAI-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	
-	// ---------- OpenAI SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3simpleheadingH2OpenAICore", {
-		name: MODULE.ID + '.headingH3simpleheadingH2OpenAICore-Label',
-		hint: MODULE.ID + '.headingH3simpleheadingH2OpenAICore-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- OPENAI MACRO --
-	game.settings.register(MODULE.ID,'openAIMacro', {
-		name: MODULE.ID + '.openAIMacro-Label',
-		hint: MODULE.ID + '.openAIMacro-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		default: '-- Choose a Macro --',
-		choices: BLACKSMITH.arrMacroChoices
-	});
-
-	// -- API KEY --
-	game.settings.register(MODULE.ID, 'openAIAPIKey', {
-		name: MODULE.ID + '.openAIAPIKey-Label',
-		hint: MODULE.ID + '.openAIAPIKey-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- PROJECT ID --
-	game.settings.register(MODULE.ID, 'openAIProjectId', {
-		name: MODULE.ID + '.openAIProjectId-Label',
-		hint: MODULE.ID + '.openAIProjectId-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-
-	// -- MODEL --
-	game.settings.register(MODULE.ID, 'openAIModel', {
-		name: MODULE.ID + '.openAIModel-Label',
-		hint: MODULE.ID + '.openAIModel-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'gpt-4-turbo-preview',
-		choices: {
-			'gpt-4-turbo-preview': 'GPT-4 Turbo (Latest: Best for D&D, 128K tokens)',
-			'gpt-4': 'GPT-4 (8,192 tokens)',
-			'gpt-3.5-turbo': 'GPT-3.5 Turbo (16K tokens)',
-		}
-	});
-
-	// ---------- Context Settings ----------
-	game.settings.register(MODULE.ID, "headingH3simpleheadingH2OpenAIContext", {
-		name: MODULE.ID + '.headingH3simpleheadingH2OpenAIContext-Label',
-		hint: MODULE.ID + '.headingH3simpleheadingH2OpenAIContext-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- GAME SYSTEMS -- IS THIS USED??
-	game.settings.register(MODULE.ID, 'openAIGameSystems', {
-		name: MODULE.ID + '.openAIGameSystems-Label',
-		hint: MODULE.ID + '.openAIGameSystems-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'dnd5e',
-		choices: gameSystemChoices,
-	});
-
-	// -- PROMPT --
-	game.settings.register(MODULE.ID, 'openAIPrompt', {
-		name: MODULE.ID + '.openAIPrompt-Label',
-		hint: MODULE.ID + '.openAIPrompt-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: genericPrompt + " " + formatPrompt 
-	});
-	// -- CONTEXT LENGTH --
-	game.settings.register(MODULE.ID,'openAIContextLength', {
-		name: MODULE.ID + '.openAIContextLength-Label',
-		hint: MODULE.ID + '.openAIContextLength-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-			min: 0,
-			max: 100,
-			step: 5,
-		},
-		default: 10,
-	});
-	// -- TEMPERATURE --
-	game.settings.register(MODULE.ID,'openAITemperature', {
-		name: MODULE.ID + '.openAITemperature-Label',
-		hint: MODULE.ID + '.openAITemperature-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-			min: 0,
-			max: 2,
-			step: .1,
-		},
-		default: 1,
-	});
 
 
 	

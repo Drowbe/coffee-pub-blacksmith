@@ -2,17 +2,12 @@
 	"coffee-pub-blacksmith": {
 
 
-		"headingH1Blacksmith-Label": "Introduction",
-		"headingH1Blacksmith-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
-
 
 		"headingH1GettingStarted-Label": "Getting Started",
 		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
 
-
-			"headingH2General-Label": "General",
-			"headingH2General-Hint": "General settings, connfiguration, and other goodies.",
-
+			"headingH4Introduction-Label": "Introduction",
+			"headingH4Introduction-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
 
 			"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
 			"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
@@ -37,37 +32,52 @@
 
 
 
+		"headingH1LayoutAndExperience-Label": "User Experience",
+		"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
+	
 
+			"headingH2Themes-Label": "Themes",
+			"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
+		
+			"headingH3simpleThemeSelections-Label": "Theme Selections",
+			"headingH3simpleThemeSelections-Hint": "Description",
+		
+			"headingH3simpleThemeDefault-Label": "Theme Defaults",
+			"headingH3simpleThemeDefault-Hint": "Description",
 
-	"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
-	"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
-	"headingH3QualityOfLife-Label": "Quality of Life",
-	"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
-	"headingH3Toolbar-Label": "Toolbar",
-	"headingH3Toolbar-Hint": "Toolbar customization and display options",
-	"headingH3Windows-Label": "Windows",
-	"headingH3Windows-Hint": "Window styling and titlebar customization",
-	"headingH3Scenes-Label": "Scenes",
-	"headingH3Scenes-Hint": "Scene layout and display customization",
+			"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
+			"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
+			"headingH3QualityOfLife-Label": "Quality of Life",
+			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
+			"headingH3Toolbar-Label": "Toolbar",
+			"headingH3Toolbar-Hint": "Toolbar customization and display options",
+			"headingH3Windows-Label": "Windows",
+			"headingH3Windows-Hint": "Window styling and titlebar customization",
+			"headingH3Scenes-Label": "Scenes",
+			"headingH3Scenes-Hint": "Scene layout and display customization",
 
-	"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
-	"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
-	"objectLinkStyle-Label": "Object Link Style",
-	"objectLinkStyle-Hint": "Styling for object links in chat and journals",
-	"hideRollTableIcon-Label": "Hide Roll Table Icon",
-	"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
-	"toolbarShowDividers-Label": "Show Toolbar Dividers",
-	"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
-	"toolbarShowLabels-Label": "Show Toolbar Labels",
-	"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
-	"titlebarTextSize-Label": "Titlebar Text Size",
-	"titlebarTextSize-Hint": "Size of text in window titlebars",
-	"titlebarIconSize-Label": "Titlebar Icon Size",
-	"titlebarIconSize-Hint": "Size of icons in window titlebars",
-	"sceneTitlePadding-Label": "Scene Title Padding",
-	"sceneTitlePadding-Hint": "Padding around scene titles",
-	"scenePanelHeight-Label": "Scene Panel Height",
-	"scenePanelHeight-Hint": "Height of scene panels",
+			"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
+			"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
+			"objectLinkStyle-Label": "Object Link Style",
+			"objectLinkStyle-Hint": "Styling for object links in chat and journals",
+			"hideRollTableIcon-Label": "Hide Roll Table Icon",
+			"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
+			"toolbarShowDividers-Label": "Show Toolbar Dividers",
+			"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
+			"toolbarShowLabels-Label": "Show Toolbar Labels",
+			"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
+			"titlebarTextSize-Label": "Titlebar Text Size",
+			"titlebarTextSize-Hint": "Size of text in window titlebars",
+			"titlebarIconSize-Label": "Titlebar Icon Size",
+			"titlebarIconSize-Hint": "Size of icons in window titlebars",
+			
+			"titlebarSpacing-Label": "TitlebarSpacing",
+			"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
+
+			"sceneTitlePadding-Label": "Scene Title Padding",
+			"sceneTitlePadding-Hint": "Padding around scene titles",
+			"scenePanelHeight-Label": "Scene Panel Height",
+			"scenePanelHeight-Hint": "Height of scene panels",
 
 
 
@@ -94,8 +104,16 @@
 
 
 
-	"headingH1AutomationAndAI-Label": "Automation and AI",
-	"headingH1AutomationAndAI-Hint": "AI integration and automation features",
+	"headingH1Automation-Label": "Automation",
+	"headingH1Automation-Hint": "These setting add features like token image replacement, movement tools, and more.",
+
+
+
+
+
+	"headingH1ArtificialIntelligence-Label": "Artifical Intelligence",
+	"headingH1ArtificialIntelligence-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
+
 
 
 
@@ -141,20 +159,11 @@
 
 
 
-	"headingH2Themes-Label": "Themes",
-	"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
 
-	"headingH3simpleThemeSelections-Label": "Theme Selections",
-	"headingH3simpleThemeSelections-Hint": "Description",
-
-	"headingH3simpleThemeDefault-Label": "Theme Defaults",
-	"headingH3simpleThemeDefault-Hint": "Description",
 
 	"defaultCardTheme-Label": "Deault Coffee Pub Theme",
 	"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
 
-	"headingH2Chat-Label": "Chat",
-	"headingH2Chat-Hint": "Customize global chat settings in Foundry VTT. With options for adjusting the spacing, margin, and styling, you can tailor your chat layout to suit your preferences and enhance overall communication within the game.",
 
 	"headingH3CardAdjustments-Label": "Chat Adjustments",
 	"headingH3CardAdjustments-Hint": "Description",
@@ -177,12 +186,9 @@
 	"cardTopOffset-Label": "Top Offset",
 	"cardTopOffset-Hint": "Adds additional top margin for some cards. And example would be scribe chat narration cards. This offset only applies to Coffee Pub modules. Range: -80px to 80px.",
 
-	"headingH3CardSettings-Label": "Card Configurations",
-	"headingH3CardSettings-Hint": "Description",
 
 
-	"headingH2Journals-Label": "Journals",
-	"headingH2Journals-Hint": "Tweak the journal behaviors to fit your needs.",
+
 
 	"enableEncounterToolbar-Label": "Enable Encounter Toolbar",
 	"enableEncounterToolbar-Hint": "Shows a toolbar in encounter journal entries that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
@@ -213,24 +219,17 @@
 	"headingH2diceRollTool-Label": "Roll System",
 	"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
 
-	"headingH3diceRollToolSystem-Label": "Dice Roll System",
-	"headingH3diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card. Note: The Foundry Roll system includes per-player roll cards that can't be suppressed.",
-
 	"diceRollToolSystem-Label": "Rolls from Chat Cards",
 	"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
 
 	"headingH3diceRollToolIntegrations-Label": "Module Integrations",
-	"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other module. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
+	"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other modules. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
 
 	"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
 	"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",
 
 
-	"headingH2Scenes-Label": "Scenes",
-	"headingH2Scenes-Hint": "Tweak the scene layouts to fit your esthetic.",
 
-	"headingH3simpleSceneInteraction-Label": "Interaction",
-	"headingH3simpleSceneInteraction-Hint": "Description",
 
 	"enableSceneInteractions-Label": "Show Scene Indicators",
 	"enableSceneInteractions-Hint": "Adds icons to the scene title letting you knwo which is active and which is being viewed. Defualt: Enabled (checked).",	
@@ -249,14 +248,6 @@
 	"sceneFontSize-Label": "Title Size",
 	"sceneFontSize-Hint": "Sets the font size for the scene titles in the scene selector.  Defualt: 1.0em.",
 
-	"headingH2Windows-Label": "Windows",
-	"headingH2Windows-Hint": "Style windows the way you want them.",
-
-	"headingH3TitlebarSettings-Label": "Titlebar Adjustments",
-	"headingH3TitlebarSettings-Hint": "If your titlebar is getting too crowded, tweak the setting below until it is laid out how you want it. (Requires Reload)",
-
-	"titlebarSpacing-Label": "Spacing",
-	"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
 
 	"headingH2Tokens-Label": "Tokens",
 	"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, chang ethe style of the nameplate under the token, and ignore tokens you wan tto leave untouched.",
@@ -343,8 +334,6 @@
 	"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
 
-	"headingH2OpenAI-Label": "Blacksmith AI Tools",
-	"headingH2OpenAI-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
 
 	"headingH3simpleheadingH2OpenAICore-Label": "Open AI Information",
 	"headingH3simpleheadingH2OpenAICore-Hint": "Description",

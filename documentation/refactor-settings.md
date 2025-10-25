@@ -87,22 +87,7 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ✅ `enableMenubar` - Enable menubar (migrated)
 - ✅ `excludedUsersMenubar` - Excluded users menubar (migrated)
 - ✅ `headingH2Chat` - Chat section header (migrated)
-- ⏳ `measurementTemplate` - Measurement template (pending)
-- ⏳ `tokenImageReplacementEnabled` - Token image replacement (pending)
-- ⏳ `tokenNameTable` - Token name table (pending)
-- ⏳ `ignoredTokens` - Ignored tokens (pending)
-- ⏳ `fuzzyMatch` - Fuzzy matching (pending)
-- ⏳ `nameplateStyle` - Nameplate style (pending)
-- ⏳ `nameplateTextSize` - Nameplate text size (pending)
-- ⏳ `nameplateTextColor` - Nameplate text color (pending)
-- ⏳ `nameplateOutlineSize` - Nameplate outline size (pending)
-- ⏳ `nameplateOutlineColor` - Nameplate outline color (pending)
-- ⏳ `tokenLootSound` - Token loot sound (pending)
-- ⏳ `movementSoundEnabled` - Movement sound enabled (pending)
-- ⏳ `movementSoundPlayerTokens` - Player token sounds (pending)
-- ⏳ `movementSoundMonsterTokens` - Monster token sounds (pending)
-- ⏳ `movementSoundVolume` - Movement sound volume (pending)
-- ⏳ `movementSoundDistanceThreshold` - Movement sound distance (pending)
+- 
 - ⏳ `combatTimerEnabled` - Combat timer enabled (pending)
 - ⏳ `combatTimerDuration` - Combat timer duration (pending)
 - ⏳ `combatTimerEndTurn` - End turn on expiration (pending)
@@ -138,13 +123,33 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 - ⏳ `xpDistributionMethod` - XP distribution method (pending)
 
 
-#### AUTOMATION AND AI GROUP - ⏳ PENDING
-- ⏳ `openAIAPIKey` - OpenAI API key (pending)
-- ⏳ `openAIProjectId` - OpenAI project ID (pending)
-- ⏳ `openAIModel` - OpenAI model (pending)
-- ⏳ `openAIGameSystems` - Game systems (pending)
-- ⏳ `openAIPrompt` - OpenAI prompt (pending)
-- ⏳ `openAIContextLength` - Context length (pending)
+#### AUTOMATION  - ⏳ PENDING
+- ⏳ `measurementTemplate` - Measurement template (pending)
+- ⏳ `tokenImageReplacementEnabled` - Token image replacement (pending)
+- ⏳ `tokenNameTable` - Token name table (pending)
+- ⏳ `ignoredTokens` - Ignored tokens (pending)
+- ⏳ `fuzzyMatch` - Fuzzy matching (pending)
+- ⏳ `nameplateStyle` - Nameplate style (pending)
+- ⏳ `nameplateTextSize` - Nameplate text size (pending)
+- ⏳ `nameplateTextColor` - Nameplate text color (pending)
+- ⏳ `nameplateOutlineSize` - Nameplate outline size (pending)
+- ⏳ `nameplateOutlineColor` - Nameplate outline color (pending)
+- ⏳ `tokenLootSound` - Token loot sound (pending)
+- ⏳ `movementSoundEnabled` - Movement sound enabled (pending)
+- ⏳ `movementSoundPlayerTokens` - Player token sounds (pending)
+- ⏳ `movementSoundMonsterTokens` - Monster token sounds (pending)
+- ⏳ `movementSoundVolume` - Movement sound volume (pending)
+- ⏳ `movementSoundDistanceThreshold` - Movement sound distance (pending)
+
+
+
+#### AI GROUP - ✅ PENDING
+- ✅ `openAIAPIKey` - OpenAI API key (pending)
+- ✅ `openAIProjectId` - OpenAI project ID (pending)
+- ✅ `openAIModel` - OpenAI model (pending)
+- ✅ `openAIGameSystems` - Game systems (pending)
+- ✅ `openAIPrompt` - OpenAI prompt (pending)
+- ✅ `openAIContextLength` - Context length (pending)
 
 
 #### DEVELOPER TOOLS GROUP - ✅ COMPLETE
