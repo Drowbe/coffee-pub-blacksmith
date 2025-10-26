@@ -150,7 +150,8 @@ function getCompendiumChoices() {
         const label = `${packageLabel}: ${compendium.metadata.label}`;
         return {
             id: compendium.metadata.id,
-            label: label
+            label: label,
+            type: compendium.metadata.type
         };
     });
 
@@ -164,8 +165,26 @@ function getCompendiumChoices() {
     }, {"none": "-- None --"});
 
     // BLACKSMITH UPDATER - Make the Compendium Array available to ALL Coffee Pub modules
-
+    
+    // Store the full data array with type information
+    BLACKSMITH.updateValue('arrCompendiumChoicesData', choicesArray);
+    
+    // Store the main choices (backward compatible)
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
+    
+    // Create and store filtered arrays for each type
+    const types = [...new Set(choicesArray.map(c => c.type))];
+    types.forEach(type => {
+        const filteredChoices = choicesArray
+            .filter(compendium => compendium.type === type)
+            .reduce((choices, compendium) => {
+                choices[compendium.id] = compendium.label;
+                return choices;
+            }, {"none": "-- None --"});
+        
+        BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
+    });
+    
     // Make the array available to these settings.
     return choices;
 }
@@ -1025,18 +1044,18 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
-		// -- Monster Lookup Compendiums (up to 8) --
-		for (let i = 1; i <= numCompendiums; i++) {
-			game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
-				name: `Actor: Priority ` + i,
-				hint: null,
-				scope: "world",
-				config: true,
-				requiresReload: false,
-				default: "none",
-				choices: BLACKSMITH.arrCompendiumChoices
-			});
-		}
+	// -- Monster Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= numCompendiums; i++) {
+		game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
+			name: `Actor: Priority ` + i,
+			hint: null,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoicesActor || "failed to load choices"
+		});
+	}
 
 	// --------------------------------------
 	// -- H3simple: Item Compendiums
@@ -1075,7 +1094,7 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
+			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices"
 		});
 	}
 
@@ -1119,7 +1138,7 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
+			choices: BLACKSMITH.arrCompendiumChoicesJournalEntry || "failed to load choices"
 		});
 	}
 
@@ -1164,7 +1183,7 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
+			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices"
 		});
 	}
 
