@@ -357,10 +357,11 @@ export const registerSettings = async () => {
     const nameplateChoices = getNameplateChoices();
     
 
-
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == H1: GETTING STARTED
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
 
 		// --------------------------------------
@@ -478,9 +479,21 @@ export const registerSettings = async () => {
 		});
 
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == H1: LAYOUT AND EXPERIENCE
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// --------------------------------------
@@ -576,10 +589,6 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
 
-
-
-
-
 		// --------------------------------------
 		// -- H3simple: MENUBAR
 		// --------------------------------------
@@ -605,10 +614,6 @@ export const registerSettings = async () => {
 			default: '',
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
-
-
-
-
 
 		// --------------------------------------
 		// -- H3simple: TOOLBAR
@@ -641,7 +646,6 @@ export const registerSettings = async () => {
 		// -- H3simple: SCENES
 		// --------------------------------------
 		registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
-
 
 		// -- SCENE INTERACTIONS --
 		game.settings.register(MODULE.ID, 'enableSceneInteractions', {
@@ -750,7 +754,6 @@ export const registerSettings = async () => {
 			default: true,
 			group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 		});
-
 
 		// -- Chat Gap --
 		game.settings.register(MODULE.ID, 'chatSpacing', {
@@ -938,26 +941,260 @@ export const registerSettings = async () => {
 
 
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == RUN THE GAME
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 
 
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == MANAGE CONTENT
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
+		
+		// Set the number of compendiums
+		const numCompendiums = 8;
+
+		// --------------------------------------
+		// -- H2: Compendiums
+		// --------------------------------------
+		registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+		// --------------------------------------
+		// -- H3simple: Rotation
+		// --------------------------------------
+		registerHeader('ActorCompendiums', 'headingH3ActorCompendiums-Label', 'headingH3ActorCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+
+		// -- Search World Actors First --
+		game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
+			name: 'Search World Actors First',
+			hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+		});
+
+		// -- Search World Actors Last --
+		game.settings.register(MODULE.ID, 'searchWorldActorsLast', {
+			name: 'Search World Actors Last',
+			hint: 'When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+		});
+
+		// -- Monster Lookup Compendiums (up to 8) --
+		for (let i = 1; i <= numCompendiums; i++) {
+			game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
+				name: `Actor: Priority ` + i,
+				hint: null,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrCompendiumChoices
+			});
+		}
+
+	// --------------------------------------
+	// -- H3simple: Item Compendiums
+	// --------------------------------------
+	registerHeader('ItemCompendiums', 'headingH3ItemCompendiums-Label', 'headingH3ItemCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+
+
+	// -- Search World Items First --
+	game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
+		name: MODULE.ID + '.searchWorldItemsFirst-Label',
+		hint: MODULE.ID + '.searchWorldItemsFirst-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Search World Items Last --
+	game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
+		name: MODULE.ID + '.searchWorldItemsLast-Label',
+		hint: MODULE.ID + '.searchWorldItemsLast-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Item Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= numCompendiums; i++) {
+		game.settings.register(MODULE.ID, `itemCompendium${i}` , {
+			name: `Item: Priority ` + i,
+			hint: null,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
+
+	// ---------- FEATURE COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3FeatureCompendiums", {
+		name: 'Feature Compendiums',
+		hint: 'These settings control how you to link features in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// ------------------------------------- 
+
+	// -- Search World Features First --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
+		name: 'Search World Features First',
+		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Search World Features Last --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
+		name: 'Search World Features Last',
+		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Features Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= numCompendiums; i++) {
+		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
+			name: `Feature Lookup ${i}`,
+			hint: `The #${i} compendium to use for feature linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
+
+
+	// ---------- SPELL COMPENDIUMS ----------
+	game.settings.register(MODULE.ID, "headingH3SpellCompendiums", {
+		name: 'Spell Compendiums',
+		hint: 'These settings control how you to link spells in the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// ------------------------------------- 
+	
+	// -- Search World Spells First --
+	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
+		name: 'Search World Features First',
+		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Search World Spells Last --
+	game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
+		name: 'Search World Features Last',
+		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+	});
+
+	// -- Spell Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= numCompendiums; i++) {
+		game.settings.register(MODULE.ID, `spellCompendium${i}` , {
+			name: `Spell Lookup ${i}`,
+			hint: `The #${i} compendium to use for spell linking. Searched in order. Set to 'None' to skip.`,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrCompendiumChoices
+		});
+	}
 
 
 
 
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == ROLLING AND PROGRESSION
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
 		// --------------------------------------
@@ -1157,13 +1394,576 @@ export const registerSettings = async () => {
 
 
 
-		// ================================================================== 
-		// == AUTOMATION
-		// ================================================================== 
 
-		// ---------- MAIN SECTION HEADER ----------
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
+		// == AUTOMATION
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('Automation', 'headingH1Automation-Label', 'headingH1Automation-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION);
 
+		// --------------------------------------
+		// -- H2: TOKENS
+		// --------------------------------------
+		registerHeader('Tokens', 'headingH2Tokens-Label', 'headingH2Tokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+		// --------------------------------------
+		// -- H3simple: Rotation
+		// --------------------------------------
+		registerHeader('TokenRotationOptions', 'headingH3TokenRotationOptions-Label', 'headingH3TokenRotationOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		game.settings.register(MODULE.ID, 'enableTokenRotation', {
+			name: MODULE.ID + '.enableTokenRotation-Label',
+			hint: MODULE.ID + '.enableTokenRotation-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+	
+		game.settings.register(MODULE.ID, 'tokenRotationMinDistance', {
+			name: MODULE.ID + '.tokenRotationMinDistance-Label',
+			hint: MODULE.ID + '.tokenRotationMinDistance-Hint',
+			type: Number,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			range: {
+				min: 0.1,
+				max: 2.0,
+				step: 0.1,
+			},
+			default: 0.5,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+	
+		game.settings.register(MODULE.ID, 'tokenRotationMode', {
+			name: MODULE.ID + '.tokenRotationMode-Label',
+			hint: MODULE.ID + '.tokenRotationMode-Hint',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			choices: {
+				'all': 'All Tokens',
+				'playerOnly': 'Player Tokens Only',
+				'npcOnly': 'NPC Tokens Only',
+				'combatOnly': 'Combat Tokens Only'
+			},
+			default: 'all',	
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+		// --------------------------------------
+		// -- H3simple: Token Movement
+		// --------------------------------------
+		registerHeader('TokenMovementOptions', 'headingH3TokenMovementOptions-Label', 'headingH3TokenMovementOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// -- Follow Movement Type - HIDDEN SETTING --
+		game.settings.register(MODULE.ID, 'movementType', {
+			name: MODULE.ID + '.movementType-Label',
+			hint: MODULE.ID + '.movementType-Hint',
+			scope: 'world',
+			config: false,
+			type: String,
+			default: 'normal-movement',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Follow Distance Threshold --
+		game.settings.register(MODULE.ID, 'movementFollowDistanceThreshold', {
+			name: MODULE.ID + '.movementFollowDistanceThreshold-Label',
+			hint: MODULE.ID + '.movementFollowDistanceThreshold-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: Number,
+			range: {
+				min: 8,
+				max: 20,
+				step: 1,
+			},
+			default: 10,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Token Spacing --
+        game.settings.register(MODULE.ID, 'tokenSpacing', {
+            name: MODULE.ID + '.tokenSpacing-Label',
+            hint: MODULE.ID + '.tokenSpacing-Hint',
+            hint: 'Number of grid spaces to maintain between tokens in formation',
+            scope: 'world',
+            config: true,
+            type: Number,
+			range: {
+				min: 0,
+				max: 3,
+				step: 1,
+			},
+            default: 0,
+			group: WORKFLOW_GROUPS.AUTOMATION
+        });
+
+		// -- Movement Type - HIDDEN SETTING --
+        game.settings.register(MODULE.ID, 'movementType', {
+            name: MODULE.ID + '.movementType-Label',
+            hint: MODULE.ID + '.movementType-Hint',
+            scope: 'world',
+            config: false,
+            type: String,
+            default: 'no-movement',
+			group: WORKFLOW_GROUPS.AUTOMATION
+        });
+
+		// -- Pre-Combat Movement Mode Storage - HIDDEN SETTING --
+		game.settings.register(MODULE.ID, 'preCombatMovementMode', {
+			name: 'Pre-Combat Movement Mode',
+			hint: 'Stores the movement mode that was active before combat started (for client refresh restoration)',
+			type: String,
+			config: false,
+			scope: 'world',
+			default: null,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// --------------------------------------
+		// -- H3simple: Token Sound
+		// --------------------------------------
+		registerHeader('TokenMovementSounds', 'headingH3TokenMovementSounds-Label', 'headingH3TokenMovementSounds-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// Enable Movement Sounds
+		game.settings.register(MODULE.ID, 'movementSoundsEnabled', {
+			name: MODULE.ID + '.movementSoundsEnabled-Label',
+			hint: MODULE.ID + '.movementSoundsEnabled-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Player Movement Sound
+		game.settings.register(MODULE.ID, 'movementSoundPlayer', {
+			name: MODULE.ID + '.movementSoundPlayer-Label',
+			hint: MODULE.ID + '.movementSoundPlayer-Hint',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 'SOUNDEFFECTGENERAL01', // Rustling Grass
+			choices: BLACKSMITH.arrSoundChoices,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Monster Movement Sound
+		game.settings.register(MODULE.ID, 'movementSoundMonster', {
+			name: MODULE.ID + '.movementSoundMonster-Label',
+			hint: MODULE.ID + '.movementSoundMonster-Hint',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 'SOUNDEFFECTGENERAL06', // Clatter
+			choices: BLACKSMITH.arrSoundChoices,	
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Movement Sound Volume
+		game.settings.register(MODULE.ID, 'movementSoundVolume', {
+			name: MODULE.ID + '.movementSoundVolume-Label',
+			hint: MODULE.ID + '.movementSoundVolume-Hint',
+			type: Number,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 0.3,
+			range: {
+				min: 0.0,
+				max: 1.0,
+				step: 0.1
+			},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Movement Sound Distance Threshold
+		game.settings.register(MODULE.ID, 'movementSoundDistanceThreshold', {
+			name: MODULE.ID + '.movementSoundDistanceThreshold-Label',
+			hint: MODULE.ID + '.movementSoundDistanceThreshold-Hint',
+			type: Number,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 5,
+			range: {
+				min: 1,
+				max: 50,
+				step: 1
+			},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// --------------------------------------
+		// -- H2: DROPPED TOKENS
+		// --------------------------------------
+		registerHeader('DroppedTokens', 'headingH2DroppedTokens-Label', 'headingH2DroppedTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+		// --------------------------------------
+		// -- H3simple: Token Movement Overrides
+		// --------------------------------------
+		registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// -- Unlock Token Rotation --
+		game.settings.register(MODULE.ID, 'unlockTokenRotation', {
+			name: 'Unlock Token Rotation',
+			hint: 'Override Foundry\'s default "lock rotation" setting for all new tokens. This will allow tokens to be rotated freely.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Disable Token Ring --
+		game.settings.register(MODULE.ID, 'disableTokenRing', {
+			name: 'Disable Token Ring',
+			hint: 'Override Foundry\'s default "enable ring" setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry\'s ring system and will not remove rings that are part of the token image itself.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Set Token Scale --
+		game.settings.register(MODULE.ID,'setTokenScale', {
+			name: 'Set Token Scale',
+			hint: 'Set the default scale size for dropped tokens.',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: Number,
+			range: {
+			min: 0.2,
+			max: 3,
+			step: 0.1,
+			},
+			default: 1,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Fit Mode --
+		game.settings.register(MODULE.ID, 'setTokenImageFitMode', {
+			name: 'Image Fit Mode',
+			hint: 'Set the image fit mode for dropped tokens. (default is Contain)',
+			type: String,
+			choices: {
+				"fill": "Fill",
+				"contain": "Contain",
+				"cover": "Cover",
+				"fullwidth": "Full Width",
+				"fullheight": "Full Height"
+			},
+			config: true,
+			scope: 'world',
+			default: "contain",
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// --------------------------------------
+		// -- H3simple: Nameplate Style
+		// --------------------------------------
+		registerHeader('TokenRenamingOptions', 'headingH3TokenRenamingOptions-Label', 'headingH3TokenRenamingOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		
+		// -- Name Format --
+		game.settings.register(MODULE.ID, 'tokenNameFormat', {
+			name: MODULE.ID + '.tokenNameFormat-Label',
+			hint: MODULE.ID + '.tokenNameFormat-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: 'none',
+			choices: nameplateChoices,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Ignored Tokens --
+		game.settings.register(MODULE.ID, 'ignoredTokens', {
+			name: MODULE.ID + '.ignoredTokens-Label',
+			hint: MODULE.ID + '.ignoredTokens-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Fuzzy Match --
+		game.settings.register(MODULE.ID, 'fuzzyMatch', {
+			name: MODULE.ID + '.fuzzyMatch-Label',
+			hint: MODULE.ID + '.fuzzyMatch-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Rename Table --
+		game.settings.register(MODULE.ID, 'tokenNameTable', {
+			name: MODULE.ID + '.tokenNameTable-Label',
+			hint: MODULE.ID + '.tokenNameTable-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: '-- Select A Table for Names --',
+			choices: BLACKSMITH.arrTableChoices,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+
+		// --------------------------------------
+		// -- H3simple: Nameplate Style
+		// --------------------------------------
+		registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// -- Font Family --
+		game.settings.register(MODULE.ID,'nameplateFontFamily', {
+			name: MODULE.ID + '.nameplateFontFamily-Label',
+			hint: MODULE.ID + '.nameplateFontFamily-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: String,
+			default: 'Signika',
+			choices: {
+				'Signika': 'Signika (Default)',
+				'Arial': 'Arial',
+				'IM Fell English': 'IM Fell English',
+				'Tahoma': 'Tahoma',
+				'Verdana': 'Verdana',
+				'Georgia': 'Georgia',
+				'Impact': 'Impact',
+				'Roboto': 'Roboto',
+			},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+		// -- Font Size --
+		game.settings.register(MODULE.ID,'nameplateFontSize', {
+			name: MODULE.ID + '.nameplateFontSize-Label',
+			hint: MODULE.ID + '.nameplateFontSize-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: 5,
+			max: 70,
+			step: 1,
+			},
+			default: 24,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+		// -- Nameplate color --
+		game.settings.register(MODULE.ID, 'nameplateColor', {
+			name: MODULE.ID + '.nameplateColor-Label',
+			hint: MODULE.ID + '.nameplateColor-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: String,
+			default: '#FFFFFF',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+		// -- Outline Size --
+		game.settings.register(MODULE.ID,'nameplateOutlineSize', {
+			name: MODULE.ID + '.nameplateOutlineSize-Label',
+			hint: MODULE.ID + '.nameplateOutlineSize-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: Number,
+			range: {
+			min: 0,
+			max: 20,
+			step: 1,
+			},
+			default: 2,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+		// -- Nameplate Outline color --
+		game.settings.register(MODULE.ID, 'nameplateOutlineColor', {
+			name: MODULE.ID + '.nameplateOutlineColor-Label',
+			hint: MODULE.ID + '.nameplateOutlineColor-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: true,
+			type: String,
+			default: '#111111',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+	
+
+		// --------------------------------------
+		// -- H3simple: Image Replacement
+		// --------------------------------------
+		registerHeader('TokenImageReplacement', 'headingH3TokenImageReplacement-Label', 'headingH3TokenImageReplacement-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// -- Enable Overall Image Replacement Features --
+		game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
+			name: MODULE.ID + '.tokenImageReplacementEnabled-Label',
+			hint: MODULE.ID + '.tokenImageReplacementEnabled-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+		
+		game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
+			name: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Label',
+			hint: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		game.settings.register(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', {
+			name: MODULE.ID + '.tokenImageReplacementShowInFoundryToolbar-Label',
+			hint: MODULE.ID + '.tokenImageReplacementShowInFoundryToolbar-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+		// Update Dropped Tokens
+		game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
+			name: MODULE.ID + '.tokenImageReplacementUpdateDropped-Label',
+			hint: MODULE.ID + '.tokenImageReplacementUpdateDropped-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Matching Threshold
+		game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
+			name: MODULE.ID + '.tokenImageReplacementThreshold-Label',
+			hint: MODULE.ID + '.tokenImageReplacementThreshold-Hint',
+			type: Number,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			range: {
+				min: 0.1,
+				max: 1.0,
+				step: 0.05
+			},
+			default: 0.3,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+		// Update Monsters
+		game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
+			name: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Label',
+			hint: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Update NPCs
+		game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
+			name: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Label', 
+			hint: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Update Vehicles
+		game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
+			name: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Label',
+			hint: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Update Actors
+		game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
+			name: MODULE.ID + '.tokenImageReplacementUpdateActors-Label',
+			hint: MODULE.ID + '.tokenImageReplacementUpdateActors-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Skip Linked Tokens
+		game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
+			name: MODULE.ID + '.tokenImageReplacementSkipLinked-Label',
+			hint: MODULE.ID + '.tokenImageReplacementSkipLinked-Hint',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+
+		// --------------------------------------
+		// -- H3simple: Image Replacement Cache
+		// --------------------------------------
+		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
 
 
 
@@ -1173,11 +1973,399 @@ export const registerSettings = async () => {
 
 
 
-		// ================================================================== 
+
+
+
+		game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
+			scope: 'world',
+			config: false,
+			type: String,
+			default: ''
+		});
+
+		game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+			name: "Token Image Replacement",
+			hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+
+
+		game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
+			name: 'Image Replacement Folder',
+			hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: '',
+			onChange: (value) => {
+				// Trigger cache rebuild when path changes
+				if (value && game.modules.get(MODULE.ID)?.active) {
+					// We'll implement this in Phase 2
+					console.log('Token image replacement path changed to:', value);
+				}
+			}
+		});
+
+
+
+
+		// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+			name: 'Token Image Replacement Window State',
+			hint: 'Stores the size and position of the Token Image Replacement window',
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {}
+		});
+
+		// ---------- TOKEN IMAGE REPLACEMENT IGNORED FOLDERS ----------
+		game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
+			name: 'Token Image Replacement: Ignored Folders',
+			hint: 'Comma-separated list of folder names to ignore when scanning for token images (e.g., _gsdata_, Build_a_Token, .DS_Store)',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '_gsdata_,Build_a_Token,.DS_Store',
+			requiresReload: true
+		});
+		// Deprioritized Words
+		game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+			name: 'Deprioritized Words',
+			hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 'spirit',
+		});
+		
+		// Tag Sort Mode
+		game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
+			name: 'Tag Sort Mode',
+			hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				'count': 'Count (by frequency)',
+				'alpha': 'Alpha (alphabetical)',
+				'hidden': 'Hidden (hide tags)'
+			},
+			default: 'count',
+			requiresReload: false
+		});
+		
+		// Ignored Words (File Exclusion)
+		game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
+			name: 'Ignored Words (File Exclusion)',
+			hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			requiresReload: true
+		});
+		// Cateogry Style
+		game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
+			name: 'Token Image Replacement: Category Style',
+			hint: 'Choose how category filters are displayed in the Token Image Replacement window',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				'buttons': 'Buttons',
+				'tabs': 'Tabs'
+			},
+			default: 'buttons',
+			requiresReload: true
+		});
+
+		
+
+		// CACHE SETTINGS
+
+		// Automatically Update Image Cache
+		game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
+			name: 'Automatically Update Image Cache',
+			hint: 'Automatically scan for new or changed token images when changes are detected.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+		});
+
+
+
+		// Fuzzy Search
+		game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
+			name: 'Fuzzy Search',
+			hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
+			type: Boolean,
+			config: false, // Hidden setting - controlled by UI toggle
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+		});
+
+		
+
+		// Token Image Replacement Cache (server-side storage)
+		game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
+			name: 'Token Image Replacement Cache',
+			hint: 'Internal cache storage for token image replacement system (server-side)',
+			scope: 'world',
+			config: false, // Hidden from users - internal use only
+			type: String,
+			default: '',
+			requiresReload: false
+		});
+
+		// TOKEN DATA WEIGHTING
+
+		// Actor Name Weight (NEW - most important for clean creature names)
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
+			name: 'Actor Name Weight',
+			hint: 'Weigting of the actor name when calulating matches. Weight the fiels with the most clean creature name the highest priority (e.g., "Frost Giant", "Goblin")',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 90
+		});
+
+		
+		// Token Name Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
+			name: 'Token Name Weight',
+			hint: 'Weigting of the actor name when calulating matches. This field often contains the display name of the token (e.g., "Bob (Goblin)", "Goblin 1", "Bob")',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 70
+		});
+
+		// Represented Actor Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
+			name: 'Represented Actor Weight',
+			hint: 'Weigting of the represented actor when calulating matches. This field usually represents the name of a linked token.',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 50
+		});
+
+
+		// Creature Type Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
+			name: 'Creature Type Weight',
+			hint: 'How important the creature type is for matching (e.g., "Humanoid", "Dragon", "Beast") - Official D&D5e type',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 15
+		});
+
+		// Creature Subtype Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', {
+			name: 'Creature Subtype Weight',
+			hint: 'How important the creature subtype is for matching (e.g., "Goblinoid", "Orc", "Elf") - Official D&D5e subtype',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 15
+		});
+
+		// Equipment Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightEquipment', {
+			name: 'Equipment Weight',
+			hint: 'How important equipment is for matching (e.g., "Sword", "Bow", "Staff")',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 10
+		});
+
+
+
+		// Size Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
+			name: 'Size Weight',
+			hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 3
+		});
+
+
+		// Monster Mapping Data
+		game.settings.register(MODULE.ID, 'monsterMappingData', {
+			name: 'Monster Mapping Data',
+			hint: 'Internal setting for monster type mapping data',
+			type: Object,
+			config: false,
+			scope: 'world',
+			default: {}
+		});
+
+		// ---------- Dead Tokens ----------
+		game.settings.register(MODULE.ID, "headingH3TokenActions", {
+			name: 'Token Actions',
+			hint: 'Automation of token actions.',
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+		});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// --------------------------------------
+		// -- H2: Encounters
+		// --------------------------------------
+		registerHeader('AutomatedEncounters', 'headingH2AutomatedEncounters-Label', 'headingH2AutomatedEncounters-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+		// --------------------------------------
+		// -- H3simple: Journal Toolbar
+		// --------------------------------------
+		registerHeader('JournalEncounterToolbar', 'headingH3JournalEncounterToolbar-Label', 'headingH3JournalEncounterToolbar-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+
+		// -- Enable Journal Encounter Toolbar --
+		game.settings.register(MODULE.ID, 'enableJournalEncounterToolbar', {
+			name: MODULE.ID + '.enableJournalEncounterToolbar-Label',
+			hint: MODULE.ID + '.enableJournalEncounterToolbar-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Content Scanning --
+		game.settings.register(MODULE.ID, 'enableEncounterContentScanning', {
+			name: MODULE.ID + '.enableEncounterContentScanning-Label',
+			hint: MODULE.ID + '.enableEncounterContentScanning-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Real-time CR Updates --
+		game.settings.register(MODULE.ID, 'enableJournalEncounterToolbarRealTimeUpdates', {
+			name: MODULE.ID + '.enableJournalEncounterToolbarRealTimeUpdates-Label',
+			hint: MODULE.ID + '.enableJournalEncounterToolbarRealTimeUpdates-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,	
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Encounter Folder --
+		game.settings.register(MODULE.ID, 'encounterFolder', {
+			name: 'Encounter Folder',
+			hint: 'Folder in which to add actors when deloying from the journal. Leave blank to not put them in a folder.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: 'Encounters',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Deployment Pattern --
+		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentPattern', {
+			name: MODULE.ID + '.encounterToolbarDeploymentPattern-Label',
+			hint: MODULE.ID + '.encounterToolbarDeploymentPattern-Hint',
+			type: String,
+			choices: {
+				"circle": "Circle Formation",
+				"line": "Line Formation",
+				"scatter": "Scatter Positioning",
+				"grid": "Grid Positioning",
+				"sequential": "Sequential Positioning"
+			},
+			config: true,
+			scope: 'world',
+			default: "grid",
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// -- Deployment Hidden --
+		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentHidden', {
+			name: MODULE.ID + '.encounterToolbarDeploymentHidden-Label',
+			hint: MODULE.ID + '.encounterToolbarDeploymentHidden-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == Artifical Intelligence
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
-
 
 		// --------------------------------------
 		// -- H3simple: Open AI Core
@@ -1303,9 +2491,27 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
 		});
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		// == H1: DEVELOPER TOOLS
-		// ================================================================== 
+		// ==================================================================================================================== 
+		// ==================================================================================================================== 
 		registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		// --------------------------------------
@@ -1322,8 +2528,8 @@ export const registerSettings = async () => {
 		});
 
 		game.settings.register(MODULE.ID, "cssTransition", {
-			name: "Smooth Transition",
-			hint: "Ease the new css styles into place with a smooth transition",
+			name: MODULE.ID + ".cssTransition-Label",
+			hint: MODULE.ID + ".cssTransition-Hint",
 			scope: "world",
 			config: true,
 			type: Boolean,
@@ -1332,8 +2538,8 @@ export const registerSettings = async () => {
 		});
 
 		game.settings.register(MODULE.ID, "cssDarkMode", {
-			name: "Dark Mode",
-			hint: "Enable dark mode for the css editor",
+			name: MODULE.ID + ".cssDarkMode-Label",
+			hint: MODULE.ID + ".cssDarkMode-Hint",
 			scope: "world",
 			config: true,
 			type: Boolean,
@@ -1351,36 +2557,54 @@ export const registerSettings = async () => {
 		registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 
-		game.settings.register(MODULE.ID, 'showPerformanceMonitorInMenubar', {
-			name: 'Show Performance Monitor',
-			hint: 'Show performance monitor in the menubar for system monitoring',
-			type: Boolean,
-			scope: 'world',
+		// Show Settings Tool
+		game.settings.register(MODULE.ID, 'menubarShowSettings', {
+			name: MODULE.ID + '.menubarShowSettings-Label',
+			hint: MODULE.ID + '.menubarShowSettings-Hint',
+			scope: 'client',
 			config: true,
-			default: true,
+			type: Boolean,
+			default: false,
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
-		game.settings.register(MODULE.ID, 'showRefreshInMenubar', {
-			name: 'Show Refresh',
-			hint: 'Show refresh button in the menubar for performance monitoring',
-			type: Boolean,
-			scope: 'world',
+		// Show Refresh Tool
+		game.settings.register(MODULE.ID, 'menubarShowRefresh', {
+			name: MODULE.ID + '.menubarShowRefresh-Label',
+			hint: MODULE.ID + '.menubarShowRefresh-Hint',
+			scope: 'client',
 			config: true,
-			default: true,
+			type: Boolean,
+			default: false,
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
-		game.settings.register(MODULE.ID, 'showSettingsInMenubar', {
-			name: 'Show Settings',
-			hint: 'Show settings button in the menubar for quick access',
-			type: Boolean,
-			scope: 'world',
+		// Show Performance Monitor Tool
+		game.settings.register(MODULE.ID, 'menubarShowPerformance', {
+			name: MODULE.ID + '.menubarShowPerformance-Label',
+			hint: MODULE.ID + '.menubarShowPerformance-Hint',
+			scope: 'client',
 			config: true,
-			default: true,
+			type: Boolean,
+			default: false,
 			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 		});
 
+		// Performance Monitor Poll Interval
+		game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
+			name: MODULE.ID + '.menubarPerformancePollInterval-Label',
+			hint: MODULE.ID + '.menubarPerformancePollInterval-Hint',
+			scope: 'client',
+			config: true,
+			type: Number,
+			default: 5,
+			range: {
+				min: 5,
+				max: 300,
+				step: 5
+			},
+			group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		});
 
 		// -- H3: LATENCY SETTINGS ---------------
 		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
@@ -1433,7 +2657,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- H3: DEBUG SETTINGS ---------------
-		registerHeader('DebugSettings', 'headingH3simpleDebug-Label', 'headingH3simpleDebug-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		registerHeader('DebugSettings', 'headingH3simpleDebugSettings-Label', 'headingH3simpleDebugSettings-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		// -- LOG DEBUG SETTINGS --
 		game.settings.register(MODULE.ID, 'globalDebugMode', {
@@ -1479,13 +2703,27 @@ export const registerSettings = async () => {
 
 
 
-		// ================================================================== 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		// ==================================================================================================================== 
 		// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
-		// ================================================================== 
+		// ==================================================================================================================== 
 		// *** END OF NEW WORKFLOW-BASED ORGANIZATION ***
 		// Everything above this line uses the new helper functions and workflow groups
 		// Everything below this line is still using the old organization
-		// ================================================================== 
+		// ==================================================================================================================== 
 
 		// *** VISUAL DIVIDER IN SETTINGS ***
 		game.settings.register(MODULE.ID, "headingHR", {
@@ -1496,14 +2734,6 @@ export const registerSettings = async () => {
 			default: "",
 			type: String,
 		});
-
-
-
-
-
-
-
-
 
 
 
@@ -1608,15 +2838,6 @@ export const registerSettings = async () => {
 
 
 
-		// Movement 
-		game.settings.register(MODULE.ID, 'movementType', {
-			name: 'Current Movement Type',
-			hint: 'The current movement restriction type for all players',
-			scope: 'world',
-			config: false,
-			type: String,
-			default: 'normal-movement'
-		});
 
 
 
@@ -1634,84 +2855,13 @@ export const registerSettings = async () => {
 
 
 
-		// ---------- SUBHEADING - AUTOMATED ENCOUNTERS ----------
-		game.settings.register(MODULE.ID, "headingH3simpleEncounterSettings", {
-			name: 'Automated Encounter Settings',
-			hint: '',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
 
 
-		// -- ENCOUNTER TOOLBAR --
-		game.settings.register(MODULE.ID, 'enableEncounterToolbar', {
-			name: MODULE.ID + '.enableEncounterToolbar-Label',
-			hint: MODULE.ID + '.enableEncounterToolbar-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
-		// -- Encounter Folder --
-		game.settings.register(MODULE.ID, 'encounterFolder', {
-			name: 'Encounter Folder',
-			hint: 'Folder in which to add actors when deloying from the journal. Leave blank to not put them in a folder.',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: 'Encounters'
-		});
 
-		// -- Deployment Hidden --
-		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentHidden', {
-			name: MODULE.ID + '.encounterToolbarDeploymentHidden-Label',
-			hint: MODULE.ID + '.encounterToolbarDeploymentHidden-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: false,
-		});
 
-		// -- Deployment Pattern --
-		game.settings.register(MODULE.ID, 'encounterToolbarDeploymentPattern', {
-			name: MODULE.ID + '.encounterToolbarDeploymentPattern-Label',
-			hint: MODULE.ID + '.encounterToolbarDeploymentPattern-Hint',
-			type: String,
-			choices: {
-				"circle": "Circle Formation",
-				"line": "Line Formation",
-				"scatter": "Scatter Positioning",
-				"grid": "Grid Positioning",
-				"sequential": "Sequential Positioning"
-			},
-			config: true,
-			scope: 'world',
-			default: "grid",
-		});
 
-		// -- Content Scanning --
-		game.settings.register(MODULE.ID, 'enableEncounterContentScanning', {
-			name: MODULE.ID + '.enableEncounterContentScanning-Label',
-			hint: MODULE.ID + '.enableEncounterContentScanning-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
-		// -- Real-time CR Updates --
-		game.settings.register(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates', {
-			name: MODULE.ID + '.enableEncounterToolbarRealTimeUpdates-Label',
-			hint: MODULE.ID + '.enableEncounterToolbarRealTimeUpdates-Hint',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-		});
 
 
 
@@ -1731,714 +2881,8 @@ export const registerSettings = async () => {
 
 
 
+		
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		// ---------- SUBHEADING - MOVEMENT SETTINGS ----------
-		game.settings.register(MODULE.ID, "headingH3Movement", {
-			name: 'Movement',
-			hint: 'Configures the way tokens move around on the canvas specific to the movement modes.',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Too Far --
-		game.settings.register(MODULE.ID, 'movementTooFarDistance', {
-			name: '"Too Far" Tiles',
-			hint: 'The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.',
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			type: Number,
-			range: {
-				min: 8,
-				max: 20,
-				step: 1,
-			},
-			default: 10,
-		});
-
-
-        game.settings.register(MODULE.ID, 'tokenSpacing', {
-            name: 'Token Spacing',
-            hint: 'Number of grid spaces to maintain between tokens in formation',
-            scope: 'world',
-            config: true,
-            type: Number,
-			range: {
-				min: 0,
-				max: 3,
-				step: 1,
-			},
-            default: 0
-        });
-
-		// -- Movement Type (internal config) --
-        game.settings.register(MODULE.ID, 'movementType', {
-            name: 'Current Movement Type',
-            hint: 'The current movement restriction type for all players',
-            scope: 'world',
-            config: false,
-            type: String,
-            default: 'no-movement'
-        });
-
-
-
-		// *** TOKEN NAMEPLATES ***
-
-		// ---------- HEADING - TOKENS  ----------
-		game.settings.register(MODULE.ID, "headingH2Tokens", {
-			name: MODULE.ID + '.headingH2Tokens-Label',
-			hint: MODULE.ID + '.headingH2Tokens-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// ---------- SUBHEADING - NAMEPLATE SETTINGS ----------
-		game.settings.register(MODULE.ID, "headingH3Nameplate", {
-			name: MODULE.ID + '.headingH3Nameplate-Label',
-			hint: MODULE.ID + '.headingH3Nameplate-Hint',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
-
-		// -- Font Family --
-		game.settings.register(MODULE.ID,'nameplateFontFamily', {
-			name: MODULE.ID + '.nameplateFontFamily-Label',
-			hint: MODULE.ID + '.nameplateFontFamily-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: 'Signika',
-			choices: {
-				'Signika': 'Signika (Default)',
-				'Arial': 'Arial',
-				'IM Fell English': 'IM Fell English',
-				'Tahoma': 'Tahoma',
-				'Verdana': 'Verdana',
-				'Georgia': 'Georgia',
-				'Impact': 'Impact',
-				'Roboto': 'Roboto',
-			}
-		});
-		// -- Font Size --
-		game.settings.register(MODULE.ID,'nameplateFontSize', {
-			name: MODULE.ID + '.nameplateFontSize-Label',
-			hint: MODULE.ID + '.nameplateFontSize-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: 5,
-			max: 70,
-			step: 1,
-			},
-			default: 24,
-		});
-		// -- Nameplate color --
-		game.settings.register(MODULE.ID, 'nameplateColor', {
-			name: MODULE.ID + '.nameplateColor-Label',
-			hint: MODULE.ID + '.nameplateColor-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: '#FFFFFF'
-		});
-		// -- Outline Size --
-		game.settings.register(MODULE.ID,'nameplateOutlineSize', {
-			name: MODULE.ID + '.nameplateOutlineSize-Label',
-			hint: MODULE.ID + '.nameplateOutlineSize-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: Number,
-			range: {
-			min: 0,
-			max: 20,
-			step: 1,
-			},
-			default: 2,
-		});
-		// -- Nameplate Outline color --
-		game.settings.register(MODULE.ID, 'nameplateOutlineColor', {
-			name: MODULE.ID + '.nameplateOutlineColor-Label',
-			hint: MODULE.ID + '.nameplateOutlineColor-Hint',
-			scope: "world",
-			config: true,
-			requiresReload: true,
-			type: String,
-			default: '#111111'
-		});
-	
-	// *** TOKEN SETTINGS ***
-
-	// ---------- SUBHEADING - TOKEN SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3TokenSettings", {
-		name: MODULE.ID + '.headingH3TokenSettings-Label',
-		hint: MODULE.ID + '.headingH3TokenSettings-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	
-	// -- Rename Table --
-	game.settings.register(MODULE.ID, 'tokenNameTable', {
-		name: MODULE.ID + '.tokenNameTable-Label',
-		hint: MODULE.ID + '.tokenNameTable-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '-- Select A Table for Names --',
-		choices: BLACKSMITH.arrTableChoices
-	});
-
-	// -- Ignored Tokens --
-	game.settings.register(MODULE.ID, 'ignoredTokens', {
-		name: MODULE.ID + '.ignoredTokens-Label',
-		hint: MODULE.ID + '.ignoredTokens-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-	// -- Fuzzy Match --
-	game.settings.register(MODULE.ID, 'fuzzyMatch', {
-		name: MODULE.ID + '.fuzzyMatch-Label',
-		hint: MODULE.ID + '.fuzzyMatch-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// *** TOKEN NAMING ***
-
-	game.settings.register(MODULE.ID, 'tokenNameFormat', {
-		name: MODULE.ID + '.tokenNameFormat-Label',
-		hint: MODULE.ID + '.tokenNameFormat-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: nameplateChoices,
-	});
-
-	// *** TOKEN BEHAVIOR OVERRIDES ***
-	// These settings override Foundry's default token behavior when tokens are dropped from compendiums
-
-	game.settings.register(MODULE.ID, 'unlockTokenRotation', {
-		name: 'Unlock Token Rotation',
-		hint: 'Override Foundry\'s default "lock rotation" setting for all new tokens. This will allow tokens to be rotated freely.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	game.settings.register(MODULE.ID, 'disableTokenRing', {
-		name: 'Disable Token Ring',
-		hint: 'Override Foundry\'s default "enable ring" setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry\'s ring system and will not remove rings that are part of the token image itself.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	game.settings.register(MODULE.ID, 'enableTokenFacing', {
-		name: 'Enable Token Facing Direction',
-		hint: 'Automatically rotate tokens to face the direction they move. Tokens with "Lock Rotation" enabled will not be affected.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenFacingMinDistance', {
-		name: 'Minimum Movement Distance',
-		hint: 'Minimum distance a token must move (in grid units) before it rotates to face the movement direction. Prevents tiny adjustments from causing unwanted rotation.',
-		type: Number,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		range: {
-			min: 0.1,
-			max: 2.0,
-			step: 0.1,
-		},
-		default: 0.5,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenFacingMode', {
-		name: 'Facing Mode',
-		hint: 'Which tokens should automatically face their movement direction.',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		choices: {
-			'all': 'All Tokens',
-			'playerOnly': 'Player Tokens Only',
-			'npcOnly': 'NPC Tokens Only',
-			'combatOnly': 'Combat Tokens Only'
-		},
-		default: 'all',
-	});
-
-
-	// -- Scale Size --
-	game.settings.register(MODULE.ID,'setTokenScale', {
-		name: 'Set Token Scale',
-		hint: 'Set the default scale size for dropped tokens.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: Number,
-		range: {
-		min: 0.2,
-		max: 3,
-		step: 0.1,
-		},
-		default: 1,
-	});
-
-
-	// -- Fit Mode --
-	game.settings.register(MODULE.ID, 'setTokenImageFitMode', {
-		name: 'Image Fit Mode',
-		hint: 'Set the image fit mode for dropped tokens. (default is Contain)',
-		type: String,
-		choices: {
-			"fill": "Fill",
-			"contain": "Contain",
-			"cover": "Cover",
-			"fullwidth": "Full Width",
-			"fullheight": "Full Height"
-		},
-		config: true,
-		scope: 'world',
-		default: "contain",
-	});
-
-	// -- Pre-Combat Movement Mode Storage --
-	game.settings.register(MODULE.ID, 'preCombatMovementMode', {
-		name: 'Pre-Combat Movement Mode',
-		hint: 'Stores the movement mode that was active before combat started (for client refresh restoration)',
-		type: String,
-		config: false, // Hidden setting - not shown in UI
-		scope: 'world',
-		default: null,
-	});
-
-
-	// *** TOKEN IMAGE REPLACEMENT ***
-
-	// ---------- Token Image Replacement ----------
-	game.settings.register(MODULE.ID, "headingH3TokenImageReplacement", {
-		name: 'Token Image Replacement',
-		hint: 'Automatically replace token images with custom images from your specified folder.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
-        scope: 'world',
-        config: false,
-        type: String,
-        default: ''
-    });
-
-	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: "Token Image Replacement",
-		hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
-		name: 'Enable Token Image Replacement',
-		hint: 'Replace token images with custom images from a specified folder when tokens are dropped from compendiums.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
-		name: 'Show in CoffeePub Toolbar',
-		hint: 'Show the Token Image Replacement button in the CoffeePub toolbar.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', {
-		name: 'Show in FoundryVTT Toolbar',
-		hint: 'Show the Token Image Replacement button in the FoundryVTT native toolbar.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
-		name: 'Image Replacement Folder',
-		hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: '',
-		onChange: (value) => {
-			// Trigger cache rebuild when path changes
-			if (value && game.modules.get(MODULE.ID)?.active) {
-				// We'll implement this in Phase 2
-				console.log('Token image replacement path changed to:', value);
-			}
-		}
-	});
-
-	// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
-		name: 'Token Image Replacement Window State',
-		hint: 'Stores the size and position of the Token Image Replacement window',
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {}
-	});
-
-	// ---------- TOKEN IMAGE REPLACEMENT IGNORED FOLDERS ----------
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
-		name: 'Token Image Replacement: Ignored Folders',
-		hint: 'Comma-separated list of folder names to ignore when scanning for token images (e.g., _gsdata_, Build_a_Token, .DS_Store)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '_gsdata_,Build_a_Token,.DS_Store',
-		requiresReload: true
-	});
-	// Deprioritized Words
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-		name: 'Deprioritized Words',
-		hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'spirit',
-	});
-	
-	// Tag Sort Mode
-	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
-		name: 'Tag Sort Mode',
-		hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'count': 'Count (by frequency)',
-			'alpha': 'Alpha (alphabetical)',
-			'hidden': 'Hidden (hide tags)'
-		},
-		default: 'count',
-		requiresReload: false
-	});
-	
-	// Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
-		name: 'Ignored Words (File Exclusion)',
-		hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true
-	});
-	// Cateogry Style
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
-		name: 'Token Image Replacement: Category Style',
-		hint: 'Choose how category filters are displayed in the Token Image Replacement window',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'buttons': 'Buttons',
-			'tabs': 'Tabs'
-		},
-		default: 'buttons',
-		requiresReload: true
-	});
-
-	// SET THE KIND OF TOKENS WE UPDATE
-
-	// Update Monsters
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
-		name: 'Update Monsters',
-		hint: 'Replace images for monster tokens (non-NPC creatures with Challenge Rating).',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// Update NPCs
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
-		name: 'Update NPCs', 
-		hint: 'Replace images for friendly NPC tokens (non-hostile NPCs).',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// Update Vehicles
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
-		name: 'Update Vehicles',
-		hint: 'Replace images for vehicle tokens.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// Update Actors
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
-		name: 'Update Actors',
-		hint: 'Replace images for character/actor tokens (usually player characters).',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// Skip Linked Tokens
-	game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
-		name: 'Skip Linked Tokens',
-		hint: 'Do not replace images for tokens linked to actors (usually player characters).',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-
-	// CACHE SETTINGS
-
-	// Automatically Update Image Cache
-	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
-		name: 'Automatically Update Image Cache',
-		hint: 'Automatically scan for new or changed token images when changes are detected.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// Matching Threshold
-	game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
-		name: 'Matching Threshold',
-		hint: 'How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.',
-		type: Number,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		range: {
-			min: 0.1,
-			max: 1.0,
-			step: 0.05
-		},
-		default: 0.3,
-	});
-
-	// Update Dropped Tokens
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
-		name: 'Update Dropped Tokens',
-		hint: 'Automatically update token images when tokens are dropped on the canvas. When disabled, only manual updates via the Image Replacements window will work.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// Fuzzy Search
-	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
-		name: 'Fuzzy Search',
-		hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
-		type: Boolean,
-		config: false, // Hidden setting - controlled by UI toggle
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	
-
-	// Token Image Replacement Cache (server-side storage)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
-		name: 'Token Image Replacement Cache',
-		hint: 'Internal cache storage for token image replacement system (server-side)',
-		scope: 'world',
-		config: false, // Hidden from users - internal use only
-		type: String,
-		default: '',
-		requiresReload: false
-	});
-
-	// TOKEN DATA WEIGHTING
-
-	// Actor Name Weight (NEW - most important for clean creature names)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
-		name: 'Actor Name Weight',
-		hint: 'Weigting of the actor name when calulating matches. Weight the fiels with the most clean creature name the highest priority (e.g., "Frost Giant", "Goblin")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 90
-	});
-
-	
-	// Token Name Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
-		name: 'Token Name Weight',
-		hint: 'Weigting of the actor name when calulating matches. This field often contains the display name of the token (e.g., "Bob (Goblin)", "Goblin 1", "Bob")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 70
-	});
-
-	// Represented Actor Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
-		name: 'Represented Actor Weight',
-		hint: 'Weigting of the represented actor when calulating matches. This field usually represents the name of a linked token.',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 50
-	});
-
-
-	// Creature Type Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
-		name: 'Creature Type Weight',
-		hint: 'How important the creature type is for matching (e.g., "Humanoid", "Dragon", "Beast") - Official D&D5e type',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 15
-	});
-
-	// Creature Subtype Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', {
-		name: 'Creature Subtype Weight',
-		hint: 'How important the creature subtype is for matching (e.g., "Goblinoid", "Orc", "Elf") - Official D&D5e subtype',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 15
-	});
-
-	// Equipment Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightEquipment', {
-		name: 'Equipment Weight',
-		hint: 'How important equipment is for matching (e.g., "Sword", "Bow", "Staff")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 10
-	});
-
-
-
-	// Size Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
-		name: 'Size Weight',
-		hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 3
-	});
-
-
-	// Monster Mapping Data
-	game.settings.register(MODULE.ID, 'monsterMappingData', {
-		name: 'Monster Mapping Data',
-		hint: 'Internal setting for monster type mapping data',
-		type: Object,
-		config: false,
-		scope: 'world',
-		default: {}
-	});
-
-	// ---------- Dead Tokens ----------
-	game.settings.register(MODULE.ID, "headingH3TokenActions", {
-		name: 'Token Actions',
-		hint: 'Automation of token actions.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
 
 
 
@@ -2775,13 +3219,6 @@ export const registerSettings = async () => {
 	});
 
 
-
-
-
-
-
-
-	
 	// Current Turn Indicator Settings
 	game.settings.register(MODULE.ID, 'turnIndicatorTargetedEnabled', {
 		name: 'Enable Targeted Indicator',
@@ -3367,196 +3804,6 @@ export const registerSettings = async () => {
 
 
 
-	// *** COMPENDIUM MAPPING ***
-
-	// ---------- HEADING - TOKENS  ----------
-	game.settings.register(MODULE.ID, "headingH2CompendiumMapping", {
-		name: 'Compendium Mapping',
-		hint: 'These settings will allow you to map the compendiums to be leveraged by automatic linking.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// ---------- ACTOR COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3ActorCompendiums", {
-		name: 'Actor Compendiums',
-		hint: 'These settings control how you to link actors in the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- Search World Actors First --
-	game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
-		name: 'Search World Actors First',
-		hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Search World Actors Last --
-	game.settings.register(MODULE.ID, 'searchWorldActorsLast', {
-		name: 'Search World Actors Last',
-		hint: 'When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-			// -- Monster Lookup Compendiums (up to 8) --
-		for (let i = 1; i <= 8; i++) {
-			game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
-				name: `Monster Lookup ${i}`,
-				hint: `The #${i} compendium to use for monster linking. Searched in order. Set to 'None' to skip.`,
-				scope: "world",
-				config: true,
-				requiresReload: false,
-				default: "none",
-				choices: BLACKSMITH.arrCompendiumChoices
-			});
-		}
-
-	// ---------- ITEM COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3ItemCompendiums", {
-		name: 'Item Compendiums',
-		hint: 'These settings control how you to link items in the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// ------------------------------------- 
-
-	// -- Search World Items First --
-	game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
-		name: 'Search World Items First',
-		hint: 'When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Search World Items Last --
-	game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
-		name: 'Search World Items Last',
-		hint: 'When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-		// -- Item Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= 8; i++) {
-		game.settings.register(MODULE.ID, `itemCompendium${i}` , {
-			name: `Item Lookup ${i}`,
-			hint: `The #${i} compendium to use for item linking. Searched in order. Set to 'None' to skip.`,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
-		});
-	}
-
-	// ---------- FEATURE COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3FeatureCompendiums", {
-		name: 'Feature Compendiums',
-		hint: 'These settings control how you to link features in the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// ------------------------------------- 
-
-	// -- Search World Features First --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
-		name: 'Search World Features First',
-		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Search World Features Last --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
-		name: 'Search World Features Last',
-		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Features Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= 8; i++) {
-		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
-			name: `Feature Lookup ${i}`,
-			hint: `The #${i} compendium to use for feature linking. Searched in order. Set to 'None' to skip.`,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
-		});
-	}
-
-
-	// ---------- SPELL COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3SpellCompendiums", {
-		name: 'Spell Compendiums',
-		hint: 'These settings control how you to link spells in the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// ------------------------------------- 
-	
-	// -- Search World Spells First --
-	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
-		name: 'Search World Features First',
-		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Search World Spells Last --
-	game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
-		name: 'Search World Features Last',
-		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Spell Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= 8; i++) {
-		game.settings.register(MODULE.ID, `spellCompendium${i}` , {
-			name: `Spell Lookup ${i}`,
-			hint: `The #${i} compendium to use for spell linking. Searched in order. Set to 'None' to skip.`,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoices
-		});
-	}
-
 
 
 
@@ -3761,51 +4008,6 @@ export const registerSettings = async () => {
 			max: 120,
 			step: 2,		
 		},
-	});
-
-	// Show Settings Tool
-	game.settings.register(MODULE.ID, 'menubarShowSettings', {
-		name: 'Show Settings Tool',
-		hint: 'Show the settings tool in the menubar left zone.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// Show Refresh Tool
-	game.settings.register(MODULE.ID, 'menubarShowRefresh', {
-		name: 'Show Refresh Tool',
-		hint: 'Show the refresh tool in the menubar left zone.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// Show Performance Monitor Tool
-	game.settings.register(MODULE.ID, 'menubarShowPerformance', {
-		name: 'Show Performance Monitor Tool',
-		hint: 'Show the performance monitor tool in the menubar left zone.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// Performance Monitor Poll Interval
-	game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
-		name: 'Performance Monitor Poll Interval',
-		hint: 'How often to update the performance monitor data (in seconds).',
-		scope: 'client',
-		config: true,
-		type: Number,
-		default: 5,
-		range: {
-			min: 5,
-			max: 300,
-			step: 5
-		}
 	});
 
 
@@ -4454,87 +4656,6 @@ export const registerSettings = async () => {
 
 
 
-
-
-	// *** TOKEN MOVEMENT SOUNDS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2MovementSounds", {
-		name: MODULE.ID + '.headingH2MovementSounds-Label',
-		hint: MODULE.ID + '.headingH2MovementSounds-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// Enable Movement Sounds
-	game.settings.register(MODULE.ID, 'movementSoundsEnabled', {
-		name: 'Enable Movement Sounds',
-		hint: 'Play audio feedback when tokens are moved on the canvas.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// Player Movement Sound
-	game.settings.register(MODULE.ID, 'movementSoundPlayer', {
-		name: 'Player Movement Sound',
-		hint: 'Sound to play when player tokens are moved.',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'SOUNDEFFECTGENERAL01', // Rustling Grass
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-	// Monster Movement Sound
-	game.settings.register(MODULE.ID, 'movementSoundMonster', {
-		name: 'Monster Movement Sound',
-		hint: 'Sound to play when monster/NPC tokens are moved.',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'SOUNDEFFECTGENERAL06', // Clatter
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-	// Movement Sound Volume
-	game.settings.register(MODULE.ID, 'movementSoundVolume', {
-		name: 'Movement Sound Volume',
-		hint: 'Volume level for movement sounds (0.0 = silent, 1.0 = full volume).',
-		type: Number,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 0.3,
-		range: {
-			min: 0.0,
-			max: 1.0,
-			step: 0.1
-		}
-	});
-
-	// Movement Sound Distance Threshold
-	game.settings.register(MODULE.ID, 'movementSoundDistanceThreshold', {
-		name: 'Movement Sound Distance Threshold',
-		hint: 'Minimum distance in feet that a token must move to trigger a sound (1-50 feet).',
-		type: Number,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 5,
-		range: {
-			min: 1,
-			max: 50,
-			step: 1
-		}
-	});
 
 } // END OF "export const registerSettings"
 

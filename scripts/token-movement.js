@@ -729,7 +729,7 @@ async function processFollowMovement(sortedFollowers) {
                 const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
                 const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
                 const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-                const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
+                const distanceThreshold = game.settings.get(MODULE.ID, 'movementFollowDistanceThreshold');
 
                 if (distance > distanceThreshold) {
                     if (state.status !== STATUS.TOO_FAR) {
@@ -982,7 +982,7 @@ async function calculateMarchingOrder(leaderToken, postToChat = false, isCongaMo
         const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
         const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
         const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-        const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
+        const distanceThreshold = game.settings.get(MODULE.ID, 'movementFollowDistanceThreshold');
         
 
         
@@ -1157,7 +1157,7 @@ async function checkTokenStatus(token, leaderToken) {
     const gridX = Math.abs(token.x - leaderToken.x) / canvas.grid.size;
     const gridY = Math.abs(token.y - leaderToken.y) / canvas.grid.size;
     const distance = Math.sqrt(gridX * gridX + gridY * gridY);
-    const distanceThreshold = game.settings.get(MODULE.ID, 'movementTooFarDistance');
+    const distanceThreshold = game.settings.get(MODULE.ID, 'movementFollowDistanceThreshold');
     
     if (distance > distanceThreshold) {
         return STATUS.TOO_FAR;

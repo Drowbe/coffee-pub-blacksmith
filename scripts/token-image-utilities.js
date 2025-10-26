@@ -2135,7 +2135,7 @@ export class TokenImageUtilities {
      */
     static async _handleTokenFacing(tokenDocument, changes) {
         // Check if token facing is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableTokenFacing', false)) {
+        if (!getSettingSafely(MODULE.ID, 'enableTokenRotation', false)) {
             return;
         }
         
@@ -2161,7 +2161,7 @@ export class TokenImageUtilities {
         }
 
         // Check facing mode
-        const facingMode = getSettingSafely(MODULE.ID, 'tokenFacingMode', 'all');
+        const facingMode = getSettingSafely(MODULE.ID, 'tokenRotationMode', 'all');
         if (!TokenImageUtilities._shouldApplyFacing(token, facingMode)) {
             return;
         }
@@ -2177,7 +2177,7 @@ export class TokenImageUtilities {
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         // Check minimum distance threshold
-        const minDistance = getSettingSafely(MODULE.ID, 'tokenFacingMinDistance', 0.5);
+        const minDistance = getSettingSafely(MODULE.ID, 'tokenRotationMinDistance', 0.5);
         const gridSize = canvas.grid.size;
         const minDistancePixels = minDistance * gridSize;
 

@@ -31,7 +31,6 @@
 			"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
 
 
-
 		"headingH1LayoutAndExperience-Label": "User Experience",
 		"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
 	
@@ -61,6 +60,15 @@
 			"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
 
+			"headingH3simplemenubar-Label": "Blacksmith Menubar",
+			"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+		
+			"enableMenubar-Label": "Enable Menubar",
+			"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+		
+			"excludedUsersMenubar-Label": "Excluded Menubar Users",
+			"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+
 			"headingH3Toolbar-Label": "Toolbar",
 			"headingH3Toolbar-Hint": "Toolbar customization and display options",
 			
@@ -72,14 +80,19 @@
 
 			"objectLinkStyle-Label": "Object Link Style",
 			"objectLinkStyle-Hint": "Styling for object links in chat and journals",
+
 			"hideRollTableIcon-Label": "Hide Roll Table Icon",
 			"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
+
 			"toolbarShowDividers-Label": "Show Toolbar Dividers",
 			"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
+
 			"toolbarShowLabels-Label": "Show Toolbar Labels",
 			"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
+
 			"titlebarTextSize-Label": "Titlebar Text Size",
 			"titlebarTextSize-Hint": "Size of text in window titlebars",
+
 			"titlebarIconSize-Label": "Titlebar Icon Size",
 			"titlebarIconSize-Hint": "Size of icons in window titlebars",
 			
@@ -88,9 +101,9 @@
 
 			"sceneTitlePadding-Label": "Scene Title Padding",
 			"sceneTitlePadding-Hint": "Padding around scene titles",
+
 			"scenePanelHeight-Label": "Scene Panel Height",
 			"scenePanelHeight-Hint": "Height of scene panels",
-
 
 			"headingH3JournalTools-Label": "Journal Tools",
 			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
@@ -108,8 +121,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 	"headingH1ManageContent-Label": "Manage Content",
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
+
+			"headingH2CompendiumMapping-Label": "Compendium Mapping",
+			"headingH2CompendiumMapping-Hint": "When we sutomate searching for thigns, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
+
+				"headingH3ActorCompendiums-Label": "Actor Compendiums",
+				"headingH3ActorCompendiums-Hint": "These settings control how you to link actors in the game.",
+
+					"searchWorldActorsFirst-Label": "Search World Actors First",
+					"searchWorldActorsFirst-Hint": "When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
+
+					"searchWorldActorsLast-Label": "Search World Actors Last",
+					"searchWorldActorsLast-Hint": "When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.",
+
+					"headingH3ItemCompendiums-Label": "Item Compendiums",
+					"headingH3ItemCompendiums-Hint": "These settings control how you to link items in the game.",
+
+					"searchWorldItemsFirst-Label": "Search World Items First",
+					"searchWorldItemsFirst-Hint": "When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
+
+					"searchWorldItemsLast-Label": "Search World Items Last",
+					"searchWorldItemsLast-Hint": "When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.",
+
+
+
 
 
 
@@ -122,8 +171,226 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 	"headingH1Automation-Label": "Automation",
 	"headingH1Automation-Hint": "These setting add features like token image replacement, movement tools, and more.",
+	
+		"headingH2Tokens-Label": "Token Configuration",
+		"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, change the token image, change the style of the nameplate under the token, rotate a token, add sound to a token and many more things.",
+
+			"headingH3TokenRotationOptions-Label": "Rotation",
+			"headingH3TokenRotationOptions-Hint": "Configure the options for token rotation on the canvas.",
+
+				"enableTokenRotation-Label": "Token Rotation",
+				"enableTokenRotation-Hint": "Automatically rotate tokens to face the direction they move. Tokens with 'Lock Rotation' enabled will not be affected.",
+
+				"tokenRotationMinDistance-Label": "Minimum Movement Threshold",
+				"tokenRotationMinDistance-Hint": "Minimum distance a token must move (in grid units) before it rotates to face the movement direction. Prevents tiny adjustments from causing unwanted rotation.",
+
+				"tokenRotationMode-Label": "Rotation Mode",
+				"tokenRotationMode-Hint": "Dertrmines which tokens should automatically face their movement direction.",
+
+			"headingH3TokenMovementOptions-Label": "Movement",
+			"headingH3TokenMovementOptions-Hint": "Configure the options for token movement on the canvas.",
+
+				"movementType-Label": "Current Movement Type",
+				"movementType-Hint": "The current movement restriction type for all players",
+
+				"movementFollowDistanceThreshold-Label": "Follow Distance Threshold",
+				"movementFollowDistanceThreshold-Hint": "The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.",
+
+				"tokenSpacing-Label": "Token Spacing",
+				"tokenSpacing-Hint": "Number of grid spaces to maintain between tokens in formation",
+
+			"headingH3TokenMovementSounds-Label": "Sounds",
+			"headingH3TokenMovementSounds-Hint": "Configure audio feedback for token movement on the canvas.",
+
+				"movementSoundsEnabled-Label": "Enable Movement Sounds",
+				"movementSoundsEnabled-Hint": "Play audio feedback when tokens are moved on the canvas.",
+
+				"movementSoundPlayer-Label": "Player Movement Sound",
+				"movementSoundPlayer-Hint": "Sound to play when player tokens are moved.",
+
+				"movementSoundMonster-Label": "Monster Movement Sound",
+				"movementSoundMonster-Hint": "Sound to play when monster/NPC tokens are moved.",
+
+				"movementSoundVolume-Label": "Movement Sound Volume",
+				"movementSoundVolume-Hint": "Volume level for movement sounds (0.0 = silent, 1.0 = full volume).",
+
+				"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
+				"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet).",
+
+		"headingH2DroppedTokens-Label": "Dropped Tokens",
+		"headingH2DroppedTokens-Hint": "Configure the options for dropped tokens on the canvas.",
+
+
+			"headingH3TokenOverrides-Label": "Overrides",
+			"headingH3TokenOverrides-Hint": "Configure the options for overriding the behavior of dropped tokens on the canvas.",
+
+				"unlockTokenRotation-Label": "Unlock Token Rotation",
+				"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
+
+				"disableTokenRing-Label": "Disable Token Ring",
+				"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry's ring system and will not remove rings that are part of the token image itself.",
+
+				"setTokenScale-Label": "Set Token Scale",
+				"setTokenScale-Hint": "Set the default scale size for dropped tokens.",
+
+			"headingH3TokenRenamingOptions-Label": "Renaming",
+			"headingH3TokenRenamingOptions-Hint": "Configure the options for renaming dropped tokens on the canvas.",
+		
+				"tokenNameFormat-Label": "Format",
+				"tokenNameFormat-Hint": "Choose the format of token renaming so they read how you want them.",
+			
+				"ignoredTokens-Label": "Ignored Tokens",
+				"ignoredTokens-Hint": "Add any token names you want ignored when renaming tokens, separated by commas.",
+
+				"fuzzyMatch-Label": "Fuzzy Match",
+				"fuzzyMatch-Hint": "If checked, if any part of the token contains the word it will be ignored. If unchecked, and exact match is required to ignore the token.",
+			
+				"tokenNameTable-Label": "Random Name Table",
+				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
+
+			"headingH3TokenNameplateStyle-Label": "Nameplate Style",
+			"headingH3TokenNameplateStyle-Hint": "Configure the options for the nameplate of dropped tokens on the canvas.",
+
+		
+				"nameplateFontSize-Label": "Font Size",
+				"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
+			
+				"nameplateFontFamily-Label": "Font Family",
+				"nameplateFontFamily-Hint": "Sets the font for nameplates under tokens. Default: Signika.",
+			
+				"nameplateColor-Label": "Font Color",
+				"nameplateColor-Hint": "Sets the font color for nameplates under tokens. Default: #FFFFFF.",
+			
+				"nameplateOutlineSize-Label": "Outline Size",
+				"nameplateOutlineSize-Hint": "Sets the outline size for nameplates under tokens. Default: 2px.",
+			
+				"nameplateOutlineColor-Label": " Outline Color",
+				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
+
+			"headingH3TokenImageReplacement-Label": "Image Replacement",
+			"headingH3TokenImageReplacement-Hint": "Token image replacement features and functions. This includes dropped tokens, manual image updates, and more.",
+
+				"tokenImageReplacementEnabled-Label": "Replace Images",
+				"tokenImageReplacementEnabled-Hint": "Enable the image replacement features and functions.",
+
+				"tokenImageReplacementShowInCoffeePubToolbar-Label": "Show in CoffeePub Toolbar",
+				"tokenImageReplacementShowInCoffeePubToolbar-Hint": "Show the Token Image Replacement button in the CoffeePub toolbar.",
+
+				"tokenImageReplacementShowInFoundryToolbar-Label": "Show in FoundryVTT Toolbar",
+				"tokenImageReplacementShowInFoundryToolbar-Hint": "Show the Token Image Replacement button in the FoundryVTT native toolbar.",
+
+				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Tokens",
+				"tokenImageReplacementUpdateDropped-Hint": "Automatically update token images when tokens are dropped on the canvas. When disabled, only manual updates via the Image Replacements window will work. This feature is also available in the Image Replacements window.",
+
+				"tokenImageReplacementThreshold-Label": "Matching Threshold",
+				"tokenImageReplacementThreshold-Hint": "How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.",
+
+			
+				"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
+				"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
+			
+				"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
+				"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
+			
+				"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
+				"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
+			
+				"tokenImageReplacementUpdateActors-Label": "Update Actors",
+				"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
+			
+				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
+				"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				"tokenImageReplacementPath-Label": "Replacement Images Folder",
+				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
+			
+
+			
+				"tokenImageReplacementCacheStats-Label": "Cache Status",
+				"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+			
+				"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
+				"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
+			
+				"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
+				"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
+			
+				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
+			
+				"tokenImageReplacementCategoryStyle-Label": "Category Style",
+				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
+			
+				"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
+				"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+
+
+
+
+
+
+
+
+
+		"headingH2AutomatedEncounters-Label": "Automated Encounters",
+		"headingH2AutomatedEncounters-Hint": "Automated encounters and monsters deployment.",
+
+
+			"headingH3JournalEncounterToolbar-Label": "Journal",
+			"headingH3JournalEncounterToolbar-Hint": "Automated encounter settings for journal entries.",
+
+				"enableJournalEncounterToolbar-Label": "Journal Toolbar",
+				"enableJournalEncounterToolbar-Hint": "Shows a toolbar in journal entries with potential encounter data that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
+			
+				"enableEncounterContentScanning-Label": "Enable Content Scanning",
+				"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
+			
+				"enableJournalEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
+				"enableJournalEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
+
+				"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
+				"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
+			
+				"toggleVisibility-Label": "Toggle Token Visibility",
+				"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -137,32 +404,99 @@
 
 
 
+
+
+
+
+
+
+
+
 	"headingH1DeveloperTools-Label": "Developer Tools",
 	"headingH1DeveloperTools-Hint": "Debug settings, console options, and developer tools",
-
-		"headingH3CSS-Label": "CSS Customization",
-		"headingH3CSS-Hint": "Customize the FoundryVTT interface with custom CSS",
 
 		"headingH2CSS-Label": "CSS Customization",
 		"headingH2CSS-Hint": "Customize CSS styling and appearance",
 
+			"cssTransition-Label": "Smooth Transition",
+			"cssTransition-Hint": "Ease the new css styles into place with a smooth transition",
+
+			"cssDarkMode-Label": "Dark Mode",
+			"cssDarkMode-Hint": "Enable dark mode for the css editor",
+
 		"headingH2PerformanceTools-Label": "Performance Tools",
 		"headingH2PerformanceTools-Hint": "Performance monitoring and menubar tools",
+
+			"headingH3PerformanceMenubarOptions-Label": "Menubar",
+			"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
+
+
+				"menubarShowSettings-Label": "Show Settings Tool",
+				"menubarShowSettings-Hint": "Show the settings tool in the menubar left zone.",
+
+				"menubarShowRefresh-Label": "Show Refresh Tool",
+				"menubarShowRefresh-Hint": "Show the refresh tool in the menubar left zone.",
+
+				"menubarShowPerformance-Label": "Show Performance Monitor Tool",
+				"menubarShowPerformance-Hint": "Show the performance monitor tool in the menubar left zone.",
+
+
+				"menubarPerformancePollInterval-Label": "Performance Monitor Poll Interval",
+				"menubarPerformancePollInterval-Hint": "The interval in seconds between performance monitor data updates. Default: 5 seconds. (5 to 300 seconds)",	
+
+
+			"headingH3Latency-Label": "System Latency",
+			"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
+
+				"enableLatency-Label": "Enable System Latency Checks",
+				"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
+
+				"latencyCheckInterval-Label": "Latency Check Interval",
+				"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",
 
 		"headingH2ConsoleSettings-Label": "Console Log",
 		"headingH2ConsoleSettings-Hint": "Console output options",
 
-		"headingH3PerformanceMenubarOptions-Label": "Menubar",
-		"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
+			"headingH3simpleConsole-Label": "Console",
+			"headingH3simpleConsole-Hint": "Description not needed",
+		
+				"globalFancyConsole-Label": "Fancy Console",
+				"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
+	
+			"headingH3simpleDebugSettings-Label": "Debug",
+			"headingH3simpleDebugSettings-Hint": "Description not needed",
+			
+				"globalDebugMode-Label": "Debug Mode",
+				"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
+			
+				"globalConsoleDebugStyle-Label": "Debug Style",
+				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
 
-		"headingH3Latency-Label": "System Latency",
-		"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
 
-		"latencyCheckInterval-Label": "Latency Check Interval",
-		"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",
 
-		"enableLatency-Label": "Enable System Latency Checks",
-		"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -181,7 +515,6 @@
 
 	"defaultCardTheme-Label": "Deault Coffee Pub Theme",
 	"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
-
 
 	"headingH3CardAdjustments-Label": "Chat Adjustments",
 	"headingH3CardAdjustments-Hint": "Description",
@@ -208,22 +541,6 @@
 
 
 
-	"enableEncounterToolbar-Label": "Enable Encounter Toolbar",
-	"enableEncounterToolbar-Hint": "Shows a toolbar in encounter journal entries that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
-
-	
-
-	"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
-	"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
-
-	"enableEncounterContentScanning-Label": "Enable Content Scanning",
-	"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
-
-	"enableEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
-	"enableEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
-
-	"toggleVisibility-Label": "Toggle Token Visibility",
-	"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
 
 	"headingH2diceRollTool-Label": "Roll System",
 	"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
@@ -258,89 +575,18 @@
 	"sceneFontSize-Hint": "Sets the font size for the scene titles in the scene selector.  Defualt: 1.0em.",
 
 
-	"headingH2Tokens-Label": "Tokens",
-	"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, chang ethe style of the nameplate under the token, and ignore tokens you wan tto leave untouched.",
 
-	"headingH3TokenSettings-Label": "Token Settings",
-	"headingH3TokenSettings-Hint": "Set how you want dropped tokens to behave.",
 
-	"tokenNameFormat-Label": "Format",
-	"tokenNameFormat-Hint": "Choose the format of token renaming so they read how you want them.",
 
-	"tokenNameTable-Label": "Random Name Table",
-	"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
-	"ignoredTokens-Label": "Ignored Tokens",
-	"ignoredTokens-Hint": "Add any token names you want ignored when renaming tokens, separated by commas.",
 
-	"fuzzyMatch-Label": "Fuzzy Match",
-	"fuzzyMatch-Hint": "If checked, if any part of the token contains the word it will be ignored. If unchecked, and exact match is required to ignore the token.",
 
-	"unlockTokenRotation-Label": "Unlock Token Rotation",
-	"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
 
-	"disableTokenRing-Label": "Disable Token Ring",
-	"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This will not turn off rings that are part of the token image itself.",
 
-	"headingH3TokenImageReplacement-Label": "Token Image Replacement",
-	"headingH3TokenImageReplacement-Hint": "Automatically replace token images with custom images from your specified folder.",
 
-	"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
-	"tokenImageReplacementEnabled-Hint": "Master toggle for the token image replacement feature.",
 
-	"tokenImageReplacementPath-Label": "Replacement Images Folder",
-	"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
 
-	"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
-	"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
 
-	"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
-	"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
-
-	"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
-	"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
-
-	"tokenImageReplacementUpdateActors-Label": "Update Actors",
-	"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
-
-	"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-	"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
-
-	"tokenImageReplacementCacheStats-Label": "Cache Status",
-	"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
-
-	"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
-	"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
-
-	"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
-	"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
-
-	"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-	"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
-
-	"tokenImageReplacementCategoryStyle-Label": "Category Style",
-	"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
-
-	"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
-	"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
-
-	"headingH3Nameplate-Label": "Nameplate",
-	"headingH3Nameplate-Hint": "Changes how you want the words under the tokens styled.",
-
-	"nameplateFontSize-Label": "Font Size",
-	"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
-
-	"nameplateFontFamily-Label": "Font Family",
-	"nameplateFontFamily-Hint": "Sets the font for nameplates under tokens. Default: Signika.",
-
-	"nameplateColor-Label": "Font Color",
-	"nameplateColor-Hint": "Sets the font color for nameplates under tokens. Default: #FFFFFF.",
-
-	"nameplateOutlineSize-Label": "Outline Size",
-	"nameplateOutlineSize-Hint": "Sets the outline size for nameplates under tokens. Default: 2px.",
-
-	"nameplateOutlineColor-Label": " Outline Color",
-	"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
 
 
@@ -442,26 +688,20 @@
 	"encounterDefaultImagePath-Label": "Default Encounter Image Path",
 	"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
 
+
+
+
+
 	"monsterCompendiumPrimary-Label": "Primary Monster Compendium",
 	"monsterCompendiumPrimary-Hint": "The primary monster compendium to use when linking monsters in new narratives. This is where we will look for a match first.",
 
 	"monsterCompendiumSecondary-Label": "Secondary Monster Compendium",
 	"monsterCompendiumSecondary-Hint": "The secondary monster compendium to use when linking monsters in new narratives. This is where we will look for a match if we don't find one in the primary compendium.",
 
-	"headingH3simpleConsole-Label": "Console",
-	"headingH3simpleConsole-Hint": "Description not needed",
 
-	"globalFancyConsole-Label": "Fancy Console",
-	"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
 
-	"headingH3simpleDebug-Label": "Debug",
-	"headingH3simpleDebug-Hint": "Description not needed",
 
-	"globalDebugMode-Label": "Debug Mode",
-	"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 
-	"globalConsoleDebugStyle-Label": "Debug Style",
-	"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
 
 	"headingH2XpDistribution-Label": "XP DISTRIBUTION",
 	"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
@@ -500,36 +740,10 @@
 	"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
 
 	"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
-	"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
-
-	"headingH3simplemenubar-Label": "Blacksmith Menubar",
-	"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
-
-	"enableMenubar-Label": "Enable Menubar",
-	"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
-
-	"excludedUsersMenubar-Label": "Excluded Menubar Users",
-	"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+	"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process."
 
 
-	
-	"headingH2MovementSounds-Label": "Token Movement Sounds",
-	"headingH2MovementSounds-Hint": "Configure audio feedback for token movement on the canvas.",
 
-	"movementSoundsEnabled-Label": "Enable Movement Sounds",
-	"movementSoundsEnabled-Hint": "Play audio feedback when tokens are moved on the canvas.",
-
-	"movementSoundPlayer-Label": "Player Movement Sound",
-	"movementSoundPlayer-Hint": "Sound to play when player tokens are moved.",
-
-	"movementSoundMonster-Label": "Monster Movement Sound",
-	"movementSoundMonster-Hint": "Sound to play when monster/NPC tokens are moved.",
-
-	"movementSoundVolume-Label": "Movement Sound Volume",
-	"movementSoundVolume-Hint": "Volume level for movement sounds (0.0 = silent, 1.0 = full volume).",
-
-	"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
-	"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet)."
 
 
 	}

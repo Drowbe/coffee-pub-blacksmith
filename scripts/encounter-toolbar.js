@@ -59,7 +59,7 @@ export class EncounterToolbar {
         }
         
         // Add hooks if setting is enabled and store IDs
-        if (game.settings.get(MODULE.ID, 'enableEncounterToolbarRealTimeUpdates')) {
+        if (game.settings.get(MODULE.ID, 'enableJournalEncounterToolbarRealTimeUpdates')) {
             this._tokenHookIds = [
                 HookManager.registerHook({
 					name: 'createToken',
@@ -89,7 +89,7 @@ export class EncounterToolbar {
     // Handle setting changes
     static _onSettingChange(moduleId, key, value) {
         if (moduleId === MODULE.ID) {
-            if (key === 'enableEncounterToolbarRealTimeUpdates') {
+            if (key === 'enableJournalEncounterToolbarRealTimeUpdates') {
                 this._setupTokenChangeHooks();
                 postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", true, false);
             } else if (key === 'encounterToolbarDeploymentPattern') {
@@ -510,7 +510,7 @@ export class EncounterToolbar {
     // Simple method to update toolbar content
     static async _updateToolbarContent(html) {
         // Check if toolbar is enabled in settings
-        if (!game.settings.get(MODULE.ID, 'enableEncounterToolbar')) {
+        if (!game.settings.get(MODULE.ID, 'enableJournalEncounterToolbar')) {
             return;
         }
 

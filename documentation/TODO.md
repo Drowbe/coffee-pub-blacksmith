@@ -56,6 +56,103 @@
   - `shareXpResults` - Share XP results setting
 - **Notes**: This is part of the settings refactoring - ensure migrated XP settings actually work
 
+### Verify Artificial Intelligence Settings are Wired
+- **Issue**: Artificial Intelligence functionality needs to be verified as properly connected
+- **Status**: PENDING - Needs verification
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: AI settings exist but need verification that they actually control AI functionality
+- **Location**: `scripts/settings.js` (AI settings), `scripts/api-openai.js` (AI functionality)
+- **Tasks Needed**:
+  - Verify AI settings properly enable/disable AI functionality
+  - Test that AI features are disabled when settings are turned off
+  - Test that AI features work when settings are enabled
+  - Verify API key validation and error handling
+  - Check that AI settings affect the correct AI features
+  - Test OpenAI integration with various settings combinations
+- **Related Settings**:
+  - `openAIMacro` - OpenAI macro toggle
+  - `openAIAPIKey` - OpenAI API key setting
+  - `openAIProjectId` - OpenAI project ID
+  - `openAIModel` - OpenAI model selection
+  - `openAIGameSystems` - Game systems selection
+  - `openAIPrompt` - Custom prompt setting
+  - `openAIContextLength` - Context length setting
+  - `openAITemperature` - Temperature setting
+- **Notes**: This is part of the settings refactoring - ensure migrated AI settings actually work
+
+### Add Enable Setting for Nameplate Styling
+- **Issue**: Nameplate styling settings should operate independently from nameplate content/formatting
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Nameplate styling is always applied regardless of tokenNameFormat setting
+- **Location**: `scripts/settings.js` (new setting), `scripts/manager-canvas.js` (styling logic)
+- **Tasks Needed**:
+  - Add new setting `enableNameplateStyling` (Boolean, default: true)
+  - Modify `_updateSingleTokenNameplate()` to check this setting before applying styling
+  - Ensure nameplate styling operates independently from `tokenNameFormat` setting
+  - Test that styling can be disabled while keeping nameplate content
+  - Test that styling can be enabled while disabling nameplate content
+  - Update localization for new setting
+- **Related Settings**:
+  - `enableNameplateStyling` - New setting to enable/disable nameplate styling
+  - `nameplateFontFamily` - Font family for nameplates
+  - `nameplateFontSize` - Font size for nameplates
+  - `nameplateColor` - Text color for nameplates
+  - `nameplateOutlineSize` - Outline size for nameplates
+  - `nameplateOutlineColor` - Outline color for nameplates
+  - `tokenNameFormat` - Controls nameplate content/formatting (independent)
+- **Notes**: This allows users to control nameplate styling separately from nameplate content
+
+### Migrate defaultRulebooks Setting to Checkboxes and Custom Box
+- **Issue**: defaultRulebooks setting should use checkboxes for common rulebooks and a custom text box for additional ones
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Currently uses a single String input field for all rulebooks
+- **Location**: `scripts/settings.js` (defaultRulebooks setting), UI components
+- **Tasks Needed**:
+  - Create checkbox settings for common rulebooks (PHB, DMG, MM, XGtE, TCoE, etc.)
+  - Add custom text box setting for additional/third-party rulebooks
+  - Update the setting logic to combine checkbox selections with custom text
+  - Ensure backward compatibility with existing string-based setting
+  - Test that the combined rulebook list works correctly
+  - Update localization for new checkbox settings
+  - Consider migration path for existing users
+- **Related Settings**:
+  - `defaultRulebooks` - Current string-based setting (to be replaced)
+  - `rulebookPHB` - Player's Handbook checkbox (new)
+  - `rulebookDMG` - Dungeon Master's Guide checkbox (new)
+  - `rulebookMM` - Monster Manual checkbox (new)
+  - `rulebookXGtE` - Xanathar's Guide checkbox (new)
+  - `rulebookTCoE` - Tasha's Cauldron checkbox (new)
+  - `rulebookCustom` - Custom rulebooks text box (new)
+- **Notes**: This provides better UX for selecting common rulebooks while maintaining flexibility for custom ones
+
+### Filter Compendiums by Type
+- **Issue**: Compendium search settings should allow filtering by compendium type (Actor, Item, Feature, Spell, etc.)
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Compendium settings are organized by type but may not have proper filtering
+- **Location**: `scripts/settings.js` (compendium settings), compendium search functionality
+- **Tasks Needed**:
+  - Review current compendium settings organization
+  - Add filtering logic to separate compendiums by type
+  - Ensure Actor compendiums only show Actor compendiums
+  - Ensure Item compendiums only show Item compendiums
+  - Ensure Feature compendiums only show Feature compendiums
+  - Ensure Spell compendiums only show Spell compendiums
+  - Test that filtering works correctly for each type
+  - Update UI to show only relevant compendiums per type
+  - Consider adding "All Types" option for mixed compendiums
+- **Related Settings**:
+  - `monsterCompendium1-8` - Monster/Actor compendiums (8 settings)
+  - `itemCompendium1-8` - Item compendiums (8 settings)
+  - `featureCompendium1-8` - Feature compendiums (8 settings)
+  - `spellCompendium1-8` - Spell compendiums (8 settings)
+  - `searchWorldMonstersFirst` - Search world monsters first
+  - `searchWorldItemsFirst` - Search world items first
+  - `searchWorldFeaturesFirst` - Search world features first
+- **Notes**: This ensures users only see relevant compendiums for each type, improving UX and reducing confusion
+
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning

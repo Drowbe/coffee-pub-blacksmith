@@ -146,22 +146,22 @@ function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
 #### AUTOMATION GROUP - ✅ HEADER ONLY
 - ✅ `headingH1Automation` - Main section header (migrated)
 
-- Movement Settings
-- ⏳ `movementTooFarDistance` - "Too Far" tiles
-- ⏳ `tokenSpacing` - Token spacing
-- ⏳ `movementType` - Current movement type (hidden setting)
-- ⏳ `movementSoundsEnabled` - Movement sounds enabled
-- ⏳ `movementSoundPlayer` - Movement sound player
-- ⏳ `movementSoundMonster` - Movement sound monster
-- ⏳ `movementSoundVolume` - Movement sound volume
-- ⏳ `movementSoundDistanceThreshold` - Movement sound distance threshold
+- ✅ Movement Settings
+- ✅ `movementFollowDistanceThreshold` - "Too Far" tiles
+- ✅ `tokenSpacing` - Token spacing
+- ✅ `movementType` - Current movement type (hidden setting)
+- ✅ `movementSoundsEnabled` - Movement sounds enabled
+- ✅ `movementSoundPlayer` - Movement sound player
+- ✅ `movementSoundMonster` - Movement sound monster
+- ✅ `movementSoundVolume` - Movement sound volume
+- ✅ `movementSoundDistanceThreshold` - Movement sound distance threshold
 
-- Token Nameplate Settings
-- ⏳ `nameplateStyle` - Nameplate style
-- ⏳ `nameplateTextSize` - Nameplate text size
-- ⏳ `nameplateTextColor` - Nameplate text color
-- ⏳ `nameplateOutlineSize` - Nameplate outline size
-- ⏳ `nameplateOutlineColor` - Nameplate outline color
+- ✅ Token Nameplate Settings
+- ✅ `nameplateStyle` - Nameplate style
+- ✅ `nameplateTextSize` - Nameplate text size
+- ✅ `nameplateTextColor` - Nameplate text color
+- ✅ `nameplateOutlineSize` - Nameplate outline size
+- ✅ `nameplateOutlineColor` - Nameplate outline color
 
 - Token Image Replacement Settings
 - ⏳ `tokenImageReplacementEnabled` - Token image replacement enabled
@@ -290,12 +290,12 @@ MAYBE THE TIMERS GO IN THE CAMPAING MANAGEMENT AREA?
 - ⏳ `turnIndicatorInnerOpacity` - Turn indicator inner fill opacity
 
 #### Encounter Settings
-- ⏳ `enableEncounterToolbar` - Enable encounter toolbar
+- ⏳ `enableJournalEncounterToolbar` - Enable encounter toolbar
 - ⏳ `encounterFolder` - Encounter folder
 - ⏳ `encounterToolbarDeploymentHidden` - Deployment hidden
 - ⏳ `encounterToolbarDeploymentPattern` - Deployment pattern
 - ⏳ `enableEncounterContentScanning` - Content scanning
-- ⏳ `enableEncounterToolbarRealTimeUpdates` - Real-time updates
+- ⏳ `enableJournalEncounterToolbarRealTimeUpdates` - Real-time updates
 
 #### Journal Settings
 - ⏳ `enableJournalTools` - Enable journal tools
@@ -326,6 +326,20 @@ MAYBE THE TIMERS GO IN THE CAMPAING MANAGEMENT AREA?
 
 #### Visual Divider Settings
 - ⏳ `headingHR` - Visual divider setting
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### Header Settings (Old Organization)
 - ⏳ `headingH3simpleEncounterSettings` - Automated encounter settings header
@@ -361,11 +375,6 @@ MAYBE THE TIMERS GO IN THE CAMPAING MANAGEMENT AREA?
 - ⏳ `headingH3RoundStats` - Round stats header
 - ⏳ `headingH3CombatStats` - Combat stats header
 - ⏳ `headingH2MovementSounds` - Movement sounds header
-
-
-
-
-
 
 ## CSS Compatibility
 
