@@ -204,6 +204,62 @@
   - `spellCompendium1-8` - Spell compendiums (8 settings)
 - **Notes**: This reduces code duplication and makes adding new compendium types easier
 
+### Enhance Compendium Choices with Type Filtering
+- **Issue**: Compendium choices should be filtered by type and made available to other modules
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings refactoring completion
+- **Current State**: Single `arrCompendiumChoices` array contains all compendiums regardless of type
+- **Location**: `scripts/settings.js` (`getCompendiumChoices()` function)
+- **Tasks Needed**:
+  - Modify `getCompendiumChoices()` to include type information in compendium data
+  - Create filtered arrays for each compendium type (Actor, Item, JournalEntry, Scene, etc.)
+  - Expose filtered arrays to other modules via `BLACKSMITH.updateValue()`
+  - Update compendium settings to use type-specific filtered arrays
+  - Test that other modules can access both full and filtered arrays
+  - Ensure backward compatibility with existing `arrCompendiumChoices`
+- **Proposed Enhancement**:
+  ```javascript
+  function getCompendiumChoices() {
+      // ... existing code ...
+      
+      // Store full data with type information
+      BLACKSMITH.updateValue('arrCompendiumChoicesData', choicesArray);
+      
+      // Store main choices (backward compatible)
+      BLACKSMITH.updateValue('arrCompendiumChoices', choices);
+      
+      // Create and store filtered arrays for each type
+      const types = [...new Set(choicesArray.map(c => c.type))];
+      types.forEach(type => {
+          const filteredChoices = choicesArray
+              .filter(compendium => compendium.type === type)
+              .reduce((choices, compendium) => {
+                  choices[compendium.id] = compendium.label;
+                  return choices;
+              }, {"none": "-- None --"});
+          
+          BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
+      });
+  }
+  ```
+- **Available Arrays for Other Modules**:
+  - `BLACKSMITH.arrCompendiumChoices` - Full array (backward compatible)
+  - `BLACKSMITH.arrCompendiumChoicesActor` - Actor compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesAdventure` - Adventure compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesCardStack` - Card Stack compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesItem` - Item compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesJournalEntry` - Journal Entry compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesMacro` - Macro compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesPlaylist` - Playlist compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesRollTable` - Rollable Table compendiums only
+  - `BLACKSMITH.arrCompendiumChoicesScene` - Scene compendiums only
+- **Settings Updates**:
+  - `monsterCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesActor`
+  - `itemCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesItem`
+  - `featureCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesJournalEntry`
+  - `spellCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesItem` (or appropriate type)
+- **Notes**: This provides better UX by showing only relevant compendiums per type while maintaining backward compatibility
+
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning
