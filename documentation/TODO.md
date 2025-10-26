@@ -153,6 +153,57 @@
   - `searchWorldFeaturesFirst` - Search world features first
 - **Notes**: This ensures users only see relevant compendiums for each type, improving UX and reducing confusion
 
+### Refactor Compendium Settings into Reusable Function
+- **Issue**: Compendium settings have repeated code patterns that could be consolidated
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Code quality and maintainability
+- **Current State**: Each compendium type (Actor, Item, Feature, Spell) has identical loop structures
+- **Location**: `scripts/settings.js` (compendium registration loops)
+- **Tasks Needed**:
+  - Create reusable function `registerCompendiumSettings(type, numCompendiums, group)`
+  - Replace repeated loops with function calls
+  - Ensure function handles different compendium types correctly
+  - Test that all compendium settings still work after refactoring
+  - Consider adding type-specific customization options
+  - Update any related logic that depends on the current structure
+- **Current Pattern**:
+  ```javascript
+  for (let i = 1; i <= numCompendiums; i++) {
+      game.settings.register(MODULE.ID, `{type}Compendium${i}`, {
+          name: `{Type}: Priority ${i}`,
+          hint: null,
+          scope: "world",
+          config: true,
+          requiresReload: false,
+          default: "none",
+          choices: BLACKSMITH.arrCompendiumChoices
+      });
+  }
+  ```
+- **Proposed Function**:
+  ```javascript
+  function registerCompendiumSettings(type, displayName, numCompendiums, group) {
+      for (let i = 1; i <= numCompendiums; i++) {
+          game.settings.register(MODULE.ID, `${type}Compendium${i}`, {
+              name: `${displayName}: Priority ${i}`,
+              hint: null,
+              scope: "world",
+              config: true,
+              requiresReload: false,
+              default: "none",
+              choices: BLACKSMITH.arrCompendiumChoices,
+              group: group
+          });
+      }
+  }
+  ```
+- **Related Settings**:
+  - `monsterCompendium1-8` - Actor compendiums (8 settings)
+  - `itemCompendium1-8` - Item compendiums (8 settings)
+  - `featureCompendium1-8` - Feature compendiums (8 settings)
+  - `spellCompendium1-8` - Spell compendiums (8 settings)
+- **Notes**: This reduces code duplication and makes adding new compendium types easier
+
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning
