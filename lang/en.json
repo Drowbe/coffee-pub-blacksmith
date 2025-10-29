@@ -148,8 +148,8 @@
 					"searchWorldActorsLast-Label": "Search World Actors Last",
 					"searchWorldActorsLast-Hint": "When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.",
 
-					"headingH3ItemCompendiums-Label": "Item Compendiums",
-					"headingH3ItemCompendiums-Hint": "These settings control how you to link items in the game.",
+				"headingH3ItemCompendiums-Label": "Item Compendiums",
+				"headingH3ItemCompendiums-Hint": "These settings control how you to link items in the game.",
 
 					"searchWorldItemsFirst-Label": "Search World Items First",
 					"searchWorldItemsFirst-Hint": "When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
@@ -157,12 +157,23 @@
 					"searchWorldItemsLast-Label": "Search World Items Last",
 					"searchWorldItemsLast-Hint": "When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.",
 
+				"headingH3FeatureCompendiums-Label": "Item Compendiums",
+				"headingH3FeatureCompendiums-Hint": "These settings control how you to link items in the game.",
 
+					"searchWorldFeaturesFirst-Label": "Search World Features First",
+					"searchWorldFeaturesFirst-Hint": "When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
+					"searchWorldFeaturesLast-Label": "Search World Features Last",
+					"searchWorldFeaturesLast-Hint": "When enabled, will search for features in the world after looking in compendiums if no results found. When disabled, will not search world features as fallback.",
 
+				"headingH3SpellCompendiums-Label": "Spell Compendiums",
+				"headingH3SpellCompendiums-Hint": "These settings control how you to link spells in the game.",
 
+					"searchWorldSpellsFirst-Label": "Search World Spells First",
+					"searchWorldSpellsFirst-Hint": "When enabled, will search for spells in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
-
+					"searchWorldSpellsLast-Label": "Search World Spells Last",
+					"searchWorldSpellsLast-Hint": "When enabled, will search for spells in the world after looking in compendiums if no results found. When disabled, will not search world spells as fallback.",
 
 	"headingH1RollingAndProgression-Label": "Rolling and Progression",
 	"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",

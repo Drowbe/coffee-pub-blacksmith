@@ -138,7 +138,7 @@ function getTokenImageReplacementCacheStats() {
 }
 
 // -- COMPENDIUM CHOICES  --
-function getCompendiumChoices() {
+async function getCompendiumChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
 
     const choicesArray = Array.from(game.packs.values()).map(compendium => {
@@ -189,6 +189,60 @@ function getCompendiumChoices() {
         return typeMap[type] || type;
     };
     
+    // Helper function to determine if a compendium contains specific item types
+    const getContentTypes = async (compendium) => {
+        const contentTypes = {
+            spell: false,
+            feat: false,
+            trait: false,
+            weapon: false,
+            equipment: false,
+            monster: false
+        };
+        
+        try {
+            const pack = game.packs.get(compendium.id);
+            if (!pack) return contentTypes;
+            
+            const index = await pack.getIndex();
+            if (!index || index.length === 0) return contentTypes;
+            
+            // If this is an Actor compendium, it contains monsters
+            if (compendium.type === 'Actor') {
+                contentTypes.monster = true;
+                return contentTypes;
+            }
+            
+            // If this is an Item compendium, check the types of items inside
+            if (compendium.type === 'Item') {
+                const itemTypes = [...new Set(index.map(item => item.type))];
+                
+                if (itemTypes.includes('spell')) contentTypes.spell = true;
+                if (itemTypes.includes('feat')) contentTypes.feat = true;
+                if (itemTypes.includes('trait')) contentTypes.trait = true;
+                if (itemTypes.includes('weapon')) contentTypes.weapon = true;
+                if (itemTypes.includes('equipment')) contentTypes.equipment = true;
+            }
+        } catch (error) {
+            // If we can't access the compendium, use label-based filtering as fallback
+            postConsoleAndNotification(MODULE.NAME, `Could not index compendium ${compendium.id}, using label-based filtering`, "", false, true);
+        }
+        
+        return contentTypes;
+    };
+    
+    // Build content type mapping for all compendiums
+    async function buildContentTypeMap() {
+        const contentTypeMap = new Map();
+        
+        for (const compendium of choicesArray) {
+            const contentTypes = await getContentTypes(compendium);
+            contentTypeMap.set(compendium.id, contentTypes);
+        }
+        
+        return contentTypeMap;
+    }
+    
     // Create and store filtered arrays for each type
     const types = [...new Set(choicesArray.map(c => c.type))];
     types.forEach(type => {
@@ -201,6 +255,42 @@ function getCompendiumChoices() {
         
         BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
     });
+    
+    // Build content type map and create smart-filtered arrays
+    const contentTypeMap = await buildContentTypeMap();
+    
+    const spellChoices = choicesArray
+        .filter(compendium => {
+            const contentTypes = contentTypeMap.get(compendium.id);
+            return contentTypes && contentTypes.spell;
+        })
+        .reduce((choices, compendium) => {
+            choices[compendium.id] = `Spells: ${compendium.label}`;
+            return choices;
+        }, {"none": "-- None --"});
+    BLACKSMITH.updateValue('arrSpellChoices', spellChoices);
+    
+    const featureChoices = choicesArray
+        .filter(compendium => {
+            const contentTypes = contentTypeMap.get(compendium.id);
+            return contentTypes && (contentTypes.feat || contentTypes.trait);
+        })
+        .reduce((choices, compendium) => {
+            choices[compendium.id] = `Features: ${compendium.label}`;
+            return choices;
+        }, {"none": "-- None --"});
+    BLACKSMITH.updateValue('arrFeatureChoices', featureChoices);
+    
+    const monsterChoices = choicesArray
+        .filter(compendium => {
+            const contentTypes = contentTypeMap.get(compendium.id);
+            return contentTypes && contentTypes.monster;
+        })
+        .reduce((choices, compendium) => {
+            choices[compendium.id] = `Monsters: ${compendium.label}`;
+            return choices;
+        }, {"none": "-- None --"});
+    BLACKSMITH.updateValue('arrMonsterChoices', monsterChoices);
     
     // Make the array available to these settings.
     return choices;
@@ -1036,7 +1126,7 @@ export const registerSettings = async () => {
 		registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
 		// --------------------------------------
-		// -- H3simple: Rotation
+		// -- H3simple: Actor Compendiums
 		// --------------------------------------
 		registerHeader('ActorCompendiums', 'headingH3ActorCompendiums-Label', 'headingH3ActorCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
@@ -1070,7 +1160,7 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoicesActor || "failed to load choices"
+			choices: BLACKSMITH.arrMonsterChoices ||  "failed to load choices"
 		});
 	}
 
@@ -1111,7 +1201,8 @@ export const registerSettings = async () => {
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices"
+			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices",
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
 	}
 
@@ -1123,86 +1214,82 @@ export const registerSettings = async () => {
 		config: true,
 		default: "",
 		type: String,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 	// ------------------------------------- 
 
-	// -- Search World Features First --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
-		name: 'Search World Features First',
-		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-		default: false,
-	});
+	// --------------------------------------
+	// -- H3simple: Feature Compendiums
+	// --------------------------------------
+	registerHeader('FeatureCompendiums', 'headingH3FeatureCompendiums-Label', 'headingH3FeatureCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
 
 	// -- Search World Features Last --
 	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
-		name: 'Search World Features Last',
-		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
-			type: Boolean,
-			config: true,
-			scope: 'world',
+		name: MODULE.ID + '.searchWorldFeaturesLast-Label',
+		hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
 		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
 	// -- Features Lookup Compendiums (up to 8) --
 	for (let i = 1; i <= numCompendiums; i++) {
 		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
-			name: `Feature Lookup ${i}`,
-			hint: `The #${i} compendium to use for feature linking. Searched in order. Set to 'None' to skip.`,
+			name: `Feature: Priority ${i}`,
+			hint: null,
 			scope: "world",
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoicesJournalEntry || "failed to load choices"
+			choices: BLACKSMITH.arrFeatureChoices || "failed to load choices",
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
 	}
 
 
-	// ---------- SPELL COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3SpellCompendiums", {
-		name: 'Spell Compendiums',
-		hint: 'These settings control how you to link spells in the game.',
-			scope: "world",
-			config: true,
-			default: "",
-			type: String,
-		});
-		// -------------------------------------
+
+	// --------------------------------------
+	// -- H3simple: Spell Compendiums
+	// --------------------------------------
+	registerHeader('SpellCompendiums', 'headingH3SpellCompendiums-Label', 'headingH3SpellCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
 
 	// -- Search World Spells First --
 	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
-		name: 'Search World Features First',
-		hint: 'When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+		name: MODULE.ID + '.searchWorldSpellsFirst-Label',
+		hint: MODULE.ID + '.searchWorldSpellsFirst-Hint',
 		type: Boolean,
 		config: true,
 		scope: 'world',
 		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
 	// -- Search World Spells Last --
 	game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
-		name: 'Search World Features Last',
-		hint: 'When enabled, will search for Features in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.',
+		name: MODULE.ID + '.searchWorldSpellsLast-Label',
+		hint: MODULE.ID + '.searchWorldSpellsLast-Hint',
 		type: Boolean,
 		config: true,
 		scope: 'world',
 		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
 	// -- Spell Lookup Compendiums (up to 8) --
 	for (let i = 1; i <= numCompendiums; i++) {
 		game.settings.register(MODULE.ID, `spellCompendium${i}` , {
-			name: `Spell Lookup ${i}`,
-			hint: `The #${i} compendium to use for spell linking. Searched in order. Set to 'None' to skip.`,
+			name: `Spells: Priority ${i}`,
+			hint: null,
 			scope: "world",
 			config: true,
 			requiresReload: false,
 			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices"
-		});
-	}
+			choices: BLACKSMITH.arrSpellChoices || "failed to load choices",
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+}
 
 
 
@@ -4694,4 +4781,3 @@ export const registerSettings = async () => {
 
 
 } // END OF "export const registerSettings"
-
