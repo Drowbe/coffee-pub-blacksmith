@@ -450,6 +450,34 @@
   - Integration with existing movement features
 - **Notes**: Should be subtle and non-intrusive, complementing existing movement sound features
 
+### Multiple Image Directories for Token Image Replacement
+- **Issue**: Token image replacement currently uses a single image directory
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement for image management
+- **Description**: Allow users to configure multiple image directories for token image replacement, enabling organization of images across different folders
+- **Requirements**:
+  1. **Multiple Directory Support**:
+     - Add settings to configure multiple image directories
+     - Allow users to specify priority order for directories
+     - Support both absolute and relative paths
+  2. **Search Behavior**:
+     - Search through directories in priority order
+     - First match found takes precedence
+     - Cache results to avoid repeated searches
+  3. **Directory Management**:
+     - Add/remove directories dynamically
+     - Reorder directories to change priority
+     - Validate directory paths exist
+  4. **Settings**:
+     - Toggle to enable/disable multiple directories
+     - Configure directory list
+     - Set priority order
+     - Option to search all directories or stop at first match
+- **Location**: `scripts/token-image-replacement.js`, `scripts/settings.js`
+- **Benefits**: Better image organization, support for modular image collections, easier management of large image libraries
+- **Challenges**: Managing search performance across multiple directories, cache invalidation when directories change
+- **Notes**: Should maintain backward compatibility with single directory setup
+
 ### No Initiative Mode
 - **Issue**: Alternative combat mode where GM manually controls turn order instead of initiative rolls
 - **Status**: FUTURE ENHANCEMENT - Design phase
