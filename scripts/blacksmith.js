@@ -39,7 +39,7 @@ import {
     copyToClipboard 
 } from './common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, getTokenImageReplacementCacheStats } from './settings.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
@@ -619,7 +619,7 @@ Hooks.once('init', async function() {
         description: 'Blacksmith: Clear settings cache when settings change',
         context: 'blacksmith-settings-cache',
         priority: 3, // Normal priority - cache management
-        callback: (moduleId, settingKey, value) => {
+        callback: async (moduleId, settingKey, value) => {
             //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
             
             if (moduleId === MODULE.ID) {
@@ -630,6 +630,14 @@ Hooks.once('init', async function() {
                 const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
                     buildSelectedCompendiumArrays();
+                }
+                
+                // Update cache stats heading when display cache status changes
+                if (settingKey === 'tokenImageReplacementDisplayCacheStatus') {
+                    const statsSetting = game.settings.settings.get(`${MODULE.ID}.headingH4tokenImageReplacementCacheStats`);
+                    if (statsSetting) {
+                        statsSetting.hint = getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)";
+                    }
                 }
             }
             

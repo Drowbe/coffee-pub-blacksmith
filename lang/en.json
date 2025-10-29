@@ -345,46 +345,72 @@
 
 
 
+			"headingH3TokenImageReplacementCache-Label": "Image Cache",
+			"headingH3TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+				"tokenImageReplacementCacheStats-Label": "Cache Status",
 
 				"tokenImageReplacementPath-Label": "Replacement Images Folder",
-				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/assets/images/tokens/FA_Tokens_Webp'. For core modules, use 'modules/module-name/assets/tokens'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 			
+				
+				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
-			
-				"tokenImageReplacementCacheStats-Label": "Cache Status",
-				"tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
-			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 				"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
 				"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
 			
 				"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
 				"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
 			
-				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, Build_a_Token, .DS_Store, temp, cache",
+
+
+
+
+
+
 			
 				"tokenImageReplacementCategoryStyle-Label": "Category Style",
 				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
 			
 				"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
 				"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -434,6 +460,40 @@
 
 	"headingH1ArtificialIntelligence-Label": "Artifical Intelligence",
 	"headingH1ArtificialIntelligence-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
+
+
+		"headingH3headingH2OpenAICore-Label": "Open AI Configuration",
+		"headingH3headingH2OpenAICore-Hint": "",
+
+			"openAIMacro-Label": "Macro",
+			"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
+
+
+			"openAIAPIKey-Label": "API Key",
+			"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
+
+			"openAIProjectId-Label": "OpenAI Project ID",
+			"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
+
+			"openAIModel-Label": "Model",
+			"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
+
+		"headingH3headingH2OpenAIContext-Label": "Context",
+		"headingH3headingH2OpenAIContext-Hint": "",
+
+
+			"openAIGameSystems-Label": "Game System",
+			"openAIGameSystems-Hint": "Optimize logic for the game system. Includes a default prompt that can be overridden below.",
+
+			"openAIPrompt-Label": "Custom Prompt",
+			"openAIPrompt-Hint": "Overrides prompt for the game system above. Edit the prompt to customize or refine OpenAI behavior.",
+
+
+			"openAIContextLength-Label": "Context Length",
+			"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",
+
+			"openAITemperature-Label": "Temperature",
+			"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
 
 
@@ -626,36 +686,18 @@
 
 
 
-	"headingH3headingH2OpenAICore-Label": "Open AI Information",
-	"headingH3headingH2OpenAICore-Hint": "Description",
-
-	"openAIMacro-Label": "Macro",
-	"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
 
 
-	"openAIAPIKey-Label": "API Key",
-	"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
 
-	"openAIModel-Label": "Model",
-	"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
 
-	"headingH3headingH2OpenAIContext-Label": "Context",
-	"headingH3headingH2OpenAIContext-Hint": "Description",
 
-	"openAIContextLength-Label": "Context Length",
-	"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",
 
-	"openAIGameSystems-Label": "Game System",
-	"openAIGameSystems-Hint": "Optimize logic for the game system, including OpenAI prompt.",
 
-	"openAIPrompt-Label": "Default Prompt",
-	"openAIPrompt-Hint": "Overrides prompt for the game system above. Set to customize or refine OpenAI behavior.",
 
-	"openAITemperature-Label": "Temperature",
-	"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
-	"openAIProjectId-Label": "OpenAI Project ID",
-	"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
+
+
+
 
 
 
@@ -727,12 +769,6 @@
 
 
 
-
-	"monsterCompendiumPrimary-Label": "Primary Monster Compendium",
-	"monsterCompendiumPrimary-Hint": "The primary monster compendium to use when linking monsters in new narratives. This is where we will look for a match first.",
-
-	"monsterCompendiumSecondary-Label": "Secondary Monster Compendium",
-	"monsterCompendiumSecondary-Hint": "The secondary monster compendium to use when linking monsters in new narratives. This is where we will look for a match if we don't find one in the primary compendium.",
 
 
 

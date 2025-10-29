@@ -1118,6 +1118,9 @@ export class ImageCacheManager {
                 await this._saveCacheToStorage();
             }
             
+            // Update the cache status setting for display
+            this._updateCacheStatusSetting();
+            
             // Check if we need incremental updates
             await this._checkForIncrementalUpdates(basePath);
             

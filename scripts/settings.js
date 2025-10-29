@@ -126,7 +126,7 @@ function checkInstalledModules() {
 }
 
 // -- CACHE STATUS
-function getTokenImageReplacementCacheStats() {
+export function getTokenImageReplacementCacheStats() {
 	// Read the current cache status from the setting
 	const strCacheStatus = game.settings.get(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus');
 	
@@ -2197,7 +2197,7 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		// -- H3: Image Replacement Cache
 		// --------------------------------------
-		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 		// Cache Status - HIDDEN SETTING
 		game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
@@ -2210,8 +2210,8 @@ export const registerSettings = async () => {
 
 		// Cache Stats
 		game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-			name: "Token Image Replacement",
-			hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
+			name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
+			hint: getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)", 
 			scope: "world",
 			config: true,
 			default: "",
@@ -2219,10 +2219,32 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.AUTOMATION
 		});
 
+
+		// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
+			name: 'Token Image Replacement Cache',
+			hint: 'Internal cache storage for token image replacement system (server-side)',
+			scope: 'world',
+			config: false, // Hidden from users - internal use only
+			type: String,
+			default: '',
+			requiresReload: false
+		});
+
+
+		// TOKEN IMAGE REPLACEMENT WINDOW STATE - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
 		// Image Replacement Folder
 		game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
-			name: 'Image Replacement Folder',
-			hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
+			name: MODULE.ID + '.tokenImageReplacementPath-Label',
+			hint: MODULE.ID + '.tokenImageReplacementPath-Hint',
 			type: String,
 			config: true,
 			requiresReload: false,
@@ -2235,31 +2257,35 @@ export const registerSettings = async () => {
 					console.log('Token image replacement path changed to:', value);
 				}
 			},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// IGNORED FOLDERS 
+		game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
+			name: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Label',
+			hint: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '.DS_Store',
+			requiresReload: true
+		});
+
+		// Automatically Update Image Cache
+		game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
+			name: 'Automatically Update Image Cache',
+			hint: 'Automatically scan for new or changed token images when changes are detected.',
+			type: Boolean,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: false,
 		});
 
 
 
 
-	// ---------- TOKEN IMAGE REPLACEMENT WINDOW STATE ----------
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
-		name: 'Token Image Replacement Window State',
-		hint: 'Stores the size and position of the Token Image Replacement window',
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {}
-	});
 
-	// ---------- TOKEN IMAGE REPLACEMENT IGNORED FOLDERS ----------
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
-		name: 'Token Image Replacement: Ignored Folders',
-		hint: 'Comma-separated list of folder names to ignore when scanning for token images (e.g., _gsdata_, Build_a_Token, .DS_Store)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '_gsdata_,Build_a_Token,.DS_Store',
-		requiresReload: true
-	});
 	// Deprioritized Words
 	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
 		name: 'Deprioritized Words',
@@ -2269,22 +2295,6 @@ export const registerSettings = async () => {
 		requiresReload: false,
 		scope: 'world',
 		default: 'spirit',
-	});
-	
-	// Tag Sort Mode
-	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
-		name: 'Tag Sort Mode',
-		hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'count': 'Count (by frequency)',
-			'alpha': 'Alpha (alphabetical)',
-			'hidden': 'Hidden (hide tags)'
-		},
-		default: 'count',
-		requiresReload: false
 	});
 	
 	// Ignored Words (File Exclusion)
@@ -2297,6 +2307,11 @@ export const registerSettings = async () => {
 		default: '',
 		requiresReload: true
 	});
+
+
+
+	
+
 	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
 		name: 'Token Image Replacement: Category Style',
@@ -2314,22 +2329,25 @@ export const registerSettings = async () => {
 
 
 
-	// CACHE SETTINGS
-
-	// Automatically Update Image Cache
-	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
-		name: 'Automatically Update Image Cache',
-		hint: 'Automatically scan for new or changed token images when changes are detected.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
+	// Tag Sort Mode
+	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
+		name: 'Tag Sort Mode',
+		hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
 		scope: 'world',
-		default: false,
+		config: true,
+		type: String,
+		choices: {
+			'count': 'Count (by frequency)',
+			'alpha': 'Alpha (alphabetical)',
+			'hidden': 'Hidden (hide tags)'
+		},
+		default: 'count',
+		requiresReload: false
 	});
 
 
 
-	// Fuzzy Search
+	// Fuzzy Search - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
 		name: 'Fuzzy Search',
 		hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
@@ -2342,16 +2360,7 @@ export const registerSettings = async () => {
 
 	
 
-	// Token Image Replacement Cache (server-side storage)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
-		name: 'Token Image Replacement Cache',
-		hint: 'Internal cache storage for token image replacement system (server-side)',
-		scope: 'world',
-		config: false, // Hidden from users - internal use only
-		type: String,
-		default: '',
-		requiresReload: false
-	});
+
 
 	// TOKEN DATA WEIGHTING
 
