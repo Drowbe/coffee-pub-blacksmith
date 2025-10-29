@@ -2199,6 +2199,28 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
+		// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
+			name: 'Token Image Replacement Cache',
+			hint: 'Internal cache storage for token image replacement system (server-side)',
+			scope: 'world',
+			config: false, // Hidden from users - internal use only
+			type: String,
+			default: '',
+			requiresReload: false
+		});
+
+
+		// TOKEN IMAGE REPLACEMENT WINDOW STATE - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+			scope: 'client',
+			config: false,
+			type: Object,
+			default: {},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+
 		// Cache Status - HIDDEN SETTING
 		game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
 			scope: 'world',
@@ -2220,26 +2242,6 @@ export const registerSettings = async () => {
 		});
 
 
-		// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
-		game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
-			name: 'Token Image Replacement Cache',
-			hint: 'Internal cache storage for token image replacement system (server-side)',
-			scope: 'world',
-			config: false, // Hidden from users - internal use only
-			type: String,
-			default: '',
-			requiresReload: false
-		});
-
-
-		// TOKEN IMAGE REPLACEMENT WINDOW STATE - HIDDEN SETTING
-		game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
-			scope: 'client',
-			config: false,
-			type: Object,
-			default: {},
-			group: WORKFLOW_GROUPS.AUTOMATION
-		});
 
 		// Image Replacement Folder
 		game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
@@ -2282,31 +2284,29 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
+		// Deprioritized Words
+		game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+			name: 'Deprioritized Words',
+			hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: 'spirit',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-
-
-
-	// Deprioritized Words
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-		name: 'Deprioritized Words',
-		hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'spirit',
-	});
-	
-	// Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
-		name: 'Ignored Words (File Exclusion)',
-		hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true
-	});
+		// Ignored Words (File Exclusion)
+		game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
+			name: 'Ignored Words (File Exclusion)',
+			hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
 
 
@@ -2726,22 +2726,6 @@ export const registerSettings = async () => {
 			default: 1,
 			group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
 		});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 		// ==================================================================================================================== 
 		// ==================================================================================================================== 

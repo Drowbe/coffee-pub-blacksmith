@@ -2606,18 +2606,24 @@ export class ImageCacheManager {
      * Check cache storage status
      */
     static getCacheStorageStatus() {
-        const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+        // Read from game.settings instead of localStorage
+        const savedCache = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
         if (!savedCache) {
             return { hasStoredCache: false, message: "No cache in storage" };
         }
         
         try {
-            const cacheData = JSON.parse(savedCache);
-        } catch (error) {
-        }
-        
-        try {
-            const cacheData = JSON.parse(savedCache);
+            // Try to decompress the cache data (handles both compressed and uncompressed data)
+            let decompressedCache;
+            try {
+                decompressedCache = this._decompressCacheData(savedCache);
+            } catch (decompressionError) {
+                // If decompression fails, try parsing as-is (might be uncompressed)
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Decompression failed, trying uncompressed format: ${decompressionError.message}`, "", true, false);
+                decompressedCache = savedCache;
+            }
+            
+            const cacheData = JSON.parse(decompressedCache);
             
             // Handle the case where lastScan is null, 0, or invalid
             let lastScanTime = cacheData.lastScan;
@@ -2631,12 +2637,15 @@ export class ImageCacheManager {
             // Cap the age display at a reasonable maximum (e.g., 9999 hours)
             const displayAge = Math.min(parseFloat(ageHours), 9999);
             
+            // Handle both compressed and uncompressed cache formats
+            const fileCount = cacheData.files?.length || cacheData.f?.length || 0;
+            
             return {
                 hasStoredCache: true,
-                fileCount: cacheData.files?.length || 0,
+                fileCount: fileCount,
                 lastScan: lastScanTime,
                 ageHours: displayAge,
-                message: `${cacheData.files?.length || 0} files, ${displayAge} hours old`
+                message: `${fileCount} files, ${displayAge} hours old`
             };
         } catch (error) {
             return { hasStoredCache: false, message: `Error reading cache: ${error.message}` };

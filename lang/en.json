@@ -1,118 +1,126 @@
 {
 	"coffee-pub-blacksmith": {
 
+	"SEPARATOR-GETTING-STARTED": "-------------------------------------------------------",
+
+	"headingH1GettingStarted-Label": "Getting Started",
+	"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
+
+		"headingH4Introduction-Label": "Introduction",
+		"headingH4Introduction-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
+
+		"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
+		"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
+
+		"headingH2DefaultPartySettings-Label": "Default Party Settings",
+		"headingH2DefaultPartySettings-Hint": "Default settings for party creation and management",
+
+		"defaultPartyName-Label": "Default Party Name",
+		"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
+
+		"defaultPartySize-Label": "Default Party Size", 
+		"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
+
+		"defaultPartyMakeup-Label": "Default Party Makeup",
+		"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
+
+		"defaultPartyLevel-Label": "Default Party Level",
+		"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
+
+		"defaultRulebooks-Label": "Default Rulebooks",
+		"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
+
+		
+
+	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",
 
 
-		"headingH1GettingStarted-Label": "Getting Started",
-		"headingH1GettingStarted-Hint": "Essential settings to get started with Coffee Pub Blacksmith",
-
-			"headingH4Introduction-Label": "Introduction",
-			"headingH4Introduction-Hint": "The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.",
-
-			"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
-			"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
-
-			"headingH2DefaultPartySettings-Label": "Default Party Settings",
-			"headingH2DefaultPartySettings-Hint": "Default settings for party creation and management",
-
-			"defaultPartyName-Label": "Default Party Name",
-			"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
-
-			"defaultPartySize-Label": "Default Party Size", 
-			"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
-
-			"defaultPartyMakeup-Label": "Default Party Makeup",
-			"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
-
-			"defaultPartyLevel-Label": "Default Party Level",
-			"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
-
-			"defaultRulebooks-Label": "Default Rulebooks",
-			"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
+	"headingH1LayoutAndExperience-Label": "User Experience",
+	"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
 
 
-		"headingH1LayoutAndExperience-Label": "User Experience",
-		"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
+		"headingH2Themes-Label": "Themes",
+		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
 	
+		"headingH3ThemeSelections-Label": "Theme Selections",
+		"headingH3ThemeSelections-Hint": "Description",
+	
+		"headingH3ThemeDefault-Label": "Theme Defaults",
+		"headingH3ThemeDefault-Hint": "Description",
 
-			"headingH2Themes-Label": "Themes",
-			"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
+		"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
+		"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
 		
-			"headingH3ThemeSelections-Label": "Theme Selections",
-			"headingH3ThemeSelections-Hint": "Description",
+		"headingH3QualityOfLife-Label": "Quality of Life",
+		"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
 		
-			"headingH3ThemeDefault-Label": "Theme Defaults",
-			"headingH3ThemeDefault-Hint": "Description",
+		"headingH3CanvasTools-Label": "Canvas Tools",
+		"headingH3CanvasTools-Hint": "Control which bits of the interface hide and show when toggled.",
 
-			"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
-			"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
-			
-			"headingH3QualityOfLife-Label": "Quality of Life",
-			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
-			
-			"headingH3CanvasTools-Label": "Canvas Tools",
-			"headingH3CanvasTools-Hint": "Control which bits of the interface hide and show when toggled.",
+		"canvasToolsHideLeftUI-Label": "Hide Left UI",
+		"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
-			"canvasToolsHideLeftUI-Label": "Hide Left UI",
-			"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
-
-			"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
-			"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+		"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
+		"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
 
-			"headingH3menubar-Label": "Blacksmith Menubar",
-			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+		"headingH3menubar-Label": "Blacksmith Menubar",
+		"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+	
+		"enableMenubar-Label": "Enable Menubar",
+		"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+	
+		"excludedUsersMenubar-Label": "Excluded Menubar Users",
+		"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+
+		"headingH3Toolbar-Label": "Toolbar",
+		"headingH3Toolbar-Hint": "Toolbar customization and display options",
 		
-			"enableMenubar-Label": "Enable Menubar",
-			"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+		"headingH3Windows-Label": "Windows",
+		"headingH3Windows-Hint": "Window styling and titlebar customization",
 		
-			"excludedUsersMenubar-Label": "Excluded Menubar Users",
-			"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+		"headingH3Scenes-Label": "Scenes",
+		"headingH3Scenes-Hint": "Scene layout and display customization",
 
-			"headingH3Toolbar-Label": "Toolbar",
-			"headingH3Toolbar-Hint": "Toolbar customization and display options",
-			
-			"headingH3Windows-Label": "Windows",
-			"headingH3Windows-Hint": "Window styling and titlebar customization",
-			
-			"headingH3Scenes-Label": "Scenes",
-			"headingH3Scenes-Hint": "Scene layout and display customization",
+		"objectLinkStyle-Label": "Object Link Style",
+		"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
-			"objectLinkStyle-Label": "Object Link Style",
-			"objectLinkStyle-Hint": "Styling for object links in chat and journals",
+		"hideRollTableIcon-Label": "Hide Roll Table Icon",
+		"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
 
-			"hideRollTableIcon-Label": "Hide Roll Table Icon",
-			"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
+		"toolbarShowDividers-Label": "Show Toolbar Dividers",
+		"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
 
-			"toolbarShowDividers-Label": "Show Toolbar Dividers",
-			"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
+		"toolbarShowLabels-Label": "Show Toolbar Labels",
+		"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
 
-			"toolbarShowLabels-Label": "Show Toolbar Labels",
-			"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
+		"titlebarTextSize-Label": "Titlebar Text Size",
+		"titlebarTextSize-Hint": "Size of text in window titlebars",
 
-			"titlebarTextSize-Label": "Titlebar Text Size",
-			"titlebarTextSize-Hint": "Size of text in window titlebars",
-
-			"titlebarIconSize-Label": "Titlebar Icon Size",
-			"titlebarIconSize-Hint": "Size of icons in window titlebars",
-			
-			"titlebarSpacing-Label": "TitlebarSpacing",
-			"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
-
-			"sceneTitlePadding-Label": "Scene Title Padding",
-			"sceneTitlePadding-Hint": "Padding around scene titles",
-
-			"scenePanelHeight-Label": "Scene Panel Height",
-			"scenePanelHeight-Hint": "Height of scene panels",
-
-			"headingH3JournalTools-Label": "Journal Tools",
-			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
-
-			"enableJournalTools-Label": "Enable Journal Tools",
-			"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+		"titlebarIconSize-Label": "Titlebar Icon Size",
+		"titlebarIconSize-Hint": "Size of icons in window titlebars",
 		
-			"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
-			"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
+		"titlebarSpacing-Label": "TitlebarSpacing",
+		"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
+
+		"sceneTitlePadding-Label": "Scene Title Padding",
+		"sceneTitlePadding-Hint": "Padding around scene titles",
+
+		"scenePanelHeight-Label": "Scene Panel Height",
+		"scenePanelHeight-Hint": "Height of scene panels",
+
+		"headingH3JournalTools-Label": "Journal Tools",
+		"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
+
+		"enableJournalTools-Label": "Enable Journal Tools",
+		"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+	
+		"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
+		"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
+
+
+	"SEPARATOR-RUN-THE-GAME": "-------------------------------------------------------",
+
 
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
@@ -127,10 +135,7 @@
 
 
 
-
-
-
-
+	"SEPARATOR-MANAGE-CONTENT": "-------------------------------------------------------",
 
 
 	"headingH1ManageContent-Label": "Manage Content",
@@ -186,11 +191,7 @@
 			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
 
 
-
-
-
-
-
+	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
 
 
 	"headingH1RollingAndProgression-Label": "Rolling and Progression",
@@ -206,9 +207,7 @@
 
 
 
-
-
-
+	"SEPARATOR-AUTOMATION": "-------------------------------------------------------",
 
 
 	"headingH1Automation-Label": "Automation",
@@ -363,57 +362,9 @@
 
 
 
-
-
-
-
-
-
-
-
-				"tokenImageReplacementRefreshCache-Label": "Refresh Cache on Next Load",
-				"tokenImageReplacementRefreshCache-Hint": "Refresh the token image replacement cache on next load. It will force the system to look for new or changed images.",
-			
-				"tokenImageReplacementClearCache-Label": "Clear Cache on Next Load",
-				"tokenImageReplacementClearCache-Hint": "Clear the token image replacement cache on next load. WARNING: It will have to rebuild the entire library.",
-			
-
-
-
-
-
-
 			
 				"tokenImageReplacementCategoryStyle-Label": "Category Style",
 				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
-			
-				"headingH4tokenImageReplacementCacheStats-Label": "Cache Status",
-				"headingH4tokenImageReplacementCacheStats-Hint": "Current status of the token image replacement cache.",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -443,19 +394,7 @@
 				"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+	"SEPARATOR-ARTIFICIAL-INTELLIGENCE": "-------------------------------------------------------",
 
 
 	"headingH1ArtificialIntelligence-Label": "Artifical Intelligence",
@@ -496,16 +435,7 @@
 			"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
 
 
-
-
-
-
-
-
-
-
-
-
+	"SEPARATOR-DEVELOPER-TOOLS": "-------------------------------------------------------",
 
 
 	"headingH1DeveloperTools-Label": "Developer Tools",
