@@ -626,8 +626,8 @@ Hooks.once('init', async function() {
                 clearSettingsCache();
                 
                 // Rebuild selected compendium arrays if compendium settings changed
-                // Match any numCompendiums* setting or any *Compendium{number} setting
-                const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+)$/;
+                // Match any numCompendiums* setting, any *Compendium{number} setting, or searchWorld*First/Last settings
+                const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
                     buildSelectedCompendiumArrays();
                 }

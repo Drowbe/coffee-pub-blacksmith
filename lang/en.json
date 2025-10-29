@@ -145,26 +145,45 @@
 			"headingH3ActorCompendiums-Label": "Actor Compendiums",
 			"headingH3ActorCompendiums-Hint": "",
 
+			"headingH3AdventureCompendiums-Label": "Adventure Compendiums",
+			"headingH3AdventureCompendiums-Hint": "",
+
+			"headingH3CardCompendiums-Label": "Card Compendiums",
+			"headingH3CardCompendiums-Hint": "",
+
+			"headingH3FeatureCompendiums-Label": "Feature Compendiums",
+			"headingH3FeatureCompendiums-Hint": "",
+
 			"headingH3ItemCompendiums-Label": "Item Compendiums",
 			"headingH3ItemCompendiums-Hint": "",
+
+			"headingH3JournalEntryCompendiums-Label": "Journal Entry Compendiums",
+			"headingH3JournalEntryCompendiums-Hint": "",
+
+			"headingH3MacroCompendiums-Label": "Macro Compendiums",
+			"headingH3MacroCompendiums-Hint": "",
+
+			"headingH3PlaylistCompendiums-Label": "Playlist Compendiums",
+			"headingH3PlaylistCompendiums-Hint": "",
+			
+			
+			"headingH3RollTableCompendiums-Label": "Roll Table Compendiums",
+			"headingH3RollTableCompendiums-Hint": "",
+
+			"headingH3SceneCompendiums-Label": "Scene Compendiums",
+			"headingH3SceneCompendiums-Hint": "",
 
 			"headingH3SpellCompendiums-Label": "Spell Compendiums",
 			"headingH3SpellCompendiums-Hint": "",
 
-			"headingH3FeatureCompendiums-Label": "Feature Compendiums",
-			"headingH3FeatureCompendiums-Hint": "",
+			"headingH3StackCompendiums-Label": "Stack Compendiums",
+			"headingH3StackCompendiums-Hint": "",
 
 			"searchWorldFirst-Label": "Search World First",
 			"searchWorldFirst-Hint": "When enabled, will search for matches in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
 			"searchWorldLast-Label": "Search World Last",
 			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
-
-
-
-
-
-
 
 
 
