@@ -296,6 +296,59 @@ async function getCompendiumChoices() {
     return choices;
 }
 
+/**
+ * Build arrays of selected/configured compendiums in priority order for each type
+ * These arrays contain only compendiums that are actually configured (not "none")
+ * Array position = Priority (index 0 = Priority 1, etc.)
+ */
+export function buildSelectedCompendiumArrays() {
+    // Actor/Monster compendiums
+    const numActor = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+    const selectedMonsters = [];
+    for (let i = 1; i <= numActor; i++) {
+        const compendiumId = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
+        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+            selectedMonsters.push(compendiumId);
+        }
+    }
+    BLACKSMITH.updateValue('arrSelectedMonsterCompendiums', selectedMonsters);
+    
+    // Item compendiums
+    const numItem = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+    const selectedItems = [];
+    for (let i = 1; i <= numItem; i++) {
+        const compendiumId = game.settings.get(MODULE.ID, `itemCompendium${i}`);
+        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+            selectedItems.push(compendiumId);
+        }
+    }
+    BLACKSMITH.updateValue('arrSelectedItemCompendiums', selectedItems);
+    
+    // Spell compendiums
+    const numSpell = game.settings.get(MODULE.ID, 'numCompendiumsSpell') || 1;
+    const selectedSpells = [];
+    for (let i = 1; i <= numSpell; i++) {
+        const compendiumId = game.settings.get(MODULE.ID, `spellCompendium${i}`);
+        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+            selectedSpells.push(compendiumId);
+        }
+    }
+    BLACKSMITH.updateValue('arrSelectedSpellCompendiums', selectedSpells);
+    
+    // Feature compendiums
+    const numFeature = game.settings.get(MODULE.ID, 'numCompendiumsFeature') || 1;
+    const selectedFeatures = [];
+    for (let i = 1; i <= numFeature; i++) {
+        const compendiumId = game.settings.get(MODULE.ID, `featuresCompendium${i}`);
+        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+            selectedFeatures.push(compendiumId);
+        }
+    }
+    BLACKSMITH.updateValue('arrSelectedFeatureCompendiums', selectedFeatures);
+    
+    postConsoleAndNotification(MODULE.NAME, "Selected compendium arrays updated", "", false, false);
+}
+
 // -- TABLE CHOICES  --
 function getTableChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Table List...", "", false, false);
@@ -4831,6 +4884,7 @@ export const registerSettings = async () => {
 
 
 
-
+	// Build selected compendium arrays after all settings are registered
+	buildSelectedCompendiumArrays();
 
 } // END OF "export const registerSettings"

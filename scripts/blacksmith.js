@@ -39,7 +39,7 @@ import {
     copyToClipboard 
 } from './common.js';
 // -- Import special page variables --
-import { registerSettings } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays } from './settings.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
@@ -624,6 +624,12 @@ Hooks.once('init', async function() {
             
             if (moduleId === MODULE.ID) {
                 clearSettingsCache();
+                
+                // Rebuild selected compendium arrays if compendium settings changed
+                const compendiumSettingPattern = /^(numCompendiums|monsterCompendium|itemCompendium|spellCompendium|featuresCompendium)/;
+                if (compendiumSettingPattern.test(settingKey)) {
+                    buildSelectedCompendiumArrays();
+                }
             }
             
             //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
