@@ -2088,50 +2088,43 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
 
+		// Cache Status - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
+			scope: 'world',
+			config: false,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
+		// Cache Stats
+		game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+			name: "Token Image Replacement",
+			hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
+			scope: "world",
+			config: true,
+			default: "",
+			type: String,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-
-
-
-
-
-
-
-
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
-        scope: 'world',
-        config: false,
-        type: String,
-        default: ''
-    });
-
-	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: "Token Image Replacement",
-		hint: "Cache Status: " + getTokenImageReplacementCacheStats() + ". (Updated on client load.)", 
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-
-	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
-		name: 'Image Replacement Folder',
-		hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: '',
-		onChange: (value) => {
-			// Trigger cache rebuild when path changes
-			if (value && game.modules.get(MODULE.ID)?.active) {
-				// We'll implement this in Phase 2
-				console.log('Token image replacement path changed to:', value);
-			}
-		}
-	});
+		// Image Replacement Folder
+		game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
+			name: 'Image Replacement Folder',
+			hint: 'Base folder path containing replacement token images. This folder will be scanned for matching images. Use Foundry relative paths like: assets/images/tokens/FA_Tokens_Webp',
+			type: String,
+			config: true,
+			requiresReload: false,
+			scope: 'world',
+			default: '',
+			onChange: (value) => {
+				// Trigger cache rebuild when path changes
+				if (value && game.modules.get(MODULE.ID)?.active) {
+					// We'll implement this in Phase 2
+					console.log('Token image replacement path changed to:', value);
+				}
+			},
+		});
 
 
 

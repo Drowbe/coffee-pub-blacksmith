@@ -175,6 +175,19 @@
 					"searchWorldSpellsLast-Label": "Search World Spells Last",
 					"searchWorldSpellsLast-Hint": "When enabled, will search for spells in the world after looking in compendiums if no results found. When disabled, will not search world spells as fallback.",
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 	"headingH1RollingAndProgression-Label": "Rolling and Progression",
 	"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
 
@@ -324,6 +337,13 @@
 			
 				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
 				"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
+
+				
+
+
+
+
+
 
 
 
